@@ -1,0 +1,43 @@
+import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer } from '../types';
+export declare class PostgresDatabase {
+    private pool;
+    constructor();
+    private initTables;
+    private runMigrations;
+    private createDefaultAdmin;
+    getUserByUsername(username: string): Promise<User | null>;
+    getUserById(id: string): Promise<User | null>;
+    createUser(user: User): Promise<void>;
+    updateUser(user: User): Promise<void>;
+    deleteUser(id: string): Promise<void>;
+    getUsers(): Promise<User[]>;
+    getVehicles(): Promise<Vehicle[]>;
+    getVehicle(id: string): Promise<Vehicle | null>;
+    createVehicle(vehicle: Vehicle): Promise<void>;
+    updateVehicle(vehicle: Vehicle): Promise<void>;
+    deleteVehicle(id: string): Promise<void>;
+    getRentals(): Promise<Rental[]>;
+    createRental(rental: Rental): Promise<void>;
+    getRental(id: string): Promise<Rental | null>;
+    updateRental(rental: Rental): Promise<void>;
+    deleteRental(id: string): Promise<void>;
+    getCustomers(): Promise<Customer[]>;
+    createCustomer(customer: Customer): Promise<void>;
+    updateCustomer(customer: Customer): Promise<void>;
+    deleteCustomer(id: string): Promise<void>;
+    getExpenses(): Promise<Expense[]>;
+    createExpense(expense: Expense): Promise<void>;
+    updateExpense(expense: Expense): Promise<void>;
+    deleteExpense(id: string): Promise<void>;
+    getInsurances(): Promise<Insurance[]>;
+    createInsurance(insurance: Insurance): Promise<void>;
+    getCompanies(): Promise<Company[]>;
+    createCompany(company: Company): Promise<void>;
+    deleteCompany(id: string): Promise<void>;
+    getInsurers(): Promise<Insurer[]>;
+    createInsurer(insurer: Insurer): Promise<void>;
+    deleteInsurer(id: string): Promise<void>;
+    close(): Promise<void>;
+}
+export declare const postgresDatabase: PostgresDatabase;
+//# sourceMappingURL=postgres-database.d.ts.map

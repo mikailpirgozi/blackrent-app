@@ -1,0 +1,44 @@
+import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer } from '../types';
+export declare class Database {
+    private db;
+    private backupDir;
+    constructor();
+    private startDailyBackup;
+    private createAutoBackup;
+    private cleanupOldBackups;
+    private initTables;
+    getVehicles(): Promise<Vehicle[]>;
+    getVehicle(id: string): Promise<Vehicle | null>;
+    createVehicle(vehicle: Vehicle): Promise<void>;
+    updateVehicle(vehicle: Vehicle): Promise<void>;
+    deleteVehicle(id: string): Promise<void>;
+    getRentals(): Promise<Rental[]>;
+    getRental(id: string): Promise<Rental | null>;
+    createRental(rental: Rental): Promise<void>;
+    updateRental(rental: Rental): Promise<void>;
+    deleteRental(id: string): Promise<void>;
+    getCustomers(): Promise<Customer[]>;
+    createCustomer(customer: Customer): Promise<void>;
+    updateCustomer(customer: Customer): Promise<void>;
+    deleteCustomer(id: string): Promise<void>;
+    getExpenses(): Promise<Expense[]>;
+    createExpense(expense: Expense): Promise<void>;
+    getInsurances(): Promise<Insurance[]>;
+    createInsurance(insurance: Insurance): Promise<void>;
+    getUserByUsername(username: string): Promise<User | null>;
+    getUserById(id: string): Promise<User | null>;
+    getUserByEmail(email: string): Promise<User | null>;
+    createUser(user: User): Promise<void>;
+    updateUser(user: User): Promise<void>;
+    deleteUser(id: string): Promise<void>;
+    getUsers(): Promise<User[]>;
+    getCompanies(): Promise<Company[]>;
+    createCompany(company: Company): Promise<void>;
+    deleteCompany(id: string): Promise<void>;
+    getInsurers(): Promise<Insurer[]>;
+    createInsurer(insurer: Insurer): Promise<void>;
+    deleteInsurer(id: string): Promise<void>;
+    close(): void;
+}
+export declare const database: Database;
+//# sourceMappingURL=database.d.ts.map

@@ -1,0 +1,6 @@
+id,name,email,phone,createdAt
+"c1","Ján Novák","jan.novak@email.com","0901234567","2024-01-15"
+"c2","Mária Svobodová","maria.svobodova@email.com","0917654321","2024-01-20"
+"c3","Peter Kováč","peter.kovac@email.com","0905555555","2024-02-01"
+"c4","Eva Nováková","eva.novakova@email.com","0911111111","2024-02-10"
+"c5","Tomáš Horný","tomas.horny@email.com","0922222222","2024-02-15" 
