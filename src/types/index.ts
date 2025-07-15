@@ -185,4 +185,121 @@ export interface ApiResponse<T = any> {
   data?: T;
   message?: string;
   error?: string;
+}
+
+// Protokoly
+export interface ProtocolImage {
+  id: string;
+  url: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  compressedUrl?: string;
+  compressedSize?: number;
+  category: 'vehicle' | 'documents' | 'damage';
+  description?: string;
+}
+
+export interface ProtocolVideo {
+  id: string;
+  url: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  compressedUrl?: string;
+  compressedSize?: number;
+  thumbnailUrl?: string;
+  duration?: number;
+  description?: string;
+}
+
+export interface ProtocolDamage {
+  id: string;
+  description: string;
+  severity: 'minor' | 'moderate' | 'major';
+  location: string;
+  images: string[]; // IDs of ProtocolImage
+  isExisting?: boolean; // true ak už existovalo v handover protokole
+}
+
+export interface HandoverProtocol {
+  id: string;
+  rentalId: string;
+  rental?: Rental;
+  createdAt: Date;
+  createdBy: string; // user ID
+  customerSignature: string; // base64 encoded signature
+  employeeSignature?: string; // base64 encoded signature
+  signedAt: Date;
+  signedLocation: string;
+  
+  // Stav vozidla pri odovzdávaní
+  vehicleCondition: string;
+  fuelLevel?: number; // 0-100%
+  kmReading?: number;
+  keysCounted?: number;
+  
+  // Prílohy
+  images: ProtocolImage[];
+  videos: ProtocolVideo[];
+  damages: ProtocolDamage[];
+  
+  // Dokumenty
+  documentsSigned?: boolean;
+  
+  // Metadáta
+  notes?: string;
+  handoverPlace: string;
+  
+  // PDF a email
+  pdfGenerated: boolean;
+  pdfUrl?: string;
+  emailSent: boolean;
+  emailSentAt?: Date;
+}
+
+export interface ReturnProtocol {
+  id: string;
+  rentalId: string;
+  handoverProtocolId: string;
+  rental?: Rental;
+  handoverProtocol?: HandoverProtocol;
+  createdAt: Date;
+  createdBy: string; // user ID
+  customerSignature: string; // base64 encoded signature
+  signedAt: Date;
+  signedLocation: string;
+  
+  // Stav vozidla pri vrátení
+  vehicleCondition: string;
+  fuelLevel: number; // 0-100%
+  kmReading: number;
+  kmOverage?: number; // počet km nad limit
+  kmSurchargeAmount?: number; // suma doplatku za km
+  
+  // Prílohy
+  images: ProtocolImage[];
+  videos: ProtocolVideo[];
+  damages: ProtocolDamage[];
+  newDamages: ProtocolDamage[]; // nové poškodenia oproti handover
+  
+  // Metadáta
+  notes?: string;
+  returnPlace: string;
+  
+  // Financie
+  additionalCharges?: {
+    fuel?: number;
+    damages?: number;
+    cleaning?: number;
+    other?: number;
+  };
+  depositRefunded?: boolean;
+  depositRefundAmount?: number;
+  
+  // PDF a email
+  pdfGenerated: boolean;
+  pdfUrl?: string;
+  emailSent: boolean;
+  emailSentAt?: Date;
 } 

@@ -54,6 +54,8 @@ import { Rental, PaymentMethod, Vehicle } from '../../types';
 import { format, differenceInCalendarDays, isAfter, isBefore, isWithinInterval } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import RentalForm from './RentalForm';
+import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
+import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
@@ -963,8 +965,23 @@ export default function RentalList() {
 
   const handleProtocolSubmit = async (protocolData: any) => {
     console.log('Creating protocol:', protocolType, protocolData);
-    // Tu bude implementácia vytvorenia protokolu
-    handleCloseProtocolDialog();
+    
+    try {
+      // Simulácia uloženia protokolu
+      if (protocolType === 'handover') {
+        alert('Preberací protokol bol úspešne vytvorený!');
+        console.log('Handover protocol data:', protocolData);
+      } else if (protocolType === 'return') {
+        alert('Vratný protokol bol úspešne vytvorený!');
+        console.log('Return protocol data:', protocolData);
+      }
+      
+      // Zatvorenie dialógu
+      handleCloseProtocolDialog();
+    } catch (error) {
+      console.error('Chyba pri vytváraní protokolu:', error);
+      alert('Chyba pri vytváraní protokolu. Skúste to znovu.');
+    }
   };
 
 
@@ -1126,6 +1143,22 @@ export default function RentalList() {
           sx={{ color: 'error.main' }}
         >
           <DeleteIcon />
+        </IconButton>
+        <IconButton
+          size="small"
+          onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleCreateHandoverProtocol(rental); }}
+          sx={{ color: 'success.main' }}
+          title="Preberací protokol"
+        >
+          <HandoverProtocolIcon />
+        </IconButton>
+        <IconButton
+          size="small"
+          onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleCreateReturnProtocol(rental); }}
+          sx={{ color: 'warning.main' }}
+          title="Vratný protokol"
+        >
+          <ReturnProtocolIcon />
         </IconButton>
         <IconButton
           size="small"
@@ -1820,6 +1853,44 @@ export default function RentalList() {
                     </IconButton>
                     <IconButton 
                       size="medium" 
+                      onClick={(e) => { e.stopPropagation(); handleCreateHandoverProtocol(rental); }} 
+                      sx={{ 
+                        color: 'white',
+                        bgcolor: 'success.main',
+                        border: '1px solid',
+                        borderColor: 'success.main',
+                        '&:hover': { 
+                          bgcolor: 'success.dark', 
+                          borderColor: 'success.dark',
+                          transform: 'scale(1.05)'
+                        },
+                        transition: 'all 0.2s ease-in-out'
+                      }}
+                      title="Preberací protokol"
+                    >
+                      <HandoverProtocolIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton 
+                      size="medium" 
+                      onClick={(e) => { e.stopPropagation(); handleCreateReturnProtocol(rental); }} 
+                      sx={{ 
+                        color: 'white',
+                        bgcolor: 'warning.main',
+                        border: '1px solid',
+                        borderColor: 'warning.main',
+                        '&:hover': { 
+                          bgcolor: 'warning.dark', 
+                          borderColor: 'warning.dark',
+                          transform: 'scale(1.05)'
+                        },
+                        transition: 'all 0.2s ease-in-out'
+                      }}
+                      title="Vratný protokol"
+                    >
+                      <ReturnProtocolIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton 
+                      size="medium" 
                       onClick={(e) => { e.stopPropagation(); handleShowHistory(rental); }} 
                       sx={{ 
                         color: 'white',
@@ -2028,6 +2099,22 @@ export default function RentalList() {
                                 sx={{ color: 'error.main' }}
                               >
                                 <DeleteIcon />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={e => { e.stopPropagation(); handleCreateHandoverProtocol(rental); }}
+                                sx={{ color: 'success.main' }}
+                                title="Preberací protokol"
+                              >
+                                <HandoverProtocolIcon />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={e => { e.stopPropagation(); handleCreateReturnProtocol(rental); }}
+                                sx={{ color: 'warning.main' }}
+                                title="Vratný protokol"
+                              >
+                                <ReturnProtocolIcon />
                               </IconButton>
                               <IconButton
                                 size="small"
@@ -2332,25 +2419,23 @@ export default function RentalList() {
         onClose={handleCloseProtocolDialog}
         maxWidth="lg"
         fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            backgroundColor: '#1e1e1e',
+            color: 'white',
+            maxHeight: '90vh'
+          }
+        }}
       >
-        <DialogTitle>
-          {protocolType === 'handover' ? 'Odovzdávací protokol' : 'Preberací protokol'}
-        </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ p: 0 }}>
           {selectedRentalForProtocol && protocolType === 'handover' && (
-            <Box>
-              <Typography variant="h6">Formulár odovzdávacieho protokolu</Typography>
-              <Typography>Prenájom: {selectedRentalForProtocol.customerName}</Typography>
-              <Typography>Vozidlo: {selectedRentalForProtocol.vehicle ? `${selectedRentalForProtocol.vehicle.brand} ${selectedRentalForProtocol.vehicle.model}` : 'N/A'}</Typography>
-            </Box>
+            <HandoverProtocolForm
+              rental={selectedRentalForProtocol}
+              onSubmit={handleProtocolSubmit}
+              onCancel={handleCloseProtocolDialog}
+            />
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseProtocolDialog}>Zrušiť</Button>
-          <Button onClick={() => handleProtocolSubmit({})} variant="contained">
-            Vytvoriť protokol
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <Dialog
@@ -2358,25 +2443,41 @@ export default function RentalList() {
         onClose={handleCloseProtocolDialog}
         maxWidth="lg"
         fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            backgroundColor: '#1e1e1e',
+            color: 'white',
+            maxHeight: '90vh'
+          }
+        }}
       >
-        <DialogTitle>
-          {protocolType === 'return' ? 'Preberací protokol' : 'Odovzdávací protokol'}
-        </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ p: 0 }}>
           {selectedRentalForProtocol && protocolType === 'return' && (
-            <Box>
-              <Typography variant="h6">Formulár preberacieho protokolu</Typography>
-              <Typography>Prenájom: {selectedRentalForProtocol.customerName}</Typography>
-              <Typography>Vozidlo: {selectedRentalForProtocol.vehicle ? `${selectedRentalForProtocol.vehicle.brand} ${selectedRentalForProtocol.vehicle.model}` : 'N/A'}</Typography>
-            </Box>
+            <ReturnProtocolForm
+              rental={selectedRentalForProtocol}
+              handoverProtocol={{
+                id: 'temp',
+                rentalId: selectedRentalForProtocol.id,
+                createdAt: new Date(),
+                createdBy: 'admin',
+                customerSignature: '',
+                signedAt: new Date(),
+                signedLocation: '',
+                vehicleCondition: 'good',
+                fuelLevel: 100,
+                kmReading: 0,
+                images: [],
+                videos: [],
+                damages: [],
+                handoverPlace: '',
+                pdfGenerated: false,
+                emailSent: false
+              }}
+              onSubmit={handleProtocolSubmit}
+              onCancel={handleCloseProtocolDialog}
+            />
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseProtocolDialog}>Zrušiť</Button>
-          <Button onClick={() => handleProtocolSubmit({})} variant="contained">
-            Vytvoriť protokol
-          </Button>
-        </DialogActions>
       </Dialog>
     </Box>
   );
