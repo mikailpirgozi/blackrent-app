@@ -65,7 +65,7 @@ app.use('/api/insurers', insurersRouter);
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
   // Serve static files from React build
-  app.use(express.static(path.join(__dirname, '../public')));
+  app.use(express.static(path.join(__dirname, '../build')));
   
   // Handle React routing, return all requests to React app
   app.get('*', (req, res) => {
@@ -77,7 +77,7 @@ if (process.env.NODE_ENV === 'production') {
       });
     }
     
-    res.sendFile(path.join(__dirname, '../public', 'index.html'));
+    res.sendFile(path.join(__dirname, '../build', 'index.html'));
   });
 }
 

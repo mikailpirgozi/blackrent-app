@@ -20,6 +20,9 @@ WORKDIR /blackrent-app/backend
 # Install backend dependencies
 RUN npm install
 
+# Build TypeScript backend
+RUN npm run build
+
 # Copy built frontend to backend build directory
 RUN cp -r ../build ./build
 
@@ -29,5 +32,5 @@ EXPOSE 5001
 # Set environment variables
 ENV NODE_ENV=production
 
-# Start the application using npm start which runs "node src/index.js"
-CMD ["npm", "start"] 
+# Start the application using compiled TypeScript
+CMD ["node", "dist/index.js"] 
