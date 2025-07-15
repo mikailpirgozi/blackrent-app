@@ -52,36 +52,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// API routes
-app.use('/api/auth', authRouter);
-app.use('/api/vehicles', vehiclesRouter);
-app.use('/api/rentals', rentalsRouter);
-app.use('/api/expenses', expensesRouter);
-app.use('/api/insurances', insurancesRouter);
-app.use('/api/customers', customersRouter);
-app.use('/api/companies', companiesRouter);
-app.use('/api/insurers', insurersRouter);
-
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  // Serve static files from React build
-  app.use(express.static(path.join(__dirname, '../build')));
-  
-  // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
-    // Skip API routes
-    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
-      return res.status(404).json({
-        success: false,
-        error: 'API endpoint nenájdený'
-      });
-    }
-    
-    res.sendFile(path.join(__dirname, '../build', 'index.html'));
-  });
-}
-
-// Health check endpoint
+// Health check endpoint (must be before other routes)
 app.get('/health', (req, res) => {
   res.json({
     success: true,
@@ -102,6 +73,35 @@ app.get('/api/health', (req, res) => {
     uptime: process.uptime()
   });
 });
+
+// API routes
+app.use('/api/auth', authRouter);
+app.use('/api/vehicles', vehiclesRouter);
+app.use('/api/rentals', rentalsRouter);
+app.use('/api/expenses', expensesRouter);
+app.use('/api/insurances', insurancesRouter);
+app.use('/api/customers', customersRouter);
+app.use('/api/companies', companiesRouter);
+app.use('/api/insurers', insurersRouter);
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from React build
+  app.use(express.static(path.join(__dirname, '../build')));
+  
+  // Handle React routing, return all requests to React app
+  app.get('*', (req, res) => {
+    // Skip API routes and health check
+    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+      return res.status(404).json({
+        success: false,
+        error: 'API endpoint nenájdený'
+      });
+    }
+    
+    res.sendFile(path.join(__dirname, '../build', 'index.html'));
+  });
+}
 
 // Error handling middleware
 app.use((err: any, req: any, res: any, next: any) => {
