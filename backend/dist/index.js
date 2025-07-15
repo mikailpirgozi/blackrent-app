@@ -15,10 +15,11 @@ const insurances_1 = __importDefault(require("./routes/insurances"));
 const customers_1 = __importDefault(require("./routes/customers"));
 const companies_1 = __importDefault(require("./routes/companies"));
 const insurers_1 = __importDefault(require("./routes/insurers"));
+const protocols_1 = __importDefault(require("./routes/protocols"));
 // Načítanie environment premenných
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 8080;
 // Middleware
 const allowedOrigins = [
     'http://localhost:3000',
@@ -49,32 +50,7 @@ app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
     next();
 });
-// API routes
-app.use('/api/auth', auth_1.default);
-app.use('/api/vehicles', vehicles_1.default);
-app.use('/api/rentals', rentals_1.default);
-app.use('/api/expenses', expenses_1.default);
-app.use('/api/insurances', insurances_1.default);
-app.use('/api/customers', customers_1.default);
-app.use('/api/companies', companies_1.default);
-app.use('/api/insurers', insurers_1.default);
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-    // Serve static files from React build
-    app.use(express_1.default.static(path_1.default.join(__dirname, '../public')));
-    // Handle React routing, return all requests to React app
-    app.get('*', (req, res) => {
-        // Skip API routes
-        if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
-            return res.status(404).json({
-                success: false,
-                error: 'API endpoint nenájdený'
-            });
-        }
-        res.sendFile(path_1.default.join(__dirname, '../public', 'index.html'));
-    });
-}
-// Health check endpoint
+// Health check endpoint (must be before other routes)
 app.get('/health', (req, res) => {
     res.json({
         success: true,
@@ -94,6 +70,32 @@ app.get('/api/health', (req, res) => {
         uptime: process.uptime()
     });
 });
+// API routes
+app.use('/api/auth', auth_1.default);
+app.use('/api/vehicles', vehicles_1.default);
+app.use('/api/rentals', rentals_1.default);
+app.use('/api/expenses', expenses_1.default);
+app.use('/api/insurances', insurances_1.default);
+app.use('/api/customers', customers_1.default);
+app.use('/api/companies', companies_1.default);
+app.use('/api/insurers', insurers_1.default);
+app.use('/api/protocols', protocols_1.default);
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+    // Serve static files from React build
+    app.use(express_1.default.static(path_1.default.join(__dirname, '../build')));
+    // Handle React routing, return all requests to React app
+    app.get('*', (req, res) => {
+        // Skip API routes and health check
+        if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+            return res.status(404).json({
+                success: false,
+                error: 'API endpoint nenájdený'
+            });
+        }
+        res.sendFile(path_1.default.join(__dirname, '../build', 'index.html'));
+    });
+}
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err);

@@ -10,6 +10,7 @@ import insurancesRouter from './routes/insurances';
 import customersRouter from './routes/customers';
 import companiesRouter from './routes/companies';
 import insurersRouter from './routes/insurers';
+import protocolsRouter from './routes/protocols';
 
 // Načítanie environment premenných
 dotenv.config();
@@ -83,6 +84,7 @@ app.use('/api/insurances', insurancesRouter);
 app.use('/api/customers', customersRouter);
 app.use('/api/companies', companiesRouter);
 app.use('/api/insurers', insurersRouter);
+app.use('/api/protocols', protocolsRouter);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {

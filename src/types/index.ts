@@ -191,115 +191,169 @@ export interface ApiResponse<T = any> {
 export interface ProtocolImage {
   id: string;
   url: string;
-  originalName: string;
-  size: number;
-  mimeType: string;
-  compressedUrl?: string;
-  compressedSize?: number;
-  category: 'vehicle' | 'documents' | 'damage';
+  type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer';
   description?: string;
+  timestamp: Date;
+  compressed?: boolean;
+  originalSize?: number;
+  compressedSize?: number;
 }
 
 export interface ProtocolVideo {
   id: string;
   url: string;
-  originalName: string;
-  size: number;
-  mimeType: string;
-  compressedUrl?: string;
-  compressedSize?: number;
-  thumbnailUrl?: string;
-  duration?: number;
+  type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer';
   description?: string;
+  timestamp: Date;
+  compressed?: boolean;
+  originalSize?: number;
+  compressedSize?: number;
+  duration?: number;
 }
 
 export interface ProtocolDamage {
   id: string;
   description: string;
-  severity: 'minor' | 'moderate' | 'major';
+  severity: 'low' | 'medium' | 'high';
+  images: ProtocolImage[];
   location: string;
-  images: string[]; // IDs of ProtocolImage
-  isExisting?: boolean; // true ak už existovalo v handover protokole
+  timestamp: Date;
+  fromPreviousProtocol?: boolean;
+}
+
+export interface ProtocolSignature {
+  id: string;
+  signature: string; // base64 encoded signature
+  signerName: string;
+  signerRole: 'customer' | 'employee';
+  timestamp: Date;
+  location: string;
+  ipAddress?: string;
+}
+
+export interface VehicleCondition {
+  odometer: number;
+  fuelLevel: number; // percentage 0-100
+  fuelType: 'gasoline' | 'diesel' | 'electric' | 'hybrid';
+  exteriorCondition: string;
+  interiorCondition: string;
+  notes?: string;
 }
 
 export interface HandoverProtocol {
   id: string;
   rentalId: string;
-  rental?: Rental;
+  rental: Rental;
+  
+  // Basic info
+  type: 'handover';
+  status: 'draft' | 'completed' | 'cancelled';
   createdAt: Date;
-  createdBy: string; // user ID
-  customerSignature: string; // base64 encoded signature
-  employeeSignature?: string; // base64 encoded signature
-  signedAt: Date;
-  signedLocation: string;
+  completedAt?: Date;
+  location: string;
   
-  // Stav vozidla pri odovzdávaní
-  vehicleCondition: string;
-  fuelLevel?: number; // 0-100%
-  kmReading?: number;
-  keysCounted?: number;
+  // Vehicle condition
+  vehicleCondition: VehicleCondition;
   
-  // Prílohy
-  images: ProtocolImage[];
-  videos: ProtocolVideo[];
+  // Media
+  vehicleImages: ProtocolImage[];
+  vehicleVideos: ProtocolVideo[];
+  documentImages: ProtocolImage[];
+  damageImages: ProtocolImage[];
+  
+  // Damages
   damages: ProtocolDamage[];
   
-  // Dokumenty
-  documentsSigned?: boolean;
+  // Signatures
+  signatures: ProtocolSignature[];
   
-  // Metadáta
-  notes?: string;
-  handoverPlace: string;
+  // Rental data snapshot
+  rentalData: {
+    orderNumber: string;
+    vehicle: Vehicle;
+    customer: Customer;
+    startDate: Date;
+    endDate: Date;
+    totalPrice: number;
+    deposit: number;
+    currency: string;
+    allowedKilometers?: number;
+    extraKilometerRate?: number;
+    insuranceDetails?: any;
+  };
   
-  // PDF a email
-  pdfGenerated: boolean;
+  // PDF and email
   pdfUrl?: string;
-  emailSent: boolean;
+  emailSent?: boolean;
   emailSentAt?: Date;
+  
+  createdBy: string;
+  notes?: string;
 }
 
 export interface ReturnProtocol {
   id: string;
   rentalId: string;
+  rental: Rental;
   handoverProtocolId: string;
-  rental?: Rental;
-  handoverProtocol?: HandoverProtocol;
+  handoverProtocol: HandoverProtocol;
+  
+  // Basic info
+  type: 'return';
+  status: 'draft' | 'completed' | 'cancelled';
   createdAt: Date;
-  createdBy: string; // user ID
-  customerSignature: string; // base64 encoded signature
-  signedAt: Date;
-  signedLocation: string;
+  completedAt?: Date;
+  location: string;
   
-  // Stav vozidla pri vrátení
-  vehicleCondition: string;
-  fuelLevel: number; // 0-100%
-  kmReading: number;
-  kmOverage?: number; // počet km nad limit
-  kmSurchargeAmount?: number; // suma doplatku za km
+  // Vehicle condition
+  vehicleCondition: VehicleCondition;
   
-  // Prílohy
-  images: ProtocolImage[];
-  videos: ProtocolVideo[];
+  // Media
+  vehicleImages: ProtocolImage[];
+  vehicleVideos: ProtocolVideo[];
+  documentImages: ProtocolImage[];
+  damageImages: ProtocolImage[];
+  
+  // Damages
   damages: ProtocolDamage[];
-  newDamages: ProtocolDamage[]; // nové poškodenia oproti handover
+  newDamages: ProtocolDamage[];
   
-  // Metadáta
-  notes?: string;
-  returnPlace: string;
+  // Signatures
+  signatures: ProtocolSignature[];
   
-  // Financie
-  additionalCharges?: {
-    fuel?: number;
-    damages?: number;
-    cleaning?: number;
-    other?: number;
+  // Kilometer and fuel calculations
+  kilometersUsed: number;
+  kilometerOverage: number;
+  kilometerFee: number;
+  fuelUsed: number;
+  fuelFee: number;
+  totalExtraFees: number;
+  
+  // Refund calculation
+  depositRefund: number;
+  additionalCharges: number;
+  finalRefund: number;
+  
+  // Rental data snapshot
+  rentalData: {
+    orderNumber: string;
+    vehicle: Vehicle;
+    customer: Customer;
+    startDate: Date;
+    endDate: Date;
+    totalPrice: number;
+    deposit: number;
+    currency: string;
+    allowedKilometers?: number;
+    extraKilometerRate?: number;
+    insuranceDetails?: any;
   };
-  depositRefunded?: boolean;
-  depositRefundAmount?: number;
   
-  // PDF a email
-  pdfGenerated: boolean;
+  // PDF and email
   pdfUrl?: string;
-  emailSent: boolean;
+  emailSent?: boolean;
   emailSentAt?: Date;
+  
+  createdBy: string;
+  notes?: string;
 } 

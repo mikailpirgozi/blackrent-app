@@ -157,4 +157,130 @@ export interface ApiResponse<T = any> {
     message?: string;
     error?: string;
 }
+export interface VehicleCondition {
+    odometer: number;
+    fuelLevel: number;
+    fuelType: 'gasoline' | 'diesel' | 'electric' | 'hybrid';
+    exteriorCondition: string;
+    interiorCondition: string;
+    notes?: string;
+}
+export interface ProtocolImage {
+    id: string;
+    url: string;
+    type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer';
+    description?: string;
+    timestamp: Date;
+    compressed?: boolean;
+    originalSize?: number;
+    compressedSize?: number;
+}
+export interface ProtocolVideo {
+    id: string;
+    url: string;
+    type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer';
+    description?: string;
+    timestamp: Date;
+    compressed?: boolean;
+    originalSize?: number;
+    compressedSize?: number;
+    duration?: number;
+}
+export interface ProtocolDamage {
+    id: string;
+    description: string;
+    severity: 'low' | 'medium' | 'high';
+    images: ProtocolImage[];
+    location: string;
+    timestamp: Date;
+    fromPreviousProtocol?: boolean;
+}
+export interface ProtocolSignature {
+    id: string;
+    signature: string;
+    signerName: string;
+    signerRole: 'customer' | 'employee';
+    timestamp: Date;
+    location: string;
+    ipAddress?: string;
+}
+export interface HandoverProtocol {
+    id: string;
+    rentalId: string;
+    type: 'handover';
+    status: 'draft' | 'completed' | 'cancelled';
+    createdAt: Date;
+    completedAt?: Date;
+    location: string;
+    vehicleCondition: VehicleCondition;
+    vehicleImages: ProtocolImage[];
+    vehicleVideos: ProtocolVideo[];
+    documentImages: ProtocolImage[];
+    damageImages: ProtocolImage[];
+    damages: ProtocolDamage[];
+    signatures: ProtocolSignature[];
+    rentalData: {
+        orderNumber: string;
+        vehicle: Vehicle;
+        customer: Customer;
+        startDate: Date;
+        endDate: Date;
+        totalPrice: number;
+        deposit: number;
+        currency: string;
+        allowedKilometers?: number;
+        extraKilometerRate?: number;
+        insuranceDetails?: any;
+    };
+    pdfUrl?: string;
+    emailSent?: boolean;
+    emailSentAt?: Date;
+    createdBy: string;
+    notes?: string;
+}
+export interface ReturnProtocol {
+    id: string;
+    rentalId: string;
+    handoverProtocolId: string;
+    type: 'return';
+    status: 'draft' | 'completed' | 'cancelled';
+    createdAt: Date;
+    completedAt?: Date;
+    location: string;
+    vehicleCondition: VehicleCondition;
+    vehicleImages: ProtocolImage[];
+    vehicleVideos: ProtocolVideo[];
+    documentImages: ProtocolImage[];
+    damageImages: ProtocolImage[];
+    damages: ProtocolDamage[];
+    newDamages: ProtocolDamage[];
+    signatures: ProtocolSignature[];
+    kilometersUsed: number;
+    kilometerOverage: number;
+    kilometerFee: number;
+    fuelUsed: number;
+    fuelFee: number;
+    totalExtraFees: number;
+    depositRefund: number;
+    additionalCharges: number;
+    finalRefund: number;
+    rentalData: {
+        orderNumber: string;
+        vehicle: Vehicle;
+        customer: Customer;
+        startDate: Date;
+        endDate: Date;
+        totalPrice: number;
+        deposit: number;
+        currency: string;
+        allowedKilometers?: number;
+        extraKilometerRate?: number;
+        insuranceDetails?: any;
+    };
+    pdfUrl?: string;
+    emailSent?: boolean;
+    emailSentAt?: Date;
+    createdBy: string;
+    notes?: string;
+}
 //# sourceMappingURL=index.d.ts.map

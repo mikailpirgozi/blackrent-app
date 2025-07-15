@@ -2,7 +2,7 @@
 
 export class StorageManager {
   private static COOKIE_PREFIX = 'blackrent_';
-  private static COOKIE_EXPIRY_DAYS = 30;
+  private static COOKIE_EXPIRY_DAYS = 90; // 3 mesiace
 
   /**
    * Nastaví cookie s expiration time

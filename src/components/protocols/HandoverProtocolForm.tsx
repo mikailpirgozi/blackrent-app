@@ -1,415 +1,389 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
-  Typography,
-  TextField,
   Button,
-  Paper,
-  Alert,
-  Divider,
+  Card,
+  CardContent,
+  TextField,
+  Typography,
   FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  Checkbox,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemButton,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  InputLabel,
+  Select,
+  MenuItem,
+  LinearProgress,
   Chip,
-  LinearProgress
+  IconButton,
 } from '@mui/material';
 import {
-  Add,
-  Edit,
-  Delete,
   Save,
-  Cancel,
-  Info,
-  Warning,
-  CheckCircle,
-  Close
+  Close,
+  PhotoCamera,
+  PictureAsPdf,
+  Email,
+  LocationOn,
+  LocalGasStation,
+  SpeedOutlined,
 } from '@mui/icons-material';
-import { Rental, HandoverProtocol, ProtocolDamage } from '../../types';
-import { API_BASE_URL } from '../../services/api';
+import { HandoverProtocol, Rental, ProtocolImage, ProtocolVideo, VehicleCondition } from '../../types';
+import { v4 as uuidv4 } from 'uuid';
+import SerialPhotoCapture from '../common/SerialPhotoCapture';
 
 interface HandoverProtocolFormProps {
+  open: boolean;
+  onClose: () => void;
   rental: Rental;
-  onSubmit: (protocol: Partial<HandoverProtocol>) => void;
-  onCancel: () => void;
-  isLoading?: boolean;
+  onSave: (protocol: HandoverProtocol) => void;
 }
 
-interface VehicleCheckItem {
-  id: string;
-  category: string;
-  item: string;
-  status: 'ok' | 'damaged' | 'missing';
-  notes?: string;
-}
-
-const VEHICLE_CHECK_ITEMS = [
-  // Exteriér
-  { category: 'Exteriér', item: 'Nárazník predný', id: 'front_bumper' },
-  { category: 'Exteriér', item: 'Nárazník zadný', id: 'rear_bumper' },
-  { category: 'Exteriér', item: 'Dvere ľavé', id: 'left_doors' },
-  { category: 'Exteriér', item: 'Dvere pravé', id: 'right_doors' },
-  { category: 'Exteriér', item: 'Kapota', id: 'hood' },
-  { category: 'Exteriér', item: 'Kuffor', id: 'trunk' },
-  { category: 'Exteriér', item: 'Strecha', id: 'roof' },
-  { category: 'Exteriér', item: 'Predné svetlá', id: 'front_lights' },
-  { category: 'Exteriér', item: 'Zadné svetlá', id: 'rear_lights' },
-  { category: 'Exteriér', item: 'Spätné zrkadlá', id: 'mirrors' },
-  { category: 'Exteriér', item: 'Pneumatiky', id: 'tires' },
-  { category: 'Exteriér', item: 'Ráfiky', id: 'wheels' },
-  { category: 'Exteriér', item: 'Čelné sklo', id: 'windshield' },
-  { category: 'Exteriér', item: 'Bočné sklá', id: 'side_windows' },
-  { category: 'Exteriér', item: 'Zadné sklo', id: 'rear_window' },
-  
-  // Interiér
-  { category: 'Interiér', item: 'Sedadlá', id: 'seats' },
-  { category: 'Interiér', item: 'Volant', id: 'steering_wheel' },
-  { category: 'Interiér', item: 'Prístrojová doska', id: 'dashboard' },
-  { category: 'Interiér', item: 'Podlahy', id: 'floors' },
-  { category: 'Interiér', item: 'Stropy', id: 'ceiling' },
-  { category: 'Interiér', item: 'Bezpečnostné pásy', id: 'seat_belts' },
-  { category: 'Interiér', item: 'Rádio/navigácia', id: 'radio' },
-  { category: 'Interiér', item: 'Klimatizácia', id: 'air_conditioning' },
-  
-  // Technika
-  { category: 'Technika', item: 'Motor', id: 'engine' },
-  { category: 'Technika', item: 'Brzdy', id: 'brakes' },
-  { category: 'Technika', item: 'Svetlá funkčnosť', id: 'lights_function' },
-  { category: 'Technika', item: 'Smerovky', id: 'indicators' },
-  { category: 'Technika', item: 'Klaksón', id: 'horn' },
-  { category: 'Technika', item: 'Stierače', id: 'wipers' },
-  
-  // Vybavenie
-  { category: 'Vybavenie', item: 'Náhradné koleso', id: 'spare_wheel' },
-  { category: 'Vybavenie', item: 'Zdvihák', id: 'jack' },
-  { category: 'Vybavenie', item: 'Kľúče', id: 'keys' },
-  { category: 'Vybavenie', item: 'Dokumenty', id: 'documents' },
-  { category: 'Vybavenie', item: 'Lekárnička', id: 'first_aid' },
-  { category: 'Vybavenie', item: 'Výstražný trojuholník', id: 'warning_triangle' },
-  { category: 'Vybavenie', item: 'Hasič', id: 'fire_extinguisher' }
-];
-
-const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({
-  rental,
-  onSubmit,
-  onCancel,
-  isLoading = false
-}) => {
-  const [formData, setFormData] = useState<Partial<HandoverProtocol>>({
+export default function HandoverProtocolForm({ open, onClose, rental, onSave }: HandoverProtocolFormProps) {
+  const [protocol, setProtocol] = useState<Partial<HandoverProtocol>>({
+    id: uuidv4(),
     rentalId: rental.id,
-    vehicleCondition: 'good',
-    fuelLevel: 100,
-    kmReading: 0,
-    notes: '',
-    handoverPlace: '',
-    customerSignature: '',
-    signedAt: new Date(),
-    signedLocation: '',
-    createdBy: '', // will be set from auth context
-    images: [],
-    videos: [],
+    rental,
+    type: 'handover',
+    status: 'draft',
+    createdAt: new Date(),
+    location: '',
+    vehicleCondition: {
+      odometer: 0,
+      fuelLevel: 100,
+      fuelType: 'gasoline',
+      exteriorCondition: 'Dobrý',
+      interiorCondition: 'Dobrý',
+      notes: '',
+    },
+    vehicleImages: [],
+    vehicleVideos: [],
+    documentImages: [],
+    damageImages: [],
     damages: [],
-    pdfGenerated: false,
-    emailSent: false
+    signatures: [],
+    rentalData: {
+      orderNumber: rental.orderNumber || '',
+      vehicle: rental.vehicle || {} as any,
+      customer: rental.customer || {} as any,
+      startDate: rental.startDate,
+      endDate: rental.endDate,
+      totalPrice: rental.totalPrice,
+      deposit: 0,
+      currency: 'EUR',
+      allowedKilometers: 0,
+      extraKilometerRate: 0,
+    },
+    emailSent: false,
+    createdBy: '',
   });
 
-  // Lokálne state pre doplnkové informácie
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
-  const [employeeName, setEmployeeName] = useState('');
-  const [employeeSignature, setEmployeeSignature] = useState('');
-  const [keysCounted, setKeysCounted] = useState(0);
-  const [documentsSigned, setDocumentsSigned] = useState(false);
+  const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
 
-  const [checkItems, setCheckItems] = useState<VehicleCheckItem[]>(
-    VEHICLE_CHECK_ITEMS.map(item => ({
-      ...item,
-      status: 'ok'
-    }))
-  );
-
-  const [mediaFiles, setMediaFiles] = useState<any[]>([]);
-  const [documentFiles, setDocumentFiles] = useState<any[]>([]);
-  const [damages, setDamages] = useState<ProtocolDamage[]>([]);
-  const [selectedDamage, setSelectedDamage] = useState<ProtocolDamage | null>(null);
-  const [damageDialogOpen, setDamageDialogOpen] = useState(false);
-  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
-  const [currentSignatureType, setCurrentSignatureType] = useState<'employee' | 'customer'>('employee');
-
-  // Načítanie dát z prenájmu
-  useEffect(() => {
-    setCustomerName(rental.customerName || '');
-    setCustomerPhone(rental.customer?.phone || '');
-    setCustomerEmail(rental.customer?.email || '');
-  }, [rental]);
-
-  const handleInputChange = (field: keyof HandoverProtocol, value: any) => {
-    setFormData(prev => ({
+  const handleVehicleConditionChange = (field: keyof VehicleCondition, value: any) => {
+    setProtocol(prev => ({
       ...prev,
-      [field]: value
+      vehicleCondition: {
+        ...prev.vehicleCondition!,
+        [field]: value,
+      },
     }));
   };
 
-  const handleCheckItemChange = (itemId: string, status: 'ok' | 'damaged' | 'missing', notes?: string) => {
-    setCheckItems(prev => prev.map(item => 
-      item.id === itemId 
-        ? { ...item, status, notes }
-        : item
-    ));
+  const handleMediaSave = (type: 'vehicle' | 'document' | 'damage', images: ProtocolImage[], videos: ProtocolVideo[]) => {
+    setProtocol(prev => ({
+      ...prev,
+      [`${type}Images`]: images,
+      [`${type}Videos`]: videos,
+    }));
+    setActivePhotoCapture(null);
   };
 
-  const handleAddDamage = () => {
-    setSelectedDamage({
-      id: Date.now().toString(),
-      location: '',
-      description: '',
-      severity: 'minor',
-      images: []
-    });
-    setDamageDialogOpen(true);
-  };
-
-  const handleEditDamage = (damage: ProtocolDamage) => {
-    setSelectedDamage(damage);
-    setDamageDialogOpen(true);
-  };
-
-  const handleSaveDamage = (damage: ProtocolDamage) => {
-    setDamages(prev => {
-      const existingIndex = prev.findIndex(d => d.id === damage.id);
-      if (existingIndex >= 0) {
-        const updated = [...prev];
-        updated[existingIndex] = damage;
-        return updated;
-      } else {
-        return [...prev, damage];
-      }
-    });
-    setDamageDialogOpen(false);
-    setSelectedDamage(null);
-  };
-
-  const handleDeleteDamage = (damageId: string) => {
-    setDamages(prev => prev.filter(d => d.id !== damageId));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validácia
-    if (!customerName || !employeeName) {
-      alert('Vyplňte všetky povinné polia');
-      return;
-    }
-    
-    if (!formData.customerSignature || !employeeSignature) {
-      alert('Chýbajú podpisy');
+  const handleSave = async () => {
+    if (!protocol.vehicleCondition) {
+      alert('Vyplňte stav vozidla');
       return;
     }
 
-    // Príprava dát
-    const protocolData: Partial<HandoverProtocol> = {
-      ...formData,
-      damages,
-      notes: formData.notes + `\n\nDoplnkové informácie:\nZákazník: ${customerName}\nTelefón: ${customerPhone}\nEmail: ${customerEmail}\nZamestnanec: ${employeeName}\nKľúče: ${keysCounted}\nDokumenty podpísané: ${documentsSigned ? 'Áno' : 'Nie'}\n\nKontrolný zoznam:\n${checkItems.map(item => `${item.category} - ${item.item}: ${item.status}${item.notes ? ` (${item.notes})` : ''}`).join('\n')}`
-    };
+    setProcessing(true);
+    
+    try {
+      const completeProtocol: HandoverProtocol = {
+        ...protocol,
+        completedAt: new Date(),
+        status: 'completed',
+      } as HandoverProtocol;
 
-    onSubmit(protocolData);
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'minor': return 'warning';
-      case 'major': return 'error';
-      case 'critical': return 'error';
-      default: return 'info';
+      await onSave(completeProtocol);
+      onClose();
+    } catch (error) {
+      console.error('Chyba pri ukladaní protokolu:', error);
+      alert('Chyba pri ukladaní protokolu');
+    } finally {
+      setProcessing(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ok': return 'success';
-      case 'damaged': return 'error';
-      case 'missing': return 'warning';
-      default: return 'default';
-    }
-  };
-
-  const groupedCheckItems = checkItems.reduce((groups, item) => {
-    if (!groups[item.category]) {
-      groups[item.category] = [];
-    }
-    groups[item.category].push(item);
-    return groups;
-  }, {} as { [key: string]: VehicleCheckItem[] });
+  if (!open) return null;
 
   return (
-    <Paper sx={{ p: 3, maxWidth: 1200, margin: '0 auto' }}>
-      {isLoading && <LinearProgress sx={{ mb: 2 }} />}
-      
-      <Typography variant="h4" color="white" gutterBottom>
-        Odovzdávací protokol
-      </Typography>
-      
-      <Typography variant="body1" color="white" sx={{ mb: 3 }}>
-        Prenájom: {rental.customerName} | Vozidlo: {rental.vehicle?.licensePlate || 'N/A'}
-      </Typography>
-
-      <form onSubmit={handleSubmit}>
-        {/* Základné informácie */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" color="white" gutterBottom>
-            Základné informácie
-          </Typography>
-          
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-            <TextField
-              label="Meno zákazníka"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              required
-              InputProps={{ style: { color: 'white' } }}
-              InputLabelProps={{ style: { color: 'white' } }}
-            />
-            
-            <TextField
-              label="Telefón zákazníka"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              InputProps={{ style: { color: 'white' } }}
-              InputLabelProps={{ style: { color: 'white' } }}
-            />
-            
-            <TextField
-              label="Email zákazníka"
-              value={customerEmail}
-              onChange={(e) => setCustomerEmail(e.target.value)}
-              InputProps={{ style: { color: 'white' } }}
-              InputLabelProps={{ style: { color: 'white' } }}
-            />
-            
-            <TextField
-              label="Meno zamestnanca"
-              value={employeeName}
-              onChange={(e) => setEmployeeName(e.target.value)}
-              required
-              InputProps={{ style: { color: 'white' } }}
-              InputLabelProps={{ style: { color: 'white' } }}
-            />
-            
-            <TextField
-              label="Miesto odovzdania"
-              value={formData.handoverPlace}
-              onChange={(e) => handleInputChange('handoverPlace', e.target.value)}
-              InputProps={{ style: { color: 'white' } }}
-              InputLabelProps={{ style: { color: 'white' } }}
-            />
-            
-            <TextField
-              label="Najazdené km"
-              type="number"
-              value={formData.kmReading}
-              onChange={(e) => handleInputChange('kmReading', parseInt(e.target.value))}
-              InputProps={{ style: { color: 'white' } }}
-              InputLabelProps={{ style: { color: 'white' } }}
-            />
+    <Box sx={{ 
+      position: 'fixed', 
+      top: 0, 
+      left: 0, 
+      right: 0, 
+      bottom: 0, 
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1300,
+      p: 2,
+    }}>
+      <Card sx={{ 
+        maxWidth: 1000, 
+        width: '100%', 
+        maxHeight: '90vh', 
+        overflow: 'auto',
+        backgroundColor: '#2d2d2d',
+      }}>
+        <CardContent>
+          {/* Header */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h5" sx={{ color: 'white' }}>
+              Preberací protokol
+            </Typography>
+            <IconButton onClick={onClose} sx={{ color: 'white' }}>
+              <Close />
+            </IconButton>
           </Box>
-        </Box>
 
-        {/* Stav vozidla */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" color="white" gutterBottom>
-            Stav vozidla
-          </Typography>
-          
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
-            <FormControl>
-              <FormLabel sx={{ color: 'white' }}>Celkový stav vozidla</FormLabel>
-              <RadioGroup
-                value={formData.vehicleCondition}
-                onChange={(e) => handleInputChange('vehicleCondition', e.target.value)}
-              >
-                <FormControlLabel value="excellent" control={<Radio sx={{ color: 'white' }} />} label="Výborný" />
-                <FormControlLabel value="good" control={<Radio sx={{ color: 'white' }} />} label="Dobrý" />
-                <FormControlLabel value="fair" control={<Radio sx={{ color: 'white' }} />} label="Priemerný" />
-                <FormControlLabel value="poor" control={<Radio sx={{ color: 'white' }} />} label="Zlý" />
-              </RadioGroup>
-            </FormControl>
-            
-            <Box>
-              <TextField
-                label="Hladina paliva (%)"
-                type="number"
-                value={formData.fuelLevel}
-                onChange={(e) => handleInputChange('fuelLevel', parseInt(e.target.value))}
-                inputProps={{ min: 0, max: 100 }}
-                InputProps={{ style: { color: 'white' } }}
-                InputLabelProps={{ style: { color: 'white' } }}
-                sx={{ mb: 2 }}
-              />
-              
-              <TextField
-                label="Počet kľúčov"
-                type="number"
-                value={keysCounted}
-                onChange={(e) => setKeysCounted(parseInt(e.target.value))}
-                inputProps={{ min: 0 }}
-                InputProps={{ style: { color: 'white' } }}
-                InputLabelProps={{ style: { color: 'white' } }}
-              />
+          {/* Progress indicator */}
+          {processing && (
+            <Box sx={{ mb: 2 }}>
+              <LinearProgress />
+              <Typography variant="body2" sx={{ color: 'white', mt: 1 }}>
+                Ukladám protokol...
+              </Typography>
             </Box>
+          )}
+
+          {/* Rental info */}
+          <Card sx={{ mb: 3, backgroundColor: '#3d3d3d' }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                Údaje o prenájme
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                <TextField
+                  label="Číslo objednávky"
+                  value={protocol.rentalData?.orderNumber || ''}
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                />
+                <TextField
+                  label="Vozidlo"
+                  value={rental.vehicle ? `${rental.vehicle.brand} ${rental.vehicle.model} (${rental.vehicle.licensePlate})` : ''}
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                />
+                <TextField
+                  label="Zákazník"
+                  value={rental.customer ? `${rental.customer.name}` : ''}
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                />
+                <TextField
+                  label="Cena prenájmu"
+                  value={`${rental.totalPrice} EUR`}
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                />
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Location */}
+          <Card sx={{ mb: 3, backgroundColor: '#3d3d3d' }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                <LocationOn sx={{ mr: 1 }} />
+                Miesto odovzdania
+              </Typography>
+              <TextField
+                fullWidth
+                label="Miesto odovzdania"
+                value={protocol.location}
+                onChange={(e) => setProtocol(prev => ({ ...prev, location: e.target.value }))}
+                placeholder="Mesto/adresa kde sa odovzdáva vozidlo"
+              />
+            </CardContent>
+          </Card>
+
+          {/* Vehicle condition */}
+          <Card sx={{ mb: 3, backgroundColor: '#3d3d3d' }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                Stav vozidla
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
+                <TextField
+                  label="Stav tachometra (km)"
+                  type="number"
+                  value={protocol.vehicleCondition?.odometer || 0}
+                  onChange={(e) => handleVehicleConditionChange('odometer', parseInt(e.target.value))}
+                  InputProps={{
+                    startAdornment: <SpeedOutlined sx={{ color: 'white', mr: 1 }} />,
+                  }}
+                  fullWidth
+                />
+                <TextField
+                  label="Stav paliva (%)"
+                  type="number"
+                  value={protocol.vehicleCondition?.fuelLevel || 100}
+                  onChange={(e) => handleVehicleConditionChange('fuelLevel', parseInt(e.target.value))}
+                  InputProps={{
+                    startAdornment: <LocalGasStation sx={{ color: 'white', mr: 1 }} />,
+                  }}
+                  inputProps={{ min: 0, max: 100 }}
+                  fullWidth
+                />
+                <FormControl fullWidth>
+                  <InputLabel>Typ paliva</InputLabel>
+                  <Select
+                    value={protocol.vehicleCondition?.fuelType || 'gasoline'}
+                    label="Typ paliva"
+                    onChange={(e) => handleVehicleConditionChange('fuelType', e.target.value)}
+                  >
+                    <MenuItem value="gasoline">Benzín</MenuItem>
+                    <MenuItem value="diesel">Diesel</MenuItem>
+                    <MenuItem value="electric">Elektrika</MenuItem>
+                    <MenuItem value="hybrid">Hybrid</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField
+                  label="Stav exteriéru"
+                  value={protocol.vehicleCondition?.exteriorCondition || 'Dobrý'}
+                  onChange={(e) => handleVehicleConditionChange('exteriorCondition', e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Stav interiéru"
+                  value={protocol.vehicleCondition?.interiorCondition || 'Dobrý'}
+                  onChange={(e) => handleVehicleConditionChange('interiorCondition', e.target.value)}
+                  fullWidth
+                />
+              </Box>
+              <TextField
+                label="Poznámky"
+                value={protocol.vehicleCondition?.notes || ''}
+                onChange={(e) => handleVehicleConditionChange('notes', e.target.value)}
+                multiline
+                rows={3}
+                fullWidth
+                sx={{ mt: 2 }}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Media capture */}
+          <Card sx={{ mb: 3, backgroundColor: '#3d3d3d' }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                Fotodokumentácia
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<PhotoCamera />}
+                  onClick={() => setActivePhotoCapture('vehicle')}
+                >
+                  Fotky vozidla ({protocol.vehicleImages?.length || 0})
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<PhotoCamera />}
+                  onClick={() => setActivePhotoCapture('document')}
+                >
+                  Fotky dokladov ({protocol.documentImages?.length || 0})
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<PhotoCamera />}
+                  onClick={() => setActivePhotoCapture('damage')}
+                >
+                  Fotky poškodení ({protocol.damageImages?.length || 0})
+                </Button>
+              </Box>
+              
+              {/* Media summary */}
+              <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Chip 
+                  label={`${(protocol.vehicleImages?.length || 0) + (protocol.documentImages?.length || 0) + (protocol.damageImages?.length || 0)} fotiek`}
+                  color="primary"
+                  size="small"
+                />
+                <Chip 
+                  label={`${(protocol.vehicleVideos?.length || 0)} videí`}
+                  color="secondary"
+                  size="small"
+                />
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Button
+              variant="outlined"
+              startIcon={<PictureAsPdf />}
+              onClick={() => alert('PDF generovanie bude implementované')}
+              disabled={processing}
+            >
+              Generovať PDF
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<Email />}
+              onClick={() => alert('Email odosielanie bude implementované')}
+              disabled={processing}
+            >
+              Odoslať email
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={onClose}
+              disabled={processing}
+            >
+              Zrušiť
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<Save />}
+              onClick={handleSave}
+              disabled={processing}
+            >
+              Uložiť protokol
+            </Button>
           </Box>
-        </Box>
+        </CardContent>
+      </Card>
 
-        {/* Poznámky */}
-        <Box sx={{ mb: 4 }}>
-          <TextField
-            label="Poznámky"
-            multiline
-            rows={4}
-            value={formData.notes}
-            onChange={(e) => handleInputChange('notes', e.target.value)}
-            fullWidth
-            InputProps={{ style: { color: 'white' } }}
-            InputLabelProps={{ style: { color: 'white' } }}
-          />
-        </Box>
-
-        {/* Tlačidlá */}
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-          <Button
-            type="button"
-            variant="outlined"
-            onClick={onCancel}
-            disabled={isLoading}
-            startIcon={<Cancel />}
-          >
-            Zrušiť
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isLoading}
-            startIcon={<Save />}
-          >
-            Uložiť protokol
-          </Button>
-        </Box>
-      </form>
-    </Paper>
+      {/* Photo capture dialog */}
+      {activePhotoCapture && (
+        <SerialPhotoCapture
+          open={!!activePhotoCapture}
+          onClose={() => setActivePhotoCapture(null)}
+          onSave={(images, videos) => handleMediaSave(activePhotoCapture as any, images, videos)}
+          title={
+            activePhotoCapture === 'vehicle' ? 'Fotky vozidla' :
+            activePhotoCapture === 'document' ? 'Fotky dokladov' :
+            'Fotky poškodení'
+          }
+          allowedTypes={
+            activePhotoCapture === 'vehicle' ? ['vehicle'] :
+            activePhotoCapture === 'document' ? ['document'] :
+            ['damage']
+          }
+        />
+      )}
+    </Box>
   );
-};
-
-export default HandoverProtocolForm; 
+} 

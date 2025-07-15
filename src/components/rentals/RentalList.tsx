@@ -2430,9 +2430,10 @@ export default function RentalList() {
         <DialogContent sx={{ p: 0 }}>
           {selectedRentalForProtocol && protocolType === 'handover' && (
             <HandoverProtocolForm
+              open={!!selectedRentalForProtocol}
               rental={selectedRentalForProtocol}
-              onSubmit={handleProtocolSubmit}
-              onCancel={handleCloseProtocolDialog}
+              onSave={handleProtocolSubmit}
+              onClose={handleCloseProtocolDialog}
             />
           )}
         </DialogContent>
@@ -2454,27 +2455,47 @@ export default function RentalList() {
         <DialogContent sx={{ p: 0 }}>
           {selectedRentalForProtocol && protocolType === 'return' && (
             <ReturnProtocolForm
+              open={!!selectedRentalForProtocol}
               rental={selectedRentalForProtocol}
               handoverProtocol={{
                 id: 'temp',
                 rentalId: selectedRentalForProtocol.id,
+                rental: selectedRentalForProtocol,
+                type: 'handover' as const,
+                status: 'draft' as const,
                 createdAt: new Date(),
-                createdBy: 'admin',
-                customerSignature: '',
-                signedAt: new Date(),
-                signedLocation: '',
-                vehicleCondition: 'good',
-                fuelLevel: 100,
-                kmReading: 0,
-                images: [],
-                videos: [],
+                location: '',
+                vehicleCondition: {
+                  odometer: 0,
+                  fuelLevel: 100,
+                  fuelType: 'gasoline' as const,
+                  exteriorCondition: 'Dobrý',
+                  interiorCondition: 'Dobrý',
+                  notes: '',
+                },
+                vehicleImages: [],
+                vehicleVideos: [],
+                documentImages: [],
+                damageImages: [],
                 damages: [],
-                handoverPlace: '',
-                pdfGenerated: false,
-                emailSent: false
+                signatures: [],
+                rentalData: {
+                  orderNumber: selectedRentalForProtocol.orderNumber || '',
+                  vehicle: selectedRentalForProtocol.vehicle || {} as any,
+                  customer: selectedRentalForProtocol.customer || {} as any,
+                  startDate: selectedRentalForProtocol.startDate,
+                  endDate: selectedRentalForProtocol.endDate,
+                  totalPrice: selectedRentalForProtocol.totalPrice,
+                  deposit: 0,
+                  currency: 'EUR',
+                  allowedKilometers: 0,
+                  extraKilometerRate: 0,
+                },
+                emailSent: false,
+                createdBy: 'admin'
               }}
-              onSubmit={handleProtocolSubmit}
-              onCancel={handleCloseProtocolDialog}
+              onSave={handleProtocolSubmit}
+              onClose={handleCloseProtocolDialog}
             />
           )}
         </DialogContent>

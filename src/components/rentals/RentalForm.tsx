@@ -48,10 +48,6 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [calculatedCommission, setCalculatedCommission] = useState(0);
-  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
-  const [discountValue, setDiscountValue] = useState<number>(0);
-  const [commissionType, setCommissionType] = useState<'percentage' | 'fixed'>('percentage');
-  const [commissionValue, setCommissionValue] = useState<number>(0);
   const [extraKmCharge, setExtraKmCharge] = useState<number>(0);
   const [paid, setPaid] = useState(false);
   const [handoverPlace, setHandoverPlace] = useState('');
@@ -96,14 +92,6 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       setFormData(rental);
       setCalculatedPrice(rental.totalPrice);
       setCalculatedCommission(rental.commission);
-      if (rental.discount) {
-        setDiscountType(rental.discount.type);
-        setDiscountValue(rental.discount.value);
-      }
-      if (rental.customCommission) {
-        setCommissionType(rental.customCommission.type);
-        setCommissionValue(rental.customCommission.value);
-      }
       if (rental.extraKmCharge) {
         setExtraKmCharge(rental.extraKmCharge);
       }
@@ -335,11 +323,11 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       let basePrice = days * pricingTier.pricePerDay;
       // Zľava
       let discount = 0;
-      if (discountValue > 0) {
-        if (discountType === 'percentage') {
-          discount = (basePrice * discountValue) / 100;
+      if (formData.discount?.value && formData.discount.value > 0) {
+        if (formData.discount.type === 'percentage') {
+          discount = (basePrice * formData.discount.value) / 100;
         } else {
-          discount = discountValue;
+          discount = formData.discount.value;
         }
       }
       // Doplatok za km
@@ -350,11 +338,11 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
       // Provízia
       let commission = 0;
-      if (commissionValue > 0) {
-        if (commissionType === 'percentage') {
-          commission = (totalPrice * commissionValue) / 100;
+      if (formData.customCommission?.value && formData.customCommission.value > 0) {
+        if (formData.customCommission.type === 'percentage') {
+          commission = (totalPrice * formData.customCommission.value) / 100;
         } else {
-          commission = commissionValue;
+          commission = formData.customCommission.value;
         }
       } else {
         if (vehicle.commission.type === 'percentage') {
@@ -365,7 +353,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       }
       setCalculatedCommission(commission);
     }
-  }, [formData.vehicleId, formData.startDate, formData.endDate, discountType, discountValue, extraKmCharge, commissionType, commissionValue]);
+  }, [formData.vehicleId, formData.startDate, formData.endDate, formData.discount, extraKmCharge, formData.customCommission, state.vehicles]);
 
   const handleAddPayment = () => {
     setEditingPayment({
@@ -456,8 +444,8 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       commission: calculatedCommission,
       paymentMethod: formData.paymentMethod || 'cash',
       createdAt: rental?.createdAt || new Date(),
-      discount: discountValue > 0 ? { type: discountType, value: discountValue } : undefined,
-      customCommission: commissionValue > 0 ? { type: commissionType, value: commissionValue } : undefined,
+      discount: formData.discount?.value && formData.discount.value > 0 ? formData.discount : undefined,
+      customCommission: formData.customCommission?.value && formData.customCommission.value > 0 ? formData.customCommission : undefined,
       extraKmCharge: extraKmCharge > 0 ? extraKmCharge : undefined,
       paid,
       status: rental?.status || 'pending',
@@ -490,20 +478,12 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
               const vehicleId = newValue ? newValue.id : '';
               handleInputChange('vehicleId', vehicleId);
               
-              // Nájdi vozidlo a automaticky priradí majiteľa
+              // Nájdi vozidlo a nastav ho
               if (vehicleId) {
                 const vehicle = state.vehicles.find(v => v.id === vehicleId);
                 setSelectedVehicle(vehicle || null);
-                
-                if (vehicle) {
-                  // Automaticky nastav platbu priamo majiteľovi
-                  handleInputChange('paymentMethod', 'direct_to_owner');
-                  console.log(`🏢 Automaticky nastavená platba priamo majiteľovi: ${vehicle.company} (${vehicle.licensePlate})`);
-                }
               } else {
                 setSelectedVehicle(null);
-                // Vráť defaultnú platbu
-                handleInputChange('paymentMethod', 'cash');
               }
             }}
             renderInput={(params) => (
