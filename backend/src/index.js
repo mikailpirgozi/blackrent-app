@@ -829,4 +829,4 @@ process.on('SIGTERM', () => {
   console.log('\n🛑 Zastavujem server...');
   db.close();
   process.exit(0);
-}); 
+}); console.log('🔄 Force rebuild Tue Jul 15 23:23:06 CEST 2025');
