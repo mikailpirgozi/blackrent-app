@@ -1,12 +1,12 @@
-# Simple Railway Dockerfile
+# Railway BlackRent Dockerfile - Force rebuild
 FROM node:18-alpine
 
-# Set working directory
-WORKDIR /app
+# Create app directory
+WORKDIR /blackrent-app
 
-# Install frontend dependencies and build
+# Install app dependencies
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -14,18 +14,23 @@ COPY . .
 # Build frontend
 RUN npm run build
 
-# Install backend dependencies  
-WORKDIR /app/backend
-RUN npm ci --only=production
+# Move to backend directory
+WORKDIR /blackrent-app/backend
 
-# Copy built frontend to backend build directory
-RUN cp -r ../build /app/backend/build
+# Install backend dependencies
+RUN npm install
+
+# Create final working directory
+WORKDIR /blackrent-app/backend
+
+# Copy built frontend
+RUN cp -r ../build ./build
 
 # Expose port
 EXPOSE 5001
 
-# Set environment
+# Set environment variables
 ENV NODE_ENV=production
 
-# Start backend (now uses src/index.js)
-CMD ["npm", "start"] 
+# Start the application
+CMD ["node", "src/index.js"] 
