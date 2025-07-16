@@ -221,18 +221,35 @@ export default function VehicleList() {
       skipEmptyLines: true,
       complete: async (results: ReturnType<typeof Papa.parse>) => {
         try {
-          const imported = [];
+          const imported: any[] = [];
           let skippedDuplicates = 0;
           
           for (const row of results.data as any[]) {
+            // Preskočíme prázdne riadky
+            if (!row.licensePlate || !row.brand || !row.model) {
+              console.log(`⚠️ Preskakujem neúplný riadok:`, row);
+              continue;
+            }
+            
             // KONTROLA DUPLICÍT VOZIDLA
             // Skontroluj, či už existuje vozidlo s touto ŠPZ
             const duplicateVehicle = state.vehicles.find(existingVehicle => 
-              existingVehicle.licensePlate?.toLowerCase() === row.licensePlate?.toLowerCase()
+              existingVehicle.licensePlate?.toLowerCase().trim() === row.licensePlate?.toLowerCase().trim()
             );
             
             if (duplicateVehicle) {
-              console.log(`🔄 Preskakujem duplicitné vozidlo: ${row.licensePlate}`);
+              console.log(`🔄 Preskakujem duplicitné vozidlo: ${row.licensePlate} (už existuje)`);
+              skippedDuplicates++;
+              continue;
+            }
+            
+            // Kontrola duplicít aj v rámci tohto CSV (ak má niekto v CSV duplicate)
+            const duplicateInImported = imported.find(importedVehicle => 
+              importedVehicle.licensePlate?.toLowerCase().trim() === row.licensePlate?.toLowerCase().trim()
+            );
+            
+            if (duplicateInImported) {
+              console.log(`🔄 Preskakujem duplicitné vozidlo v CSV: ${row.licensePlate}`);
               skippedDuplicates++;
               continue;
             }
@@ -258,30 +275,57 @@ export default function VehicleList() {
             
             const vehicle = {
               id: row.id || uuidv4(),
-              brand: row.brand,
-              model: row.model,
-              licensePlate: row.licensePlate,
-              company: row.company,
+              brand: row.brand?.trim() || 'Neznáma značka',
+              model: row.model?.trim() || 'Neznámy model',
+              licensePlate: row.licensePlate?.trim(),
+              company: row.company?.trim() || 'Neznáma firma',
               pricing,
-              commission: { type: row.commissionType, value: Number(row.commissionValue) },
+              commission: { 
+                type: row.commissionType || 'percentage', 
+                value: Number(row.commissionValue) || 20 
+              },
               status: row.status || 'available',
             };
             
+            console.log(`📋 Pripravujem vozidlo na import: ${vehicle.licensePlate} - ${vehicle.brand} ${vehicle.model}`);
             imported.push(vehicle);
           }
           
-          // Vytvoríme všetky vozidlá cez API
-          for (const vehicle of imported) {
-            await createVehicle(vehicle);
+          // Vytvoríme všetky vozidlá cez API s error handlingom
+          let successCount = 0;
+          let errorCount = 0;
+          const errors: string[] = [];
+          
+          console.log(`🚗 Spracovávam ${imported.length} vozidiel...`);
+          
+          for (let i = 0; i < imported.length; i++) {
+            const vehicle = imported[i];
+            try {
+              console.log(`Vytváram vozidlo ${i + 1}/${imported.length}: ${vehicle.licensePlate} - ${vehicle.brand} ${vehicle.model}`);
+              await createVehicle(vehicle);
+              successCount++;
+            } catch (error: any) {
+              console.error(`Chyba pri vytváraní vozidla ${vehicle.licensePlate}:`, error);
+              errorCount++;
+              errors.push(`${vehicle.licensePlate}: ${error.message || 'Neznáma chyba'}`);
+            }
           }
           
           setImportError('');
           const totalProcessed = results.data.length;
-          let message = `Import vozidiel prebehol úspešne!\n\n`;
-          message += `• Spracované riadky: ${totalProcessed}\n`;
-          message += `• Importované vozidlá: ${imported.length}\n`;
+          
+          let message = `Import vozidiel dokončený!\n\n`;
+          message += `📊 Spracované riadky: ${totalProcessed}\n`;
+          message += `✅ Úspešne importované: ${successCount}\n`;
           if (skippedDuplicates > 0) {
-            message += `• Preskočené duplicity: ${skippedDuplicates}\n`;
+            message += `🔄 Preskočené duplicity: ${skippedDuplicates}\n`;
+          }
+          if (errorCount > 0) {
+            message += `❌ Chyby: ${errorCount}\n\n`;
+            message += `Problémy:\n${errors.slice(0, 5).join('\n')}`;
+            if (errors.length > 5) {
+              message += `\n... a ďalších ${errors.length - 5} chýb`;
+            }
           }
           alert(message);
         } catch (err) {
