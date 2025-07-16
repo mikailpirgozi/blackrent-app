@@ -87,6 +87,30 @@ export interface Rental {
   // Protokoly
   handoverProtocolId?: string;
   returnProtocolId?: string;
+  // Rozšírené polia pre kompletnú funkcionalitu
+  deposit?: number;
+  allowedKilometers?: number;
+  extraKilometerRate?: number; // Cena za nadlimitný km
+  returnConditions?: string;
+  fuelLevel?: number; // Úroveň paliva pri prevzatí (%)
+  odometer?: number; // Stav tachometra pri prevzatí
+  returnFuelLevel?: number; // Úroveň paliva pri vrátení (%)
+  returnOdometer?: number; // Stav tachometra pri vrátení
+  actualKilometers?: number; // Skutočne najazdené km
+  fuelRefillCost?: number; // Cena za dotankovanie
+  damageCost?: number; // Cena za poškodenia
+  additionalCosts?: number; // Ďalšie náklady
+  finalPrice?: number; // Finálna cena po zúčtovaní
+  notes?: string; // Poznámky k prenájmu
+  // Dáta z emailu
+  customerAddress?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  pickupLocation?: string;
+  returnLocation?: string;
+  reservationTime?: string;
+  vehicleCode?: string; // ŠPZ z emailu
+  vehicleName?: string; // Názov vozidla z emailu
 }
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';
@@ -280,6 +304,9 @@ export interface HandoverProtocol {
     allowedKilometers?: number;
     extraKilometerRate?: number;
     insuranceDetails?: any;
+    pickupLocation?: string;
+    returnLocation?: string;
+    returnConditions?: string;
   };
   
   // PDF and email
@@ -347,6 +374,9 @@ export interface ReturnProtocol {
     allowedKilometers?: number;
     extraKilometerRate?: number;
     insuranceDetails?: any;
+    pickupLocation?: string;
+    returnLocation?: string;
+    returnConditions?: string;
   };
   
   // PDF and email

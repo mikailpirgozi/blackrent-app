@@ -194,18 +194,18 @@ export default function Statistics() {
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: isMobile ? '#fff' : 'black' }}>Štatistiky prenájmov</Typography>
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: 'text.primary' }}>Štatistiky prenájmov</Typography>
       {/* Mobilné filtre v Accordione */}
       {isMobile ? (
-        <Accordion expanded={filtersExpanded} onChange={() => setFiltersExpanded(!filtersExpanded)} sx={{ mb: 2, background: '#222', color: '#fff' }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: '#fff' }} />}>
+        <Accordion expanded={filtersExpanded} onChange={() => setFiltersExpanded(!filtersExpanded)} sx={{ mb: 2 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography>Filtre</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <FormControl fullWidth>
-                <InputLabel sx={{ color: '#fff' }}>Mesiac</InputLabel>
-                <Select value={month} label="Mesiac" onChange={e => setMonth(Number(e.target.value))} sx={{ color: '#fff' }}>
+                <InputLabel>Mesiac</InputLabel>
+                <Select value={month} label="Mesiac" onChange={e => setMonth(Number(e.target.value))}>
                   <MenuItem value={0}>Celý rok</MenuItem>
                   {[...Array(12)].map((_, i) => (
                     <MenuItem key={i+1} value={i+1}>{i+1}</MenuItem>
@@ -213,16 +213,16 @@ export default function Statistics() {
                 </Select>
               </FormControl>
               <FormControl fullWidth>
-                <InputLabel sx={{ color: '#fff' }}>Rok</InputLabel>
-                <Select value={year} label="Rok" onChange={e => setYear(Number(e.target.value))} sx={{ color: '#fff' }}>
+                <InputLabel>Rok</InputLabel>
+                <Select value={year} label="Rok" onChange={e => setYear(Number(e.target.value))}>
                   {years.map(y => (
                     <MenuItem key={y} value={y}>{y}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
               <FormControl fullWidth>
-                <InputLabel sx={{ color: '#fff' }}>Firma</InputLabel>
-                <Select value={company} label="Firma" onChange={e => setCompany(e.target.value)} sx={{ color: '#fff' }}>
+                <InputLabel>Firma</InputLabel>
+                <Select value={company} label="Firma" onChange={e => setCompany(e.target.value)}>
                   <MenuItem value="">Všetky</MenuItem>
                   {companies.map(c => (
                     <MenuItem key={c} value={c}>{c}</MenuItem>

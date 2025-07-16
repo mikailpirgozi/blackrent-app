@@ -38,6 +38,15 @@ interface ParsedData {
   vehicleName?: string;
   vehicleCode?: string;
   vehiclePrice?: number;
+  // Rozšírené polia
+  allowedKilometers?: number;
+  extraKilometerRate?: number;
+  fuelLevel?: number;
+  returnConditions?: string;
+  startOdometer?: number;
+  notes?: string;
+  insuranceInfo?: string;
+  additionalServices?: string[];
 }
 
 export default function EmailParser({ onParseSuccess, vehicles, customers }: EmailParserProps) {
@@ -139,11 +148,64 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
         if (parts.length > spzIndex + 2) {
           const priceStr = parts[spzIndex + 1].replace(',', '.');
           data.vehiclePrice = parseFloat(priceStr);
-          // suma je ešte o jedno ďalej
-          // const sumStr = parts[spzIndex + 2].replace(',', '.');
-          // data.vehicleSum = parseFloat(sumStr);
         }
       }
+    }
+
+    // Parsovanie povolených kilometrov
+    const allowedKmMatch = text.match(/Povolené\s+km[:\s]+(\d+)/i) || 
+                          text.match(/Kilometrov[:\s]+(\d+)/i) ||
+                          text.match(/Limit\s+km[:\s]+(\d+)/i);
+    if (allowedKmMatch) {
+      data.allowedKilometers = parseInt(allowedKmMatch[1]);
+    }
+
+    // Parsovanie ceny za extra km
+    const extraKmMatch = text.match(/Cena\s+za\s+km[:\s]+([\d,]+)\s*€/i) ||
+                        text.match(/Extra\s+km[:\s]+([\d,]+)\s*€/i) ||
+                        text.match(/Nadlimitn[ý]\s+km[:\s]+([\d,]+)\s*€/i);
+    if (extraKmMatch) {
+      const extraKmStr = extraKmMatch[1].replace(',', '.');
+      data.extraKilometerRate = parseFloat(extraKmStr);
+    }
+
+    // Parsovanie úrovne paliva
+    const fuelMatch = text.match(/Palivo[:\s]+(\d+)%/i) ||
+                     text.match(/Fuel[:\s]+(\d+)%/i) ||
+                     text.match(/Nádrž[:\s]+(\d+)%/i);
+    if (fuelMatch) {
+      data.fuelLevel = parseInt(fuelMatch[1]);
+    }
+
+    // Parsovanie stavu tachometra
+    const odometerMatch = text.match(/Tachometer[:\s]+([\d\s]+)\s*km/i) ||
+                         text.match(/Kilometrov[:\s]+([\d\s]+)\s*km/i) ||
+                         text.match(/Stav[:\s]+([\d\s]+)\s*km/i);
+    if (odometerMatch) {
+      const odometerStr = odometerMatch[1].replace(/\s/g, '');
+      data.startOdometer = parseInt(odometerStr);
+    }
+
+    // Parsovanie podmienok vrátenia
+    const conditionsMatch = text.match(/Podmienky\s+vrátenia[:\s]+([^.]+)/i) ||
+                           text.match(/Return\s+conditions[:\s]+([^.]+)/i);
+    if (conditionsMatch) {
+      data.returnConditions = conditionsMatch[1].trim();
+    }
+
+    // Parsovanie poznámok
+    const notesMatch = text.match(/Poznámky[:\s]+([^.]+)/i) ||
+                      text.match(/Notes[:\s]+([^.]+)/i) ||
+                      text.match(/Dodatočné\s+informácie[:\s]+([^.]+)/i);
+    if (notesMatch) {
+      data.notes = notesMatch[1].trim();
+    }
+
+    // Parsovanie informácií o poistení
+    const insuranceMatch = text.match(/Poistenie[:\s]+([^.]+)/i) ||
+                          text.match(/Insurance[:\s]+([^.]+)/i);
+    if (insuranceMatch) {
+      data.insuranceInfo = insuranceMatch[1].trim();
     }
 
     return data;
@@ -251,6 +313,23 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       paymentMethod,
       handoverPlace: parsedData.pickupPlace || '',
       orderNumber: parsedData.orderNumber || '',
+      // Rozšírené polia z emailu
+      deposit: parsedData.deposit || 0,
+      allowedKilometers: parsedData.allowedKilometers || 0,
+      extraKilometerRate: parsedData.extraKilometerRate || 0,
+      fuelLevel: parsedData.fuelLevel || 100,
+      odometer: parsedData.startOdometer || 0,
+      returnConditions: parsedData.returnConditions || '',
+      notes: parsedData.notes || '',
+      // Kontaktné údaje zo systému
+      customerAddress: parsedData.customerAddress || '',
+      customerEmail: parsedData.customerEmail || '',
+      customerPhone: parsedData.customerPhone || '',
+      pickupLocation: parsedData.pickupPlace || '',
+      returnLocation: parsedData.returnPlace || '',
+      reservationTime: parsedData.reservationTime || '',
+      vehicleCode: parsedData.vehicleCode || '',
+      vehicleName: parsedData.vehicleName || '',
     };
 
     onParseSuccess(rentalData, customer);
@@ -375,6 +454,27 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
                 )}
                 {parsedData.reservationTime && (
                   <div><strong>Čas rezervácie:</strong> {parsedData.reservationTime}</div>
+                )}
+                {parsedData.deposit && (
+                  <div><strong>Depozit:</strong> {parsedData.deposit} €</div>
+                )}
+                {parsedData.allowedKilometers && (
+                  <div><strong>Povolené km:</strong> {parsedData.allowedKilometers} km</div>
+                )}
+                {parsedData.extraKilometerRate && (
+                  <div><strong>Cena za extra km:</strong> {parsedData.extraKilometerRate} €/km</div>
+                )}
+                {parsedData.fuelLevel && (
+                  <div><strong>Úroveň paliva:</strong> {parsedData.fuelLevel}%</div>
+                )}
+                {parsedData.startOdometer && (
+                  <div><strong>Stav tachometra:</strong> {parsedData.startOdometer} km</div>
+                )}
+                {parsedData.returnConditions && (
+                  <div><strong>Podmienky vrátenia:</strong> {parsedData.returnConditions}</div>
+                )}
+                {parsedData.notes && (
+                  <div><strong>Poznámky:</strong> {parsedData.notes}</div>
                 )}
               </Box>
               <Button

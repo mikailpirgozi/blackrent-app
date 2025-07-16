@@ -567,25 +567,25 @@ export default function VehicleList() {
       ) : (
         <Card>
           <CardContent>
-            <TableContainer component={Paper} sx={{ backgroundColor: 'transparent' }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={selected.length === filteredVehicles.length && filteredVehicles.length > 0}
-                        indeterminate={selected.length > 0 && selected.length < filteredVehicles.length}
-                        onChange={e => handleSelectAll(e.target.checked)}
-                      />
-                    </TableCell>
-                    <TableCell>Značka</TableCell>
-                    <TableCell>Model</TableCell>
-                    <TableCell>ŠPZ</TableCell>
-                    <TableCell>Firma</TableCell>
-                    <TableCell>Stav</TableCell>
-                    <TableCell>Akcie</TableCell>
-                  </TableRow>
-                </TableHead>
+                            <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', width: '100%', overflowX: 'auto' }}>
+                  <Table sx={{ width: '100%', minWidth: { xs: 'auto', md: 700 } }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell padding="checkbox" sx={{ width: '50px' }}>
+                          <Checkbox
+                            checked={selected.length === filteredVehicles.length && filteredVehicles.length > 0}
+                            indeterminate={selected.length > 0 && selected.length < filteredVehicles.length}
+                            onChange={e => handleSelectAll(e.target.checked)}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ width: { xs: '80px', md: '100px' } }}>Značka</TableCell>
+                        <TableCell sx={{ width: { xs: '80px', md: '100px' } }}>Model</TableCell>
+                        <TableCell sx={{ width: { xs: '80px', md: '100px' } }}>ŠPZ</TableCell>
+                        <TableCell sx={{ width: { xs: '80px', md: '100px' }, display: { xs: 'none', sm: 'table-cell' } }}>Firma</TableCell>
+                        <TableCell sx={{ width: { xs: '80px', md: '100px' } }}>Stav</TableCell>
+                        <TableCell sx={{ width: { xs: '100px', md: '120px' } }}>Akcie</TableCell>
+                      </TableRow>
+                    </TableHead>
                 <TableBody>
                   {filteredVehicles.map((vehicle) => (
                     <TableRow key={vehicle.id} selected={selected.includes(vehicle.id)}>

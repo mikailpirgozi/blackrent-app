@@ -1,0 +1,51 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: railway-blackrent/package-lock.json
+    
+    - name: Install Railway CLI
+      run: npm install -g @railway/cli
+    
+    - name: Install dependencies
+      run: |
+        cd railway-blackrent
+        npm ci
+    
+    - name: Build frontend
+      run: |
+        cd railway-blackrent
+        npm run build
+    
+    - name: Build backend
+      run: |
+        cd railway-blackrent/backend
+        npm ci
+        npm run build
+    
+    - name: Deploy to Railway
+      run: |
+        cd railway-blackrent
+        railway up --service blackrent-app
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }} 

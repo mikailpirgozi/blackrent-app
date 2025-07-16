@@ -1152,14 +1152,16 @@ export default function RentalList() {
         >
           <HandoverProtocolIcon />
         </IconButton>
-        <IconButton
-          size="small"
-          onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleCreateReturnProtocol(rental); }}
-          sx={{ color: 'warning.main' }}
-          title="Vratný protokol"
-        >
-          <ReturnProtocolIcon />
-        </IconButton>
+        {rental.handoverProtocolId && (
+          <IconButton
+            size="small"
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleCreateReturnProtocol(rental); }}
+            sx={{ color: 'warning.main' }}
+            title="Vratný protokol"
+          >
+            <ReturnProtocolIcon />
+          </IconButton>
+        )}
         <IconButton
           size="small"
           onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleShowHistory(rental); }}
@@ -1870,25 +1872,27 @@ export default function RentalList() {
                     >
                       <HandoverProtocolIcon fontSize="small" />
                     </IconButton>
-                    <IconButton 
-                      size="medium" 
-                      onClick={(e) => { e.stopPropagation(); handleCreateReturnProtocol(rental); }} 
-                      sx={{ 
-                        color: 'white',
-                        bgcolor: 'warning.main',
-                        border: '1px solid',
-                        borderColor: 'warning.main',
-                        '&:hover': { 
-                          bgcolor: 'warning.dark', 
-                          borderColor: 'warning.dark',
-                          transform: 'scale(1.05)'
-                        },
-                        transition: 'all 0.2s ease-in-out'
-                      }}
-                      title="Vratný protokol"
-                    >
-                      <ReturnProtocolIcon fontSize="small" />
-                    </IconButton>
+                    {rental.handoverProtocolId && (
+                      <IconButton 
+                        size="medium" 
+                        onClick={(e) => { e.stopPropagation(); handleCreateReturnProtocol(rental); }} 
+                        sx={{ 
+                          color: 'white',
+                          bgcolor: 'warning.main',
+                          border: '1px solid',
+                          borderColor: 'warning.main',
+                          '&:hover': { 
+                            bgcolor: 'warning.dark', 
+                            borderColor: 'warning.dark',
+                            transform: 'scale(1.05)'
+                          },
+                          transition: 'all 0.2s ease-in-out'
+                        }}
+                        title="Vratný protokol"
+                      >
+                        <ReturnProtocolIcon fontSize="small" />
+                      </IconButton>
+                    )}
                     <IconButton 
                       size="medium" 
                       onClick={(e) => { e.stopPropagation(); handleShowHistory(rental); }} 
@@ -1918,27 +1922,27 @@ export default function RentalList() {
         <Card>
           <CardContent>
             <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', maxHeight: 600, width: '100%', overflowX: 'auto' }}>
-              <Table stickyHeader sx={{ minWidth: 900 }}>
+              <Table stickyHeader sx={{ minWidth: { xs: 'auto', md: 1100 }, width: '100%' }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell padding="checkbox">
+                    <TableCell padding="checkbox" sx={{ width: '50px' }}>
                       <Checkbox
                         checked={selected.length === filteredRentals.length && filteredRentals.length > 0}
                         indeterminate={selected.length > 0 && selected.length < filteredRentals.length}
                         onChange={e => handleSelectAll(e.target.checked)}
                       />
                     </TableCell>
-                    <TableCell>Vozidlo</TableCell>
-                    <TableCell>Firma</TableCell>
-                    <TableCell>Zákazník</TableCell>
-                    <TableCell>Od</TableCell>
-                    <TableCell>Do</TableCell>
-                    <TableCell>Cena (€)</TableCell>
-                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Provízia (€)</TableCell>
-                    <TableCell>Platba</TableCell>
-                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Uhradené</TableCell>
-                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Stav</TableCell>
-                    <TableCell>Akcie</TableCell>
+                    <TableCell sx={{ width: { xs: '120px', md: '150px' } }}>Vozidlo</TableCell>
+                    <TableCell sx={{ width: { xs: '80px', md: '100px' }, display: { xs: 'none', sm: 'table-cell' } }}>Firma</TableCell>
+                    <TableCell sx={{ width: { xs: '100px', md: '130px' } }}>Zákazník</TableCell>
+                    <TableCell sx={{ width: { xs: '80px', md: '100px' } }}>Od</TableCell>
+                    <TableCell sx={{ width: { xs: '80px', md: '100px' } }}>Do</TableCell>
+                    <TableCell sx={{ width: { xs: '80px', md: '100px' } }}>Cena (€)</TableCell>
+                    <TableCell sx={{ width: '100px', display: { xs: 'none', md: 'table-cell' } }}>Provízia (€)</TableCell>
+                    <TableCell sx={{ width: { xs: '80px', md: '100px' }, display: { xs: 'none', sm: 'table-cell' } }}>Platba</TableCell>
+                    <TableCell sx={{ width: '80px', display: { xs: 'none', lg: 'table-cell' } }}>Uhradené</TableCell>
+                    <TableCell sx={{ width: '100px', display: { xs: 'none', lg: 'table-cell' } }}>Stav</TableCell>
+                    <TableCell sx={{ width: { xs: '120px', md: '150px' } }}>Akcie</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -2108,14 +2112,16 @@ export default function RentalList() {
                               >
                                 <HandoverProtocolIcon />
                               </IconButton>
-                              <IconButton
-                                size="small"
-                                onClick={e => { e.stopPropagation(); handleCreateReturnProtocol(rental); }}
-                                sx={{ color: 'warning.main' }}
-                                title="Vratný protokol"
-                              >
-                                <ReturnProtocolIcon />
-                              </IconButton>
+                              {rental.handoverProtocolId && (
+                                <IconButton
+                                  size="small"
+                                  onClick={e => { e.stopPropagation(); handleCreateReturnProtocol(rental); }}
+                                  sx={{ color: 'warning.main' }}
+                                  title="Vratný protokol"
+                                >
+                                  <ReturnProtocolIcon />
+                                </IconButton>
+                              )}
                               <IconButton
                                 size="small"
                                 onClick={e => { e.stopPropagation(); handleShowHistory(rental); }}
