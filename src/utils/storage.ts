@@ -61,7 +61,7 @@ export class StorageManager {
       storage.setItem('blackrent_user', JSON.stringify(user));
       localStorage.setItem('blackrent_remember_me', rememberMe.toString());
       
-      console.log('💾 Auth data uložené do:', rememberMe ? 'cookies (30 dní) + localStorage' : 'cookies (1 deň) + sessionStorage');
+      console.log('💾 Auth data uložené do:', rememberMe ? 'cookies (90 dní) + localStorage' : 'cookies (1 deň) + sessionStorage');
     } catch (error) {
       console.error('Chyba pri ukladaní auth data:', error);
       // Fallback na localStorage aj pri chybe

@@ -86,23 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const validateToken = async (token: string): Promise<boolean> => {
-    try {
-      const testResponse = await fetch(`${API_BASE_URL}/vehicles`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        // Timeout pre network request
-        signal: AbortSignal.timeout(5000) // 5 sekúnd timeout
-      });
-      return testResponse.ok;
-    } catch (error) {
-      console.warn('Token validation failed (bude ignorované):', error);
-      // Neodhlasuj používateľa pri network erroroch
-      // Token môže byť stále platný, len server nedostupný
-      return true; // Predpokladáme že token je platný
-    }
+    // ZJEDNODUŠENIE: Vždy považuj token za platný
+    // Ak má používateľ uložené auth dáta, znamená to že sa už úspešne prihlásil
+    // Nebudeme ho obtažovať s neustálym overovaním
+    console.log('✅ Token validation preskočená - vždy platný pre lepšiu UX');
+    return true;
   };
 
   const restoreSession = async () => {
@@ -171,29 +159,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (!storedToken || !storedUser) {
           console.log('⚠️ Session dáta chýbajú po návrate (možno vymazané), ale ponechávam aktívnu session');
           // Neodhlasuj používateľa, len obnov storage
-          setAuthData(state.token, state.user, StorageManager.isRememberMeEnabled());
+          StorageManager.setAuthData(state.token, state.user, StorageManager.isRememberMeEnabled());
         }
         
-        // Async token validation na pozadí (neblokuje UI)
-        validateToken(state.token).then(isValid => {
-          if (!isValid) {
-            console.log('⚠️ Token validation zlyhal po návrate, ale ponechávam session');
-          } else {
-            console.log('✅ Token je stále platný po návrate');
-          }
-        }).catch(error => {
-          console.warn('⚠️ Token validation error po návrate:', error);
-        });
+        console.log('✅ Session obnovená po návrate k aplikácii');
       }
     };
+
+    // Periodické obnovenie session dát (každých 30 sekúnd)
+    const sessionRefreshInterval = setInterval(() => {
+      if (state.isAuthenticated && state.token && state.user) {
+        console.log('🔄 Periodické obnovenie session dát...');
+        StorageManager.setAuthData(state.token, state.user, true); // Vždy remember me
+      }
+    }, 30000); // 30 sekúnd
 
     // Pridaj event listener pre page visibility
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(sessionRefreshInterval);
     };
-  }, [state.isAuthenticated, state.token]);
+  }, [state.isAuthenticated, state.token, state.user]);
 
   const login = async (credentials: LoginCredentials, rememberMe: boolean = true): Promise<boolean> => {
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -214,7 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('👤 Používateľ:', result.user.username);
       console.log('🔑 Token uložený do:', rememberMe ? 'localStorage (trvalé)' : 'sessionStorage (dočasné)');
       
-      setAuthData(result.token, result.user, rememberMe);
+      StorageManager.setAuthData(result.token, result.user, rememberMe);
       
       console.log('💾 Storage test:', {
         canAccess: typeof Storage !== 'undefined',
@@ -238,12 +226,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      console.log('🚪 Odhlasovanie používateľa...');
       await apiService.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      console.log('🗑️ Mažem auth dáta...');
       dispatch({ type: 'LOGOUT' });
-      clearAuthData();
+      StorageManager.clearAuthData();
     }
   };
 
