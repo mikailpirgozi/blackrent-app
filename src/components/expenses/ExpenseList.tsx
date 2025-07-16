@@ -255,7 +255,7 @@ export default function ExpenseList() {
               }
 
               // Nájde vozidlo podľa ŠPZ ak je zadané
-              let vehicleId = undefined;
+              let vehicleId: string | undefined = undefined;
               
               // Ak je zadané vehicleId, skontroluj, či je to správne UUID
               if (row.vehicleId) {
