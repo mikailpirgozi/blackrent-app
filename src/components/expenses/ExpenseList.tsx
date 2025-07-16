@@ -283,9 +283,29 @@ export default function ExpenseList() {
                 throw new Error(`Neplatná suma: ${row.amount}`);
               }
 
+              const description = (row.description && row.description.trim()) || 'Bez popisu';
+              
+              // KONTROLA DUPLICÍT NÁKLADU
+              // Skontroluj, či už existuje náklad s týmito parametrami
+              const duplicateExpense = state.expenses.find(existingExpense => {
+                const existingDate = new Date(existingExpense.date);
+                
+                return (
+                  existingExpense.description?.toLowerCase() === description.toLowerCase() &&
+                  existingExpense.amount === parsedAmount &&
+                  existingDate.toDateString() === parsedDate.toDateString() &&
+                  existingExpense.vehicleId === vehicleId
+                );
+              });
+              
+              if (duplicateExpense) {
+                console.log(`🔄 Preskakujem duplicitný náklad: ${description} (${parsedAmount}€) ${parsedDate.toDateString()}`);
+                continue;
+              }
+
               const expense = {
                 id: row.id || uuidv4(),
-                description: (row.description && row.description.trim()) || 'Bez popisu',
+                description: description,
                 amount: parsedAmount,
                 date: parsedDate,
                 category: (row.category && row.category.trim()) || 'other',
@@ -318,8 +338,15 @@ export default function ExpenseList() {
           
           setImportError('');
           
-          let message = `Import dokončený!\n\n`;
+          const totalProcessed = results.data.length;
+          const skippedDuplicates = totalProcessed - successCount - errorCount;
+          
+          let message = `Import nákladov dokončený!\n\n`;
+          message += `📊 Spracované riadky: ${totalProcessed}\n`;
           message += `✅ Úspešne importované: ${successCount}\n`;
+          if (skippedDuplicates > 0) {
+            message += `🔄 Preskočené duplicity: ${skippedDuplicates}\n`;
+          }
           if (errorCount > 0) {
             message += `❌ Chyby: ${errorCount}\n\n`;
             message += `Problémy:\n${errors.slice(0, 5).join('\n')}`;

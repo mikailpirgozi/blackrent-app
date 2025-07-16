@@ -514,30 +514,67 @@ export default function RentalList() {
               console.log(`🚗 Priradené vozidlo ${vehicle.licensePlate} - Majiteľ: ${vehicle.company}`);
             }
 
-            const rental = {
-              id: row.id || uuidv4(),
-              vehicleId: vehicle?.id,
-              vehicle: vehicle,
-              customerId: finalCustomer?.id,
-              customer: finalCustomer,
-              customerName: customerName,
-              startDate: parseDate(row.startDate),
-              endDate: parseDate(row.endDate),
-              totalPrice: Number(row.totalPrice) || 0,
-              commission: finalCommission,
-              paymentMethod: finalPaymentMethod,
-              createdAt: new Date(),
-              discount: row.discountType ? { type: row.discountType, value: Number(row.discountValue) } : undefined,
-              customCommission: row.customCommissionType ? { type: row.customCommissionType, value: Number(row.customCommissionValue) } : undefined,
-              extraKmCharge: row.extraKmCharge ? Number(row.extraKmCharge) : undefined,
-              paid: row.paid === '1' || row.paid === 'true',
-              handoverPlace: row.handoverPlace || '',
-              confirmed: row.confirmed === '1' || row.confirmed === 'true',
-              // Označí prenájmy s neúplnými údajmi
-              needsUpdate: !vehicle || vehicle.brand === 'NEZNÁMA ZNAČKA' || vehicle.company === 'NEZNÁMA FIRMA',
-            };
+            const startDate = parseDate(row.startDate);
+            const endDate = parseDate(row.endDate);
             
-            imported.push(rental);
+            // KONTROLA DUPLICÍT PRENÁJMU
+            // Skontroluj, či už existuje prenájom s týmito parametrami
+            const duplicateRental = state.rentals.find(existingRental => {
+              // Kontrola podľa vozidla a dátumov
+              if (vehicle?.id && existingRental.vehicleId === vehicle.id) {
+                const existingStart = new Date(existingRental.startDate);
+                const existingEnd = new Date(existingRental.endDate);
+                
+                // Ak sa dátumy zhodujú (rovnaký deň)
+                if (existingStart.toDateString() === startDate.toDateString() && 
+                    existingEnd.toDateString() === endDate.toDateString()) {
+                  return true;
+                }
+              }
+              
+              // Kontrola podľa zákazníka a dátumov (ak nie je vozidlo)
+              if (existingRental.customerName?.toLowerCase() === customerName.toLowerCase()) {
+                const existingStart = new Date(existingRental.startDate);
+                const existingEnd = new Date(existingRental.endDate);
+                
+                if (existingStart.toDateString() === startDate.toDateString() && 
+                    existingEnd.toDateString() === endDate.toDateString()) {
+                  return true;
+                }
+              }
+              
+              return false;
+            });
+            
+            // Ak nenašiel duplicitu, pridaj prenájom
+            if (!duplicateRental) {
+              const rental = {
+                id: row.id || uuidv4(),
+                vehicleId: vehicle?.id,
+                vehicle: vehicle,
+                customerId: finalCustomer?.id,
+                customer: finalCustomer,
+                customerName: customerName,
+                startDate: startDate,
+                endDate: endDate,
+                totalPrice: Number(row.totalPrice) || 0,
+                commission: finalCommission,
+                paymentMethod: finalPaymentMethod,
+                createdAt: new Date(),
+                discount: row.discountType ? { type: row.discountType, value: Number(row.discountValue) } : undefined,
+                customCommission: row.customCommissionType ? { type: row.customCommissionType, value: Number(row.customCommissionValue) } : undefined,
+                extraKmCharge: row.extraKmCharge ? Number(row.extraKmCharge) : undefined,
+                paid: row.paid === '1' || row.paid === 'true',
+                handoverPlace: row.handoverPlace || '',
+                confirmed: row.confirmed === '1' || row.confirmed === 'true',
+                // Označí prenájmy s neúplnými údajmi
+                needsUpdate: !vehicle || vehicle.brand === 'NEZNÁMA ZNAČKA' || vehicle.company === 'NEZNÁMA FIRMA',
+              };
+              
+              imported.push(rental);
+            } else {
+              console.log(`🔄 Preskakujem duplicitný prenájom: ${customerName} (${vehicle?.licensePlate || 'bez vozidla'}) ${startDate.toDateString()}`);
+            }
           }
           
           // Teraz vytvoríme všetky prenájmy cez API
@@ -553,10 +590,16 @@ export default function RentalList() {
           
           setImportError('');
           const totalImported = imported.length;
+          const totalProcessed = results.data.length;
+          const skippedDuplicates = totalProcessed - totalImported;
           const vehiclesCreated = createdVehicles.length;
           
           let message = `Import prenájmov prebehol úspešne!\n\n`;
+          message += `• Spracované riadky: ${totalProcessed}\n`;
           message += `• Importované prenájmy: ${totalImported}\n`;
+          if (skippedDuplicates > 0) {
+            message += `• Preskočené duplicity: ${skippedDuplicates}\n`;
+          }
           if (vehiclesCreated > 0) {
             message += `• Vytvorené nové vozidlá: ${vehiclesCreated}\n`;
           }

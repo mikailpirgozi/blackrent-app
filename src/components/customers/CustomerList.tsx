@@ -222,6 +222,21 @@ export default function CustomerList() {
                 continue;
               }
 
+              // KONTROLA DUPLICÍT ZÁKAZNÍKA
+              // Skontroluj, či už existuje zákazník s týmto menom alebo emailom
+              const duplicateCustomer = state.customers.find(existingCustomer => {
+                const nameMatch = existingCustomer.name?.toLowerCase() === row.name?.toLowerCase();
+                const emailMatch = row.email && existingCustomer.email && 
+                  existingCustomer.email.toLowerCase() === row.email.toLowerCase();
+                
+                return nameMatch || emailMatch;
+              });
+              
+              if (duplicateCustomer) {
+                console.log(`🔄 Preskakujem duplicitného zákazníka: ${row.name} (${row.email || 'bez emailu'})`);
+                continue;
+              }
+
               const customer: Customer = {
                 id: row.id || uuidv4(),
                 name: row.name || '',
@@ -244,8 +259,15 @@ export default function CustomerList() {
           
           setImportError('');
           
-          let message = `Import dokončený!\n\n`;
+          const totalProcessed = results.data.length;
+          const skippedDuplicates = totalProcessed - successCount - errorCount;
+          
+          let message = `Import zákazníkov dokončený!\n\n`;
+          message += `📊 Spracované riadky: ${totalProcessed}\n`;
           message += `✅ Úspešne importované: ${successCount}\n`;
+          if (skippedDuplicates > 0) {
+            message += `🔄 Preskočené duplicity: ${skippedDuplicates}\n`;
+          }
           if (errorCount > 0) {
             message += `❌ Chyby: ${errorCount}\n\n`;
             message += `Problémy:\n${errors.slice(0, 5).join('\n')}`;

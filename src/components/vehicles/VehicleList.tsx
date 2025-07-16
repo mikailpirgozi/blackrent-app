@@ -221,7 +221,22 @@ export default function VehicleList() {
       skipEmptyLines: true,
       complete: async (results: ReturnType<typeof Papa.parse>) => {
         try {
-          const imported = results.data.map((row: any) => {
+          const imported = [];
+          let skippedDuplicates = 0;
+          
+          for (const row of results.data as any[]) {
+            // KONTROLA DUPLICÍT VOZIDLA
+            // Skontroluj, či už existuje vozidlo s touto ŠPZ
+            const duplicateVehicle = state.vehicles.find(existingVehicle => 
+              existingVehicle.licensePlate?.toLowerCase() === row.licensePlate?.toLowerCase()
+            );
+            
+            if (duplicateVehicle) {
+              console.log(`🔄 Preskakujem duplicitné vozidlo: ${row.licensePlate}`);
+              skippedDuplicates++;
+              continue;
+            }
+            
             // Ak sú v CSV stĺpce cena_0_1 atď., vytvor pricing pole
             let pricing = [];
             if (
@@ -240,7 +255,8 @@ export default function VehicleList() {
             } else if (row.pricing) {
               pricing = JSON.parse(row.pricing);
             }
-            return {
+            
+            const vehicle = {
               id: row.id || uuidv4(),
               brand: row.brand,
               model: row.model,
@@ -250,7 +266,9 @@ export default function VehicleList() {
               commission: { type: row.commissionType, value: Number(row.commissionValue) },
               status: row.status || 'available',
             };
-          });
+            
+            imported.push(vehicle);
+          }
           
           // Vytvoríme všetky vozidlá cez API
           for (const vehicle of imported) {
@@ -258,7 +276,14 @@ export default function VehicleList() {
           }
           
           setImportError('');
-          alert('Import vozidiel prebehol úspešne!');
+          const totalProcessed = results.data.length;
+          let message = `Import vozidiel prebehol úspešne!\n\n`;
+          message += `• Spracované riadky: ${totalProcessed}\n`;
+          message += `• Importované vozidlá: ${imported.length}\n`;
+          if (skippedDuplicates > 0) {
+            message += `• Preskočené duplicity: ${skippedDuplicates}\n`;
+          }
+          alert(message);
         } catch (err) {
           setImportError('Chyba pri importe CSV: ' + (err as any).message);
           console.error('Import error:', err);
