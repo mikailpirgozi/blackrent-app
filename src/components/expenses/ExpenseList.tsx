@@ -210,7 +210,9 @@ export default function ExpenseList() {
       transformHeader: (header: string) => header.trim(),
       complete: async (results: ReturnType<typeof Papa.parse>) => {
         try {
-          console.log('CSV data:', results.data); // Debug log
+          console.log('🔍 CSV data:', results.data); // Debug log
+          console.log('📋 CSV headers:', results.meta?.fields || 'Neznáme hlavičky');
+          console.log('📊 Počet riadkov:', results.data.length);
           
           // Parsuje dátumy z rôznych formátov  
           const parseDate = (dateStr: string) => {
@@ -257,41 +259,75 @@ export default function ExpenseList() {
             try {
               console.log(`🔍 Spracovávam riadok ${i + 1}/${results.data.length}:`, row);
               
-              // Preskočíme prázdne riadky
-              if (!row.description && !row.amount && !row.date) {
+              // Preskočíme prázdne riadky - skontrolujeme či má aspoň nejaké hodnoty
+              const hasAnyData = Object.values(row).some(value => 
+                value !== null && value !== undefined && value !== '' && value.toString().trim() !== ''
+              );
+              
+              if (!hasAnyData) {
                 console.log(`⚠️ Preskakujem prázdny riadok ${i + 1}`);
                 continue;
               }
+              
+              // Zobrazíme aké stĺpce máme v tomto riadku
+              console.log(`📋 Dostupné stĺpce v riadku ${i + 1}:`, Object.keys(row));
+              console.log(`📝 Hodnoty v riadku ${i + 1}:`, Object.values(row));
 
-              // Trimovanie a validácia základných údajov
-              const rawDescription = row.description?.toString().trim() || '';
-              const rawAmount = row.amount?.toString().trim() || '';
-              const rawDate = row.date?.toString().trim() || '';
-              const rawCategory = row.category?.toString().trim() || 'other';
-              const rawCompany = row.company?.toString().trim() || 'Neznáma firma';
-              const rawNote = row.note?.toString().trim() || '';
+              // Flexibilné mapovanie stĺpcov - podporuje rôzne názvy
+              const getFieldValue = (row: any, possibleNames: string[]) => {
+                for (const name of possibleNames) {
+                  if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
+                    return row[name].toString().trim();
+                  }
+                }
+                return '';
+              };
+
+              // Trimovanie a validácia základných údajov s flexibilným mapovaním
+              const rawDescription = getFieldValue(row, ['description', 'popis', 'nazov', 'item', 'polozka', 'desc']);
+              const rawAmount = getFieldValue(row, ['amount', 'suma', 'price', 'cena', 'hodnota', 'cost']);
+              const rawDate = getFieldValue(row, ['date', 'datum', 'day', 'den', 'created', 'time']);
+              const rawCategory = getFieldValue(row, ['category', 'kategoria', 'type', 'typ']) || 'other';
+              const rawCompany = getFieldValue(row, ['company', 'firma', 'dodavatel', 'supplier', 'vendor']) || 'Neznáma firma';
+              const rawNote = getFieldValue(row, ['note', 'poznamka', 'comment', 'komentar', 'remarks']);
+              
+              console.log(`🔍 Extrahované hodnoty z riadku ${i + 1}:`, {
+                description: rawDescription,
+                amount: rawAmount,
+                date: rawDate,
+                category: rawCategory,
+                company: rawCompany,
+                note: rawNote
+              });
 
               if (!rawDescription || !rawAmount || !rawDate) {
-                throw new Error(`Chýbajú povinné polia: ${!rawDescription ? 'popis' : ''} ${!rawAmount ? 'suma' : ''} ${!rawDate ? 'dátum' : ''}`);
+                const missingFields = [];
+                if (!rawDescription) missingFields.push('popis (description/popis/nazov/item/polozka/desc)');
+                if (!rawAmount) missingFields.push('suma (amount/suma/price/cena/hodnota/cost)');
+                if (!rawDate) missingFields.push('dátum (date/datum/day/den/created/time)');
+                throw new Error(`Chýbajú povinné polia: ${missingFields.join(', ')}`);
               }
 
               // Nájde vozidlo podľa ŠPZ ak je zadané
               let vehicleId: string | undefined = undefined;
               
               // Ak je zadané vehicleId, skontroluj, či je to správne UUID
-              if (row.vehicleId) {
+              const rawVehicleId = getFieldValue(row, ['vehicleId', 'vehicle_id', 'vozidlo_id', 'auto_id']);
+              if (rawVehicleId) {
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                if (uuidRegex.test(row.vehicleId.toString().trim())) {
-                  vehicleId = row.vehicleId.toString().trim();
+                if (uuidRegex.test(rawVehicleId)) {
+                  vehicleId = rawVehicleId;
                 }
               }
               
               // Ak nie je správne UUID, pokús sa nájsť vozidlo podľa ŠPZ
-              if (!vehicleId && row.vehicleLicensePlate) {
-                const licensePlate = row.vehicleLicensePlate.toString().trim();
-                const vehicle = state.vehicles.find(v => v.licensePlate?.toLowerCase() === licensePlate.toLowerCase());
-                vehicleId = vehicle?.id;
-                console.log(`🚗 Hľadám vozidlo podľa ŠPZ "${licensePlate}": ${vehicle ? 'nájdené' : 'nenájdené'}`);
+              if (!vehicleId) {
+                const licensePlate = getFieldValue(row, ['vehicleLicensePlate', 'license_plate', 'spz', 'ecv', 'vehicle_plate', 'auto_spz']);
+                if (licensePlate) {
+                  const vehicle = state.vehicles.find(v => v.licensePlate?.toLowerCase() === licensePlate.toLowerCase());
+                  vehicleId = vehicle?.id;
+                  console.log(`🚗 Hľadám vozidlo podľa ŠPZ "${licensePlate}": ${vehicle ? 'nájdené' : 'nenájdené'}`);
+                }
               }
 
               // Validácia dátumu
