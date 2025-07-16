@@ -204,6 +204,10 @@ export default function ExpenseList() {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
+      delimiter: ',',
+      quoteChar: '"',
+      escapeChar: '"',
+      transformHeader: (header: string) => header.trim(),
       complete: async (results: ReturnType<typeof Papa.parse>) => {
         try {
           console.log('CSV data:', results.data); // Debug log
@@ -242,16 +246,33 @@ export default function ExpenseList() {
           let successCount = 0;
           let errorCount = 0;
           const errors: string[] = [];
+          const validExpenses: any[] = [];
           
-          // Spracujeme každý riadok postupne s error handlingom
+          console.log(`📋 Spracovávam ${results.data.length} riadkov nákladov...`);
+          
+          // KROK 1: Spracujeme všetky riadky do objektov (bez asynchrónneho vytvárania)
           for (let i = 0; i < results.data.length; i++) {
             const row = results.data[i] as any;
             
             try {
+              console.log(`🔍 Spracovávam riadok ${i + 1}/${results.data.length}:`, row);
+              
               // Preskočíme prázdne riadky
               if (!row.description && !row.amount && !row.date) {
-                console.log(`Preskakujem prázdny riadok ${i + 1}`);
+                console.log(`⚠️ Preskakujem prázdny riadok ${i + 1}`);
                 continue;
+              }
+
+              // Trimovanie a validácia základných údajov
+              const rawDescription = row.description?.toString().trim() || '';
+              const rawAmount = row.amount?.toString().trim() || '';
+              const rawDate = row.date?.toString().trim() || '';
+              const rawCategory = row.category?.toString().trim() || 'other';
+              const rawCompany = row.company?.toString().trim() || 'Neznáma firma';
+              const rawNote = row.note?.toString().trim() || '';
+
+              if (!rawDescription || !rawAmount || !rawDate) {
+                throw new Error(`Chýbajú povinné polia: ${!rawDescription ? 'popis' : ''} ${!rawAmount ? 'suma' : ''} ${!rawDate ? 'dátum' : ''}`);
               }
 
               // Nájde vozidlo podľa ŠPZ ak je zadané
@@ -260,30 +281,32 @@ export default function ExpenseList() {
               // Ak je zadané vehicleId, skontroluj, či je to správne UUID
               if (row.vehicleId) {
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                if (uuidRegex.test(row.vehicleId)) {
-                  vehicleId = row.vehicleId;
+                if (uuidRegex.test(row.vehicleId.toString().trim())) {
+                  vehicleId = row.vehicleId.toString().trim();
                 }
               }
               
               // Ak nie je správne UUID, pokús sa nájsť vozidlo podľa ŠPZ
               if (!vehicleId && row.vehicleLicensePlate) {
-                const vehicle = state.vehicles.find(v => v.licensePlate === row.vehicleLicensePlate);
+                const licensePlate = row.vehicleLicensePlate.toString().trim();
+                const vehicle = state.vehicles.find(v => v.licensePlate?.toLowerCase() === licensePlate.toLowerCase());
                 vehicleId = vehicle?.id;
+                console.log(`🚗 Hľadám vozidlo podľa ŠPZ "${licensePlate}": ${vehicle ? 'nájdené' : 'nenájdené'}`);
               }
 
               // Validácia dátumu
-              const parsedDate = parseDate(row.date);
+              const parsedDate = parseDate(rawDate);
               if (!parsedDate || isNaN(parsedDate.getTime())) {
-                throw new Error(`Neplatný dátum: ${row.date}`);
+                throw new Error(`Neplatný dátum: ${rawDate}`);
               }
 
               // Validácia amount
-              const parsedAmount = row.amount ? Number(row.amount) : 0;
+              const parsedAmount = Number(rawAmount);
               if (isNaN(parsedAmount)) {
-                throw new Error(`Neplatná suma: ${row.amount}`);
+                throw new Error(`Neplatná suma: ${rawAmount}`);
               }
 
-              const description = (row.description && row.description.trim()) || 'Bez popisu';
+              const description = rawDescription || 'Bez popisu';
               
               // KONTROLA DUPLICÍT NÁKLADU
               // Skontroluj, či už existuje náklad s týmito parametrami
@@ -308,31 +331,37 @@ export default function ExpenseList() {
                 description: description,
                 amount: parsedAmount,
                 date: parsedDate,
-                category: (row.category && row.category.trim()) || 'other',
-                company: (row.company && row.company.trim()) || 'Neznáma firma',
+                category: rawCategory,
+                company: rawCompany,
                 vehicleId: vehicleId,
-                note: (row.note && row.note.trim()) || undefined,
+                note: rawNote || undefined,
               };
 
-              console.log(`Spracovávam riadok ${i + 1}:`, expense);
-              console.log(`Povinné polia check - description: "${expense.description}", company: "${expense.company}", category: "${expense.category}", date: ${expense.date}`);
+              console.log(`✅ Pripravený náklad ${i + 1}: ${expense.description} (${expense.amount}€) ${expense.date.toDateString()}`);
+              validExpenses.push(expense);
+              
+            } catch (error: any) {
+              console.error(`❌ Chyba v riadku ${i + 1}:`, error);
+              errorCount++;
+              const errorMsg = `Riadok ${i + 1}: ${error.message}`;
+              errors.push(errorMsg);
+            }
+          }
+          
+          console.log(`📊 Pripravených na import: ${validExpenses.length} nákladov`);
+          
+          // KROK 2: Teraz vytvoríme všetky náklady postupne
+          for (let i = 0; i < validExpenses.length; i++) {
+            const expense = validExpenses[i];
+            try {
+              console.log(`💾 Vytváram náklad ${i + 1}/${validExpenses.length}: ${expense.description} (${expense.amount}€)`);
               await createExpense(expense);
               successCount++;
               
             } catch (error: any) {
+              console.error(`❌ Chyba pri vytváraní nákladu:`, error);
               errorCount++;
-              const errorMsg = `Riadok ${i + 1}: ${error.message}`;
-              errors.push(errorMsg);
-              console.error(`Chyba v riadku ${i + 1}:`, error, 'Row data:', {
-                description: row.description,
-                amount: row.amount,
-                date: row.date,
-                category: row.category,
-                company: row.company,
-                vehicleId: row.vehicleId,
-                vehicleLicensePlate: row.vehicleLicensePlate,
-                note: row.note
-              });
+              errors.push(`Náklad ${i + 1}: ${error.message || 'Neznáma chyba'}`);
             }
           }
           
