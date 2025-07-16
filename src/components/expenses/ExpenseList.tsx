@@ -272,18 +272,25 @@ export default function ExpenseList() {
               // Zobrazíme aké stĺpce máme v tomto riadku
               console.log(`📋 Dostupné stĺpce v riadku ${i + 1}:`, Object.keys(row));
               console.log(`📝 Hodnoty v riadku ${i + 1}:`, Object.values(row));
+              console.log(`🔍 Detailné stĺpce a hodnoty riadku ${i + 1}:`, row);
 
               // Flexibilné mapovanie stĺpcov - podporuje rôzne názvy
               const getFieldValue = (row: any, possibleNames: string[]) => {
+                console.log(`🔍 Hľadám pole medzi ${possibleNames.join(', ')} v objekte:`, row);
                 for (const name of possibleNames) {
+                  console.log(`  - Kontrolujem '${name}': ${row[name] !== undefined ? `'${row[name]}'` : 'undefined'}`);
                   if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
-                    return row[name].toString().trim();
+                    const value = row[name].toString().trim();
+                    console.log(`  ✅ Nájdené '${name}' = '${value}'`);
+                    return value;
                   }
                 }
+                console.log(`  ❌ Žiadne z polí ${possibleNames.join(', ')} nebolo nájdené`);
                 return '';
               };
 
               // Trimovanie a validácia základných údajov s flexibilným mapovaním
+              // PRESNE TIE ISTÉ NÁZVY AKO V EXPORT FUNKCII SÚ NA PRVOM MIESTE
               const rawDescription = getFieldValue(row, ['description', 'popis', 'nazov', 'item', 'polozka', 'desc']);
               const rawAmount = getFieldValue(row, ['amount', 'suma', 'price', 'cena', 'hodnota', 'cost']);
               const rawDate = getFieldValue(row, ['date', 'datum', 'day', 'den', 'created', 'time']);
