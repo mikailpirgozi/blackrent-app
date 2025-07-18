@@ -1,0 +1,11 @@
+{
+  "files": {
+    "main.css": "/blackrent-app/static/css/main.137c223c.css",
+    "main.js": "/blackrent-app/static/js/main.6c6f3a5d.js",
+    "index.html": "/blackrent-app/index.html"
+  },
+  "entrypoints": [
+    "static/css/main.137c223c.css",
+    "static/js/main.6c6f3a5d.js"
+  ]
+}
