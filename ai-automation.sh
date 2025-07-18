@@ -93,9 +93,9 @@ performance_monitor() {
     echo -e "${BLUE}🔍 Performance Monitor starting...${NC}"
     
     # Response time test
-    start_time=$(date +%s%3N)
+    start_time=$(date +%s)
     curl -s https://blackrent-app-production-4d6f.up.railway.app/ > /dev/null
-    end_time=$(date +%s%3N)
+    end_time=$(date +%s)
     response_time=$((end_time - start_time))
     
     echo -e "${GREEN}⚡ Response time: ${response_time}ms${NC}"
