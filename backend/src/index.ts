@@ -89,7 +89,7 @@ app.use('/api/protocols', protocolsRouter);
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
   // Serve static files from React build
-  app.use(express.static(path.join(__dirname, '../build')));
+  app.use(express.static(path.join(__dirname, 'build')));
   
   // Handle React routing, return all requests to React app
   app.get('*', (req, res) => {
@@ -101,7 +101,15 @@ if (process.env.NODE_ENV === 'production') {
       });
     }
     
-    res.sendFile(path.join(__dirname, '../build', 'index.html'));
+    try {
+      res.sendFile(path.join(__dirname, 'build', 'index.html'));
+    } catch (error) {
+      console.error('Error serving index.html:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Aplikácia sa nenašla'
+      });
+    }
   });
 }
 
