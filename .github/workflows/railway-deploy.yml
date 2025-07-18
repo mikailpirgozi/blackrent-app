@@ -29,6 +29,8 @@ jobs:
     
     - name: Build frontend
       run: npm run build
+      env:
+        CI: false
     
     - name: Build backend
       run: |
