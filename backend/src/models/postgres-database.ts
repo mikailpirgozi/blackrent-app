@@ -888,13 +888,26 @@ export class PostgresDatabase {
     }
   }
 
-  async createCustomer(customer: Customer): Promise<void> {
+  async createCustomer(customerData: {
+    name: string;
+    email: string;
+    phone: string;
+  }): Promise<Customer> {
     const client = await this.pool.connect();
     try {
-      await client.query(
-        'INSERT INTO customers (id, name, email, phone) VALUES ($1, $2, $3, $4)',
-        [customer.id, customer.name, customer.email, customer.phone]
+      const result = await client.query(
+        'INSERT INTO customers (name, email, phone) VALUES ($1, $2, $3) RETURNING id, name, email, phone, created_at',
+        [customerData.name, customerData.email, customerData.phone]
       );
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        name: row.name,
+        email: row.email,
+        phone: row.phone,
+        createdAt: new Date(row.created_at)
+      };
     } finally {
       client.release();
     }
