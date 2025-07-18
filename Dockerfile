@@ -33,5 +33,5 @@ EXPOSE 8080
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Start the application using compiled TypeScript
-CMD ["node", "dist/index.js"] 
+# Start the application using ts-node
+CMD ["npx", "ts-node", "src/index.ts"] 
