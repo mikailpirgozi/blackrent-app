@@ -201,19 +201,16 @@ export default function SerialPhotoCapture({
             maxWidth: 1280,
             maxHeight: 720,
             quality: 0.7,
-            maxSize: 10,
-            maxDuration: 30,
+            maxSizeInMB: 10,
           });
           
-          const compressedFile = new File([result.compressedBlob], media.file.name, {
-            type: result.compressedBlob.type,
-          });
+          const compressedFile = result.compressedFile;
           
           updatedMedia[i] = {
             ...media,
             file: compressedFile,
             compressed: true,
-            compressedSize: result.compressedSize,
+            compressedSize: result.compressedSizeInMB,
             compressionRatio: result.compressionRatio,
           };
         }
