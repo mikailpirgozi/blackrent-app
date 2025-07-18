@@ -36,8 +36,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       });
     }
 
-    const newExpense: Expense = {
-      id: uuidv4(),
+    const createdExpense = await postgresDatabase.createExpense({
       description: description.toString().trim(),
       amount: amount && !isNaN(Number(amount)) ? Number(amount) : 0,
       date: date ? new Date(date) : new Date(),
@@ -45,14 +44,12 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       company: company && company.toString().trim() !== '' ? company.toString().trim() : 'Neznáma firma',
       category: category && ['service', 'insurance', 'fuel', 'other'].includes(category) ? category : 'other',
       note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
-    };
-
-    await postgresDatabase.createExpense(newExpense);
+    });
 
     res.status(201).json({
       success: true,
       message: 'Náklad úspešne vytvorený',
-      data: newExpense
+      data: createdExpense
     });
 
   } catch (error) {

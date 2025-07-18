@@ -70,7 +70,19 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       confirmed,
       payments,
       history,
-      orderNumber
+      orderNumber,
+      deposit,
+      allowedKilometers,
+      extraKilometerRate,
+      returnConditions,
+      fuelLevel,
+      odometer,
+      returnFuelLevel,
+      returnOdometer,
+      actualKilometers,
+      fuelRefillCost,
+      handoverProtocolId,
+      returnProtocolId
     } = req.body;
 
     if (!customerName || !startDate || !endDate) {
@@ -80,8 +92,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       });
     }
 
-    const newRental: Rental = {
-      id: uuidv4(),
+    const createdRental = await postgresDatabase.createRental({
       vehicleId,
       customerId,
       customerName,
@@ -100,25 +111,24 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       payments,
       history,
       orderNumber,
-      createdAt: new Date(),
-      vehicle: {
-        id: vehicleId,
-        brand: '',
-        model: '',
-        licensePlate: '',
-        company: '',
-        pricing: [],
-        commission: { type: 'percentage', value: 0 },
-        status: 'available'
-      }
-    };
-
-    await postgresDatabase.createRental(newRental);
+      deposit,
+      allowedKilometers,
+      extraKilometerRate,
+      returnConditions,
+      fuelLevel,
+      odometer,
+      returnFuelLevel,
+      returnOdometer,
+      actualKilometers,
+      fuelRefillCost,
+      handoverProtocolId,
+      returnProtocolId
+    });
 
     res.status(201).json({
       success: true,
       message: 'Prenájom úspešne vytvorený',
-      data: newRental
+      data: createdRental
     });
 
   } catch (error) {

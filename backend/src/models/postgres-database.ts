@@ -693,56 +693,122 @@ export class PostgresDatabase {
     }
   }
 
-  async createRental(rental: Rental): Promise<void> {
+  async createRental(rentalData: {
+    vehicleId?: string;
+    customerId?: string;
+    customerName: string;
+    startDate: Date;
+    endDate: Date;
+    totalPrice: number;
+    commission: number;
+    paymentMethod: string;
+    discount?: any;
+    customCommission?: any;
+    extraKmCharge?: number;
+    paid?: boolean;
+    status?: string;
+    handoverPlace?: string;
+    confirmed?: boolean;
+    payments?: any;
+    history?: any;
+    orderNumber?: string;
+    deposit?: number;
+    allowedKilometers?: number;
+    extraKilometerRate?: number;
+    returnConditions?: string;
+    fuelLevel?: number;
+    odometer?: number;
+    returnFuelLevel?: number;
+    returnOdometer?: number;
+    actualKilometers?: number;
+    fuelRefillCost?: number;
+    handoverProtocolId?: string;
+    returnProtocolId?: string;
+  }): Promise<Rental> {
     const client = await this.pool.connect();
     try {
-      // Validácia UUID pre vehicleId a customerId
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const validVehicleId = rental.vehicleId && uuidRegex.test(rental.vehicleId) ? rental.vehicleId : null;
-      const validCustomerId = rental.customerId && uuidRegex.test(rental.customerId) ? rental.customerId : null;
-      
-      await client.query(`
+      const result = await client.query(`
         INSERT INTO rentals (
-          id, vehicle_id, customer_id, customer_name, start_date, end_date, 
+          vehicle_id, customer_id, customer_name, start_date, end_date, 
           total_price, commission, payment_method, discount, custom_commission, 
           extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
           handover_protocol_id, return_protocol_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
+        RETURNING id, vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
+          discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
+          deposit, allowed_kilometers, extra_kilometer_rate, return_conditions, 
+          fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
+          handover_protocol_id, return_protocol_id, created_at
       `, [
-        rental.id, 
-        validVehicleId, 
-        validCustomerId, 
-        rental.customerName,
-        rental.startDate, 
-        rental.endDate, 
-        rental.totalPrice, 
-        rental.commission,
-        rental.paymentMethod, 
-        rental.discount ? JSON.stringify(rental.discount) : null,
-        rental.customCommission ? JSON.stringify(rental.customCommission) : null,
-        rental.extraKmCharge, 
-        rental.paid, 
-        rental.status, 
-        rental.handoverPlace,
-        rental.confirmed, 
-        rental.payments ? JSON.stringify(rental.payments) : null,
-        rental.history ? JSON.stringify(rental.history) : null,
-        rental.orderNumber,
-        rental.deposit || null,
-        rental.allowedKilometers || null,
-        rental.extraKilometerRate || null,
-        rental.returnConditions || null,
-        rental.fuelLevel || null,
-        rental.odometer || null,
-        rental.returnFuelLevel || null,
-        rental.returnOdometer || null,
-        rental.actualKilometers || null,
-        rental.fuelRefillCost || null,
-        rental.handoverProtocolId || null,
-        rental.returnProtocolId || null
+        rentalData.vehicleId || null, 
+        rentalData.customerId || null, 
+        rentalData.customerName,
+        rentalData.startDate, 
+        rentalData.endDate, 
+        rentalData.totalPrice, 
+        rentalData.commission,
+        rentalData.paymentMethod, 
+        rentalData.discount ? JSON.stringify(rentalData.discount) : null,
+        rentalData.customCommission ? JSON.stringify(rentalData.customCommission) : null,
+        rentalData.extraKmCharge || null, 
+        rentalData.paid || false, 
+        rentalData.status || 'pending', 
+        rentalData.handoverPlace || null,
+        rentalData.confirmed || false, 
+        rentalData.payments ? JSON.stringify(rentalData.payments) : null,
+        rentalData.history ? JSON.stringify(rentalData.history) : null,
+        rentalData.orderNumber || null,
+        rentalData.deposit || null,
+        rentalData.allowedKilometers || null,
+        rentalData.extraKilometerRate || null,
+        rentalData.returnConditions || null,
+        rentalData.fuelLevel || null,
+        rentalData.odometer || null,
+        rentalData.returnFuelLevel || null,
+        rentalData.returnOdometer || null,
+        rentalData.actualKilometers || null,
+        rentalData.fuelRefillCost || null,
+        rentalData.handoverProtocolId || null,
+        rentalData.returnProtocolId || null
       ]);
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id?.toString(),
+        customerId: row.customer_id?.toString(),
+        customerName: row.customer_name,
+        startDate: new Date(row.start_date),
+        endDate: new Date(row.end_date),
+        totalPrice: parseFloat(row.total_price) || 0,
+        commission: parseFloat(row.commission) || 0,
+        paymentMethod: row.payment_method,
+        discount: row.discount ? JSON.parse(row.discount) : undefined,
+        customCommission: row.custom_commission ? JSON.parse(row.custom_commission) : undefined,
+        extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
+        paid: Boolean(row.paid),
+        status: row.status || 'pending',
+        handoverPlace: row.handover_place,
+        confirmed: Boolean(row.confirmed),
+        payments: row.payments ? JSON.parse(row.payments) : undefined,
+        history: row.history ? JSON.parse(row.history) : undefined,
+        orderNumber: row.order_number,
+        deposit: row.deposit ? parseFloat(row.deposit) : undefined,
+        allowedKilometers: row.allowed_kilometers || undefined,
+        extraKilometerRate: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
+        returnConditions: row.return_conditions || undefined,
+        fuelLevel: row.fuel_level || undefined,
+        odometer: row.odometer || undefined,
+        returnFuelLevel: row.return_fuel_level || undefined,
+        returnOdometer: row.return_odometer || undefined,
+        actualKilometers: row.actual_kilometers || undefined,
+        fuelRefillCost: row.fuel_refill_cost ? parseFloat(row.fuel_refill_cost) : undefined,
+        handoverProtocolId: row.handover_protocol_id || undefined,
+        returnProtocolId: row.return_protocol_id || undefined,
+        createdAt: new Date(row.created_at)
+      };
     } finally {
       client.release();
     }
@@ -827,8 +893,8 @@ export class PostgresDatabase {
           return_protocol_id = $30, updated_at = CURRENT_TIMESTAMP
         WHERE id = $31
       `, [
-        rental.vehicleId, 
-        rental.customerId, 
+        rental.vehicleId ? parseInt(rental.vehicleId) : null, 
+        rental.customerId ? parseInt(rental.customerId) : null, 
         rental.customerName, 
         rental.startDate, 
         rental.endDate,
@@ -857,7 +923,7 @@ export class PostgresDatabase {
         rental.fuelRefillCost || null,
         rental.handoverProtocolId || null,
         rental.returnProtocolId || null,
-        rental.id
+        parseInt(rental.id)
       ]);
     } finally {
       client.release();
@@ -867,7 +933,7 @@ export class PostgresDatabase {
   async deleteRental(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM rentals WHERE id = $1', [id]);
+      await client.query('DELETE FROM rentals WHERE id = $1', [parseInt(id)]);
     } finally {
       client.release();
     }
@@ -880,7 +946,7 @@ export class PostgresDatabase {
       const result = await client.query('SELECT * FROM customers ORDER BY created_at DESC');
       return result.rows.map(row => ({
         ...row,
-        id: row.id,
+        id: row.id.toString(),
         createdAt: new Date(row.created_at)
       }));
     } finally {
@@ -955,30 +1021,49 @@ export class PostgresDatabase {
     }
   }
 
-  async createExpense(expense: Expense): Promise<void> {
+  async createExpense(expenseData: {
+    description: string;
+    amount: number;
+    date: Date;
+    vehicleId?: string;
+    company: string;
+    category: string;
+    note?: string;
+  }): Promise<Expense> {
     const client = await this.pool.connect();
     try {
       // Automaticky vytvoriť company záznam ak neexistuje
-      if (expense.company && expense.company.trim()) {
+      if (expenseData.company && expenseData.company.trim()) {
         await client.query(
-          'INSERT INTO companies (id, name) VALUES (gen_random_uuid(), $1) ON CONFLICT (name) DO NOTHING',
-          [expense.company.trim()]
+          'INSERT INTO companies (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
+          [expenseData.company.trim()]
         );
       }
 
-      await client.query(
-        'INSERT INTO expenses (id, description, amount, date, vehicle_id, company, category, note, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)',
+      const result = await client.query(
+        'INSERT INTO expenses (description, amount, date, vehicle_id, company, category, note) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, description, amount, date, vehicle_id, company, category, note, created_at',
         [
-          expense.id,
-          expense.description,
-          expense.amount,
-          expense.date,
-          expense.vehicleId,
-          expense.company,
-          expense.category,
-          expense.note
+          expenseData.description,
+          expenseData.amount,
+          expenseData.date,
+          expenseData.vehicleId || null,
+          expenseData.company,
+          expenseData.category,
+          expenseData.note || null
         ]
       );
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        description: row.description,
+        amount: parseFloat(row.amount) || 0,
+        date: new Date(row.date),
+        vehicleId: row.vehicle_id || undefined,
+        company: row.company,
+        category: row.category,
+        note: row.note || undefined
+      };
     } finally {
       client.release();
     }
@@ -990,7 +1075,7 @@ export class PostgresDatabase {
       // Automaticky vytvoriť company záznam ak neexistuje
       if (expense.company && expense.company.trim()) {
         await client.query(
-          'INSERT INTO companies (id, name) VALUES (gen_random_uuid(), $1) ON CONFLICT (name) DO NOTHING',
+          'INSERT INTO companies (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
           [expense.company.trim()]
         );
       }
@@ -1001,11 +1086,11 @@ export class PostgresDatabase {
           expense.description,
           expense.amount,
           expense.date,
-          expense.vehicleId,
+          expense.vehicleId ? parseInt(expense.vehicleId) : null,
           expense.company,
           expense.category,
           expense.note,
-          expense.id
+          parseInt(expense.id)
         ]
       );
     } finally {
@@ -1016,7 +1101,7 @@ export class PostgresDatabase {
   async deleteExpense(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM expenses WHERE id = $1', [id]);
+      await client.query('DELETE FROM expenses WHERE id = $1', [parseInt(id)]);
     } finally {
       client.release();
     }
@@ -1042,13 +1127,31 @@ export class PostgresDatabase {
     }
   }
 
-  async createInsurance(insurance: Insurance): Promise<void> {
+  async createInsurance(insuranceData: {
+    vehicleId: string;
+    type: string;
+    validFrom: Date;
+    validTo: Date;
+    price: number;
+    company: string;
+  }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
-      await client.query(
-        'INSERT INTO insurances (id, vehicle_id, type, valid_from, valid_to, price, company) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [insurance.id, insurance.vehicleId, insurance.type, insurance.validFrom, insurance.validTo, insurance.price, insurance.company]
+      const result = await client.query(
+        'INSERT INTO insurances (vehicle_id, type, valid_from, valid_to, price, company) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, vehicle_id, type, valid_from, valid_to, price, company, created_at',
+        [insuranceData.vehicleId, insuranceData.type, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company]
       );
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id,
+        type: row.type,
+        validFrom: new Date(row.valid_from),
+        validTo: new Date(row.valid_to),
+        price: parseFloat(row.price) || 0,
+        company: row.company
+      };
     } finally {
       client.release();
     }
