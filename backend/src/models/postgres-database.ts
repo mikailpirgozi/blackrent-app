@@ -466,7 +466,7 @@ export class PostgresDatabase {
       
       return result.rows.map(row => ({
         ...row,
-        id: row.id,
+        id: row.id?.toString() || '',
         licensePlate: row.license_plate, // Mapovanie column názvu
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
@@ -599,9 +599,10 @@ export class PostgresDatabase {
                r.deposit, r.allowed_kilometers, r.extra_kilometer_rate, r.return_conditions,
                r.fuel_level, r.odometer, r.return_fuel_level, r.return_odometer,
                r.actual_kilometers, r.fuel_refill_cost, r.handover_protocol_id, r.return_protocol_id,
-               v.brand, v.model, v.license_plate, v.company 
+               v.brand, v.model, v.license_plate, c.name as company_name
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id = v.id 
+        LEFT JOIN companies c ON v.company_id = c.id
         ORDER BY r.created_at DESC
       `);
       
@@ -631,8 +632,8 @@ export class PostgresDatabase {
         try {
           console.log(`🔄 Spracovávam rental ${index + 1}/${result.rows.length}:`, row.id);
           
-          const rental = {
-            id: row.id?.toString(),
+          const rental: Rental = {
+            id: row.id?.toString() || '',
             vehicleId: row.vehicle_id?.toString(),
             customerId: row.customer_id?.toString(),
             customerName: row.customer_name || 'Neznámy zákazník',
@@ -668,11 +669,11 @@ export class PostgresDatabase {
             returnProtocolId: row.return_protocol_id || undefined,
             // Vehicle objekt z JOIN
             vehicle: row.vehicle_id ? {
-              id: row.vehicle_id?.toString(),
+              id: row.vehicle_id?.toString() || '',
               brand: row.brand || 'Neznáma značka',
               model: row.model || 'Neznámy model',
               licensePlate: row.license_plate || 'N/A',
-              company: row.company || 'N/A',
+              company: row.company_name || 'N/A',
               pricing: [], // Nedostupné z tohto JOIN
               commission: { type: 'percentage' as const, value: 20 }, // Default
               status: 'available' as const // Default
@@ -1006,15 +1007,14 @@ export class PostgresDatabase {
     try {
       const result = await client.query('SELECT * FROM expenses ORDER BY date DESC');
       return result.rows.map(row => ({
-        id: row.id,
+        id: row.id?.toString() || '',
         description: row.description,
         amount: parseFloat(row.amount) || 0,
         date: new Date(row.date),
-        vehicleId: row.vehicle_id,
+        vehicleId: row.vehicle_id?.toString(),
         company: row.company,
         category: row.category,
-        note: row.note,
-        createdAt: new Date(row.created_at)
+        note: row.note || undefined
       }));
     } finally {
       client.release();
@@ -1113,14 +1113,13 @@ export class PostgresDatabase {
     try {
       const result = await client.query('SELECT * FROM insurances ORDER BY created_at DESC');
       return result.rows.map(row => ({
-        id: row.id,
-        vehicleId: row.vehicle_id,
+        id: row.id?.toString() || '',
+        vehicleId: row.vehicle_id?.toString() || '',
         type: row.type,
         validFrom: new Date(row.valid_from),
         validTo: new Date(row.valid_to),
         price: parseFloat(row.price) || 0,
-        company: row.company,
-        createdAt: new Date(row.created_at)
+        company: row.company
       }));
     } finally {
       client.release();
@@ -1164,7 +1163,7 @@ export class PostgresDatabase {
       const result = await client.query('SELECT * FROM companies ORDER BY name');
       return result.rows.map(row => ({
         ...row,
-        id: row.id,
+        id: row.id?.toString() || '',
         createdAt: new Date(row.created_at)
       }));
     } finally {
@@ -1207,7 +1206,7 @@ export class PostgresDatabase {
       const result = await client.query('SELECT * FROM insurers ORDER BY name');
       return result.rows.map(row => ({
         ...row,
-        id: row.id,
+        id: row.id?.toString() || '',
         createdAt: new Date(row.created_at)
       }));
     } finally {
