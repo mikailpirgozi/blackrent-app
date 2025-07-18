@@ -232,7 +232,9 @@ export class PostgresDatabase {
       const customerCount = await client.query('SELECT COUNT(*) FROM customers');
       const rentalCount = await client.query('SELECT COUNT(*) FROM rentals');
       
-      if (vehicleCount.rows[0].count === '0' && customerCount.rows[0].count === '0' && rentalCount.rows[0].count === '0') {
+      console.log('📊 Počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
+      
+      if (rentalCount.rows[0].count === '0') {
         console.log('📋 Vytváranie testovacích dát...');
         
         // Vytvorenie firiem

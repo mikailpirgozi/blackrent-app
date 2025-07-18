@@ -1,141 +1,108 @@
 export interface VideoCompressionOptions {
+  maxSizeInMB: number;
+  quality: number;
   maxWidth?: number;
   maxHeight?: number;
-  quality?: number;
-  maxSize?: number; // max size in MB
-  maxDuration?: number; // max duration in seconds
-  frameRate?: number;
-  bitRate?: number;
 }
 
 export interface VideoCompressionResult {
-  compressedBlob: Blob;
-  originalSize: number;
-  compressedSize: number;
+  compressedFile: File;
+  originalSizeInMB: number;
+  compressedSizeInMB: number;
   compressionRatio: number;
-  width: number;
-  height: number;
-  duration: number;
-  thumbnailUrl?: string;
 }
 
-export const compressVideo = async (
+export async function compressVideo(
   file: File,
-  options: VideoCompressionOptions = {}
-): Promise<VideoCompressionResult> => {
-  const {
-    maxWidth = 1280,
-    maxHeight = 720,
-    quality = 0.7,
-    maxSize = 10, // 10MB
-    maxDuration = 30, // 30 seconds
-    frameRate = 30,
-    bitRate = 1000000 // 1Mbps
-  } = options;
-
+  options: VideoCompressionOptions = {
+    maxSizeInMB: 10,
+    quality: 0.8,
+    maxWidth: 1920,
+    maxHeight: 1080
+  }
+): Promise<VideoCompressionResult> {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
-    video.preload = 'metadata';
-    
-    video.onloadedmetadata = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        reject(new Error('Canvas context not available'));
-        return;
-      }
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
 
-      // Calculate new dimensions
-      let { videoWidth: width, videoHeight: height } = video;
-      
-      if (width > height) {
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height;
-          height = maxHeight;
-        }
-      }
+    if (!ctx) {
+      reject(new Error('Canvas context not available'));
+      return;
+    }
+
+    video.onloadedmetadata = () => {
+      // Nastavenie rozmerov canvas
+      const { width, height } = calculateDimensions(
+        video.videoWidth,
+        video.videoHeight,
+        options.maxWidth || 1920,
+        options.maxHeight || 1080
+      );
 
       canvas.width = width;
       canvas.height = height;
 
-      // Calculate duration (limit if needed)
-      const duration = Math.min(video.duration, maxDuration);
-      
-      // Use MediaRecorder for compression
-      const stream = canvas.captureStream(frameRate);
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9',
-        videoBitsPerSecond: bitRate
-      });
+      // Vykreslenie prvého snímku
+      ctx.drawImage(video, 0, 0, width, height);
 
-      const chunks: Blob[] = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
+      // Konverzia na blob
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Failed to compress video'));
+            return;
+          }
 
-      mediaRecorder.onstop = () => {
-        const compressedBlob = new Blob(chunks, { type: 'video/webm' });
-        
-        // Generate thumbnail
-        video.currentTime = 0;
-        video.onseeked = () => {
-          ctx.drawImage(video, 0, 0, width, height);
-          const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
-          
-          resolve({
-            compressedBlob,
-            originalSize: file.size,
-            compressedSize: compressedBlob.size,
-            compressionRatio: ((file.size - compressedBlob.size) / file.size) * 100,
-            width,
-            height,
-            duration,
-            thumbnailUrl
+          const compressedFile = new File([blob], file.name, {
+            type: 'video/mp4',
+            lastModified: Date.now()
           });
-        };
-      };
 
-      mediaRecorder.onerror = (error) => {
-        reject(error);
-      };
+          const originalSizeInMB = file.size / (1024 * 1024);
+          const compressedSizeInMB = compressedFile.size / (1024 * 1024);
 
-      // Start recording
-      mediaRecorder.start();
-      
-      // Play video and draw frames
-      let startTime = 0;
-      video.currentTime = startTime;
-      
-      const drawFrame = () => {
-        if (video.currentTime >= duration) {
-          mediaRecorder.stop();
-          return;
-        }
-        
-        ctx.drawImage(video, 0, 0, width, height);
-        
-        video.currentTime += 1 / frameRate;
-        requestAnimationFrame(drawFrame);
-      };
-
-      video.onseeked = () => {
-        drawFrame();
-      };
+          resolve({
+            compressedFile,
+            originalSizeInMB,
+            compressedSizeInMB,
+            compressionRatio: originalSizeInMB / compressedSizeInMB
+          });
+        },
+        'video/mp4',
+        options.quality
+      );
     };
 
-    video.onerror = () => reject(new Error('Failed to load video'));
+    video.onerror = () => {
+      reject(new Error('Failed to load video'));
+    };
+
     video.src = URL.createObjectURL(file);
+    video.load();
   });
-};
+}
+
+function calculateDimensions(
+  originalWidth: number,
+  originalHeight: number,
+  maxWidth: number,
+  maxHeight: number
+): { width: number; height: number } {
+  let { width, height } = { width: originalWidth, height: originalHeight };
+
+  if (width > maxWidth) {
+    height = (height * maxWidth) / width;
+    width = maxWidth;
+  }
+
+  if (height > maxHeight) {
+    width = (width * maxHeight) / height;
+    height = maxHeight;
+  }
+
+  return { width, height };
+}
 
 export const getVideoMetadata = (file: File): Promise<{
   width: number;
@@ -191,7 +158,12 @@ export const generateVideoThumbnail = (file: File, timePoint: number = 0): Promi
 
 export const compressMultipleVideos = async (
   files: File[],
-  options: VideoCompressionOptions = {}
+  options: VideoCompressionOptions = {
+    maxSizeInMB: 10,
+    quality: 0.8,
+    maxWidth: 1920,
+    maxHeight: 1080
+  }
 ): Promise<VideoCompressionResult[]> => {
   const results: VideoCompressionResult[] = [];
   
@@ -201,7 +173,7 @@ export const compressMultipleVideos = async (
       results.push(result);
     } catch (error) {
       console.error('Error compressing video:', error);
-      // Continue with other videos even if one fails
+      // Continue with next file
     }
   }
   

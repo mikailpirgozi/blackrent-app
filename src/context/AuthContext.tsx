@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
-import { User, AuthState, LoginCredentials, AuthResponse, Permission } from '../types';
+import { User, AuthState, LoginCredentials } from '../types';
 import { apiService, API_BASE_URL } from '../services/api';
 import { StorageManager } from '../utils/storage';
 
@@ -72,11 +72,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Utility funkcie pre prácu s storage
-  const setAuthData = (token: string, user: any, rememberMe: boolean = true) => {
-    StorageManager.setAuthData(token, user, rememberMe);
-  };
-
   const getAuthData = (): { token: string | null; user: any | null } => {
     return StorageManager.getAuthData();
   };
@@ -92,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const restoreSession = async () => {
+  const restoreSession = React.useCallback(async () => {
     try {
       console.log('🔄 Spúšťam session restore...');
       console.log('📍 Location:', window.location.href);
@@ -163,13 +158,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     }
-  };
+  }, []);
 
   // Počiatočná inicializácia - načítanie z storage (len raz)
   useEffect(() => {
     console.log('🏁 AuthProvider mounted, starting session restore...');
     restoreSession();
-  }, []); // Prázdny dependency array - spustí sa len raz
+  }, [restoreSession]);
 
   // Separate useEffect pre handling page visibility a periodicke obnovenie
   useEffect(() => {
@@ -232,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(sessionRefreshInterval);
     };
-  }, [state.isAuthenticated, state.token, state.user]);
+  }, [state.isAuthenticated, state.token, state.user, restoreSession]);
 
   const login = async (credentials: LoginCredentials, rememberMe: boolean = true): Promise<boolean> => {
     dispatch({ type: 'SET_LOADING', payload: true });
