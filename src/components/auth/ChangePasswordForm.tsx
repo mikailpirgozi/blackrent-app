@@ -6,14 +6,10 @@ import {
   DialogActions,
   TextField,
   Button,
-  Alert,
   Box,
-  Typography,
-  IconButton,
-  InputAdornment,
+  Alert,
   CircularProgress,
 } from '@mui/material';
-import { Visibility, VisibilityOff, Lock as LockIcon } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../services/api';
 
@@ -22,96 +18,60 @@ interface ChangePasswordFormProps {
   onClose: () => void;
 }
 
-interface PasswordData {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-
 export default function ChangePasswordForm({ open, onClose }: ChangePasswordFormProps) {
   const { state } = useAuth();
-  const [passwords, setPasswords] = useState<PasswordData>({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false
-  });
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const handleChange = (field: keyof PasswordData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPasswords(prev => ({ ...prev, [field]: e.target.value }));
-    if (error) setError(null);
-    if (success) setSuccess(null);
-  };
-
-  const togglePasswordVisibility = (field: 'current' | 'new' | 'confirm') => {
-    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
-  };
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
+    setError('');
+    setSuccess(false);
 
-    // Validácia
-    if (!passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword) {
-      setError('Všetky polia sú povinné');
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError('Prosím vyplňte všetky polia');
       return;
     }
 
-    if (passwords.newPassword.length < 6) {
-      setError('Nové heslo musí mať minimálne 6 znakov');
-      return;
-    }
-
-    if (passwords.newPassword !== passwords.confirmPassword) {
+    if (newPassword !== confirmPassword) {
       setError('Nové heslo a potvrdenie hesla sa nezhodujú');
       return;
     }
 
-    if (passwords.currentPassword === passwords.newPassword) {
-      setError('Nové heslo musí byť odlišné od súčasného hesla');
+    if (newPassword.length < 6) {
+      setError('Nové heslo musí mať aspoň 6 znakov');
       return;
     }
 
     setLoading(true);
-
     try {
       const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${state.token}`
+          'Authorization': `Bearer ${state.token}`,
         },
         body: JSON.stringify({
-          currentPassword: passwords.currentPassword,
-          newPassword: passwords.newPassword
-        })
+          currentPassword,
+          newPassword,
+        }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        setSuccess('Heslo úspešne zmenené');
-        setPasswords({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        });
+      if (response.ok && data.success) {
+        setSuccess(true);
         setTimeout(() => {
-          onClose();
+          handleClose();
         }, 2000);
       } else {
-        setError(data.error || 'Chyba pri zmene hesla');
+        setError(data.message || 'Chyba pri zmene hesla');
       }
-    } catch (error) {
-      console.error('Chyba pri zmene hesla:', error);
+    } catch (error: any) {
       setError('Chyba pri zmene hesla');
     } finally {
       setLoading(false);
@@ -119,124 +79,68 @@ export default function ChangePasswordForm({ open, onClose }: ChangePasswordForm
   };
 
   const handleClose = () => {
-    setPasswords({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    });
-    setError(null);
-    setSuccess(null);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setError('');
+    setSuccess(false);
     onClose();
   };
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <LockIcon color="primary" />
-          <Typography variant="h6" component="div">
-            Zmena hesla
-          </Typography>
-        </Box>
-      </DialogTitle>
-      
+      <DialogTitle>Zmeniť heslo</DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent>
-          <Box display="flex" flexDirection="column" gap={3}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
+              <Alert severity="error">{error}</Alert>
+            )}
+            {success && (
+              <Alert severity="success">Heslo bolo úspešne zmenené</Alert>
             )}
             
-            {success && (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                {success}
-              </Alert>
-            )}
-
             <TextField
+              label="Aktuálne heslo"
+              type="password"
               fullWidth
-              label="Súčasné heslo"
-              type={showPasswords.current ? 'text' : 'password'}
-              value={passwords.currentPassword}
-              onChange={handleChange('currentPassword')}
-              required
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
               disabled={loading}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => togglePasswordVisibility('current')}
-                      edge="end"
-                    >
-                      {showPasswords.current ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                )
-              }}
+              required
             />
-
+            
             <TextField
-              fullWidth
               label="Nové heslo"
-              type={showPasswords.new ? 'text' : 'password'}
-              value={passwords.newPassword}
-              onChange={handleChange('newPassword')}
-              required
-              disabled={loading}
-              helperText="Minimálne 6 znakov"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => togglePasswordVisibility('new')}
-                      edge="end"
-                    >
-                      {showPasswords.new ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                )
-              }}
-            />
-
-            <TextField
+              type="password"
               fullWidth
-              label="Potvrdenie nového hesla"
-              type={showPasswords.confirm ? 'text' : 'password'}
-              value={passwords.confirmPassword}
-              onChange={handleChange('confirmPassword')}
-              required
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
               disabled={loading}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => togglePasswordVisibility('confirm')}
-                      edge="end"
-                    >
-                      {showPasswords.confirm ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                )
-              }}
+              required
+              helperText="Minimálne 6 znakov"
             />
-
-            <Typography variant="body2" color="text.secondary">
-              Heslo bude trvalo uložené a zabezpečené v databáze.
-            </Typography>
+            
+            <TextField
+              label="Potvrdiť nové heslo"
+              type="password"
+              fullWidth
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={loading}
+              required
+            />
           </Box>
         </DialogContent>
-        
         <DialogActions>
           <Button onClick={handleClose} disabled={loading}>
             Zrušiť
           </Button>
-          <Button 
-            type="submit" 
-            variant="contained" 
+          <Button
+            type="submit"
+            variant="contained"
             disabled={loading}
-            startIcon={loading && <CircularProgress size={20} />}
+            startIcon={loading ? <CircularProgress size={20} /> : null}
           >
             {loading ? 'Menenie...' : 'Zmeniť heslo'}
           </Button>

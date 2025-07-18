@@ -9,6 +9,49 @@ import { v4 as uuidv4 } from 'uuid';
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'blackrent-secret-key-2024';
 
+// POST /api/auth/create-admin - Dočasný endpoint na vytvorenie admin používateľa
+router.post('/create-admin', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🔧 Pokus o vytvorenie admin používateľa...');
+    
+    // Skontroluj či už admin existuje
+    const existingAdmin = await postgresDatabase.getUserByUsername('admin');
+    if (existingAdmin) {
+      return res.status(400).json({
+        success: false,
+        error: 'Admin používateľ už existuje'
+      });
+    }
+
+    // Vytvor hashovane heslo
+    const hashedPassword = await bcrypt.hash('admin123', 12);
+    
+    // Vytvor admin používateľa priamo cez databázu
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      await client.query(
+        'INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
+        [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
+      );
+      
+      console.log('✅ Admin používateľ úspešne vytvorený');
+      
+      return res.json({
+        success: true,
+        message: 'Admin používateľ úspešne vytvorený (username: admin, password: admin123)'
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('❌ Chyba pri vytváraní admin používateľa:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Chyba pri vytváraní admin používateľa'
+    });
+  }
+});
+
 // POST /api/auth/login - Prihlásenie
 router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
   try {

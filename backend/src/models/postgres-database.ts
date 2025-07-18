@@ -13,7 +13,7 @@ export class PostgresDatabase {
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
         max: 20,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 2000,
+        connectionTimeoutMillis: 10000,
       });
     } else {
       // Local development or manual config
@@ -25,11 +25,11 @@ export class PostgresDatabase {
       port: parseInt(process.env.DB_PORT || '5432'),
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 10000,
     });
     }
 
-    this.initTables();
+    // this.initTables().catch(console.error); // Vypnuté - používame existujúcu schému
   }
 
   private async initTables() {
@@ -403,7 +403,7 @@ export class PostgresDatabase {
       );
       
       return result.rows.map(row => ({
-        id: row.id,
+        id: row.id?.toString(),
         username: row.username,
         email: row.email,
         password: row.password_hash,
@@ -528,46 +528,85 @@ export class PostgresDatabase {
   async getRentals(): Promise<Rental[]> {
     const client = await this.pool.connect();
     try {
+      console.log('🔍 Spúšťam getRentals() query...');
+      
       const result = await client.query(`
-        SELECT r.*, v.brand, v.model, v.license_plate, v.company 
+        SELECT r.*, v.brand, v.model, v.license_plate, c.name as company_name 
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id = v.id 
+        LEFT JOIN companies c ON v.company_id = c.id 
         ORDER BY r.created_at DESC
       `);
       
-      return result.rows.map(row => ({
-        id: row.id,
-        vehicleId: row.vehicle_id,
-        customerId: row.customer_id,
-        customerName: row.customer_name,
-        startDate: new Date(row.start_date),
-        endDate: new Date(row.end_date),
-        totalPrice: parseFloat(row.total_price) || 0,
-        commission: parseFloat(row.commission) || 0,
-        paymentMethod: row.payment_method,
-        discount: row.discount ? (typeof row.discount === 'string' ? JSON.parse(row.discount) : row.discount) : undefined,
-        customCommission: row.custom_commission ? (typeof row.custom_commission === 'string' ? JSON.parse(row.custom_commission) : row.custom_commission) : undefined,
-        extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
-        paid: row.paid,
-        status: row.status,
-        handoverPlace: row.handover_place,
-        confirmed: row.confirmed,
-        payments: row.payments ? (typeof row.payments === 'string' ? JSON.parse(row.payments) : row.payments) : undefined,
-        history: row.history ? (typeof row.history === 'string' ? JSON.parse(row.history) : row.history) : undefined,
-        orderNumber: row.order_number,
-        createdAt: new Date(row.created_at),
-        // Vehicle objekt z JOIN
-        vehicle: {
-          id: row.vehicle_id,
-          brand: row.brand,
-          model: row.model,
-          licensePlate: row.license_plate,
-          company: row.company || 'N/A', // Teraz dostupné z JOIN
-          pricing: [], // Nedostupné z tohto JOIN
-          commission: { type: 'percentage', value: 20 }, // Default
-          status: 'available' // Default
+      console.log('📊 getRentals() - Nájdené záznamy:', result.rows.length);
+      
+      if (result.rows.length === 0) {
+        console.log('⚠️ getRentals() - Žiadne prenájmy v databáze');
+        return [];
+      }
+      
+      // Bezpečné parsovanie JSON polí
+      const safeJsonParse = (value: any, fallback = undefined) => {
+        if (!value) return fallback;
+        if (typeof value === 'object') return value;
+        if (typeof value === 'string') {
+          try {
+            return JSON.parse(value);
+          } catch (e) {
+            console.warn('⚠️ JSON parse chyba:', e, 'value:', value);
+            return fallback;
+          }
         }
-      }));
+        return fallback;
+      };
+      
+      return result.rows.map((row, index) => {
+        try {
+          console.log(`🔄 Spracovávam rental ${index + 1}/${result.rows.length}:`, row.id);
+          
+          const rental = {
+            id: row.id?.toString(),
+            vehicleId: row.vehicle_id?.toString(),
+            customerId: row.customer_id?.toString(),
+            customerName: row.customer_name || 'Neznámy zákazník',
+            startDate: new Date(row.start_date),
+            endDate: new Date(row.end_date),
+            totalPrice: parseFloat(row.total_price) || 0,
+            commission: parseFloat(row.commission_amount) || 0,
+            paymentMethod: row.payment_method || 'cash',
+            discount: row.discount_amount ? { type: 'fixed' as const, value: parseFloat(row.discount_amount) } : undefined,
+            customCommission: row.commission_amount ? { type: 'fixed' as const, value: parseFloat(row.commission_amount) } : undefined,
+            extraKmCharge: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
+            paid: Boolean(row.paid),
+            status: row.status || 'active',
+            handoverPlace: row.handover_place,
+            confirmed: row.status === 'confirmed',
+            payments: undefined,
+            history: undefined,
+            orderNumber: row.order_number,
+            createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+            // Vehicle objekt z JOIN
+            vehicle: row.vehicle_id ? {
+              id: row.vehicle_id?.toString(),
+              brand: row.brand || 'Neznáma značka',
+              model: row.model || 'Neznámy model',
+              licensePlate: row.license_plate || 'N/A',
+              company: row.company_name || 'N/A',
+              pricing: [], // Nedostupné z tohto JOIN
+              commission: { type: 'percentage' as const, value: 20 }, // Default
+              status: 'available' as const // Default
+            } : undefined
+          };
+          
+          return rental;
+        } catch (error) {
+          console.error('❌ Chyba pri spracovaní rental:', error, 'row:', row);
+          throw error;
+        }
+      });
+    } catch (error) {
+      console.error('❌ getRentals() chyba:', error);
+      throw error;
     } finally {
       client.release();
     }
