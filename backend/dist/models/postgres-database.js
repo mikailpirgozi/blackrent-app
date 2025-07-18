@@ -304,7 +304,7 @@ class PostgresDatabase {
                 licensePlate: row.license_plate, // Mapovanie column názvu
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
-                createdAt: row.created_at
+                createdAt: new Date(row.created_at)
             }));
         }
         finally {
@@ -324,7 +324,7 @@ class PostgresDatabase {
                 licensePlate: row.license_plate, // Mapovanie column názvu
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
-                createdAt: row.created_at
+                createdAt: new Date(row.created_at)
             };
         }
         finally {
@@ -389,7 +389,7 @@ class PostgresDatabase {
         const client = await this.pool.connect();
         try {
             const result = await client.query(`
-        SELECT r.*, v.brand, v.model, v.license_plate 
+        SELECT r.*, v.brand, v.model, v.license_plate, v.company 
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id = v.id 
         ORDER BY r.created_at DESC
@@ -399,8 +399,8 @@ class PostgresDatabase {
                 vehicleId: row.vehicle_id,
                 customerId: row.customer_id,
                 customerName: row.customer_name,
-                startDate: row.start_date,
-                endDate: row.end_date,
+                startDate: new Date(row.start_date),
+                endDate: new Date(row.end_date),
                 totalPrice: parseFloat(row.total_price) || 0,
                 commission: parseFloat(row.commission) || 0,
                 paymentMethod: row.payment_method,
@@ -414,14 +414,14 @@ class PostgresDatabase {
                 payments: row.payments ? (typeof row.payments === 'string' ? JSON.parse(row.payments) : row.payments) : undefined,
                 history: row.history ? (typeof row.history === 'string' ? JSON.parse(row.history) : row.history) : undefined,
                 orderNumber: row.order_number,
-                createdAt: row.created_at,
+                createdAt: new Date(row.created_at),
                 // Vehicle objekt z JOIN
                 vehicle: {
                     id: row.vehicle_id,
                     brand: row.brand,
                     model: row.model,
                     licensePlate: row.license_plate,
-                    company: '', // Nedostupné z tohto JOIN
+                    company: row.company || 'N/A', // Teraz dostupné z JOIN
                     pricing: [], // Nedostupné z tohto JOIN
                     commission: { type: 'percentage', value: 20 }, // Default
                     status: 'available' // Default
@@ -475,7 +475,7 @@ class PostgresDatabase {
         const client = await this.pool.connect();
         try {
             const result = await client.query(`
-        SELECT r.*, v.brand, v.model, v.license_plate 
+        SELECT r.*, v.brand, v.model, v.license_plate, v.company 
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id = v.id 
         WHERE r.id = $1
@@ -488,8 +488,8 @@ class PostgresDatabase {
                 vehicleId: row.vehicle_id,
                 customerId: row.customer_id,
                 customerName: row.customer_name,
-                startDate: row.start_date,
-                endDate: row.end_date,
+                startDate: new Date(row.start_date),
+                endDate: new Date(row.end_date),
                 totalPrice: parseFloat(row.total_price) || 0,
                 commission: parseFloat(row.commission) || 0,
                 paymentMethod: row.payment_method,
@@ -503,13 +503,13 @@ class PostgresDatabase {
                 payments: row.payments ? (typeof row.payments === 'string' ? JSON.parse(row.payments) : row.payments) : undefined,
                 history: row.history ? (typeof row.history === 'string' ? JSON.parse(row.history) : row.history) : undefined,
                 orderNumber: row.order_number,
-                createdAt: row.created_at,
+                createdAt: new Date(row.created_at),
                 vehicle: {
                     id: row.vehicle_id,
                     brand: row.brand,
                     model: row.model,
                     licensePlate: row.license_plate,
-                    company: '',
+                    company: row.company || 'N/A',
                     pricing: [],
                     commission: { type: 'percentage', value: 0 },
                     status: 'available'
@@ -573,7 +573,7 @@ class PostgresDatabase {
             return result.rows.map(row => ({
                 ...row,
                 id: row.id,
-                createdAt: row.created_at
+                createdAt: new Date(row.created_at)
             }));
         }
         finally {
@@ -616,12 +616,12 @@ class PostgresDatabase {
                 id: row.id,
                 description: row.description,
                 amount: parseFloat(row.amount) || 0,
-                date: row.date,
+                date: new Date(row.date),
                 vehicleId: row.vehicle_id,
                 company: row.company,
                 category: row.category,
                 note: row.note,
-                createdAt: row.created_at
+                createdAt: new Date(row.created_at)
             }));
         }
         finally {
@@ -690,11 +690,11 @@ class PostgresDatabase {
                 id: row.id,
                 vehicleId: row.vehicle_id,
                 type: row.type,
-                validFrom: row.valid_from,
-                validTo: row.valid_to,
+                validFrom: new Date(row.valid_from),
+                validTo: new Date(row.valid_to),
                 price: parseFloat(row.price) || 0,
                 company: row.company,
-                createdAt: row.created_at
+                createdAt: new Date(row.created_at)
             }));
         }
         finally {
@@ -718,7 +718,7 @@ class PostgresDatabase {
             return result.rows.map(row => ({
                 ...row,
                 id: row.id,
-                createdAt: row.created_at
+                createdAt: new Date(row.created_at)
             }));
         }
         finally {
@@ -751,7 +751,7 @@ class PostgresDatabase {
             return result.rows.map(row => ({
                 ...row,
                 id: row.id,
-                createdAt: row.created_at
+                createdAt: new Date(row.created_at)
             }));
         }
         finally {

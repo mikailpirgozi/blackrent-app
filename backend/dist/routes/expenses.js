@@ -26,21 +26,22 @@ router.get('/', auth_1.authenticateToken, async (req, res) => {
 router.post('/', auth_1.authenticateToken, async (req, res) => {
     try {
         const { description, amount, date, vehicleId, company, category, note } = req.body;
-        if (!description || !date || !company || !category) {
+        // Povinné je len description
+        if (!description || description.toString().trim() === '') {
             return res.status(400).json({
                 success: false,
-                error: 'Všetky povinné polia musia byť vyplnené'
+                error: 'Popis nákladu je povinný'
             });
         }
         const newExpense = {
             id: (0, uuid_1.v4)(),
-            description,
-            amount: amount || 0,
-            date: new Date(date),
-            vehicleId,
-            company,
-            category,
-            note: note || ''
+            description: description.toString().trim(),
+            amount: amount && !isNaN(Number(amount)) ? Number(amount) : 0,
+            date: date ? new Date(date) : new Date(),
+            vehicleId: vehicleId || undefined,
+            company: company && company.toString().trim() !== '' ? company.toString().trim() : 'Neznáma firma',
+            category: category && ['service', 'insurance', 'fuel', 'other'].includes(category) ? category : 'other',
+            note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
         };
         await postgres_database_1.postgresDatabase.createExpense(newExpense);
         res.status(201).json({
@@ -62,21 +63,22 @@ router.put('/:id', auth_1.authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const { description, amount, date, vehicleId, company, category, note } = req.body;
-        if (!description || !date || !company || !category) {
+        // Povinné je len description
+        if (!description || description.toString().trim() === '') {
             return res.status(400).json({
                 success: false,
-                error: 'Všetky povinné polia musia byť vyplnené'
+                error: 'Popis nákladu je povinný'
             });
         }
         const updatedExpense = {
             id,
-            description,
-            amount: amount || 0,
-            date: new Date(date),
-            vehicleId,
-            company,
-            category,
-            note: note || ''
+            description: description.toString().trim(),
+            amount: amount && !isNaN(Number(amount)) ? Number(amount) : 0,
+            date: date ? new Date(date) : new Date(),
+            vehicleId: vehicleId || undefined,
+            company: company && company.toString().trim() !== '' ? company.toString().trim() : 'Neznáma firma',
+            category: category && ['service', 'insurance', 'fuel', 'other'].includes(category) ? category : 'other',
+            note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
         };
         await postgres_database_1.postgresDatabase.updateExpense(updatedExpense);
         res.json({
