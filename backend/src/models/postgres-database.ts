@@ -29,7 +29,7 @@ export class PostgresDatabase {
     });
     }
 
-    this.initTables().catch(console.error); // Spustenie pre aktualizáciu schémy
+    // this.initTables().catch(console.error); // Spustenie pre aktualizáciu schémy - zakomentované kvôli integer ID databáze
   }
 
   private async initTables() {
