@@ -30,9 +30,9 @@
   },
   "scripts": {
     "start": "cd backend && npm start",
-    "build": "CI=false react-scripts build && cd backend && npm install && npm run build",
+    "build": "CI=false react-scripts build && cd backend && npm install",
     "build:frontend": "CI=false react-scripts build",
-    "build:backend": "cd backend && npm install && npm run build",
+    "build:backend": "cd backend && npm install",
     "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
     "backend": "cd backend && npm run dev",
     "frontend": "react-scripts start",
