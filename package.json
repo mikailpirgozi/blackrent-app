@@ -2,7 +2,7 @@
   "name": "blackrent-new",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://mikailpirgozi.github.io/blackrent-app",
+  "homepage": ".",
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
@@ -29,12 +29,17 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "cd backend && npm start",
+    "build": "react-scripts build && cd backend && npm install && npm run build",
+    "build:frontend": "react-scripts build",
+    "build:backend": "cd backend && npm install && npm run build",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && npm run dev",
+    "frontend": "react-scripts start",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "deploy:github": "gh-pages -d build",
+    "railway:deploy": "npm run build && echo 'Railway deployment ready'"
   },
   "eslintConfig": {
     "extends": [
@@ -57,6 +62,7 @@
   "devDependencies": {
     "@types/file-saver": "^2.0.7",
     "@types/uuid": "^9.0.7",
-    "gh-pages": "^6.3.0"
+    "gh-pages": "^6.1.0",
+    "concurrently": "^8.2.2"
   }
 }

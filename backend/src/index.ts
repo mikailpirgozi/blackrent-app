@@ -51,67 +51,37 @@ app.use(express.json());
 
 // Logging middleware
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log(`${req.method} ${req.path}`, req.body);
   next();
 });
 
-// Health check endpoint (must be before other routes)
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Blackrent API je funkčné',
-    database: 'PostgreSQL',
-    timestamp: new Date().toISOString()
-  });
-});
+// Serve static files from React build (pre Railway deployment)
+if (process.env.NODE_ENV === 'production') {
+  const buildPath = path.join(__dirname, '../../build');
+  app.use(express.static(buildPath));
+  console.log('📦 Serving static files from:', buildPath);
+}
 
-// API Health check endpoint (pre deployment monitoring)
-app.get('/api/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Blackrent API je funkčné',
-    database: 'PostgreSQL',
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
-});
-
-// API routes
-app.use('/api/auth', authRouter);
+// API Routes
 app.use('/api/vehicles', vehiclesRouter);
 app.use('/api/rentals', rentalsRouter);
+app.use('/api/customers', customersRouter);
 app.use('/api/expenses', expensesRouter);
 app.use('/api/insurances', insurancesRouter);
-app.use('/api/customers', customersRouter);
 app.use('/api/companies', companiesRouter);
 app.use('/api/insurers', insurersRouter);
+app.use('/api/auth', authRouter);
 app.use('/api/protocols', protocolsRouter);
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  // Serve static files from React build
-  app.use(express.static(path.join(__dirname, '../../build')));
-  
-  // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
-    // Skip API routes and health check
-    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
-      return res.status(404).json({
-        success: false,
-        error: 'API endpoint nenájdený'
-      });
-    }
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
 
-    try {
-      res.sendFile(path.join(__dirname, '../../build', 'index.html'));
-    } catch (error) {
-      console.error('Error serving index.html:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Aplikácia sa nenašla'
-      });
-    }
+// Serve React app for all other routes (pre SPA routing)
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../build', 'index.html'));
   });
 }
 

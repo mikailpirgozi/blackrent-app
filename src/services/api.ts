@@ -10,6 +10,13 @@ const getApiBaseUrl = () => {
     return process.env.REACT_APP_API_URL;
   }
   
+  // Pre Railway deployment (celá aplikácia na Railway)
+  if (window.location.hostname.includes('railway.app')) {
+    const apiUrl = `${window.location.origin}/api`;
+    console.log('🌐 Railway detekované, používam relatívnu API URL:', apiUrl);
+    return apiUrl;
+  }
+  
   // Pre GitHub Pages používaj Railway API
   if (window.location.hostname === 'mikailpirgozi.github.io') {
     console.log('🌐 GitHub Pages detekované, používam Railway API:', RAILWAY_API_URL);
