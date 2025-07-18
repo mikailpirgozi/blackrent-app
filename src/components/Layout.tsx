@@ -78,7 +78,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    handleNavigate('/login');
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -106,6 +106,12 @@ export default function Layout({ children }: LayoutProps) {
       setBottomNavValue(activeIndex);
     }
   }, [location.pathname, menuItems]);
+
+  // Oprava navigácie pre správne fungovanie
+  const handleNavigate = (path: string) => {
+    setMobileOpen(false);
+    navigate(path);
+  };
 
   const drawer = (
     <Box 
@@ -166,7 +172,7 @@ export default function Layout({ children }: LayoutProps) {
           {menuItems.map((item, index) => (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
               <ListItemButton
-                onClick={() => navigate(item.path)}
+                onClick={() => handleNavigate(item.path)}
                 selected={location.pathname === item.path}
                 sx={{
                   borderRadius: '12px',
@@ -477,7 +483,7 @@ export default function Layout({ children }: LayoutProps) {
             onChange={(event, newValue) => {
               setBottomNavValue(newValue);
               if (menuItems[newValue]) {
-                navigate(menuItems[newValue].path);
+                handleNavigate(menuItems[newValue].path);
               }
             }}
             sx={{

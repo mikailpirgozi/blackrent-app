@@ -28,22 +28,23 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
   try {
     const { description, amount, date, vehicleId, company, category, note } = req.body;
 
-    if (!description || !date || !company || !category) {
+    // Povinné je len description
+    if (!description || description.toString().trim() === '') {
       return res.status(400).json({
         success: false,
-        error: 'Všetky povinné polia musia byť vyplnené'
+        error: 'Popis nákladu je povinný'
       });
     }
 
     const newExpense: Expense = {
       id: uuidv4(),
-      description,
-      amount: amount || 0,
-      date: new Date(date),
-      vehicleId,
-      company,
-      category,
-      note: note || ''
+      description: description.toString().trim(),
+      amount: amount && !isNaN(Number(amount)) ? Number(amount) : 0,
+      date: date ? new Date(date) : new Date(),
+      vehicleId: vehicleId || undefined,
+      company: company && company.toString().trim() !== '' ? company.toString().trim() : 'Neznáma firma',
+      category: category && ['service', 'insurance', 'fuel', 'other'].includes(category) ? category : 'other',
+      note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
     };
 
     await postgresDatabase.createExpense(newExpense);
@@ -69,22 +70,23 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
     const { id } = req.params;
     const { description, amount, date, vehicleId, company, category, note } = req.body;
 
-    if (!description || !date || !company || !category) {
+    // Povinné je len description
+    if (!description || description.toString().trim() === '') {
       return res.status(400).json({
         success: false,
-        error: 'Všetky povinné polia musia byť vyplnené'
+        error: 'Popis nákladu je povinný'
       });
     }
 
     const updatedExpense: Expense = {
       id,
-      description,
-      amount: amount || 0,
-      date: new Date(date),
-      vehicleId,
-      company,
-      category,
-      note: note || ''
+      description: description.toString().trim(),
+      amount: amount && !isNaN(Number(amount)) ? Number(amount) : 0,
+      date: date ? new Date(date) : new Date(),
+      vehicleId: vehicleId || undefined,
+      company: company && company.toString().trim() !== '' ? company.toString().trim() : 'Neznáma firma',
+      category: category && ['service', 'insurance', 'fuel', 'other'].includes(category) ? category : 'other',
+      note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
     };
 
     await postgresDatabase.updateExpense(updatedExpense);

@@ -141,10 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Počiatočná inicializácia - načítanie z localStorage
+  // Počiatočná inicializácia - načítanie z localStorage (len raz)
   useEffect(() => {
     restoreSession();
-    
+  }, []); // Prázdny dependency array - spustí sa len raz
+
+  // Separate useEffect pre handling page visibility a periodicke obnovenie
+  useEffect(() => {
     // Handling pre page visibility - overí token keď sa používateľ vráti k aplikácii
     const handleVisibilityChange = async () => {
       if (!document.hidden && state.isAuthenticated && state.token) {

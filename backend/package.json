@@ -4,7 +4,7 @@
   "description": "Backend pre Blackrent aplikáciu",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon index.ts",
+    "dev": "nodemon src/index.ts",
     "start": "node dist/index.js",
     "start-ts": "ts-node index.ts",
     "build": "tsc",

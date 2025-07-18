@@ -93,7 +93,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
                 <LockIcon />
               </Avatar>
-              <Typography component="h1" variant="h4" sx={{ fontWeight: 'bold', color: 'black' }}>
+              <Typography component="h1" variant="h4" sx={{ fontWeight: 'bold', color: 'white' }}>
                 BlackRent
               </Typography>
               <Typography variant="h6" sx={{ color: 'text.secondary', mt: 1 }}>
@@ -147,7 +147,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   />
                 }
                 label={
-                  <Typography sx={{ fontWeight: 'bold', color: 'black' }}>
+                  <Typography sx={{ fontWeight: 'bold', color: 'white' }}>
                     Zapamätať si prihlásenie
                   </Typography>
                 }

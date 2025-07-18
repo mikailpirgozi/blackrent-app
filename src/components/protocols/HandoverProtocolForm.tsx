@@ -10,7 +10,6 @@ import {
   Step,
   StepLabel,
   StepContent,
-  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -18,236 +17,162 @@ import {
   Chip,
   Alert,
   LinearProgress,
-  Divider,
-  IconButton,
-  Paper,
+  Avatar,
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
-  Avatar,
-  useMediaQuery,
-  useTheme,
+  ListItemAvatar,
+  IconButton,
+  Divider,
+  Stack,
 } from '@mui/material';
 import {
-  Save,
-  Close,
-  PhotoCamera,
-  PictureAsPdf,
-  Email,
-  LocationOn,
-  LocalGasStation,
-  SpeedOutlined,
-  CheckCircle,
-  Error,
-  Info,
-  CarRental,
-  Person,
   Assignment,
-  Description,
-  Build,
-  Create,
-  Send,
-  Delete,
-  Edit,
+  CarRental,
+  LocationOn,
+  AccessTime,
+  CheckCircle,
+  RadioButtonUnchecked,
+  Add as AddIcon,
+  Remove as RemoveIcon,
+  Edit as EditIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon,
+  Photo as PhotoIcon,
+  Description as DescriptionIcon,
 } from '@mui/icons-material';
-import { HandoverProtocol, Rental, ProtocolImage, ProtocolVideo, VehicleCondition, ProtocolDamage } from '../../types';
-import { v4 as uuidv4 } from 'uuid';
-import SerialPhotoCapture from '../common/SerialPhotoCapture';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { Rental } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { apiService } from '../../services/api';
 
 interface HandoverProtocolFormProps {
   open: boolean;
-  onClose: () => void;
   rental: Rental;
-  onSave: (protocol: HandoverProtocol) => void;
+  onSave: (protocolData: any) => Promise<void>;
+  onClose: () => void;
 }
 
-const steps = [
-  {
-    label: 'Základné informácie',
-    description: 'Overenie dát prenájmu a vozidla',
-    icon: <Info />,
-  },
-  {
-    label: 'Stav vozidla',
-    description: 'Zápis stavu vozidla, tachometer, palivo',
-    icon: <CarRental />,
-  },
-  {
-    label: 'Fotodokumentácia',
-    description: 'Fotografie vozidla a dokumentov',
-    icon: <PhotoCamera />,
-  },
-  {
-    label: 'Poškodenia',
-    description: 'Zápis existujúcich poškodení',
-    icon: <Build />,
-  },
-  {
-    label: 'Podpisy',
-    description: 'Podpisy zákazníka a zamestnanca',
-    icon: <Create />,
-  },
-  {
-    label: 'Dokončenie',
-    description: 'Generovanie PDF a odoslanie emailu',
-    icon: <Send />,
-  },
-];
+interface DamageItem {
+  id: string;
+  description: string;
+  photos: string[];
+  severity: 'minor' | 'major' | 'critical';
+  location: string;
+}
 
-export default function HandoverProtocolForm({ open, onClose, rental, onSave }: HandoverProtocolFormProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+interface ProtocolData {
+  id?: string;
+  rentalId: string;
+  type: 'handover' | 'return';
+  location: string;
+  timestamp: Date;
+  mileage: number;
+  fuelLevel: number;
+  damages: DamageItem[];
+  notes: string;
+  customerSignature?: string;
+  agentSignature?: string;
+  isCompleted: boolean;
+  rentalData?: Rental;
+}
+
+const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, rental, onSave, onClose }) => {
+  const { state } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
-  const [protocol, setProtocol] = useState<Partial<HandoverProtocol>>({
-    id: uuidv4(),
+  const [protocol, setProtocol] = useState<ProtocolData>({
     rentalId: rental.id,
-    rental,
     type: 'handover',
-    status: 'draft',
-    createdAt: new Date(),
-    location: rental.pickupLocation || '',
-    vehicleCondition: {
-      odometer: rental.odometer || 0,
-      fuelLevel: rental.fuelLevel || 100,
-      fuelType: 'gasoline',
-      exteriorCondition: 'Dobrý',
-      interiorCondition: 'Dobrý',
-      notes: '',
-    },
-    vehicleImages: [],
-    vehicleVideos: [],
-    documentImages: [],
-    damageImages: [],
+    location: '',
+    timestamp: new Date(),
+    mileage: 0,
+    fuelLevel: 100,
     damages: [],
-    signatures: [],
-    rentalData: {
-      orderNumber: rental.orderNumber || '',
-      vehicle: rental.vehicle || {} as any,
-      customer: rental.customer || {} as any,
-      startDate: rental.startDate,
-      endDate: rental.endDate,
-      totalPrice: rental.totalPrice,
-      deposit: rental.deposit || 0,
-      currency: 'EUR',
-      allowedKilometers: rental.allowedKilometers || 0,
-      extraKilometerRate: rental.extraKilometerRate || 0,
-      pickupLocation: rental.pickupLocation || '',
-      returnLocation: rental.returnLocation || '',
-      returnConditions: rental.returnConditions || '',
-    },
-    emailSent: false,
-    createdBy: 'current_user', // TODO: získať z auth
-    notes: rental.notes || '',
+    notes: '',
+    isCompleted: false,
+    rentalData: rental,
   });
 
-  const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
+  const steps = [
+    { label: 'Základné informácie', description: 'Zadajte miesto a čas prevzatia' },
+    { label: 'Stav vozidla', description: 'Zadajte kilometre a stav paliva' },
+    { label: 'Škody a poznámky', description: 'Zdokumentujte poškodenia' },
+    { label: 'Dokončenie', description: 'Podpisy a finalizácia' },
+  ];
 
-  const isStepValid = (step: number): boolean => {
-    switch (step) {
-      case 0:
-        return !!(protocol.location && protocol.rentalData?.orderNumber);
-      case 1:
-        return !!(protocol.vehicleCondition?.odometer && protocol.vehicleCondition?.fuelLevel);
-      case 2:
-        return (protocol.vehicleImages?.length || 0) > 0;
-      case 3:
-        return true; // Poškodenia sú voliteľné
-      case 4:
-        return (protocol.signatures?.length || 0) >= 2;
-      case 5:
-        return protocol.status === 'completed';
-      default:
-        return false;
-    }
-  };
+  // Načítanie údajov o prenájme
+  useEffect(() => {
+    // Rental data už máme cez props
+    setProtocol(prev => ({ ...prev, rentalData: rental }));
+  }, [rental]);
 
   const handleNext = () => {
-    if (isStepValid(activeStep)) {
-      setActiveStep((prev) => prev + 1);
-      setErrors([]);
-    } else {
-      setErrors(['Prosím vyplňte všetky povinné polia pre tento krok.']);
-    }
+    setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
 
   const handleBack = () => {
-    setActiveStep((prev) => prev - 1);
-    setErrors([]);
-  };
-
-  const handleVehicleConditionChange = (field: keyof VehicleCondition, value: any) => {
-    setProtocol(prev => ({
-      ...prev,
-      vehicleCondition: {
-        ...prev.vehicleCondition!,
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleMediaSave = (type: 'vehicle' | 'document' | 'damage', images: ProtocolImage[], videos: ProtocolVideo[]) => {
-    setProtocol(prev => ({
-      ...prev,
-      [`${type}Images`]: images,
-      [`${type}Videos`]: videos,
-    }));
-    setActivePhotoCapture(null);
-  };
-
-  const addDamage = (damage: ProtocolDamage) => {
-    setProtocol(prev => ({
-      ...prev,
-      damages: [...(prev.damages || []), damage],
-    }));
-  };
-
-  const removeDamage = (damageId: string) => {
-    setProtocol(prev => ({
-      ...prev,
-      damages: prev.damages?.filter(d => d.id !== damageId) || [],
-    }));
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
   const handleSave = async () => {
-    setProcessing(true);
-    
     try {
-      const completeProtocol: HandoverProtocol = {
-        ...protocol,
-        status: 'completed',
-        completedAt: new Date(),
-      } as HandoverProtocol;
-
-      await onSave(completeProtocol);
+      setLoading(true);
+      await onSave(protocol);
       onClose();
     } catch (error) {
-      console.error('Chyba pri ukladaní protokolu:', error);
-      setErrors(['Chyba pri ukladaní protokolu. Skúste znovu.']);
+      console.error('Error saving protocol:', error);
     } finally {
-      setProcessing(false);
+      setLoading(false);
     }
+  };
+
+  const addDamage = () => {
+    const newDamage: DamageItem = {
+      id: Date.now().toString(),
+      description: '',
+      photos: [],
+      severity: 'minor',
+      location: '',
+    };
+    setProtocol(prev => ({
+      ...prev,
+      damages: [...prev.damages, newDamage],
+    }));
+  };
+
+  const removeDamage = (id: string) => {
+    setProtocol(prev => ({
+      ...prev,
+      damages: prev.damages.filter(damage => damage.id !== id),
+    }));
+  };
+
+  const updateDamage = (id: string, field: keyof DamageItem, value: any) => {
+    setProtocol(prev => ({
+      ...prev,
+      damages: prev.damages.map(damage =>
+        damage.id === id ? { ...damage, [field]: value } : damage
+      ),
+    }));
   };
 
   const renderStepContent = (step: number) => {
     switch (step) {
       case 0:
         return (
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+          <Box display="flex" gap={3} flexWrap="wrap">
+            <Box flex="1" minWidth="300px">
               <Card variant="outlined">
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
                     <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
                     Informácie o prenájme
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Stack spacing={2}>
                     <TextField
                       label="Číslo objednávky"
-                      value={protocol.rentalData?.orderNumber || ''}
+                      value={protocol.rentalData?.id || ''}
                       InputProps={{ readOnly: true }}
                       variant="outlined"
                       fullWidth
@@ -258,317 +183,193 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
                       onChange={(e) => setProtocol(prev => ({ ...prev, location: e.target.value }))}
                       variant="outlined"
                       fullWidth
-                      required
                     />
-                    <TextField
-                      label="Dátum a čas prevzatia"
-                      type="datetime-local"
-                      value={protocol.createdAt?.toISOString().slice(0, 16) || ''}
-                      onChange={(e) => setProtocol(prev => ({ ...prev, createdAt: new Date(e.target.value) }))}
-                      variant="outlined"
-                      fullWidth
-                      InputLabelProps={{ shrink: true }}
+                    <DateTimePicker
+                      label="Čas prevzatia"
+                      value={protocol.timestamp}
+                      onChange={(newValue) => setProtocol(prev => ({ ...prev, timestamp: newValue || new Date() }))}
                     />
-                  </Box>
+                  </Stack>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </Box>
+            <Box flex="1" minWidth="300px">
               <Card variant="outlined">
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    <Person sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Informácie o zákazníkovi
+                    <CarRental sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    Informácie o vozidle
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Stack spacing={2}>
                     <TextField
-                      label="Meno zákazníka"
-                      value={protocol.rentalData?.customer?.name || ''}
+                      label="Značka a model"
+                      value={`${protocol.rentalData?.vehicle?.brand || ''} ${protocol.rentalData?.vehicle?.model || ''}`}
                       InputProps={{ readOnly: true }}
                       variant="outlined"
                       fullWidth
                     />
                     <TextField
-                      label="Telefón"
-                      value={protocol.rentalData?.customer?.phone || ''}
+                      label="ŠPZ"
+                      value={protocol.rentalData?.vehicle?.licensePlate || ''}
                       InputProps={{ readOnly: true }}
                       variant="outlined"
                       fullWidth
                     />
-                    <TextField
-                      label="Email"
-                      value={protocol.rentalData?.customer?.email || ''}
-                      InputProps={{ readOnly: true }}
-                      variant="outlined"
-                      fullWidth
-                    />
-                  </Box>
+                  </Stack>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         );
 
       case 1:
         return (
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+          <Box display="flex" gap={3} flexWrap="wrap">
+            <Box flex="1" minWidth="300px">
               <Card variant="outlined">
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    <SpeedOutlined sx={{ mr: 1, verticalAlign: 'middle' }} />
                     Stav vozidla
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Stack spacing={2}>
                     <TextField
-                      label="Stav tachometra (km)"
+                      label="Kilometre"
                       type="number"
-                      value={protocol.vehicleCondition?.odometer || ''}
-                      onChange={(e) => handleVehicleConditionChange('odometer', parseInt(e.target.value))}
+                      value={protocol.mileage}
+                      onChange={(e) => setProtocol(prev => ({ ...prev, mileage: parseInt(e.target.value) || 0 }))}
                       variant="outlined"
                       fullWidth
-                      required
                     />
                     <TextField
-                      label="Úroveň paliva (%)"
+                      label="Stav paliva (%)"
                       type="number"
-                      value={protocol.vehicleCondition?.fuelLevel || ''}
-                      onChange={(e) => handleVehicleConditionChange('fuelLevel', parseInt(e.target.value))}
+                      value={protocol.fuelLevel}
+                      onChange={(e) => setProtocol(prev => ({ ...prev, fuelLevel: parseInt(e.target.value) || 0 }))}
                       variant="outlined"
                       fullWidth
-                      required
                       inputProps={{ min: 0, max: 100 }}
                     />
-                    <FormControl fullWidth>
-                      <InputLabel>Typ paliva</InputLabel>
-                      <Select
-                        value={protocol.vehicleCondition?.fuelType || 'gasoline'}
-                        onChange={(e) => handleVehicleConditionChange('fuelType', e.target.value)}
-                        label="Typ paliva"
-                      >
-                        <MenuItem value="gasoline">Benzín</MenuItem>
-                        <MenuItem value="diesel">Diesel</MenuItem>
-                        <MenuItem value="electric">Elektrina</MenuItem>
-                        <MenuItem value="hybrid">Hybrid</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Box>
+                  </Stack>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    <Description sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Stav vozidla
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <TextField
-                      label="Stav exteriéru"
-                      value={protocol.vehicleCondition?.exteriorCondition || ''}
-                      onChange={(e) => handleVehicleConditionChange('exteriorCondition', e.target.value)}
-                      variant="outlined"
-                      fullWidth
-                      multiline
-                      rows={2}
-                    />
-                    <TextField
-                      label="Stav interiéru"
-                      value={protocol.vehicleCondition?.interiorCondition || ''}
-                      onChange={(e) => handleVehicleConditionChange('interiorCondition', e.target.value)}
-                      variant="outlined"
-                      fullWidth
-                      multiline
-                      rows={2}
-                    />
-                    <TextField
-                      label="Poznámky"
-                      value={protocol.vehicleCondition?.notes || ''}
-                      onChange={(e) => handleVehicleConditionChange('notes', e.target.value)}
-                      variant="outlined"
-                      fullWidth
-                      multiline
-                      rows={3}
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         );
 
       case 2:
         return (
           <Box>
-            <Typography variant="h6" gutterBottom>
-              Fotodokumentácia vozidla
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Fotografie vozidla
-                    </Typography>
-                    <Button
-                      variant="outlined"
-                      startIcon={<PhotoCamera />}
-                      onClick={() => setActivePhotoCapture('vehicle')}
-                      fullWidth
-                    >
-                      Pridať fotografie
-                    </Button>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Snímky: {protocol.vehicleImages?.length || 0}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Dokumenty
-                    </Typography>
-                    <Button
-                      variant="outlined"
-                      startIcon={<PhotoCamera />}
-                      onClick={() => setActivePhotoCapture('document')}
-                      fullWidth
-                    >
-                      Pridať dokumenty
-                    </Button>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Snímky: {protocol.documentImages?.length || 0}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Poškodenia
-                    </Typography>
-                    <Button
-                      variant="outlined"
-                      startIcon={<PhotoCamera />}
-                      onClick={() => setActivePhotoCapture('damage')}
-                      fullWidth
-                    >
-                      Pridať poškodenia
-                    </Button>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Snímky: {protocol.damageImages?.length || 0}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
+            <Card variant="outlined">
+              <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                  <Typography variant="h6">
+                    Škody a poškodenia
+                  </Typography>
+                  <Button startIcon={<AddIcon />} onClick={addDamage}>
+                    Pridať škodu
+                  </Button>
+                </Box>
+                
+                {protocol.damages.length === 0 ? (
+                  <Alert severity="info">Žiadne škody neboli zaznamenané</Alert>
+                ) : (
+                  <List>
+                    {protocol.damages.map((damage, index) => (
+                      <ListItem key={damage.id} divider>
+                        <ListItemAvatar>
+                          <Avatar>
+                            <DescriptionIcon />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={
+                            <TextField
+                              label="Popis škody"
+                              value={damage.description}
+                              onChange={(e) => updateDamage(damage.id, 'description', e.target.value)}
+                              variant="outlined"
+                              fullWidth
+                              size="small"
+                            />
+                          }
+                          secondary={
+                            <Box display="flex" gap={1} mt={1}>
+                              <FormControl size="small" sx={{ minWidth: 120 }}>
+                                <InputLabel>Závažnosť</InputLabel>
+                                <Select
+                                  value={damage.severity}
+                                  onChange={(e) => updateDamage(damage.id, 'severity', e.target.value)}
+                                >
+                                  <MenuItem value="minor">Drobná</MenuItem>
+                                  <MenuItem value="major">Závažná</MenuItem>
+                                  <MenuItem value="critical">Kritická</MenuItem>
+                                </Select>
+                              </FormControl>
+                              <TextField
+                                label="Miesto"
+                                value={damage.location}
+                                onChange={(e) => updateDamage(damage.id, 'location', e.target.value)}
+                                variant="outlined"
+                                size="small"
+                              />
+                            </Box>
+                          }
+                        />
+                        <IconButton onClick={() => removeDamage(damage.id)} color="error">
+                          <RemoveIcon />
+                        </IconButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+                
+                <Divider sx={{ my: 2 }} />
+                
+                <TextField
+                  label="Poznámky"
+                  value={protocol.notes}
+                  onChange={(e) => setProtocol(prev => ({ ...prev, notes: e.target.value }))}
+                  variant="outlined"
+                  fullWidth
+                  multiline
+                  rows={3}
+                />
+              </CardContent>
+            </Card>
           </Box>
         );
 
       case 3:
         return (
           <Box>
-            <Typography variant="h6" gutterBottom>
-              Evidencia poškodení
-            </Typography>
-            <Alert severity="info" sx={{ mb: 2 }}>
-              Zaznamenajte všetky viditeľné poškodenia na vozidle pred prevzatím.
-            </Alert>
-            <Button
-              variant="contained"
-              startIcon={<Build />}
-              onClick={() => {
-                const newDamage: ProtocolDamage = {
-                  id: uuidv4(),
-                  description: '',
-                  severity: 'low',
-                  images: [],
-                  location: '',
-                  timestamp: new Date(),
-                  fromPreviousProtocol: false,
-                };
-                addDamage(newDamage);
-              }}
-              sx={{ mb: 2 }}
-            >
-              Pridať poškodenie
-            </Button>
-            <List>
-              {protocol.damages?.map((damage, index) => (
-                <ListItem key={damage.id} divider>
-                  <ListItemText
-                    primary={`Poškodenie ${index + 1}`}
-                    secondary={damage.description || 'Bez popisu'}
-                  />
-                  <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      onClick={() => removeDamage(damage.id)}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-        );
-
-      case 4:
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Podpisy
-            </Typography>
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              Pred dokončením je potrebný podpis zákazníka a zamestnanca.
-            </Alert>
-            <Typography variant="body2" color="text.secondary">
-              Podpisy: {protocol.signatures?.length || 0} / 2
-            </Typography>
-            {/* TODO: Implementovať podpisový komponent */}
-          </Box>
-        );
-
-      case 5:
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Dokončenie protokolu
-            </Typography>
-            <Alert severity="success" sx={{ mb: 2 }}>
-              Protokol je pripravený na uloženie a odoslanie.
-            </Alert>
-            <List>
-              <ListItem>
-                <ListItemText
-                  primary="Generovanie PDF"
-                  secondary="Automaticky po uložení"
-                />
-                <Chip
-                  icon={<PictureAsPdf />}
-                  label="Pripravené"
-                  color="success"
-                  variant="outlined"
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText
-                  primary="Odoslanie emailu"
-                  secondary="Odoslanie kópie zákazníkovi"
-                />
-                <Chip
-                  icon={<Email />}
-                  label="Pripravené"
-                  color="success"
-                  variant="outlined"
-                />
-              </ListItem>
-            </List>
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Dokončenie protokolu
+                </Typography>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Skontrolujte všetky údaje pred dokončením protokolu.
+                </Alert>
+                
+                <Stack spacing={2}>
+                  <Typography variant="body2">
+                    <strong>Miesto:</strong> {protocol.location}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Čas:</strong> {protocol.timestamp.toLocaleString()}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Kilometre:</strong> {protocol.mileage} km
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Palivo:</strong> {protocol.fuelLevel}%
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Škody:</strong> {protocol.damages.length}
+                  </Typography>
+                </Stack>
+              </CardContent>
+            </Card>
           </Box>
         );
 
@@ -577,125 +378,54 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
     }
   };
 
-  if (!open) return null;
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <LinearProgress sx={{ width: '100%' }} />
+      </Box>
+    );
+  }
 
   return (
-    <Box
-      sx={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        bgcolor: 'background.default',
-        zIndex: 1300,
-        overflow: 'auto',
-      }}
-    >
-      <Box sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" component="h1">
-            Preberací protokol
-          </Typography>
-          <IconButton onClick={onClose}>
-            <Close />
-          </IconButton>
-        </Box>
-
-        {errors.length > 0 && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {errors.map((error, index) => (
-              <div key={index}>{error}</div>
-            ))}
-          </Alert>
-        )}
-
-        {processing && <LinearProgress sx={{ mb: 2 }} />}
-
-        <Stepper
-          activeStep={activeStep}
-          orientation={isMobile ? 'vertical' : 'horizontal'}
-          sx={{ mb: 3 }}
-        >
-          {steps.map((step, index) => (
-            <Step key={step.label} completed={isStepValid(index)}>
-              <StepLabel
-                StepIconComponent={({ active, completed }) => (
-                  <Avatar
-                    sx={{
-                      bgcolor: completed ? 'success.main' : active ? 'primary.main' : 'grey.300',
-                      color: 'white',
-                      width: 32,
-                      height: 32,
-                    }}
-                  >
-                    {completed ? <CheckCircle /> : step.icon}
-                  </Avatar>
-                )}
-              >
-                {step.label}
-              </StepLabel>
-              {isMobile && (
-                <StepContent>
-                  <Typography variant="body2" color="text.secondary">
-                    {step.description}
-                  </Typography>
-                </StepContent>
-              )}
-            </Step>
-          ))}
-        </Stepper>
-
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            {renderStepContent(activeStep)}
-          </CardContent>
-        </Card>
-
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
-            sx={{ mr: 1 }}
-          >
-            Späť
-          </Button>
-          <Box sx={{ flex: '1 1 auto' }} />
-          {activeStep === steps.length - 1 ? (
-            <Button
-              variant="contained"
-              color="success"
-              onClick={handleSave}
-              disabled={processing}
-              startIcon={<Save />}
-            >
-              Uložiť protokol
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              disabled={!isStepValid(activeStep)}
-            >
-              Ďalej
-            </Button>
-          )}
-        </Box>
-      </Box>
-
-      {/* Photo capture modal */}
-      {activePhotoCapture && (
-                 <SerialPhotoCapture
-           open={true}
-           onClose={() => setActivePhotoCapture(null)}
-           onSave={(images, videos) => handleMediaSave(activePhotoCapture as any, images, videos)}
-           title={`Fotografie - ${
-             activePhotoCapture === 'vehicle' ? 'Vozidlo' :
-             activePhotoCapture === 'document' ? 'Dokumenty' : 'Poškodenia'
-           }`}
-           allowedTypes={[activePhotoCapture as any]}
-         />
-      )}
+    <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
+      <Typography variant="h4" gutterBottom>
+        Protokol o prevzatí vozidla
+      </Typography>
+      
+      <Stepper activeStep={activeStep} orientation="vertical">
+        {steps.map((step, index) => (
+          <Step key={step.label}>
+            <StepLabel>{step.label}</StepLabel>
+            <StepContent>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {step.description}
+              </Typography>
+              {renderStepContent(index)}
+              <Box sx={{ mb: 2, mt: 2 }}>
+                <Button
+                  variant="contained"
+                  onClick={index === steps.length - 1 ? handleSave : handleNext}
+                  sx={{ mr: 1 }}
+                >
+                  {index === steps.length - 1 ? 'Uložiť protokol' : 'Ďalej'}
+                </Button>
+                <Button
+                  disabled={index === 0}
+                  onClick={handleBack}
+                  sx={{ mr: 1 }}
+                >
+                  Späť
+                </Button>
+                <Button onClick={onClose}>
+                  Zrušiť
+                </Button>
+              </Box>
+            </StepContent>
+          </Step>
+        ))}
+      </Stepper>
     </Box>
   );
-} 
+};
+
+export default HandoverProtocolForm; 

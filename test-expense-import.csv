@@ -1,0 +1,6 @@
+id,description,amount,date,category,company,vehicleId,vehicleLicensePlate,note
+,"Palivo",50.50,"01/2025","fuel","MOL","","","Natankovanie"
+,"Oprava brzd",150.00,"15.1.2025","service","AutoOpravňa Novák","","","Výmena brzdových dosiek"
+,"Mýtné",25.30,"20.1.2025","other","Diaľničná spoločnosť","","","Mýtné za január"
+,"Servis",89.99,"22.1.2025","service","AutoServis Plus","","","Kontrola oleja"
+,"Poistenie",,"","insurance","Generali","","","Ročné poistenie" 

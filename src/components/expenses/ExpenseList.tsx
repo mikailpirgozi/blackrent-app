@@ -204,214 +204,148 @@ export default function ExpenseList() {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      delimiter: ',',
-      quoteChar: '"',
-      escapeChar: '"',
-      transformHeader: (header: string) => header.trim(),
       complete: async (results: ReturnType<typeof Papa.parse>) => {
         try {
-          console.log('🔍 CSV data:', results.data); // Debug log
-          console.log('📋 CSV headers:', results.meta?.fields || 'Neznáme hlavičky');
-          console.log('📊 Počet riadkov:', results.data.length);
+          const imported: any[] = [];
+          let skippedDuplicates = 0;
           
           // Parsuje dátumy z rôznych formátov  
           const parseDate = (dateStr: string) => {
-            if (!dateStr) return new Date();
+            if (!dateStr || dateStr.trim() === '') return new Date();
             
             // Formát dd.M. (napr. 24.1.) - pridať automaticky rok 2025
             if (dateStr.includes('.')) {
               const parts = dateStr.split('.');
               if (parts.length >= 2) {
                 const day = Number(parts[0]);
-                const month = Number(parts[1]) - 1; // mesiac je 0-indexovaný
-                const year = parts.length > 2 && parts[2] ? Number(parts[2]) : 2025; // automaticky 2025 ak nie je uvedený
+                const month = Number(parts[1]) - 1;
+                const year = parts.length > 2 && parts[2] ? Number(parts[2]) : 2025;
                 return new Date(year, month, day);
               }
             }
             
             // Formát MM/yyyy (napr. 01/2025)
-            const parts = dateStr.split('/');
-            if (parts.length === 2) {
-              const month = Number(parts[0]) - 1; // mesiac je 0-indexovaný
-              const year = Number(parts[1]);
-              return new Date(year, month, 1); // nastaví na prvý deň mesiaca
-            } else if (parts.length === 3) {
-              // Formát dd/MM/yyyy - ak je tam aj deň
-              const day = Number(parts[0]);
-              const month = Number(parts[1]) - 1;
-              const year = Number(parts[2]);
-              return new Date(year, month, day);
+            if (dateStr.includes('/')) {
+              const parts = dateStr.split('/');
+              if (parts.length === 2) {
+                const month = Number(parts[0]) - 1;
+                const year = Number(parts[1]);
+                return new Date(year, month, 1);
+              }
             }
+            
             return new Date(dateStr);
           };
-
+          
+          for (const row of results.data as any[]) {
+            console.log('Processing row:', row);
+            
+            // Preskočíme prázdne riadky
+            if (!row.description || row.description.toString().trim() === '') {
+              console.log(`⚠️ Preskakujem riadok bez popisu:`, row);
+              continue;
+            }
+            
+            // KONTROLA DUPLICÍT NÁKLADU
+            const description = row.description.toString().trim();
+            const amount = row.amount ? Number(row.amount) : 0;
+            const parsedDate = parseDate(row.date);
+            
+            const duplicateExpense = state.expenses.find(existingExpense => {
+              const existingDate = new Date(existingExpense.date);
+              return (
+                existingExpense.description?.toLowerCase() === description.toLowerCase() &&
+                existingExpense.amount === amount &&
+                existingDate.toDateString() === parsedDate.toDateString()
+              );
+            });
+            
+            if (duplicateExpense) {
+              console.log(`🔄 Preskakujem duplicitný náklad: ${description} (${amount}€)`);
+              skippedDuplicates++;
+              continue;
+            }
+            
+            // Kontrola duplicít aj v rámci tohto CSV
+            const duplicateInImported = imported.find(importedExpense => 
+              importedExpense.description?.toLowerCase() === description.toLowerCase() &&
+              importedExpense.amount === amount &&
+              importedExpense.date.toDateString() === parsedDate.toDateString()
+            );
+            
+            if (duplicateInImported) {
+              console.log(`🔄 Preskakujem duplicitný náklad v CSV: ${description}`);
+              skippedDuplicates++;
+              continue;
+            }
+            
+            // Validácia kategórie
+            const validCategories = ['service', 'insurance', 'fuel', 'other'];
+            const categoryMapping: { [key: string]: string } = {
+              'maintenance': 'service',
+              'repair': 'service',
+              'toll': 'other',
+              'parking': 'other'
+            };
+            
+            let category = row.category || 'other';
+            if (!validCategories.includes(category)) {
+              category = categoryMapping[category.toLowerCase()] || 'other';
+            }
+            
+            // Nájde vozidlo podľa ID alebo ŠPZ
+            let vehicleId: string | undefined = undefined;
+            if (row.vehicleId && row.vehicleId.trim() !== '') {
+              const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+              if (uuidRegex.test(row.vehicleId)) {
+                vehicleId = row.vehicleId;
+              }
+            }
+            
+            if (!vehicleId && row.vehicleLicensePlate && row.vehicleLicensePlate.trim() !== '') {
+              const vehicle = state.vehicles.find(v => 
+                v.licensePlate?.toLowerCase() === row.vehicleLicensePlate.toLowerCase()
+              );
+              vehicleId = vehicle?.id;
+            }
+            
+            const expense = {
+              id: row.id && row.id.trim() !== '' ? row.id.trim() : uuidv4(),
+              description: description,
+              amount: amount,
+              date: parsedDate,
+              category: category,
+              company: row.company?.trim() || 'Neznáma firma',
+              vehicleId: vehicleId,
+              note: row.note?.trim() || undefined,
+            };
+            
+            console.log(`📋 Pripravujem náklad na import: ${expense.description} - ${expense.amount}€`);
+            imported.push(expense);
+          }
+          
+          // Vytvoríme všetky náklady cez API s error handlingom
           let successCount = 0;
           let errorCount = 0;
           const errors: string[] = [];
-          const validExpenses: any[] = [];
           
-          console.log(`📋 Spracovávam ${results.data.length} riadkov nákladov...`);
+          console.log(`💰 Spracovávam ${imported.length} nákladov...`);
           
-          // KROK 1: Spracujeme všetky riadky do objektov (bez asynchrónneho vytvárania)
-          for (let i = 0; i < results.data.length; i++) {
-            const row = results.data[i] as any;
-            
+          for (let i = 0; i < imported.length; i++) {
+            const expense = imported[i];
             try {
-              console.log(`🔍 Spracovávam riadok ${i + 1}/${results.data.length}:`, row);
-              
-              // Preskočíme prázdne riadky - skontrolujeme či má aspoň nejaké hodnoty
-              const hasAnyData = Object.values(row).some(value => 
-                value !== null && value !== undefined && value !== '' && value.toString().trim() !== ''
-              );
-              
-              if (!hasAnyData) {
-                console.log(`⚠️ Preskakujem prázdny riadok ${i + 1}`);
-                continue;
-              }
-              
-              // Zobrazíme aké stĺpce máme v tomto riadku
-              console.log(`📋 Dostupné stĺpce v riadku ${i + 1}:`, Object.keys(row));
-              console.log(`📝 Hodnoty v riadku ${i + 1}:`, Object.values(row));
-              console.log(`🔍 Detailné stĺpce a hodnoty riadku ${i + 1}:`, row);
-
-              // Flexibilné mapovanie stĺpcov - podporuje rôzne názvy
-              const getFieldValue = (row: any, possibleNames: string[]) => {
-                console.log(`🔍 Hľadám pole medzi ${possibleNames.join(', ')} v objekte:`, row);
-                for (const name of possibleNames) {
-                  console.log(`  - Kontrolujem '${name}': ${row[name] !== undefined ? `'${row[name]}'` : 'undefined'}`);
-                  if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
-                    const value = row[name].toString().trim();
-                    console.log(`  ✅ Nájdené '${name}' = '${value}'`);
-                    return value;
-                  }
-                }
-                console.log(`  ❌ Žiadne z polí ${possibleNames.join(', ')} nebolo nájdené`);
-                return '';
-              };
-
-              // Trimovanie a validácia základných údajov s flexibilným mapovaním
-              // PRESNE TIE ISTÉ NÁZVY AKO V EXPORT FUNKCII SÚ NA PRVOM MIESTE
-              const rawDescription = getFieldValue(row, ['description', 'popis', 'nazov', 'item', 'polozka', 'desc']);
-              const rawAmount = getFieldValue(row, ['amount', 'suma', 'price', 'cena', 'hodnota', 'cost']);
-              const rawDate = getFieldValue(row, ['date', 'datum', 'day', 'den', 'created', 'time']);
-              const rawCategory = getFieldValue(row, ['category', 'kategoria', 'type', 'typ']) || 'other';
-              const rawCompany = getFieldValue(row, ['company', 'firma', 'dodavatel', 'supplier', 'vendor']) || 'Neznáma firma';
-              const rawNote = getFieldValue(row, ['note', 'poznamka', 'comment', 'komentar', 'remarks']);
-              
-              console.log(`🔍 Extrahované hodnoty z riadku ${i + 1}:`, {
-                description: rawDescription,
-                amount: rawAmount,
-                date: rawDate,
-                category: rawCategory,
-                company: rawCompany,
-                note: rawNote
-              });
-
-              if (!rawDescription || !rawAmount || !rawDate) {
-                const missingFields = [];
-                if (!rawDescription) missingFields.push('popis (description/popis/nazov/item/polozka/desc)');
-                if (!rawAmount) missingFields.push('suma (amount/suma/price/cena/hodnota/cost)');
-                if (!rawDate) missingFields.push('dátum (date/datum/day/den/created/time)');
-                throw new Error(`Chýbajú povinné polia: ${missingFields.join(', ')}`);
-              }
-
-              // Nájde vozidlo podľa ŠPZ ak je zadané
-              let vehicleId: string | undefined = undefined;
-              
-              // Ak je zadané vehicleId, skontroluj, či je to správne UUID
-              const rawVehicleId = getFieldValue(row, ['vehicleId', 'vehicle_id', 'vozidlo_id', 'auto_id']);
-              if (rawVehicleId) {
-                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                if (uuidRegex.test(rawVehicleId)) {
-                  vehicleId = rawVehicleId;
-                }
-              }
-              
-              // Ak nie je správne UUID, pokús sa nájsť vozidlo podľa ŠPZ
-              if (!vehicleId) {
-                const licensePlate = getFieldValue(row, ['vehicleLicensePlate', 'license_plate', 'spz', 'ecv', 'vehicle_plate', 'auto_spz']);
-                if (licensePlate) {
-                  const vehicle = state.vehicles.find(v => v.licensePlate?.toLowerCase() === licensePlate.toLowerCase());
-                  vehicleId = vehicle?.id;
-                  console.log(`🚗 Hľadám vozidlo podľa ŠPZ "${licensePlate}": ${vehicle ? 'nájdené' : 'nenájdené'}`);
-                }
-              }
-
-              // Validácia dátumu
-              const parsedDate = parseDate(rawDate);
-              if (!parsedDate || isNaN(parsedDate.getTime())) {
-                throw new Error(`Neplatný dátum: ${rawDate}`);
-              }
-
-              // Validácia amount
-              const parsedAmount = Number(rawAmount);
-              if (isNaN(parsedAmount)) {
-                throw new Error(`Neplatná suma: ${rawAmount}`);
-              }
-
-              const description = rawDescription || 'Bez popisu';
-              
-              // KONTROLA DUPLICÍT NÁKLADU
-              // Skontroluj, či už existuje náklad s týmito parametrami
-              const duplicateExpense = state.expenses.find(existingExpense => {
-                const existingDate = new Date(existingExpense.date);
-                
-                return (
-                  existingExpense.description?.toLowerCase() === description.toLowerCase() &&
-                  existingExpense.amount === parsedAmount &&
-                  existingDate.toDateString() === parsedDate.toDateString() &&
-                  existingExpense.vehicleId === vehicleId
-                );
-              });
-              
-              if (duplicateExpense) {
-                console.log(`🔄 Preskakujem duplicitný náklad: ${description} (${parsedAmount}€) ${parsedDate.toDateString()}`);
-                continue;
-              }
-
-              const expense = {
-                id: row.id || uuidv4(),
-                description: description,
-                amount: parsedAmount,
-                date: parsedDate,
-                category: rawCategory,
-                company: rawCompany,
-                vehicleId: vehicleId,
-                note: rawNote || undefined,
-              };
-
-              console.log(`✅ Pripravený náklad ${i + 1}: ${expense.description} (${expense.amount}€) ${expense.date.toDateString()}`);
-              validExpenses.push(expense);
-              
-            } catch (error: any) {
-              console.error(`❌ Chyba v riadku ${i + 1}:`, error);
-              errorCount++;
-              const errorMsg = `Riadok ${i + 1}: ${error.message}`;
-              errors.push(errorMsg);
-            }
-          }
-          
-          console.log(`📊 Pripravených na import: ${validExpenses.length} nákladov`);
-          
-          // KROK 2: Teraz vytvoríme všetky náklady postupne
-          for (let i = 0; i < validExpenses.length; i++) {
-            const expense = validExpenses[i];
-            try {
-              console.log(`💾 Vytváram náklad ${i + 1}/${validExpenses.length}: ${expense.description} (${expense.amount}€)`);
+              console.log(`Vytváram náklad ${i + 1}/${imported.length}: ${expense.description} - ${expense.amount}€`);
               await createExpense(expense);
               successCount++;
-              
             } catch (error: any) {
-              console.error(`❌ Chyba pri vytváraní nákladu:`, error);
+              console.error(`Chyba pri vytváraní nákladu ${expense.description}:`, error);
               errorCount++;
-              errors.push(`Náklad ${i + 1}: ${error.message || 'Neznáma chyba'}`);
+              errors.push(`${expense.description}: ${error.message || 'Neznáma chyba'}`);
             }
           }
           
           setImportError('');
-          
           const totalProcessed = results.data.length;
-          const skippedDuplicates = totalProcessed - successCount - errorCount;
           
           let message = `Import nákladov dokončený!\n\n`;
           message += `📊 Spracované riadky: ${totalProcessed}\n`;
@@ -774,7 +708,14 @@ export default function ExpenseList() {
                       {expense.description}
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 0.5, color: '#444' }}>
-                      {expense.company} • {format(expense.date, 'dd.MM.yyyy', { locale: sk })}
+                      {expense.company} • {(() => {
+                        try {
+                          const date = expense.date instanceof Date ? expense.date : new Date(expense.date);
+                          return isNaN(date.getTime()) ? 'Neplatný dátum' : format(date, 'dd.MM.yyyy', { locale: sk });
+                        } catch (error) {
+                          return 'Neplatný dátum';
+                        }
+                      })()}
                     </Typography>
                   </Box>
                   <Chip 
@@ -932,7 +873,14 @@ export default function ExpenseList() {
                         }
                       </TableCell>
                       <TableCell>
-                        {format(expense.date, 'dd.MM.yyyy', { locale: sk })}
+                        {(() => {
+                          try {
+                            const date = expense.date instanceof Date ? expense.date : new Date(expense.date);
+                            return isNaN(date.getTime()) ? 'Neplatný dátum' : format(date, 'dd.MM.yyyy', { locale: sk });
+                          } catch (error) {
+                            return 'Neplatný dátum';
+                          }
+                        })()}
                       </TableCell>
                       <TableCell>
                         <Chip
