@@ -221,7 +221,7 @@ export default function RentalList() {
   const [showTodayReturns, setShowTodayReturns] = useState(true);
   const [showTomorrowReturns, setShowTomorrowReturns] = useState(true);
   const [showUnconfirmed, setShowUnconfirmed] = useState(true);
-  const [showFuture, setShowFuture] = useState(false);
+  const [showFuture, setShowFuture] = useState(true);
   const [showOldConfirmed, setShowOldConfirmed] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [importError, setImportError] = useState('');
@@ -655,9 +655,13 @@ export default function RentalList() {
     
     let rentals = getFilteredRentals();
     
-    // Ak je showAll false a nie sú zaškrtnuté žiadne filtre, vráť prázdne pole
+    // Ak je showAll false a nie sú zaškrtnuté žiadne filtre, zobraz základné filtre
     if (!showAll && !showActive && !showTodayReturns && !showTomorrowReturns && !showUnconfirmed && !showFuture && !showOldConfirmed) {
-      return [];
+      // Ak nie sú zaškrtnuté žiadne filtre, zobraz aspoň aktívne, dnešné a zajtrajšie
+      rentals = rentals.filter((r: Rental) => {
+        const priority = getRentalPriority(r);
+        return priority <= 3; // Aktívne, dnešné vrátenia, zajtrajšie vrátenia
+      });
     }
     
     if (!showAll) {
