@@ -10,6 +10,8 @@
     "restartPolicyType": "ON_FAILURE"
   },
   "variables": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "DEPLOYMENT_TIMESTAMP": "2025-07-19-01-42",
+    "FORCE_REBUILD": "true"
   }
 } 
