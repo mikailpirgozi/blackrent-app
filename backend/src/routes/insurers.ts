@@ -35,18 +35,12 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       });
     }
 
-    const newInsurer: Insurer = {
-      id: uuidv4(),
-      name,
-      createdAt: new Date()
-    };
-
-    await postgresDatabase.createInsurer(newInsurer);
+    const createdInsurer = await postgresDatabase.createInsurer({ name });
 
     res.status(201).json({
       success: true,
       message: 'Poisťovňa úspešne vytvorená',
-      data: newInsurer
+      data: createdInsurer
     });
 
   } catch (error) {

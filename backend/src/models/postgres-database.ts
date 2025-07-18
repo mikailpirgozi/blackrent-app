@@ -324,7 +324,7 @@ export class PostgresDatabase {
       
       const row = result.rows[0];
       return {
-        id: row.id,
+        id: row.id?.toString(),
         username: row.username,
         email: row.email,
         password: row.password_hash, // Pre kompatibilitu s existujúcim kódom
@@ -341,14 +341,14 @@ export class PostgresDatabase {
     try {
       const result = await client.query(
         'SELECT id, username, email, password_hash, role, created_at FROM users WHERE id = $1',
-        [id]
+        [parseInt(id)]
       );
       
       if (result.rows.length === 0) return null;
       
       const row = result.rows[0];
       return {
-        id: row.id,
+        id: row.id?.toString(),
         username: row.username,
         email: row.email,
         password: row.password_hash,
@@ -360,14 +360,24 @@ export class PostgresDatabase {
     }
   }
 
-  async createUser(user: User): Promise<void> {
+  async createUser(userData: { username: string; email: string; password: string; role: string }): Promise<User> {
     const client = await this.pool.connect();
     try {
-      const hashedPassword = await bcrypt.hash(user.password, 12);
-      await client.query(
-        'INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
-        [user.id, user.username, user.email, hashedPassword, user.role]
+      const hashedPassword = await bcrypt.hash(userData.password, 12);
+      const result = await client.query(
+        'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, password_hash, role, created_at',
+        [userData.username, userData.email, hashedPassword, userData.role]
       );
+      
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        username: row.username,
+        email: row.email,
+        password: row.password_hash,
+        role: row.role,
+        createdAt: new Date(row.created_at)
+      };
     } finally {
       client.release();
     }
@@ -379,7 +389,7 @@ export class PostgresDatabase {
       const hashedPassword = await bcrypt.hash(user.password, 12);
       await client.query(
         'UPDATE users SET username = $1, email = $2, password_hash = $3, role = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5',
-        [user.username, user.email, hashedPassword, user.role, user.id]
+        [user.username, user.email, hashedPassword, user.role, parseInt(user.id)]
       );
     } finally {
       client.release();
@@ -389,7 +399,7 @@ export class PostgresDatabase {
   async deleteUser(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM users WHERE id = $1', [id]);
+      await client.query('DELETE FROM users WHERE id = $1', [parseInt(id)]);
     } finally {
       client.release();
     }
@@ -531,7 +541,11 @@ export class PostgresDatabase {
       console.log('🔍 Spúšťam getRentals() query...');
       
       const result = await client.query(`
-        SELECT r.*, v.brand, v.model, v.license_plate, c.name as company_name 
+        SELECT r.id, r.customer_id, r.vehicle_id, r.start_date, r.end_date, 
+               r.total_price, r.commission_amount, r.payment_method, r.discount_amount, 
+               r.extra_kilometer_rate, r.paid, r.status, r.handover_place, 
+               r.order_number, r.customer_name, r.created_at,
+               v.brand, v.model, v.license_plate, c.name as company_name 
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id = v.id 
         LEFT JOIN companies c ON v.company_id = c.id 
@@ -575,12 +589,12 @@ export class PostgresDatabase {
             commission: parseFloat(row.commission_amount) || 0,
             paymentMethod: row.payment_method || 'cash',
             discount: row.discount_amount ? { type: 'fixed' as const, value: parseFloat(row.discount_amount) } : undefined,
-            customCommission: row.commission_amount ? { type: 'fixed' as const, value: parseFloat(row.commission_amount) } : undefined,
+            customCommission: undefined, // Nie je v databáze
             extraKmCharge: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
             paid: Boolean(row.paid),
             status: row.status || 'active',
             handoverPlace: row.handover_place,
-            confirmed: row.status === 'confirmed',
+            confirmed: row.status === 'confirmed', // Odvodené zo status
             payments: undefined,
             history: undefined,
             orderNumber: row.order_number,
@@ -930,10 +944,20 @@ export class PostgresDatabase {
     }
   }
 
-  async createCompany(company: Company): Promise<void> {
+  async createCompany(companyData: { name: string }): Promise<Company> {
     const client = await this.pool.connect();
     try {
-      await client.query('INSERT INTO companies (id, name) VALUES ($1, $2)', [company.id, company.name]);
+      const result = await client.query(
+        'INSERT INTO companies (name) VALUES ($1) RETURNING id, name, created_at', 
+        [companyData.name]
+      );
+      
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        name: row.name,
+        createdAt: new Date(row.created_at)
+      };
     } finally {
       client.release();
     }
@@ -942,7 +966,7 @@ export class PostgresDatabase {
   async deleteCompany(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM companies WHERE id = $1', [id]);
+      await client.query('DELETE FROM companies WHERE id = $1', [parseInt(id)]);
     } finally {
       client.release();
     }
@@ -963,10 +987,20 @@ export class PostgresDatabase {
     }
   }
 
-  async createInsurer(insurer: Insurer): Promise<void> {
+  async createInsurer(insurerData: { name: string }): Promise<Insurer> {
     const client = await this.pool.connect();
     try {
-      await client.query('INSERT INTO insurers (id, name) VALUES ($1, $2)', [insurer.id, insurer.name]);
+      const result = await client.query(
+        'INSERT INTO insurers (name) VALUES ($1) RETURNING id, name, created_at', 
+        [insurerData.name]
+      );
+      
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        name: row.name,
+        createdAt: new Date(row.created_at)
+      };
     } finally {
       client.release();
     }

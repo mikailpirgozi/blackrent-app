@@ -65,8 +65,12 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
     }
 
     // Nájdi používateľa
+    console.log('🔍 Hľadám používateľa:', username);
     const user = await postgresDatabase.getUserByUsername(username);
+    console.log('👤 Používateľ nájdený:', !!user, user ? `(id: ${user.id}, role: ${user.role})` : '');
+    
     if (!user) {
+      console.log('❌ Používateľ neexistuje');
       return res.status(401).json({
         success: false,
         error: 'Nesprávne prihlasovacie údaje'
@@ -74,8 +78,12 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
     }
 
     // Overenie hesla pomocou bcrypt
+    console.log('🔑 Overujem heslo pre používateľa:', user.username);
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('🔑 Heslo platné:', isPasswordValid);
+    
     if (!isPasswordValid) {
+      console.log('❌ Nesprávne heslo');
       return res.status(401).json({
         success: false,
         error: 'Nesprávne prihlasovacie údaje'
@@ -182,20 +190,23 @@ router.post('/users', authenticateToken, requireRole(['admin']), async (req: Req
       });
     }
 
-    const newUser: User = {
-      id: uuidv4(),
+    const createdUser = await postgresDatabase.createUser({
       username,
-      email,
-      password, // Bude zahashované v databáze
-      role,
-      createdAt: new Date()
-    };
-
-    await postgresDatabase.createUser(newUser);
+      email, 
+      password,
+      role
+    });
 
     res.status(201).json({
       success: true,
-      message: 'Používateľ úspešne vytvorený'
+      message: 'Používateľ úspešne vytvorený',
+      data: {
+        id: createdUser.id,
+        username: createdUser.username,
+        email: createdUser.email,
+        role: createdUser.role,
+        createdAt: createdUser.createdAt
+      }
     });
 
   } catch (error) {

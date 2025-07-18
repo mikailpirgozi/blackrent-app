@@ -25,7 +25,9 @@ const allowedOrigins = [
   'http://192.168.1.14:3000',
   /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:3000$/,
   /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}:3000$/,
-  /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}:3000$/
+  /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}:3000$/,
+  // GitHub Pages URL
+  'https://mikailpirgozi.github.io'
 ];
 
 // Add production domains from environment

@@ -35,18 +35,12 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       });
     }
 
-    const newCompany: Company = {
-      id: uuidv4(),
-      name,
-      createdAt: new Date()
-    };
-
-    await postgresDatabase.createCompany(newCompany);
+    const createdCompany = await postgresDatabase.createCompany({ name });
 
     res.status(201).json({
       success: true,
       message: 'Firma úspešne vytvorená',
-      data: newCompany
+      data: createdCompany
     });
 
   } catch (error) {

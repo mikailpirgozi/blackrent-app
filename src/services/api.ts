@@ -1,24 +1,30 @@
 import { Vehicle, Rental, Customer, Expense, Insurance, Company, Insurer, ApiResponse } from '../types';
 
-// Automaticky detektuj správnu IP adresu
+// Railway backend URL
+const RAILWAY_API_URL = 'https://blackrent-app-production-4d6f.up.railway.app/api';
+
 const getApiBaseUrl = () => {
+  // Ak je nastavená custom API URL v environment
   if (process.env.REACT_APP_API_URL) {
     console.log('🌐 Používam API URL z .env:', process.env.REACT_APP_API_URL);
     return process.env.REACT_APP_API_URL;
   }
   
-  // Ak je aplikácia spustená cez IP adresu, použij tú istú IP pre API
-  const hostname = window.location.hostname;
-  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-    const protocol = window.location.protocol; // http: alebo https:
-    const apiUrl = `${protocol}//${hostname}/api`;
-    console.log('🌐 Detekovaná IP adresa, používam API URL:', apiUrl);
-    return apiUrl;
+  // Pre GitHub Pages používaj Railway API
+  if (window.location.hostname === 'mikailpirgozi.github.io') {
+    console.log('🌐 GitHub Pages detekované, používam Railway API:', RAILWAY_API_URL);
+    return RAILWAY_API_URL;
   }
   
-  // Fallback na localhost
-  console.log('🌐 Používam localhost API URL');
-  return 'http://localhost:5001/api';
+  // Pre lokálny development
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    console.log('🌐 Localhost detekované, používam lokálny backend');
+    return 'http://localhost:5001/api';
+  }
+  
+  // Fallback na Railway API
+  console.log('🌐 Používam Railway API ako fallback:', RAILWAY_API_URL);
+  return RAILWAY_API_URL;
 };
 
 export const API_BASE_URL = getApiBaseUrl();
