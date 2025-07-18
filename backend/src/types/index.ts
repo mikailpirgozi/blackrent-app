@@ -7,6 +7,7 @@ export interface Vehicle {
   pricing: PricingTier[];
   commission: Commission;
   status: VehicleStatus;
+  createdAt?: Date;
 }
 
 export interface PricingTier {
@@ -84,6 +85,20 @@ export interface Rental {
     }[];
   }[];
   orderNumber?: string;
+  // Rozšírené polia pre kompletný rental systém
+  deposit?: number;
+  allowedKilometers?: number;
+  extraKilometerRate?: number;
+  returnConditions?: string;
+  fuelLevel?: number;
+  odometer?: number;
+  returnFuelLevel?: number;
+  returnOdometer?: number;
+  actualKilometers?: number;
+  fuelRefillCost?: number;
+  // Protokoly
+  handoverProtocolId?: string;
+  returnProtocolId?: string;
 }
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';

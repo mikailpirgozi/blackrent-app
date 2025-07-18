@@ -29,7 +29,7 @@ export class PostgresDatabase {
     });
     }
 
-    // this.initTables().catch(console.error); // Vypnuté - používame existujúcu schému
+    this.initTables().catch(console.error); // Spustenie pre aktualizáciu schémy
   }
 
   private async initTables() {
@@ -98,6 +98,20 @@ export class PostgresDatabase {
           payments JSONB,
           history JSONB,
           order_number VARCHAR(50),
+          -- Rozšírené polia pre kompletný rental systém
+          deposit DECIMAL(10,2),
+          allowed_kilometers INTEGER,
+          extra_kilometer_rate DECIMAL(10,2),
+          return_conditions TEXT,
+          fuel_level INTEGER,
+          odometer INTEGER,
+          return_fuel_level INTEGER,
+          return_odometer INTEGER,
+          actual_kilometers INTEGER,
+          fuel_refill_cost DECIMAL(10,2),
+          -- Protokoly
+          handover_protocol_id UUID,
+          return_protocol_id UUID,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -195,6 +209,23 @@ export class PostgresDatabase {
       await client.query(`
         ALTER TABLE rentals 
         ALTER COLUMN status TYPE VARCHAR(30);
+      `);
+      
+      // Migrácia 2: Pridanie rozšírených polí do rentals tabuľky
+      await client.query(`
+        ALTER TABLE rentals 
+        ADD COLUMN IF NOT EXISTS deposit DECIMAL(10,2),
+        ADD COLUMN IF NOT EXISTS allowed_kilometers INTEGER,
+        ADD COLUMN IF NOT EXISTS extra_kilometer_rate DECIMAL(10,2),
+        ADD COLUMN IF NOT EXISTS return_conditions TEXT,
+        ADD COLUMN IF NOT EXISTS fuel_level INTEGER,
+        ADD COLUMN IF NOT EXISTS odometer INTEGER,
+        ADD COLUMN IF NOT EXISTS return_fuel_level INTEGER,
+        ADD COLUMN IF NOT EXISTS return_odometer INTEGER,
+        ADD COLUMN IF NOT EXISTS actual_kilometers INTEGER,
+        ADD COLUMN IF NOT EXISTS fuel_refill_cost DECIMAL(10,2),
+        ADD COLUMN IF NOT EXISTS handover_protocol_id UUID,
+        ADD COLUMN IF NOT EXISTS return_protocol_id UUID;
       `);
       
       console.log('✅ Databázové migrácie úspešne dokončené');
@@ -449,14 +480,14 @@ export class PostgresDatabase {
   async getVehicle(id: string): Promise<Vehicle | null> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query('SELECT * FROM vehicles WHERE id = $1', [id]);
+      const result = await client.query('SELECT * FROM vehicles WHERE id = $1', [parseInt(id)]);
       
       if (result.rows.length === 0) return null;
       
       const row = result.rows[0];
       return {
         ...row,
-        id: row.id,
+        id: row.id.toString(),
         licensePlate: row.license_plate, // Mapovanie column názvu
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
@@ -467,30 +498,50 @@ export class PostgresDatabase {
     }
   }
 
-  async createVehicle(vehicle: Vehicle): Promise<void> {
+  async createVehicle(vehicleData: {
+    brand: string;
+    model: string;
+    licensePlate: string;
+    company: string;
+    pricing: any[];
+    commission: any;
+    status: string;
+  }): Promise<Vehicle> {
     const client = await this.pool.connect();
     try {
       // Automaticky vytvoriť company záznam ak neexistuje
-      if (vehicle.company && vehicle.company.trim()) {
+      if (vehicleData.company && vehicleData.company.trim()) {
         await client.query(
-          'INSERT INTO companies (id, name) VALUES (gen_random_uuid(), $1) ON CONFLICT (name) DO NOTHING',
-          [vehicle.company.trim()]
+          'INSERT INTO companies (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
+          [vehicleData.company.trim()]
         );
       }
 
-      await client.query(
-        'INSERT INTO vehicles (id, brand, model, license_plate, company, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      const result = await client.query(
+        'INSERT INTO vehicles (brand, model, license_plate, company, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, brand, model, license_plate, company, pricing, commission, status, created_at',
         [
-          vehicle.id, 
-          vehicle.brand, 
-          vehicle.model, 
-          vehicle.licensePlate, 
-          vehicle.company, 
-          JSON.stringify(vehicle.pricing), // Konverzia na JSON string
-          JSON.stringify(vehicle.commission), // Konverzia na JSON string
-          vehicle.status
+          vehicleData.brand, 
+          vehicleData.model, 
+          vehicleData.licensePlate, 
+          vehicleData.company, 
+          JSON.stringify(vehicleData.pricing),
+          JSON.stringify(vehicleData.commission),
+          vehicleData.status
         ]
       );
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        brand: row.brand,
+        model: row.model,
+        licensePlate: row.license_plate,
+        company: row.company,
+        pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing,
+        commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission,
+        status: row.status,
+        createdAt: new Date(row.created_at)
+      };
     } finally {
       client.release();
     }
@@ -502,7 +553,7 @@ export class PostgresDatabase {
       // Automaticky vytvoriť company záznam ak neexistuje
       if (vehicle.company && vehicle.company.trim()) {
         await client.query(
-          'INSERT INTO companies (id, name) VALUES (gen_random_uuid(), $1) ON CONFLICT (name) DO NOTHING',
+          'INSERT INTO companies (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
           [vehicle.company.trim()]
         );
       }
@@ -517,7 +568,7 @@ export class PostgresDatabase {
           JSON.stringify(vehicle.pricing), // Konverzia na JSON string
           JSON.stringify(vehicle.commission), // Konverzia na JSON string
           vehicle.status, 
-          vehicle.id
+          parseInt(vehicle.id)
         ]
       );
     } finally {
@@ -528,7 +579,7 @@ export class PostgresDatabase {
   async deleteVehicle(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM vehicles WHERE id = $1', [id]);
+      await client.query('DELETE FROM vehicles WHERE id = $1', [parseInt(id)]);
     } finally {
       client.release();
     }
@@ -542,13 +593,15 @@ export class PostgresDatabase {
       
       const result = await client.query(`
         SELECT r.id, r.customer_id, r.vehicle_id, r.start_date, r.end_date, 
-               r.total_price, r.commission_amount, r.payment_method, r.discount_amount, 
-               r.extra_kilometer_rate, r.paid, r.status, r.handover_place, 
-               r.order_number, r.customer_name, r.created_at,
-               v.brand, v.model, v.license_plate, c.name as company_name 
+               r.total_price, r.commission, r.payment_method, r.discount, 
+               r.custom_commission, r.extra_km_charge, r.paid, r.status, r.handover_place, 
+               r.confirmed, r.payments, r.history, r.order_number, r.customer_name, r.created_at,
+               r.deposit, r.allowed_kilometers, r.extra_kilometer_rate, r.return_conditions,
+               r.fuel_level, r.odometer, r.return_fuel_level, r.return_odometer,
+               r.actual_kilometers, r.fuel_refill_cost, r.handover_protocol_id, r.return_protocol_id,
+               v.brand, v.model, v.license_plate, v.company 
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id = v.id 
-        LEFT JOIN companies c ON v.company_id = c.id 
         ORDER BY r.created_at DESC
       `);
       
@@ -586,26 +639,40 @@ export class PostgresDatabase {
             startDate: new Date(row.start_date),
             endDate: new Date(row.end_date),
             totalPrice: parseFloat(row.total_price) || 0,
-            commission: parseFloat(row.commission_amount) || 0,
+            commission: parseFloat(row.commission) || 0,
             paymentMethod: row.payment_method || 'cash',
-            discount: row.discount_amount ? { type: 'fixed' as const, value: parseFloat(row.discount_amount) } : undefined,
-            customCommission: undefined, // Nie je v databáze
-            extraKmCharge: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
+            discount: safeJsonParse(row.discount),
+            customCommission: safeJsonParse(row.custom_commission),
+            extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
             paid: Boolean(row.paid),
             status: row.status || 'active',
             handoverPlace: row.handover_place,
-            confirmed: row.status === 'confirmed', // Odvodené zo status
-            payments: undefined,
-            history: undefined,
+            confirmed: Boolean(row.confirmed),
+            payments: safeJsonParse(row.payments),
+            history: safeJsonParse(row.history),
             orderNumber: row.order_number,
             createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+            // Rozšírené polia
+            deposit: row.deposit ? parseFloat(row.deposit) : undefined,
+            allowedKilometers: row.allowed_kilometers || undefined,
+            extraKilometerRate: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
+            returnConditions: row.return_conditions || undefined,
+            fuelLevel: row.fuel_level || undefined,
+            odometer: row.odometer || undefined,
+            returnFuelLevel: row.return_fuel_level || undefined,
+            returnOdometer: row.return_odometer || undefined,
+            actualKilometers: row.actual_kilometers || undefined,
+            fuelRefillCost: row.fuel_refill_cost ? parseFloat(row.fuel_refill_cost) : undefined,
+            // Protokoly
+            handoverProtocolId: row.handover_protocol_id || undefined,
+            returnProtocolId: row.return_protocol_id || undefined,
             // Vehicle objekt z JOIN
             vehicle: row.vehicle_id ? {
               id: row.vehicle_id?.toString(),
               brand: row.brand || 'Neznáma značka',
               model: row.model || 'Neznámy model',
               licensePlate: row.license_plate || 'N/A',
-              company: row.company_name || 'N/A',
+              company: row.company || 'N/A',
               pricing: [], // Nedostupné z tohto JOIN
               commission: { type: 'percentage' as const, value: 20 }, // Default
               status: 'available' as const // Default
@@ -638,8 +705,11 @@ export class PostgresDatabase {
         INSERT INTO rentals (
           id, vehicle_id, customer_id, customer_name, start_date, end_date, 
           total_price, commission, payment_method, discount, custom_commission, 
-          extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+          extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
+          deposit, allowed_kilometers, extra_kilometer_rate, return_conditions, 
+          fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
+          handover_protocol_id, return_protocol_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
       `, [
         rental.id, 
         validVehicleId, 
@@ -650,16 +720,28 @@ export class PostgresDatabase {
         rental.totalPrice, 
         rental.commission,
         rental.paymentMethod, 
-        rental.discount ? JSON.stringify(rental.discount) : null, // Konverzia na JSON
-        rental.customCommission ? JSON.stringify(rental.customCommission) : null, // Konverzia na JSON
+        rental.discount ? JSON.stringify(rental.discount) : null,
+        rental.customCommission ? JSON.stringify(rental.customCommission) : null,
         rental.extraKmCharge, 
         rental.paid, 
         rental.status, 
         rental.handoverPlace,
         rental.confirmed, 
-        rental.payments ? JSON.stringify(rental.payments) : null, // Konverzia na JSON
-        rental.history ? JSON.stringify(rental.history) : null, // Konverzia na JSON
-        rental.orderNumber
+        rental.payments ? JSON.stringify(rental.payments) : null,
+        rental.history ? JSON.stringify(rental.history) : null,
+        rental.orderNumber,
+        rental.deposit || null,
+        rental.allowedKilometers || null,
+        rental.extraKilometerRate || null,
+        rental.returnConditions || null,
+        rental.fuelLevel || null,
+        rental.odometer || null,
+        rental.returnFuelLevel || null,
+        rental.returnOdometer || null,
+        rental.actualKilometers || null,
+        rental.fuelRefillCost || null,
+        rental.handoverProtocolId || null,
+        rental.returnProtocolId || null
       ]);
     } finally {
       client.release();
@@ -700,6 +782,20 @@ export class PostgresDatabase {
         history: row.history ? (typeof row.history === 'string' ? JSON.parse(row.history) : row.history) : undefined,
         orderNumber: row.order_number,
         createdAt: new Date(row.created_at),
+        // Rozšírené polia
+        deposit: row.deposit ? parseFloat(row.deposit) : undefined,
+        allowedKilometers: row.allowed_kilometers || undefined,
+        extraKilometerRate: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
+        returnConditions: row.return_conditions || undefined,
+        fuelLevel: row.fuel_level || undefined,
+        odometer: row.odometer || undefined,
+        returnFuelLevel: row.return_fuel_level || undefined,
+        returnOdometer: row.return_odometer || undefined,
+        actualKilometers: row.actual_kilometers || undefined,
+        fuelRefillCost: row.fuel_refill_cost ? parseFloat(row.fuel_refill_cost) : undefined,
+        // Protokoly
+        handoverProtocolId: row.handover_protocol_id || undefined,
+        returnProtocolId: row.return_protocol_id || undefined,
         vehicle: {
           id: row.vehicle_id,
           brand: row.brand,
@@ -724,8 +820,12 @@ export class PostgresDatabase {
           vehicle_id = $1, customer_id = $2, customer_name = $3, start_date = $4, end_date = $5,
           total_price = $6, commission = $7, payment_method = $8, discount = $9, custom_commission = $10,
           extra_km_charge = $11, paid = $12, status = $13, handover_place = $14, confirmed = $15,
-          payments = $16, history = $17, order_number = $18, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $19
+          payments = $16, history = $17, order_number = $18,
+          deposit = $19, allowed_kilometers = $20, extra_kilometer_rate = $21, return_conditions = $22,
+          fuel_level = $23, odometer = $24, return_fuel_level = $25, return_odometer = $26,
+          actual_kilometers = $27, fuel_refill_cost = $28, handover_protocol_id = $29, 
+          return_protocol_id = $30, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $31
       `, [
         rental.vehicleId, 
         rental.customerId, 
@@ -735,16 +835,28 @@ export class PostgresDatabase {
         rental.totalPrice, 
         rental.commission, 
         rental.paymentMethod, 
-        rental.discount ? JSON.stringify(rental.discount) : null, // Konverzia na JSON
-        rental.customCommission ? JSON.stringify(rental.customCommission) : null, // Konverzia na JSON
+        rental.discount ? JSON.stringify(rental.discount) : null,
+        rental.customCommission ? JSON.stringify(rental.customCommission) : null,
         rental.extraKmCharge, 
         rental.paid, 
         rental.status, 
         rental.handoverPlace, 
         rental.confirmed,
-        rental.payments ? JSON.stringify(rental.payments) : null, // Konverzia na JSON
-        rental.history ? JSON.stringify(rental.history) : null, // Konverzia na JSON
-        rental.orderNumber, 
+        rental.payments ? JSON.stringify(rental.payments) : null,
+        rental.history ? JSON.stringify(rental.history) : null,
+        rental.orderNumber,
+        rental.deposit || null,
+        rental.allowedKilometers || null,
+        rental.extraKilometerRate || null,
+        rental.returnConditions || null,
+        rental.fuelLevel || null,
+        rental.odometer || null,
+        rental.returnFuelLevel || null,
+        rental.returnOdometer || null,
+        rental.actualKilometers || null,
+        rental.fuelRefillCost || null,
+        rental.handoverProtocolId || null,
+        rental.returnProtocolId || null,
         rental.id
       ]);
     } finally {

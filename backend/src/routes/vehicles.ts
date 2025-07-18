@@ -61,23 +61,20 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       });
     }
 
-    const newVehicle: Vehicle = {
-      id: uuidv4(),
+    const createdVehicle = await postgresDatabase.createVehicle({
       brand,
       model,
-      licensePlate: licensePlate || '', // ŠPZ môže byť prázdna
+      licensePlate: licensePlate || '',
       company,
       pricing: pricing || [],
       commission: commission || { type: 'percentage', value: 0 },
       status: status || 'available'
-    };
-
-    await postgresDatabase.createVehicle(newVehicle);
+    });
 
     res.status(201).json({
       success: true,
       message: 'Vozidlo úspešne vytvorené',
-      data: newVehicle
+      data: createdVehicle
     });
 
   } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -114,18 +114,28 @@ const getRentalStatus = (rental: Rental) => {
   return { label: 'Neznámy stav', color: 'default' };
 };
 
+// Cached date values to avoid recreating them on every call
+const now = new Date();
+const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const tomorrow = new Date(today);
+tomorrow.setDate(tomorrow.getDate() + 1);
+const thirtyDaysAgo = new Date(today);
+thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+// Optimized priority calculation with memoization via WeakMap
+const priorityCache = new WeakMap<Rental, number>();
+
 const getRentalPriority = (rental: Rental) => {
+  // Check cache first
+  if (priorityCache.has(rental)) {
+    return priorityCache.get(rental)!;
+  }
+
   // Kontrola či rental existuje
   if (!rental || !rental.startDate || !rental.endDate) {
+    priorityCache.set(rental, 7);
     return 7; // Najnižšia priorita pre neplatné dáta
   }
-  
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   
   // Zabezpečíme, že dátumy sú Date objekty
   const startDate = rental.startDate instanceof Date ? rental.startDate : new Date(rental.startDate);
@@ -133,41 +143,39 @@ const getRentalPriority = (rental: Rental) => {
   
   // Kontrola platnosti dátumov
   if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    priorityCache.set(rental, 7);
     return 7; // Neplatné dátumy - najnižšia priorita
   }
   
+  let priority = 7; // default
+  
   // Aktívne prenájmy - najvyššia priorita
   if (isWithinInterval(now, { start: startDate, end: endDate })) {
-    return 1;
+    priority = 1;
   }
-  
   // Dnešné odovzdania/vrátenia
-  if (format(endDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
-    return 2;
+  else if (format(endDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
+    priority = 2;
   }
-  
   // Zajtrajšie odovzdania
-  if (format(endDate, 'yyyy-MM-dd') === format(tomorrow, 'yyyy-MM-dd')) {
-    return 3;
+  else if (format(endDate, 'yyyy-MM-dd') === format(tomorrow, 'yyyy-MM-dd')) {
+    priority = 3;
   }
-  
   // Nepotvrdené ukončené (potrebujú pozornosť)
-  if (isAfter(now, endDate) && !rental.confirmed) {
-    return 4;
+  else if (isAfter(now, endDate) && !rental.confirmed) {
+    priority = 4;
   }
-  
   // Budúce prenájmy
-  if (isBefore(now, startDate)) {
-    return 5;
+  else if (isBefore(now, startDate)) {
+    priority = 5;
   }
-  
   // Staré potvrdené (>30 dní)
-  if (rental.confirmed && isBefore(endDate, thirtyDaysAgo)) {
-    return 6;
+  else if (rental.confirmed && isBefore(endDate, thirtyDaysAgo)) {
+    priority = 6;
   }
   
-  // Ostatné
-  return 7;
+  priorityCache.set(rental, priority);
+  return priority;
 };
 
 const getRentalBackgroundColor = (rental: Rental) => {
@@ -202,10 +210,16 @@ export default function RentalList() {
   const { state, dispatch, createRental, updateRental, deleteRental, createVehicle, createCompany, createCustomer, getFilteredRentals } = useApp();
   
   // Helper funkcia na bezpečné formátovanie cien
-  const formatPrice = (price: number | string | undefined): string => {
+  const formatPrice = useCallback((price: number | string | undefined): string => {
     if (typeof price === 'number') return price.toFixed(2);
     return (parseFloat(price as string) || 0).toFixed(2);
-  };
+  }, []);
+
+  // Memoized date formatter to avoid expensive formatting
+  const formatDate = useCallback((date: Date | string): string => {
+    const d = date instanceof Date ? date : new Date(date);
+    return !isNaN(d.getTime()) ? format(d, 'dd.MM.yyyy', { locale: sk }) : 'Neplatný dátum';
+  }, []);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
   const [filterVehicle, setFilterVehicle] = useState('');
@@ -665,75 +679,61 @@ export default function RentalList() {
     }
     
     if (!showAll) {
-      if (filterVehicle && rentals.some((r: Rental) => r.vehicleId !== filterVehicle)) rentals = rentals.filter((r: Rental) => r.vehicleId === filterVehicle);
-      if (filterCompany && rentals.some((r: Rental) => !r.vehicle || r.vehicle.company !== filterCompany)) rentals = rentals.filter((r: Rental) => r.vehicle && r.vehicle.company === filterCompany);
-      if (filterCustomer && rentals.some((r: Rental) => !r.customerName || !r.customerName.toLowerCase().includes(filterCustomer.toLowerCase()))) rentals = rentals.filter((r: Rental) => r.customerName && r.customerName.toLowerCase().includes(filterCustomer.toLowerCase()));
+      // Simplified filter logic - avoid .some() checks that iterate through all rentals
+      if (filterVehicle) rentals = rentals.filter((r: Rental) => r.vehicleId === filterVehicle);
+      if (filterCompany) rentals = rentals.filter((r: Rental) => r.vehicle && r.vehicle.company === filterCompany);
+      if (filterCustomer) {
+        const q = filterCustomer.toLowerCase();
+        rentals = rentals.filter((r: Rental) => r.customerName && r.customerName.toLowerCase().includes(q));
+      }
       if (filterStatus) {
-        const status = getRentalStatus(rentals[0]).label; // Assuming all rentals in filteredRentals have the same status for filtering
-        if (status !== filterStatus) rentals = rentals.filter((r: Rental) => getRentalStatus(r).label === filterStatus);
+        rentals = rentals.filter((r: Rental) => getRentalStatus(r).label === filterStatus);
       }
       if (filterPaid) {
-        if (filterPaid === 'yes' && rentals.some((r: Rental) => !r.paid)) rentals = rentals.filter((r: Rental) => r.paid);
-        if (filterPaid === 'no' && rentals.some((r: Rental) => r.paid)) rentals = rentals.filter((r: Rental) => !r.paid);
+        const isPaidFilter = filterPaid === 'yes';
+        rentals = rentals.filter((r: Rental) => r.paid === isPaidFilter);
       }
-      if (filterPaymentMethod && rentals.some((r: Rental) => r.paymentMethod !== filterPaymentMethod)) rentals = rentals.filter((r: Rental) => r.paymentMethod === filterPaymentMethod);
-      if (filterDateFrom && rentals.some((r: Rental) => {
-        const startDate = r.startDate instanceof Date ? r.startDate : new Date(r.startDate);
-        return !isNaN(startDate.getTime()) && startDate < new Date(filterDateFrom);
-      })) rentals = rentals.filter((r: Rental) => {
-        const startDate = r.startDate instanceof Date ? r.startDate : new Date(r.startDate);
-        return !isNaN(startDate.getTime()) && startDate >= new Date(filterDateFrom);
-      });
-      if (filterDateTo && rentals.some((r: Rental) => {
-        const endDate = r.endDate instanceof Date ? r.endDate : new Date(r.endDate);
-        return !isNaN(endDate.getTime()) && endDate > new Date(filterDateTo);
-      })) rentals = rentals.filter((r: Rental) => {
-        const endDate = r.endDate instanceof Date ? r.endDate : new Date(r.endDate);
-        return !isNaN(endDate.getTime()) && endDate <= new Date(filterDateTo);
-      });
+      if (filterPaymentMethod) rentals = rentals.filter((r: Rental) => r.paymentMethod === filterPaymentMethod);
+      if (filterDateFrom) {
+        const fromDate = new Date(filterDateFrom);
+        rentals = rentals.filter((r: Rental) => {
+          const startDate = r.startDate instanceof Date ? r.startDate : new Date(r.startDate);
+          return !isNaN(startDate.getTime()) && startDate >= fromDate;
+        });
+      }
+      if (filterDateTo) {
+        const toDate = new Date(filterDateTo);
+        rentals = rentals.filter((r: Rental) => {
+          const endDate = r.endDate instanceof Date ? r.endDate : new Date(r.endDate);
+          return !isNaN(endDate.getTime()) && endDate <= toDate;
+        });
+      }
       // Rýchle vyhľadávanie
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        if (rentals.some((r: Rental) =>
-          !(r.customerName && r.customerName.toLowerCase().includes(q)) &&
-          (!r.vehicle || !r.vehicle.licensePlate || !r.vehicle.licensePlate.toLowerCase().includes(q)) &&
-          (!r.vehicle || !r.vehicle.company || !r.vehicle.company.toLowerCase().includes(q))
-        )) {
-          rentals = rentals.filter((r: Rental) =>
-            (r.customerName && r.customerName.toLowerCase().includes(q)) ||
-            (r.vehicle && r.vehicle.licensePlate && r.vehicle.licensePlate.toLowerCase().includes(q)) ||
-            (r.vehicle && r.vehicle.company && r.vehicle.company.toLowerCase().includes(q))
-          );
-        }
+        rentals = rentals.filter((r: Rental) =>
+          (r.customerName && r.customerName.toLowerCase().includes(q)) ||
+          (r.vehicle && r.vehicle.licensePlate && r.vehicle.licensePlate.toLowerCase().includes(q)) ||
+          (r.vehicle && r.vehicle.company && r.vehicle.company.toLowerCase().includes(q))
+        );
       }
-      if (!showConfirmed && rentals.some((r: Rental) => r.confirmed)) rentals = rentals.filter((r: Rental) => !r.confirmed);
+      if (!showConfirmed) rentals = rentals.filter((r: Rental) => !r.confirmed);
       
       // Nové filtre podľa priority - len ak máme dáta
       if (rentals.length > 0) {
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const thirtyDaysAgo = new Date(today);
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        // Batch priority filtering - calculate priority once per rental and filter based on it
+        const priorityFilters = [];
+        if (!showActive) priorityFilters.push(1);
+        if (!showTodayReturns) priorityFilters.push(2);
+        if (!showTomorrowReturns) priorityFilters.push(3);
+        if (!showUnconfirmed) priorityFilters.push(4);
+        if (!showFuture) priorityFilters.push(5);
+        if (!showOldConfirmed) priorityFilters.push(6);
         
-        // Aktívne prenájmy
-        if (!showActive) rentals = rentals.filter((r: Rental) => getRentalPriority(r) !== 1);
-        
-        // Dnešné vrátania
-        if (!showTodayReturns) rentals = rentals.filter((r: Rental) => getRentalPriority(r) !== 2);
-        
-        // Zajtrajšie vrátania
-        if (!showTomorrowReturns) rentals = rentals.filter((r: Rental) => getRentalPriority(r) !== 3);
-        
-        // Nepotvrdené ukončené
-        if (!showUnconfirmed) rentals = rentals.filter((r: Rental) => getRentalPriority(r) !== 4);
-        
-        // Budúce prenájmy
-        if (!showFuture) rentals = rentals.filter((r: Rental) => getRentalPriority(r) !== 5);
-        
-        // Staré potvrdené
-        if (!showOldConfirmed) rentals = rentals.filter((r: Rental) => getRentalPriority(r) !== 6);
+        if (priorityFilters.length > 0) {
+          const prioritySet = new Set(priorityFilters);
+          rentals = rentals.filter((r: Rental) => !prioritySet.has(getRentalPriority(r)));
+        }
       }
 
       // Filtrovanie podľa nezaplatených splátok
@@ -862,34 +862,36 @@ export default function RentalList() {
     return groups;
   }, [filteredRentals, groupBy]);
 
-  const handleSort = (field: SortField) => {
+  const handleSort = useCallback((field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortDirection('asc');
     }
-  };
+  }, [sortField, sortDirection]);
 
-  const toggleGroup = (groupKey: string) => {
-    const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(groupKey)) {
-      newExpanded.delete(groupKey);
-    } else {
-      newExpanded.add(groupKey);
-    }
-    setExpandedGroups(newExpanded);
-  };
+  const toggleGroup = useCallback((groupKey: string) => {
+    setExpandedGroups(prev => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(groupKey)) {
+        newExpanded.delete(groupKey);
+      } else {
+        newExpanded.add(groupKey);
+      }
+      return newExpanded;
+    });
+  }, []);
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     setEditingRental(null);
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleEdit = (rental: Rental) => {
+  const handleEdit = useCallback((rental: Rental) => {
     setEditingRental(rental);
     setOpenDialog(true);
-  };
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Naozaj chcete vymazať tento prenájom?')) {
@@ -1014,11 +1016,34 @@ export default function RentalList() {
     console.log('Creating protocol:', protocolType, protocolData);
     
     try {
-      // Simulácia uloženia protokolu
-      if (protocolType === 'handover') {
+      if (protocolType === 'handover' && selectedRentalForProtocol) {
+        // Generovanie ID protokolu
+        const protocolId = uuidv4();
+        
+        // Aktualizácia prenájmu s ID protokolu
+        const updatedRental = {
+          ...selectedRentalForProtocol,
+          handoverProtocolId: protocolId
+        };
+        
+        // Uloženie aktualizovaného prenájmu
+        await updateRental(updatedRental);
+        
         alert('Preberací protokol bol úspešne vytvorený!');
         console.log('Handover protocol data:', protocolData);
-      } else if (protocolType === 'return') {
+      } else if (protocolType === 'return' && selectedRentalForProtocol) {
+        // Generovanie ID protokolu
+        const protocolId = uuidv4();
+        
+        // Aktualizácia prenájmu s ID protokolu
+        const updatedRental = {
+          ...selectedRentalForProtocol,
+          returnProtocolId: protocolId
+        };
+        
+        // Uloženie aktualizovaného prenájmu
+        await updateRental(updatedRental);
+        
         alert('Vratný protokol bol úspešne vytvorený!');
         console.log('Return protocol data:', protocolData);
       }
@@ -2506,25 +2531,25 @@ export default function RentalList() {
         }}
       >
         <DialogContent sx={{ p: 0 }}>
-          {selectedRentalForProtocol && protocolType === 'return' && (
+          {selectedRentalForProtocol && protocolType === 'return' && selectedRentalForProtocol.handoverProtocolId && (
             <ReturnProtocolForm
               open={!!selectedRentalForProtocol}
               rental={selectedRentalForProtocol}
               handoverProtocol={{
-                id: 'temp',
+                id: selectedRentalForProtocol.handoverProtocolId,
                 rentalId: selectedRentalForProtocol.id,
                 rental: selectedRentalForProtocol,
                 type: 'handover' as const,
-                status: 'draft' as const,
+                status: 'completed' as const,
                 createdAt: new Date(),
-                location: '',
+                location: selectedRentalForProtocol.handoverPlace || '',
                 vehicleCondition: {
-                  odometer: 0,
-                  fuelLevel: 100,
+                  odometer: selectedRentalForProtocol.odometer || 0,
+                  fuelLevel: selectedRentalForProtocol.fuelLevel || 100,
                   fuelType: 'gasoline' as const,
                   exteriorCondition: 'Dobrý',
                   interiorCondition: 'Dobrý',
-                  notes: '',
+                  notes: selectedRentalForProtocol.returnConditions || '',
                 },
                 vehicleImages: [],
                 vehicleVideos: [],
@@ -2539,10 +2564,10 @@ export default function RentalList() {
                   startDate: selectedRentalForProtocol.startDate,
                   endDate: selectedRentalForProtocol.endDate,
                   totalPrice: selectedRentalForProtocol.totalPrice,
-                  deposit: 0,
+                  deposit: selectedRentalForProtocol.deposit || 0,
                   currency: 'EUR',
-                  allowedKilometers: 0,
-                  extraKilometerRate: 0,
+                  allowedKilometers: selectedRentalForProtocol.allowedKilometers || 0,
+                  extraKilometerRate: selectedRentalForProtocol.extraKilometerRate || 0,
                 },
                 emailSent: false,
                 createdBy: 'admin'
@@ -2550,6 +2575,33 @@ export default function RentalList() {
               onSave={handleProtocolSubmit}
               onClose={handleCloseProtocolDialog}
             />
+          )}
+          {selectedRentalForProtocol && protocolType === 'return' && !selectedRentalForProtocol.handoverProtocolId && (
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                Nie je možné vytvoriť vratný protokol
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'gray', mb: 3 }}>
+                Pred vytvorením vratného protokolu musí byť vytvorený preberací protokol.
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => {
+                    setProtocolType('handover');
+                  }}
+                >
+                  Vytvoriť preberací protokol
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleCloseProtocolDialog}
+                >
+                  Zavrieť
+                </Button>
+              </Box>
+            </Box>
           )}
         </DialogContent>
       </Dialog>

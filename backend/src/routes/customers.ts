@@ -35,20 +35,16 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       });
     }
 
-    const newCustomer: Customer = {
-      id: uuidv4(),
+    const createdCustomer = await postgresDatabase.createCustomer({
       name,
       email: email || '',
-      phone: phone || '',
-      createdAt: new Date()
-    };
-
-    await postgresDatabase.createCustomer(newCustomer);
+      phone: phone || ''
+    });
 
     res.status(201).json({
       success: true,
       message: 'Zákazník úspešne vytvorený',
-      data: newCustomer
+      data: createdCustomer
     });
 
   } catch (error) {
