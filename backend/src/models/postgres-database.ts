@@ -160,6 +160,9 @@ export class PostgresDatabase {
       // Migrácie pre existujúce databázy - aktualizácia varchar limitov
       await this.runMigrations(client);
       
+      // Vytvorenie testovacích dát ak databáza je prázdna
+      await this.createSampleDataIfEmpty(client);
+      
       console.log('✅ PostgreSQL tabuľky inicializované');
     } catch (error) {
       console.error('❌ Chyba pri inicializácii tabuliek:', error);
@@ -219,6 +222,90 @@ export class PostgresDatabase {
       }
     } catch (error) {
       console.error('Chyba pri vytváraní admin používateľa:', error);
+    }
+  }
+
+  private async createSampleDataIfEmpty(client: PoolClient) {
+    try {
+      // Skontroluj či existujú nejaké dáta
+      const vehicleCount = await client.query('SELECT COUNT(*) FROM vehicles');
+      const customerCount = await client.query('SELECT COUNT(*) FROM customers');
+      const rentalCount = await client.query('SELECT COUNT(*) FROM rentals');
+      
+      if (vehicleCount.rows[0].count === '0' && customerCount.rows[0].count === '0' && rentalCount.rows[0].count === '0') {
+        console.log('📋 Vytváranie testovacích dát...');
+        
+        // Vytvorenie firiem
+        await client.query(`
+          INSERT INTO companies (id, name) VALUES 
+          ('11111111-1111-1111-1111-111111111111', 'ABC Rent'),
+          ('22222222-2222-2222-2222-222222222222', 'Premium Cars'),
+          ('33333333-3333-3333-3333-333333333333', 'City Rent')
+          ON CONFLICT (name) DO NOTHING
+        `);
+        
+        // Vytvorenie poisťovní
+        await client.query(`
+          INSERT INTO insurers (id, name) VALUES 
+          ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Allianz'),
+          ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Generali')
+          ON CONFLICT (name) DO NOTHING
+        `);
+        
+        // Vytvorenie vozidiel
+        await client.query(`
+          INSERT INTO vehicles (id, brand, model, license_plate, company, pricing, commission, status) VALUES 
+          ('vehicle1-1111-1111-1111-111111111111', 'BMW', 'X5', 'BA123AB', 'ABC Rent', $1, $2, 'available'),
+          ('vehicle2-2222-2222-2222-222222222222', 'Mercedes', 'E-Class', 'BA456CD', 'Premium Cars', $3, $4, 'available'),
+          ('vehicle3-3333-3333-3333-333333333333', 'Audi', 'A4', 'BA789EF', 'City Rent', $5, $6, 'available')
+          ON CONFLICT (license_plate) DO NOTHING
+        `, [
+          JSON.stringify([
+            { id: '1', minDays: 0, maxDays: 1, pricePerDay: 80 },
+            { id: '2', minDays: 2, maxDays: 3, pricePerDay: 75 },
+            { id: '3', minDays: 4, maxDays: 7, pricePerDay: 70 }
+          ]),
+          JSON.stringify({ type: 'percentage', value: 15 }),
+          JSON.stringify([
+            { id: '1', minDays: 0, maxDays: 1, pricePerDay: 90 },
+            { id: '2', minDays: 2, maxDays: 3, pricePerDay: 85 },
+            { id: '3', minDays: 4, maxDays: 7, pricePerDay: 80 }
+          ]),
+          JSON.stringify({ type: 'percentage', value: 18 }),
+          JSON.stringify([
+            { id: '1', minDays: 0, maxDays: 1, pricePerDay: 65 },
+            { id: '2', minDays: 2, maxDays: 3, pricePerDay: 60 },
+            { id: '3', minDays: 4, maxDays: 7, pricePerDay: 55 }
+          ]),
+          JSON.stringify({ type: 'percentage', value: 12 })
+        ]);
+        
+        // Vytvorenie zákazníkov
+        await client.query(`
+          INSERT INTO customers (id, name, email, phone) VALUES 
+          ('customer1-1111-1111-1111-111111111111', 'Ján Novák', 'jan.novak@email.com', '+421901234567'),
+          ('customer2-2222-2222-2222-222222222222', 'Mária Svobodová', 'maria.svobodova@email.com', '+421907654321'),
+          ('customer3-3333-3333-3333-333333333333', 'Peter Horváth', 'peter.horvath@email.com', '+421905111222')
+        `);
+        
+        // Vytvorenie prenájmov
+        await client.query(`
+          INSERT INTO rentals (id, vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, paid, confirmed, handover_place) VALUES 
+          ('rental1-1111-1111-1111-111111111111', 'vehicle1-1111-1111-1111-111111111111', 'customer1-1111-1111-1111-111111111111', 'Ján Novák', '2025-01-20', '2025-01-23', 240.00, 36.00, 'bank_transfer', true, true, 'Bratislava - Hlavná stanica'),
+          ('rental2-2222-2222-2222-222222222222', 'vehicle2-2222-2222-2222-222222222222', 'customer2-2222-2222-2222-222222222222', 'Mária Svobodová', '2025-01-25', '2025-01-30', 400.00, 72.00, 'cash', false, true, 'Bratislava - Letisko'),
+          ('rental3-3333-3333-3333-333333333333', 'vehicle3-3333-3333-3333-333333333333', 'customer3-3333-3333-3333-333333333333', 'Peter Horváth', '2025-01-28', '2025-02-02', 275.00, 33.00, 'vrp', true, false, 'Košice - Centrum')
+        `);
+        
+        console.log('🎉 Testové dáta úspešne vytvorené!');
+        console.log('📊 Vytvorené:');
+        console.log('   - 3 vozidlá (BMW X5, Mercedes E-Class, Audi A4)');
+        console.log('   - 3 zákazníkov (Ján Novák, Mária Svobodová, Peter Horváth)');
+        console.log('   - 3 prenájmy s rôznymi stavmi');
+        console.log('   - 3 firmy (ABC Rent, Premium Cars, City Rent)');
+        console.log('   - 2 poisťovne (Allianz, Generali)');
+      }
+    } catch (error) {
+      console.error('⚠️ Chyba pri vytváraní testovacích dát:', error);
     }
   }
 

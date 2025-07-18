@@ -86,102 +86,150 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const validateToken = async (token: string): Promise<boolean> => {
-    // ZJEDNODUŠENIE: Vždy považuj token za platný
+    // Pre lepšiu UX nebudeme testovať token - považujeme ho za vždy platný
     // Ak má používateľ uložené auth dáta, znamená to že sa už úspešne prihlásil
-    // Nebudeme ho obtažovať s neustálym overovaním
     console.log('✅ Token validation preskočená - vždy platný pre lepšiu UX');
     return true;
   };
 
   const restoreSession = async () => {
     try {
-      console.log('🔍 Obnovujem session...');
-      const { token, user } = getAuthData();
-      
-      console.log('📍 Current location:', window.location.href);
-      console.log('🌐 Current hostname:', window.location.hostname);
-      console.log('🔑 Token found:', !!token);
-      console.log('👤 User found:', !!user);
-      console.log('📱 User agent:', navigator.userAgent);
+      console.log('🔄 Spúšťam session restore...');
+      console.log('📍 Location:', window.location.href);
       console.log('🔗 API Base URL:', API_BASE_URL);
       
+      // Otestuj storage schopnosti
+      StorageManager.testStorage();
+      
+      const { token, user } = getAuthData();
+      
+      console.log('🔍 Auth data check:', {
+        hasToken: !!token,
+        hasUser: !!user,
+        userRole: user?.role || 'undefined',
+        username: user?.username || 'undefined',
+        tokenLength: token?.length || 0
+      });
+      
       if (token && user) {
-        console.log('✅ Session dáta nájdené pre používateľa:', user.username);
+        console.log('✅ Session data found for user:', user.username);
+        console.log('🔐 Token preview:', token.substring(0, 20) + '...');
         
-        // Rovno obnov session bez testovania tokenu
-        // Token validation môže zlyhať kvôli network issues
-        console.log('🚀 Obnovujem session bez testovania tokenu (optimistic restore)');
+        // OKAMŽITE obnov session bez čakania na validáciu
+        console.log('🚀 Immediate session restore (optimistic)');
         dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
         
-        // Async testovanie tokenu na pozadí (neblokuje UI)
+        // Asynchrónne testovanie tokenu na pozadí (neblokuje UX)
         validateToken(token).then(isValid => {
+          console.log('🔍 Background token validation:', isValid ? '✅ OK' : '⚠️ FAIL');
           if (!isValid) {
-            console.log('⚠️ Token validation zlyhal asynchrónne, ale ponechávam session');
-            // Môžeme pridať notifikáciu používateľovi o možných problémoch
-          } else {
-            console.log('✅ Token validation úspešná asynchrónne');
+            console.log('⚠️ Token validation failed, but keeping session active');
           }
         }).catch(error => {
-          console.warn('⚠️ Asynchrónna token validation zlyhala:', error);
+          console.warn('⚠️ Background token validation error:', error);
         });
+        
       } else {
-        console.log('❌ Žiadny token alebo používateľ nenájdený');
+        console.log('❌ No auth data found');
+        console.log('🔍 Storage debug:', {
+          localStorage: {
+            token: !!localStorage.getItem('blackrent_token'),
+            user: !!localStorage.getItem('blackrent_user'),
+            rememberMe: localStorage.getItem('blackrent_remember_me')
+          },
+          sessionStorage: {
+            token: !!sessionStorage.getItem('blackrent_token'),
+            user: !!sessionStorage.getItem('blackrent_user')
+          }
+        });
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     } catch (error) {
-      console.error('❌ Chyba pri obnovení relácie:', error);
-      // Pokús sa obnoviť session aj pri chybe
-      const { token, user } = getAuthData();
-      if (token && user) {
-        console.log('⚠️ Error pri restore, ale skúšam fallback restore');
-        dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
-      } else {
+      console.error('❌ Session restore error:', error);
+      
+      // Pokus o emergency restore
+      try {
+        console.log('🆘 Emergency restore attempt...');
+        const { token, user } = getAuthData();
+        if (token && user) {
+          console.log('🔄 Emergency restore successful');
+          dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
+        } else {
+          console.log('❌ Emergency restore failed - no data');
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
+      } catch (emergencyError) {
+        console.error('💥 Emergency restore failed:', emergencyError);
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     }
   };
 
-  // Počiatočná inicializácia - načítanie z localStorage (len raz)
+  // Počiatočná inicializácia - načítanie z storage (len raz)
   useEffect(() => {
+    console.log('🏁 AuthProvider mounted, starting session restore...');
     restoreSession();
   }, []); // Prázdny dependency array - spustí sa len raz
 
   // Separate useEffect pre handling page visibility a periodicke obnovenie
   useEffect(() => {
+    console.log('🔧 Setting up session management...');
+    
     // Handling pre page visibility - overí token keď sa používateľ vráti k aplikácii
     const handleVisibilityChange = async () => {
       if (!document.hidden && state.isAuthenticated && state.token) {
-        console.log('👁️ Aplikácia sa stala viditeľnou, soft refresh session...');
+        console.log('👁️ App became visible, refreshing session...');
         
         // Skús obnoviť session dáta z storage (môžu sa zmeniť v inom tabe)
         const { token: storedToken, user: storedUser } = getAuthData();
         
-        if (storedToken && storedUser && storedToken !== state.token) {
-          console.log('🔄 Detekovaná zmena session v inom tabe, aktualizujem...');
-          dispatch({ type: 'RESTORE_SESSION', payload: { user: storedUser, token: storedToken } });
-        } else if (!storedToken || !storedUser) {
-          console.log('⚠️ Session dáta chýbajú po návrate (možno vymazané), ale ponechávam aktívnu session');
-          // Neodhlasuj používateľa, len obnov storage
-          StorageManager.setAuthData(state.token, state.user, StorageManager.isRememberMeEnabled());
+        if (storedToken && storedUser) {
+          if (storedToken !== state.token) {
+            console.log('🔄 Session change detected in another tab, updating...');
+            dispatch({ type: 'RESTORE_SESSION', payload: { user: storedUser, token: storedToken } });
+          } else {
+            console.log('✅ Session unchanged, refreshing storage...');
+            StorageManager.setAuthData(state.token, state.user, true);
+          }
+        } else {
+          console.log('⚠️ No session data found on visibility change, but keeping active session');
+          // Neprerušuj session, len obnov storage
+          StorageManager.setAuthData(state.token, state.user, true);
         }
-        
-        console.log('✅ Session obnovená po návrate k aplikácii');
       }
     };
 
     // Periodické obnovenie session dát (každých 30 sekúnd)
     const sessionRefreshInterval = setInterval(() => {
       if (state.isAuthenticated && state.token && state.user) {
-        console.log('🔄 Periodické obnovenie session dát...');
-        StorageManager.setAuthData(state.token, state.user, true); // Vždy remember me
+        console.log('🔄 Periodic session refresh...');
+        // VŽDY nastav remember me na true pre perzistentné prihlásenie
+        StorageManager.setAuthData(state.token, state.user, true);
       }
     }, 30000); // 30 sekúnd
 
-    // Pridaj event listener pre page visibility
+    // Handling pre storage changes (cross-tab synchronization)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'blackrent_token' || e.key === 'blackrent_user') {
+        console.log('🔄 Storage change detected:', e.key);
+        if (e.newValue) {
+          console.log('✅ New session data available');
+          // Obnov session z aktualizovaných dát
+          restoreSession();
+        } else {
+          console.log('⚠️ Session data removed');
+          // Neodhlasuj automaticky, používateľ môže mať viacero tabov
+        }
+      }
+    };
+
+    // Pridaj event listenery
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageChange);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
       clearInterval(sessionRefreshInterval);
     };
   }, [state.isAuthenticated, state.token, state.user]);
@@ -190,36 +238,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      console.log('🔐 Pokúšam sa prihlásiť používateľa:', credentials.username);
-      console.log('💾 Zapamätať prihlásenie:', rememberMe);
-      console.log('🌐 Window location:', window.location.href);
-      console.log('📱 Device:', {
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      });
+      console.log('🔐 Starting login process...');
+      console.log('👤 Username:', credentials.username);
+      console.log('💾 Remember me:', rememberMe);
+      console.log('🌐 Location:', window.location.href);
       
       const result = await apiService.login(credentials.username, credentials.password);
       
-      console.log('✅ Prihlásenie úspešné!');
-      console.log('👤 Používateľ:', result.user.username);
-      console.log('🔑 Token uložený do:', rememberMe ? 'localStorage (trvalé)' : 'sessionStorage (dočasné)');
+      console.log('✅ Login API successful!');
+      console.log('👤 User:', result.user.username);
+      console.log('🔑 Token received:', !!result.token);
       
-      StorageManager.setAuthData(result.token, result.user, rememberMe);
+      // VŽDY nastav remember me na true pre perzistentné prihlásenie
+      const persistentRememberMe = true;
+      StorageManager.setAuthData(result.token, result.user, persistentRememberMe);
       
-      console.log('💾 Storage test:', {
-        canAccess: typeof Storage !== 'undefined',
-        tokenSaved: !!(rememberMe ? localStorage.getItem('blackrent_token') : sessionStorage.getItem('blackrent_token')),
-        userSaved: !!(rememberMe ? localStorage.getItem('blackrent_user') : sessionStorage.getItem('blackrent_user')),
-        rememberMeSet: localStorage.getItem('blackrent_remember_me') === rememberMe.toString()
+      // Overenie uloženia
+      const verification = getAuthData();
+      console.log('🔍 Storage verification:', {
+        tokenSaved: !!verification.token,
+        userSaved: !!verification.user,
+        tokensMatch: verification.token === result.token,
+        usersMatch: verification.user?.username === result.user.username
       });
       
       dispatch({ type: 'LOGIN_SUCCESS', payload: result });
+      
+      console.log('🎉 Login process completed successfully!');
       return true;
     } catch (error) {
       console.error('❌ Login error:', error);
       console.error('🌐 Network debug:', {
         online: navigator.onLine,
+        userAgent: navigator.userAgent,
         connectionType: (navigator as any).connection?.effectiveType || 'unknown'
       });
       dispatch({ type: 'LOGIN_FAILURE' });
@@ -229,14 +280,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      console.log('🚪 Odhlasovanie používateľa...');
+      console.log('🚪 Starting logout process...');
       await apiService.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('⚠️ Logout API error:', error);
     } finally {
-      console.log('🗑️ Mažem auth dáta...');
+      console.log('🧹 Clearing auth data...');
       dispatch({ type: 'LOGOUT' });
-      StorageManager.clearAuthData();
+      clearAuthData();
+      console.log('✅ Logout completed');
     }
   };
 
