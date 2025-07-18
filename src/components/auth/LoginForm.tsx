@@ -211,7 +211,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <AccountIcon color="primary" />
                       <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'black' }}>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
                           {account.label}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">

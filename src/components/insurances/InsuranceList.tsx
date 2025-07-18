@@ -135,7 +135,7 @@ export default function InsuranceList() {
         flexDirection: isMobile ? 'column' : 'row',
         gap: isMobile ? 2 : 0
       }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'black' }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'white' }}>
           Poistky
         </Typography>
         {!isMobile && (

@@ -637,7 +637,7 @@ export default function VehicleList() {
         <Card>
           <CardContent>
                             <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', width: '100%', overflowX: 'auto' }}>
-                  <Table sx={{ width: '100%', minWidth: { xs: 'auto', md: 700 } }}>
+                  <Table sx={{ width: '100%', minWidth: { xs: 'auto', md: 600 } }}>
                     <TableHead>
                       <TableRow>
                         <TableCell padding="checkbox" sx={{ width: '50px' }}>

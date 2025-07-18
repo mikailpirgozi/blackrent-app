@@ -1969,7 +1969,7 @@ export default function RentalList() {
         <Card>
           <CardContent>
             <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', maxHeight: 600, width: '100%', overflowX: 'auto' }}>
-              <Table stickyHeader sx={{ minWidth: { xs: 'auto', md: 1100 }, width: '100%' }}>
+              <Table stickyHeader sx={{ minWidth: { xs: 'auto', md: 800 }, width: '100%' }}>
                 <TableHead>
                   <TableRow>
                     <TableCell padding="checkbox" sx={{ width: '50px' }}>
