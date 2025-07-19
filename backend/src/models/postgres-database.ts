@@ -1863,6 +1863,12 @@ export class PostgresDatabase {
   }
 
   private mapUrlsToMediaObjects(urls: string[]): any[] {
+    // Bezpečná kontrola - ak nie je array, vráť prázdny array
+    if (!Array.isArray(urls)) {
+      console.log('⚠️ mapUrlsToMediaObjects: urls is not an array, returning empty array');
+      return [];
+    }
+    
     return urls
       .filter(url => typeof url === 'string' && url.length > 0)
       .map((url, index) => ({
@@ -2282,6 +2288,19 @@ export class PostgresDatabase {
 
   // Mapping methods
   private mapHandoverProtocolFromDB(row: any): any {
+    // Safe JSON parsing function
+    const safeJsonParse = (value: any, fallback: any = []) => {
+      if (!value || value === 'null' || value === 'undefined') {
+        return fallback;
+      }
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        console.log('⚠️ JSON parse error in mapHandoverProtocolFromDB:', error);
+        return fallback;
+      }
+    };
+
     return {
       id: row.id,
       rentalId: row.rental_id,
@@ -2302,15 +2321,28 @@ export class PostgresDatabase {
       vehicleVideos: this.mapUrlsToMediaObjects(row.vehicle_videos_urls || []),
       documentImages: this.mapUrlsToMediaObjects(row.document_images_urls || []),
       damageImages: this.mapUrlsToMediaObjects(row.damage_images_urls || []),
-      damages: row.damages ? JSON.parse(row.damages) : [],
-      signatures: row.signatures ? JSON.parse(row.signatures) : [],
-      rentalData: row.rental_data ? JSON.parse(row.rental_data) : {},
+      damages: safeJsonParse(row.damages, []),
+      signatures: safeJsonParse(row.signatures, []),
+      rentalData: safeJsonParse(row.rental_data, {}),
       notes: row.notes,
       createdBy: row.created_by
     };
   }
 
   private mapReturnProtocolFromDB(row: any): any {
+    // Safe JSON parsing function
+    const safeJsonParse = (value: any, fallback: any = []) => {
+      if (!value || value === 'null' || value === 'undefined') {
+        return fallback;
+      }
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        console.log('⚠️ JSON parse error in mapReturnProtocolFromDB:', error);
+        return fallback;
+      }
+    };
+
     return {
       id: row.id,
       rentalId: row.rental_id,
@@ -2332,9 +2364,9 @@ export class PostgresDatabase {
       vehicleVideos: this.mapUrlsToMediaObjects(row.vehicle_videos_urls || []),
       documentImages: this.mapUrlsToMediaObjects(row.document_images_urls || []),
       damageImages: this.mapUrlsToMediaObjects(row.damage_images_urls || []),
-      damages: row.damages ? JSON.parse(row.damages) : [],
-      newDamages: row.new_damages ? JSON.parse(row.new_damages) : [],
-      signatures: row.signatures ? JSON.parse(row.signatures) : [],
+      damages: safeJsonParse(row.damages, []),
+      newDamages: safeJsonParse(row.new_damages, []),
+      signatures: safeJsonParse(row.signatures, []),
       kilometersUsed: row.kilometers_used || 0,
       kilometerOverage: row.kilometer_overage || 0,
       kilometerFee: parseFloat(row.kilometer_fee) || 0,
@@ -2344,7 +2376,7 @@ export class PostgresDatabase {
       depositRefund: parseFloat(row.deposit_refund) || 0,
       additionalCharges: parseFloat(row.additional_charges) || 0,
       finalRefund: parseFloat(row.final_refund) || 0,
-      rentalData: row.rental_data ? JSON.parse(row.rental_data) : {},
+      rentalData: safeJsonParse(row.rental_data, {}),
       pdfUrl: row.pdf_url,
       emailSent: row.email_sent || false,
       emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,
