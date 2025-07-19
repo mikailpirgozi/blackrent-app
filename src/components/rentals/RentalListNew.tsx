@@ -184,6 +184,8 @@ export default function RentalList() {
 
   const handleSaveHandover = async (protocolData: any) => {
     try {
+      // Debug log
+      console.log('handleSaveHandover - protocolData:', protocolData);
       const data = await apiService.createHandoverProtocol(protocolData);
       console.log('Handover protocol created:', data);
       

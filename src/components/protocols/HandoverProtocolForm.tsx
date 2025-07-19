@@ -138,24 +138,34 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     try {
       setLoading(true);
       
-      // Mapovanie na backend format
+      // Mapovanie na backend format - vždy posielaj všetky polia
       const protocolData = {
         id: protocol.id,
         rentalId: protocol.rentalId,
-        location: protocol.location,
-        vehicleCondition: protocol.vehicleCondition,
+        location: protocol.location || '',
+        vehicleCondition: protocol.vehicleCondition || {
+          odometer: 0,
+          fuelLevel: 100,
+          fuelType: 'Benzín',
+          exteriorCondition: 'Dobrý',
+          interiorCondition: 'Dobrý',
+          notes: ''
+        },
         vehicleImages: protocol.vehicleImages || [],
         vehicleVideos: protocol.vehicleVideos || [],
         documentImages: protocol.documentImages || [],
         damageImages: protocol.damageImages || [],
         damages: protocol.damages || [],
         signatures: protocol.signatures || [],
-        rentalData: protocol.rentalData,
-        notes: protocol.notes,
-        createdBy: protocol.createdBy,
+        rentalData: protocol.rentalData || {},
+        notes: protocol.notes || '',
+        createdBy: protocol.createdBy || '',
         status: 'completed',
         completedAt: new Date(),
       };
+      
+      // Debug log
+      console.log('ProtocolData:', protocolData);
       
       await onSave(protocolData);
       onClose();

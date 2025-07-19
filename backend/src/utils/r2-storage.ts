@@ -172,12 +172,24 @@ class R2Storage {
    * Kontrola či je R2 správne nakonfigurované
    */
   isConfigured(): boolean {
-    return !!(
+    const isConfigured = !!(
       this.config.endpoint &&
       this.config.accessKeyId &&
       this.config.secretAccessKey &&
       this.config.bucketName
     );
+    
+    if (!isConfigured) {
+      console.log('⚠️ R2 Storage not configured. Missing:');
+      if (!this.config.endpoint) console.log('  - R2_ENDPOINT');
+      if (!this.config.accessKeyId) console.log('  - R2_ACCESS_KEY_ID');
+      if (!this.config.secretAccessKey) console.log('  - R2_SECRET_ACCESS_KEY');
+      if (!this.config.bucketName) console.log('  - R2_BUCKET_NAME');
+    } else {
+      console.log('✅ R2 Storage configured successfully');
+    }
+    
+    return isConfigured;
   }
 }
 

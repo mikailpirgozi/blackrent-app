@@ -327,9 +327,39 @@ class ApiService {
   }
 
   async createHandoverProtocol(protocolData: any): Promise<any> {
+    console.log('🔄 API createHandoverProtocol - input:', JSON.stringify(protocolData, null, 2));
+    
+    // Ensure all required fields are present
+    const completeProtocolData = {
+      id: protocolData.id,
+      rentalId: protocolData.rentalId,
+      location: protocolData.location || '',
+      vehicleCondition: protocolData.vehicleCondition || {
+        odometer: 0,
+        fuelLevel: 100,
+        fuelType: 'Benzín',
+        exteriorCondition: 'Dobrý',
+        interiorCondition: 'Dobrý',
+        notes: ''
+      },
+      vehicleImages: protocolData.vehicleImages || [],
+      vehicleVideos: protocolData.vehicleVideos || [],
+      documentImages: protocolData.documentImages || [],
+      damageImages: protocolData.damageImages || [],
+      damages: protocolData.damages || [],
+      signatures: protocolData.signatures || [],
+      rentalData: protocolData.rentalData || {},
+      notes: protocolData.notes || '',
+      createdBy: protocolData.createdBy || '',
+      status: 'completed',
+      completedAt: new Date(),
+    };
+    
+    console.log('🔄 API createHandoverProtocol - complete data:', JSON.stringify(completeProtocolData, null, 2));
+    
     return this.request<any>('/protocols/handover', {
       method: 'POST',
-      body: JSON.stringify(protocolData),
+      body: JSON.stringify(completeProtocolData),
     });
   }
 

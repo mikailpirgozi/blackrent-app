@@ -1815,9 +1815,30 @@ export class PostgresDatabase {
 
   // PROTOCOLS HELPER METHODS
   private extractUrls(mediaArray: any[]): string[] {
+    if (!Array.isArray(mediaArray)) {
+      console.log('⚠️ extractUrls: mediaArray is not an array:', mediaArray);
+      return [];
+    }
+    
+    console.log('🔍 extractUrls: Processing mediaArray:', mediaArray);
+    
     return mediaArray
-      .filter(item => item && item.url)
-      .map(item => item.url)
+      .filter(item => item !== null && item !== undefined)
+      .map(item => {
+        // Ak je item string, použij ho ako URL
+        if (typeof item === 'string') {
+          console.log('🔍 extractUrls: Found string item:', item);
+          return item;
+        }
+        // Ak je item objekt s url vlastnosťou, použij url
+        if (item && typeof item === 'object' && item.url) {
+          console.log('🔍 extractUrls: Found object with url:', item.url);
+          return item.url;
+        }
+        // Inak ignoruj
+        console.log('⚠️ extractUrls: Ignoring invalid item:', item);
+        return null;
+      })
       .filter(url => typeof url === 'string' && url.length > 0);
   }
 
