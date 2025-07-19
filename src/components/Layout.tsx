@@ -39,10 +39,13 @@ import {
   AssessmentOutlined,
   SecurityOutlined,
   AdminPanelSettingsOutlined,
+  LightMode,
+  DarkMode,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAuth } from '../context/AuthContext';
+import { useThemeMode } from '../context/ThemeContext';
 import ChangePasswordForm from './auth/ChangePasswordForm';
 
 const drawerWidth = 280;
@@ -70,6 +73,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { state, logout, hasPermission } = useAuth();
+  const { isDarkMode, toggleTheme } = useThemeMode();
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleDrawerToggle = () => {
@@ -321,6 +325,18 @@ export default function Layout({ children }: LayoutProps) {
                 color={state.user?.role === 'admin' ? 'primary' : 'default'}
                 sx={{ fontSize: '0.75rem' }}
               />
+              <IconButton
+                onClick={toggleTheme}
+                sx={{ 
+                  borderRadius: '8px',
+                  '&:hover': {
+                    backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f1f5f9',
+                  },
+                }}
+                title={isDarkMode ? 'Prepnúť na svetlý režim' : 'Prepnúť na tmavý režim'}
+              >
+                {isDarkMode ? <LightMode /> : <DarkMode />}
+              </IconButton>
               <IconButton
                 color="inherit"
                 onClick={handleMenuOpen}

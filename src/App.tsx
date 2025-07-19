@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
-import { CssBaseline, Box } from '@mui/material';
+import { CssBaseline, Box, CircularProgress } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { ThemeProvider, useThemeMode } from './context/ThemeContext';
@@ -14,15 +14,36 @@ import Layout from './components/Layout';
 import LoginForm from './components/auth/LoginForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
-// Importy stránok
-import VehicleList from './components/vehicles/VehicleList';
-import RentalList from './components/rentals/RentalList';
-import CustomerList from './components/customers/CustomerList';
-import ExpenseList from './components/expenses/ExpenseList';
-import InsuranceList from './components/insurances/InsuranceList';
-import Statistics from './components/Statistics';
-import UserManagement from './components/users/UserManagement';
-import SettlementList from './components/settlements/SettlementList';
+// Lazy imports pre code splitting a lepšie performance
+import { Suspense, lazy } from 'react';
+
+const VehicleList = lazy(() => import('./components/vehicles/VehicleList'));
+const RentalList = lazy(() => import('./components/rentals/RentalList'));
+const CustomerList = lazy(() => import('./components/customers/CustomerList'));
+const ExpenseList = lazy(() => import('./components/expenses/ExpenseList'));
+const InsuranceList = lazy(() => import('./components/insurances/InsuranceList'));
+const Statistics = lazy(() => import('./components/Statistics'));
+const UserManagement = lazy(() => import('./components/users/UserManagement'));
+const SettlementList = lazy(() => import('./components/settlements/SettlementList'));
+
+// Loading component pre lazy loaded routes
+const PageLoader = () => (
+  <Box 
+    sx={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '200px',
+      flexDirection: 'column',
+      gap: 2
+    }}
+  >
+    <CircularProgress size={40} />
+    <Box sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+      Načítava sa...
+    </Box>
+  </Box>
+);
 
 const AppContent: React.FC = () => {
   const { theme } = useThemeMode();
@@ -50,7 +71,9 @@ const AppContent: React.FC = () => {
                       <ProtectedRoute>
                         <Layout>
                           <ErrorBoundary>
-                            <VehicleList />
+                            <Suspense fallback={<PageLoader />}>
+                              <VehicleList />
+                            </Suspense>
                           </ErrorBoundary>
                         </Layout>
                       </ProtectedRoute>
@@ -60,7 +83,9 @@ const AppContent: React.FC = () => {
                       <ProtectedRoute>
                         <Layout>
                           <ErrorBoundary>
-                            <RentalList />
+                            <Suspense fallback={<PageLoader />}>
+                              <RentalList />
+                            </Suspense>
                           </ErrorBoundary>
                         </Layout>
                       </ProtectedRoute>
@@ -70,7 +95,9 @@ const AppContent: React.FC = () => {
                       <ProtectedRoute>
                         <Layout>
                           <ErrorBoundary>
-                            <CustomerList />
+                            <Suspense fallback={<PageLoader />}>
+                              <CustomerList />
+                            </Suspense>
                           </ErrorBoundary>
                         </Layout>
                       </ProtectedRoute>
@@ -80,7 +107,9 @@ const AppContent: React.FC = () => {
                       <ProtectedRoute>
                         <Layout>
                           <ErrorBoundary>
-                            <ExpenseList />
+                            <Suspense fallback={<PageLoader />}>
+                              <ExpenseList />
+                            </Suspense>
                           </ErrorBoundary>
                         </Layout>
                       </ProtectedRoute>
@@ -90,7 +119,9 @@ const AppContent: React.FC = () => {
                       <ProtectedRoute>
                         <Layout>
                           <ErrorBoundary>
-                            <InsuranceList />
+                            <Suspense fallback={<PageLoader />}>
+                              <InsuranceList />
+                            </Suspense>
                           </ErrorBoundary>
                         </Layout>
                       </ProtectedRoute>
@@ -100,7 +131,9 @@ const AppContent: React.FC = () => {
                       <ProtectedRoute>
                         <Layout>
                           <ErrorBoundary>
-                            <SettlementList />
+                            <Suspense fallback={<PageLoader />}>
+                              <SettlementList />
+                            </Suspense>
                           </ErrorBoundary>
                         </Layout>
                       </ProtectedRoute>
@@ -110,7 +143,9 @@ const AppContent: React.FC = () => {
                       <ProtectedRoute>
                         <Layout>
                           <ErrorBoundary>
-                            <Statistics />
+                            <Suspense fallback={<PageLoader />}>
+                              <Statistics />
+                            </Suspense>
                           </ErrorBoundary>
                         </Layout>
                       </ProtectedRoute>
@@ -120,7 +155,9 @@ const AppContent: React.FC = () => {
                       <ProtectedRoute>
                         <Layout>
                           <ErrorBoundary>
-                            <UserManagement />
+                            <Suspense fallback={<PageLoader />}>
+                              <UserManagement />
+                            </Suspense>
                           </ErrorBoundary>
                         </Layout>
                       </ProtectedRoute>
