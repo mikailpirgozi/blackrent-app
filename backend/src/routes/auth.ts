@@ -1393,6 +1393,19 @@ router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => 
         tables.allTablesError = e.message;
       }
       
+      // SCHÉMA VEHICLES TABUĽKY  
+      try {
+        const schemaResult = await client.query(`
+          SELECT column_name, data_type, is_nullable 
+          FROM information_schema.columns 
+          WHERE table_name = 'vehicles' AND table_schema = 'public'
+          ORDER BY ordinal_position
+        `);
+        tables.vehiclesSchema = schemaResult.rows;
+      } catch (e: any) {
+        tables.vehiclesSchemaError = e.message;
+      }
+      
       // Test konkrétnych tabuliek
       const tablesToTest = ['vehicles', 'customers', 'companies', 'insurers', 'rentals', 'expenses'];
       
