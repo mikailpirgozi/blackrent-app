@@ -26,6 +26,7 @@ type AppAction =
   | { type: 'SET_CUSTOMERS'; payload: Customer[] }
   | { type: 'SET_COMPANIES'; payload: Company[] }
   | { type: 'SET_INSURERS'; payload: Insurer[] }
+  | { type: 'SET_SETTLEMENTS'; payload: Settlement[] }
   | { type: 'ADD_VEHICLE'; payload: Vehicle }
   | { type: 'UPDATE_VEHICLE'; payload: Vehicle }
   | { type: 'DELETE_VEHICLE'; payload: string }
@@ -84,6 +85,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, companies: action.payload };
     case 'SET_INSURERS':
       return { ...state, insurers: action.payload };
+    case 'SET_SETTLEMENTS':
+      return { ...state, settlements: action.payload };
     case 'ADD_VEHICLE':
       return { ...state, vehicles: [...state.vehicles, action.payload] };
     case 'UPDATE_VEHICLE':
@@ -244,14 +247,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.log('Načítavam dáta z API...');
       
       // Load data from API
-      const [vehicles, rentals, expenses, insurances, customers, companies, insurers] = await Promise.all([
+      const [vehicles, rentals, expenses, insurances, customers, companies, insurers, settlements] = await Promise.all([
         apiService.getVehicles(),
         apiService.getRentals(),
         apiService.getExpenses(),
         apiService.getInsurances(),
         apiService.getCustomers(),
         apiService.getCompanies(),
-        apiService.getInsurers()
+        apiService.getInsurers(),
+        apiService.getSettlements()
       ]);
       
       console.log('Dáta úspešne načítané:', { 
@@ -261,7 +265,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         insurances: insurances.length,
         customers: customers.length,
         companies: companies.length,
-        insurers: insurers.length
+        insurers: insurers.length,
+        settlements: settlements.length
       });
       
       dispatch({ type: 'SET_VEHICLES', payload: vehicles });
@@ -271,6 +276,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_CUSTOMERS', payload: customers });
       dispatch({ type: 'SET_COMPANIES', payload: companies });
       dispatch({ type: 'SET_INSURERS', payload: insurers });
+      dispatch({ type: 'SET_SETTLEMENTS', payload: settlements });
       
     } catch (error: any) {
       console.error('Chyba pri načítavaní dát:', error);

@@ -1,5 +1,5 @@
 import { Pool, PoolClient } from 'pg';
-import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer } from '../types';
+import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement } from '../types';
 import bcrypt from 'bcryptjs';
 
 export class PostgresDatabase {
@@ -1441,6 +1441,213 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       await client.query('DELETE FROM insurers WHERE id = $1', [id]);
+    } finally {
+      client.release();
+    }
+  }
+
+  // Metódy pre vyúčtovania (settlements)
+  async getSettlements(): Promise<Settlement[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT s.*, 
+          COALESCE(r.rental_count, 0) as rental_count,
+          COALESCE(e.expense_count, 0) as expense_count
+        FROM settlements s 
+        LEFT JOIN (
+          SELECT vehicle_id, COUNT(*) as rental_count 
+          FROM rentals 
+          GROUP BY vehicle_id
+        ) r ON s.vehicle_id = r.vehicle_id::text
+        LEFT JOIN (
+          SELECT vehicle_id, COUNT(*) as expense_count 
+          FROM expenses 
+          GROUP BY vehicle_id
+        ) e ON s.vehicle_id = e.vehicle_id::text
+        ORDER BY s.created_at DESC
+      `);
+      
+      return result.rows.map((row: any) => ({
+        id: row.id?.toString() || '',
+        period: {
+          from: new Date(row.period_from),
+          to: new Date(row.period_to)
+        },
+        rentals: [], // Budú načítané separátne ak treba
+        expenses: [], // Budú načítané separátne ak treba
+        totalIncome: parseFloat(row.total_income) || 0,
+        totalExpenses: parseFloat(row.total_expenses) || 0,
+        totalCommission: parseFloat(row.total_commission) || 0,
+        profit: parseFloat(row.profit) || 0,
+        company: row.company || undefined,
+        vehicleId: row.vehicle_id || undefined
+      }));
+    } finally {
+      client.release();
+    }
+  }
+
+  async getSettlement(id: string): Promise<Settlement | null> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT * FROM settlements WHERE id = $1
+      `, [id]);
+      
+      if (result.rows.length === 0) return null;
+      
+      const row = result.rows[0];
+      
+      // Načítaj súvisiace prenájmy a náklady ak treba
+      const rentals = await this.getRentals(); // Simplified - môžeme filtrovať podľa obdobia
+      const expenses = await this.getExpenses(); // Simplified - môžeme filtrovať podľa obdobia
+      
+      return {
+        id: row.id?.toString() || '',
+        period: {
+          from: new Date(row.period_from),
+          to: new Date(row.period_to)
+        },
+        rentals: rentals || [],
+        expenses: expenses || [],
+        totalIncome: parseFloat(row.total_income) || 0,
+        totalExpenses: parseFloat(row.total_expenses) || 0,
+        totalCommission: parseFloat(row.total_commission) || 0,
+        profit: parseFloat(row.profit) || 0,
+        company: row.company || undefined,
+        vehicleId: row.vehicle_id || undefined
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async createSettlement(settlementData: {
+    company: string;
+    period: string;
+    fromDate: Date;
+    toDate: Date;
+    totalRentals: number;
+    totalIncome: number;
+    totalExpenses: number;
+    commission: number;
+    netIncome: number;
+    rentalsByPaymentMethod: any;
+    expensesByCategory: any;
+    summary: string;
+  }): Promise<Settlement> {
+    const client = await this.pool.connect();
+    try {
+      // Najskôr vytvoríme settlements tabuľku ak neexistuje
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS settlements (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company VARCHAR(100),
+          period_from TIMESTAMP NOT NULL,
+          period_to TIMESTAMP NOT NULL,
+          total_income DECIMAL(10,2) DEFAULT 0,
+          total_expenses DECIMAL(10,2) DEFAULT 0,
+          total_commission DECIMAL(10,2) DEFAULT 0,
+          profit DECIMAL(10,2) DEFAULT 0,
+          rentals_data JSONB,
+          expenses_data JSONB,
+          summary TEXT,
+          vehicle_id VARCHAR(50),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      const result = await client.query(`
+        INSERT INTO settlements (
+          company, period_from, period_to, total_income, total_expenses, 
+          total_commission, profit, rentals_data, expenses_data, summary
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id, company, period_from, period_to, total_income, total_expenses, 
+                  total_commission, profit, rentals_data, expenses_data, summary, created_at
+      `, [
+        settlementData.company,
+        settlementData.fromDate,
+        settlementData.toDate,
+        settlementData.totalIncome,
+        settlementData.totalExpenses,
+        settlementData.commission,
+        settlementData.netIncome,
+        JSON.stringify(settlementData.rentalsByPaymentMethod),
+        JSON.stringify(settlementData.expensesByCategory),
+        settlementData.summary
+      ]);
+
+      const row = result.rows[0];
+      return {
+        id: row.id?.toString() || '',
+        period: {
+          from: new Date(row.period_from),
+          to: new Date(row.period_to)
+        },
+        rentals: [],
+        expenses: [],
+        totalIncome: parseFloat(row.total_income) || 0,
+        totalExpenses: parseFloat(row.total_expenses) || 0,
+        totalCommission: parseFloat(row.total_commission) || 0,
+        profit: parseFloat(row.profit) || 0,
+        company: row.company || undefined,
+        vehicleId: undefined
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async updateSettlement(id: string, updateData: any): Promise<Settlement> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        UPDATE settlements 
+        SET total_income = COALESCE($2, total_income),
+            total_expenses = COALESCE($3, total_expenses),
+            total_commission = COALESCE($4, total_commission),
+            profit = COALESCE($5, profit),
+            summary = COALESCE($6, summary),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+        RETURNING id, company, period_from, period_to, total_income, total_expenses, 
+                  total_commission, profit, summary
+      `, [
+        id,
+        updateData.totalIncome,
+        updateData.totalExpenses,
+        updateData.totalCommission,
+        updateData.profit,
+        updateData.summary
+      ]);
+
+      const row = result.rows[0];
+      return {
+        id: row.id?.toString() || '',
+        period: {
+          from: new Date(row.period_from),
+          to: new Date(row.period_to)
+        },
+        rentals: [],
+        expenses: [],
+        totalIncome: parseFloat(row.total_income) || 0,
+        totalExpenses: parseFloat(row.total_expenses) || 0,
+        totalCommission: parseFloat(row.total_commission) || 0,
+        profit: parseFloat(row.profit) || 0,
+        company: row.company || undefined,
+        vehicleId: undefined
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async deleteSettlement(id: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('DELETE FROM settlements WHERE id = $1', [id]);
     } finally {
       client.release();
     }

@@ -1,4 +1,4 @@
-import { Vehicle, Rental, Customer, Expense, Insurance, Company, Insurer, ApiResponse } from '../types';
+import { Vehicle, Rental, Customer, Expense, Insurance, Company, Insurer, ApiResponse, Settlement } from '../types';
 
 // Railway backend URL
 const RAILWAY_API_URL = 'https://blackrent-app-production-4d6f.up.railway.app/api';
@@ -288,6 +288,35 @@ class ApiService {
 
   async deleteInsurer(id: string): Promise<void> {
     return this.request<void>(`/insurers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Settlements API
+  async getSettlements(): Promise<Settlement[]> {
+    return this.request<Settlement[]>('/settlements');
+  }
+
+  async getSettlement(id: string): Promise<Settlement> {
+    return this.request<Settlement>(`/settlements/${id}`);
+  }
+
+  async createSettlement(settlement: Settlement): Promise<void> {
+    return this.request<void>('/settlements', {
+      method: 'POST',
+      body: JSON.stringify(settlement),
+    });
+  }
+
+  async updateSettlement(id: string, settlement: Partial<Settlement>): Promise<void> {
+    return this.request<void>(`/settlements/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(settlement),
+    });
+  }
+
+  async deleteSettlement(id: string): Promise<void> {
+    return this.request<void>(`/settlements/${id}`, {
       method: 'DELETE',
     });
   }

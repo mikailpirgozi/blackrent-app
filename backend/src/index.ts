@@ -74,6 +74,7 @@ import companyRoutes from './routes/companies';
 import insurerRoutes from './routes/insurers';
 import protocolRoutes from './routes/protocols';
 import fileRoutes from './routes/files';
+import settlementRoutes from './routes/settlements';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -86,6 +87,7 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/insurers', insurerRoutes);
 app.use('/api/protocols', protocolRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/settlements', settlementRoutes);
 
 // API Health endpoint for frontend compatibility
 app.get('/api/health', (req, res) => {
