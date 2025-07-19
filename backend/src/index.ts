@@ -1,58 +1,64 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import dotenv from 'dotenv';
-// Removed: import path from 'path'; - not needed for API-only backend
-import vehiclesRouter from './routes/vehicles';
-import rentalsRouter from './routes/rentals';
-import authRouter from './routes/auth';
-import expensesRouter from './routes/expenses';
-import insurancesRouter from './routes/insurances';
-import customersRouter from './routes/customers';
-import companiesRouter from './routes/companies';
-import insurersRouter from './routes/insurers';
-import protocolsRouter from './routes/protocols';
-// import filesRouter from './routes/files'; // Dočasne vypnuté kvôli multer types
 
-// Načítanie environment premenných
+// Načítaj environment variables
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 5001;
+// Inicializuj Sentry ako prvé
+import { initSentry } from './utils/sentry';
 
-// CORS konfigurácia
+const app = express();
+const port = process.env.PORT || 5001;
+
+// Sentry setup - musí byť ako prvé middleware
+const sentry = initSentry(app);
+if (sentry) {
+  app.use(sentry.requestHandler);
+  app.use(sentry.tracingHandler);
+}
+
+// CORS middleware
 app.use(cors({
-  origin: true, // Allow all origins in production
-  credentials: true
+  origin: [
+    'http://localhost:3000',
+    'https://mikailpirgozi.github.io',
+    'https://blackrent-app-production-4d6f.up.railway.app',
+    process.env.FRONTEND_URL || 'http://localhost:3000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Middleware pre parsovanie JSON
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Removed: Static file serving - frontend is on Vercel
-// Railway backend serves ONLY API endpoints
+// Import routes
+import authRoutes from './routes/auth';
+import vehicleRoutes from './routes/vehicles';
+import customerRoutes from './routes/customers';
+import rentalRoutes from './routes/rentals';
+import expenseRoutes from './routes/expenses';
+import insuranceRoutes from './routes/insurances';
+import companyRoutes from './routes/companies';
+import insurerRoutes from './routes/insurers';
+import protocolRoutes from './routes/protocols';
+import fileRoutes from './routes/files';
 
-// API Routes
-app.use('/api/auth', authRouter);
-app.use('/api/vehicles', vehiclesRouter);
-app.use('/api/rentals', rentalsRouter);
-app.use('/api/customers', customersRouter);
-app.use('/api/expenses', expensesRouter);
-app.use('/api/insurances', insurancesRouter);
-app.use('/api/companies', companiesRouter);
-app.use('/api/insurers', insurersRouter);
-app.use('/api/protocols', protocolsRouter);
-// app.use('/api/files', filesRouter); // Dočasne vypnuté kvôli multer types
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    database: 'PostgreSQL',
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/rentals', rentalRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/insurances', insuranceRoutes);
+app.use('/api/companies', companyRoutes);
+app.use('/api/insurers', insurerRoutes);
+app.use('/api/protocols', protocolRoutes);
+app.use('/api/files', fileRoutes);
 
 // API Health endpoint for frontend compatibility
 app.get('/api/health', (req, res) => {
@@ -62,33 +68,56 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     timestamp: new Date().toISOString(),
     database: 'PostgreSQL',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    sentry: !!process.env.SENTRY_DSN_BACKEND
   });
 });
 
 // Removed: Catch-all route - frontend is on Vercel
 // Railway backend is API-only, no frontend serving
 
+// Sentry error handler - musí byť pred ostatnými error handlermi
+if (sentry) {
+  app.use(sentry.errorHandler);
+}
+
 // Error handling middleware
-app.use((error: any, req: any, res: any, next: any) => {
-  console.error('❌ Server Error:', error);
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error('💥 Unexpected error:', err);
+  
+  // Report to Sentry if available
+  if (process.env.SENTRY_DSN_BACKEND) {
+    const { reportError } = require('./utils/sentry');
+    reportError(err, {
+      url: req.url,
+      method: req.method,
+      user: req.user?.id,
+    });
+  }
+  
   res.status(500).json({
     success: false,
-    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
+    timestamp: new Date().toISOString()
   });
 });
 
-// Spustenie servera
-app.listen(PORT, () => {
-  console.log(`🚀 BlackRent API Backend beží na porte ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
-  console.log(`🚗 Vozidlá API: http://localhost:${PORT}/api/vehicles`);
-  console.log(`📋 Prenájmy API: http://localhost:${PORT}/api/rentals`);
-  console.log(`🗄️ Databáza: PostgreSQL`);
-  console.log(`☁️ R2 Storage: Cloudflare`);
-  console.log(`🌐 Frontend: Vercel (https://blackrent-app.vercel.app)`);
-  console.log(`🔑 Admin API: /api/auth/create-admin`);
+// Start server
+app.listen(port, () => {
+  console.log(`🚀 BlackRent server beží na porte ${port}`);
+  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🗄️  Database: PostgreSQL`);
+  console.log(`📊 Sentry: ${process.env.SENTRY_DSN_BACKEND ? '✅ Enabled' : '❌ Disabled'}`);
 });
 
-export default app; 
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  process.exit(0);
+}); 
