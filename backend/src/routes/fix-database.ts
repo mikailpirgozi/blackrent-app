@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { postgresDatabase } from '../models/postgres-database';
+import { Request, Response } from 'express';
 
 const router = Router();
 
@@ -870,87 +871,78 @@ router.post('/test-uuid-rental', async (req: any, res: any) => {
 });
 
 // POST /api/fix-database/add-rental-columns - Pridanie chýbajúcich stĺpcov do rentals tabuľky
-router.post('/add-rental-columns', async (req: any, res: any) => {
+router.post('/add-rental-columns', async (req: Request, res: Response) => {
   try {
-    console.log('🔧 Adding missing columns to rentals table...');
-    
     const client = await (postgresDatabase as any).pool.connect();
     
     try {
-      console.log('📋 Step 1: Checking current rentals schema...');
+      console.log('🔧 Starting rental table columns migration...');
       
-      // Skontroluj aktuálne stĺpce v rentals tabuľke
-      const currentColumns = await client.query(`
-        SELECT column_name, data_type, is_nullable
+      // Get current columns
+      const columnsResult = await client.query(`
+        SELECT column_name, data_type 
         FROM information_schema.columns 
-        WHERE table_name = 'rentals'
+        WHERE table_name = 'rentals' AND table_schema = 'public'
         ORDER BY ordinal_position
       `);
       
-      console.log('Current rentals columns:', currentColumns.rows.map((r: any) => r.column_name));
+      const existingColumns = columnsResult.rows.map((row: any) => row.column_name);
+      console.log('📋 Existing columns:', existingColumns);
       
-      console.log('📋 Step 2: Adding missing columns...');
-      
-      // Zoznam chýbajúcich stĺpcov ktoré treba pridať
-      const missingColumns = [
-        { name: 'discount', type: 'JSONB' },
-        { name: 'custom_commission', type: 'JSONB' },
-        { name: 'extra_km_charge', type: 'DECIMAL(10,2)' },
-        { name: 'payments', type: 'JSONB' },
-        { name: 'history', type: 'JSONB' },
-        { name: 'deposit', type: 'DECIMAL(10,2)' },
-        { name: 'allowed_kilometers', type: 'INTEGER' },
-        { name: 'extra_kilometer_rate', type: 'DECIMAL(10,2)' },
-        { name: 'return_conditions', type: 'TEXT' },
-        { name: 'fuel_level', type: 'INTEGER' },
-        { name: 'odometer', type: 'INTEGER' },
-        { name: 'return_fuel_level', type: 'INTEGER' },
-        { name: 'return_odometer', type: 'INTEGER' },
-        { name: 'actual_kilometers', type: 'INTEGER' },
-        { name: 'fuel_refill_cost', type: 'DECIMAL(10,2)' },
-        { name: 'handover_protocol_id', type: 'VARCHAR(50)' },
-        { name: 'return_protocol_id', type: 'VARCHAR(50)' }
+      // Define required columns
+      const requiredColumns = [
+        { name: 'deposit', type: 'DECIMAL(10,2)', defaultValue: '0' },
+        { name: 'allowed_kilometers', type: 'INTEGER', defaultValue: '0' },
+        { name: 'extra_kilometer_rate', type: 'DECIMAL(10,2)', defaultValue: '0' },
+        { name: 'return_conditions', type: 'TEXT', defaultValue: null },
+        { name: 'fuel_level', type: 'INTEGER', defaultValue: '0' },
+        { name: 'odometer', type: 'INTEGER', defaultValue: '0' },
+        { name: 'return_fuel_level', type: 'INTEGER', defaultValue: null },
+        { name: 'return_odometer', type: 'INTEGER', defaultValue: null },
+        { name: 'actual_kilometers', type: 'INTEGER', defaultValue: null },
+        { name: 'fuel_refill_cost', type: 'DECIMAL(10,2)', defaultValue: null },
+        { name: 'handover_protocol_id', type: 'UUID', defaultValue: null },
+        { name: 'return_protocol_id', type: 'UUID', defaultValue: null }
       ];
       
       const addedColumns: string[] = [];
       
-      // Pridaj každý chýbajúci stĺpec ak neexistuje
-      for (const column of missingColumns) {
-        // Skontroluj či stĺpec už existuje
-        const exists = currentColumns.rows.some((row: any) => row.column_name === column.name);
-        
-        if (!exists) {
-          try {
-            await client.query(`ALTER TABLE rentals ADD COLUMN ${column.name} ${column.type}`);
-            console.log(`✅ Added column: ${column.name} ${column.type}`);
-            addedColumns.push(`${column.name} ${column.type}`);
-          } catch (error: any) {
-            console.log(`⚠️ Column ${column.name} may already exist or error:`, error.message);
+      // Add missing columns
+      for (const column of requiredColumns) {
+        if (!existingColumns.includes(column.name)) {
+          console.log(`➕ Adding column: ${column.name} (${column.type})`);
+          
+          let alterQuery = `ALTER TABLE rentals ADD COLUMN ${column.name} ${column.type}`;
+          if (column.defaultValue !== null) {
+            alterQuery += ` DEFAULT ${column.defaultValue}`;
           }
-        } else {
-          console.log(`ℹ️ Column ${column.name} already exists`);
+          
+          await client.query(alterQuery);
+          addedColumns.push(column.name);
         }
       }
       
-      console.log('📋 Step 3: Verifying final schema...');
-      
-      // Skontroluj finálne schema
-      const finalColumns = await client.query(`
-        SELECT column_name, data_type, is_nullable
+      // Get final columns
+      const finalColumnsResult = await client.query(`
+        SELECT column_name, data_type 
         FROM information_schema.columns 
-        WHERE table_name = 'rentals'
+        WHERE table_name = 'rentals' AND table_schema = 'public'
         ORDER BY ordinal_position
       `);
       
-      console.log('Final rentals columns:', finalColumns.rows.map((r: any) => r.column_name));
+      const finalColumns = finalColumnsResult.rows.map((row: any) => `${row.column_name} (${row.data_type})`);
+      
+      console.log('✅ Rental table migration completed');
+      console.log('📊 Added columns:', addedColumns);
+      console.log('📊 Total columns:', finalColumns.length);
       
       res.json({
         success: true,
         message: 'Rental table columns migration completed',
         data: {
-          addedColumns: addedColumns,
-          totalColumns: finalColumns.rows.length,
-          finalColumns: finalColumns.rows.map((r: any) => `${r.column_name} (${r.data_type})`)
+          addedColumns,
+          totalColumns: finalColumns.length,
+          finalColumns
         }
       });
       
@@ -958,11 +950,105 @@ router.post('/add-rental-columns', async (req: any, res: any) => {
       client.release();
     }
     
-  } catch (error: any) {
-    console.error('❌ Rental columns migration failed:', error);
+  } catch (error) {
+    console.error('❌ Rental table migration error:', error);
     res.status(500).json({
       success: false,
-      error: 'Rental columns migration failed: ' + error.message
+      error: `Migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    });
+  }
+});
+
+// POST /api/fix-database/create-settlements-table
+router.post('/create-settlements-table', async (req: Request, res: Response) => {
+  try {
+    const client = await (postgresDatabase as any).pool.connect();
+    
+    try {
+      console.log('🔧 Creating settlements table...');
+      
+      // Check if table exists
+      const tableExists = await client.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'settlements'
+        );
+      `);
+      
+      if (tableExists.rows[0].exists) {
+        console.log('📋 Settlements table already exists');
+        
+        const columnsResult = await client.query(`
+          SELECT column_name, data_type 
+          FROM information_schema.columns 
+          WHERE table_name = 'settlements' AND table_schema = 'public'
+          ORDER BY ordinal_position
+        `);
+        
+        const columns = columnsResult.rows.map((row: any) => `${row.column_name} (${row.data_type})`);
+        
+        return res.json({
+          success: true,
+          message: 'Settlements table already exists',
+          data: {
+            tableExists: true,
+            columns
+          }
+        });
+      }
+      
+      // Create settlements table
+      await client.query(`
+        CREATE TABLE settlements (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company VARCHAR(100),
+          period_from TIMESTAMP NOT NULL,
+          period_to TIMESTAMP NOT NULL,
+          total_income DECIMAL(10,2) DEFAULT 0,
+          total_expenses DECIMAL(10,2) DEFAULT 0,
+          total_commission DECIMAL(10,2) DEFAULT 0,
+          profit DECIMAL(10,2) DEFAULT 0,
+          rentals_data JSONB,
+          expenses_data JSONB,
+          summary TEXT,
+          vehicle_id VARCHAR(50),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      console.log('✅ Settlements table created successfully');
+      
+      // Get table structure
+      const columnsResult = await client.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'settlements' AND table_schema = 'public'
+        ORDER BY ordinal_position
+      `);
+      
+      const columns = columnsResult.rows.map((row: any) => `${row.column_name} (${row.data_type})`);
+      
+      res.json({
+        success: true,
+        message: 'Settlements table created successfully',
+        data: {
+          tableCreated: true,
+          totalColumns: columns.length,
+          columns
+        }
+      });
+      
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('❌ Settlements table creation error:', error);
+    res.status(500).json({
+      success: false,
+      error: `Table creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     });
   }
 });
