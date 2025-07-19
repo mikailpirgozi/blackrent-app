@@ -215,7 +215,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         notes: protocol.notes || '',
         createdBy: protocol.createdBy || '',
         status: 'completed',
-        completedAt: new Date(),
+        completedAt: protocol.completedAt || new Date(), // Použi čas z podpisu alebo aktuálny čas
       };
       
       // Debug log
@@ -277,24 +277,34 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
   };
 
   // Funkcie pre fotky
-  const handleMediaSave = (type: 'vehicle' | 'document' | 'damage', images: ProtocolImage[], videos: ProtocolVideo[]) => {
-    setProtocol(prev => ({
-      ...prev,
-      [`${type}Images`]: images,
-      [`${type}Videos`]: videos,
-    }));
+  const handleMediaSave = (type: 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel', images: ProtocolImage[], videos: ProtocolVideo[]) => {
+    if (type === 'odometer' || type === 'fuel') {
+      // Pre odometer a fuel pridaj do vehicleImages s správnym typom
+      setProtocol(prev => ({
+        ...prev,
+        vehicleImages: [...(prev.vehicleImages || []), ...images],
+        vehicleVideos: [...(prev.vehicleVideos || []), ...videos],
+      }));
+    } else {
+      setProtocol(prev => ({
+        ...prev,
+        [`${type}Images`]: images,
+        [`${type}Videos`]: videos,
+      }));
+    }
     setActivePhotoCapture(null);
     triggerAutoSave();
   };
 
   // Funkcia pre elektronický podpis
   const handleSignatureSave = (signature: string, signerName: string) => {
+    const now = new Date();
     const newSignature: ProtocolSignature = {
       id: uuidv4(),
       signature,
       signerName,
       signerRole: 'employee',
-      timestamp: new Date(),
+      timestamp: now,
       location: protocol.location || 'Miesto prevzatia',
       ipAddress: 'N/A', // V browseri nemôžeme získať IP
     };
@@ -302,6 +312,8 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     setProtocol(prev => ({
       ...prev,
       signatures: [...(prev.signatures || []), newSignature],
+      // Nastav čas prevzatia na čas podpisu
+      completedAt: now,
     }));
     setShowSignaturePad(false);
     triggerAutoSave();
@@ -376,10 +388,11 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                   <Stack spacing={2}>
                     <TextField
                       label="Číslo objednávky"
-                      value={protocol.rentalData?.orderNumber || ''}
+                      value={protocol.rentalData?.orderNumber || `RENT-${rental.id.slice(-8).toUpperCase()}`}
                       InputProps={{ readOnly: true }}
                       variant="outlined"
                       fullWidth
+                      helperText="Automaticky generované z prenájmu"
                     />
                     <TextField
                       label="Miesto prevzatia"
@@ -388,13 +401,6 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                       variant="outlined"
                       fullWidth
                       helperText="Automaticky načítané z prenájmu"
-                    />
-                    <TextField
-                      label="Čas prevzatia"
-                      value={new Date().toLocaleString('sk-SK')}
-                      InputProps={{ readOnly: true }}
-                      variant="outlined"
-                      fullWidth
                     />
                   </Stack>
                 </CardContent>
@@ -460,6 +466,70 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                 </CardContent>
               </Card>
             </Box>
+            
+            <Box flex="1" minWidth="300px">
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    <PhotoCamera sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    Fotodokumentácia stavu
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<PhotoCamera />}
+                      onClick={() => setActivePhotoCapture('odometer')}
+                    >
+                      Foto tachometra ({protocol.vehicleImages?.filter(img => img.type === 'odometer').length || 0})
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<PhotoCamera />}
+                      onClick={() => setActivePhotoCapture('fuel')}
+                    >
+                      Foto paliva ({protocol.vehicleImages?.filter(img => img.type === 'fuel').length || 0})
+                    </Button>
+                  </Box>
+                  
+                  {/* Zobrazenie fotiek */}
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Nahrané fotky:
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {protocol.vehicleImages?.filter(img => img.type === 'odometer').map((img, index) => (
+                        <Box key={img.id} sx={{ position: 'relative' }}>
+                          <img 
+                            src={img.url} 
+                            alt={`Tachometer ${index + 1}`}
+                            style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
+                          />
+                          <Chip 
+                            label="Tachometer" 
+                            size="small" 
+                            sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
+                          />
+                        </Box>
+                      ))}
+                      {protocol.vehicleImages?.filter(img => img.type === 'fuel').map((img, index) => (
+                        <Box key={img.id} sx={{ position: 'relative' }}>
+                          <img 
+                            src={img.url} 
+                            alt={`Palivo ${index + 1}`}
+                            style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
+                          />
+                          <Chip 
+                            label="Palivo" 
+                            size="small" 
+                            sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
           </Box>
         );
 
@@ -490,7 +560,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                 </Box>
                 
                 {/* Media summary */}
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
                   <Chip 
                     label={`${(protocol.vehicleImages?.length || 0) + (protocol.documentImages?.length || 0)} fotiek`}
                     color="primary"
@@ -501,6 +571,43 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                     color="secondary"
                     size="small"
                   />
+                </Box>
+
+                {/* Zobrazenie fotiek */}
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Nahrané fotky:
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {protocol.vehicleImages?.map((img, index) => (
+                      <Box key={img.id} sx={{ position: 'relative' }}>
+                        <img 
+                          src={img.url} 
+                          alt={`Vozidlo ${index + 1}`}
+                          style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
+                        />
+                        <Chip 
+                          label={img.type === 'odometer' ? 'Tachometer' : img.type === 'fuel' ? 'Palivo' : 'Vozidlo'} 
+                          size="small" 
+                          sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
+                        />
+                      </Box>
+                    ))}
+                    {protocol.documentImages?.map((img, index) => (
+                      <Box key={img.id} sx={{ position: 'relative' }}>
+                        <img 
+                          src={img.url} 
+                          alt={`Doklad ${index + 1}`}
+                          style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
+                        />
+                        <Chip 
+                          label="Doklad" 
+                          size="small" 
+                          sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
               </CardContent>
             </Card>
@@ -615,7 +722,19 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                     </Alert>
                   ) : (
                     <Alert severity="success">
-                      Podpis bol úspešne pridaný: {protocol.signatures?.[0]?.signerName} - {protocol.signatures?.[0]?.timestamp.toLocaleString('sk-SK')}
+                      <Typography variant="body2">
+                        <strong>Podpis úspešne pridaný:</strong><br />
+                        Podpisujúci: {protocol.signatures?.[0]?.signerName}<br />
+                        Časová pečiatka: {protocol.signatures?.[0]?.timestamp.toLocaleString('sk-SK', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit'
+                        })}<br />
+                        Miesto: {protocol.signatures?.[0]?.location}
+                      </Typography>
                     </Alert>
                   )}
                   
@@ -711,6 +830,8 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           allowedTypes={
             activePhotoCapture === 'vehicle' ? ['vehicle'] :
             activePhotoCapture === 'document' ? ['document'] :
+            activePhotoCapture === 'odometer' ? ['odometer'] :
+            activePhotoCapture === 'fuel' ? ['fuel'] :
             ['damage']
           }
         />
@@ -771,11 +892,25 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           </DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Podpíšte sa nižšie. Podpis bude uložený s časovou pečiatkou: {new Date().toLocaleString('sk-SK')}
+              Podpíšte sa nižšie. Podpis bude uložený s časovou a dátumovou pečiatkou.
             </Typography>
             <TextField
               label="Meno podpisujúceho"
               value={state.user?.username || ''}
+              InputProps={{ readOnly: true }}
+              fullWidth
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              label="Časová pečiatka"
+              value={new Date().toLocaleString('sk-SK', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              })}
               InputProps={{ readOnly: true }}
               fullWidth
               sx={{ mb: 2 }}
