@@ -1991,9 +1991,20 @@ export class PostgresDatabase {
   async createHandoverProtocol(protocolData: any): Promise<any> {
     const client = await this.pool.connect();
     try {
+      console.log('🔄 Starting handover protocol creation...');
       await this.initProtocolTables();
       
       console.log('🔄 Creating handover protocol:', protocolData.id);
+      console.log('🔄 Protocol data:', JSON.stringify(protocolData, null, 2));
+
+      // Validácia dát
+      if (!protocolData.id) {
+        throw new Error('Protocol ID is required');
+      }
+      
+      if (!protocolData.rentalId) {
+        throw new Error('Rental ID is required');
+      }
 
       const result = await client.query(`
         INSERT INTO handover_protocols (
@@ -2031,6 +2042,8 @@ export class PostgresDatabase {
 
     } catch (error) {
       console.error('❌ Error creating handover protocol:', error);
+      console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     } finally {
       client.release();
