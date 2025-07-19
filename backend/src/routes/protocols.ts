@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { HandoverProtocol, ReturnProtocol } from '../types';
 import { postgresDatabase } from '../models/postgres-database';
+import { generateHandoverPDF, generateReturnPDF } from '../utils/pdf-generator';
 
 const router = express.Router();
 
@@ -235,6 +236,130 @@ router.post('/upload-pdf', upload.single('pdf'), async (req, res) => {
   } catch (error) {
     console.error('❌ Error uploading PDF:', error);
     res.status(500).json({ error: 'Failed to upload PDF' });
+  }
+});
+
+// Generate PDF for handover protocol
+router.get('/handover/:id/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('📄 Generating PDF for handover protocol:', id);
+    
+    const protocol = await postgresDatabase.getHandoverProtocolById(id);
+    
+    if (!protocol) {
+      return res.status(404).json({ error: 'Handover protocol not found' });
+    }
+    
+    // Generovanie PDF
+    const pdfBuffer = await generateHandoverPDF(protocol);
+    
+    // Nastavenie headers pre PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="handover_protocol_${id.slice(-8)}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    // Odoslanie PDF
+    res.send(pdfBuffer);
+    
+    console.log('✅ PDF generated and sent for handover protocol:', id);
+    
+  } catch (error) {
+    console.error('❌ Error generating PDF for handover protocol:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// Generate PDF for return protocol
+router.get('/return/:id/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('📄 Generating PDF for return protocol:', id);
+    
+    const protocol = await postgresDatabase.getReturnProtocolById(id);
+    
+    if (!protocol) {
+      return res.status(404).json({ error: 'Return protocol not found' });
+    }
+    
+    // Generovanie PDF
+    const pdfBuffer = await generateReturnPDF(protocol);
+    
+    // Nastavenie headers pre PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="return_protocol_${id.slice(-8)}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    // Odoslanie PDF
+    res.send(pdfBuffer);
+    
+    console.log('✅ PDF generated and sent for return protocol:', id);
+    
+  } catch (error) {
+    console.error('❌ Error generating PDF for return protocol:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// Download PDF as file
+router.get('/handover/:id/download', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('📥 Downloading PDF for handover protocol:', id);
+    
+    const protocol = await postgresDatabase.getHandoverProtocolById(id);
+    
+    if (!protocol) {
+      return res.status(404).json({ error: 'Handover protocol not found' });
+    }
+    
+    // Generovanie PDF
+    const pdfBuffer = await generateHandoverPDF(protocol);
+    
+    // Nastavenie headers pre PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="handover_protocol_${id.slice(-8)}_${new Date().toISOString().split('T')[0]}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    // Odoslanie PDF
+    res.send(pdfBuffer);
+    
+    console.log('✅ PDF downloaded for handover protocol:', id);
+    
+  } catch (error) {
+    console.error('❌ Error downloading PDF for handover protocol:', error);
+    res.status(500).json({ error: 'Failed to download PDF' });
+  }
+});
+
+// Download PDF as file
+router.get('/return/:id/download', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('📥 Downloading PDF for return protocol:', id);
+    
+    const protocol = await postgresDatabase.getReturnProtocolById(id);
+    
+    if (!protocol) {
+      return res.status(404).json({ error: 'Return protocol not found' });
+    }
+    
+    // Generovanie PDF
+    const pdfBuffer = await generateReturnPDF(protocol);
+    
+    // Nastavenie headers pre PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="return_protocol_${id.slice(-8)}_${new Date().toISOString().split('T')[0]}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    // Odoslanie PDF
+    res.send(pdfBuffer);
+    
+    console.log('✅ PDF downloaded for return protocol:', id);
+    
+  } catch (error) {
+    console.error('❌ Error downloading PDF for return protocol:', error);
+    res.status(500).json({ error: 'Failed to download PDF' });
   }
 });
 

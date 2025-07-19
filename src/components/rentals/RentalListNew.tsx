@@ -21,6 +21,8 @@ import {
   CheckCircle as CompletedIcon,
   Schedule as PendingIcon,
   Error as ErrorIcon,
+  PictureAsPdf as PDFIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import { useApp } from '../../context/AppContext';
@@ -30,6 +32,7 @@ import { sk } from 'date-fns/locale';
 import RentalForm from './RentalForm';
 import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
+import PDFViewer from '../common/PDFViewer';
 import { apiService } from '../../services/api';
 
 export default function RentalList() {
@@ -47,6 +50,12 @@ export default function RentalList() {
   const [openReturnDialog, setOpenReturnDialog] = useState(false);
   const [selectedRentalForProtocol, setSelectedRentalForProtocol] = useState<Rental | null>(null);
   const [loadingProtocols, setLoadingProtocols] = useState<string[]>([]);
+  const [openPDFViewer, setOpenPDFViewer] = useState(false);
+  const [selectedPDFProtocol, setSelectedPDFProtocol] = useState<{
+    id: string;
+    type: 'handover' | 'return';
+    title: string;
+  } | null>(null);
   const isMobile = useMediaQuery('(max-width:600px)');
 
   // Načítanie protokolov pre prenájom
@@ -230,8 +239,19 @@ export default function RentalList() {
       setSelectedRentalForProtocol(null);
     } catch (error) {
       console.error('Chyba pri ukladaní return protokolu:', error);
-      alert('Chyba pri ukladaní protokolu. Skúste to znovu.');
+      alert('Chyba pri ukladaní return protokolu. Skúste to znovu.');
     }
+  };
+
+  // PDF handlers
+  const handleViewPDF = (protocolId: string, type: 'handover' | 'return', title: string) => {
+    setSelectedPDFProtocol({ id: protocolId, type, title });
+    setOpenPDFViewer(true);
+  };
+
+  const handleClosePDF = () => {
+    setOpenPDFViewer(false);
+    setSelectedPDFProtocol(null);
   };
 
   // Column definitions for ResponsiveTable
@@ -320,6 +340,45 @@ export default function RentalList() {
                 <ReturnIcon fontSize="small" />
               </IconButton>
             </Tooltip>
+            
+            {/* PDF tlačidlá pre existujúce protokoly */}
+            {protocols[rental.id]?.handover && (
+              <Tooltip title="Zobraziť protokol prevzatia">
+                <IconButton
+                  size="small"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleViewPDF(
+                      protocols[rental.id].handover!.id, 
+                      'handover', 
+                      `Protokol prevzatia - ${rental.orderNumber || rental.id.slice(-8)}`
+                    ); 
+                  }}
+                  color="success"
+                >
+                  <PDFIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            
+            {protocols[rental.id]?.return && (
+              <Tooltip title="Zobraziť protokol vrátenia">
+                <IconButton
+                  size="small"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleViewPDF(
+                      protocols[rental.id].return!.id, 
+                      'return', 
+                      `Protokol vrátenia - ${rental.orderNumber || rental.id.slice(-8)}`
+                    ); 
+                  }}
+                  color="success"
+                >
+                  <PDFIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
         </Box>
       )
@@ -446,6 +505,17 @@ export default function RentalList() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* PDF Viewer Dialog */}
+      {selectedPDFProtocol && (
+        <PDFViewer
+          open={openPDFViewer}
+          onClose={handleClosePDF}
+          protocolId={selectedPDFProtocol.id}
+          protocolType={selectedPDFProtocol.type}
+          title={selectedPDFProtocol.title}
+        />
+      )}
     </Box>
   );
 } 
