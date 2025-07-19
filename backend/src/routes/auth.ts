@@ -1376,4 +1376,78 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
   }
 });
 
+// GET /api/auth/debug-tables - Debug check tables existence  
+router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🔍 DEBUG - Kontrolujem existenciu tabuliek...');
+    
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      let tables: any = {};
+      
+      // Test existencie tabuliek
+      try {
+        const result = await client.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
+        tables.allTables = result.rows.map((row: any) => row.tablename);
+      } catch (e: any) {
+        tables.allTablesError = e.message;
+      }
+      
+      // Test konkrétnych tabuliek
+      const tablesToTest = ['vehicles', 'customers', 'companies', 'insurers', 'rentals', 'expenses'];
+      
+      for (const table of tablesToTest) {
+        try {
+          const result = await client.query(`SELECT COUNT(*) FROM ${table}`);
+          tables[table] = {
+            exists: true,
+            count: result.rows[0].count,
+            countType: typeof result.rows[0].count
+          };
+        } catch (e: any) {
+          tables[table] = {
+            exists: false,
+            error: e.message
+          };
+        }
+      }
+      
+      // Test vytvorenia jedného záznamu
+      try {
+        const testResult = await client.query(`
+          INSERT INTO companies (name) VALUES ('TEST COMPANY')
+          ON CONFLICT (name) DO NOTHING
+          RETURNING name
+        `);
+        tables.testInsert = {
+          success: true,
+          inserted: testResult.rows.length,
+          data: testResult.rows
+        };
+      } catch (e: any) {
+        tables.testInsert = {
+          success: false,
+          error: e.message
+        };
+      }
+      
+      console.log('🔍 DEBUG tables result:', tables);
+      
+      return res.json({
+        success: true,
+        message: 'DEBUG informácie o tabuľkách',
+        data: tables
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    console.error('❌ Chyba pri DEBUG tables:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'DEBUG error: ' + error.message
+    });
+  }
+});
+
 export default router; 
