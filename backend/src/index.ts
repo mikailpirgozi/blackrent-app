@@ -6,18 +6,18 @@ import dotenv from 'dotenv';
 // Načítaj environment variables
 dotenv.config();
 
-// Inicializuj Sentry ako prvé
-import { initSentry } from './utils/sentry';
+// Sentry dočasne vypnutý kvôli Railway build problémom
+// import { initSentry } from './utils/sentry';
 
 const app = express();
 const port = process.env.PORT || 5001;
 
-// Sentry setup - musí byť ako prvé middleware
-const sentry = initSentry(app);
-if (sentry) {
-  app.use(sentry.requestHandler);
-  app.use(sentry.tracingHandler);
-}
+// Sentry setup - dočasne vypnutý
+// const sentry = initSentry(app);
+// if (sentry) {
+//   app.use(sentry.requestHandler);
+//   app.use(sentry.tracingHandler);
+// }
 
 // CORS middleware
 app.use(cors({
@@ -69,31 +69,31 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     database: 'PostgreSQL',
     environment: process.env.NODE_ENV || 'development',
-    sentry: !!process.env.SENTRY_DSN_BACKEND
+    sentry: false  // Dočasne vypnutý backend Sentry
   });
 });
 
 // Removed: Catch-all route - frontend is on Vercel
 // Railway backend is API-only, no frontend serving
 
-// Sentry error handler - musí byť pred ostatnými error handlermi
-if (sentry) {
-  app.use(sentry.errorHandler);
-}
+// Sentry error handler - dočasne vypnutý
+// if (sentry) {
+//   app.use(sentry.errorHandler);
+// }
 
 // Error handling middleware
 app.use((err: any, req: any, res: any, next: any) => {
   console.error('💥 Unexpected error:', err);
   
-  // Report to Sentry if available
-  if (process.env.SENTRY_DSN_BACKEND) {
-    const { reportError } = require('./utils/sentry');
-    reportError(err, {
-      url: req.url,
-      method: req.method,
-      user: req.user?.id,
-    });
-  }
+  // Sentry reporting dočasne vypnuté
+  // if (process.env.SENTRY_DSN_BACKEND) {
+  //   const { reportError } = require('./utils/sentry');
+  //   reportError(err, {
+  //     url: req.url,
+  //     method: req.method,
+  //     user: req.user?.id,
+  //   });
+  // }
   
   res.status(500).json({
     success: false,
@@ -108,7 +108,7 @@ app.listen(port, () => {
   console.log(`🚀 BlackRent server beží na porte ${port}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  Database: PostgreSQL`);
-  console.log(`📊 Sentry: ${process.env.SENTRY_DSN_BACKEND ? '✅ Enabled' : '❌ Disabled'}`);
+  console.log(`📊 Sentry: Backend dočasne vypnutý, Frontend aktívny`);
 });
 
 // Graceful shutdown
