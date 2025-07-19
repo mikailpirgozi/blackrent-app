@@ -140,7 +140,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       
       // Mapovanie na backend format - vždy posielaj všetky polia
       const protocolData = {
-        id: protocol.id,
+        id: protocol.id || protocolId, // Fallback na protocolId ak sa stratil
         rentalId: protocol.rentalId,
         location: protocol.location || '',
         vehicleCondition: protocol.vehicleCondition || {

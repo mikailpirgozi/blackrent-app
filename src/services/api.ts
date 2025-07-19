@@ -1,4 +1,5 @@
 import { Vehicle, Rental, Customer, Expense, Insurance, Company, Insurer, ApiResponse, Settlement } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 
 // Railway backend URL
 const RAILWAY_API_URL = 'https://blackrent-app-production-4d6f.up.railway.app/api';
@@ -331,7 +332,7 @@ class ApiService {
     
     // Ensure all required fields are present
     const completeProtocolData = {
-      id: protocolData.id,
+      id: protocolData.id || uuidv4(), // Fallback UUID ak chýba
       rentalId: protocolData.rentalId,
       location: protocolData.location || '',
       vehicleCondition: protocolData.vehicleCondition || {
