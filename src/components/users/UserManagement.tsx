@@ -88,7 +88,8 @@ export default function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/auth/users', {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      const response = await fetch(`${API_BASE_URL}/auth/users`, {
         headers: {
           'Authorization': `Bearer ${state.token}`,
         },
@@ -149,10 +150,11 @@ export default function UserManagement() {
     setLoading(true);
     setError(null);
 
-    try {
+        try {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
       const url = editingUser 
-                ? `/api/auth/users/${editingUser.id}`
-        : '/api/auth/users';
+        ? `${API_BASE_URL}/auth/users/${editingUser.id}`
+        : `${API_BASE_URL}/auth/users`;
       const method = editingUser ? 'PUT' : 'POST';
       
       const payload: any = {
@@ -164,6 +166,8 @@ export default function UserManagement() {
       if (!editingUser || formData.password) {
         payload.password = formData.password;
       }
+
+      console.log('🔄 Creating/updating user:', method, url, payload);
 
       const response = await fetch(url, {
         method,

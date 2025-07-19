@@ -493,4 +493,80 @@ router.get('/init-admin', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/auth/fix-customers - Debug endpoint na opravenie customers tabuľky
+router.get('/fix-customers', async (req: Request, res: Response) => {
+  try {
+    const client = await (postgresDatabase as any).pool.connect();
+    
+    try {
+      // Zisti ako vyzerá customers tabuľka
+      const schema = await client.query(`
+        SELECT column_name, data_type, is_nullable 
+        FROM information_schema.columns 
+        WHERE table_name = 'customers' 
+        ORDER BY ordinal_position
+      `);
+      
+      console.log('📋 Current customers table schema:', schema.rows);
+      
+      // Skús opraviť customers tabuľku
+      if (schema.rows.some((col: any) => col.column_name === 'first_name')) {
+        console.log('🔧 Found first_name column, fixing...');
+        
+        // Rename first_name to name if needed
+        await client.query(`
+          ALTER TABLE customers RENAME COLUMN first_name TO name
+        `).catch((e: any) => console.log('Rename error:', e.message));
+        
+        // Remove last_name if exists  
+        await client.query(`
+          ALTER TABLE customers DROP COLUMN IF EXISTS last_name
+        `).catch((e: any) => console.log('Drop error:', e.message));
+      }
+      
+      // Ensure proper constraints
+      await client.query(`
+        ALTER TABLE customers 
+        ALTER COLUMN name SET NOT NULL,
+        ALTER COLUMN name TYPE VARCHAR(100)
+      `).catch((e: any) => console.log('Constraint error:', e.message));
+      
+      // Get final schema
+      const finalSchema = await client.query(`
+        SELECT column_name, data_type, is_nullable 
+        FROM information_schema.columns 
+        WHERE table_name = 'customers' 
+        ORDER BY ordinal_position
+      `);
+      
+      res.send(`
+        <html>
+        <body style="font-family: Arial; padding: 20px;">
+          <h1 style="color: green;">✅ Customers table fixed!</h1>
+          <h3>Original schema:</h3>
+          <pre>${JSON.stringify(schema.rows, null, 2)}</pre>
+          <h3>Final schema:</h3>
+          <pre>${JSON.stringify(finalSchema.rows, null, 2)}</pre>
+          <hr>
+          <p>Čas: ${new Date().toLocaleString('sk-SK')}</p>
+        </body>
+        </html>
+      `);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Fix customers error:', error);
+    res.send(`
+      <html>
+      <body style="font-family: Arial; padding: 20px; text-align: center;">
+        <h1 style="color: red;">❌ Chyba</h1>
+        <p>Nepodarilo sa opraviť customers tabuľku</p>
+        <pre>${error}</pre>
+      </body>
+      </html>
+    `);
+  }
+});
+
 export default router; 
