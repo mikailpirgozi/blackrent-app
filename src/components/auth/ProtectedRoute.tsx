@@ -19,18 +19,21 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { state, hasPermission } = useAuth();
 
-  // Ak nie je prihlásený, presmeruj na login
-  if (!state.isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Ak je loading, zobraz loading
+  // NAJPRV: Ak je loading (session restore prebieha), zobraz loading
   if (state.isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <CircularProgress />
+        <Typography variant="body2" sx={{ ml: 2 }}>
+          Overujem prihlásenie...
+        </Typography>
       </Box>
     );
+  }
+
+  // POTOM: Ak nie je prihlásený (po dokončení loading), presmeruj na login
+  if (!state.isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
   // Kontrola oprávnení
