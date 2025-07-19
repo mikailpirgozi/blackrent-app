@@ -21,7 +21,7 @@ import { sk } from 'date-fns/locale';
 import RentalForm from './RentalForm';
 
 export default function RentalList() {
-  const { state, dispatch } = useApp();
+  const { state, createRental, updateRental, deleteRental } = useApp();
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
@@ -39,21 +39,31 @@ export default function RentalList() {
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Naozaj chcete vymazať tento prenájom?')) {
-      dispatch({ type: 'DELETE_RENTAL', payload: id });
+      try {
+        await deleteRental(id);
+        console.log('Prenájom úspešne vymazaný');
+      } catch (error) {
+        console.error('Chyba pri mazaní prenájmu:', error);
+        alert('Chyba pri mazaní prenájmu. Skúste to znovu.');
+      }
     }
   };
 
   const handleSave = async (rental: Rental) => {
     try {
       if (editingRental) {
-        dispatch({ type: 'UPDATE_RENTAL', payload: rental });
+        await updateRental(rental);
+        alert('Prenájom bol úspešne aktualizovaný!');
       } else {
-        dispatch({ type: 'ADD_RENTAL', payload: rental });
+        await createRental(rental);
+        alert('Prenájom bol úspešne pridaný!');
       }
       setOpenDialog(false);
       setEditingRental(null);
     } catch (error) {
       console.error('Chyba pri ukladaní prenájmu:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Neznáma chyba';
+      alert(`Chyba pri ukladaní prenájmu: ${errorMessage}`);
     }
   };
 
