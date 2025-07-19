@@ -62,7 +62,7 @@ const getExpiryStatus = (validTo: Date) => {
 };
 
 export default function InsuranceList() {
-  const { state, dispatch } = useApp();
+  const { state, dispatch, createInsurance } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -91,14 +91,21 @@ export default function InsuranceList() {
     }
   };
 
-  const handleSave = (insurance: Insurance) => {
-    if (editingInsurance) {
-      dispatch({ type: 'UPDATE_INSURANCE', payload: insurance });
-    } else {
-      dispatch({ type: 'ADD_INSURANCE', payload: insurance });
+  const handleSave = async (insurance: Insurance) => {
+    try {
+      if (editingInsurance) {
+        // TODO: Implementovať updateInsurance API
+        dispatch({ type: 'UPDATE_INSURANCE', payload: insurance });
+      } else {
+        // Volaj API pre vytvorenie poistky
+        await createInsurance(insurance);
+      }
+      setOpenDialog(false);
+      setEditingInsurance(null);
+    } catch (error) {
+      console.error('Chyba pri ukladaní poistky:', error);
+      alert('Chyba pri ukladaní poistky: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
     }
-    setOpenDialog(false);
-    setEditingInsurance(null);
   };
 
   const expiringInsurances = state.insurances.filter(insurance => {

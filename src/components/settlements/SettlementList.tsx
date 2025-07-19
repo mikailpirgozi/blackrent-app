@@ -39,7 +39,7 @@ import SettlementDetail from './SettlementDetail';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function SettlementList() {
-  const { state, dispatch } = useApp();
+  const { state, dispatch, createSettlement } = useApp();
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
   const [filterCompany, setFilterCompany] = useState('');
@@ -64,57 +64,69 @@ export default function SettlementList() {
     }
   };
 
-  const generateSettlement = () => {
+  const generateSettlement = async () => {
     if (!selectedCompany) {
       alert('Vyberte firmu pre vyúčtovanie');
       return;
     }
 
-    const from = new Date(fromDate);
-    const to = new Date(toDate);
+    try {
+      const from = new Date(fromDate);
+      const to = new Date(toDate);
 
-    // Filtrujeme prenájmy podľa firmy a dátumu
-    const filteredRentals = state.rentals.filter(rental => {
-      const rentalDate = new Date(rental.startDate);
-      return rentalDate >= from && 
-             rentalDate <= to && 
-             rental.vehicle?.company === selectedCompany;
-    });
+      // Filtrujeme prenájmy podľa firmy a dátumu
+      const filteredRentals = state.rentals.filter(rental => {
+        const rentalDate = new Date(rental.startDate);
+        return rentalDate >= from && 
+               rentalDate <= to && 
+               rental.vehicle?.company === selectedCompany;
+      });
 
-    // Filtrujeme náklady pre vybranú firmu
-    const filteredExpenses = state.expenses.filter(expense => {
-      const expenseDate = new Date(expense.date);
-      return expenseDate >= from && 
-             expenseDate <= to && 
-             expense.company === selectedCompany;
-    });
+      // Filtrujeme náklady pre vybranú firmu
+      const filteredExpenses = state.expenses.filter(expense => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate >= from && 
+               expenseDate <= to && 
+               expense.company === selectedCompany;
+      });
 
-    // Počítame podľa spôsobov platby
-    const rentalsByPaymentMethod = {
-      cash: filteredRentals.filter(r => r.paymentMethod === 'cash'),
-      bank_transfer: filteredRentals.filter(r => r.paymentMethod === 'bank_transfer'),
-      vrp: filteredRentals.filter(r => r.paymentMethod === 'vrp'),
-      direct_to_owner: filteredRentals.filter(r => r.paymentMethod === 'direct_to_owner'),
-    };
+      // Počítame podľa spôsobov platby
+      const rentalsByPaymentMethod = {
+        cash: filteredRentals.filter(r => r.paymentMethod === 'cash'),
+        bank_transfer: filteredRentals.filter(r => r.paymentMethod === 'bank_transfer'),
+        vrp: filteredRentals.filter(r => r.paymentMethod === 'vrp'),
+        direct_to_owner: filteredRentals.filter(r => r.paymentMethod === 'direct_to_owner'),
+      };
 
-    const totalIncome = filteredRentals.reduce((sum, rental) => sum + rental.totalPrice, 0);
-    const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const totalCommission = filteredRentals.reduce((sum, rental) => sum + rental.commission, 0);
-    const profit = totalIncome - totalExpenses - totalCommission;
+      const totalIncome = filteredRentals.reduce((sum, rental) => sum + rental.totalPrice, 0);
+      const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const totalCommission = filteredRentals.reduce((sum, rental) => sum + rental.commission, 0);
+      const profit = totalIncome - totalExpenses - totalCommission;
 
-    const newSettlement: Settlement = {
-      id: uuidv4(),
-      period: { from, to },
-      rentals: filteredRentals,
-      expenses: filteredExpenses,
-      totalIncome,
-      totalExpenses,
-      totalCommission,
-      profit,
-      company: selectedCompany,
-    };
+      const newSettlement: Settlement = {
+        id: uuidv4(),
+        period: { from, to },
+        rentals: filteredRentals,
+        expenses: filteredExpenses,
+        totalIncome,
+        totalExpenses,
+        totalCommission,
+        profit,
+        company: selectedCompany,
+      };
 
-    dispatch({ type: 'ADD_SETTLEMENT', payload: newSettlement });
+      // Volaj API pre vytvorenie vyúčtovania
+      await createSettlement(newSettlement);
+      
+      // Reset formulára po úspešnom vytvorení
+      setSelectedCompany('');
+      setFromDate(format(new Date().setDate(1), 'yyyy-MM-dd'));
+      setToDate(format(new Date(), 'yyyy-MM-dd'));
+      
+    } catch (error) {
+      console.error('Chyba pri generovaní vyúčtovania:', error);
+      alert('Chyba pri generovaní vyúčtovania: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
+    }
   };
 
   const filteredSettlements = state.settlements.filter(settlement => {
