@@ -62,23 +62,32 @@ export default function RentalList() {
   const loadProtocolsForRental = async (rentalId: string) => {
     if (loadingProtocols.includes(rentalId)) return;
     
+    console.log('🔍 loadProtocolsForRental - začínam načítanie pre:', rentalId);
     setLoadingProtocols(prev => [...prev, rentalId]);
     try {
       const data = await apiService.getProtocolsByRental(rentalId);
+      console.log('📋 API odpoveď pre', rentalId, ':', data);
       
       // Bezpečné destructuring s fallback
       const handoverProtocols = data?.handoverProtocols || [];
       const returnProtocols = data?.returnProtocols || [];
       
-      setProtocols(prev => ({
-        ...prev,
-        [rentalId]: {
-          handover: handoverProtocols?.[0] || undefined,
-          return: returnProtocols?.[0] || undefined,
-        }
-      }));
+      console.log('📋 Handover protokoly:', handoverProtocols.length);
+      console.log('📋 Return protokoly:', returnProtocols.length);
+      
+      setProtocols(prev => {
+        const newProtocols = {
+          ...prev,
+          [rentalId]: {
+            handover: handoverProtocols?.[0] || undefined,
+            return: returnProtocols?.[0] || undefined,
+          }
+        };
+        console.log('💾 Ukladám protokoly pre', rentalId, ':', newProtocols[rentalId]);
+        return newProtocols;
+      });
     } catch (error) {
-      console.error('Chyba pri načítaní protokolov:', error);
+      console.error('❌ Chyba pri načítaní protokolov pre', rentalId, ':', error);
       // Nastav prázdne protokoly pri chybe
       setProtocols(prev => ({
         ...prev,
@@ -89,6 +98,7 @@ export default function RentalList() {
       }));
     } finally {
       setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
+      console.log('✅ loadProtocolsForRental - dokončené pre:', rentalId);
     }
   };
 
@@ -259,9 +269,12 @@ export default function RentalList() {
     const loadAllProtocols = async () => {
       if (state.rentals && state.rentals.length > 0) {
         console.log('🔄 Načítavam protokoly pre všetky prenájmy...');
+        console.log('📋 Počet prenájmov:', state.rentals.length);
         for (const rental of state.rentals) {
+          console.log('🔍 Načítavam protokoly pre prenájom:', rental.id, rental.customerName);
           await loadProtocolsForRental(rental.id);
         }
+        console.log('✅ Všetky protokoly načítané');
       }
     };
     
