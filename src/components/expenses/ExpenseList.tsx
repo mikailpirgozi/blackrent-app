@@ -398,6 +398,103 @@ export default function ExpenseList() {
     }
   };
 
+  // Column definitions for ResponsiveTable
+  const columns: ResponsiveTableColumn[] = useMemo(() => [
+    {
+      id: 'description',
+      label: 'Popis',
+      width: { xs: '120px', md: '200px' },
+      render: (value, expense: Expense) => (
+        <Typography variant="body2" fontWeight="bold">
+          {expense.description}
+        </Typography>
+      )
+    },
+    {
+      id: 'amount',
+      label: 'Suma (€)',
+      width: { xs: '80px', md: '100px' },
+      render: (value) => (
+        <Typography variant="body2" fontWeight="bold" color="error.main">
+          {typeof value === 'number' ? value.toFixed(2) : '0.00'} €
+        </Typography>
+      )
+    },
+    {
+      id: 'date',
+      label: 'Dátum',
+      width: { xs: '80px', md: '100px' },
+      render: (value) => {
+        const date = value instanceof Date ? value : new Date(value);
+        return !isNaN(date.getTime()) ? format(date, 'dd.MM.yyyy', { locale: sk }) : 'N/A';
+      }
+    },
+    {
+      id: 'category',
+      label: 'Kategória',
+      width: { xs: '80px', md: '100px' },
+      render: (value: ExpenseCategory) => (
+        <Chip
+          label={getCategoryText(value)}
+          color={getCategoryColor(value) as any}
+          size="small"
+        />
+      )
+    },
+    {
+      id: 'company',
+      label: 'Firma',
+      width: { xs: '100px', md: '120px' },
+      hideOnMobile: true
+    },
+    {
+      id: 'vehicleId',
+      label: 'Vozidlo',
+      width: { xs: '80px', md: '100px' },
+      render: (value, expense: Expense) => {
+        const vehicle = state.vehicles.find(v => v.id === expense.vehicleId);
+        return vehicle ? (
+          <Typography variant="body2" color="text.secondary">
+            {vehicle.licensePlate}
+          </Typography>
+        ) : (
+          <Typography variant="body2" color="text.secondary">-</Typography>
+        );
+      }
+    },
+    {
+      id: 'actions',
+      label: 'Akcie',
+      width: { xs: '100px', md: '120px' },
+      render: (value, expense: Expense) => (
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <IconButton
+            size="small"
+            onClick={(e) => { e.stopPropagation(); handleShowHistory(expense); }}
+            color="info"
+            title="História zmien"
+          >
+            <HistoryIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={(e) => { e.stopPropagation(); handleEdit(expense); }}
+            color="primary"
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={(e) => { e.stopPropagation(); handleDelete(expense.id); }}
+            color="error"
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      )
+    }
+  ], [state.vehicles, handleEdit, handleDelete, handleShowHistory]);
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -827,109 +924,14 @@ export default function ExpenseList() {
           ))}
         </Box>
       ) : (
-        <Card>
-          <CardContent>
-            <TableContainer component={Paper} sx={{ backgroundColor: 'transparent' }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={selected.length === filteredExpenses.length && filteredExpenses.length > 0}
-                        indeterminate={selected.length > 0 && selected.length < filteredExpenses.length}
-                        onChange={e => handleSelectAll(e.target.checked)}
-                      />
-                    </TableCell>
-                    <TableCell>Popis</TableCell>
-                    <TableCell>Suma (€)</TableCell>
-                    <TableCell>Dátum</TableCell>
-                    <TableCell>Kategória</TableCell>
-                    <TableCell>Firma</TableCell>
-                    <TableCell>Vozidlo</TableCell>
-                    <TableCell>Poznámka</TableCell>
-                    <TableCell>Akcie</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredExpenses.map((expense) => (
-                    <TableRow key={expense.id} selected={selected.includes(expense.id)}>
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={selected.includes(expense.id)}
-                          onChange={e => handleSelectOne(expense.id, e.target.checked)}
-                        />
-                      </TableCell>
-                      <TableCell>{expense.description}</TableCell>
-                      <TableCell>
-                        {expense.amount > 0 ? 
-                          `${expense.amount.toFixed(2)} €` : 
-                          <span style={{ color: '#999', fontStyle: 'italic' }}>Bez ceny</span>
-                        }
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          try {
-                            const date = expense.date instanceof Date ? expense.date : new Date(expense.date);
-                            return isNaN(date.getTime()) ? 'Neplatný dátum' : format(date, 'dd.MM.yyyy', { locale: sk });
-                          } catch (error) {
-                            return 'Neplatný dátum';
-                          }
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={getCategoryText(expense.category)}
-                          color={getCategoryColor(expense.category) as any}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{expense.company}</TableCell>
-                      <TableCell>
-                        {expense.vehicleId ? 
-                          state.vehicles.find(v => v.id === expense.vehicleId)?.licensePlate || 'N/A' 
-                          : 'Všetky vozidlá'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        {expense.note ? (
-                          <Box sx={{ maxWidth: 200, wordBreak: 'break-word' }}>
-                            {expense.note}
-                          </Box>
-                        ) : (
-                          <span style={{ color: '#999', fontStyle: 'italic' }}>Žiadna poznámka</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={e => { e.stopPropagation(); handleShowHistory(expense); }}
-                          sx={{ color: 'info.main' }}
-                          title="História zmien"
-                        >
-                          <HistoryIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit(expense)}
-                          sx={{ color: 'primary.main' }}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDelete(expense.id)}
-                          sx={{ color: 'error.main' }}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
+        <ResponsiveTable
+          columns={columns}
+          data={filteredExpenses}
+          selectable={true}
+          selected={selected}
+          onSelectionChange={setSelected}
+          emptyMessage="Žiadne náklady"
+        />
       )}
 
       <Dialog
@@ -959,30 +961,27 @@ export default function ExpenseList() {
         <DialogTitle>História zmien nákladu</DialogTitle>
         <DialogContent>
           {(selectedHistoryExpense as any)?.history && (selectedHistoryExpense as any).history.length > 0 ? (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Dátum</TableCell>
-                  <TableCell>Používateľ</TableCell>
-                  <TableCell>Zmeny</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(selectedHistoryExpense as any).history.map((entry: any, idx: number) => (
-                  <TableRow key={idx}>
-                    <TableCell>{new Date(entry.date).toLocaleString()}</TableCell>
-                    <TableCell>{entry.user}</TableCell>
-                    <TableCell>
-                      {entry.changes.map((c: any, i: number) => (
-                        <div key={i}>
-                          <b>{c.field}:</b> {String(c.oldValue)} → {String(c.newValue)}
-                        </div>
-                      ))}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {(selectedHistoryExpense as any).history.map((entry: any, idx: number) => (
+                <Card key={idx} sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {new Date(entry.date).toLocaleString()}
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {entry.user}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    {entry.changes.map((c: any, i: number) => (
+                      <Typography key={i} variant="body2" sx={{ mb: 0.5 }}>
+                        <strong>{c.field}:</strong> {String(c.oldValue)} → {String(c.newValue)}
+                      </Typography>
+                    ))}
+                  </Box>
+                </Card>
+              ))}
+            </Box>
           ) : (
             <Typography>Žiadne zmeny.</Typography>
           )}
