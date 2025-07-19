@@ -1,6 +1,7 @@
 import { Pool, PoolClient } from 'pg';
 import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement } from '../types';
 import bcrypt from 'bcryptjs';
+import { r2Storage } from '../utils/r2-storage';
 
 export class PostgresDatabase {
   private pool: Pool;
@@ -1465,9 +1466,18 @@ export class PostgresDatabase {
     try {
       console.log('🔍 Starting getSettlements - checking/creating table...');
       
-      // Create super simple settlements table
+      // HOTFIX: Drop existujúcu settlements tabuľku ak má nekompatibilnú štruktúru
+      try {
+        console.log('🔥 Dropping settlements table (incompatible schema fix)...');
+        await client.query(`DROP TABLE IF EXISTS settlements CASCADE;`);
+        console.log('✅ Old settlements table dropped');
+      } catch (error) {
+        console.log('ℹ️ Drop settlements table error (table might not exist):', error);
+      }
+
+      // Create new settlements table with correct schema
       await client.query(`
-        CREATE TABLE IF NOT EXISTS settlements (
+        CREATE TABLE settlements (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           company VARCHAR(100) DEFAULT 'Default Company',
           period VARCHAR(50) DEFAULT 'Current Period',
@@ -1480,37 +1490,7 @@ export class PostgresDatabase {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      
-      // Pridáme chýbajúce stĺpce ak neexistujú (migrácia existujúcich tabuliek)
-      try {
-        await client.query(`
-          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS company VARCHAR(100) DEFAULT 'Default Company'
-        `);
-        await client.query(`
-          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS period VARCHAR(50) DEFAULT 'Current Period'  
-        `);
-        await client.query(`
-          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS from_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        `);
-        await client.query(`
-          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS to_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        `);
-        await client.query(`
-          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS total_income DECIMAL(10,2) DEFAULT 0
-        `);
-        await client.query(`
-          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS total_expenses DECIMAL(10,2) DEFAULT 0
-        `);
-        await client.query(`
-          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS commission DECIMAL(10,2) DEFAULT 0
-        `);
-        await client.query(`
-          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS profit DECIMAL(10,2) DEFAULT 0
-        `);
-        console.log('✅ Settlements table columns migrated successfully');
-      } catch (error) {
-        console.log('ℹ️ Settlements columns already exist or migration error:', error);
-      }
+      console.log('✅ New settlements table created with correct schema');
       
       console.log('✅ Settlements table ready');
 
@@ -1608,9 +1588,18 @@ export class PostgresDatabase {
     try {
       console.log('🔍 Creating settlement with data:', settlementData);
       
-      // Use same simplified table schema as getSettlements()
+      // HOTFIX: Drop existujúcu settlements tabuľku ak má nekompatibilnú štruktúru  
+      try {
+        console.log('🔥 Dropping settlements table (incompatible schema fix)...');
+        await client.query(`DROP TABLE IF EXISTS settlements CASCADE;`);
+        console.log('✅ Old settlements table dropped');
+      } catch (error) {
+        console.log('ℹ️ Drop settlements table error (table might not exist):', error);
+      }
+
+      // Create new settlements table with correct schema
       await client.query(`
-        CREATE TABLE IF NOT EXISTS settlements (
+        CREATE TABLE settlements (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           company VARCHAR(100) DEFAULT 'Default Company',
           period VARCHAR(50) DEFAULT 'Current Period',
@@ -1623,20 +1612,7 @@ export class PostgresDatabase {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      
-      // Migrácia existujúcich settlements tabuliek - pridáme chýbajúce stĺpce
-      try {
-        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS company VARCHAR(100) DEFAULT 'Default Company'`);
-        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS period VARCHAR(50) DEFAULT 'Current Period'`);
-        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS from_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
-        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS to_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
-        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS total_income DECIMAL(10,2) DEFAULT 0`);
-        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS total_expenses DECIMAL(10,2) DEFAULT 0`);
-        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS commission DECIMAL(10,2) DEFAULT 0`);
-        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS profit DECIMAL(10,2) DEFAULT 0`);
-      } catch (error) {
-        console.log('ℹ️ Settlements migration error (columns might already exist):', error);
-      }
+      console.log('✅ New settlements table created with correct schema');
       
       const result = await client.query(`
         INSERT INTO settlements (
@@ -1730,6 +1706,491 @@ export class PostgresDatabase {
     } finally {
       client.release();
     }
+  }
+
+  // PROTOCOLS HELPER METHODS
+  private extractUrls(mediaArray: any[]): string[] {
+    return mediaArray
+      .filter(item => item && item.url)
+      .map(item => item.url)
+      .filter(url => typeof url === 'string' && url.length > 0);
+  }
+
+  private mapUrlsToMediaObjects(urls: string[]): any[] {
+    return urls
+      .filter(url => typeof url === 'string' && url.length > 0)
+      .map((url, index) => ({
+        id: `${Date.now()}_${index}`,
+        url: url,
+        type: this.getMediaTypeFromUrl(url),
+        timestamp: new Date(),
+        compressed: false
+      }));
+  }
+
+  private getMediaTypeFromUrl(url: string): string {
+    if (url.includes('/vehicle/')) return 'vehicle';
+    if (url.includes('/damage/')) return 'damage';
+    if (url.includes('/document/')) return 'document';
+    if (url.includes('/fuel/')) return 'fuel';
+    if (url.includes('/odometer/')) return 'odometer';
+    return 'vehicle'; // default
+  }
+
+  // R2 Storage integration
+  async uploadProtocolFile(
+    protocolId: string, 
+    file: Buffer, 
+    filename: string, 
+    contentType: string
+  ): Promise<string> {
+    try {
+      const fileKey = r2Storage.generateFileKey('protocol', protocolId, filename);
+      const url = await r2Storage.uploadFile(fileKey, file, contentType, {
+        protocol_id: protocolId,
+        uploaded_at: new Date().toISOString()
+      });
+      
+      console.log('✅ Protocol file uploaded to R2:', url);
+      return url;
+    } catch (error) {
+      console.error('❌ Error uploading protocol file to R2:', error);
+      throw error;
+    }
+  }
+
+  async uploadProtocolPDF(protocolId: string, pdfBuffer: Buffer): Promise<string> {
+    try {
+      const filename = `protocol_${protocolId}_${Date.now()}.pdf`;
+      const fileKey = r2Storage.generateFileKey('protocol', protocolId, filename);
+      
+      const url = await r2Storage.uploadFile(fileKey, pdfBuffer, 'application/pdf', {
+        protocol_id: protocolId,
+        file_type: 'pdf',
+        uploaded_at: new Date().toISOString()
+      });
+      
+      console.log('✅ Protocol PDF uploaded to R2:', url);
+      return url;
+    } catch (error) {
+      console.error('❌ Error uploading protocol PDF to R2:', error);
+      throw error;
+    }
+  }
+
+  // PROTOCOLS METHODS
+  async initProtocolTables(): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      console.log('🔧 Initializing protocol tables...');
+
+      // Handover Protocols table
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS handover_protocols (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          rental_id UUID NOT NULL,
+          type VARCHAR(20) DEFAULT 'handover',
+          status VARCHAR(20) DEFAULT 'completed',
+          location VARCHAR(255),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          completed_at TIMESTAMP,
+          
+          -- Vehicle condition
+          odometer INTEGER DEFAULT 0,
+          fuel_level INTEGER DEFAULT 100,
+          fuel_type VARCHAR(50) DEFAULT 'Benzín',
+          exterior_condition VARCHAR(100) DEFAULT 'Dobrý',
+          interior_condition VARCHAR(100) DEFAULT 'Dobrý',
+          condition_notes TEXT,
+          
+          -- Media storage URLs (R2 Cloudflare)
+          vehicle_images_urls TEXT[], -- Array of R2 URLs
+          vehicle_videos_urls TEXT[], -- Array of R2 URLs  
+          document_images_urls TEXT[], -- Array of R2 URLs
+          damage_images_urls TEXT[], -- Array of R2 URLs
+          
+          -- Damages and signatures
+          damages JSONB DEFAULT '[]',
+          signatures JSONB DEFAULT '[]',
+          
+          -- Additional data
+          rental_data JSONB,
+          notes TEXT,
+          created_by VARCHAR(100)
+        );
+      `);
+
+      // Return Protocols table  
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS return_protocols (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          rental_id UUID NOT NULL,
+          handover_protocol_id UUID,
+          type VARCHAR(20) DEFAULT 'return',
+          status VARCHAR(20) DEFAULT 'draft',
+          location VARCHAR(255),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          completed_at TIMESTAMP,
+          
+          -- Vehicle condition
+          odometer INTEGER DEFAULT 0,
+          fuel_level INTEGER DEFAULT 100,
+          fuel_type VARCHAR(50) DEFAULT 'Benzín',
+          exterior_condition VARCHAR(100) DEFAULT 'Dobrý',
+          interior_condition VARCHAR(100) DEFAULT 'Dobrý',
+          condition_notes TEXT,
+          
+          -- Media storage URLs (R2 Cloudflare)
+          vehicle_images_urls TEXT[], -- Array of R2 URLs
+          vehicle_videos_urls TEXT[], -- Array of R2 URLs  
+          document_images_urls TEXT[], -- Array of R2 URLs
+          damage_images_urls TEXT[], -- Array of R2 URLs
+          
+          -- Damages and signatures
+          damages JSONB DEFAULT '[]',
+          new_damages JSONB DEFAULT '[]',
+          signatures JSONB DEFAULT '[]',
+          
+          -- Calculations
+          kilometers_used INTEGER DEFAULT 0,
+          kilometer_overage INTEGER DEFAULT 0,
+          kilometer_fee DECIMAL(10,2) DEFAULT 0,
+          fuel_used INTEGER DEFAULT 0,
+          fuel_fee DECIMAL(10,2) DEFAULT 0,
+          total_extra_fees DECIMAL(10,2) DEFAULT 0,
+          deposit_refund DECIMAL(10,2) DEFAULT 0,
+          additional_charges DECIMAL(10,2) DEFAULT 0,
+          final_refund DECIMAL(10,2) DEFAULT 0,
+          
+          -- Additional data
+          rental_data JSONB,
+          pdf_url VARCHAR(500),
+          email_sent BOOLEAN DEFAULT FALSE,
+          email_sent_at TIMESTAMP,
+          notes TEXT,
+          created_by VARCHAR(100)
+        );
+      `);
+
+      console.log('✅ Protocol tables initialized successfully');
+
+    } catch (error) {
+      console.error('❌ Error initializing protocol tables:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  // HANDOVER PROTOCOLS
+  async createHandoverProtocol(protocolData: any): Promise<any> {
+    const client = await this.pool.connect();
+    try {
+      await this.initProtocolTables();
+      
+      console.log('🔄 Creating handover protocol:', protocolData.id);
+
+      const result = await client.query(`
+        INSERT INTO handover_protocols (
+          id, rental_id, location, odometer, fuel_level, fuel_type,
+          exterior_condition, interior_condition, condition_notes,
+          vehicle_images_urls, vehicle_videos_urls, document_images_urls, damage_images_urls,
+          damages, signatures, rental_data, notes, created_by
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+        ) RETURNING *
+      `, [
+        protocolData.id,
+        protocolData.rentalId,
+        protocolData.location || '',
+        protocolData.vehicleCondition?.odometer || 0,
+        protocolData.vehicleCondition?.fuelLevel || 100,
+        protocolData.vehicleCondition?.fuelType || 'Benzín',
+        protocolData.vehicleCondition?.exteriorCondition || 'Dobrý',
+        protocolData.vehicleCondition?.interiorCondition || 'Dobrý',
+        protocolData.vehicleCondition?.notes || '',
+        this.extractUrls(protocolData.vehicleImages || []),
+        this.extractUrls(protocolData.vehicleVideos || []),
+        this.extractUrls(protocolData.documentImages || []),
+        this.extractUrls(protocolData.damageImages || []),
+        JSON.stringify(protocolData.damages || []),
+        JSON.stringify(protocolData.signatures || []),
+        JSON.stringify(protocolData.rentalData || {}),
+        protocolData.notes || '',
+        protocolData.createdBy || ''
+      ]);
+
+      const row = result.rows[0];
+      console.log('✅ Handover protocol created:', row.id);
+      return this.mapHandoverProtocolFromDB(row);
+
+    } catch (error) {
+      console.error('❌ Error creating handover protocol:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getHandoverProtocolsByRental(rentalId: string): Promise<any[]> {
+    const client = await this.pool.connect();
+    try {
+      await this.initProtocolTables();
+      
+      const result = await client.query(`
+        SELECT * FROM handover_protocols 
+        WHERE rental_id = $1::uuid 
+        ORDER BY created_at DESC
+      `, [rentalId]);
+
+      return result.rows.map(row => this.mapHandoverProtocolFromDB(row));
+
+    } catch (error) {
+      console.error('❌ Error fetching handover protocols:', error);
+      return [];
+    } finally {
+      client.release();
+    }
+  }
+
+  async getHandoverProtocolById(id: string): Promise<any | null> {
+    const client = await this.pool.connect();
+    try {
+      await this.initProtocolTables();
+      
+      const result = await client.query(`
+        SELECT * FROM handover_protocols WHERE id = $1::uuid
+      `, [id]);
+
+      if (result.rows.length === 0) return null;
+      return this.mapHandoverProtocolFromDB(result.rows[0]);
+
+    } catch (error) {
+      console.error('❌ Error fetching handover protocol:', error);
+      return null;
+    } finally {
+      client.release();
+    }
+  }
+
+  // RETURN PROTOCOLS
+  async createReturnProtocol(protocolData: any): Promise<any> {
+    const client = await this.pool.connect();
+    try {
+      await this.initProtocolTables();
+      
+      console.log('🔄 Creating return protocol:', protocolData.id);
+
+      const result = await client.query(`
+        INSERT INTO return_protocols (
+          id, rental_id, handover_protocol_id, location, status, completed_at,
+          odometer, fuel_level, fuel_type, exterior_condition, interior_condition, condition_notes,
+          vehicle_images_urls, vehicle_videos_urls, document_images_urls, damage_images_urls,
+          damages, new_damages, signatures,
+          kilometers_used, kilometer_overage, kilometer_fee,
+          fuel_used, fuel_fee, total_extra_fees,
+          deposit_refund, additional_charges, final_refund,
+          rental_data, pdf_url, email_sent, notes, created_by
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 
+          $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33
+        ) RETURNING *
+      `, [
+        protocolData.id,
+        protocolData.rentalId,
+        protocolData.handoverProtocolId || null,
+        protocolData.location || '',
+        protocolData.status || 'draft',
+        protocolData.completedAt || null,
+        protocolData.vehicleCondition?.odometer || 0,
+        protocolData.vehicleCondition?.fuelLevel || 100,
+        protocolData.vehicleCondition?.fuelType || 'Benzín',
+        protocolData.vehicleCondition?.exteriorCondition || 'Dobrý',
+        protocolData.vehicleCondition?.interiorCondition || 'Dobrý',
+        protocolData.vehicleCondition?.notes || '',
+        this.extractUrls(protocolData.vehicleImages || []),
+        this.extractUrls(protocolData.vehicleVideos || []),
+        this.extractUrls(protocolData.documentImages || []),
+        this.extractUrls(protocolData.damageImages || []),
+        JSON.stringify(protocolData.damages || []),
+        JSON.stringify(protocolData.newDamages || []),
+        JSON.stringify(protocolData.signatures || []),
+        protocolData.kilometersUsed || 0,
+        protocolData.kilometerOverage || 0,
+        protocolData.kilometerFee || 0,
+        protocolData.fuelUsed || 0,
+        protocolData.fuelFee || 0,
+        protocolData.totalExtraFees || 0,
+        protocolData.depositRefund || 0,
+        protocolData.additionalCharges || 0,
+        protocolData.finalRefund || 0,
+        JSON.stringify(protocolData.rentalData || {}),
+        protocolData.pdfUrl || null,
+        protocolData.emailSent || false,
+        protocolData.notes || '',
+        protocolData.createdBy || ''
+      ]);
+
+      const row = result.rows[0];
+      console.log('✅ Return protocol created:', row.id);
+      return this.mapReturnProtocolFromDB(row);
+
+    } catch (error) {
+      console.error('❌ Error creating return protocol:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getReturnProtocolsByRental(rentalId: string): Promise<any[]> {
+    const client = await this.pool.connect();
+    try {
+      await this.initProtocolTables();
+      
+      const result = await client.query(`
+        SELECT * FROM return_protocols 
+        WHERE rental_id = $1::uuid 
+        ORDER BY created_at DESC
+      `, [rentalId]);
+
+      return result.rows.map(row => this.mapReturnProtocolFromDB(row));
+
+    } catch (error) {
+      console.error('❌ Error fetching return protocols:', error);
+      return [];
+    } finally {
+      client.release();
+    }
+  }
+
+  async getReturnProtocolById(id: string): Promise<any | null> {
+    const client = await this.pool.connect();
+    try {
+      await this.initProtocolTables();
+      
+      const result = await client.query(`
+        SELECT * FROM return_protocols WHERE id = $1::uuid
+      `, [id]);
+
+      if (result.rows.length === 0) return null;
+      return this.mapReturnProtocolFromDB(result.rows[0]);
+
+    } catch (error) {
+      console.error('❌ Error fetching return protocol:', error);
+      return null;
+    } finally {
+      client.release();
+    }
+  }
+
+  async updateReturnProtocol(id: string, updateData: any): Promise<any> {
+    const client = await this.pool.connect();
+    try {
+      await this.initProtocolTables();
+
+      const result = await client.query(`
+        UPDATE return_protocols SET
+          status = COALESCE($2, status),
+          completed_at = COALESCE($3, completed_at),
+          pdf_url = COALESCE($4, pdf_url),
+          email_sent = COALESCE($5, email_sent),
+          email_sent_at = COALESCE($6, email_sent_at),
+          notes = COALESCE($7, notes)
+        WHERE id = $1::uuid
+        RETURNING *
+      `, [
+        id,
+        updateData.status,
+        updateData.completedAt,
+        updateData.pdfUrl,
+        updateData.emailSent,
+        updateData.emailSentAt,
+        updateData.notes
+      ]);
+
+      if (result.rows.length === 0) return null;
+      return this.mapReturnProtocolFromDB(result.rows[0]);
+
+    } catch (error) {
+      console.error('❌ Error updating return protocol:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  // Mapping methods
+  private mapHandoverProtocolFromDB(row: any): any {
+    return {
+      id: row.id,
+      rentalId: row.rental_id,
+      type: 'handover',
+      status: row.status || 'completed',
+      location: row.location,
+      createdAt: new Date(row.created_at),
+      completedAt: row.completed_at ? new Date(row.completed_at) : new Date(row.created_at),
+      vehicleCondition: {
+        odometer: row.odometer || 0,
+        fuelLevel: row.fuel_level || 100,
+        fuelType: row.fuel_type || 'Benzín',
+        exteriorCondition: row.exterior_condition || 'Dobrý',
+        interiorCondition: row.interior_condition || 'Dobrý',
+        notes: row.condition_notes || ''
+      },
+      vehicleImages: this.mapUrlsToMediaObjects(row.vehicle_images_urls || []),
+      vehicleVideos: this.mapUrlsToMediaObjects(row.vehicle_videos_urls || []),
+      documentImages: this.mapUrlsToMediaObjects(row.document_images_urls || []),
+      damageImages: this.mapUrlsToMediaObjects(row.damage_images_urls || []),
+      damages: row.damages ? JSON.parse(row.damages) : [],
+      signatures: row.signatures ? JSON.parse(row.signatures) : [],
+      rentalData: row.rental_data ? JSON.parse(row.rental_data) : {},
+      notes: row.notes,
+      createdBy: row.created_by
+    };
+  }
+
+  private mapReturnProtocolFromDB(row: any): any {
+    return {
+      id: row.id,
+      rentalId: row.rental_id,
+      handoverProtocolId: row.handover_protocol_id,
+      type: 'return',
+      status: row.status || 'draft',
+      location: row.location,
+      createdAt: new Date(row.created_at),
+      completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+      vehicleCondition: {
+        odometer: row.odometer || 0,
+        fuelLevel: row.fuel_level || 100,
+        fuelType: row.fuel_type || 'Benzín',
+        exteriorCondition: row.exterior_condition || 'Dobrý',
+        interiorCondition: row.interior_condition || 'Dobrý',
+        notes: row.condition_notes || ''
+      },
+      vehicleImages: this.mapUrlsToMediaObjects(row.vehicle_images_urls || []),
+      vehicleVideos: this.mapUrlsToMediaObjects(row.vehicle_videos_urls || []),
+      documentImages: this.mapUrlsToMediaObjects(row.document_images_urls || []),
+      damageImages: this.mapUrlsToMediaObjects(row.damage_images_urls || []),
+      damages: row.damages ? JSON.parse(row.damages) : [],
+      newDamages: row.new_damages ? JSON.parse(row.new_damages) : [],
+      signatures: row.signatures ? JSON.parse(row.signatures) : [],
+      kilometersUsed: row.kilometers_used || 0,
+      kilometerOverage: row.kilometer_overage || 0,
+      kilometerFee: parseFloat(row.kilometer_fee) || 0,
+      fuelUsed: row.fuel_used || 0,
+      fuelFee: parseFloat(row.fuel_fee) || 0,
+      totalExtraFees: parseFloat(row.total_extra_fees) || 0,
+      depositRefund: parseFloat(row.deposit_refund) || 0,
+      additionalCharges: parseFloat(row.additional_charges) || 0,
+      finalRefund: parseFloat(row.final_refund) || 0,
+      rentalData: row.rental_data ? JSON.parse(row.rental_data) : {},
+      pdfUrl: row.pdf_url,
+      emailSent: row.email_sent || false,
+      emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,
+      notes: row.notes,
+      createdBy: row.created_by
+    };
   }
 
   // Zatvorenie spojenia

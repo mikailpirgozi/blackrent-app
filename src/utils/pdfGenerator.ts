@@ -7,6 +7,8 @@ export interface PDFGeneratorOptions {
   format?: 'a4' | 'letter';
   orientation?: 'portrait' | 'landscape';
   quality?: number;
+  saveToR2?: boolean; // Upload to R2 instead of local download
+  downloadLocal?: boolean; // Also download locally (default: true)
 }
 
 export class PDFGenerator {
@@ -335,10 +337,49 @@ export class PDFGenerator {
         heightLeft -= pdfHeight;
       }
 
-      // Save PDF
-      pdf.save(filename);
+      // Save PDF - either download locally or upload to R2 (or both)
+      const {
+        saveToR2 = false,
+        downloadLocal = true
+      } = options;
 
-      console.log('✅ PDF generated successfully:', filename);
+      if (downloadLocal) {
+        pdf.save(filename);
+        console.log('✅ PDF downloaded locally:', filename);
+      }
+
+      // Upload to R2 if requested
+      if (saveToR2) {
+        try {
+          // Get PDF as blob for upload
+          const pdfBlob = pdf.output('blob');
+          const arrayBuffer = await pdfBlob.arrayBuffer();
+          const buffer = new Uint8Array(arrayBuffer);
+
+          // Upload to backend API which will handle R2 upload
+          const formData = new FormData();
+          formData.append('pdf', new Blob([buffer], { type: 'application/pdf' }), filename);
+          formData.append('protocolId', protocol.id);
+
+          const response = await fetch('/api/protocols/upload-pdf', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log('✅ PDF uploaded to R2:', result.url);
+            return result.url;
+          } else {
+            throw new Error('Failed to upload PDF to R2');
+          }
+        } catch (uploadError) {
+          console.error('❌ Error uploading PDF to R2:', uploadError);
+          // Don't fail the entire operation if upload fails
+        }
+      }
+
+      console.log('✅ PDF generated successfully');
 
     } catch (error) {
       console.error('❌ Error generating PDF:', error);

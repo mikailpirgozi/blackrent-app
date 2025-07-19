@@ -1,26 +1,33 @@
 import express from 'express';
+import multer from 'multer';
 import { HandoverProtocol, ReturnProtocol } from '../types';
+import { postgresDatabase } from '../models/postgres-database';
 
 const router = express.Router();
 
-// In-memory storage for protocols (temporary)
-let handoverProtocols: HandoverProtocol[] = [];
-let returnProtocols: ReturnProtocol[] = [];
+// Multer config for file uploads
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 // Get all protocols for a rental
 router.get('/rental/:rentalId', async (req, res) => {
   try {
     const { rentalId } = req.params;
+    console.log('📋 Fetching protocols for rental:', rentalId);
     
-    const rentalHandoverProtocols = handoverProtocols.filter(p => p.rentalId === rentalId);
-    const rentalReturnProtocols = returnProtocols.filter(p => p.rentalId === rentalId);
+    const [rentalHandoverProtocols, rentalReturnProtocols] = await Promise.all([
+      postgresDatabase.getHandoverProtocolsByRental(rentalId),
+      postgresDatabase.getReturnProtocolsByRental(rentalId)
+    ]);
     
     res.json({ 
       handoverProtocols: rentalHandoverProtocols, 
       returnProtocols: rentalReturnProtocols 
     });
   } catch (error) {
-    console.error('Error fetching protocols:', error);
+    console.error('❌ Error fetching protocols:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -28,12 +35,17 @@ router.get('/rental/:rentalId', async (req, res) => {
 // Create handover protocol
 router.post('/handover', async (req, res) => {
   try {
-    const protocol: HandoverProtocol = req.body;
-    handoverProtocols.push(protocol);
+    const protocolData: HandoverProtocol = req.body;
+    console.log('📝 Creating handover protocol:', protocolData.id);
     
-    res.status(201).json({ message: 'Handover protocol created successfully', protocol });
+    const protocol = await postgresDatabase.createHandoverProtocol(protocolData);
+    
+    res.status(201).json({ 
+      message: 'Handover protocol created successfully', 
+      protocol 
+    });
   } catch (error) {
-    console.error('Error creating handover protocol:', error);
+    console.error('❌ Error creating handover protocol:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -41,12 +53,17 @@ router.post('/handover', async (req, res) => {
 // Create return protocol
 router.post('/return', async (req, res) => {
   try {
-    const protocol: ReturnProtocol = req.body;
-    returnProtocols.push(protocol);
+    const protocolData: ReturnProtocol = req.body;
+    console.log('📝 Creating return protocol:', protocolData.id);
     
-    res.status(201).json({ message: 'Return protocol created successfully', protocol });
+    const protocol = await postgresDatabase.createReturnProtocol(protocolData);
+    
+    res.status(201).json({ 
+      message: 'Return protocol created successfully', 
+      protocol 
+    });
   } catch (error) {
-    console.error('Error creating return protocol:', error);
+    console.error('❌ Error creating return protocol:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -55,7 +72,9 @@ router.post('/return', async (req, res) => {
 router.get('/handover/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const protocol = handoverProtocols.find(p => p.id === id);
+    console.log('🔍 Fetching handover protocol:', id);
+    
+    const protocol = await postgresDatabase.getHandoverProtocolById(id);
     
     if (!protocol) {
       return res.status(404).json({ error: 'Handover protocol not found' });
@@ -63,7 +82,7 @@ router.get('/handover/:id', async (req, res) => {
     
     res.json(protocol);
   } catch (error) {
-    console.error('Error fetching handover protocol:', error);
+    console.error('❌ Error fetching handover protocol:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -72,7 +91,9 @@ router.get('/handover/:id', async (req, res) => {
 router.get('/return/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const protocol = returnProtocols.find(p => p.id === id);
+    console.log('🔍 Fetching return protocol:', id);
+    
+    const protocol = await postgresDatabase.getReturnProtocolById(id);
     
     if (!protocol) {
       return res.status(404).json({ error: 'Return protocol not found' });
@@ -80,7 +101,7 @@ router.get('/return/:id', async (req, res) => {
     
     res.json(protocol);
   } catch (error) {
-    console.error('Error fetching return protocol:', error);
+    console.error('❌ Error fetching return protocol:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -90,17 +111,14 @@ router.put('/handover/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+    console.log('✏️ Updating handover protocol:', id);
     
-    const index = handoverProtocols.findIndex(p => p.id === id);
-    if (index === -1) {
-      return res.status(404).json({ error: 'Handover protocol not found' });
-    }
+    // For now, we don't have a specific update method for handover protocols
+    // This could be implemented if needed
+    res.status(501).json({ error: 'Update handover protocol not implemented yet' });
     
-    handoverProtocols[index] = { ...handoverProtocols[index], ...updates };
-    
-    res.json({ message: 'Handover protocol updated successfully' });
   } catch (error) {
-    console.error('Error updating handover protocol:', error);
+    console.error('❌ Error updating handover protocol:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -110,17 +128,20 @@ router.put('/return/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+    console.log('✏️ Updating return protocol:', id);
     
-    const index = returnProtocols.findIndex(p => p.id === id);
-    if (index === -1) {
+    const protocol = await postgresDatabase.updateReturnProtocol(id, updates);
+    
+    if (!protocol) {
       return res.status(404).json({ error: 'Return protocol not found' });
     }
     
-    returnProtocols[index] = { ...returnProtocols[index], ...updates };
-    
-    res.json({ message: 'Return protocol updated successfully' });
+    res.json({ 
+      message: 'Return protocol updated successfully',
+      protocol 
+    });
   } catch (error) {
-    console.error('Error updating return protocol:', error);
+    console.error('❌ Error updating return protocol:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -129,17 +150,14 @@ router.put('/return/:id', async (req, res) => {
 router.delete('/handover/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('🗑️ Deleting handover protocol:', id);
     
-    const index = handoverProtocols.findIndex(p => p.id === id);
-    if (index === -1) {
-      return res.status(404).json({ error: 'Handover protocol not found' });
-    }
+    // For now, deletion is not implemented for safety
+    // Could be implemented with proper authorization checks
+    res.status(501).json({ error: 'Delete handover protocol not implemented for safety' });
     
-    handoverProtocols.splice(index, 1);
-    
-    res.json({ message: 'Handover protocol deleted successfully' });
   } catch (error) {
-    console.error('Error deleting handover protocol:', error);
+    console.error('❌ Error deleting handover protocol:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -148,17 +166,14 @@ router.delete('/handover/:id', async (req, res) => {
 router.delete('/return/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('🗑️ Deleting return protocol:', id);
     
-    const index = returnProtocols.findIndex(p => p.id === id);
-    if (index === -1) {
-      return res.status(404).json({ error: 'Return protocol not found' });
-    }
+    // For now, deletion is not implemented for safety
+    // Could be implemented with proper authorization checks
+    res.status(501).json({ error: 'Delete return protocol not implemented for safety' });
     
-    returnProtocols.splice(index, 1);
-    
-    res.json({ message: 'Return protocol deleted successfully' });
   } catch (error) {
-    console.error('Error deleting return protocol:', error);
+    console.error('❌ Error deleting return protocol:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
