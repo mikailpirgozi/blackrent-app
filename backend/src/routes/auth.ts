@@ -389,4 +389,42 @@ router.post('/change-password', authenticateToken, async (req: Request, res: Res
   }
 });
 
+// GET /api/auth/setup-admin - Jednoduchý setup admin používateľa
+router.get('/setup-admin', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🔧 Setup admin používateľa...');
+    
+    // Vytvor hashovane heslo
+    const hashedPassword = await bcrypt.hash('Black123', 12);
+    
+    // Vymaž a vytvor nového admin používateľa
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      // Vymaž starý admin ak existuje
+      await client.query('DELETE FROM users WHERE username = $1', ['admin']);
+      
+      // Vytvor nového admin používateľa
+      await client.query(
+        'INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
+        [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
+      );
+      
+      console.log('✅ Admin používateľ created: admin / Black123');
+      
+      return res.json({
+        success: true,
+        message: 'Admin created successfully (username: admin, password: Black123)'
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('❌ Setup admin error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to setup admin'
+    });
+  }
+});
+
 export default router; 
