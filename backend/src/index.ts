@@ -54,6 +54,18 @@ app.get('/health', (req, res) => {
   });
 });
 
+// API Health endpoint for frontend compatibility
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    success: true,
+    message: 'Blackrent API je funkčné',
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    database: 'PostgreSQL',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Removed: Catch-all route - frontend is on Vercel
 // Railway backend is API-only, no frontend serving
 
