@@ -17,7 +17,7 @@ import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTabl
 import { useApp } from '../../context/AppContext';
 import { Rental } from '../../types';
 import { format } from 'date-fns';
-import { sk } from 'date-fns/locale/sk';
+import { sk } from 'date-fns/locale';
 import RentalForm from './RentalForm';
 
 export default function RentalList() {

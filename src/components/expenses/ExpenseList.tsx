@@ -37,7 +37,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { Expense, ExpenseCategory } from '../../types';
 import { format } from 'date-fns';
-import { sk } from 'date-fns/locale/sk';
+import { sk } from 'date-fns/locale';
 import ExpenseForm from './ExpenseForm';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';

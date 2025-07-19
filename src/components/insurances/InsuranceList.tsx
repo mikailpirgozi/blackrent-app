@@ -45,7 +45,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { Insurance } from '../../types';
 import { format, isAfter, addDays, parseISO } from 'date-fns';
-import { sk } from 'date-fns/locale/sk';
+import { sk } from 'date-fns/locale';
 import InsuranceForm from './InsuranceForm';
 
 const getExpiryStatus = (validTo: Date | string) => {

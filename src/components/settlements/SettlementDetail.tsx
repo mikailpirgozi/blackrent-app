@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { Settlement } from '../../types';
 import { format } from 'date-fns';
-import { sk } from 'date-fns/locale/sk';
+import { sk } from 'date-fns/locale';
 
 interface SettlementDetailProps {
   settlement: Settlement;

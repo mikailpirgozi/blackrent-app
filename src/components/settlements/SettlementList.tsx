@@ -34,7 +34,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { Settlement } from '../../types';
 import { format, parseISO } from 'date-fns';
-import { sk } from 'date-fns/locale/sk';
+import { sk } from 'date-fns/locale';
 import SettlementDetail from './SettlementDetail';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -373,20 +373,11 @@ export default function SettlementList() {
                   <TableRow key={settlement.id}>
                     <TableCell>{settlement.company || 'N/A'}</TableCell>
                     <TableCell>
-                      {(() => {
-                        const formatSafeDate = (date: any) => {
-                          try {
-                            if (!date) return 'N/A';
-                            const dateObj = typeof date === 'string' ? parseISO(date) : date;
-                            if (!dateObj || isNaN(dateObj.getTime())) return 'N/A';
-                            return format(dateObj, 'dd.MM.yyyy', { locale: sk });
-                          } catch (error) {
-                            console.warn('Date formatting error:', error, date);
-                            return 'N/A';
-                          }
-                        };
-                        return `${formatSafeDate(settlement.period.from)} - ${formatSafeDate(settlement.period.to)}`;
-                      })()}
+                      {settlement.period?.from ? (
+                        format(typeof settlement.period.from === 'string' ? parseISO(settlement.period.from) : settlement.period.from, 'dd.MM.yyyy', { locale: sk })
+                      ) : 'N/A'} - {settlement.period?.to ? (
+                        format(typeof settlement.period.to === 'string' ? parseISO(settlement.period.to) : settlement.period.to, 'dd.MM.yyyy', { locale: sk })
+                      ) : 'N/A'}
                     </TableCell>
                     <TableCell>{settlement.totalIncome.toFixed(2)}</TableCell>
                     <TableCell>{settlement.totalExpenses.toFixed(2)}</TableCell>
