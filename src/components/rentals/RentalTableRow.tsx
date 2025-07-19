@@ -19,7 +19,7 @@ import {
 } from '@mui/icons-material';
 import { Rental } from '../../types';
 import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
+import { sk } from 'date-fns/locale/sk';
 
 interface RentalTableRowProps {
   rental: Rental;
