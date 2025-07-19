@@ -67,6 +67,8 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
   const [activeStep, setActiveStep] = useState(0);
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
   
   // Generuj UUID len raz pri vytvorení komponentu
   const [protocolId] = useState(() => uuidv4());
@@ -117,25 +119,47 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     { label: 'Podpisy', description: 'Elektronický podpis s časovou pečiatkou' },
   ];
 
-  // Načítanie údajov o prenájme
+  // Načítanie údajov o prenájme a konceptu
   useEffect(() => {
-    setProtocol(prev => ({ 
-      ...prev, 
-      location: rental.handoverPlace || rental.pickupLocation || 'Miesto prevzatia', // Automatické miesto
-      rentalData: {
-        orderNumber: rental.orderNumber || '',
-        vehicle: rental.vehicle || {} as any,
-        customer: rental.customer || {} as any,
-        startDate: rental.startDate,
-        endDate: rental.endDate,
-        totalPrice: rental.totalPrice,
-        deposit: rental.deposit || 0,
-        currency: 'EUR',
-        allowedKilometers: rental.allowedKilometers || 0,
-        extraKilometerRate: rental.extraKilometerRate || 0.50,
-      }
-    }));
+    // Skús načítať koncept
+    const hasDraft = loadDraft();
+    
+    if (!hasDraft) {
+      // Ak nie je koncept, nastav základné údaje
+      setProtocol(prev => ({ 
+        ...prev, 
+        location: rental.handoverPlace || rental.pickupLocation || 'Miesto prevzatia', // Automatické miesto
+        rentalData: {
+          orderNumber: rental.orderNumber || '',
+          vehicle: rental.vehicle || {} as any,
+          customer: rental.customer || {} as any,
+          startDate: rental.startDate,
+          endDate: rental.endDate,
+          totalPrice: rental.totalPrice,
+          deposit: rental.deposit || 0,
+          currency: 'EUR',
+          allowedKilometers: rental.allowedKilometers || 0,
+          extraKilometerRate: rental.extraKilometerRate || 0.50,
+        }
+      }));
+    }
   }, [rental]);
+
+  // Automatické ukladanie pri zmene protokolu
+  useEffect(() => {
+    if (protocol.location && protocol.vehicleCondition) {
+      triggerAutoSave();
+    }
+  }, [protocol.location, protocol.vehicleCondition, protocol.notes, protocol.damages, protocol.vehicleImages, protocol.documentImages]);
+
+  // Cleanup timer pri unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+      }
+    };
+  }, [autoSaveTimer]);
 
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -143,6 +167,25 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
 
   const handleBack = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
+  };
+
+  const handleStepClick = (step: number) => {
+    setActiveStep(step);
+  };
+
+  const handleClose = () => {
+    // Skontroluj či sú nejaké zmeny
+    const hasChanges = protocol.location || protocol.vehicleCondition?.odometer || protocol.notes || 
+                      (protocol.damages && protocol.damages.length > 0) ||
+                      (protocol.vehicleImages && protocol.vehicleImages.length > 0) ||
+                      (protocol.documentImages && protocol.documentImages.length > 0);
+
+    if (hasChanges) {
+      setShowSaveDialog(true);
+    } else {
+      clearDraft();
+      onClose();
+    }
   };
 
   const handleSave = async () => {
@@ -179,6 +222,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       console.log('ProtocolData:', protocolData);
       
       await onSave(protocolData);
+      clearDraft(); // Vymaž koncept po úspešnom uložení
       onClose();
     } catch (error) {
       console.error('Error saving protocol:', error);
@@ -200,6 +244,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       ...prev,
       damages: [...(prev.damages || []), newDamage],
     }));
+    triggerAutoSave();
   };
 
   const removeDamage = (id: string) => {
@@ -207,6 +252,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       ...prev,
       damages: (prev.damages || []).filter(damage => damage.id !== id),
     }));
+    triggerAutoSave();
   };
 
   const updateDamage = (id: string, field: keyof ProtocolDamage, value: any) => {
@@ -216,6 +262,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         damage.id === id ? { ...damage, [field]: value } : damage
       ),
     }));
+    triggerAutoSave();
   };
 
   const handleVehicleConditionChange = (field: keyof VehicleCondition, value: any) => {
@@ -226,6 +273,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         [field]: value,
       },
     }));
+    triggerAutoSave();
   };
 
   // Funkcie pre fotky
@@ -236,6 +284,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       [`${type}Videos`]: videos,
     }));
     setActivePhotoCapture(null);
+    triggerAutoSave();
   };
 
   // Funkcia pre elektronický podpis
@@ -255,6 +304,61 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       signatures: [...(prev.signatures || []), newSignature],
     }));
     setShowSignaturePad(false);
+    triggerAutoSave();
+  };
+
+  // Automatické ukladanie
+  const triggerAutoSave = () => {
+    // Zruš predchádzajúci timer
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer);
+    }
+
+    // Nastav nový timer na 3 sekundy
+    const timer = setTimeout(() => {
+      saveDraft();
+    }, 3000);
+
+    setAutoSaveTimer(timer);
+  };
+
+  // Uloženie konceptu
+  const saveDraft = async () => {
+    try {
+      const draftData = {
+        ...protocol,
+        status: 'draft',
+        lastSaved: new Date(),
+      };
+      
+      // Ulož do localStorage ako koncept
+      localStorage.setItem(`protocol_draft_${protocolId}`, JSON.stringify(draftData));
+      console.log('💾 Koncept protokolu uložený:', draftData.id);
+    } catch (error) {
+      console.error('Chyba pri ukladaní konceptu:', error);
+    }
+  };
+
+  // Načítanie konceptu
+  const loadDraft = () => {
+    try {
+      const savedDraft = localStorage.getItem(`protocol_draft_${protocolId}`);
+      if (savedDraft) {
+        const draftData = JSON.parse(savedDraft);
+        setProtocol(draftData);
+        console.log('📂 Koncept protokolu načítaný:', draftData.id);
+        return true;
+      }
+    } catch (error) {
+      console.error('Chyba pri načítaní konceptu:', error);
+    }
+    return false;
+  };
+
+  // Vymazanie konceptu
+  const clearDraft = () => {
+    localStorage.removeItem(`protocol_draft_${protocolId}`);
+    console.log('🗑️ Koncept protokolu vymazaný');
   };
 
   const renderStepContent = (step: number) => {
@@ -497,7 +601,10 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                     multiline
                     rows={3}
                     value={protocol.notes || ''}
-                    onChange={(e) => setProtocol(prev => ({ ...prev, notes: e.target.value }))}
+                    onChange={(e) => {
+                      setProtocol(prev => ({ ...prev, notes: e.target.value }));
+                      triggerAutoSave();
+                    }}
                     variant="outlined"
                     fullWidth
                   />
@@ -548,7 +655,19 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       <Stepper activeStep={activeStep} orientation="vertical">
         {steps.map((step, index) => (
           <Step key={step.label}>
-            <StepLabel>{step.label}</StepLabel>
+            <StepLabel 
+              onClick={() => handleStepClick(index)}
+              sx={{ 
+                cursor: 'pointer',
+                '&:hover': { 
+                  backgroundColor: 'action.hover',
+                  borderRadius: 1,
+                  px: 1
+                }
+              }}
+            >
+              {step.label}
+            </StepLabel>
             <StepContent>
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 {step.description}
@@ -569,7 +688,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                 >
                   Späť
                 </Button>
-                <Button onClick={onClose}>
+                <Button onClick={handleClose}>
                   Zrušiť
                 </Button>
               </Box>
@@ -595,6 +714,47 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
             ['damage']
           }
         />
+      )}
+
+      {/* Save draft dialog */}
+      {showSaveDialog && (
+        <Dialog
+          open={showSaveDialog}
+          onClose={() => setShowSaveDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            Uložiť koncept protokolu?
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Máte neuložené zmeny. Chcete ich uložiť ako koncept a pokračovať neskôr?
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Koncept sa automaticky načíta pri ďalšom otvorení protokolu.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => {
+              clearDraft();
+              setShowSaveDialog(false);
+              onClose();
+            }}>
+              Zrušiť bez uloženia
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => {
+                saveDraft();
+                setShowSaveDialog(false);
+                onClose();
+              }}
+            >
+              Uložiť koncept
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
 
       {/* Signature pad dialog */}
