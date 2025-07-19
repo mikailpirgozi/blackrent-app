@@ -26,20 +26,31 @@ router.get('/', authenticateToken, async (req: Request, res: Response<ApiRespons
 // POST /api/customers - Vytvorenie nového zákazníka
 router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
   try {
+    console.log('🎯 Customer creation started with data:', req.body);
     const { name, email, phone } = req.body;
 
-    if (!name) {
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      console.log('❌ Customer validation failed - missing or invalid name:', name);
       return res.status(400).json({
         success: false,
-        error: 'Meno zákazníka je povinné'
+        error: 'Meno zákazníka je povinné a musí byť vyplnené'
       });
     }
 
-    const createdCustomer = await postgresDatabase.createCustomer({
-      name,
-      email: email || '',
-      phone: phone || ''
+    console.log('✅ Customer validation passed, creating customer...');
+    console.log('📝 Customer data:', {
+      name: name.trim(),
+      email: email || null,
+      phone: phone || null
     });
+
+    const createdCustomer = await postgresDatabase.createCustomer({
+      name: name.trim(),
+      email: email || null,
+      phone: phone || null
+    });
+
+    console.log('🎉 Customer created successfully:', createdCustomer.id);
 
     res.status(201).json({
       success: true,
@@ -47,11 +58,18 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       data: createdCustomer
     });
 
-  } catch (error) {
-    console.error('Create customer error:', error);
+  } catch (error: any) {
+    console.error('❌ DETAILED Create customer error:');
+    console.error('   Error name:', error.name);
+    console.error('   Error message:', error.message);
+    console.error('   Error code:', error.code);
+    console.error('   Error detail:', error.detail);
+    console.error('   Error stack:', error.stack);
+    console.error('   Full error object:', error);
+    
     res.status(500).json({
       success: false,
-      error: 'Chyba pri vytváraní zákazníka'
+      error: `Chyba pri vytváraní zákazníka: ${error.message || 'Neznáma chyba'}`
     });
   }
 });

@@ -1,37 +1,55 @@
-# Railway BlackRent Dockerfile - Updated with Node 20+
-FROM node:20-alpine
+# Multi-stage build pre Blackrent monorepo
+FROM node:18-alpine AS builder
 
-# Create app directory
-WORKDIR /blackrent-app
+# Nastavenie pracovného adresára
+WORKDIR /app
 
-# Install app dependencies
+# Kopírovanie package.json files
 COPY package*.json ./
-RUN npm install
+COPY backend/package*.json ./backend/
 
-# Copy source code
+# Inštalácia závislostí
+RUN npm ci --only=production --silent
+
+# Inštalácia backend závislostí
+WORKDIR /app/backend
+RUN npm ci --only=production --silent
+
+# Návrat do root
+WORKDIR /app
+
+# Kopírovanie source kódu
 COPY . .
 
-# Build frontend
+# Build procesu
 RUN npm run build
 
-# Move to backend directory
-WORKDIR /blackrent-app/backend
+# Production stage
+FROM node:18-alpine AS production
 
-# Install backend dependencies
-RUN npm install
+# Vytvorenie non-root používateľa
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S blackrent -u 1001
 
-# Build TypeScript backend
-RUN npm run build
+# Nastavenie pracovného adresára
+WORKDIR /app
 
-# Copy built frontend to backend build directory
-RUN cp -r ../build ./build
+# Kopírovanie package.json files
+COPY --from=builder /app/backend/package*.json ./
+RUN npm ci --only=production --silent && npm cache clean --force
+
+# Kopírovanie built aplikácie
+COPY --from=builder --chown=blackrent:nodejs /app/backend/dist ./dist
+
+# Nastavenie používateľa
+USER blackrent
 
 # Expose port
 EXPOSE 8080
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=8080
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
 
-# Start the application using ts-node
-CMD ["npx", "ts-node", "src/index.ts"] 
+# Spustenie aplikácie
+CMD ["node", "dist/index.js"] 

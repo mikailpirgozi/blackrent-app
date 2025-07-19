@@ -189,75 +189,125 @@ export class PostgresDatabase {
     try {
       console.log('🔄 Spúšťam databázové migrácie...');
       
-      // Migrácia 1: Pridanie chýbajúcich stĺpcov do vehicles
-      await client.query(`
-        ALTER TABLE vehicles 
-        ADD COLUMN IF NOT EXISTS company VARCHAR(100) NOT NULL DEFAULT 'Default Company',
-        ADD COLUMN IF NOT EXISTS pricing JSONB DEFAULT '[]',
-        ADD COLUMN IF NOT EXISTS commission JSONB DEFAULT '{"type": "percentage", "value": 15}',
-        ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'available';
-      `);
+      // Migrácia 1: Pridanie chýbajúcich stĺpcov do vehicles (bez NOT NULL)
+      try {
+        console.log('📋 Migrácia 1: Pridávanie stĺpcov do vehicles...');
+        await client.query(`
+          ALTER TABLE vehicles 
+          ADD COLUMN IF NOT EXISTS company VARCHAR(100) DEFAULT 'Default Company',
+          ADD COLUMN IF NOT EXISTS pricing JSONB DEFAULT '[]',
+          ADD COLUMN IF NOT EXISTS commission JSONB DEFAULT '{"type": "percentage", "value": 15}',
+          ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'available';
+        `);
+        console.log('✅ Migrácia 1: Stĺpce do vehicles pridané');
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 1 chyba:', error.message);
+      }
       
       // Migrácia 2: Pridanie základných polí do rentals tabuľky
-      await client.query(`
-        ALTER TABLE rentals 
-        ADD COLUMN IF NOT EXISTS commission DECIMAL(10,2) DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS discount TEXT,
-        ADD COLUMN IF NOT EXISTS custom_commission TEXT,
-        ADD COLUMN IF NOT EXISTS extra_km_charge DECIMAL(10,2),
-        ADD COLUMN IF NOT EXISTS payments JSONB,
-        ADD COLUMN IF NOT EXISTS history JSONB,
-        ADD COLUMN IF NOT EXISTS order_number VARCHAR(50),
-        ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'pending';
-      `);
+      try {
+        console.log('📋 Migrácia 2: Pridávanie stĺpcov do rentals...');
+        await client.query(`
+          ALTER TABLE rentals 
+          ADD COLUMN IF NOT EXISTS commission DECIMAL(10,2) DEFAULT 0,
+          ADD COLUMN IF NOT EXISTS discount TEXT,
+          ADD COLUMN IF NOT EXISTS custom_commission TEXT,
+          ADD COLUMN IF NOT EXISTS extra_km_charge DECIMAL(10,2),
+          ADD COLUMN IF NOT EXISTS payments JSONB,
+          ADD COLUMN IF NOT EXISTS history JSONB,
+          ADD COLUMN IF NOT EXISTS order_number VARCHAR(50),
+          ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'pending',
+          ADD COLUMN IF NOT EXISTS confirmed BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS paid BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS handover_place TEXT;
+        `);
+        console.log('✅ Migrácia 2: Stĺpce do rentals pridané');
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 2 chyba:', error.message);
+      }
+      
+      // Migrácia 2b: Pridanie chýbajúcich stĺpcov do customers
+      try {
+        console.log('📋 Migrácia 2b: Pridávanie stĺpcov do customers...');
+        await client.query(`
+          ALTER TABLE customers 
+          ADD COLUMN IF NOT EXISTS name VARCHAR(100) DEFAULT 'Unknown',
+          ADD COLUMN IF NOT EXISTS email VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS phone VARCHAR(30);
+        `);
+        console.log('✅ Migrácia 2b: Stĺpce do customers pridané');
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 2b chyba:', error.message);
+      }
       
       // Migrácia 3: Zvýšenie limitov varchar polí
-      await client.query(`
-        ALTER TABLE vehicles 
-        ALTER COLUMN license_plate TYPE VARCHAR(50),
-        ALTER COLUMN status TYPE VARCHAR(30);
-      `);
+      try {
+        console.log('📋 Migrácia 3: Zvyšovanie varchar limitov...');
+        await client.query(`
+          ALTER TABLE vehicles 
+          ALTER COLUMN license_plate TYPE VARCHAR(50),
+          ALTER COLUMN status TYPE VARCHAR(30);
+        `);
+        
+        await client.query(`
+          ALTER TABLE customers 
+          ALTER COLUMN phone TYPE VARCHAR(30);
+        `);
+        
+        await client.query(`
+          ALTER TABLE users 
+          ALTER COLUMN role TYPE VARCHAR(30);
+        `);
+        
+        await client.query(`
+          ALTER TABLE rentals 
+          ALTER COLUMN status TYPE VARCHAR(30);
+        `);
+        console.log('✅ Migrácia 3: VARCHAR limity aktualizované');
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 3 chyba:', error.message);
+      }
       
-      await client.query(`
-        ALTER TABLE customers 
-        ALTER COLUMN phone TYPE VARCHAR(30);
-      `);
+      // Migrácia 4: Nastavenie NOT NULL pre dôležité polia
+      try {
+        console.log('📋 Migrácia 4: Nastavovanie NOT NULL constraints...');
+        await client.query(`
+          UPDATE vehicles SET company = 'Default Company' WHERE company IS NULL;
+        `);
+        await client.query(`
+          ALTER TABLE vehicles ALTER COLUMN company SET NOT NULL;
+        `);
+        console.log('✅ Migrácia 4: NOT NULL constraints nastavené');
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 4 chyba:', error.message);
+      }
       
-      await client.query(`
-        ALTER TABLE users 
-        ALTER COLUMN role TYPE VARCHAR(30);
-      `);
-      
-      await client.query(`
-        ALTER TABLE rentals 
-        ALTER COLUMN status TYPE VARCHAR(30);
-      `);
-      
-      // Migrácia 4: Pridanie rozšírených polí do rentals tabuľky
-      await client.query(`
-        ALTER TABLE rentals 
-        ADD COLUMN IF NOT EXISTS deposit DECIMAL(10,2),
-        ADD COLUMN IF NOT EXISTS allowed_kilometers INTEGER,
-        ADD COLUMN IF NOT EXISTS extra_kilometer_rate DECIMAL(10,2),
-        ADD COLUMN IF NOT EXISTS return_conditions TEXT,
-        ADD COLUMN IF NOT EXISTS fuel_level INTEGER,
-        ADD COLUMN IF NOT EXISTS odometer INTEGER,
-        ADD COLUMN IF NOT EXISTS return_fuel_level INTEGER,
-        ADD COLUMN IF NOT EXISTS return_odometer INTEGER,
-        ADD COLUMN IF NOT EXISTS actual_kilometers INTEGER,
-        ADD COLUMN IF NOT EXISTS fuel_refill_cost DECIMAL(10,2),
-        ADD COLUMN IF NOT EXISTS handover_protocol_id UUID,
-        ADD COLUMN IF NOT EXISTS return_protocol_id UUID;
-      `);
+      // Migrácia 5: Pridanie rozšírených polí do rentals tabuľky
+      try {
+        console.log('📋 Migrácia 5: Pridávanie rozšírených polí do rentals...');
+        await client.query(`
+          ALTER TABLE rentals 
+          ADD COLUMN IF NOT EXISTS deposit DECIMAL(10,2),
+          ADD COLUMN IF NOT EXISTS allowed_kilometers INTEGER,
+          ADD COLUMN IF NOT EXISTS extra_kilometer_rate DECIMAL(10,2),
+          ADD COLUMN IF NOT EXISTS return_conditions TEXT,
+          ADD COLUMN IF NOT EXISTS fuel_level INTEGER,
+          ADD COLUMN IF NOT EXISTS odometer INTEGER,
+          ADD COLUMN IF NOT EXISTS return_fuel_level INTEGER,
+          ADD COLUMN IF NOT EXISTS return_odometer INTEGER,
+          ADD COLUMN IF NOT EXISTS actual_kilometers INTEGER,
+          ADD COLUMN IF NOT EXISTS fuel_refill_cost DECIMAL(10,2),
+          ADD COLUMN IF NOT EXISTS handover_protocol_id UUID,
+          ADD COLUMN IF NOT EXISTS return_protocol_id UUID;
+        `);
+        console.log('✅ Migrácia 5: Rozšírené polia do rentals pridané');
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 5 chyba:', error.message);
+      }
       
       console.log('✅ Databázové migrácie úspešne dokončené');
     } catch (error: any) {
-      // Ignoruj chyby migrácie ak už boli aplikované
-      if (error.message?.includes('cannot be cast automatically') || error.message?.includes('already exists')) {
-        console.log('⚠️ Migrácie už boli aplikované alebo nie sú potrebné');
-      } else {
-        console.log('⚠️ Migrácie preskočené:', error.message);
-      }
+      console.log('⚠️ Migrácie celkovo preskočené:', error.message);
     }
   }
 
@@ -437,21 +487,18 @@ export class PostgresDatabase {
   async getUserById(id: string): Promise<User | null> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query(
-        'SELECT id, username, email, password_hash, role, created_at FROM users WHERE id = $1',
-        [parseInt(id)]
-      );
+      const result = await client.query('SELECT * FROM users WHERE id = $1', [id]); // Removed parseInt for UUID
       
       if (result.rows.length === 0) return null;
       
       const row = result.rows[0];
       return {
-        id: row.id?.toString(),
+        id: row.id.toString(),
         username: row.username,
         email: row.email,
         password: row.password_hash,
         role: row.role,
-        createdAt: row.created_at
+        createdAt: new Date(row.created_at)
       };
     } finally {
       client.release();
@@ -487,7 +534,7 @@ export class PostgresDatabase {
       const hashedPassword = await bcrypt.hash(user.password, 12);
       await client.query(
         'UPDATE users SET username = $1, email = $2, password_hash = $3, role = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5',
-        [user.username, user.email, hashedPassword, user.role, parseInt(user.id)]
+        [user.username, user.email, hashedPassword, user.role, user.id] // Removed parseInt for UUID
       );
     } finally {
       client.release();
@@ -497,7 +544,7 @@ export class PostgresDatabase {
   async deleteUser(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM users WHERE id = $1', [parseInt(id)]);
+      await client.query('DELETE FROM users WHERE id = $1', [id]); // Removed parseInt for UUID
     } finally {
       client.release();
     }
@@ -547,7 +594,7 @@ export class PostgresDatabase {
   async getVehicle(id: string): Promise<Vehicle | null> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query('SELECT * FROM vehicles WHERE id = $1', [parseInt(id)]);
+      const result = await client.query('SELECT * FROM vehicles WHERE id = $1', [id]); // Removed parseInt for UUID
       
       if (result.rows.length === 0) return null;
       
@@ -576,12 +623,17 @@ export class PostgresDatabase {
   }): Promise<Vehicle> {
     const client = await this.pool.connect();
     try {
-      // Automaticky vytvoriť company záznam ak neexistuje
+      // Automaticky vytvoriť company záznam ak neexistuje - bez ON CONFLICT
       if (vehicleData.company && vehicleData.company.trim()) {
-        await client.query(
-          'INSERT INTO companies (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
-          [vehicleData.company.trim()]
-        );
+        try {
+          const existingCompany = await client.query('SELECT name FROM companies WHERE name = $1', [vehicleData.company.trim()]);
+          if (existingCompany.rows.length === 0) {
+            await client.query('INSERT INTO companies (name) VALUES ($1)', [vehicleData.company.trim()]);
+            console.log('✅ Company vytvorená:', vehicleData.company.trim());
+          }
+        } catch (companyError: any) {
+          console.log('⚠️ Company už existuje:', companyError.message);
+        }
       }
 
       const result = await client.query(
@@ -609,6 +661,9 @@ export class PostgresDatabase {
         status: row.status,
         createdAt: new Date(row.created_at)
       };
+    } catch (error) {
+      console.error('❌ Detailed createVehicle error:', error);
+      throw error;
     } finally {
       client.release();
     }
@@ -617,12 +672,16 @@ export class PostgresDatabase {
   async updateVehicle(vehicle: Vehicle): Promise<void> {
     const client = await this.pool.connect();
     try {
-      // Automaticky vytvoriť company záznam ak neexistuje
+      // Automaticky vytvoriť company záznam ak neexistuje - bez ON CONFLICT
       if (vehicle.company && vehicle.company.trim()) {
-        await client.query(
-          'INSERT INTO companies (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
-          [vehicle.company.trim()]
-        );
+        try {
+          const existingCompany = await client.query('SELECT name FROM companies WHERE name = $1', [vehicle.company.trim()]);
+          if (existingCompany.rows.length === 0) {
+            await client.query('INSERT INTO companies (name) VALUES ($1)', [vehicle.company.trim()]);
+          }
+        } catch (companyError: any) {
+          console.log('⚠️ Company update error:', companyError.message);
+        }
       }
 
       await client.query(
@@ -635,7 +694,7 @@ export class PostgresDatabase {
           JSON.stringify(vehicle.pricing), // Konverzia na JSON string
           JSON.stringify(vehicle.commission), // Konverzia na JSON string
           vehicle.status, 
-          parseInt(vehicle.id)
+          vehicle.id // UUID as string, not parseInt
         ]
       );
     } finally {
@@ -646,7 +705,7 @@ export class PostgresDatabase {
   async deleteVehicle(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM vehicles WHERE id = $1', [parseInt(id)]);
+      await client.query('DELETE FROM vehicles WHERE id = $1', [id]); // Removed parseInt for UUID
     } finally {
       client.release();
     }
@@ -960,8 +1019,8 @@ export class PostgresDatabase {
           return_protocol_id = $30, updated_at = CURRENT_TIMESTAMP
         WHERE id = $31
       `, [
-        rental.vehicleId ? parseInt(rental.vehicleId) : null, 
-        rental.customerId ? parseInt(rental.customerId) : null, 
+        rental.vehicleId || null, // UUID as string, not parseInt
+        rental.customerId || null, // UUID as string, not parseInt
         rental.customerName, 
         rental.startDate, 
         rental.endDate,
@@ -990,7 +1049,7 @@ export class PostgresDatabase {
         rental.fuelRefillCost || null,
         rental.handoverProtocolId || null,
         rental.returnProtocolId || null,
-        parseInt(rental.id)
+        rental.id // UUID as string, not parseInt
       ]);
     } finally {
       client.release();
@@ -1000,7 +1059,7 @@ export class PostgresDatabase {
   async deleteRental(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM rentals WHERE id = $1', [parseInt(id)]);
+      await client.query('DELETE FROM rentals WHERE id = $1', [id]); // Removed parseInt for UUID
     } finally {
       client.release();
     }
@@ -1041,6 +1100,9 @@ export class PostgresDatabase {
         phone: row.phone,
         createdAt: new Date(row.created_at)
       };
+    } catch (error) {
+      console.error('❌ Detailed createCustomer error:', error);
+      throw error;
     } finally {
       client.release();
     }
@@ -1051,7 +1113,7 @@ export class PostgresDatabase {
     try {
       await client.query(
         'UPDATE customers SET name = $1, email = $2, phone = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4',
-        [customer.name, customer.email, customer.phone, customer.id]
+        [customer.name, customer.email, customer.phone, customer.id] // UUID as string
       );
     } finally {
       client.release();
@@ -1061,7 +1123,7 @@ export class PostgresDatabase {
   async deleteCustomer(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM customers WHERE id = $1', [id]);
+      await client.query('DELETE FROM customers WHERE id = $1', [id]); // Removed parseInt for UUID
     } finally {
       client.release();
     }
@@ -1098,12 +1160,17 @@ export class PostgresDatabase {
   }): Promise<Expense> {
     const client = await this.pool.connect();
     try {
-      // Automaticky vytvoriť company záznam ak neexistuje
+      // Automaticky vytvoriť company záznam ak neexistuje - bez ON CONFLICT
       if (expenseData.company && expenseData.company.trim()) {
-        await client.query(
-          'INSERT INTO companies (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
-          [expenseData.company.trim()]
-        );
+        try {
+          const existingCompany = await client.query('SELECT name FROM companies WHERE name = $1', [expenseData.company.trim()]);
+          if (existingCompany.rows.length === 0) {
+            await client.query('INSERT INTO companies (name) VALUES ($1)', [expenseData.company.trim()]);
+            console.log('✅ Company vytvorená pre expense:', expenseData.company.trim());
+          }
+        } catch (companyError: any) {
+          console.log('⚠️ Company pre expense už existuje:', companyError.message);
+        }
       }
 
       const result = await client.query(
@@ -1125,11 +1192,14 @@ export class PostgresDatabase {
         description: row.description,
         amount: parseFloat(row.amount) || 0,
         date: new Date(row.date),
-        vehicleId: row.vehicle_id || undefined,
+        vehicleId: row.vehicle_id?.toString(),
         company: row.company,
         category: row.category,
         note: row.note || undefined
       };
+    } catch (error) {
+      console.error('❌ Detailed createExpense error:', error);
+      throw error;
     } finally {
       client.release();
     }
@@ -1138,12 +1208,16 @@ export class PostgresDatabase {
   async updateExpense(expense: Expense): Promise<void> {
     const client = await this.pool.connect();
     try {
-      // Automaticky vytvoriť company záznam ak neexistuje
+      // Automaticky vytvoriť company záznam ak neexistuje - bez ON CONFLICT
       if (expense.company && expense.company.trim()) {
-        await client.query(
-          'INSERT INTO companies (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
-          [expense.company.trim()]
-        );
+        try {
+          const existingCompany = await client.query('SELECT name FROM companies WHERE name = $1', [expense.company.trim()]);
+          if (existingCompany.rows.length === 0) {
+            await client.query('INSERT INTO companies (name) VALUES ($1)', [expense.company.trim()]);
+          }
+        } catch (companyError: any) {
+          console.log('⚠️ Company update pre expense error:', companyError.message);
+        }
       }
 
       await client.query(
@@ -1152,11 +1226,11 @@ export class PostgresDatabase {
           expense.description,
           expense.amount,
           expense.date,
-          expense.vehicleId ? parseInt(expense.vehicleId) : null,
+          expense.vehicleId || null, // UUID as string, not parseInt
           expense.company,
           expense.category,
           expense.note,
-          parseInt(expense.id)
+          expense.id // UUID as string, not parseInt
         ]
       );
     } finally {
@@ -1167,7 +1241,7 @@ export class PostgresDatabase {
   async deleteExpense(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM expenses WHERE id = $1', [parseInt(id)]);
+      await client.query('DELETE FROM expenses WHERE id = $1', [id]); // Removed parseInt for UUID
     } finally {
       client.release();
     }
@@ -1259,7 +1333,7 @@ export class PostgresDatabase {
   async deleteCompany(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM companies WHERE id = $1', [parseInt(id)]);
+      await client.query('DELETE FROM companies WHERE id = $1', [id]); // Removed parseInt for UUID
     } finally {
       client.release();
     }
