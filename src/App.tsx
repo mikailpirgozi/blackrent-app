@@ -3,11 +3,11 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
-import { ThemeProvider } from '@mui/material/styles';
+import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import theme from './theme/theme';
+import { ThemeProvider, useThemeMode } from './context/ThemeContext';
 
 import ErrorBoundary from './components/common/ErrorBoundary';
 import Layout from './components/Layout';
@@ -24,17 +24,18 @@ import Statistics from './components/Statistics';
 import UserManagement from './components/users/UserManagement';
 import SettlementList from './components/settlements/SettlementList';
 
-function App() {
+const AppContent: React.FC = () => {
+  const { theme } = useThemeMode();
+  
   return (
-    <ErrorBoundary>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <AuthProvider>
-            <AppProvider>
-              <Router>
-                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-                  <Routes>
+    <MuiThemeProvider theme={theme}>
+      <CssBaseline />
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <AuthProvider>
+          <AppProvider>
+            <Router>
+              <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                <Routes>
                     <Route path="/login" element={<LoginForm />} />
                     <Route path="/" element={
                       <ProtectedRoute>
@@ -130,6 +131,15 @@ function App() {
             </AppProvider>
           </AuthProvider>
         </LocalizationProvider>
+      </MuiThemeProvider>
+  );
+};
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AppContent />
       </ThemeProvider>
     </ErrorBoundary>
   );
