@@ -35,15 +35,11 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "node backend/dist/index.js",
-    "dev": "react-scripts start",
+    "start": "react-scripts start",
     "build": "CI=false ESLINT_NO_DEV_ERRORS=true react-scripts build",
-    "build:vercel": "CI=false ESLINT_NO_DEV_ERRORS=true react-scripts build",
-    "build:railway": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "CI=false ESLINT_NO_DEV_ERRORS=true react-scripts build && mkdir -p backend/dist && cp -r build backend/dist/public",
-    "build:backend": "cd backend && npm install && npx tsc",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "vercel-build": "CI=false ESLINT_NO_DEV_ERRORS=true react-scripts build"
   },
   "eslintConfig": {
     "extends": [
