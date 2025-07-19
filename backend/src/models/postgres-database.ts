@@ -41,7 +41,7 @@ export class PostgresDatabase {
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           username VARCHAR(50) UNIQUE NOT NULL,
           email VARCHAR(100) UNIQUE NOT NULL,
-          password VARCHAR(255) NOT NULL,
+          password_hash VARCHAR(255) NOT NULL,
           role VARCHAR(30) DEFAULT 'user',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -318,7 +318,7 @@ export class PostgresDatabase {
       if (adminExists.rows.length === 0) {
         const hashedPassword = await bcrypt.hash('admin123', 12);
         await client.query(
-          'INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4)',
+          'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4)',
           ['admin', 'admin@blackrent.sk', hashedPassword, 'admin']
         );
         console.log('👤 Admin používateľ vytvorený (username: admin, password: admin123)');
@@ -565,7 +565,7 @@ export class PostgresDatabase {
     try {
       const hashedPassword = await bcrypt.hash(userData.password, 12);
       const result = await client.query(
-        'INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, password, role, created_at',
+        'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, password_hash, role, created_at',
         [userData.username, userData.email, hashedPassword, userData.role]
       );
       
@@ -574,7 +574,7 @@ export class PostgresDatabase {
         id: row.id.toString(),
         username: row.username,
         email: row.email,
-        password: row.password,
+        password: row.password_hash,
         role: row.role,
         createdAt: new Date(row.created_at)
       };
@@ -588,7 +588,7 @@ export class PostgresDatabase {
     try {
       const hashedPassword = await bcrypt.hash(user.password, 12);
       await client.query(
-        'UPDATE users SET username = $1, email = $2, password = $3, role = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5',
+        'UPDATE users SET username = $1, email = $2, password_hash = $3, role = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5',
         [user.username, user.email, hashedPassword, user.role, user.id] // Removed parseInt for UUID
       );
     } finally {
@@ -609,14 +609,14 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'SELECT id, username, email, password as password, role, created_at FROM users ORDER BY created_at DESC'
+        'SELECT id, username, email, password_hash as password, role, created_at FROM users ORDER BY created_at DESC'
       );
       
       return result.rows.map(row => ({
         id: row.id?.toString(),
         username: row.username,
         email: row.email,
-        password: row.password,
+        password: row.password_hash,
         role: row.role,
         createdAt: row.created_at
       }));
@@ -1125,7 +1125,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'SELECT id, first_name as name, email, phone, created_at FROM customers ORDER BY created_at DESC'
+        'SELECT id, name, email, phone, created_at FROM customers ORDER BY created_at DESC'
       );
       
       return result.rows.map((row: any) => ({
@@ -1150,7 +1150,7 @@ export class PostgresDatabase {
       console.log('📝 Creating customer with data:', customerData);
       
       const result = await client.query(
-        'INSERT INTO customers (first_name, email, phone) VALUES ($1, $2, $3) RETURNING id, first_name as name, email, phone, created_at',
+        'INSERT INTO customers (name, email, phone) VALUES ($1, $2, $3) RETURNING id, name, email, phone, created_at',
         [customerData.name, customerData.email, customerData.phone]
       );
 
@@ -1176,7 +1176,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       await client.query(
-        'UPDATE customers SET first_name = $1, email = $2, phone = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4',
+        'UPDATE customers SET name = $1, email = $2, phone = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4',
         [customer.name, customer.email, customer.phone, customer.id] // UUID as string
       );
     } finally {
