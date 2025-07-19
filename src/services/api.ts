@@ -63,8 +63,9 @@ class ApiService {
     try {
       const response = await fetch(url, config);
       
-      // Ak je odpoveď 401 (Unauthorized), presmeruj na prihlásenie
-      if (response.status === 401) {
+      // Ak je odpoveď 401 (Unauthorized) alebo 403 (Forbidden), presmeruj na prihlásenie
+      if (response.status === 401 || response.status === 403) {
+        console.warn('🚨 Auth error:', response.status, 'Clearing storage and redirecting to login');
         localStorage.removeItem('blackrent_token');
         localStorage.removeItem('blackrent_user');
         localStorage.removeItem('blackrent_remember_me');

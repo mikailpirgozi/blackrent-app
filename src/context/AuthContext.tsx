@@ -81,10 +81,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const validateToken = async (token: string): Promise<boolean> => {
-    // Pre lepšiu UX nebudeme testovať token - považujeme ho za vždy platný
-    // Ak má používateľ uložené auth dáta, znamená to že sa už úspešne prihlásil
-    console.log('✅ Token validation preskočená - vždy platný pre lepšiu UX');
-    return true;
+    try {
+      console.log('🔍 Validating token...');
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        console.log('✅ Token is valid');
+        return true;
+      } else {
+        console.warn('❌ Token validation failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.warn('❌ Token validation error:', error);
+      return false;
+    }
   };
 
   const restoreSession = React.useCallback(async () => {
@@ -110,20 +127,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('✅ Session data found for user:', user.username);
         console.log('🔐 Token preview:', token.substring(0, 20) + '...');
         
-        // OKAMŽITE obnov session bez čakania na validáciu
-        console.log('🚀 Immediate session restore (optimistic)');
-        dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
+        // Najskôr validuj token synchronne
+        console.log('🔍 Validating token before session restore...');
+        const isValid = await validateToken(token);
         
-        // Asynchrónne testovanie tokenu na pozadí (neblokuje UX)
-        validateToken(token).then(isValid => {
-          console.log('🔍 Background token validation:', isValid ? '✅ OK' : '⚠️ FAIL');
-          if (!isValid) {
-            console.log('⚠️ Token validation failed, but keeping session active');
-          }
-        }).catch(error => {
-          console.warn('⚠️ Background token validation error:', error);
-        });
-        
+        if (isValid) {
+          console.log('🚀 Token is valid, restoring session');
+          dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
+        } else {
+          console.log('❌ Token is invalid, clearing auth data');
+          clearAuthData();
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
       } else {
         console.log('❌ No auth data found');
         console.log('🔍 Storage debug:', {

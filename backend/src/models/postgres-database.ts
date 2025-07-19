@@ -496,13 +496,25 @@ export class PostgresDatabase {
   async getUserById(id: string): Promise<User | null> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query('SELECT * FROM users WHERE id = $1', [id]); // Removed parseInt for UUID
+      // Najskôr skús users_new tabuľku
+      let result = await client.query(
+        'SELECT id, username, email, password_hash, role, created_at FROM users_new WHERE id = $1',
+        [id]
+      ).catch(() => ({ rows: [] }));
+      
+      // Ak nenájdeš v users_new, skús users tabuľku
+      if (result.rows.length === 0) {
+        result = await client.query(
+          'SELECT id, username, email, password_hash, role, created_at FROM users WHERE id = $1',
+          [id]
+        ).catch(() => ({ rows: [] }));
+      }
       
       if (result.rows.length === 0) return null;
       
       const row = result.rows[0];
       return {
-        id: row.id.toString(),
+        id: row.id?.toString(),
         username: row.username,
         email: row.email,
         password: row.password_hash,
