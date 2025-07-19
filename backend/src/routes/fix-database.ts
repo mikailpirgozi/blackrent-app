@@ -869,4 +869,102 @@ router.post('/test-uuid-rental', async (req: any, res: any) => {
   }
 });
 
+// POST /api/fix-database/add-rental-columns - Pridanie chýbajúcich stĺpcov do rentals tabuľky
+router.post('/add-rental-columns', async (req: any, res: any) => {
+  try {
+    console.log('🔧 Adding missing columns to rentals table...');
+    
+    const client = await (postgresDatabase as any).pool.connect();
+    
+    try {
+      console.log('📋 Step 1: Checking current rentals schema...');
+      
+      // Skontroluj aktuálne stĺpce v rentals tabuľke
+      const currentColumns = await client.query(`
+        SELECT column_name, data_type, is_nullable
+        FROM information_schema.columns 
+        WHERE table_name = 'rentals'
+        ORDER BY ordinal_position
+      `);
+      
+      console.log('Current rentals columns:', currentColumns.rows.map((r: any) => r.column_name));
+      
+      console.log('📋 Step 2: Adding missing columns...');
+      
+      // Zoznam chýbajúcich stĺpcov ktoré treba pridať
+      const missingColumns = [
+        { name: 'discount', type: 'JSONB' },
+        { name: 'custom_commission', type: 'JSONB' },
+        { name: 'extra_km_charge', type: 'DECIMAL(10,2)' },
+        { name: 'payments', type: 'JSONB' },
+        { name: 'history', type: 'JSONB' },
+        { name: 'deposit', type: 'DECIMAL(10,2)' },
+        { name: 'allowed_kilometers', type: 'INTEGER' },
+        { name: 'extra_kilometer_rate', type: 'DECIMAL(10,2)' },
+        { name: 'return_conditions', type: 'TEXT' },
+        { name: 'fuel_level', type: 'INTEGER' },
+        { name: 'odometer', type: 'INTEGER' },
+        { name: 'return_fuel_level', type: 'INTEGER' },
+        { name: 'return_odometer', type: 'INTEGER' },
+        { name: 'actual_kilometers', type: 'INTEGER' },
+        { name: 'fuel_refill_cost', type: 'DECIMAL(10,2)' },
+        { name: 'handover_protocol_id', type: 'VARCHAR(50)' },
+        { name: 'return_protocol_id', type: 'VARCHAR(50)' }
+      ];
+      
+      const addedColumns: string[] = [];
+      
+      // Pridaj každý chýbajúci stĺpec ak neexistuje
+      for (const column of missingColumns) {
+        // Skontroluj či stĺpec už existuje
+        const exists = currentColumns.rows.some((row: any) => row.column_name === column.name);
+        
+        if (!exists) {
+          try {
+            await client.query(`ALTER TABLE rentals ADD COLUMN ${column.name} ${column.type}`);
+            console.log(`✅ Added column: ${column.name} ${column.type}`);
+            addedColumns.push(`${column.name} ${column.type}`);
+          } catch (error: any) {
+            console.log(`⚠️ Column ${column.name} may already exist or error:`, error.message);
+          }
+        } else {
+          console.log(`ℹ️ Column ${column.name} already exists`);
+        }
+      }
+      
+      console.log('📋 Step 3: Verifying final schema...');
+      
+      // Skontroluj finálne schema
+      const finalColumns = await client.query(`
+        SELECT column_name, data_type, is_nullable
+        FROM information_schema.columns 
+        WHERE table_name = 'rentals'
+        ORDER BY ordinal_position
+      `);
+      
+      console.log('Final rentals columns:', finalColumns.rows.map((r: any) => r.column_name));
+      
+      res.json({
+        success: true,
+        message: 'Rental table columns migration completed',
+        data: {
+          addedColumns: addedColumns,
+          totalColumns: finalColumns.rows.length,
+          finalColumns: finalColumns.rows.map((r: any) => `${r.column_name} (${r.data_type})`)
+        }
+      });
+      
+    } finally {
+      client.release();
+    }
+    
+  } catch (error: any) {
+    console.error('❌ Rental columns migration failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Rental columns migration failed: ' + error.message
+    });
+  }
+});
+
 export default router; 
