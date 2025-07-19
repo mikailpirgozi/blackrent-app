@@ -2019,10 +2019,6 @@ export class PostgresDatabase {
       console.log('🔄 Protocol data:', JSON.stringify(protocolData, null, 2));
 
       // Validácia dát
-      if (!protocolData.id) {
-        throw new Error('Protocol ID is required');
-      }
-      
       if (!protocolData.rentalId) {
         throw new Error('Rental ID is required');
       }
