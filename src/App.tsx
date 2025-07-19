@@ -21,6 +21,7 @@ import ExpenseList from './components/expenses/ExpenseList';
 import InsuranceList from './components/insurances/InsuranceList';
 import Statistics from './components/Statistics';
 import UserManagement from './components/users/UserManagement';
+import SettlementList from './components/settlements/SettlementList';
 
 function App() {
   return (
@@ -88,6 +89,16 @@ function App() {
                         <Layout>
                           <ErrorBoundary>
                             <InsuranceList />
+                          </ErrorBoundary>
+                        </Layout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/settlements" element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <ErrorBoundary>
+                            <SettlementList />
                           </ErrorBoundary>
                         </Layout>
                       </ProtectedRoute>
