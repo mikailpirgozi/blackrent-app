@@ -43,14 +43,14 @@ import {
 } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs, { Dayjs } from 'dayjs';
-import { Rental } from '../../types';
+import { Rental, HandoverProtocol, VehicleCondition, ProtocolDamage, ProtocolSignature } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { apiService } from '../../services/api';
+import { v4 as uuidv4 } from 'uuid';
 
 interface HandoverProtocolFormProps {
   open: boolean;
   rental: Rental;
-  onSave: (protocolData: any) => Promise<void>;
+  onSave: (protocolData: HandoverProtocol) => Promise<void>;
   onClose: () => void;
 }
 
@@ -62,37 +62,46 @@ interface DamageItem {
   location: string;
 }
 
-interface ProtocolData {
-  id?: string;
-  rentalId: string;
-  type: 'handover' | 'return';
-  location: string;
-  timestamp: Dayjs;
-  mileage: number;
-  fuelLevel: number;
-  damages: DamageItem[];
-  notes: string;
-  customerSignature?: string;
-  agentSignature?: string;
-  isCompleted: boolean;
-  rentalData?: Rental;
-}
-
 const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, rental, onSave, onClose }) => {
   const { state } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
-  const [protocol, setProtocol] = useState<ProtocolData>({
+  const [protocol, setProtocol] = useState<Partial<HandoverProtocol>>({
+    id: uuidv4(),
     rentalId: rental.id,
+    rental,
     type: 'handover',
+    status: 'draft',
+    createdAt: new Date(),
     location: '',
-    timestamp: dayjs(),
-    mileage: 0,
-    fuelLevel: 100,
+    vehicleCondition: {
+      odometer: 0,
+      fuelLevel: 100,
+      fuelType: 'gasoline',
+      exteriorCondition: 'Dobrý',
+      interiorCondition: 'Dobrý',
+      notes: '',
+    },
+    vehicleImages: [],
+    vehicleVideos: [],
+    documentImages: [],
+    damageImages: [],
     damages: [],
-    notes: '',
-    isCompleted: false,
-    rentalData: rental,
+    signatures: [],
+    rentalData: {
+      orderNumber: rental.orderNumber || '',
+      vehicle: rental.vehicle || {} as any,
+      customer: rental.customer || {} as any,
+      startDate: rental.startDate,
+      endDate: rental.endDate,
+      totalPrice: rental.totalPrice,
+      deposit: rental.deposit || 0,
+      currency: 'EUR',
+      allowedKilometers: rental.allowedKilometers || 0,
+      extraKilometerRate: rental.extraKilometerRate || 0.50,
+    },
+    emailSent: false,
+    createdBy: state.user?.username || '',
   });
 
   const steps = [
@@ -104,8 +113,21 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
 
   // Načítanie údajov o prenájme
   useEffect(() => {
-    // Rental data už máme cez props
-    setProtocol(prev => ({ ...prev, rentalData: rental }));
+    setProtocol(prev => ({ 
+      ...prev, 
+      rentalData: {
+        orderNumber: rental.orderNumber || '',
+        vehicle: rental.vehicle || {} as any,
+        customer: rental.customer || {} as any,
+        startDate: rental.startDate,
+        endDate: rental.endDate,
+        totalPrice: rental.totalPrice,
+        deposit: rental.deposit || 0,
+        currency: 'EUR',
+        allowedKilometers: rental.allowedKilometers || 0,
+        extraKilometerRate: rental.extraKilometerRate || 0.50,
+      }
+    }));
   }, [rental]);
 
   const handleNext = () => {
@@ -119,7 +141,15 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
   const handleSave = async () => {
     try {
       setLoading(true);
-      await onSave(protocol);
+      
+      // Mapovanie na HandoverProtocol format
+      const handoverProtocol: HandoverProtocol = {
+        ...protocol,
+        status: 'completed',
+        completedAt: new Date(),
+      } as HandoverProtocol;
+      
+      await onSave(handoverProtocol);
       onClose();
     } catch (error) {
       console.error('Error saving protocol:', error);
@@ -129,32 +159,43 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
   };
 
   const addDamage = () => {
-    const newDamage: DamageItem = {
-      id: Date.now().toString(),
+    const newDamage: ProtocolDamage = {
+      id: uuidv4(),
       description: '',
-      photos: [],
-      severity: 'minor',
+      severity: 'low',
       location: '',
+      photos: [],
+      timestamp: new Date(),
     };
     setProtocol(prev => ({
       ...prev,
-      damages: [...prev.damages, newDamage],
+      damages: [...(prev.damages || []), newDamage],
     }));
   };
 
   const removeDamage = (id: string) => {
     setProtocol(prev => ({
       ...prev,
-      damages: prev.damages.filter(damage => damage.id !== id),
+      damages: (prev.damages || []).filter(damage => damage.id !== id),
     }));
   };
 
-  const updateDamage = (id: string, field: keyof DamageItem, value: any) => {
+  const updateDamage = (id: string, field: keyof ProtocolDamage, value: any) => {
     setProtocol(prev => ({
       ...prev,
-      damages: prev.damages.map(damage =>
+      damages: (prev.damages || []).map(damage =>
         damage.id === id ? { ...damage, [field]: value } : damage
       ),
+    }));
+  };
+
+  const handleVehicleConditionChange = (field: keyof VehicleCondition, value: any) => {
+    setProtocol(prev => ({
+      ...prev,
+      vehicleCondition: {
+        ...prev.vehicleCondition!,
+        [field]: value,
+      },
     }));
   };
 
@@ -173,7 +214,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                   <Stack spacing={2}>
                     <TextField
                       label="Číslo objednávky"
-                      value={protocol.rentalData?.id || ''}
+                      value={protocol.rentalData?.orderNumber || ''}
                       InputProps={{ readOnly: true }}
                       variant="outlined"
                       fullWidth
