@@ -463,19 +463,29 @@ export class PostgresDatabase {
   async getUserByUsername(username: string): Promise<User | null> {
     const client = await this.pool.connect();
     try {
-      // Najskôr skús users_new tabuľku
-      let result = await client.query(
-        'SELECT id, username, email, password_hash, role, created_at FROM users_new WHERE username = $1',
+      // Skúsme najskôr users_new tabuľku
+      const resultNew = await client.query(
+        'SELECT id, username, email, password, role, created_at FROM users_new WHERE username = $1',
         [username]
-      ).catch(() => ({ rows: [] }));
+      );
       
-      // Ak nenájdeš v users_new, skús users tabuľku
-      if (result.rows.length === 0) {
-        result = await client.query(
-          'SELECT id, username, email, password_hash, role, created_at FROM users WHERE username = $1',
-          [username]
-        ).catch(() => ({ rows: [] }));
+      if (resultNew.rows.length > 0) {
+        const row = resultNew.rows[0];
+        return {
+          id: row.id?.toString(),
+          username: row.username,
+          email: row.email,
+          password: row.password, // users_new má priamo password
+          role: row.role,
+          createdAt: new Date(row.created_at)
+        };
       }
+      
+      // Ak nie je v users_new, skúsme users tabuľku
+      const result = await client.query(
+        'SELECT id, username, email, password_hash, role, created_at FROM users WHERE username = $1',
+        [username]
+      );
       
       if (result.rows.length === 0) return null;
       
@@ -484,9 +494,9 @@ export class PostgresDatabase {
         id: row.id?.toString(),
         username: row.username,
         email: row.email,
-        password: row.password_hash, // Pre kompatibilitu s existujúcim kódom
+        password: row.password_hash, // users má password_hash
         role: row.role,
-        createdAt: row.created_at
+        createdAt: new Date(row.created_at)
       };
     } finally {
       client.release();
@@ -496,19 +506,29 @@ export class PostgresDatabase {
   async getUserById(id: string): Promise<User | null> {
     const client = await this.pool.connect();
     try {
-      // Najskôr skús users_new tabuľku
-      let result = await client.query(
-        'SELECT id, username, email, password_hash, role, created_at FROM users_new WHERE id = $1',
+      // Skúsme najskôr users_new tabuľku
+      const resultNew = await client.query(
+        'SELECT id, username, email, password, role, created_at FROM users_new WHERE id = $1',
         [id]
-      ).catch(() => ({ rows: [] }));
+      );
       
-      // Ak nenájdeš v users_new, skús users tabuľku
-      if (result.rows.length === 0) {
-        result = await client.query(
-          'SELECT id, username, email, password_hash, role, created_at FROM users WHERE id = $1',
-          [id]
-        ).catch(() => ({ rows: [] }));
+      if (resultNew.rows.length > 0) {
+        const row = resultNew.rows[0];
+        return {
+          id: row.id?.toString(),
+          username: row.username,
+          email: row.email,
+          password: row.password,
+          role: row.role,
+          createdAt: new Date(row.created_at)
+        };
       }
+      
+      // Ak nie je v users_new, skúsme users tabuľku
+      const result = await client.query(
+        'SELECT id, username, email, password_hash, role, created_at FROM users WHERE id = $1',
+        [id]
+      );
       
       if (result.rows.length === 0) return null;
       
@@ -1090,10 +1110,15 @@ export class PostgresDatabase {
   async getCustomers(): Promise<Customer[]> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query('SELECT * FROM customers ORDER BY created_at DESC');
-      return result.rows.map(row => ({
-        ...row,
+      const result = await client.query(
+        'SELECT id, first_name as name, email, phone, created_at FROM customers ORDER BY created_at DESC'
+      );
+      
+      return result.rows.map((row: any) => ({
         id: row.id.toString(),
+        name: row.name,
+        email: row.email,
+        phone: row.phone,
         createdAt: new Date(row.created_at)
       }));
     } finally {
@@ -1108,12 +1133,16 @@ export class PostgresDatabase {
   }): Promise<Customer> {
     const client = await this.pool.connect();
     try {
+      console.log('📝 Creating customer with data:', customerData);
+      
       const result = await client.query(
-        'INSERT INTO customers (name, email, phone) VALUES ($1, $2, $3) RETURNING id, name, email, phone, created_at',
+        'INSERT INTO customers (first_name, email, phone) VALUES ($1, $2, $3) RETURNING id, first_name as name, email, phone, created_at',
         [customerData.name, customerData.email, customerData.phone]
       );
 
       const row = result.rows[0];
+      console.log('✅ Customer created with ID:', row.id);
+      
       return {
         id: row.id.toString(),
         name: row.name,
@@ -1133,7 +1162,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       await client.query(
-        'UPDATE customers SET name = $1, email = $2, phone = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4',
+        'UPDATE customers SET first_name = $1, email = $2, phone = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4',
         [customer.name, customer.email, customer.phone, customer.id] // UUID as string
       );
     } finally {
