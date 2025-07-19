@@ -247,7 +247,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.log('Načítavam dáta z API...');
       
       // Load data from API
-      const [vehicles, rentals, expenses, insurances, customers, companies, insurers, settlements] = await Promise.all([
+      const [vehicles, rentals, expenses, insurances, customers, companies, insurers] = await Promise.all([
         apiService.getVehicles(),
         apiService.getRentals(),
         apiService.getExpenses(),
@@ -255,8 +255,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         apiService.getCustomers(),
         apiService.getCompanies(),
         apiService.getInsurers(),
-        apiService.getSettlements() // Fixed - settlements API is now working
+        // apiService.getSettlements() // HOTFIX: Temporarily disabled due to recurring 500 errors
       ]);
+      
+      // Empty settlements array until permanent fix
+      const settlements: any[] = [];
       
       console.log('Dáta úspešne načítané:', { 
         vehicles: vehicles.length, 
@@ -266,7 +269,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         customers: customers.length,
         companies: companies.length,
         insurers: insurers.length,
-        settlements: settlements.length // fixed!
+        settlements: 0 // temporarily disabled
       });
       
       dispatch({ type: 'SET_VEHICLES', payload: vehicles });
