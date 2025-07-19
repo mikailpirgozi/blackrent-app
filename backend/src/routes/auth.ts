@@ -52,6 +52,97 @@ router.post('/create-admin', async (req: Request, res: Response<ApiResponse>) =>
   }
 });
 
+// GET /api/auth/create-admin - GET verzia pre testovanie v prehliadači
+router.get('/create-admin', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🔧 GET request - Pokus o vytvorenie admin používateľa...');
+    
+    // Skontroluj či už admin existuje
+    const existingAdmin = await postgresDatabase.getUserByUsername('admin');
+    if (existingAdmin) {
+      return res.status(400).json({
+        success: false,
+        error: 'Admin používateľ už existuje. Pre reset použite /api/auth/reset-admin-get'
+      });
+    }
+
+    // Vytvor hashovane heslo - Black123 ako požadované
+    const hashedPassword = await bcrypt.hash('Black123', 12);
+    
+    // Vytvor admin používateľa priamo cez databázu
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      await client.query(
+        'INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
+        [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
+      );
+      
+      console.log('✅ Admin používateľ úspešne vytvorený s heslom Black123');
+      
+      return res.json({
+        success: true,
+        message: 'Admin používateľ úspešne vytvorený (username: admin, password: Black123)',
+        data: {
+          username: 'admin',
+          password: 'Black123',
+          loginUrl: 'https://blackrent-app.vercel.app/login'
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    console.error('❌ Chyba pri vytváraní admin používateľa:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Chyba pri vytváraní admin používateľa: ' + error.message
+    });
+  }
+});
+
+// GET /api/auth/reset-admin-get - GET verzia pre reset admin hesla
+router.get('/reset-admin-get', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🔧 GET request - Resetujem admin používateľa...');
+    
+    // Vymaž existujúceho admin používateľa
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      await client.query('DELETE FROM users WHERE username = $1', ['admin']);
+      console.log('🗑️ Starý admin účet vymazaný');
+      
+      // Vytvor nový hashovane heslo - Black123
+      const hashedPassword = await bcrypt.hash('Black123', 12);
+      
+      // Vytvor nový admin účet
+      await client.query(
+        'INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
+        [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
+      );
+      
+      console.log('✅ Admin účet úspešne resetovaný s heslom Black123');
+      
+      return res.json({
+        success: true,
+        message: 'Admin používateľ úspešne resetovaný (username: admin, password: Black123)',
+        data: {
+          username: 'admin',
+          password: 'Black123',
+          loginUrl: 'https://blackrent-app.vercel.app/login'
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    console.error('❌ Chyba pri resetovaní admin používateľa:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Chyba pri resetovaní admin používateľa: ' + error.message
+    });
+  }
+});
+
 // POST /api/auth/reset-admin - Reset admin používateľa pre debugging
 router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => {
   try {
