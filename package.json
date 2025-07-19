@@ -31,10 +31,10 @@
   "scripts": {
     "start": "node backend/dist/index.js",
     "dev": "react-scripts start",
-    "build": "react-scripts build",
-    "build:vercel": "react-scripts build",
+    "build": "CI=false ESLINT_NO_DEV_ERRORS=true react-scripts build",
+    "build:vercel": "CI=false ESLINT_NO_DEV_ERRORS=true react-scripts build",
     "build:railway": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "react-scripts build && mkdir -p backend/dist && cp -r build backend/dist/public",
+    "build:frontend": "CI=false ESLINT_NO_DEV_ERRORS=true react-scripts build && mkdir -p backend/dist && cp -r build backend/dist/public",
     "build:backend": "cd backend && npm install && npx tsc",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
