@@ -1591,4 +1591,91 @@ router.get('/fix-vehicles-schema', async (req: Request, res: Response<ApiRespons
   }
 });
 
+// GET /api/auth/step-by-step-data - Postupné vytvorenie vzorových dát s debug info
+router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('📋 STEP-BY-STEP - Postupne vytváram vzorové dáta...');
+    
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      let steps: any = [];
+      
+      // KROK 1: FIRMA
+      try {
+        const companyResult = await client.query(`
+          INSERT INTO companies (name) VALUES ('ABC Rent')
+          ON CONFLICT (name) DO NOTHING
+          RETURNING name
+        `);
+        steps.push({ step: 1, name: 'firma', success: true, created: companyResult.rows.length });
+      } catch (e: any) {
+        steps.push({ step: 1, name: 'firma', success: false, error: e.message });
+      }
+      
+      // KROK 2: VOZIDLO  
+      try {
+        const vehicleResult = await client.query(`
+          INSERT INTO vehicles (brand, model, year, license_plate, company, pricing, commission, status) 
+          VALUES ('BMW', 'X5', 2023, 'BA999TEST', 'ABC Rent', $1, $2, 'available')
+          ON CONFLICT (license_plate) DO NOTHING
+          RETURNING id, brand, model, year, license_plate
+        `, [
+          JSON.stringify([{ id: '1', minDays: 0, maxDays: 1, pricePerDay: 80 }]),
+          JSON.stringify({ type: 'percentage', value: 15 })
+        ]);
+        steps.push({ step: 2, name: 'vozidlo', success: true, created: vehicleResult.rows.length, data: vehicleResult.rows[0] });
+      } catch (e: any) {
+        steps.push({ step: 2, name: 'vozidlo', success: false, error: e.message });
+      }
+      
+      // KROK 3: ZÁKAZNÍK
+      try {
+        const customerResult = await client.query(`
+          INSERT INTO customers (name, email, phone) 
+          VALUES ('Test Novák', 'test.novak@example.com', '+421999888777')
+          RETURNING id, name
+        `);
+        steps.push({ step: 3, name: 'zákazník', success: true, created: customerResult.rows.length, data: customerResult.rows[0] });
+      } catch (e: any) {
+        steps.push({ step: 3, name: 'zákazník', success: false, error: e.message });
+      }
+      
+      // KROK 4: PRENÁJOM (len ak máme vozidlo a zákazníka)
+      const vehicleStep = steps.find((s: any) => s.name === 'vozidlo');
+      const customerStep = steps.find((s: any) => s.name === 'zákazník');
+      
+      if (vehicleStep?.success && customerStep?.success) {
+        try {
+          const rentalResult = await client.query(`
+            INSERT INTO rentals (vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, paid, confirmed, handover_place) 
+            VALUES ($1, $2, $3, '2025-01-20', '2025-01-23', 240.00, 36.00, 'bank_transfer', true, true, 'Bratislava Test')
+            RETURNING id
+          `, [vehicleStep.data.id, customerStep.data.id, customerStep.data.name]);
+          steps.push({ step: 4, name: 'prenájom', success: true, created: rentalResult.rows.length });
+        } catch (e: any) {
+          steps.push({ step: 4, name: 'prenájom', success: false, error: e.message });
+        }
+      } else {
+        steps.push({ step: 4, name: 'prenájom', success: false, error: 'Chýba vozidlo alebo zákazník' });
+      }
+      
+      console.log('📋 STEP-BY-STEP dokončené:', steps);
+      
+      return res.json({
+        success: true,
+        message: 'Step-by-step vytvorenie vzorových dát dokončené',
+        data: { steps }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    console.error('❌ Chyba pri step-by-step:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Step-by-step error: ' + error.message
+    });
+  }
+});
+
 export default router; 
