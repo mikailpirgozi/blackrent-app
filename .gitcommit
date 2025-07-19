@@ -1,0 +1,15 @@
+fix: Protocols data mapping and error handling
+
+🔧 PROTOCOLS DATA MAPPING FIX:
+- HandoverProtocolForm.tsx: Fixed data mapping to match backend expectations
+- RentalListNew.tsx: Added safe destructuring with fallback for protocols data
+- Fixed 500 Internal Server Error when creating handover protocols
+- Fixed destructuring error when loading protocols
+
+✅ RESULT:
+- Handover protocols can now be created successfully
+- Proper error handling for missing protocol data
+- Backend receives correctly formatted data
+- No more 500 errors or destructuring issues
+
+🚀 IMPACT: Protocols workflow now fully functional! 

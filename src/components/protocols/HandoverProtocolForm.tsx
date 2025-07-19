@@ -50,7 +50,7 @@ import { v4 as uuidv4 } from 'uuid';
 interface HandoverProtocolFormProps {
   open: boolean;
   rental: Rental;
-  onSave: (protocolData: HandoverProtocol) => Promise<void>;
+  onSave: (protocolData: any) => Promise<void>;
   onClose: () => void;
 }
 
@@ -134,14 +134,26 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     try {
       setLoading(true);
       
-      // Mapovanie na HandoverProtocol format
-      const handoverProtocol: HandoverProtocol = {
-        ...protocol,
+      // Mapovanie na backend format
+      const protocolData = {
+        id: protocol.id,
+        rentalId: protocol.rentalId,
+        location: protocol.location,
+        vehicleCondition: protocol.vehicleCondition,
+        vehicleImages: protocol.vehicleImages || [],
+        vehicleVideos: protocol.vehicleVideos || [],
+        documentImages: protocol.documentImages || [],
+        damageImages: protocol.damageImages || [],
+        damages: protocol.damages || [],
+        signatures: protocol.signatures || [],
+        rentalData: protocol.rentalData,
+        notes: protocol.notes,
+        createdBy: protocol.createdBy,
         status: 'completed',
         completedAt: new Date(),
-      } as HandoverProtocol;
+      };
       
-      await onSave(handoverProtocol);
+      await onSave(protocolData);
       onClose();
     } catch (error) {
       console.error('Error saving protocol:', error);

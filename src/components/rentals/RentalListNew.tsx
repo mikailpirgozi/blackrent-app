@@ -56,7 +56,10 @@ export default function RentalList() {
     setLoadingProtocols(prev => [...prev, rentalId]);
     try {
       const data = await apiService.getProtocolsByRental(rentalId);
-      const { handoverProtocols, returnProtocols } = data;
+      
+      // Bezpečné destructuring s fallback
+      const handoverProtocols = data?.handoverProtocols || [];
+      const returnProtocols = data?.returnProtocols || [];
       
       setProtocols(prev => ({
         ...prev,
@@ -67,6 +70,14 @@ export default function RentalList() {
       }));
     } catch (error) {
       console.error('Chyba pri načítaní protokolov:', error);
+      // Nastav prázdne protokoly pri chybe
+      setProtocols(prev => ({
+        ...prev,
+        [rentalId]: {
+          handover: undefined,
+          return: undefined,
+        }
+      }));
     } finally {
       setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
     }
