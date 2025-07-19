@@ -53,6 +53,7 @@ import { Rental, HandoverProtocol, VehicleCondition, ProtocolDamage, ProtocolSig
 import { useAuth } from '../../context/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
+import SignaturePad from '../common/SignaturePad';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -497,34 +498,42 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                       Nahrané fotky:
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      {protocol.vehicleImages?.filter(img => img.type === 'odometer').map((img, index) => (
-                        <Box key={img.id} sx={{ position: 'relative' }}>
-                          <img 
-                            src={img.url} 
-                            alt={`Tachometer ${index + 1}`}
-                            style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
-                          />
-                          <Chip 
-                            label="Tachometer" 
-                            size="small" 
-                            sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
-                          />
-                        </Box>
-                      ))}
-                      {protocol.vehicleImages?.filter(img => img.type === 'fuel').map((img, index) => (
-                        <Box key={img.id} sx={{ position: 'relative' }}>
-                          <img 
-                            src={img.url} 
-                            alt={`Palivo ${index + 1}`}
-                            style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
-                          />
-                          <Chip 
-                            label="Palivo" 
-                            size="small" 
-                            sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
-                          />
-                        </Box>
-                      ))}
+                                          {protocol.vehicleImages?.filter(img => img.type === 'odometer').map((img, index) => (
+                      <Box key={img.id} sx={{ position: 'relative' }}>
+                        <img 
+                          src={img.url} 
+                          alt={`Tachometer ${index + 1}`}
+                          style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
+                          onError={(e) => {
+                            console.error('Chyba načítania obrázka:', img.url);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <Chip 
+                          label="Tachometer" 
+                          size="small" 
+                          sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
+                        />
+                      </Box>
+                    ))}
+                    {protocol.vehicleImages?.filter(img => img.type === 'fuel').map((img, index) => (
+                      <Box key={img.id} sx={{ position: 'relative' }}>
+                        <img 
+                          src={img.url} 
+                          alt={`Palivo ${index + 1}`}
+                          style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
+                          onError={(e) => {
+                            console.error('Chyba načítania obrázka:', img.url);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <Chip 
+                          label="Palivo" 
+                          size="small" 
+                          sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
+                        />
+                      </Box>
+                    ))}
                     </Box>
                   </Box>
                 </CardContent>
@@ -585,6 +594,10 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                           src={img.url} 
                           alt={`Vozidlo ${index + 1}`}
                           style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
+                          onError={(e) => {
+                            console.error('Chyba načítania obrázka:', img.url);
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                         <Chip 
                           label={img.type === 'odometer' ? 'Tachometer' : img.type === 'fuel' ? 'Palivo' : 'Vozidlo'} 
@@ -599,6 +612,10 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                           src={img.url} 
                           alt={`Doklad ${index + 1}`}
                           style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
+                          onError={(e) => {
+                            console.error('Chyba načítania obrázka:', img.url);
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                         <Chip 
                           label="Doklad" 
@@ -915,35 +932,12 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
               fullWidth
               sx={{ mb: 2 }}
             />
-            <Box
-              sx={{
-                border: '2px dashed #ccc',
-                borderRadius: 1,
-                p: 2,
-                textAlign: 'center',
-                minHeight: 200,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#f9f9f9'
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                Tu bude canvas pre podpis (implementácia v ďalšom kroku)
-              </Typography>
-            </Box>
+            <SignaturePad
+              onSave={handleSignatureSave}
+              onCancel={() => setShowSignaturePad(false)}
+              signerName={state.user?.username || 'admin'}
+            />
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setShowSignaturePad(false)}>
-              Zrušiť
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => handleSignatureSave('base64_signature_data', state.user?.username || 'admin')}
-            >
-              Uložiť podpis
-            </Button>
-          </DialogActions>
         </Dialog>
       )}
     </Box>
