@@ -782,7 +782,7 @@ export class PostgresDatabase {
                r.actual_kilometers, r.fuel_refill_cost, r.handover_protocol_id, r.return_protocol_id,
                v.brand, v.model, v.license_plate, v.company as company_name
         FROM rentals r 
-        LEFT JOIN vehicles v ON r.vehicle_id = v.id
+        LEFT JOIN vehicles v ON (r.vehicle_id IS NOT NULL AND r.vehicle_id ~ '^[0-9a-f-]{36}$' AND r.vehicle_id::uuid = v.id)
         ORDER BY r.created_at DESC
       `);
       
@@ -1001,7 +1001,7 @@ export class PostgresDatabase {
       const result = await client.query(`
         SELECT r.*, v.brand, v.model, v.license_plate, v.company 
         FROM rentals r 
-        LEFT JOIN vehicles v ON r.vehicle_id = v.id 
+        LEFT JOIN vehicles v ON (r.vehicle_id IS NOT NULL AND r.vehicle_id ~ '^[0-9a-f-]{36}$' AND r.vehicle_id::uuid = v.id) 
         WHERE r.id = $1
       `, [id]);
       
