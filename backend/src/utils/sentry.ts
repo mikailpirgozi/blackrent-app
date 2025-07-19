@@ -1,5 +1,4 @@
 import * as Sentry from "@sentry/node";
-import * as Tracing from "@sentry/tracing";
 import { Express } from "express";
 
 // Sentry konfigurácia pre BlackRent backend
@@ -26,12 +25,11 @@ export const initSentry = (app: Express) => {
     integrations: [
       // Express.js tracing
       new Sentry.Integrations.Http({ tracing: true }),
-      new Tracing.Integrations.Express({ app }),
-      new Tracing.Integrations.Postgres(),
+      new Sentry.Integrations.Express({ app }),
     ],
     
     // Filter out známe chyby
-    beforeSend(event) {
+    beforeSend(event: any) {
       // Ignoruj development errors
       if (process.env.NODE_ENV === 'development') {
         console.log('🐛 Sentry backend event (dev):', event.exception?.values?.[0]?.value);
@@ -73,7 +71,7 @@ export const initSentry = (app: Express) => {
     
     // Error handler - musí byť posledný middleware
     errorHandler: Sentry.Handlers.errorHandler({
-      shouldHandleError(error) {
+      shouldHandleError(error: any) {
         // Pošli len 4xx a 5xx chyby na Sentry
         return error.status === undefined || error.status >= 400;
       },
@@ -83,7 +81,7 @@ export const initSentry = (app: Express) => {
 
 // Manual error reporting
 export const reportError = (error: Error, context?: Record<string, any>) => {
-  Sentry.withScope((scope) => {
+  Sentry.withScope((scope: any) => {
     if (context) {
       Object.keys(context).forEach(key => {
         scope.setTag(key, context[key]);
