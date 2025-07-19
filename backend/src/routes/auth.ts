@@ -1472,12 +1472,13 @@ router.get('/simple-vehicle-test', async (req: Request, res: Response<ApiRespons
     try {
       // Skús vytvoriť jedno vozidlo bez ON CONFLICT
       const result = await client.query(`
-        INSERT INTO vehicles (brand, model, license_plate, company, pricing, commission, status) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING id, brand, model, license_plate
+        INSERT INTO vehicles (brand, model, year, license_plate, company, pricing, commission, status) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, brand, model, year, license_plate
       `, [
         'BMW',
-        'X5', 
+        'X5',
+        2023,
         'TEST123',
         'Test Company',
         JSON.stringify([{ id: '1', minDays: 0, maxDays: 1, pricePerDay: 80 }]),
