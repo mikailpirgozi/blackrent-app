@@ -19,6 +19,13 @@ import {
   FormControlLabel,
   Collapse,
   Fab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from '@mui/material';
 import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import {
