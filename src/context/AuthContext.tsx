@@ -127,18 +127,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('✅ Session data found for user:', user.username);
         console.log('🔐 Token preview:', token.substring(0, 20) + '...');
         
-        // Najskôr validuj token synchronne
-        console.log('🔍 Validating token before session restore...');
-        const isValid = await validateToken(token);
+        // OPTIMISTIC RESTORE - obnoviť session OKAMŽITE bez čakania na validáciu
+        console.log('🚀 Optimistic session restore - obnovujem okamžite');
+        dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
         
-        if (isValid) {
-          console.log('🚀 Token is valid, restoring session');
-          dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
-        } else {
-          console.log('❌ Token is invalid, clearing auth data');
-          clearAuthData();
-          dispatch({ type: 'SET_LOADING', payload: false });
-        }
+        // ASYNC VALIDÁCIA - validuj token na pozadí
+        console.log('🔍 Background token validation...');
+        validateToken(token).then((isValid) => {
+          if (isValid) {
+            console.log('✅ Background validation: Token is valid');
+            // Session už je obnovená, nič ďalšie nerobiť
+          } else {
+            console.log('❌ Background validation: Token is invalid, clearing auth data');
+            clearAuthData();
+            dispatch({ type: 'LOGOUT' });
+            // Optional: presmeruj na login len ak nie je už na login stránke
+            if (!window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+          }
+        }).catch((error) => {
+          console.warn('⚠️ Background validation error:', error);
+          // V prípade chyby validation, nech session zostane aktívna
+          // (lepšie false positive ako false negative)
+        });
       } else {
         console.log('❌ No auth data found');
         console.log('🔍 Storage debug:', {
