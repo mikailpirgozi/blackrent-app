@@ -36,17 +36,34 @@ router.get('/rental/:rentalId', async (req, res) => {
 router.post('/handover', async (req, res) => {
   try {
     const protocolData: HandoverProtocol = req.body;
-    console.log('📝 Creating handover protocol:', protocolData.id);
+    console.log('📝 Creating handover protocol with data:', JSON.stringify(protocolData, null, 2));
+    
+    // Validácia povinných polí
+    if (!protocolData.id) {
+      console.error('❌ Missing protocol ID');
+      return res.status(400).json({ error: 'Protocol ID is required' });
+    }
+    
+    if (!protocolData.rentalId) {
+      console.error('❌ Missing rental ID');
+      return res.status(400).json({ error: 'Rental ID is required' });
+    }
     
     const protocol = await postgresDatabase.createHandoverProtocol(protocolData);
     
+    console.log('✅ Handover protocol created successfully:', protocol.id);
     res.status(201).json({ 
       message: 'Handover protocol created successfully', 
       protocol 
     });
   } catch (error) {
     console.error('❌ Error creating handover protocol:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
