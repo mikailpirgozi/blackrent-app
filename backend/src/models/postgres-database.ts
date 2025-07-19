@@ -1991,7 +1991,7 @@ export class PostgresDatabase {
   async createHandoverProtocol(protocolData: any): Promise<any> {
     const client = await this.pool.connect();
     try {
-      console.log('🔄 Starting handover protocol creation...');
+      console.log('🔄 [DB] createHandoverProtocol - input:', JSON.stringify(protocolData, null, 2));
       await this.initProtocolTables();
       
       console.log('🔄 Creating handover protocol:', protocolData.id);
