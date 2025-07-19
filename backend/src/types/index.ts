@@ -120,6 +120,7 @@ export interface Insurance {
   id: string;
   vehicleId: string;
   type: string;
+  policyNumber: string;
   validFrom: Date;
   validTo: Date;
   price: number;

@@ -139,6 +139,7 @@ export class PostgresDatabase {
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
           type VARCHAR(50) NOT NULL,
+          policy_number VARCHAR(100) NOT NULL DEFAULT '',
           valid_from TIMESTAMP NOT NULL,
           valid_to TIMESTAMP NOT NULL,
           price DECIMAL(10,2) NOT NULL,
@@ -147,6 +148,15 @@ export class PostgresDatabase {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+      
+      // Pridáme stĺpec policy_number ak neexistuje (migrácia existujúcich tabuliek)
+      try {
+        await client.query(`
+          ALTER TABLE insurances ADD COLUMN IF NOT EXISTS policy_number VARCHAR(100) NOT NULL DEFAULT ''
+        `);
+      } catch (error) {
+        console.log('ℹ️ Policy number column already exists or error occurred:', error);
+      }
 
       // Tabuľka firiem
       await client.query(`
@@ -1320,6 +1330,7 @@ export class PostgresDatabase {
         id: row.id?.toString() || '',
         vehicleId: row.vehicle_id?.toString() || '',
         type: row.type,
+        policyNumber: row.policy_number || '',
         validFrom: new Date(row.valid_from),
         validTo: new Date(row.valid_to),
         price: parseFloat(row.price) || 0,
@@ -1333,6 +1344,7 @@ export class PostgresDatabase {
   async createInsurance(insuranceData: {
     vehicleId: string;
     type: string;
+    policyNumber: string;
     validFrom: Date;
     validTo: Date;
     price: number;
@@ -1341,8 +1353,8 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'INSERT INTO insurances (vehicle_id, type, valid_from, valid_to, price, company) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, vehicle_id, type, valid_from, valid_to, price, company, created_at',
-        [insuranceData.vehicleId, insuranceData.type, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company]
+        'INSERT INTO insurances (vehicle_id, type, policy_number, valid_from, valid_to, price, company) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, created_at',
+        [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company]
       );
 
       const row = result.rows[0];
@@ -1350,6 +1362,7 @@ export class PostgresDatabase {
         id: row.id.toString(),
         vehicleId: row.vehicle_id,
         type: row.type,
+        policyNumber: row.policy_number || '',
         validFrom: new Date(row.valid_from),
         validTo: new Date(row.valid_to),
         price: parseFloat(row.price) || 0,

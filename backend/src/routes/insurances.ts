@@ -26,9 +26,9 @@ router.get('/', authenticateToken, async (req: Request, res: Response<ApiRespons
 // POST /api/insurances - Vytvorenie novej poistky
 router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { vehicleId, type, validFrom, validTo, price, company } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company } = req.body;
 
-    if (!vehicleId || !type || !validFrom || !validTo || !price || !company) {
+    if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
       return res.status(400).json({
         success: false,
         error: 'Všetky povinné polia musia byť vyplnené'
@@ -38,6 +38,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
     const createdInsurance = await postgresDatabase.createInsurance({
       vehicleId,
       type,
+      policyNumber,
       validFrom: new Date(validFrom),
       validTo: new Date(validTo),
       price,

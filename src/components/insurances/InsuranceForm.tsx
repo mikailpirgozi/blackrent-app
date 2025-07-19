@@ -25,6 +25,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
   const [formData, setFormData] = useState<Partial<Insurance>>({
     vehicleId: '',
     type: '',
+    policyNumber: '',
     validFrom: new Date(),
     validTo: new Date(),
     price: 0,
@@ -47,6 +48,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
       id: insurance?.id || uuidv4(),
       vehicleId: formData.vehicleId || '',
       type: formData.type || '',
+      policyNumber: formData.policyNumber || '',
       validFrom: formData.validFrom || new Date(),
       validTo: formData.validTo || new Date(),
       price: formData.price || 0,
@@ -74,7 +76,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
           </Select>
         </FormControl>
 
-        {/* Typ poistky - Select */}
+        {/* Typ poistky - Select s pridanou možnosťou PZP + Kasko */}
         <FormControl fullWidth required>
           <InputLabel>Typ poistky</InputLabel>
           <Select
@@ -83,12 +85,22 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
             onChange={(e) => handleInputChange('type', e.target.value)}
           >
             <MenuItem value="PZP">PZP</MenuItem>
+            <MenuItem value="PZP + Kasko">PZP + Kasko</MenuItem>
             <MenuItem value="Havarijná">Havarijná</MenuItem>
             <MenuItem value="GAP">GAP</MenuItem>
             <MenuItem value="Asistenčné služby">Asistenčné služby</MenuItem>
             <MenuItem value="Iné">Iné</MenuItem>
           </Select>
         </FormControl>
+
+        {/* Číslo poistky - nové pole */}
+        <TextField
+          fullWidth
+          label="Číslo poistky"
+          value={formData.policyNumber}
+          onChange={(e) => handleInputChange('policyNumber', e.target.value)}
+          required
+        />
 
         {/* Poistovňa - Select s možnosťou pridať */}
         <FormControl fullWidth required>

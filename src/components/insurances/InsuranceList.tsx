@@ -374,6 +374,11 @@ export default function InsuranceList() {
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" sx={{ color: '#bdbdbd' }}>
+                        📄 Číslo: {insurance.policyNumber}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <EventIcon sx={{ fontSize: 16, color: 'primary.main' }} />
                       <Typography variant="body2" sx={{ color: '#bdbdbd' }}>
                         {format(insurance.validFrom, 'dd.MM.yyyy', { locale: sk })} - {format(insurance.validTo, 'dd.MM.yyyy', { locale: sk })}
@@ -437,6 +442,7 @@ export default function InsuranceList() {
                   <TableRow>
                     <TableCell>Vozidlo</TableCell>
                     <TableCell>Typ poistky</TableCell>
+                    <TableCell>Číslo poistky</TableCell>
                     <TableCell>Poistovňa</TableCell>
                     <TableCell>Platná od</TableCell>
                     <TableCell>Platná do</TableCell>
@@ -456,6 +462,7 @@ export default function InsuranceList() {
                           {vehicle ? `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})` : 'N/A'}
                         </TableCell>
                         <TableCell>{insurance.type}</TableCell>
+                        <TableCell>{insurance.policyNumber}</TableCell>
                         <TableCell>{insurance.company}</TableCell>
                         <TableCell>
                           {format(insurance.validFrom, 'dd.MM.yyyy', { locale: sk })}
@@ -522,8 +529,11 @@ export default function InsuranceList() {
         onClose={() => setOpenDialog(false)}
         maxWidth="md"
         fullWidth
+        aria-labelledby="insurance-dialog-title"
+        disableRestoreFocus
+        keepMounted={false}
       >
-        <DialogTitle>
+        <DialogTitle id="insurance-dialog-title">
           {editingInsurance ? 'Upraviť poistku' : 'Pridať novú poistku'}
         </DialogTitle>
         <DialogContent>
