@@ -1508,4 +1508,86 @@ router.get('/simple-vehicle-test', async (req: Request, res: Response<ApiRespons
   }
 });
 
+// GET /api/auth/fix-vehicles-schema - Oprava schémy vehicles tabuľky  
+router.get('/fix-vehicles-schema', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🔧 FIX - Opravujem schému vehicles tabuľky...');
+    
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      let fixes: any = {};
+      
+      // 1. SKONTROLUJ AKTUÁLNU SCHÉMU
+      const currentSchema = await client.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'vehicles' AND table_schema = 'public'
+        ORDER BY ordinal_position
+      `);
+      fixes.currentColumns = currentSchema.rows.map((row: any) => row.column_name);
+      
+      // 2. OPRAV STĹPCE: make -> brand
+      if (fixes.currentColumns.includes('make')) {
+        try {
+          await client.query('ALTER TABLE vehicles RENAME COLUMN make TO brand');
+          fixes.brandRenamed = true;
+        } catch (e: any) {
+          fixes.brandRenameError = e.message;
+        }
+      }
+      
+      // 3. PRIDAJ CHÝBAJÚCE STĹPCE AK NEEXISTUJÚ
+      const requiredColumns = [
+        { name: 'license_plate', type: 'VARCHAR(50) UNIQUE', default: null },
+        { name: 'company', type: 'VARCHAR(100)', default: "'Unknown'" },
+        { name: 'pricing', type: 'JSONB', default: "'[]'" },
+        { name: 'commission', type: 'JSONB', default: "'{\"type\": \"percentage\", \"value\": 15}'" },
+        { name: 'status', type: 'VARCHAR(30)', default: "'available'" },
+        { name: 'created_at', type: 'TIMESTAMP', default: 'CURRENT_TIMESTAMP' },
+        { name: 'updated_at', type: 'TIMESTAMP', default: 'CURRENT_TIMESTAMP' }
+      ];
+      
+      fixes.columnsAdded = [];
+      for (const col of requiredColumns) {
+        if (!fixes.currentColumns.includes(col.name)) {
+          try {
+            const alterQuery = col.default 
+              ? `ALTER TABLE vehicles ADD COLUMN ${col.name} ${col.type} DEFAULT ${col.default}`
+              : `ALTER TABLE vehicles ADD COLUMN ${col.name} ${col.type}`;
+            await client.query(alterQuery);
+            fixes.columnsAdded.push(col.name);
+          } catch (e: any) {
+            fixes[`${col.name}_error`] = e.message;
+          }
+        }
+      }
+      
+      // 4. SKONTROLUJ NOVÚ SCHÉMU
+      const newSchema = await client.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'vehicles' AND table_schema = 'public'
+        ORDER BY ordinal_position
+      `);
+      fixes.newColumns = newSchema.rows.map((row: any) => row.column_name);
+      
+      console.log('🔧 Schema fixes completed:', fixes);
+      
+      return res.json({
+        success: true,
+        message: 'Vehicles schema úspešne opravená',
+        data: fixes
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    console.error('❌ Chyba pri oprave schémy:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Chyba pri oprave schémy: ' + error.message
+    });
+  }
+});
+
 export default router; 
