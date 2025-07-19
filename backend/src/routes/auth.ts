@@ -96,9 +96,11 @@ router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => 
 // POST /api/auth/login - Prihlásenie
 router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
   try {
+    console.log('🔐 LOGIN START - Body:', JSON.stringify(req.body));
     const { username, password }: LoginCredentials = req.body;
 
     if (!username || !password) {
+      console.log('❌ LOGIN - Missing credentials');
       return res.status(400).json({
         success: false,
         error: 'Používateľské meno a heslo sú povinné'
@@ -106,12 +108,21 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
     }
 
     // Nájdi používateľa
-    console.log('🔍 Hľadám používateľa:', username);
+    console.log('🔍 LOGIN - Hľadám používateľa:', username);
     const user = await postgresDatabase.getUserByUsername(username);
-    console.log('👤 Používateľ nájdený:', !!user, user ? `(id: ${user.id}, role: ${user.role})` : '');
+    console.log('👤 LOGIN - Používateľ nájdený:', !!user);
+    console.log('📊 LOGIN - User data:', user ? {
+      id: user.id,
+      username: user.username, 
+      email: user.email,
+      role: user.role,
+      hasPassword: !!user.password,
+      passwordLength: user.password?.length,
+      passwordPrefix: user.password?.substring(0, 10) + '...'
+    } : 'null');
     
     if (!user) {
-      console.log('❌ Používateľ neexistuje');
+      console.log('❌ LOGIN - Používateľ neexistuje');
       return res.status(401).json({
         success: false,
         error: 'Nesprávne prihlasovacie údaje'
@@ -119,12 +130,15 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
     }
 
     // Overenie hesla pomocou bcrypt
-    console.log('🔑 Overujem heslo pre používateľa:', user.username);
+    console.log('🔑 LOGIN - Overujem heslo pre používateľa:', user.username);
+    console.log('🔑 LOGIN - Input password:', password);
+    console.log('🔑 LOGIN - Stored password hash:', user.password);
+    
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log('🔑 Heslo platné:', isPasswordValid);
+    console.log('🔑 LOGIN - Heslo platné:', isPasswordValid);
     
     if (!isPasswordValid) {
-      console.log('❌ Nesprávne heslo');
+      console.log('❌ LOGIN - Nesprávne heslo');
       return res.status(401).json({
         success: false,
         error: 'Nesprávne prihlasovacie údaje'
@@ -159,7 +173,8 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ LOGIN ERROR:', error);
+    console.error('❌ LOGIN ERROR STACK:', (error as Error)?.stack);
     res.status(500).json({
       success: false,
       error: 'Chyba pri prihlásení'
