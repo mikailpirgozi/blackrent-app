@@ -324,7 +324,43 @@ class ApiService {
 
   // Protokoly
   async getProtocolsByRental(rentalId: string): Promise<{ handoverProtocols: any[]; returnProtocols: any[] }> {
-    return this.request<{ handoverProtocols: any[]; returnProtocols: any[] }>(`/protocols/rental/${rentalId}`);
+    const url = `${API_BASE_URL}/protocols/rental/${rentalId}`;
+    const token = this.getAuthToken();
+    
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    };
+
+    try {
+      const response = await fetch(url, config);
+      
+      if (response.status === 401 || response.status === 403) {
+        console.warn('🚨 Auth error:', response.status, 'Clearing storage and redirecting to login');
+        localStorage.removeItem('blackrent_token');
+        localStorage.removeItem('blackrent_user');
+        localStorage.removeItem('blackrent_remember_me');
+        sessionStorage.removeItem('blackrent_token');
+        sessionStorage.removeItem('blackrent_user');
+        window.location.href = '/login';
+        throw new Error('Neplatný token - presmerovanie na prihlásenie');
+      }
+
+      if (!response.ok) {
+        throw new Error(`API chyba: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('🔍 Raw API response for protocols:', data);
+      
+      // Backend vracia priamo dáta, nie ApiResponse formát
+      return data as { handoverProtocols: any[]; returnProtocols: any[] };
+    } catch (error) {
+      console.error('❌ API chyba pri načítaní protokolov:', error);
+      throw error;
+    }
   }
 
   async createHandoverProtocol(protocolData: any): Promise<any> {
