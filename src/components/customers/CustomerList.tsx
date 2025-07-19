@@ -1,17 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Button,
   Card,
   CardContent,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   IconButton,
   Dialog,
   DialogContent,
@@ -22,6 +15,7 @@ import {
   Collapse,
   useMediaQuery,
 } from '@mui/material';
+import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -179,6 +173,95 @@ export default function CustomerList() {
       window.open(`mailto:${email}`, '_self');
     }
   };
+
+  // Column definitions for ResponsiveTable
+  const columns: ResponsiveTableColumn[] = useMemo(() => [
+    {
+      id: 'name',
+      label: 'Meno',
+      width: { xs: '120px', md: '150px' },
+      render: (value, customer: Customer) => (
+        <Typography variant="body1" fontWeight="bold">
+          {customer.name}
+        </Typography>
+      )
+    },
+    {
+      id: 'email',
+      label: 'Email',
+      width: { xs: '120px', md: '180px' },
+      render: (value, customer: Customer) => (
+        customer.email ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2">{customer.email}</Typography>
+            <IconButton
+              size="small"
+              onClick={(e) => { e.stopPropagation(); handleEmail(customer.email); }}
+              color="primary"
+            >
+              <EmailIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.secondary">-</Typography>
+        )
+      )
+    },
+    {
+      id: 'phone',
+      label: 'Telefón',
+      width: { xs: '120px', md: '140px' },
+      render: (value, customer: Customer) => (
+        customer.phone ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2">{customer.phone}</Typography>
+            <IconButton
+              size="small"
+              onClick={(e) => { e.stopPropagation(); handleCall(customer.phone); }}
+              color="primary"
+            >
+              <PhoneIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.secondary">-</Typography>
+        )
+      )
+    },
+    {
+      id: 'createdAt',
+      label: 'Vytvorený',
+      width: { xs: '100px', md: '120px' },
+      render: (value) => (
+        <Typography variant="body2">
+          {new Date(value).toLocaleDateString('sk-SK')}
+        </Typography>
+      )
+    },
+    {
+      id: 'actions',
+      label: 'Akcie',
+      width: { xs: '100px', md: '120px' },
+      render: (value, customer: Customer) => (
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <IconButton
+            size="small"
+            onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}
+            color="primary"
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={(e) => { e.stopPropagation(); handleDelete(customer.id); }}
+            color="error"
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      )
+    }
+  ], []);
 
   // Export zákazníkov do CSV
   const exportCustomersToCSV = (customers: Customer[]) => {
@@ -556,93 +639,11 @@ export default function CustomerList() {
           )}
         </Box>
       ) : (
-        <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell><strong>Meno</strong></TableCell>
-              <TableCell><strong>Email</strong></TableCell>
-              <TableCell><strong>Telefón</strong></TableCell>
-              <TableCell><strong>Dátum vytvorenia</strong></TableCell>
-              <TableCell><strong>Akcie</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredCustomers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  <Typography color="text.secondary">
-                    {searchQuery ? 'Žiadni zákazníci nevyhovujú vyhľadávaniu' : 'Žiadni zákazníci'}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredCustomers.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell>
-                    <Typography variant="body1" fontWeight="bold">
-                      {customer.name}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    {customer.email ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography>{customer.email}</Typography>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEmail(customer.email)}
-                          color="primary"
-                        >
-                          <EmailIcon />
-                        </IconButton>
-                      </Box>
-                    ) : (
-                      <Typography color="text.secondary">-</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {customer.phone ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography>{customer.phone}</Typography>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleCall(customer.phone)}
-                          color="primary"
-                        >
-                          <PhoneIcon />
-                        </IconButton>
-                      </Box>
-                    ) : (
-                      <Typography color="text.secondary">-</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(customer.createdAt).toLocaleDateString('sk-SK')}
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEdit(customer)}
-                        color="primary"
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDelete(customer.id)}
-                        color="error"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+        <ResponsiveTable
+          columns={columns}
+          data={filteredCustomers}
+          emptyMessage={searchQuery ? 'Žiadni zákazníci nevyhovujú vyhľadávaniu' : 'Žiadni zákazníci'}
+        />
       )}
 
       {/* FAB tlačidlo pre mobilné zariadenia */}

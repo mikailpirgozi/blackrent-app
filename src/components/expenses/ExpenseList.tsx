@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -9,13 +9,6 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
   TextField,
   FormControl,
@@ -27,6 +20,7 @@ import {
   Collapse,
   Fab,
 } from '@mui/material';
+import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import {
   Add as AddIcon,
   Edit as EditIcon,

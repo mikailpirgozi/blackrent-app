@@ -133,6 +133,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
 
   } catch (error) {
     console.error('Create rental error:', error);
+    console.error('Request body:', JSON.stringify(req.body, null, 2));
     res.status(500).json({
       success: false,
       error: `Chyba pri vytváraní prenájmu: ${error instanceof Error ? error.message : 'Neznáma chyba'}`

@@ -10,13 +10,6 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
   TextField,
   FormControl,
@@ -604,7 +597,6 @@ export default function VehicleList() {
         />
       </Box>
 
-      {/* ResponsiveTable - automaticky switches medzi Table a Cards */}
       <ResponsiveTable
         columns={columns}
         data={filteredVehicles}
@@ -613,179 +605,6 @@ export default function VehicleList() {
         onSelectionChange={setSelected}
         emptyMessage="Žiadne vozidlá"
       />
-
-      {/* Pôvodný kód - nahradené ResponsiveTable */}
-      {false && isMobile ? (
-        <Box>
-          {filteredVehicles.map((vehicle) => (
-            <Card 
-              key={vehicle.id} 
-              sx={{ 
-                mb: 2,
-                border: '1px solid',
-                borderColor: 'divider',
-                '&:hover': { 
-                  boxShadow: 3,
-                  transform: 'translateY(-1px)',
-                  transition: 'all 0.2s ease-in-out'
-                }
-              }}
-            >
-              <CardContent sx={{ p: 2 }}>
-                {/* Hlavička karty */}
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>
-                      {vehicle.brand} {vehicle.model}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                      {vehicle.licensePlate} • {vehicle.company}
-                    </Typography>
-                  </Box>
-                  <Chip 
-                    label={getStatusText(vehicle.status)} 
-                    color={getStatusColor(vehicle.status) as any} 
-                    size="small" 
-                    variant="outlined"
-                  />
-                </Box>
-
-                {/* Akčné tlačidlá */}
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5, mt: 2 }}>
-                  <IconButton 
-                    size="medium" 
-                    onClick={(e) => { e.stopPropagation(); handleShowHistory(vehicle); }} 
-                    sx={{ 
-                      color: 'white',
-                      bgcolor: 'info.main',
-                      border: '1px solid',
-                      borderColor: 'info.main',
-                      '&:hover': { 
-                        bgcolor: 'info.dark', 
-                        borderColor: 'info.dark',
-                        transform: 'scale(1.05)'
-                      },
-                      transition: 'all 0.2s ease-in-out'
-                    }}
-                    title="História zmien"
-                  >
-                    <HistoryIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton 
-                    size="medium" 
-                    onClick={(e) => { e.stopPropagation(); handleEdit(vehicle); }} 
-                    sx={{ 
-                      color: 'white',
-                      bgcolor: 'primary.main',
-                      border: '1px solid',
-                      borderColor: 'primary.main',
-                      '&:hover': { 
-                        bgcolor: 'primary.dark', 
-                        borderColor: 'primary.dark',
-                        transform: 'scale(1.05)'
-                      },
-                      transition: 'all 0.2s ease-in-out'
-                    }}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton 
-                    size="medium" 
-                    onClick={(e) => { e.stopPropagation(); handleDelete(vehicle.id); }} 
-                    sx={{ 
-                      color: 'white',
-                      bgcolor: 'error.main',
-                      border: '1px solid',
-                      borderColor: 'error.main',
-                      '&:hover': { 
-                        bgcolor: 'error.dark', 
-                        borderColor: 'error.dark',
-                        transform: 'scale(1.05)'
-                      },
-                      transition: 'all 0.2s ease-in-out'
-                    }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
-      ) : (
-        <Card>
-          <CardContent>
-                            <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', width: '100%', overflowX: 'auto' }}>
-                  <Table sx={{ width: '100%', minWidth: { xs: 'auto', md: 600 } }}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell padding="checkbox" sx={{ width: '50px' }}>
-                          <Checkbox
-                            checked={selected.length === filteredVehicles.length && filteredVehicles.length > 0}
-                            indeterminate={selected.length > 0 && selected.length < filteredVehicles.length}
-                            onChange={e => handleSelectAll(e.target.checked)}
-                          />
-                        </TableCell>
-                        <TableCell sx={{ width: { xs: '80px', md: '100px' } }}>Značka</TableCell>
-                        <TableCell sx={{ width: { xs: '80px', md: '100px' } }}>Model</TableCell>
-                        <TableCell sx={{ width: { xs: '80px', md: '100px' } }}>ŠPZ</TableCell>
-                        <TableCell sx={{ width: { xs: '80px', md: '100px' }, display: { xs: 'none', sm: 'table-cell' } }}>Firma</TableCell>
-                        <TableCell sx={{ width: { xs: '80px', md: '100px' } }}>Stav</TableCell>
-                        <TableCell sx={{ width: { xs: '100px', md: '120px' } }}>Akcie</TableCell>
-                      </TableRow>
-                    </TableHead>
-                <TableBody>
-                  {filteredVehicles.map((vehicle) => (
-                    <TableRow key={vehicle.id} selected={selected.includes(vehicle.id)}>
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={selected.includes(vehicle.id)}
-                          onChange={e => handleSelectOne(vehicle.id, e.target.checked)}
-                        />
-                      </TableCell>
-                      <TableCell>{vehicle.brand}</TableCell>
-                      <TableCell>{vehicle.model}</TableCell>
-                      <TableCell>{vehicle.licensePlate}</TableCell>
-                      <TableCell>{vehicle.company}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={getStatusText(vehicle.status)}
-                          color={getStatusColor(vehicle.status) as any}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={e => { e.stopPropagation(); handleShowHistory(vehicle); }}
-                          sx={{ color: 'info.main' }}
-                          title="História zmien"
-                        >
-                          <HistoryIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit(vehicle)}
-                          sx={{ color: 'primary.main' }}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDelete(vehicle.id)}
-                          sx={{ color: 'error.main' }}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-      )}
 
       <Dialog
         open={openDialog}
@@ -814,30 +633,27 @@ export default function VehicleList() {
         <DialogTitle>História zmien vozidla</DialogTitle>
         <DialogContent>
           {(selectedHistoryVehicle as any)?.history && (selectedHistoryVehicle as any).history.length > 0 ? (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Dátum</TableCell>
-                  <TableCell>Používateľ</TableCell>
-                  <TableCell>Zmeny</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(selectedHistoryVehicle as any).history.map((entry: any, idx: number) => (
-                  <TableRow key={idx}>
-                    <TableCell>{new Date(entry.date).toLocaleString()}</TableCell>
-                    <TableCell>{entry.user}</TableCell>
-                    <TableCell>
-                      {entry.changes.map((c: any, i: number) => (
-                        <div key={i}>
-                          <b>{c.field}:</b> {String(c.oldValue)} → {String(c.newValue)}
-                        </div>
-                      ))}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {(selectedHistoryVehicle as any).history.map((entry: any, idx: number) => (
+                <Card key={idx} sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {new Date(entry.date).toLocaleString()}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {entry.user}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    {entry.changes.map((c: any, i: number) => (
+                      <Typography key={i} variant="body2" sx={{ mb: 0.5 }}>
+                        <strong>{c.field}:</strong> {String(c.oldValue)} → {String(c.newValue)}
+                      </Typography>
+                    ))}
+                  </Box>
+                </Card>
+              ))}
+            </Box>
           ) : (
             <Typography>Žiadne zmeny.</Typography>
           )}

@@ -993,6 +993,21 @@ export class PostgresDatabase {
     }
   }
 
+  // Bezpečné parsovanie JSON polí
+  private safeJsonParse(value: any, fallback = undefined) {
+    if (!value) return fallback;
+    if (typeof value === 'object') return value;
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        console.warn('⚠️ JSON parse chyba:', e, 'value:', value);
+        return fallback;
+      }
+    }
+    return fallback;
+  }
+
   async createRental(rentalData: {
     vehicleId?: string;
     customerId?: string;
@@ -1085,15 +1100,15 @@ export class PostgresDatabase {
         totalPrice: parseFloat(row.total_price) || 0,
         commission: parseFloat(row.commission) || 0,
         paymentMethod: row.payment_method,
-        discount: row.discount ? JSON.parse(row.discount) : undefined,
-        customCommission: row.custom_commission ? JSON.parse(row.custom_commission) : undefined,
+        discount: this.safeJsonParse(row.discount),
+        customCommission: this.safeJsonParse(row.custom_commission),
         extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
         paid: Boolean(row.paid),
         status: row.status || 'pending',
         handoverPlace: row.handover_place,
         confirmed: Boolean(row.confirmed),
-        payments: row.payments ? JSON.parse(row.payments) : undefined,
-        history: row.history ? JSON.parse(row.history) : undefined,
+        payments: this.safeJsonParse(row.payments),
+        history: this.safeJsonParse(row.history),
         orderNumber: row.order_number,
         deposit: row.deposit ? parseFloat(row.deposit) : undefined,
         allowedKilometers: row.allowed_kilometers || undefined,
