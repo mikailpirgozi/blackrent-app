@@ -433,10 +433,15 @@ router.get('/init-admin', async (req: Request, res: Response) => {
     const client = await (postgresDatabase as any).pool.connect();
     
     try {
-      // Vymaž admin ak existuje
+      // Cleanup - vymaž staré tabuľky ak existujú
+      await client.query('DROP TABLE IF EXISTS "User" CASCADE');
+      await client.query('DROP TABLE IF EXISTS "Rental" CASCADE');
+      await client.query('DROP TABLE IF EXISTS "PriceList" CASCADE');
+      
+      // Vymaž existujúceho admin (z novej users tabuľky)
       await client.query('DELETE FROM users WHERE username = $1', ['admin']);
       
-      // Vytvor admin s heslom Black123
+      // Vytvor admin s heslom Black123 (do novej users tabuľky)
       const hashedPassword = await bcrypt.hash('Black123', 12);
       await client.query(
         'INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
@@ -449,6 +454,7 @@ router.get('/init-admin', async (req: Request, res: Response) => {
           <h1 style="color: green;">✅ Admin účet vytvorený!</h1>
           <p><strong>Username:</strong> admin</p>
           <p><strong>Password:</strong> Black123</p>
+          <p><strong>Database:</strong> PostgreSQL (cleanup hotov)</p>
           <p>Môžete sa teraz prihlásiť na <a href="https://blackrent-app.vercel.app/login">Vercel aplikácii</a></p>
           <hr>
           <p>Čas: ${new Date().toLocaleString('sk-SK')}</p>
