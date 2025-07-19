@@ -52,6 +52,44 @@ router.post('/create-admin', async (req: Request, res: Response<ApiResponse>) =>
   }
 });
 
+// POST /api/auth/reset-admin - Reset admin používateľa pre debugging
+router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🔧 Resetujem admin používateľa...');
+    
+    // Vymaž existujúceho admin používateľa
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      await client.query('DELETE FROM users WHERE username = $1', ['admin']);
+      console.log('🗑️ Starý admin účet vymazaný');
+      
+      // Vytvor nový hashovane heslo
+      const hashedPassword = await bcrypt.hash('admin123', 12);
+      
+      // Vytvor nového admin používateľa
+      await client.query(
+        'INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
+        [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
+      );
+      
+      console.log('✅ Nový admin používateľ vytvorený');
+      
+      return res.json({
+        success: true,
+        message: 'Admin používateľ resetovaný a znovu vytvorený (username: admin, password: admin123)'
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('❌ Chyba pri resetovaní admin používateľa:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Chyba pri resetovaní admin používateľa'
+    });
+  }
+});
+
 // POST /api/auth/login - Prihlásenie
 router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
   try {
