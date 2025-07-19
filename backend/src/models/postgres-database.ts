@@ -463,41 +463,48 @@ export class PostgresDatabase {
   async getUserByUsername(username: string): Promise<User | null> {
     const client = await this.pool.connect();
     try {
-      // Skúsme najskôr users_new tabuľku
-      const resultNew = await client.query(
-        'SELECT id, username, email, password, role, created_at FROM users_new WHERE username = $1',
-        [username]
-      );
-      
-      if (resultNew.rows.length > 0) {
-        const row = resultNew.rows[0];
-        return {
-          id: row.id?.toString(),
-          username: row.username,
-          email: row.email,
-          password: row.password, // users_new má priamo password
-          role: row.role,
-          createdAt: new Date(row.created_at)
-        };
-      }
-      
-      // Ak nie je v users_new, skúsme users tabuľku
+      // Skúsme najskôr users tabuľku (hlavná)
       const result = await client.query(
         'SELECT id, username, email, password_hash, role, created_at FROM users WHERE username = $1',
         [username]
       );
       
-      if (result.rows.length === 0) return null;
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        return {
+          id: row.id?.toString(),
+          username: row.username,
+          email: row.email,
+          password: row.password_hash, // users má password_hash
+          role: row.role,
+          createdAt: new Date(row.created_at)
+        };
+      }
       
-      const row = result.rows[0];
-      return {
-        id: row.id?.toString(),
-        username: row.username,
-        email: row.email,
-        password: row.password_hash, // users má password_hash
-        role: row.role,
-        createdAt: new Date(row.created_at)
-      };
+      // Ak nie je v users, skúsme users_new tabuľku (ak existuje)
+      try {
+        const resultNew = await client.query(
+          'SELECT id, username, email, password, role, created_at FROM users_new WHERE username = $1',
+          [username]
+        );
+        
+        if (resultNew.rows.length > 0) {
+          const row = resultNew.rows[0];
+          return {
+            id: row.id?.toString(),
+            username: row.username,
+            email: row.email,
+            password: row.password, // users_new má priamo password
+            role: row.role,
+            createdAt: new Date(row.created_at)
+          };
+        }
+      } catch (error) {
+        // users_new tabuľka neexistuje, ignorujeme
+        console.log('ℹ️ users_new table does not exist, using only users table');
+      }
+      
+      return null;
     } finally {
       client.release();
     }
@@ -506,41 +513,48 @@ export class PostgresDatabase {
   async getUserById(id: string): Promise<User | null> {
     const client = await this.pool.connect();
     try {
-      // Skúsme najskôr users_new tabuľku
-      const resultNew = await client.query(
-        'SELECT id, username, email, password, role, created_at FROM users_new WHERE id = $1',
-        [id]
-      );
-      
-      if (resultNew.rows.length > 0) {
-        const row = resultNew.rows[0];
-        return {
-          id: row.id?.toString(),
-          username: row.username,
-          email: row.email,
-          password: row.password,
-          role: row.role,
-          createdAt: new Date(row.created_at)
-        };
-      }
-      
-      // Ak nie je v users_new, skúsme users tabuľku
+      // Skúsme najskôr users tabuľku (hlavná)
       const result = await client.query(
         'SELECT id, username, email, password_hash, role, created_at FROM users WHERE id = $1',
         [id]
       );
       
-      if (result.rows.length === 0) return null;
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        return {
+          id: row.id?.toString(),
+          username: row.username,
+          email: row.email,
+          password: row.password_hash,
+          role: row.role,
+          createdAt: new Date(row.created_at)
+        };
+      }
       
-      const row = result.rows[0];
-      return {
-        id: row.id?.toString(),
-        username: row.username,
-        email: row.email,
-        password: row.password_hash,
-        role: row.role,
-        createdAt: new Date(row.created_at)
-      };
+      // Ak nie je v users, skúsme users_new tabuľku (ak existuje)
+      try {
+        const resultNew = await client.query(
+          'SELECT id, username, email, password, role, created_at FROM users_new WHERE id = $1',
+          [id]
+        );
+        
+        if (resultNew.rows.length > 0) {
+          const row = resultNew.rows[0];
+          return {
+            id: row.id?.toString(),
+            username: row.username,
+            email: row.email,
+            password: row.password,
+            role: row.role,
+            createdAt: new Date(row.created_at)
+          };
+        }
+      } catch (error) {
+        // users_new tabuľka neexistuje, ignorujeme
+        console.log('ℹ️ users_new table does not exist, using only users table');
+      }
+      
+      return null;
     } finally {
       client.release();
     }
