@@ -1263,12 +1263,12 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
       // 3. VOZIDLÁ - FORCE INSERT ALEBO IGNORE
       try {
         const vehicleResult = await client.query(`
-          INSERT INTO vehicles (brand, model, license_plate, company, pricing, commission, status) VALUES 
-          ('BMW', 'X5', 'BA123AB', 'ABC Rent', $1, $2, 'available'),
-          ('Mercedes', 'E-Class', 'BA456CD', 'Premium Cars', $3, $4, 'available'),
-          ('Audi', 'A4', 'BA789EF', 'City Rent', $5, $6, 'available')
+          INSERT INTO vehicles (brand, model, year, license_plate, company, pricing, commission, status) VALUES 
+          ('BMW', 'X5', 2023, 'BA123AB', 'ABC Rent', $1, $2, 'available'),
+          ('Mercedes', 'E-Class', 2022, 'BA456CD', 'Premium Cars', $3, $4, 'available'),
+          ('Audi', 'A4', 2024, 'BA789EF', 'City Rent', $5, $6, 'available')
           ON CONFLICT (license_plate) DO NOTHING
-          RETURNING id, brand, model
+          RETURNING id, brand, model, year
         `, [
           JSON.stringify([
             { id: '1', minDays: 0, maxDays: 1, pricePerDay: 80 },
