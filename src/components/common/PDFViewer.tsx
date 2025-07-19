@@ -39,14 +39,46 @@ export default function PDFViewer({
 
   // Generovanie PDF URL
   const generatePDFUrl = () => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app';
-    return `${baseUrl}/api/protocols/${protocolType}/${protocolId}/pdf`;
+    // Použi rovnakú logiku ako v api.ts
+    let baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app';
+    
+    if (process.env.REACT_APP_API_URL) {
+      baseUrl = process.env.REACT_APP_API_URL;
+    } else if (window.location.hostname.includes('railway.app')) {
+      baseUrl = `${window.location.origin}/api`;
+    } else if (window.location.hostname === 'mikailpirgozi.github.io') {
+      baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
+    } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      baseUrl = 'http://localhost:5001/api';
+    } else {
+      baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
+    }
+    
+    // Ak baseUrl už obsahuje /api, nepridávaj ho
+    const apiPath = baseUrl.includes('/api') ? '' : '/api';
+    return `${baseUrl}${apiPath}/protocols/${protocolType}/${protocolId}/pdf`;
   };
 
   // Download URL
   const getDownloadUrl = () => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app';
-    return `${baseUrl}/api/protocols/${protocolType}/${protocolId}/download`;
+    // Použi rovnakú logiku ako v api.ts
+    let baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app';
+    
+    if (process.env.REACT_APP_API_URL) {
+      baseUrl = process.env.REACT_APP_API_URL;
+    } else if (window.location.hostname.includes('railway.app')) {
+      baseUrl = `${window.location.origin}/api`;
+    } else if (window.location.hostname === 'mikailpirgozi.github.io') {
+      baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
+    } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      baseUrl = 'http://localhost:5001/api';
+    } else {
+      baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
+    }
+    
+    // Ak baseUrl už obsahuje /api, nepridávaj ho
+    const apiPath = baseUrl.includes('/api') ? '' : '/api';
+    return `${baseUrl}${apiPath}/protocols/${protocolType}/${protocolId}/download`;
   };
 
   // Načítanie PDF
