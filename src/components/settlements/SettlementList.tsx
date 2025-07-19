@@ -373,8 +373,8 @@ export default function SettlementList() {
                   <TableRow key={settlement.id}>
                     <TableCell>{settlement.company || 'N/A'}</TableCell>
                     <TableCell>
-                      {format(settlement.period.from, 'dd.MM.yyyy', { locale: sk })} - 
-                      {format(settlement.period.to, 'dd.MM.yyyy', { locale: sk })}
+                      {format(typeof settlement.period.from === 'string' ? parseISO(settlement.period.from) : settlement.period.from, 'dd.MM.yyyy', { locale: sk })} - 
+                      {format(typeof settlement.period.to === 'string' ? parseISO(settlement.period.to) : settlement.period.to, 'dd.MM.yyyy', { locale: sk })}
                     </TableCell>
                     <TableCell>{settlement.totalIncome.toFixed(2)}</TableCell>
                     <TableCell>{settlement.totalExpenses.toFixed(2)}</TableCell>
