@@ -58,8 +58,12 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
   const { state } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  
+  // Generuj UUID len raz pri vytvorení komponentu
+  const [protocolId] = useState(() => uuidv4());
+  
   const [protocol, setProtocol] = useState<Partial<HandoverProtocol>>({
-    id: uuidv4(),
+    id: protocolId,
     rentalId: rental.id,
     rental,
     type: 'handover',

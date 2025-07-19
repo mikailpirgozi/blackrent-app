@@ -1,15 +1,13 @@
-fix: Protocols data mapping and error handling
+fix: UUID generation - generate only once per component
 
-🔧 PROTOCOLS DATA MAPPING FIX:
-- HandoverProtocolForm.tsx: Fixed data mapping to match backend expectations
-- RentalListNew.tsx: Added safe destructuring with fallback for protocols data
-- Fixed 500 Internal Server Error when creating handover protocols
-- Fixed destructuring error when loading protocols
+🔧 UUID GENERATION FIX:
+- HandoverProtocolForm.tsx: Fixed UUID generation to create ID only once per component
+- Prevents duplicate key errors when saving protocols
+- UUID is now generated once and reused throughout component lifecycle
 
 ✅ RESULT:
-- Handover protocols can now be created successfully
-- Proper error handling for missing protocol data
-- Backend receives correctly formatted data
-- No more 500 errors or destructuring issues
+- No more duplicate key constraint violations
+- Protocols can be saved successfully
+- UUID remains consistent during component re-renders
 
-🚀 IMPACT: Protocols workflow now fully functional! 
+🚀 IMPACT: Protocols workflow now fully functional without duplicate key errors! 
