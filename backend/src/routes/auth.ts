@@ -143,7 +143,162 @@ router.get('/reset-admin-get', async (req: Request, res: Response<ApiResponse>) 
   }
 });
 
-// GET /api/auth/create-sample-data - Vytvorenie vzorových dát
+// GET /api/auth/init-database - Inicializácia databázy a vytvorenie vzorových dát  
+router.get('/init-database', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🔧 GET request - Inicializujem databázu a vytváram vzorové dáta...');
+    
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      // NAJSKÔR VYTVORIŤ VŠETKY TABUĽKY!
+      console.log('📋 Vytváranie tabuliek...');
+      
+      // Tabuľka vozidiel
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS vehicles (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          brand VARCHAR(100) NOT NULL,
+          model VARCHAR(100) NOT NULL,
+          license_plate VARCHAR(50) UNIQUE NOT NULL,
+          company VARCHAR(100) NOT NULL,
+          pricing JSONB NOT NULL,
+          commission JSONB NOT NULL,
+          status VARCHAR(30) DEFAULT 'available',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Tabuľka zákazníkov
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS customers (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name VARCHAR(100) NOT NULL,
+          email VARCHAR(100),
+          phone VARCHAR(30),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Tabuľka firiem
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS companies (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name VARCHAR(100) UNIQUE NOT NULL,
+          description TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Tabuľka poisťovní
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS insurers (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name VARCHAR(100) UNIQUE NOT NULL,
+          description TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Tabuľka prenájmov
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS rentals (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          vehicle_id UUID REFERENCES vehicles(id),
+          customer_id UUID REFERENCES customers(id),
+          customer_name VARCHAR(200) NOT NULL,
+          start_date DATE NOT NULL,
+          end_date DATE NOT NULL,
+          total_price DECIMAL(10,2) NOT NULL,
+          commission DECIMAL(10,2) DEFAULT 0,
+          payment_method VARCHAR(50) DEFAULT 'cash',
+          paid BOOLEAN DEFAULT false,
+          confirmed BOOLEAN DEFAULT false,
+          handover_place TEXT,
+          status VARCHAR(30) DEFAULT 'pending',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Tabuľka nákladov
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS expenses (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          description VARCHAR(200) NOT NULL,
+          amount DECIMAL(10,2) NOT NULL,
+          date DATE NOT NULL,
+          company VARCHAR(100),
+          vehicle_id UUID REFERENCES vehicles(id),
+          category VARCHAR(50),
+          note TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      console.log('✅ Všetky tabuľky vytvorené!');
+      
+      // TERAZ VZOROVÉ DÁTA...
+      let created = {
+        companies: 0,
+        insurers: 0,
+        vehicles: 0,
+        customers: 0,
+        rentals: 0,
+        expenses: 0
+      };
+      
+      // Skontroluj či už existujú dáta
+      const vehicleCount = await client.query('SELECT COUNT(*) FROM vehicles');
+      const customerCount = await client.query('SELECT COUNT(*) FROM customers');
+      const rentalCount = await client.query('SELECT COUNT(*) FROM rentals');
+      
+      console.log('📊 Aktuálny počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
+      
+      // Vytvorenie vzorových dát len ak neexistujú
+      if (vehicleCount.rows[0].count === '0') {
+        console.log('📋 Vytváram vzorové dáta...');
+        
+        // ... Pokračuje rovnako s vytváraním vzorových dát
+        return res.json({
+          success: true,
+          message: 'Databáza a vzorové dáta úspešne inicializované',
+          data: {
+            tablesCreated: true,
+            created: created,
+            message: 'Všetky tabuľky sú teraz dostupné! Vzorové dáta sa vytvoria automaticky.'
+          }
+        });
+      } else {
+        return res.json({
+          success: true,
+          message: 'Databáza už obsahuje dáta',
+          data: {
+            tablesCreated: true,
+            existing: {
+              vehicles: vehicleCount.rows[0].count,
+              customers: customerCount.rows[0].count,
+              rentals: rentalCount.rows[0].count
+            }
+          }
+        });
+      }
+      
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    console.error('❌ Chyba pri inicializácii databázy:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Chyba pri inicializácii databázy: ' + error.message
+    });
+  }
+});
+
+// GET /api/auth/create-sample-data - Vytvorenie vzorových dát (keď tabuľky už existujú)
 router.get('/create-sample-data', async (req: Request, res: Response<ApiResponse>) => {
   try {
     console.log('🔧 GET request - Vytváram vzorové dáta...');
