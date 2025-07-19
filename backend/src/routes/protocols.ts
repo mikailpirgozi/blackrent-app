@@ -41,6 +41,9 @@ router.get('/rental/:rentalId', async (req, res) => {
 // Create handover protocol
 router.post('/handover', async (req, res) => {
   try {
+    console.log('📝 Received handover protocol request');
+    console.log('📝 Request body:', JSON.stringify(req.body, null, 2));
+    
     const protocolData: HandoverProtocol = req.body;
     console.log('📝 Creating handover protocol with data:', JSON.stringify(protocolData, null, 2));
     
