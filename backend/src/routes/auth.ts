@@ -57,6 +57,9 @@ router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => 
   try {
     console.log('🔧 Resetujem admin používateľa...');
     
+    const { password } = req.body;
+    const adminPassword = password || 'Black123'; // Default heslo alebo z request
+    
     // Vymaž existujúceho admin používateľa
     const client = await (postgresDatabase as any).pool.connect();
     try {
@@ -64,7 +67,7 @@ router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => 
       console.log('🗑️ Starý admin účet vymazaný');
       
       // Vytvor nový hashovane heslo
-      const hashedPassword = await bcrypt.hash('admin123', 12);
+      const hashedPassword = await bcrypt.hash(adminPassword, 12);
       
       // Vytvor nového admin používateľa
       await client.query(
@@ -72,11 +75,11 @@ router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => 
         [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
       );
       
-      console.log('✅ Nový admin používateľ vytvorený');
+      console.log('✅ Nový admin používateľ vytvorený s heslom:', adminPassword);
       
       return res.json({
         success: true,
-        message: 'Admin používateľ resetovaný a znovu vytvorený (username: admin, password: admin123)'
+        message: `Admin používateľ resetovaný a znovu vytvorený (username: admin, password: ${adminPassword})`
       });
     } finally {
       client.release();
