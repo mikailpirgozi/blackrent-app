@@ -34,3 +34,4 @@ temp/
 .env.ai
 ai-secrets.txt
 *-token.txt
+.vercel

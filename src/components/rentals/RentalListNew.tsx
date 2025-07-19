@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -253,6 +253,20 @@ export default function RentalList() {
     setOpenPDFViewer(false);
     setSelectedPDFProtocol(null);
   };
+
+  // Automatické načítanie protokolov pri načítaní stránky
+  useEffect(() => {
+    const loadAllProtocols = async () => {
+      if (state.rentals && state.rentals.length > 0) {
+        console.log('🔄 Načítavam protokoly pre všetky prenájmy...');
+        for (const rental of state.rentals) {
+          await loadProtocolsForRental(rental.id);
+        }
+      }
+    };
+    
+    loadAllProtocols();
+  }, [state.rentals]);
 
   // Column definitions for ResponsiveTable
   const columns: ResponsiveTableColumn[] = useMemo(() => [
