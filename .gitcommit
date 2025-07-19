@@ -1,0 +1,26 @@
+feat: Minor UI fixes - consistent color props and typography
+
+🎨 MINOR UI FIXES:
+- ReturnProtocolForm.tsx: 2x white → text.primary
+- SerialPhotoCapture.tsx: 8x white → text.primary
+- LoginForm.tsx: 3x white → text.primary
+- Layout.tsx: 2x hardcoded colors → theme colors
+- ExpenseList.tsx: 8x hardcoded colors → theme colors
+- SettlementList.tsx: 2x hardcoded colors → theme colors
+- CustomerList.tsx: 6x hardcoded colors → theme colors
+
+🔧 STANDARDIZED COLOR SYSTEM:
+- sx={{ color: 'white' }} → color="text.primary"
+- sx={{ color: '#666' }} → color="text.secondary"
+- sx={{ color: '#111' }} → color="text.primary"
+- sx={{ color: '#444' }} → color="text.secondary"
+- sx={{ color: '#2563eb' }} → color="primary.main"
+- sx={{ backgroundColor: '#f8fafc' }} → backgroundColor="background.default"
+
+✅ BENEFITS:
+- Perfect theme consistency across all components
+- Automatic light/dark theme switching support
+- Better accessibility and readability
+- Maintainable and scalable color system
+
+🎯 IMPACT: All UI components now use consistent theme-aware colors! 

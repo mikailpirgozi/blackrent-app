@@ -544,10 +544,10 @@ export default function CustomerList() {
                   {/* Hlavička karty */}
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
                     <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5, color: '#111' }}>
-                        {customer.name}
-                      </Typography>
-                      <Typography variant="body2" sx={{ mb: 0.5, color: '#666' }}>
+                                          <Typography variant="h6" fontWeight="bold" color="text.primary" sx={{ mb: 0.5 }}>
+                      {customer.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                         Vytvorený: {new Date(customer.createdAt).toLocaleDateString('sk-SK')}
                       </Typography>
                     </Box>
@@ -557,10 +557,10 @@ export default function CustomerList() {
                   <Box sx={{ mb: 1.5 }}>
                     {customer.email ? (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <EmailIcon sx={{ color: '#666', fontSize: 18 }} />
-                        <Typography variant="body2" sx={{ color: '#444' }}>
-                          {customer.email}
-                        </Typography>
+                                              <EmailIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+                      <Typography variant="body2" color="text.primary">
+                        {customer.email}
+                      </Typography>
                         <IconButton
                           size="small"
                           onClick={() => handleEmail(customer.email)}
@@ -573,10 +573,10 @@ export default function CustomerList() {
                     
                     {customer.phone ? (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <PhoneIcon sx={{ color: '#666', fontSize: 18 }} />
-                        <Typography variant="body2" sx={{ color: '#444' }}>
-                          {customer.phone}
-                        </Typography>
+                                              <PhoneIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+                      <Typography variant="body2" color="text.primary">
+                        {customer.phone}
+                      </Typography>
                         <IconButton
                           size="small"
                           onClick={() => handleCall(customer.phone)}
@@ -588,9 +588,9 @@ export default function CustomerList() {
                     ) : null}
                     
                     {!customer.email && !customer.phone && (
-                      <Typography variant="body2" sx={{ color: '#999', fontStyle: 'italic' }}>
-                        Žiadne kontaktné údaje
-                      </Typography>
+                                          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                      Žiadne kontaktné údaje
+                    </Typography>
                     )}
                   </Box>
 

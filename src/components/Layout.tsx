@@ -156,7 +156,7 @@ export default function Layout({ children }: LayoutProps) {
                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
               }}
             >
-              <CarRental sx={{ color: '#2563eb', fontSize: 24 }} />
+              <CarRental sx={{ color: 'primary.main', fontSize: 24 }} />
             </Box>
             <Typography 
               variant="h6" 
@@ -275,7 +275,7 @@ export default function Layout({ children }: LayoutProps) {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', overflow: 'hidden' }}>
+            <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'background.default', overflow: 'hidden' }}>
       <CssBaseline />
       
       {/* Desktop/Tablet AppBar */}

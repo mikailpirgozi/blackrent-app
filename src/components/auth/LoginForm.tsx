@@ -93,9 +93,9 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
                 <LockIcon />
               </Avatar>
-              <Typography component="h1" variant="h4" sx={{ fontWeight: 'bold', color: 'white' }}>
-                BlackRent
-              </Typography>
+                      <Typography component="h1" variant="h4" color="text.primary" sx={{ fontWeight: 'bold' }}>
+          BlackRent
+        </Typography>
               <Typography variant="h6" sx={{ color: 'text.secondary', mt: 1 }}>
                 Prihlásenie do systému
               </Typography>
@@ -147,9 +147,9 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   />
                 }
                 label={
-                  <Typography sx={{ fontWeight: 'bold', color: 'white' }}>
-                    Zapamätať si prihlásenie
-                  </Typography>
+                                  <Typography color="text.primary" sx={{ fontWeight: 'bold' }}>
+                  Zapamätať si prihlásenie
+                </Typography>
                 }
                 sx={{ mb: 2 }}
               />
@@ -211,7 +211,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <AccountIcon color="primary" />
                       <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
+                        <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'bold' }}>
                           {account.label}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">

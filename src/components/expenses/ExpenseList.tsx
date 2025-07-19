@@ -774,7 +774,7 @@ export default function ExpenseList() {
           <Typography variant="h6" gutterBottom>
             Celkové náklady: <strong>{totalExpenses.toFixed(2)} €</strong>
           </Typography>
-          <Typography variant="body2" sx={{ color: '#666' }}>
+          <Typography variant="body2" color="text.secondary">
             {expensesWithPrice.length} nákladov s cenou • {expensesWithoutPrice.length} nákladov bez ceny
           </Typography>
         </CardContent>
@@ -802,10 +802,10 @@ export default function ExpenseList() {
                 {/* Hlavička karty */}
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5, color: '#111' }}>
+                    <Typography variant="h6" fontWeight="bold" color="text.primary" sx={{ mb: 0.5 }}>
                       {expense.description}
                     </Typography>
-                    <Typography variant="body2" sx={{ mb: 0.5, color: '#444' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                       {expense.company} • {(() => {
                         try {
                           const date = expense.date instanceof Date ? expense.date : new Date(expense.date);
@@ -827,7 +827,7 @@ export default function ExpenseList() {
                 {/* Finančné informácie */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                   <Box>
-                    <Typography variant="body2" sx={{ color: '#444' }}>
+                    <Typography variant="body2" color="text.secondary">
                       Suma
                     </Typography>
                     <Typography variant="h6" fontWeight="bold" sx={{ color: expense.amount > 0 ? 'error.main' : '#999' }}>
@@ -841,7 +841,7 @@ export default function ExpenseList() {
                     <Typography variant="body2" sx={{ color: '#444' }}>
                       Vozidlo
                     </Typography>
-                    <Typography variant="body1" fontWeight="bold" sx={{ color: '#111' }}>
+                    <Typography variant="body1" fontWeight="bold" color="text.primary">
                       {expense.vehicleId ? 
                         state.vehicles.find(v => v.id === expense.vehicleId)?.licensePlate || 'N/A' 
                         : 'Všetky vozidlá'
@@ -853,7 +853,7 @@ export default function ExpenseList() {
                 {/* Poznámka */}
                 {expense.note && (
                   <Box sx={{ mb: 1.5 }}>
-                    <Typography variant="body2" sx={{ mb: 0.5, color: '#444' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                       Poznámka
                     </Typography>
                     <Typography variant="body2" sx={{ 

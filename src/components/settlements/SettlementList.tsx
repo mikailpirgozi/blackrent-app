@@ -263,10 +263,10 @@ export default function SettlementList() {
                   {/* Hlavička karty */}
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
                     <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5, color: '#111' }}>
+                      <Typography variant="h6" fontWeight="bold" color="text.primary" sx={{ mb: 0.5 }}>
                         {settlement.company || 'N/A'}
                       </Typography>
-                      <Typography variant="body2" sx={{ mb: 0.5, color: '#666' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                         {format(settlement.period.from, 'dd.MM.yyyy', { locale: sk })} - {format(settlement.period.to, 'dd.MM.yyyy', { locale: sk })}
                       </Typography>
                     </Box>

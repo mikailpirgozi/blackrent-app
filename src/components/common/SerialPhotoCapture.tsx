@@ -285,10 +285,10 @@ export default function SerialPhotoCapture({
     <>
       <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" sx={{ color: 'white' }}>
+          <Typography variant="h6" color="text.primary">
             {title}
           </Typography>
-          <IconButton onClick={handleClose} sx={{ color: 'white' }}>
+          <IconButton onClick={handleClose} color="inherit">
             <Close />
           </IconButton>
         </DialogTitle>
@@ -349,7 +349,7 @@ export default function SerialPhotoCapture({
           {processing && (
             <Box sx={{ mb: 2 }}>
               <LinearProgress variant="determinate" value={progress} />
-              <Typography variant="body2" sx={{ color: 'white', mt: 1 }}>
+              <Typography variant="body2" color="text.primary" sx={{ mt: 1 }}>
                 Spracovávam: {Math.round(progress)}%
               </Typography>
             </Box>
@@ -407,7 +407,7 @@ export default function SerialPhotoCapture({
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}>
-                        <VideoCall sx={{ fontSize: 40, color: 'white' }} />
+                        <VideoCall sx={{ fontSize: 40, color: 'text.primary' }} />
                       </Box>
                     )}
                     
@@ -415,14 +415,14 @@ export default function SerialPhotoCapture({
                       <IconButton
                         size="small"
                         onClick={() => setPreviewMedia(media)}
-                        sx={{ backgroundColor: 'rgba(0,0,0,0.5)', color: 'white' }}
+                        sx={{ backgroundColor: 'rgba(0,0,0,0.5)', color: 'text.primary' }}
                       >
                         <Preview />
                       </IconButton>
                       <IconButton
                         size="small"
                         onClick={() => handleDeleteMedia(media.id)}
-                        sx={{ backgroundColor: 'rgba(255,0,0,0.5)', color: 'white' }}
+                        sx={{ backgroundColor: 'rgba(255,0,0,0.5)', color: 'text.primary' }}
                       >
                         <Delete />
                       </IconButton>
@@ -478,7 +478,7 @@ export default function SerialPhotoCapture({
         </DialogContent>
         
         <DialogActions>
-          <Button onClick={handleClose} sx={{ color: 'white' }}>
+          <Button onClick={handleClose} color="inherit">
             Zrušiť
           </Button>
           <Button 
@@ -512,7 +512,7 @@ export default function SerialPhotoCapture({
                 />
               )}
               
-              <Typography variant="body2" sx={{ color: 'white', mt: 2 }}>
+              <Typography variant="body2" color="text.primary" sx={{ mt: 2 }}>
                 {previewMedia.description || 'Bez popisu'}
               </Typography>
             </Box>

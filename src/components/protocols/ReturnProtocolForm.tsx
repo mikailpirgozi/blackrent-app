@@ -370,7 +370,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
                     value={protocol.vehicleCondition?.odometer || 0}
                     onChange={(e) => handleVehicleConditionChange('odometer', parseInt(e.target.value))}
                     InputProps={{
-                      startAdornment: <SpeedOutlined sx={{ color: 'white', mr: 1 }} />,
+                      startAdornment: <SpeedOutlined sx={{ color: 'text.primary', mr: 1 }} />,
                     }}
                     fullWidth
                     required
@@ -387,7 +387,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
                     value={protocol.vehicleCondition?.fuelLevel || 100}
                     onChange={(e) => handleVehicleConditionChange('fuelLevel', parseInt(e.target.value))}
                     InputProps={{
-                      startAdornment: <LocalGasStation sx={{ color: 'white', mr: 1 }} />,
+                      startAdornment: <LocalGasStation sx={{ color: 'text.primary', mr: 1 }} />,
                     }}
                     inputProps={{ min: 0, max: 100 }}
                     fullWidth
