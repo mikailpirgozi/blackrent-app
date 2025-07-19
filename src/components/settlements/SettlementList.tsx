@@ -34,7 +34,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { Settlement } from '../../types';
 import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
+import { sk } from 'date-fns/locale/sk';
 import SettlementDetail from './SettlementDetail';
 import { v4 as uuidv4 } from 'uuid';
 

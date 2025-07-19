@@ -1466,18 +1466,9 @@ export class PostgresDatabase {
     try {
       console.log('🔍 Starting getSettlements - checking/creating table...');
       
-      // HOTFIX: Drop existujúcu settlements tabuľku ak má nekompatibilnú štruktúru
-      try {
-        console.log('🔥 Dropping settlements table (incompatible schema fix)...');
-        await client.query(`DROP TABLE IF EXISTS settlements CASCADE;`);
-        console.log('✅ Old settlements table dropped');
-      } catch (error) {
-        console.log('ℹ️ Drop settlements table error (table might not exist):', error);
-      }
-
-      // Create new settlements table with correct schema
+      // Ensure settlements table exists with correct schema
       await client.query(`
-        CREATE TABLE settlements (
+        CREATE TABLE IF NOT EXISTS settlements (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           company VARCHAR(100) DEFAULT 'Default Company',
           period VARCHAR(50) DEFAULT 'Current Period',
@@ -1490,7 +1481,7 @@ export class PostgresDatabase {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      console.log('✅ New settlements table created with correct schema');
+      console.log('✅ Settlements table ensured');
       
       console.log('✅ Settlements table ready');
 
@@ -1588,18 +1579,9 @@ export class PostgresDatabase {
     try {
       console.log('🔍 Creating settlement with data:', settlementData);
       
-      // HOTFIX: Drop existujúcu settlements tabuľku ak má nekompatibilnú štruktúru  
-      try {
-        console.log('🔥 Dropping settlements table (incompatible schema fix)...');
-        await client.query(`DROP TABLE IF EXISTS settlements CASCADE;`);
-        console.log('✅ Old settlements table dropped');
-      } catch (error) {
-        console.log('ℹ️ Drop settlements table error (table might not exist):', error);
-      }
-
-      // Create new settlements table with correct schema
+      // Ensure settlements table exists with correct schema
       await client.query(`
-        CREATE TABLE settlements (
+        CREATE TABLE IF NOT EXISTS settlements (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           company VARCHAR(100) DEFAULT 'Default Company',
           period VARCHAR(50) DEFAULT 'Current Period',
@@ -1612,7 +1594,7 @@ export class PostgresDatabase {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      console.log('✅ New settlements table created with correct schema');
+      console.log('✅ Settlements table ensured for create operation');
       
       const result = await client.query(`
         INSERT INTO settlements (

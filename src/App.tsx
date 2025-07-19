@@ -18,7 +18,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import { Suspense, lazy } from 'react';
 
 const VehicleList = lazy(() => import('./components/vehicles/VehicleList'));
-const RentalList = lazy(() => import('./components/rentals/RentalList'));
+const RentalList = lazy(() => import('./components/rentals/RentalListNew'));
 const CustomerList = lazy(() => import('./components/customers/CustomerList'));
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseList'));
 const InsuranceList = lazy(() => import('./components/insurances/InsuranceList'));
