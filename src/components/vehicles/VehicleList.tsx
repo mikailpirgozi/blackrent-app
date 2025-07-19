@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -28,6 +28,7 @@ import {
   Collapse,
   Fab,
 } from '@mui/material';
+import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -212,6 +213,74 @@ export default function VehicleList() {
       console.error('Chyba pri ukladaní vozidla:', error);
     }
   };
+
+  // Column definitions for ResponsiveTable
+  const columns: ResponsiveTableColumn[] = useMemo(() => [
+    {
+      id: 'brand',
+      label: 'Značka',
+      width: { xs: '80px', md: '100px' }
+    },
+    {
+      id: 'model',
+      label: 'Model',
+      width: { xs: '80px', md: '100px' }
+    },
+    {
+      id: 'licensePlate',
+      label: 'ŠPZ',
+      width: { xs: '80px', md: '100px' }
+    },
+    {
+      id: 'company',
+      label: 'Firma',
+      width: { xs: '80px', md: '100px' },
+      hideOnMobile: true
+    },
+    {
+      id: 'status',
+      label: 'Stav',
+      width: { xs: '80px', md: '100px' },
+      render: (value: VehicleStatus) => (
+        <Chip
+          label={getStatusText(value)}
+          color={getStatusColor(value) as any}
+          size="small"
+        />
+      )
+    },
+    {
+      id: 'actions',
+      label: 'Akcie',
+      width: { xs: '100px', md: '120px' },
+      render: (value: any, vehicle: Vehicle) => (
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <IconButton
+            size="small"
+            onClick={e => { e.stopPropagation(); handleShowHistory(vehicle); }}
+            sx={{ color: 'info.main' }}
+            title="História zmien"
+          >
+            <HistoryIcon />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={e => { e.stopPropagation(); handleEdit(vehicle); }}
+            sx={{ color: 'primary.main' }}
+          >
+            <EditIcon />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={e => { e.stopPropagation(); handleDelete(vehicle.id); }}
+            sx={{ color: 'error.main' }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </Box>
+      )
+    }
+  ], [handleEdit, handleDelete, handleShowHistory]);
 
   function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -535,8 +604,18 @@ export default function VehicleList() {
         />
       </Box>
 
-      {/* Mobilné zobrazenie - karty */}
-      {isMobile ? (
+      {/* ResponsiveTable - automaticky switches medzi Table a Cards */}
+      <ResponsiveTable
+        columns={columns}
+        data={filteredVehicles}
+        selectable={true}
+        selected={selected}
+        onSelectionChange={setSelected}
+        emptyMessage="Žiadne vozidlá"
+      />
+
+      {/* Pôvodný kód - nahradené ResponsiveTable */}
+      {false && isMobile ? (
         <Box>
           {filteredVehicles.map((vehicle) => (
             <Card 
