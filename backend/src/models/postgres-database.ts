@@ -207,7 +207,7 @@ export class PostgresDatabase {
           ALTER TABLE vehicles 
           ADD COLUMN IF NOT EXISTS company VARCHAR(100) DEFAULT 'Default Company',
           ADD COLUMN IF NOT EXISTS pricing JSONB DEFAULT '[]',
-          ADD COLUMN IF NOT EXISTS commission JSONB DEFAULT '{"type": "percentage", "value": 15}',
+          ADD COLUMN IF NOT EXISTS commission JSONB DEFAULT '{"type": "percentage", "value": 20}',
           ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'available';
         `);
         console.log('✅ Migrácia 1: Stĺpce do vehicles pridané');
@@ -370,6 +370,21 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 6 chyba:', error.message);
       }
       
+      // Migrácia 7: Aktualizácia commission na 20% pre všetky vozidlá
+      try {
+        console.log('📋 Migrácia 7: Aktualizácia commission na 20%...');
+        
+        const commissionResult = await client.query(`
+          UPDATE vehicles 
+          SET commission = '{"type": "percentage", "value": 20}'::jsonb
+          WHERE commission->>'value' != '20'
+        `);
+        
+        console.log(`✅ Migrácia 7: Commission aktualizovaná na 20% pre všetky vozidlá`);
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 7 chyba:', error.message);
+      }
+      
       console.log('✅ Databázové migrácie úspešne dokončené');
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
@@ -466,7 +481,7 @@ export class PostgresDatabase {
                 { id: '6', minDays: 23, maxDays: 30, pricePerDay: 80 },     // 23-30 dní
                 { id: '7', minDays: 31, maxDays: 365, pricePerDay: 75 }     // 31+ dní
               ]),
-              JSON.stringify({ type: 'percentage', value: 15 }),
+              JSON.stringify({ type: 'percentage', value: 20 }),
               // Mercedes E-Class - Business class pricing
               JSON.stringify([
                 { id: '1', minDays: 0, maxDays: 1, pricePerDay: 100 },      // 0-1 dní
@@ -477,7 +492,7 @@ export class PostgresDatabase {
                 { id: '6', minDays: 23, maxDays: 30, pricePerDay: 65 },     // 23-30 dní
                 { id: '7', minDays: 31, maxDays: 365, pricePerDay: 60 }     // 31+ dní
               ]),
-              JSON.stringify({ type: 'percentage', value: 18 }),
+              JSON.stringify({ type: 'percentage', value: 20 }),
               // Audi A4 - Standard sedan pricing
               JSON.stringify([
                 { id: '1', minDays: 0, maxDays: 1, pricePerDay: 80 },       // 0-1 dní
@@ -488,7 +503,7 @@ export class PostgresDatabase {
                 { id: '6', minDays: 23, maxDays: 30, pricePerDay: 50 },     // 23-30 dní
                 { id: '7', minDays: 31, maxDays: 365, pricePerDay: 45 }     // 31+ dní
               ]),
-              JSON.stringify({ type: 'percentage', value: 12 }),
+              JSON.stringify({ type: 'percentage', value: 20 }),
               // Skoda Octavia - Budget friendly pricing
               JSON.stringify([
                 { id: '1', minDays: 0, maxDays: 1, pricePerDay: 60 },       // 0-1 dní
@@ -499,7 +514,7 @@ export class PostgresDatabase {
                 { id: '6', minDays: 23, maxDays: 30, pricePerDay: 35 },     // 23-30 dní
                 { id: '7', minDays: 31, maxDays: 365, pricePerDay: 30 }     // 31+ dní
               ]),
-              JSON.stringify({ type: 'percentage', value: 10 }),
+              JSON.stringify({ type: 'percentage', value: 20 }),
               // Volkswagen Passat - Mid-range pricing
               JSON.stringify([
                 { id: '1', minDays: 0, maxDays: 1, pricePerDay: 70 },       // 0-1 dní
@@ -510,7 +525,7 @@ export class PostgresDatabase {
                 { id: '6', minDays: 23, maxDays: 30, pricePerDay: 45 },     // 23-30 dní
                 { id: '7', minDays: 31, maxDays: 365, pricePerDay: 40 }     // 31+ dní
               ]),
-              JSON.stringify({ type: 'percentage', value: 14 })
+              JSON.stringify({ type: 'percentage', value: 20 })
             ]);
             
             const vehicles = vehicleResult.rows;

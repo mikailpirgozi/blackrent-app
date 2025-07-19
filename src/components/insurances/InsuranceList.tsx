@@ -145,7 +145,7 @@ export default function InsuranceList() {
         flexDirection: isMobile ? 'column' : 'row',
         gap: isMobile ? 2 : 0
       }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'white' }}>
+        <Typography variant="h4" color="text.primary" sx={{ fontWeight: 'bold' }}>
           Poistky
         </Typography>
         {!isMobile && (
@@ -355,10 +355,10 @@ export default function InsuranceList() {
                 <CardContent sx={{ p: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#fff', mb: 1 }}>
+                      <Typography variant="h6" color="text.primary" sx={{ fontWeight: 'bold', mb: 1 }}>
                         {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'N/A'}
                       </Typography>
-                      <Typography variant="body2" sx={{ color: '#bdbdbd', mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         {vehicle?.licensePlate}
                       </Typography>
                     </Box>
@@ -373,30 +373,30 @@ export default function InsuranceList() {
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <SecurityIcon sx={{ fontSize: 16, color: 'primary.main' }} />
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#fff' }}>
+                      <Typography variant="body2" color="text.primary" sx={{ fontWeight: 'bold' }}>
                         {insurance.type}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <BusinessIcon sx={{ fontSize: 16, color: 'primary.main' }} />
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#fff' }}>
+                      <Typography variant="body2" color="text.primary" sx={{ fontWeight: 'bold' }}>
                         {insurance.company}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" sx={{ color: '#bdbdbd' }}>
+                      <Typography variant="body2" color="text.secondary">
                         📄 Číslo: {insurance.policyNumber}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <EventIcon sx={{ fontSize: 16, color: 'primary.main' }} />
-                      <Typography variant="body2" sx={{ color: '#bdbdbd' }}>
+                      <Typography variant="body2" color="text.secondary">
                         {format(typeof insurance.validFrom === 'string' ? parseISO(insurance.validFrom) : insurance.validFrom, 'dd.MM.yyyy', { locale: sk })} - {format(typeof insurance.validTo === 'string' ? parseISO(insurance.validTo) : insurance.validTo, 'dd.MM.yyyy', { locale: sk })}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <EuroIcon sx={{ fontSize: 16, color: 'primary.main' }} />
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#fff' }}>
+                      <Typography variant="body2" color="text.primary" sx={{ fontWeight: 'bold' }}>
                         {insurance.price.toFixed(2)} €
                       </Typography>
                     </Box>

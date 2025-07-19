@@ -254,13 +254,13 @@ export default function UserManagement() {
               <TableCell>
                 <Box display="flex" alignItems="center" gap={1}>
                   <PersonIcon color="primary" />
-                  <Typography sx={{ fontWeight: 'bold', color: 'white' }}>
+                  <Typography color="text.primary" sx={{ fontWeight: 'bold' }}>
                     {user.username}
                   </Typography>
                 </Box>
               </TableCell>
               <TableCell>
-                <Typography sx={{ color: 'white' }}>
+                <Typography color="text.primary">
                   {user.email}
                 </Typography>
               </TableCell>
@@ -277,7 +277,7 @@ export default function UserManagement() {
                 </Box>
               </TableCell>
               <TableCell>
-                <Typography sx={{ color: 'white' }}>
+                <Typography color="text.primary">
                   {new Date(user.createdAt).toLocaleDateString('sk-SK')}
                 </Typography>
               </TableCell>
@@ -314,7 +314,7 @@ export default function UserManagement() {
           <CardContent>
             <Box display="flex" alignItems="center" gap={1} mb={1}>
               <PersonIcon color="primary" />
-              <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white' }}>
+              <Typography variant="h6" color="text.primary" sx={{ fontWeight: 'bold' }}>
                 {user.username}
               </Typography>
               <Chip
@@ -326,7 +326,7 @@ export default function UserManagement() {
             <Typography variant="body2" color="text.secondary" gutterBottom>
               {user.email}
             </Typography>
-            <Typography variant="body2" gutterBottom sx={{ color: 'white' }}>
+            <Typography variant="body2" color="text.primary" gutterBottom>
               Vytvorený: {new Date(user.createdAt).toLocaleDateString('sk-SK')}
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -360,7 +360,7 @@ export default function UserManagement() {
   return (
     <Box sx={{ p: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'white' }}>
+        <Typography variant="h4" component="h1" color="text.primary" sx={{ fontWeight: 'bold' }}>
           Správa používateľov
         </Typography>
         {!isMobile && (
@@ -433,7 +433,7 @@ export default function UserManagement() {
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={1}>
             <SecurityIcon color="primary" />
-            <Typography sx={{ fontWeight: 'bold', color: 'white' }}>
+            <Typography color="text.primary" sx={{ fontWeight: 'bold' }}>
               {editingUser ? 'Upraviť používateľa' : 'Pridať používateľa'}
             </Typography>
           </Box>
