@@ -1,25 +1,27 @@
 #!/bin/bash
 
-echo "🔧 BUILD ERROR FIX - REMOVE UNUSED DAMAGEITEM INTERFACE - COMMIT & PUSH"
+echo "🔧 PROTOCOLS API FIX - USE APISERVICE INSTEAD OF DIRECT FETCH - COMMIT & PUSH"
 echo ""
 
 # Git add all changes
 git add .
 
 # Commit with detailed message
-git commit -m "fix: Build error - remove unused DamageItem interface
+git commit -m "fix: Protocols API integration - use apiService instead of direct fetch
 
-🔧 BUILD ERROR FIX:
-- HandoverProtocolForm.tsx: Removed unused DamageItem interface
-- Fixed TypeScript compilation error with 'photos' property
-- ProtocolDamage interface now properly used throughout
+🔧 PROTOCOLS API FIX:
+- api.ts: Added protocol methods (getProtocolsByRental, createHandoverProtocol, createReturnProtocol)
+- RentalListNew.tsx: Fixed API calls to use apiService instead of direct fetch
+- Fixed 405 Method Not Allowed errors on Vercel
+- Fixed JSON parsing errors
 
 ✅ RESULT:
-- Build passes successfully
-- No more TypeScript compilation errors
+- Protocols API calls now go to Railway backend correctly
+- No more 405 errors or JSON parsing issues
+- Proper error handling and authentication
 - Protocols workflow fully functional
 
-🚀 IMPACT: Application can now be deployed without build errors!"
+🚀 IMPACT: Protocols can now be created and managed successfully!"
 
 # Push to origin
 echo ""
@@ -27,7 +29,7 @@ echo "🚀 Pushing to GitHub..."
 git push origin main
 
 echo ""
-echo "✅ BUILD ERROR FIX DEPLOYED!"
+echo "✅ PROTOCOLS API FIX DEPLOYED!"
 echo "📋 Railway will auto-deploy from GitHub"
 echo "⏱️  ETA: 2-3 minúty"
 

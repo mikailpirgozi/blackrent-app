@@ -320,6 +320,25 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Protokoly
+  async getProtocolsByRental(rentalId: string): Promise<{ handoverProtocols: any[]; returnProtocols: any[] }> {
+    return this.request<{ handoverProtocols: any[]; returnProtocols: any[] }>(`/protocols/rental/${rentalId}`);
+  }
+
+  async createHandoverProtocol(protocolData: any): Promise<any> {
+    return this.request<any>('/protocols/handover', {
+      method: 'POST',
+      body: JSON.stringify(protocolData),
+    });
+  }
+
+  async createReturnProtocol(protocolData: any): Promise<any> {
+    return this.request<any>('/protocols/return', {
+      method: 'POST',
+      body: JSON.stringify(protocolData),
+    });
+  }
 }
 
 export const apiService = new ApiService();

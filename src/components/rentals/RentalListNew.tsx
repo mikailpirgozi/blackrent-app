@@ -30,6 +30,7 @@ import { sk } from 'date-fns/locale';
 import RentalForm from './RentalForm';
 import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
+import { apiService } from '../../services/api';
 
 export default function RentalList() {
   const { state, createRental, updateRental, deleteRental } = useApp();
@@ -54,8 +55,7 @@ export default function RentalList() {
     
     setLoadingProtocols(prev => [...prev, rentalId]);
     try {
-      const response = await fetch(`/api/protocols/rental/${rentalId}`);
-      const data = await response.json();
+      const data = await apiService.getProtocolsByRental(rentalId);
       const { handoverProtocols, returnProtocols } = data;
       
       setProtocols(prev => ({
@@ -173,14 +173,7 @@ export default function RentalList() {
 
   const handleSaveHandover = async (protocolData: any) => {
     try {
-      const response = await fetch('/api/protocols/handover', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(protocolData),
-      });
-      const data = await response.json() as any;
+      const data = await apiService.createHandoverProtocol(protocolData);
       console.log('Handover protocol created:', data);
       
       // Aktualizácia protokolov
@@ -211,14 +204,7 @@ export default function RentalList() {
 
   const handleSaveReturn = async (protocolData: any) => {
     try {
-      const response = await fetch('/api/protocols/return', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(protocolData),
-      });
-      const data = await response.json() as any;
+      const data = await apiService.createReturnProtocol(protocolData);
       console.log('Return protocol created:', data);
       
       // Aktualizácia protokolov
