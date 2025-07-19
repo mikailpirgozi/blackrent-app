@@ -1,0 +1,34 @@
+# Backend files - Vercel nepotrebuje
+backend/
+*.db
+*.sqlite3
+
+# Build artifacts
+dist/
+build/
+logs/
+backups/
+
+# Config files
+.env
+.env.local
+.env.production
+docker-compose.yml
+Dockerfile
+
+# Railway files
+railway.json
+auto-deploy.sh
+sync-railway.sh
+deploy.sh
+
+# Documentation
+*.md
+AI-*
+RAILWAY-*
+DEPLOY*
+MIGRATION-*
+
+# Other
+.DS_Store
+node_modules/ 
