@@ -247,7 +247,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.log('Načítavam dáta z API...');
       
       // Load data from API
-      const [vehicles, rentals, expenses, insurances, customers, companies, insurers, settlements] = await Promise.all([
+      const [vehicles, rentals, expenses, insurances, customers, companies, insurers] = await Promise.all([
         apiService.getVehicles(),
         apiService.getRentals(),
         apiService.getExpenses(),
@@ -255,7 +255,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         apiService.getCustomers(),
         apiService.getCompanies(),
         apiService.getInsurers(),
-        apiService.getSettlements()
+        // apiService.getSettlements() // Dočasne skippnuté kvôli schema incompatibility
       ]);
       
       console.log('Dáta úspešne načítané:', { 
@@ -266,7 +266,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         customers: customers.length,
         companies: companies.length,
         insurers: insurers.length,
-        settlements: settlements.length
+        settlements: 0 // dočasne 0
       });
       
       dispatch({ type: 'SET_VEHICLES', payload: vehicles });
@@ -276,7 +276,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_CUSTOMERS', payload: customers });
       dispatch({ type: 'SET_COMPANIES', payload: companies });
       dispatch({ type: 'SET_INSURERS', payload: insurers });
-      dispatch({ type: 'SET_SETTLEMENTS', payload: settlements });
+      dispatch({ type: 'SET_SETTLEMENTS', payload: [] }); // dočasne prázdny array
       
     } catch (error: any) {
       console.error('Chyba pri načítavaní dát:', error);
