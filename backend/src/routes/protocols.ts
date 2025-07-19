@@ -5,6 +5,12 @@ import { postgresDatabase } from '../models/postgres-database';
 
 const router = express.Router();
 
+// UUID validation function
+const isValidUUID = (uuid: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
 // Multer config for file uploads
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -47,6 +53,17 @@ router.post('/handover', async (req, res) => {
     if (!protocolData.rentalId) {
       console.error('❌ Missing rental ID');
       return res.status(400).json({ error: 'Rental ID is required' });
+    }
+    
+    // UUID validácia
+    if (!isValidUUID(protocolData.id)) {
+      console.error('❌ Invalid protocol ID format:', protocolData.id);
+      return res.status(400).json({ error: 'Invalid protocol ID format. Must be valid UUID.' });
+    }
+    
+    if (!isValidUUID(protocolData.rentalId)) {
+      console.error('❌ Invalid rental ID format:', protocolData.rentalId);
+      return res.status(400).json({ error: 'Invalid rental ID format. Must be valid UUID.' });
     }
     
     const protocol = await postgresDatabase.createHandoverProtocol(protocolData);
