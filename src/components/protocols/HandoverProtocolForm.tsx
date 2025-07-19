@@ -42,6 +42,7 @@ import {
   Description as DescriptionIcon,
 } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import dayjs, { Dayjs } from 'dayjs';
 import { Rental } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { apiService } from '../../services/api';
@@ -66,7 +67,7 @@ interface ProtocolData {
   rentalId: string;
   type: 'handover' | 'return';
   location: string;
-  timestamp: Date;
+  timestamp: Dayjs;
   mileage: number;
   fuelLevel: number;
   damages: DamageItem[];
@@ -85,7 +86,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     rentalId: rental.id,
     type: 'handover',
     location: '',
-    timestamp: new Date(),
+    timestamp: dayjs(),
     mileage: 0,
     fuelLevel: 100,
     damages: [],
@@ -187,7 +188,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                     <DateTimePicker
                       label="Čas prevzatia"
                       value={protocol.timestamp}
-                      onChange={(newValue) => setProtocol(prev => ({ ...prev, timestamp: newValue || new Date() }))}
+                      onChange={(newValue) => setProtocol(prev => ({ ...prev, timestamp: newValue || dayjs() }))}
                     />
                   </Stack>
                 </CardContent>

@@ -30,7 +30,10 @@ import {
   Tooltip,
   TableFooter,
   CircularProgress,
+  Stack,
+  Divider,
 } from '@mui/material';
+import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -1056,6 +1059,196 @@ export default function RentalList() {
     }
   };
 
+  // Column definitions for ResponsiveTable
+  const columns: ResponsiveTableColumn[] = useMemo(() => [
+    {
+      id: 'vehicle',
+      label: 'Vozidlo',
+      width: { xs: '120px', md: '150px' },
+      render: (value, rental: Rental) => (
+        <Box>
+          <Typography variant="body2" fontWeight="bold">
+            {rental.vehicle ? `${rental.vehicle.brand} ${rental.vehicle.model}` : 'Bez vozidla'}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {rental.vehicle?.licensePlate || 'N/A'}
+          </Typography>
+        </Box>
+      )
+    },
+    {
+      id: 'company',
+      label: 'Firma',
+      width: { xs: '80px', md: '100px' },
+      hideOnMobile: true,
+      render: (value, rental: Rental) => rental.vehicle?.company || 'N/A'
+    },
+    {
+      id: 'customerName',
+      label: 'Zákazník',
+      width: { xs: '100px', md: '130px' },
+      render: (value) => value || 'N/A'
+    },
+    {
+      id: 'startDate',
+      label: 'Od',
+      width: { xs: '80px', md: '100px' },
+      render: (value) => {
+        const date = value instanceof Date ? value : new Date(value);
+        return !isNaN(date.getTime()) ? format(date, 'dd.MM.yyyy', { locale: sk }) : 'N/A';
+      }
+    },
+    {
+      id: 'endDate',
+      label: 'Do',
+      width: { xs: '80px', md: '100px' },
+      render: (value) => {
+        const date = value instanceof Date ? value : new Date(value);
+        return !isNaN(date.getTime()) ? format(date, 'dd.MM.yyyy', { locale: sk }) : 'N/A';
+      }
+    },
+    {
+      id: 'totalPrice',
+      label: 'Cena (€)',
+      width: { xs: '80px', md: '100px' },
+      render: (value) => (
+        <Typography variant="body2" fontWeight="bold">
+          {formatPrice(value)} €
+        </Typography>
+      )
+    },
+    {
+      id: 'commission',
+      label: 'Provízia (€)',
+      width: '100px',
+      hideOnMobile: true,
+      render: (value) => (
+        <Typography variant="body2" color="warning.main">
+          {formatPrice(value)} €
+        </Typography>
+      )
+    },
+    {
+      id: 'paymentMethod',
+      label: 'Platba',
+      width: { xs: '80px', md: '100px' },
+      hideOnMobile: true,
+      render: (value) => value ? (
+        <Chip
+          label={getPaymentMethodText(value)}
+          color={getPaymentMethodColor(value) as any}
+          size="small"
+        />
+      ) : <span>-</span>
+    },
+    {
+      id: 'paid',
+      label: 'Uhradené',
+      width: '80px',
+      hideOnMobile: true,
+      hideOnTablet: true,
+      render: (value, rental: Rental) => (
+        <Select
+          size="small"
+          value={value ? 'yes' : 'no'}
+          onChange={e => {
+            const paid = e.target.value === 'yes';
+            dispatch({ type: 'UPDATE_RENTAL', payload: { ...rental, paid } });
+          }}
+          sx={{ minWidth: 80 }}
+          onClick={e => e.stopPropagation()}
+        >
+          <MenuItem value="yes">
+            <Chip label="Áno" color="success" size="small" />
+          </MenuItem>
+          <MenuItem value="no">
+            <Chip label="Nie" color="error" size="small" />
+          </MenuItem>
+        </Select>
+      )
+    },
+    {
+      id: 'status',
+      label: 'Stav',
+      width: '100px',
+      hideOnMobile: true,
+      hideOnTablet: true,
+      render: (value, rental: Rental) => (
+        <Box>
+          <Chip
+            label={getRentalStatus(rental).label}
+            color={getRentalStatus(rental).color as any}
+            size="small"
+          />
+          {getRentalStatus(rental).label === 'Prenájom ukončený' && !rental.confirmed && rental.paid && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="success"
+              sx={{ ml: 1 }}
+              onClick={e => { 
+                e.stopPropagation(); 
+                dispatch({ type: 'UPDATE_RENTAL', payload: { ...rental, confirmed: true } }); 
+              }}
+            >
+              Potvrdiť ukončenie
+            </Button>
+          )}
+        </Box>
+      )
+    },
+    {
+      id: 'actions',
+      label: 'Akcie',
+      width: { xs: '120px', md: '150px' },
+      render: (value, rental: Rental) => (
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <IconButton
+            size="small"
+            onClick={e => { e.stopPropagation(); handleEdit(rental); }}
+            sx={{ color: 'primary.main' }}
+          >
+            <EditIcon />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={e => { e.stopPropagation(); handleDelete(rental.id); }}
+            sx={{ color: 'error.main' }}
+          >
+            <DeleteIcon />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={e => { e.stopPropagation(); handleShowHistory(rental); }}
+            sx={{ color: 'info.main' }}
+            title="História zmien"
+          >
+            <HistoryIcon />
+          </IconButton>
+          {rental.vehicle && (
+            <IconButton
+              size="small"
+              onClick={e => { e.stopPropagation(); handleCreateHandoverProtocol(rental); }}
+              sx={{ color: 'success.main' }}
+              title="Preberací protokol"
+            >
+              <HandoverProtocolIcon />
+            </IconButton>
+          )}
+          {rental.handoverProtocolId && (
+            <IconButton
+              size="small"
+              onClick={e => { e.stopPropagation(); handleCreateReturnProtocol(rental); }}
+              sx={{ color: 'warning.main' }}
+              title="Vratný protokol"
+            >
+              <ReturnProtocolIcon />
+            </IconButton>
+          )}
+        </Box>
+      )
+    }
+  ], [formatPrice, getPaymentMethodText, getPaymentMethodColor, getRentalStatus, dispatch, handleEdit, handleDelete, handleShowHistory, handleCreateHandoverProtocol, handleCreateReturnProtocol]);
 
   const renderSortableHeader = (field: SortField, label: string) => (
     <TableCell>
@@ -1993,7 +2186,18 @@ export default function RentalList() {
       ) : (
         <Card>
           <CardContent>
-            <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', maxHeight: 600, width: '100%', overflowX: 'auto' }}>
+            <ResponsiveTable
+              columns={columns}
+              data={filteredRentals}
+              selectable={true}
+              selected={selected}
+              onSelectionChange={setSelected}
+              onRowClick={handleShowDetail}
+              getRowColor={getRentalBackgroundColor}
+              emptyMessage="Žiadne prenájmy"
+            />
+          </CardContent>
+        </Card>
               <Table stickyHeader sx={{ minWidth: { xs: 'auto', md: 800 }, width: '100%' }}>
                 <TableHead>
                   <TableRow>
