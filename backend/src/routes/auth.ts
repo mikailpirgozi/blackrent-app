@@ -1450,4 +1450,49 @@ router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => 
   }
 });
 
+// GET /api/auth/simple-vehicle-test - Jednoduchý test na vytvorenie jedného vozidla
+router.get('/simple-vehicle-test', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🚗 TEST - Vytváram jedno testové vozidlo...');
+    
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      // Skús vytvoriť jedno vozidlo bez ON CONFLICT
+      const result = await client.query(`
+        INSERT INTO vehicles (brand, model, license_plate, company, pricing, commission, status) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, brand, model, license_plate
+      `, [
+        'BMW',
+        'X5', 
+        'TEST123',
+        'Test Company',
+        JSON.stringify([{ id: '1', minDays: 0, maxDays: 1, pricePerDay: 80 }]),
+        JSON.stringify({ type: 'percentage', value: 15 }),
+        'available'
+      ]);
+      
+      console.log('✅ Vozidlo vytvorené:', result.rows[0]);
+      
+      return res.json({
+        success: true,
+        message: 'Test vozidlo úspešne vytvorené',
+        data: {
+          vehicle: result.rows[0],
+          test: 'Pokračujem s ďalšími...'
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    console.error('❌ Chyba pri test vozidla:', error);
+    return res.json({
+      success: false,
+      error: 'Chyba pri test vozidla: ' + error.message,
+      data: { detail: error.detail || null }
+    });
+  }
+});
+
 export default router; 
