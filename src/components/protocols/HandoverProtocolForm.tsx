@@ -54,14 +54,6 @@ interface HandoverProtocolFormProps {
   onClose: () => void;
 }
 
-interface DamageItem {
-  id: string;
-  description: string;
-  photos: string[];
-  severity: 'minor' | 'major' | 'critical';
-  location: string;
-}
-
 const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, rental, onSave, onClose }) => {
   const { state } = useAuth();
   const [loading, setLoading] = useState(false);
