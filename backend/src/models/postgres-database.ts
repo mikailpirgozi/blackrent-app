@@ -1463,38 +1463,61 @@ export class PostgresDatabase {
   async getSettlements(): Promise<Settlement[]> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query(`
-        SELECT s.*, 
-          COALESCE(r.rental_count, 0) as rental_count,
-          COALESCE(e.expense_count, 0) as expense_count
-        FROM settlements s 
-        LEFT JOIN (
-          SELECT vehicle_id, COUNT(*) as rental_count 
-          FROM rentals 
-          GROUP BY vehicle_id
-        ) r ON s.vehicle_id = r.vehicle_id::text
-        LEFT JOIN (
-          SELECT vehicle_id, COUNT(*) as expense_count 
-          FROM expenses 
-          GROUP BY vehicle_id
-        ) e ON s.vehicle_id = e.vehicle_id::text
-        ORDER BY s.created_at DESC
+      // Create settlements table if it doesn't exist
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS settlements (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company VARCHAR(100),
+          period VARCHAR(50),
+          from_date TIMESTAMP NOT NULL,
+          to_date TIMESTAMP NOT NULL,
+          total_rentals INTEGER DEFAULT 0,
+          total_income DECIMAL(10,2) DEFAULT 0,
+          total_expenses DECIMAL(10,2) DEFAULT 0,
+          commission DECIMAL(10,2) DEFAULT 0,
+          net_income DECIMAL(10,2) DEFAULT 0,
+          rentals_by_payment_method JSONB DEFAULT '{}',
+          expenses_by_category JSONB DEFAULT '{}',
+          summary TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
       `);
-      
+
+      const result = await client.query(`
+        SELECT 
+          id,
+          company,
+          period,
+          from_date as "fromDate",
+          to_date as "toDate",
+          total_rentals as "totalRentals",
+          total_income as "totalIncome",
+          total_expenses as "totalExpenses", 
+          commission,
+          net_income as "netIncome",
+          rentals_by_payment_method as "rentalsByPaymentMethod",
+          expenses_by_category as "expensesByCategory",
+          summary,
+          created_at as "createdAt"
+        FROM settlements
+        ORDER BY created_at DESC
+      `);
+
       return result.rows.map((row: any) => ({
         id: row.id?.toString() || '',
         period: {
-          from: new Date(row.period_from),
-          to: new Date(row.period_to)
+          from: new Date(row.fromDate),
+          to: new Date(row.toDate)
         },
-        rentals: [], // Budú načítané separátne ak treba
-        expenses: [], // Budú načítané separátne ak treba
-        totalIncome: parseFloat(row.total_income) || 0,
-        totalExpenses: parseFloat(row.total_expenses) || 0,
-        totalCommission: parseFloat(row.total_commission) || 0,
-        profit: parseFloat(row.profit) || 0,
+        rentals: [], // Will be loaded separately if needed
+        expenses: [], // Will be loaded separately if needed
+        totalIncome: parseFloat(row.totalIncome) || 0,
+        totalExpenses: parseFloat(row.totalExpenses) || 0,
+        totalCommission: parseFloat(row.commission) || 0,
+        profit: parseFloat(row.netIncome) || 0,
         company: row.company || undefined,
-        vehicleId: row.vehicle_id || undefined
+        vehicleId: undefined // Not used in simplified schema
       }));
     } finally {
       client.release();
