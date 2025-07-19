@@ -143,6 +143,156 @@ router.get('/reset-admin-get', async (req: Request, res: Response<ApiResponse>) 
   }
 });
 
+// GET /api/auth/create-sample-data - Vytvorenie vzorových dát
+router.get('/create-sample-data', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🔧 GET request - Vytváram vzorové dáta...');
+    
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      // Skontroluj či už existujú dáta
+      const vehicleCount = await client.query('SELECT COUNT(*) FROM vehicles');
+      const customerCount = await client.query('SELECT COUNT(*) FROM customers');
+      const rentalCount = await client.query('SELECT COUNT(*) FROM rentals');
+      
+      console.log('📊 Aktuálny počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
+      
+      let created = {
+        companies: 0,
+        insurers: 0,
+        vehicles: 0,
+        customers: 0,
+        rentals: 0,
+        expenses: 0
+      };
+      
+      // 1. FIRMY
+      const existingCompanies = await client.query('SELECT name FROM companies WHERE name IN ($1, $2, $3)', 
+        ['ABC Rent', 'Premium Cars', 'City Rent']);
+      const existingNames = existingCompanies.rows.map((row: any) => row.name);
+      const companiesToInsert = ['ABC Rent', 'Premium Cars', 'City Rent'].filter(name => !existingNames.includes(name));
+      
+      if (companiesToInsert.length > 0) {
+        const values = companiesToInsert.map((name, index) => `($${index + 1})`).join(', ');
+        await client.query(`INSERT INTO companies (name) VALUES ${values}`, companiesToInsert);
+        created.companies = companiesToInsert.length;
+      }
+      
+      // 2. POISŤOVNE
+      const existingInsurers = await client.query('SELECT name FROM insurers WHERE name IN ($1, $2)', 
+        ['Allianz', 'Generali']);
+      const existingInsurerNames = existingInsurers.rows.map((row: any) => row.name);
+      const insurersToInsert = ['Allianz', 'Generali'].filter(name => !existingInsurerNames.includes(name));
+      
+      if (insurersToInsert.length > 0) {
+        const values = insurersToInsert.map((name, index) => `($${index + 1})`).join(', ');
+        await client.query(`INSERT INTO insurers (name) VALUES ${values}`, insurersToInsert);
+        created.insurers = insurersToInsert.length;
+      }
+      
+      // 3. VOZIDLÁ
+      const existingVehicles = await client.query('SELECT COUNT(*) FROM vehicles WHERE license_plate IN ($1, $2, $3)', 
+        ['BA123AB', 'BA456CD', 'BA789EF']);
+        
+      if (existingVehicles.rows[0].count === '0') {
+        const vehicleResult = await client.query(`
+          INSERT INTO vehicles (brand, model, license_plate, company, pricing, commission, status) VALUES 
+          ('BMW', 'X5', 'BA123AB', 'ABC Rent', $1, $2, 'available'),
+          ('Mercedes', 'E-Class', 'BA456CD', 'Premium Cars', $3, $4, 'available'),
+          ('Audi', 'A4', 'BA789EF', 'City Rent', $5, $6, 'available')
+          RETURNING id, brand, model
+        `, [
+          JSON.stringify([
+            { id: '1', minDays: 0, maxDays: 1, pricePerDay: 80 },
+            { id: '2', minDays: 2, maxDays: 3, pricePerDay: 75 },
+            { id: '3', minDays: 4, maxDays: 7, pricePerDay: 70 }
+          ]),
+          JSON.stringify({ type: 'percentage', value: 15 }),
+          JSON.stringify([
+            { id: '1', minDays: 0, maxDays: 1, pricePerDay: 90 },
+            { id: '2', minDays: 2, maxDays: 3, pricePerDay: 85 },
+            { id: '3', minDays: 4, maxDays: 7, pricePerDay: 80 }
+          ]),
+          JSON.stringify({ type: 'percentage', value: 18 }),
+          JSON.stringify([
+            { id: '1', minDays: 0, maxDays: 1, pricePerDay: 65 },
+            { id: '2', minDays: 2, maxDays: 3, pricePerDay: 60 },
+            { id: '3', minDays: 4, maxDays: 7, pricePerDay: 55 }
+          ]),
+          JSON.stringify({ type: 'percentage', value: 12 })
+        ]);
+        
+        const vehicles = vehicleResult.rows;
+        created.vehicles = vehicles.length;
+        
+        // 4. ZÁKAZNÍCI
+        const customerResult = await client.query(`
+          INSERT INTO customers (name, email, phone) VALUES 
+          ('Ján Novák', 'jan.novak@email.com', '+421901234567'),
+          ('Mária Svobodová', 'maria.svobodova@email.com', '+421907654321'),
+          ('Peter Horváth', 'peter.horvath@email.com', '+421905111222')
+          RETURNING id, name
+        `);
+        const customers = customerResult.rows;
+        created.customers = customers.length;
+        
+        // 5. PRENÁJMY
+        if (vehicles.length > 0 && customers.length > 0) {
+          await client.query(`
+            INSERT INTO rentals (vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, paid, confirmed, handover_place) VALUES 
+            ($1, $2, $3, '2025-01-20', '2025-01-23', 240.00, 36.00, 'bank_transfer', true, true, 'Bratislava - Hlavná stanica'),
+            ($4, $5, $6, '2025-01-25', '2025-01-30', 400.00, 72.00, 'cash', false, true, 'Bratislava - Letisko'),
+            ($7, $8, $9, '2025-01-28', '2025-02-02', 275.00, 33.00, 'bank_transfer', true, false, 'Košice - Centrum')
+          `, [
+            vehicles[0]?.id, customers[0]?.id, customers[0]?.name,
+            vehicles[1]?.id, customers[1]?.id, customers[1]?.name,
+            vehicles[2]?.id, customers[2]?.id, customers[2]?.name
+          ]);
+          created.rentals = 3;
+        }
+        
+        // 6. NÁKLADY
+        if (vehicles.length > 0) {
+          await client.query(`
+            INSERT INTO expenses (description, amount, date, vehicle_id, company, category, note) VALUES 
+            ('Tankovanie', 65.50, '2025-01-15', $1, 'ABC Rent', 'fuel', 'Plná nádrž pred prenájmom'),
+            ('Umytie vozidla', 15.00, '2025-01-16', $2, 'Premium Cars', 'maintenance', 'Externé umytie'),
+            ('Servis - výmena oleja', 85.00, '2025-01-17', $3, 'City Rent', 'maintenance', 'Pravidelný servis')
+          `, [vehicles[0]?.id, vehicles[1]?.id, vehicles[2]?.id]);
+          created.expenses = 3;
+        }
+      }
+      
+      console.log('🎉 Vzorové dáta úspešne vytvorené!', created);
+      
+      return res.json({
+        success: true,
+        message: 'Vzorové dáta úspešne vytvorené',
+        data: {
+          created: created,
+          summary: {
+            vehicles: `${created.vehicles} vozidlá (BMW X5, Mercedes E-Class, Audi A4)`,
+            customers: `${created.customers} zákazníci (Ján Novák, Mária Svobodová, Peter Horváth)`,
+            rentals: `${created.rentals} prenájmy s rôznymi stavmi`,
+            expenses: `${created.expenses} náklady (tankovanie, umytie, servis)`,
+            companies: `${created.companies} firmy (ABC Rent, Premium Cars, City Rent)`,
+            insurers: `${created.insurers} poisťovne (Allianz, Generali)`
+          },
+          refreshUrl: 'https://blackrent-app.vercel.app/login'
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    console.error('❌ Chyba pri vytváraní vzorových dát:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Chyba pri vytváraní vzorových dát: ' + error.message
+    });
+  }
+});
+
 // POST /api/auth/reset-admin - Reset admin používateľa pre debugging
 router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => {
   try {
