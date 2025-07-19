@@ -316,6 +316,60 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 5 chyba:', error.message);
       }
       
+      // Migrácia 6: Aktualizácia pricing tiers pre všetky existujúce vozidlá
+      try {
+        console.log('📋 Migrácia 6: Aktualizácia pricing tiers pre vozidlá...');
+        
+        // Kompletné pricing tiers pre všetky vozidlá
+        const fullPricingTiers = [
+          { id: '1', minDays: 0, maxDays: 1, pricePerDay: 80 },      // 0-1 dní
+          { id: '2', minDays: 2, maxDays: 3, pricePerDay: 75 },      // 2-3 dni  
+          { id: '3', minDays: 4, maxDays: 7, pricePerDay: 70 },      // 4-7 dní
+          { id: '4', minDays: 8, maxDays: 14, pricePerDay: 60 },     // 8-14 dní
+          { id: '5', minDays: 15, maxDays: 22, pricePerDay: 55 },    // 15-22 dní
+          { id: '6', minDays: 23, maxDays: 30, pricePerDay: 50 },    // 23-30 dní  
+          { id: '7', minDays: 31, maxDays: 365, pricePerDay: 45 }    // 31+ dní
+        ];
+        
+        // Update všetkých vozidiel ktoré nemajú kompletné pricing (menej ako 7 tiers)
+        const vehiclesResult = await client.query(`
+          SELECT id, brand, model, pricing FROM vehicles 
+          WHERE pricing IS NULL OR jsonb_array_length(pricing) < 7
+        `);
+        
+        for (const vehicle of vehiclesResult.rows) {
+          // Prispôsobiť ceny podľa typu vozidla
+          let adjustedPricing = [...fullPricingTiers];
+          
+          // Premium vozidlá (BMW, Mercedes, Audi Q/X série) - vyššie ceny
+          if (vehicle.brand === 'BMW' || 
+              vehicle.brand === 'Mercedes' || 
+              (vehicle.brand === 'Audi' && vehicle.model?.includes('Q'))) {
+            adjustedPricing = adjustedPricing.map(tier => ({
+              ...tier,
+              pricePerDay: Math.round(tier.pricePerDay * 1.3) // +30%
+            }));
+          }
+          // Luxury vozidlá (Porsche, Bentley, atď) - najvyššie ceny  
+          else if (['Porsche', 'Bentley', 'Ferrari', 'Lamborghini'].includes(vehicle.brand)) {
+            adjustedPricing = adjustedPricing.map(tier => ({
+              ...tier, 
+              pricePerDay: Math.round(tier.pricePerDay * 1.8) // +80%
+            }));
+          }
+          // Standard vozidlá - základné ceny zostanú
+          
+          await client.query(
+            'UPDATE vehicles SET pricing = $1 WHERE id = $2',
+            [JSON.stringify(adjustedPricing), vehicle.id]
+          );
+        }
+        
+        console.log(`✅ Migrácia 6: Pricing aktualizované pre ${vehiclesResult.rows.length} vozidiel`);
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 6 chyba:', error.message);
+      }
+      
       console.log('✅ Databázové migrácie úspešne dokončené');
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
@@ -389,35 +443,74 @@ export class PostgresDatabase {
         
         // Vytvorenie vozidiel - len ak neexistujú
         try {
-          const existingVehicles = await client.query('SELECT COUNT(*) FROM vehicles WHERE license_plate IN ($1, $2, $3)', 
-            ['BA123AB', 'BA456CD', 'BA789EF']);
+          const existingVehicles = await client.query('SELECT COUNT(*) FROM vehicles WHERE license_plate IN ($1, $2, $3, $4, $5)', 
+            ['BA123AB', 'BA456CD', 'BA789EF', 'BA111XY', 'BA222XZ']);
             
           if (existingVehicles.rows[0].count === '0') {
             const vehicleResult = await client.query(`
               INSERT INTO vehicles (brand, model, license_plate, company, pricing, commission, status) VALUES 
               ('BMW', 'X5', 'BA123AB', 'ABC Rent', $1, $2, 'available'),
               ('Mercedes', 'E-Class', 'BA456CD', 'Premium Cars', $3, $4, 'available'),
-              ('Audi', 'A4', 'BA789EF', 'City Rent', $5, $6, 'available')
+              ('Audi', 'A4', 'BA789EF', 'City Rent', $5, $6, 'available'),
+              ('Skoda', 'Octavia', 'BA111XY', 'City Rent', $7, $8, 'available'),
+              ('Volkswagen', 'Passat', 'BA222XZ', 'ABC Rent', $9, $10, 'available')
               RETURNING id, brand, model
             `, [
+              // BMW X5 - Premium SUV pricing
               JSON.stringify([
-                { id: '1', minDays: 0, maxDays: 1, pricePerDay: 80 },
-                { id: '2', minDays: 2, maxDays: 3, pricePerDay: 75 },
-                { id: '3', minDays: 4, maxDays: 7, pricePerDay: 70 }
+                { id: '1', minDays: 0, maxDays: 1, pricePerDay: 120 },      // 0-1 dní
+                { id: '2', minDays: 2, maxDays: 3, pricePerDay: 110 },      // 2-3 dni
+                { id: '3', minDays: 4, maxDays: 7, pricePerDay: 100 },      // 4-7 dní
+                { id: '4', minDays: 8, maxDays: 14, pricePerDay: 90 },      // 8-14 dní
+                { id: '5', minDays: 15, maxDays: 22, pricePerDay: 85 },     // 15-22 dní
+                { id: '6', minDays: 23, maxDays: 30, pricePerDay: 80 },     // 23-30 dní
+                { id: '7', minDays: 31, maxDays: 365, pricePerDay: 75 }     // 31+ dní
               ]),
               JSON.stringify({ type: 'percentage', value: 15 }),
+              // Mercedes E-Class - Business class pricing
               JSON.stringify([
-                { id: '1', minDays: 0, maxDays: 1, pricePerDay: 90 },
-                { id: '2', minDays: 2, maxDays: 3, pricePerDay: 85 },
-                { id: '3', minDays: 4, maxDays: 7, pricePerDay: 80 }
+                { id: '1', minDays: 0, maxDays: 1, pricePerDay: 100 },      // 0-1 dní
+                { id: '2', minDays: 2, maxDays: 3, pricePerDay: 95 },       // 2-3 dni
+                { id: '3', minDays: 4, maxDays: 7, pricePerDay: 85 },       // 4-7 dní
+                { id: '4', minDays: 8, maxDays: 14, pricePerDay: 75 },      // 8-14 dní
+                { id: '5', minDays: 15, maxDays: 22, pricePerDay: 70 },     // 15-22 dní
+                { id: '6', minDays: 23, maxDays: 30, pricePerDay: 65 },     // 23-30 dní
+                { id: '7', minDays: 31, maxDays: 365, pricePerDay: 60 }     // 31+ dní
               ]),
               JSON.stringify({ type: 'percentage', value: 18 }),
+              // Audi A4 - Standard sedan pricing
               JSON.stringify([
-                { id: '1', minDays: 0, maxDays: 1, pricePerDay: 65 },
-                { id: '2', minDays: 2, maxDays: 3, pricePerDay: 60 },
-                { id: '3', minDays: 4, maxDays: 7, pricePerDay: 55 }
+                { id: '1', minDays: 0, maxDays: 1, pricePerDay: 80 },       // 0-1 dní
+                { id: '2', minDays: 2, maxDays: 3, pricePerDay: 75 },       // 2-3 dni
+                { id: '3', minDays: 4, maxDays: 7, pricePerDay: 70 },       // 4-7 dní
+                { id: '4', minDays: 8, maxDays: 14, pricePerDay: 60 },      // 8-14 dní
+                { id: '5', minDays: 15, maxDays: 22, pricePerDay: 55 },     // 15-22 dní
+                { id: '6', minDays: 23, maxDays: 30, pricePerDay: 50 },     // 23-30 dní
+                { id: '7', minDays: 31, maxDays: 365, pricePerDay: 45 }     // 31+ dní
               ]),
-              JSON.stringify({ type: 'percentage', value: 12 })
+              JSON.stringify({ type: 'percentage', value: 12 }),
+              // Skoda Octavia - Budget friendly pricing
+              JSON.stringify([
+                { id: '1', minDays: 0, maxDays: 1, pricePerDay: 60 },       // 0-1 dní
+                { id: '2', minDays: 2, maxDays: 3, pricePerDay: 55 },       // 2-3 dni
+                { id: '3', minDays: 4, maxDays: 7, pricePerDay: 50 },       // 4-7 dní
+                { id: '4', minDays: 8, maxDays: 14, pricePerDay: 45 },      // 8-14 dní
+                { id: '5', minDays: 15, maxDays: 22, pricePerDay: 40 },     // 15-22 dní
+                { id: '6', minDays: 23, maxDays: 30, pricePerDay: 35 },     // 23-30 dní
+                { id: '7', minDays: 31, maxDays: 365, pricePerDay: 30 }     // 31+ dní
+              ]),
+              JSON.stringify({ type: 'percentage', value: 10 }),
+              // Volkswagen Passat - Mid-range pricing
+              JSON.stringify([
+                { id: '1', minDays: 0, maxDays: 1, pricePerDay: 70 },       // 0-1 dní
+                { id: '2', minDays: 2, maxDays: 3, pricePerDay: 65 },       // 2-3 dni
+                { id: '3', minDays: 4, maxDays: 7, pricePerDay: 60 },       // 4-7 dní
+                { id: '4', minDays: 8, maxDays: 14, pricePerDay: 55 },      // 8-14 dní
+                { id: '5', minDays: 15, maxDays: 22, pricePerDay: 50 },     // 15-22 dní
+                { id: '6', minDays: 23, maxDays: 30, pricePerDay: 45 },     // 23-30 dní
+                { id: '7', minDays: 31, maxDays: 365, pricePerDay: 40 }     // 31+ dní
+              ]),
+              JSON.stringify({ type: 'percentage', value: 14 })
             ]);
             
             const vehicles = vehicleResult.rows;

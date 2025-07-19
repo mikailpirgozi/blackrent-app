@@ -309,32 +309,9 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
     const daysDifference = differenceInDays(endDateOnly, startDateOnly);
     const days = Math.max(1, daysDifference);
     
-    console.log('Výpočet dní (iba dátumy):', {
-      startDate: startDateOnly.toISOString().split('T')[0],
-      endDate: endDateOnly.toISOString().split('T')[0],
-      daysDifference,
-      finalDays: days
-    });
-
-    // Debug: Vehicle pricing info
-    console.log('🚗 Vehicle pricing debug:', {
-      vehicleId: vehicle.id,
-      vehicleName: `${vehicle.brand} ${vehicle.model}`,
-      hasPricing: Boolean(vehicle.pricing),
-      pricingLength: vehicle.pricing?.length || 0,
-      pricing: vehicle.pricing,
-      requestedDays: days
-    });
-
     const pricingTier = vehicle.pricing?.find(
       tier => days >= tier.minDays && days <= tier.maxDays
     );
-
-    console.log('💰 Pricing tier debug:', {
-      found: Boolean(pricingTier),
-      tier: pricingTier,
-      allTiers: vehicle.pricing?.map(t => ({ minDays: t.minDays, maxDays: t.maxDays, price: t.pricePerDay }))
-    });
 
     if (pricingTier && vehicle.pricing && vehicle.pricing.length > 0) {
       let basePrice = days * pricingTier.pricePerDay;
@@ -370,15 +347,6 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       }
       setCalculatedCommission(commission);
     } else {
-      // Debug: Prečo sa cena nenastavila
-      console.log('❌ Cena sa nenastavila - dôvod:', {
-        hasPricingTier: Boolean(pricingTier),
-        hasPricing: Boolean(vehicle.pricing),
-        pricingLength: vehicle.pricing?.length || 0,
-        message: !vehicle.pricing ? 'Vehicle nemá pricing' : 
-                 vehicle.pricing.length === 0 ? 'Pricing je prázdne' :
-                 !pricingTier ? 'Nenašiel sa vhodný tier pre dni: ' + days : 'Neznámy dôvod'
-      });
       setCalculatedPrice(0);
       setCalculatedCommission(0);
     }

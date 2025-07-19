@@ -242,15 +242,15 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
         width: '100%', 
         maxHeight: '90vh', 
         overflow: 'auto',
-        backgroundColor: '#2d2d2d',
+        backgroundColor: 'background.paper',
       }}>
         <CardContent>
           {/* Header */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h5" sx={{ color: 'white' }}>
+            <Typography variant="h5" color="text.primary">
               Odovzdávací protokol
             </Typography>
-            <IconButton onClick={onClose} sx={{ color: 'white' }}>
+            <IconButton onClick={onClose} color="inherit">
               <Close />
             </IconButton>
           </Box>
@@ -259,7 +259,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           {processing && (
             <Box sx={{ mb: 2 }}>
               <LinearProgress />
-              <Typography variant="body2" sx={{ color: 'white', mt: 1 }}>
+              <Typography variant="body2" color="text.primary" sx={{ mt: 1 }}>
                 Ukladám protokol...
               </Typography>
             </Box>
@@ -273,9 +273,9 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           </Alert>
 
           {/* Rental info */}
-          <Card sx={{ mb: 3, backgroundColor: '#3d3d3d' }}>
+          <Card sx={{ mb: 3, backgroundColor: 'background.default' }}>
             <CardContent>
-              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+              <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
                 Údaje o prenájme
               </Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
@@ -309,17 +309,17 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
 
           {/* Previous damages from handover */}
           {handoverProtocol.damages && handoverProtocol.damages.length > 0 && (
-            <Card sx={{ mb: 3, backgroundColor: '#3d3d3d' }}>
+            <Card sx={{ mb: 3, backgroundColor: 'background.default' }}>
               <CardContent>
-                <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
                   Poškodenia z preberacieho protokolu
                 </Typography>
                 <Alert severity="warning" sx={{ mb: 2 }}>
                   Tieto poškodenia boli zadokumentované pri preberaní vozidla. Skontrolujte ich pri vratení.
                 </Alert>
                 {handoverProtocol.damages.map((damage) => (
-                  <Box key={damage.id} sx={{ mb: 2, p: 2, border: '1px solid #555', borderRadius: 1 }}>
-                    <Typography variant="body2" sx={{ color: 'white' }}>
+                  <Box key={damage.id} sx={{ mb: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.primary">
                       <strong>{damage.location}:</strong> {damage.description}
                     </Typography>
                     <Chip 
@@ -335,9 +335,9 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           )}
 
           {/* Location */}
-          <Card sx={{ mb: 3, backgroundColor: '#3d3d3d' }}>
+          <Card sx={{ mb: 3, backgroundColor: 'background.default' }}>
             <CardContent>
-              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+              <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
                 <LocationOn sx={{ mr: 1 }} />
                 Miesto vrátenia
               </Typography>
@@ -353,15 +353,15 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           </Card>
 
           {/* Vehicle condition comparison */}
-          <Card sx={{ mb: 3, backgroundColor: '#3d3d3d' }}>
+          <Card sx={{ mb: 3, backgroundColor: 'background.default' }}>
             <CardContent>
-              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+              <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
                 Stav vozidla pri vrátení
               </Typography>
               
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
                 <Box>
-                  <Typography variant="body2" sx={{ color: 'gray', mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                     Tachometer pri preberaní: {handoverProtocol.vehicleCondition.odometer} km
                   </Typography>
                   <TextField
@@ -378,7 +378,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
                 </Box>
                 
                 <Box>
-                  <Typography variant="body2" sx={{ color: 'gray', mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                     Palivo pri preberaní: {handoverProtocol.vehicleCondition.fuelLevel}%
                   </Typography>
                   <TextField
@@ -423,10 +423,10 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           </Card>
 
           {/* Calculation summary */}
-          <Card sx={{ mb: 3, backgroundColor: '#3d3d3d' }}>
+          <Card sx={{ mb: 3, backgroundColor: 'background.default' }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ color: 'white' }}>
+                <Typography variant="h6" color="text.primary">
                   <Calculate sx={{ mr: 1 }} />
                   Prepočet poplatkov
                 </Typography>
@@ -512,9 +512,9 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           </Card>
 
           {/* Media capture */}
-          <Card sx={{ mb: 3, backgroundColor: '#3d3d3d' }}>
+          <Card sx={{ mb: 3, backgroundColor: 'background.default' }}>
             <CardContent>
-              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+              <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
                 Fotodokumentácia
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
