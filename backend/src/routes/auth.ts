@@ -433,19 +433,31 @@ router.get('/init-admin', async (req: Request, res: Response) => {
     const client = await (postgresDatabase as any).pool.connect();
     
     try {
-      // Cleanup - vymaž staré tabuľky ak existujú
-      await client.query('DROP TABLE IF EXISTS "User" CASCADE');
-      await client.query('DROP TABLE IF EXISTS "Rental" CASCADE');
-      await client.query('DROP TABLE IF EXISTS "PriceList" CASCADE');
+      // Najskôr skús vytvoriť novú users tabuľku ak neexistuje
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS users_new (
+          id TEXT PRIMARY KEY,
+          username VARCHAR(50) UNIQUE NOT NULL,
+          email VARCHAR(100) UNIQUE NOT NULL,
+          password_hash VARCHAR(255) NOT NULL,
+          role VARCHAR(30) DEFAULT 'user',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
       
-      // Vymaž existujúceho admin (z novej users tabuľky)
-      await client.query('DELETE FROM users WHERE username = $1', ['admin']);
+      // Vymaž admin ak existuje (v oboch tabuľkách)
+      await client.query('DELETE FROM users_new WHERE username = $1', ['admin']).catch(()=>{});
+      await client.query('DELETE FROM users WHERE username = $1', ['admin']).catch(()=>{});
       
-      // Vytvor admin s heslom Black123 (do novej users tabuľky)
+      // Vytvor admin s TEXT ID (kompatibilný s oboma)
+      const textId = 'admin-' + Date.now();
       const hashedPassword = await bcrypt.hash('Black123', 12);
+      
+      // Skús vložiť do users_new tabuľky
       await client.query(
-        'INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
-        [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
+        'INSERT INTO users_new (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
+        [textId, 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
       );
       
       res.send(`
@@ -454,7 +466,8 @@ router.get('/init-admin', async (req: Request, res: Response) => {
           <h1 style="color: green;">✅ Admin účet vytvorený!</h1>
           <p><strong>Username:</strong> admin</p>
           <p><strong>Password:</strong> Black123</p>
-          <p><strong>Database:</strong> PostgreSQL (cleanup hotov)</p>
+          <p><strong>Database:</strong> PostgreSQL (TEXT ID kompatibilný)</p>
+          <p><strong>Table:</strong> users_new</p>
           <p>Môžete sa teraz prihlásiť na <a href="https://blackrent-app.vercel.app/login">Vercel aplikácii</a></p>
           <hr>
           <p>Čas: ${new Date().toLocaleString('sk-SK')}</p>
@@ -472,6 +485,8 @@ router.get('/init-admin', async (req: Request, res: Response) => {
         <h1 style="color: red;">❌ Chyba</h1>
         <p>Nepodarilo sa vytvoriť admin účet</p>
         <pre>${error}</pre>
+        <hr>
+        <p><strong>Skús znovu za 30 sekúnd</strong></p>
       </body>
       </html>
     `);

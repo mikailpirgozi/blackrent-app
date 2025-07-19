@@ -463,10 +463,19 @@ export class PostgresDatabase {
   async getUserByUsername(username: string): Promise<User | null> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query(
-        'SELECT id, username, email, password_hash, role, created_at FROM users WHERE username = $1',
+      // Najskôr skús users_new tabuľku
+      let result = await client.query(
+        'SELECT id, username, email, password_hash, role, created_at FROM users_new WHERE username = $1',
         [username]
-      );
+      ).catch(() => ({ rows: [] }));
+      
+      // Ak nenájdeš v users_new, skús users tabuľku
+      if (result.rows.length === 0) {
+        result = await client.query(
+          'SELECT id, username, email, password_hash, role, created_at FROM users WHERE username = $1',
+          [username]
+        ).catch(() => ({ rows: [] }));
+      }
       
       if (result.rows.length === 0) return null;
       
