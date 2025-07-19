@@ -96,85 +96,91 @@ router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => 
 // POST /api/auth/login - Prihlásenie
 router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
   try {
-    console.log('🔐 LOGIN START - Body:', JSON.stringify(req.body));
-    const { username, password }: LoginCredentials = req.body;
+    const { username, password } = req.body;
+    
+    console.log('🔍 LOGIN DEBUG - Starting login for:', username);
 
     if (!username || !password) {
-      console.log('❌ LOGIN - Missing credentials');
+      console.log('❌ LOGIN DEBUG - Missing username or password');
       return res.status(400).json({
         success: false,
-        error: 'Používateľské meno a heslo sú povinné'
+        error: 'Username a password sú povinné'
       });
     }
 
-    // Nájdi používateľa
-    console.log('🔍 LOGIN - Hľadám používateľa:', username);
-    const user = await postgresDatabase.getUserByUsername(username);
-    console.log('👤 LOGIN - Používateľ nájdený:', !!user);
-    console.log('📊 LOGIN - User data:', user ? {
-      id: user.id,
-      username: user.username, 
-      email: user.email,
-      role: user.role,
-      hasPassword: !!user.password,
-      passwordLength: user.password?.length,
-      passwordPrefix: user.password?.substring(0, 10) + '...'
-    } : 'null');
+    console.log('🔍 LOGIN DEBUG - Getting user from database...');
     
+    // Get user directly from database with detailed logging
+    const client = await (postgresDatabase as any).pool.connect();
+    let user;
+    
+    try {
+      const result = await client.query('SELECT * FROM users WHERE username = $1', [username]);
+      user = result.rows[0];
+      console.log('🔍 LOGIN DEBUG - Database query result:', {
+        found: !!user,
+        username: user?.username,
+        hasPasswordHash: !!user?.password_hash,
+        passwordHashLength: user?.password_hash?.length
+      });
+    } finally {
+      client.release();
+    }
+
     if (!user) {
-      console.log('❌ LOGIN - Používateľ neexistuje');
+      console.log('❌ LOGIN DEBUG - User not found in database');
       return res.status(401).json({
         success: false,
         error: 'Nesprávne prihlasovacie údaje'
       });
     }
 
-    // Overenie hesla pomocou bcrypt
-    console.log('🔑 LOGIN - Overujem heslo pre používateľa:', user.username);
-    console.log('🔑 LOGIN - Input password:', password);
-    console.log('🔑 LOGIN - Stored password hash:', user.password);
+    console.log('🔍 LOGIN DEBUG - Comparing passwords...');
+    console.log('🔍 LOGIN DEBUG - Input password:', password);
+    console.log('🔍 LOGIN DEBUG - Stored hash starts with:', user.password_hash?.substring(0, 10));
     
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log('🔑 LOGIN - Heslo platné:', isPasswordValid);
-    
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    console.log('🔍 LOGIN DEBUG - Password comparison result:', isPasswordValid);
+
     if (!isPasswordValid) {
-      console.log('❌ LOGIN - Nesprávne heslo');
+      console.log('❌ LOGIN DEBUG - Password comparison failed');
       return res.status(401).json({
         success: false,
         error: 'Nesprávne prihlasovacie údaje'
       });
     }
 
-    // Vytvorenie JWT tokenu
+    console.log('✅ LOGIN DEBUG - Password valid, creating token...');
+    
     const token = jwt.sign(
       { 
         userId: user.id, 
         username: user.username, 
-        role: user.role
+        role: user.role 
       },
       JWT_SECRET,
       { expiresIn: '30d' }
     );
 
-    // Odpoveď bez hesla
-    const userWithoutPassword = {
+    console.log('✅ LOGIN DEBUG - Token created successfully');
+
+    const userData = {
       id: user.id,
       username: user.username,
       email: user.email,
       role: user.role,
-      createdAt: user.createdAt
+      createdAt: user.created_at
     };
 
     res.json({
       success: true,
-      user: userWithoutPassword,
+      user: userData,
       token,
       message: 'Úspešné prihlásenie'
     });
 
   } catch (error) {
     console.error('❌ LOGIN ERROR:', error);
-    console.error('❌ LOGIN ERROR STACK:', (error as Error)?.stack);
     res.status(500).json({
       success: false,
       error: 'Chyba pri prihlásení'
@@ -508,6 +514,186 @@ router.get('/init-admin', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/auth/init-database - Emergency database initialization
+router.post('/init-database', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🚨 EMERGENCY: Initializing database...');
+    
+    const client = await (postgresDatabase as any).pool.connect();
+    
+    try {
+      // First drop all existing tables to ensure clean slate
+      console.log('🗑️ Dropping existing tables...');
+      await client.query('DROP TABLE IF EXISTS insurances CASCADE');
+      await client.query('DROP TABLE IF EXISTS rentals CASCADE');
+      await client.query('DROP TABLE IF EXISTS expenses CASCADE');
+      await client.query('DROP TABLE IF EXISTS companies CASCADE');
+      await client.query('DROP TABLE IF EXISTS insurers CASCADE');
+      await client.query('DROP TABLE IF EXISTS customers CASCADE');
+      await client.query('DROP TABLE IF EXISTS vehicles CASCADE');
+      await client.query('DROP TABLE IF EXISTS users CASCADE');
+      
+      console.log('📋 Creating clean database structure...');
+      
+      // Users table (keep this first as other tables might reference it)
+      await client.query(`
+        CREATE TABLE users (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          username VARCHAR(50) NOT NULL UNIQUE,
+          email VARCHAR(100) NOT NULL UNIQUE,
+          password_hash VARCHAR(255) NOT NULL,
+          role VARCHAR(30) NOT NULL DEFAULT 'user',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Vehicles table
+      await client.query(`
+        CREATE TABLE vehicles (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          make VARCHAR(50) NOT NULL,
+          model VARCHAR(50) NOT NULL,
+          year INTEGER NOT NULL,
+          license_plate VARCHAR(50) NOT NULL UNIQUE,
+          company VARCHAR(100) NOT NULL DEFAULT 'Default Company',
+          pricing JSONB DEFAULT '[]',
+          commission JSONB DEFAULT '{"type": "percentage", "value": 15}',
+          status VARCHAR(30) DEFAULT 'available',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Customers table
+      await client.query(`
+        CREATE TABLE customers (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name VARCHAR(100) NOT NULL DEFAULT 'Unknown',
+          email VARCHAR(100),
+          phone VARCHAR(30),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Companies table
+      await client.query(`
+        CREATE TABLE companies (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name VARCHAR(100) NOT NULL UNIQUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Insurers table
+      await client.query(`
+        CREATE TABLE insurers (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name VARCHAR(100) NOT NULL UNIQUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Rentals table (no foreign key constraints to avoid issues)
+      await client.query(`
+        CREATE TABLE rentals (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          vehicle_id VARCHAR(50),
+          customer_id VARCHAR(50), 
+          customer_name VARCHAR(100) NOT NULL,
+          start_date TIMESTAMP NOT NULL,
+          end_date TIMESTAMP NOT NULL,
+          total_price DECIMAL(10,2) NOT NULL,
+          commission DECIMAL(10,2) NOT NULL DEFAULT 0,
+          payment_method VARCHAR(50) NOT NULL,
+          paid BOOLEAN DEFAULT FALSE,
+          status VARCHAR(30) DEFAULT 'pending',
+          handover_place TEXT,
+          confirmed BOOLEAN DEFAULT FALSE,
+          order_number VARCHAR(50),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Expenses table (no foreign key constraints)
+      await client.query(`
+        CREATE TABLE expenses (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          description TEXT NOT NULL,
+          amount DECIMAL(10,2) NOT NULL,
+          date TIMESTAMP NOT NULL,
+          vehicle_id VARCHAR(50),
+          company VARCHAR(100) NOT NULL,
+          category VARCHAR(50) NOT NULL,
+          note TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Insurances table (no foreign key constraints)
+      await client.query(`
+        CREATE TABLE insurances (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          vehicle_id VARCHAR(50),
+          type VARCHAR(50) NOT NULL,
+          valid_from TIMESTAMP NOT NULL,
+          valid_to TIMESTAMP NOT NULL,
+          price DECIMAL(10,2) NOT NULL,
+          company VARCHAR(100) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Create admin user
+      console.log('👤 Creating admin user...');
+      const hashedPassword = await bcrypt.hash('admin123', 12);
+      
+      await client.query(`
+        INSERT INTO users (username, email, password_hash, role, created_at)
+        VALUES ('admin', 'admin@blackrent.sk', $1, 'admin', CURRENT_TIMESTAMP)
+      `, [hashedPassword]);
+      
+      console.log('🎉 Database initialization completed!');
+      
+      // Test queries
+      const tableCheck = await client.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM users) as users,
+          (SELECT COUNT(*) FROM vehicles) as vehicles,
+          (SELECT COUNT(*) FROM customers) as customers,
+          (SELECT COUNT(*) FROM rentals) as rentals,
+          (SELECT COUNT(*) FROM expenses) as expenses
+      `);
+      
+      return res.json({
+        success: true,
+        message: 'Database initialized successfully - you can now login with admin/admin123',
+        data: {
+          tables_created: ['users', 'vehicles', 'customers', 'companies', 'insurers', 'rentals', 'expenses', 'insurances'],
+          admin_created: true,
+          counts: tableCheck.rows[0]
+        }
+      });
+      
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Database initialization failed: ' + (error as Error).message
+    });
+  }
+});
+
 // GET /api/auth/fix-customers - Debug endpoint na opravenie customers tabuľky
 router.get('/fix-customers', async (req: Request, res: Response) => {
   try {
@@ -584,33 +770,56 @@ router.get('/fix-customers', async (req: Request, res: Response) => {
   }
 });
 
-// Debug database endpoint
-router.get('/debug-db', async (req: Request, res: Response) => {
+// GET /api/auth/debug-db - Simple database debug endpoint
+router.get('/debug-db', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔍 Starting database debug...');
+    const client = await (postgresDatabase as any).pool.connect();
     
-    // Check admin user from both tables
-    const adminUser = await postgresDatabase.getUserByUsername('admin');
-    console.log('🔑 Admin user from getUserByUsername:', adminUser);
-    
-    // Try to get all users
-    const allUsers = await postgresDatabase.getUsers();
-    console.log('👥 All users:', allUsers);
-    
-    res.json({
-      success: true,
-      admin_exists: !!adminUser,
-      admin_user: adminUser,
-      total_users: allUsers.length,
-      all_users: allUsers
-    });
+    try {
+      // Check tables
+      const tablesQuery = await client.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public'
+        ORDER BY table_name
+      `);
+      
+      // Check admin user
+      const adminQuery = await client.query(`
+        SELECT username, email, role, created_at 
+        FROM users 
+        WHERE username = 'admin'
+      `);
+      
+      // Check counts
+      const countsQuery = await client.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM users) as users,
+          (SELECT COUNT(*) FROM vehicles) as vehicles,
+          (SELECT COUNT(*) FROM customers) as customers,
+          (SELECT COUNT(*) FROM rentals) as rentals,
+          (SELECT COUNT(*) FROM expenses) as expenses
+      `);
+      
+      return res.json({
+        success: true,
+        data: {
+          database_connected: true,
+          tables: tablesQuery.rows.map((r: any) => r.table_name),
+          admin_user: adminQuery.rows[0] || null,
+          counts: countsQuery.rows[0]
+        }
+      });
+      
+    } finally {
+      client.release();
+    }
     
   } catch (error) {
-    console.error('❌ Database debug error:', error);
-    res.status(500).json({
+    console.error('Database debug error:', error);
+    return res.json({
       success: false,
-      error: 'Database debug failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Database debug failed: ' + (error as Error).message
     });
   }
 });

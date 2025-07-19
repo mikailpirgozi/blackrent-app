@@ -1,0 +1,25 @@
+# CLOUDFLARE R2 - FINAL CONFIGURATION
+# ===================================
+
+# Account Information
+ACCOUNT_ID=9ccdca0d876e24bd9acefabe56f94f53
+BUCKET_NAME=blackrent-storage
+
+# API Credentials  
+ACCESS_KEY_ID=88ac7976656f3c2a9bbff57018c22731
+SECRET_ACCESS_KEY=2b8979c2d23dcefb0d02d8af6d4968ce85c54f3ac11c1c0dabdfd69336b25d1a
+
+# Endpoints
+R2_ENDPOINT=https://9ccdca0d876e24bd9acefabe56f94f53.r2.cloudflarestorage.com
+PUBLIC_URL=https://pub-4fec120a8a6a4a0cbadfa55f54b7e8a2.r2.dev
+
+# Railway Environment Variables (copy-paste ready)
+R2_ENDPOINT=https://9ccdca0d876e24bd9acefabe56f94f53.r2.cloudflarestorage.com
+R2_BUCKET_NAME=blackrent-storage
+R2_ACCESS_KEY_ID=88ac7976656f3c2a9bbff57018c22731
+R2_SECRET_ACCESS_KEY=2b8979c2d23dcefb0d02d8af6d4968ce85c54f3ac11c1c0databdfd69336b25d1a
+R2_ACCOUNT_ID=9ccdca0d876e24bd9acefabe56f94f53
+R2_PUBLIC_URL=https://pub-4fec120a8a6a4a0cbadfa55f54b7e8a2.r2.dev
+
+# Setup Date: $(date)
+# Status: ✅ READY FOR PRODUCTION

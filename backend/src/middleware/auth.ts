@@ -9,20 +9,38 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
+    
+    console.log('🔍 AUTH MIDDLEWARE - Starting auth check');
+    console.log('🔍 AUTH MIDDLEWARE - Auth header exists:', !!authHeader);
+    console.log('🔍 AUTH MIDDLEWARE - Token extracted:', !!token);
 
     if (!token) {
+      console.log('❌ AUTH MIDDLEWARE - No token provided');
       return res.status(401).json({
         success: false,
         error: 'Access token je potrebný'
       });
     }
 
+    console.log('🔍 AUTH MIDDLEWARE - Verifying JWT token...');
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    console.log('🔍 AUTH MIDDLEWARE - JWT decoded successfully:', {
+      userId: decoded.userId,
+      username: decoded.username,
+      role: decoded.role
+    });
     
     // Získaj aktuálne údaje používateľa z databázy
+    console.log('🔍 AUTH MIDDLEWARE - Getting user from database...');
     const user = await postgresDatabase.getUserById(decoded.userId);
+    console.log('🔍 AUTH MIDDLEWARE - Database user result:', {
+      found: !!user,
+      id: user?.id,
+      username: user?.username
+    });
     
     if (!user) {
+      console.log('❌ AUTH MIDDLEWARE - User not found in database');
       return res.status(401).json({
         success: false,
         error: 'Používateľ nenájdený'
@@ -37,10 +55,14 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       role: user.role,
       createdAt: user.createdAt
     };
-
+    
+    console.log('✅ AUTH MIDDLEWARE - Authentication successful');
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    console.error('❌ AUTH MIDDLEWARE ERROR:', error);
+    console.error('❌ AUTH MIDDLEWARE ERROR TYPE:', error instanceof Error ? error.name : typeof error);
+    console.error('❌ AUTH MIDDLEWARE ERROR MESSAGE:', error instanceof Error ? error.message : String(error));
+    
     return res.status(403).json({
       success: false,
       error: 'Neplatný token'

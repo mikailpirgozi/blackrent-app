@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import path from 'path';
+// Removed: import path from 'path'; - not needed for API-only backend
 import vehiclesRouter from './routes/vehicles';
 import rentalsRouter from './routes/rentals';
 import authRouter from './routes/auth';
@@ -29,12 +29,8 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static files z React buildu (PRODUCTION)
-if (process.env.NODE_ENV === 'production') {
-  const buildPath = path.join(__dirname, 'public');
-  console.log('📦 Serving static files from:', buildPath);
-  app.use(express.static(buildPath));
-}
+// Removed: Static file serving - frontend is on Vercel
+// Railway backend serves ONLY API endpoints
 
 // API Routes
 app.use('/api/auth', authRouter);
@@ -58,12 +54,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Serve React app pre všetky ostatné routes (SPA)
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  });
-}
+// Removed: Catch-all route - frontend is on Vercel
+// Railway backend is API-only, no frontend serving
 
 // Error handling middleware
 app.use((error: any, req: any, res: any, next: any) => {
@@ -76,14 +68,15 @@ app.use((error: any, req: any, res: any, next: any) => {
 
 // Spustenie servera
 app.listen(PORT, () => {
-  console.log(`🚀 Blackrent API server beží na porte ${PORT}`);
+  console.log(`🚀 BlackRent API Backend beží na porte ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
   console.log(`🚗 Vozidlá API: http://localhost:${PORT}/api/vehicles`);
   console.log(`📋 Prenájmy API: http://localhost:${PORT}/api/rentals`);
   console.log(`🗄️ Databáza: PostgreSQL`);
-  console.log(`🔑 Admin prihlásenie: admin / Black123.`);
-  console.log(`📱 Frontend: ${process.env.NODE_ENV === 'production' ? 'Served from /public' : 'Development mode'}`);
+  console.log(`☁️ R2 Storage: Cloudflare`);
+  console.log(`🌐 Frontend: Vercel (https://blackrent-app.vercel.app)`);
+  console.log(`🔑 Admin API: /api/auth/create-admin`);
 });
 
 export default app; 

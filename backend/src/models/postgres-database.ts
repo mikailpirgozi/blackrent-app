@@ -465,7 +465,7 @@ export class PostgresDatabase {
     try {
       // Skúsme najskôr users tabuľku (hlavná)
       const result = await client.query(
-        'SELECT id, username, email, password as password, role, created_at FROM users WHERE username = $1',
+        'SELECT id, username, email, password_hash as password, role, created_at FROM users WHERE username = $1',
         [username]
       );
       
@@ -515,7 +515,7 @@ export class PostgresDatabase {
     try {
       // Skúsme najskôr users tabuľku (hlavná)
       const result = await client.query(
-        'SELECT id, username, email, password as password, role, created_at FROM users WHERE id = $1',
+        'SELECT id, username, email, password_hash as password, role, created_at FROM users WHERE id = $1',
         [id]
       );
       
