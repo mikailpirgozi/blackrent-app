@@ -32,6 +32,7 @@ import {
 import { ReturnProtocol, Rental, HandoverProtocol, ProtocolImage, ProtocolVideo, VehicleCondition } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
+import { generateProtocolPDF } from '../../utils/pdfGenerator';
 
 interface ReturnProtocolFormProps {
   open: boolean;
@@ -162,6 +163,35 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       [`${type}Videos`]: videos,
     }));
     setActivePhotoCapture(null);
+  };
+
+  const handleGeneratePDF = async () => {
+    if (!protocol.vehicleCondition || !protocol.location) {
+      alert('Vyplňte všetky povinné údaje pred generovaním PDF');
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      console.log('🔄 Generating PDF for protocol...');
+      
+      const completeProtocol: ReturnProtocol = {
+        ...protocol,
+        status: 'completed',
+      } as ReturnProtocol;
+
+      await generateProtocolPDF(completeProtocol, {
+        filename: `odovzdavaci_protokol_${protocol.rentalData?.orderNumber || (protocol.id || uuidv4()).slice(-8)}_${new Date().toISOString().split('T')[0]}.pdf`
+      });
+
+      console.log('✅ PDF generated and downloaded successfully');
+      
+    } catch (error) {
+      console.error('❌ Error generating PDF:', error);
+      alert('Chyba pri generovaní PDF: ' + (error as Error).message);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleSave = async () => {
@@ -530,7 +560,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
             <Button
               variant="outlined"
               startIcon={<PictureAsPdf />}
-              onClick={() => alert('PDF generovanie bude implementované')}
+              onClick={handleGeneratePDF}
               disabled={processing}
             >
               Generovať PDF

@@ -1480,6 +1480,38 @@ export class PostgresDatabase {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
+      
+      // Pridáme chýbajúce stĺpce ak neexistujú (migrácia existujúcich tabuliek)
+      try {
+        await client.query(`
+          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS company VARCHAR(100) DEFAULT 'Default Company'
+        `);
+        await client.query(`
+          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS period VARCHAR(50) DEFAULT 'Current Period'  
+        `);
+        await client.query(`
+          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS from_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        `);
+        await client.query(`
+          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS to_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        `);
+        await client.query(`
+          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS total_income DECIMAL(10,2) DEFAULT 0
+        `);
+        await client.query(`
+          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS total_expenses DECIMAL(10,2) DEFAULT 0
+        `);
+        await client.query(`
+          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS commission DECIMAL(10,2) DEFAULT 0
+        `);
+        await client.query(`
+          ALTER TABLE settlements ADD COLUMN IF NOT EXISTS profit DECIMAL(10,2) DEFAULT 0
+        `);
+        console.log('✅ Settlements table columns migrated successfully');
+      } catch (error) {
+        console.log('ℹ️ Settlements columns already exist or migration error:', error);
+      }
+      
       console.log('✅ Settlements table ready');
 
       // Simple query without JOINs that can cause issues
@@ -1591,6 +1623,20 @@ export class PostgresDatabase {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
+      
+      // Migrácia existujúcich settlements tabuliek - pridáme chýbajúce stĺpce
+      try {
+        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS company VARCHAR(100) DEFAULT 'Default Company'`);
+        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS period VARCHAR(50) DEFAULT 'Current Period'`);
+        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS from_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS to_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS total_income DECIMAL(10,2) DEFAULT 0`);
+        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS total_expenses DECIMAL(10,2) DEFAULT 0`);
+        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS commission DECIMAL(10,2) DEFAULT 0`);
+        await client.query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS profit DECIMAL(10,2) DEFAULT 0`);
+      } catch (error) {
+        console.log('ℹ️ Settlements migration error (columns might already exist):', error);
+      }
       
       const result = await client.query(`
         INSERT INTO settlements (
