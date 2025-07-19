@@ -332,7 +332,6 @@ class ApiService {
     
     // Ensure all required fields are present
     const completeProtocolData = {
-      id: protocolData.id || uuidv4(), // Fallback UUID ak chýba
       rentalId: protocolData.rentalId,
       location: protocolData.location || '',
       vehicleCondition: protocolData.vehicleCondition || {

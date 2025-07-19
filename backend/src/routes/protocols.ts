@@ -49,22 +49,12 @@ router.post('/handover', async (req, res) => {
     console.log('📝 Creating handover protocol with data:', JSON.stringify(protocolData, null, 2));
     
     // Validácia povinných polí
-    if (!protocolData.id) {
-      console.error('❌ Missing protocol ID');
-      return res.status(400).json({ error: 'Protocol ID is required' });
-    }
-    
     if (!protocolData.rentalId) {
       console.error('❌ Missing rental ID');
       return res.status(400).json({ error: 'Rental ID is required' });
     }
     
-    // UUID validácia
-    if (!isValidUUID(protocolData.id)) {
-      console.error('❌ Invalid protocol ID format:', protocolData.id);
-      return res.status(400).json({ error: 'Invalid protocol ID format. Must be valid UUID.' });
-    }
-    
+    // UUID validácia pre rental ID
     if (!isValidUUID(protocolData.rentalId)) {
       console.error('❌ Invalid rental ID format:', protocolData.rentalId);
       return res.status(400).json({ error: 'Invalid rental ID format. Must be valid UUID.' });
