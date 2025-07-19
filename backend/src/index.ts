@@ -11,7 +11,7 @@ import customersRouter from './routes/customers';
 import companiesRouter from './routes/companies';
 import insurersRouter from './routes/insurers';
 import protocolsRouter from './routes/protocols';
-import filesRouter from './routes/files';
+// import filesRouter from './routes/files'; // Dočasne vypnuté kvôli multer types
 
 // Načítanie environment premenných
 dotenv.config();
@@ -46,7 +46,7 @@ app.use('/api/insurances', insurancesRouter);
 app.use('/api/companies', companiesRouter);
 app.use('/api/insurers', insurersRouter);
 app.use('/api/protocols', protocolsRouter);
-app.use('/api/files', filesRouter);
+// app.use('/api/files', filesRouter); // Dočasne vypnuté kvôli multer types
 
 // Health check endpoint
 app.get('/health', (req, res) => {

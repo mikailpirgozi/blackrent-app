@@ -84,7 +84,7 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
     console.error('File upload error:', error);
     res.status(500).json({ 
       error: 'Failed to upload file',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
     });
   }
 });
@@ -142,7 +142,7 @@ router.post('/presigned-upload-url', authenticateToken, async (req, res) => {
     console.error('Presigned URL error:', error);
     res.status(500).json({ 
       error: 'Failed to create upload URL',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
     });
   }
 });
@@ -180,7 +180,7 @@ router.get('/:key/download-url', authenticateToken, async (req, res) => {
     console.error('Download URL error:', error);
     res.status(500).json({ 
       error: 'Failed to create download URL',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
     });
   }
 });
@@ -215,7 +215,7 @@ router.delete('/:key', authenticateToken, async (req, res) => {
     console.error('File delete error:', error);
     res.status(500).json({ 
       error: 'Failed to delete file',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
     });
   }
 });
