@@ -19,14 +19,41 @@ if (sentry) {
   app.use(sentry.tracingHandler);
 }
 
-// CORS middleware
+// CORS middleware s podporou pre všetky Vercel domény
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://mikailpirgozi.github.io',
-    'https://blackrent-app-production-4d6f.up.railway.app',
-    process.env.FRONTEND_URL || 'http://localhost:3000'
-  ],
+  origin: (origin, callback) => {
+    // Povolené základné domény
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://mikailpirgozi.github.io', 
+      'https://blackrent-app-production-4d6f.up.railway.app',
+      process.env.FRONTEND_URL || 'http://localhost:3000'
+    ];
+    
+    console.log('🌐 CORS request from:', origin);
+    
+    // Ak nie je origin (napr. direct request, Postman)
+    if (!origin) {
+      console.log('✅ No origin - allowing request');
+      return callback(null, true);
+    }
+    
+    // Skontroluj základné allowed origins
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ Origin in allowed list');
+      return callback(null, true);
+    }
+    
+    // ✅ KĽÚČOVÁ OPRAVA: Povolím všetky Vercel domény
+    if (origin.endsWith('.vercel.app')) {
+      console.log('✅ Vercel domain detected - allowing:', origin);
+      return callback(null, true);
+    }
+    
+    // Inak zamietni
+    console.log('❌ Origin not allowed:', origin);
+    callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
