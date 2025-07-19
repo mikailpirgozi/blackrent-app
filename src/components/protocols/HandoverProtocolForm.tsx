@@ -164,7 +164,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       description: '',
       severity: 'low',
       location: '',
-      photos: [],
+      images: [],
       timestamp: new Date(),
     };
     setProtocol(prev => ({
@@ -226,10 +226,12 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                       variant="outlined"
                       fullWidth
                     />
-                    <DateTimePicker
+                    <TextField
                       label="Čas prevzatia"
-                      value={protocol.timestamp}
-                      onChange={(newValue) => setProtocol(prev => ({ ...prev, timestamp: newValue || dayjs() }))}
+                      value={new Date().toLocaleString('sk-SK')}
+                      InputProps={{ readOnly: true }}
+                      variant="outlined"
+                      fullWidth
                     />
                   </Stack>
                 </CardContent>
@@ -277,16 +279,16 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                     <TextField
                       label="Kilometre"
                       type="number"
-                      value={protocol.mileage}
-                      onChange={(e) => setProtocol(prev => ({ ...prev, mileage: parseInt(e.target.value) || 0 }))}
+                      value={protocol.vehicleCondition?.odometer || 0}
+                      onChange={(e) => handleVehicleConditionChange('odometer', parseInt(e.target.value) || 0)}
                       variant="outlined"
                       fullWidth
                     />
                     <TextField
                       label="Stav paliva (%)"
                       type="number"
-                      value={protocol.fuelLevel}
-                      onChange={(e) => setProtocol(prev => ({ ...prev, fuelLevel: parseInt(e.target.value) || 0 }))}
+                      value={protocol.vehicleCondition?.fuelLevel || 100}
+                      onChange={(e) => handleVehicleConditionChange('fuelLevel', parseInt(e.target.value) || 0)}
                       variant="outlined"
                       fullWidth
                       inputProps={{ min: 0, max: 100 }}
@@ -312,11 +314,11 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                   </Button>
                 </Box>
                 
-                {protocol.damages.length === 0 ? (
+                {(protocol.damages || []).length === 0 ? (
                   <Alert severity="info">Žiadne škody neboli zaznamenané</Alert>
                 ) : (
                   <List>
-                    {protocol.damages.map((damage, index) => (
+                    {(protocol.damages || []).map((damage, index) => (
                       <ListItem key={damage.id} divider>
                         <ListItemAvatar>
                           <Avatar>
@@ -340,42 +342,36 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                                 <InputLabel>Závažnosť</InputLabel>
                                 <Select
                                   value={damage.severity}
+                                  label="Závažnosť"
                                   onChange={(e) => updateDamage(damage.id, 'severity', e.target.value)}
                                 >
-                                  <MenuItem value="minor">Drobná</MenuItem>
-                                  <MenuItem value="major">Závažná</MenuItem>
-                                  <MenuItem value="critical">Kritická</MenuItem>
+                                  <MenuItem value="low">Nízka</MenuItem>
+                                  <MenuItem value="medium">Stredná</MenuItem>
+                                  <MenuItem value="high">Vysoká</MenuItem>
                                 </Select>
                               </FormControl>
                               <TextField
-                                label="Miesto"
+                                label="Lokalizácia"
                                 value={damage.location}
                                 onChange={(e) => updateDamage(damage.id, 'location', e.target.value)}
                                 variant="outlined"
                                 size="small"
+                                sx={{ flex: 1 }}
                               />
+                              <IconButton
+                                size="small"
+                                onClick={() => removeDamage(damage.id)}
+                                color="error"
+                              >
+                                <RemoveIcon />
+                              </IconButton>
                             </Box>
                           }
                         />
-                        <IconButton onClick={() => removeDamage(damage.id)} color="error">
-                          <RemoveIcon />
-                        </IconButton>
                       </ListItem>
                     ))}
                   </List>
                 )}
-                
-                <Divider sx={{ my: 2 }} />
-                
-                <TextField
-                  label="Poznámky"
-                  value={protocol.notes}
-                  onChange={(e) => setProtocol(prev => ({ ...prev, notes: e.target.value }))}
-                  variant="outlined"
-                  fullWidth
-                  multiline
-                  rows={3}
-                />
               </CardContent>
             </Card>
           </Box>
@@ -389,26 +385,19 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                 <Typography variant="h6" gutterBottom>
                   Dokončenie protokolu
                 </Typography>
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  Skontrolujte všetky údaje pred dokončením protokolu.
-                </Alert>
-                
                 <Stack spacing={2}>
-                  <Typography variant="body2">
-                    <strong>Miesto:</strong> {protocol.location}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Čas:</strong> {protocol.timestamp.toLocaleString()}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Kilometre:</strong> {protocol.mileage} km
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Palivo:</strong> {protocol.fuelLevel}%
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Škody:</strong> {protocol.damages.length}
-                  </Typography>
+                  <TextField
+                    label="Poznámky"
+                    multiline
+                    rows={4}
+                    value={protocol.notes || ''}
+                    onChange={(e) => setProtocol(prev => ({ ...prev, notes: e.target.value }))}
+                    variant="outlined"
+                    fullWidth
+                  />
+                  <Alert severity="info">
+                    Protokol bude označený ako dokončený a uložený do systému.
+                  </Alert>
                 </Stack>
               </CardContent>
             </Card>
