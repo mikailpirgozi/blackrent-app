@@ -55,38 +55,37 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
     const {
       company,
       period,
-      fromDate,
-      toDate,
-      totalRentals,
       totalIncome,
       totalExpenses,
-      commission,
-      netIncome,
-      rentalsByPaymentMethod,
-      expensesByCategory,
-      summary
+      totalCommission,
+      profit
     } = req.body;
 
-    if (!company || !period || !fromDate || !toDate) {
+    // Frontend posiela period: { from, to }, takže musíme to správne extrahovať
+    const fromDate = period?.from ? new Date(period.from) : null;
+    const toDate = period?.to ? new Date(period.to) : null;
+    const periodString = fromDate && toDate ? 
+      `${fromDate.toLocaleDateString('sk-SK')} - ${toDate.toLocaleDateString('sk-SK')}` : 
+      'Neurčené obdobie';
+
+    if (!company || !fromDate || !toDate) {
+      console.error('Settlement validation failed:', { company, fromDate, toDate, period });
       return res.status(400).json({
         success: false,
-        error: 'Všetky povinné polia musia byť vyplnené'
+        error: 'Všetky povinné polia musia byť vyplnené (firma, obdobie od, obdobie do)'
       });
     }
 
     const createdSettlement = await postgresDatabase.createSettlement({
       company,
-      period,
-      fromDate: new Date(fromDate),
-      toDate: new Date(toDate),
-      totalRentals: totalRentals || 0,
+      period: periodString,
+      fromDate,
+      toDate,
       totalIncome: totalIncome || 0,
       totalExpenses: totalExpenses || 0,
-      commission: commission || 0,
-      netIncome: netIncome || 0,
-      rentalsByPaymentMethod: rentalsByPaymentMethod || {},
-      expensesByCategory: expensesByCategory || {},
-      summary: summary || ''
+      commission: totalCommission || 0,
+      profit: profit || 0,
+      summary: `Vyúčtovanie pre ${company} za obdobie ${periodString}`
     });
 
     res.status(201).json({

@@ -44,17 +44,20 @@ import {
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { Insurance } from '../../types';
-import { format, isAfter, addDays } from 'date-fns';
+import { format, isAfter, addDays, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import InsuranceForm from './InsuranceForm';
 
-const getExpiryStatus = (validTo: Date) => {
+const getExpiryStatus = (validTo: Date | string) => {
   const today = new Date();
   const thirtyDaysFromNow = addDays(today, 30);
   
-  if (isAfter(today, validTo)) {
+  // Konvertuj string na Date ak je potrebné
+  const validToDate = typeof validTo === 'string' ? parseISO(validTo) : validTo;
+  
+  if (isAfter(today, validToDate)) {
     return { status: 'expired', color: 'error', text: 'Vypršala' };
-  } else if (isAfter(validTo, thirtyDaysFromNow)) {
+  } else if (isAfter(validToDate, thirtyDaysFromNow)) {
     return { status: 'valid', color: 'success', text: 'Platná' };
   } else {
     return { status: 'expiring', color: 'warning', text: 'Vyprší čoskoro' };
@@ -388,7 +391,7 @@ export default function InsuranceList() {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <EventIcon sx={{ fontSize: 16, color: 'primary.main' }} />
                       <Typography variant="body2" sx={{ color: '#bdbdbd' }}>
-                        {format(insurance.validFrom, 'dd.MM.yyyy', { locale: sk })} - {format(insurance.validTo, 'dd.MM.yyyy', { locale: sk })}
+                        {format(typeof insurance.validFrom === 'string' ? parseISO(insurance.validFrom) : insurance.validFrom, 'dd.MM.yyyy', { locale: sk })} - {format(typeof insurance.validTo === 'string' ? parseISO(insurance.validTo) : insurance.validTo, 'dd.MM.yyyy', { locale: sk })}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -472,10 +475,10 @@ export default function InsuranceList() {
                         <TableCell>{insurance.policyNumber}</TableCell>
                         <TableCell>{insurance.company}</TableCell>
                         <TableCell>
-                          {format(insurance.validFrom, 'dd.MM.yyyy', { locale: sk })}
+                          {format(typeof insurance.validFrom === 'string' ? parseISO(insurance.validFrom) : insurance.validFrom, 'dd.MM.yyyy', { locale: sk })}
                         </TableCell>
                         <TableCell>
-                          {format(insurance.validTo, 'dd.MM.yyyy', { locale: sk })}
+                          {format(typeof insurance.validTo === 'string' ? parseISO(insurance.validTo) : insurance.validTo, 'dd.MM.yyyy', { locale: sk })}
                         </TableCell>
                         <TableCell>{insurance.price.toFixed(2)}</TableCell>
                         <TableCell>

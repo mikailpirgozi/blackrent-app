@@ -1562,75 +1562,70 @@ export class PostgresDatabase {
   }
 
   async createSettlement(settlementData: {
-    company: string;
-    period: string;
-    fromDate: Date;
-    toDate: Date;
-    totalRentals: number;
-    totalIncome: number;
-    totalExpenses: number;
-    commission: number;
-    netIncome: number;
-    rentalsByPaymentMethod: any;
-    expensesByCategory: any;
-    summary: string;
+    company?: string;
+    period?: string;
+    fromDate?: Date;
+    toDate?: Date;
+    totalIncome?: number;
+    totalExpenses?: number;
+    commission?: number;
+    profit?: number;
+    summary?: string;
   }): Promise<Settlement> {
     const client = await this.pool.connect();
     try {
-      // Najskôr vytvoríme settlements tabuľku ak neexistuje
+      console.log('🔍 Creating settlement with data:', settlementData);
+      
+      // Use same simplified table schema as getSettlements()
       await client.query(`
         CREATE TABLE IF NOT EXISTS settlements (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          company VARCHAR(100),
-          period_from TIMESTAMP NOT NULL,
-          period_to TIMESTAMP NOT NULL,
+          company VARCHAR(100) DEFAULT 'Default Company',
+          period VARCHAR(50) DEFAULT 'Current Period',
+          from_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          to_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           total_income DECIMAL(10,2) DEFAULT 0,
           total_expenses DECIMAL(10,2) DEFAULT 0,
-          total_commission DECIMAL(10,2) DEFAULT 0,
+          commission DECIMAL(10,2) DEFAULT 0,
           profit DECIMAL(10,2) DEFAULT 0,
-          rentals_data JSONB,
-          expenses_data JSONB,
-          summary TEXT,
-          vehicle_id VARCHAR(50),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
       `);
       
       const result = await client.query(`
         INSERT INTO settlements (
-          company, period_from, period_to, total_income, total_expenses, 
-          total_commission, profit, rentals_data, expenses_data, summary
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        RETURNING id, company, period_from, period_to, total_income, total_expenses, 
-                  total_commission, profit, rentals_data, expenses_data, summary, created_at
+          company, period, from_date, to_date, total_income, total_expenses, 
+          commission, profit
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, company, period, from_date, to_date, total_income, total_expenses, 
+                  commission, profit, created_at
       `, [
-        settlementData.company,
-        settlementData.fromDate,
-        settlementData.toDate,
-        settlementData.totalIncome,
-        settlementData.totalExpenses,
-        settlementData.commission,
-        settlementData.netIncome,
-        JSON.stringify(settlementData.rentalsByPaymentMethod),
-        JSON.stringify(settlementData.expensesByCategory),
-        settlementData.summary
+        settlementData.company || 'Default Company',
+        settlementData.period || 'Current Period', 
+        settlementData.fromDate || new Date(),
+        settlementData.toDate || new Date(),
+        settlementData.totalIncome || 0,
+        settlementData.totalExpenses || 0,
+        settlementData.commission || 0,
+        settlementData.profit || 0
       ]);
 
       const row = result.rows[0];
+      console.log('✅ Settlement created successfully:', row.id);
+      
       return {
         id: row.id?.toString() || '',
         period: {
-          from: new Date(row.period_from),
-          to: new Date(row.period_to)
+          from: new Date(row.from_date),
+          to: new Date(row.to_date)
         },
-        rentals: [],
-        expenses: [],
+        rentals: [], // Empty array - will be populated separately if needed
+        expenses: [], // Empty array - will be populated separately if needed
         totalIncome: parseFloat(row.total_income) || 0,
         totalExpenses: parseFloat(row.total_expenses) || 0,
-        totalCommission: parseFloat(row.total_commission) || 0,
+        totalCommission: parseFloat(row.commission) || 0,
         profit: parseFloat(row.profit) || 0,
-        company: row.company || undefined,
+        company: row.company || 'Default Company',
         vehicleId: undefined
       };
     } finally {
