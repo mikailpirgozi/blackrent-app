@@ -31,8 +31,8 @@
   "scripts": {
     "start": "node backend/dist/index.js",
     "dev": "react-scripts start",
-    "build": "ESLINT_NO_DEV_ERRORS=true TSC_COMPILE_ON_ERROR=true react-scripts build",
-    "build:vercel": "ESLINT_NO_DEV_ERRORS=true TSC_COMPILE_ON_ERROR=true react-scripts build",
+    "build": "react-scripts build",
+    "build:vercel": "react-scripts build",
     "build:railway": "npm run build:frontend && npm run build:backend",
     "build:frontend": "react-scripts build && mkdir -p backend/dist && cp -r build backend/dist/public",
     "build:backend": "cd backend && npm install && npx tsc",
