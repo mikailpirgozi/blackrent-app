@@ -1,11 +1,16 @@
-VERCEL FORCE DEPLOY - TRIGGER WEBHOOK
+FORCE VERCEL DEPLOYMENT
+=======================
 
-ESLint fix applied via:
-- package.json build script: ESLINT_NO_DEV_ERRORS=true
-- Force Vercel to see latest commit: 7d86110
+Tento súbor spôsobí, že Vercel detekuje zmenu a spustí nový deployment.
 
-Timestamp: 2025-07-19 03:08:00
-Railway: Fixed PostgreSQL admin creation
-Vercel: Fixed ESLint warnings blocking build
+Dátum: 2025-07-19 22:38:00
+Dôvod: Pridanie PDF funkcionality pre protokoly
 
-Both platforms should now deploy successfully! 
+Zmeny:
+- Pridaný PDFViewer komponent
+- Pridané PDF tlačidlá do RentalListNew
+- Pridané PDF API endpoints na backend
+- Pridaný PDFKit generátor
+
+Všetky zmeny sú commitnuté a pushnuté na GitHub.
+Vercel by mal automaticky detekovať zmeny a spustiť deployment. 
