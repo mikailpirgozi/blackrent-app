@@ -569,4 +569,35 @@ router.get('/fix-customers', async (req: Request, res: Response) => {
   }
 });
 
+// Debug database endpoint
+router.get('/debug-db', async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 Starting database debug...');
+    
+    // Check admin user from both tables
+    const adminUser = await postgresDatabase.getUserByUsername('admin');
+    console.log('🔑 Admin user from getUserByUsername:', adminUser);
+    
+    // Try to get all users
+    const allUsers = await postgresDatabase.getUsers();
+    console.log('👥 All users:', allUsers);
+    
+    res.json({
+      success: true,
+      admin_exists: !!adminUser,
+      admin_user: adminUser,
+      total_users: allUsers.length,
+      all_users: allUsers
+    });
+    
+  } catch (error) {
+    console.error('❌ Database debug error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Database debug failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router; 
