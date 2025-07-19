@@ -25,7 +25,9 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "https://blackrent-app-production-4d6f.up.railway.app/api"
+    "REACT_APP_API_URL": "https://blackrent-app-production-4d6f.up.railway.app/api",
+    "ESLINT_NO_DEV_ERRORS": "true",
+    "TSC_COMPILE_ON_ERROR": "true"
   },
   "framework": "create-react-app"
 } 

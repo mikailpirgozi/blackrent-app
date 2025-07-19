@@ -427,4 +427,49 @@ router.get('/setup-admin', async (req: Request, res: Response<ApiResponse>) => {
   }
 });
 
+// GET /api/auth/init-admin - Super jednoduchý init pre admin
+router.get('/init-admin', async (req: Request, res: Response) => {
+  try {
+    const client = await (postgresDatabase as any).pool.connect();
+    
+    try {
+      // Vymaž admin ak existuje
+      await client.query('DELETE FROM users WHERE username = $1', ['admin']);
+      
+      // Vytvor admin s heslom Black123
+      const hashedPassword = await bcrypt.hash('Black123', 12);
+      await client.query(
+        'INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
+        [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
+      );
+      
+      res.send(`
+        <html>
+        <body style="font-family: Arial; padding: 20px; text-align: center;">
+          <h1 style="color: green;">✅ Admin účet vytvorený!</h1>
+          <p><strong>Username:</strong> admin</p>
+          <p><strong>Password:</strong> Black123</p>
+          <p>Môžete sa teraz prihlásiť na <a href="https://blackrent-app.vercel.app/login">Vercel aplikácii</a></p>
+          <hr>
+          <p>Čas: ${new Date().toLocaleString('sk-SK')}</p>
+        </body>
+        </html>
+      `);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Init admin error:', error);
+    res.send(`
+      <html>
+      <body style="font-family: Arial; padding: 20px; text-align: center;">
+        <h1 style="color: red;">❌ Chyba</h1>
+        <p>Nepodarilo sa vytvoriť admin účet</p>
+        <pre>${error}</pre>
+      </body>
+      </html>
+    `);
+  }
+});
+
 export default router; 
