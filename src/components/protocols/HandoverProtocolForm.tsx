@@ -25,6 +25,10 @@ import {
   IconButton,
   Divider,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Assignment,
@@ -40,12 +44,15 @@ import {
   Cancel as CancelIcon,
   Photo as PhotoIcon,
   Description as DescriptionIcon,
+  PhotoCamera,
+  Draw as DrawIcon,
 } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs, { Dayjs } from 'dayjs';
-import { Rental, HandoverProtocol, VehicleCondition, ProtocolDamage, ProtocolSignature } from '../../types';
+import { Rental, HandoverProtocol, VehicleCondition, ProtocolDamage, ProtocolSignature, ProtocolImage, ProtocolVideo } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
+import SerialPhotoCapture from '../common/SerialPhotoCapture';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -58,6 +65,8 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
   const { state } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
   
   // Generuj UUID len raz pri vytvorení komponentu
   const [protocolId] = useState(() => uuidv4());
@@ -101,16 +110,18 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
   });
 
   const steps = [
-    { label: 'Základné informácie', description: 'Zadajte miesto a čas prevzatia' },
+    { label: 'Základné informácie', description: 'Automaticky načítané údaje o prenájme' },
     { label: 'Stav vozidla', description: 'Zadajte kilometre a stav paliva' },
+    { label: 'Fotodokumentácia', description: 'Nafotite vozidlo a doklady' },
     { label: 'Škody a poznámky', description: 'Zdokumentujte poškodenia' },
-    { label: 'Dokončenie', description: 'Podpisy a finalizácia' },
+    { label: 'Podpisy', description: 'Elektronický podpis s časovou pečiatkou' },
   ];
 
   // Načítanie údajov o prenájme
   useEffect(() => {
     setProtocol(prev => ({ 
       ...prev, 
+      location: rental.handoverPlace || rental.pickupLocation || 'Miesto prevzatia', // Automatické miesto
       rentalData: {
         orderNumber: rental.orderNumber || '',
         vehicle: rental.vehicle || {} as any,
@@ -217,6 +228,35 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     }));
   };
 
+  // Funkcie pre fotky
+  const handleMediaSave = (type: 'vehicle' | 'document' | 'damage', images: ProtocolImage[], videos: ProtocolVideo[]) => {
+    setProtocol(prev => ({
+      ...prev,
+      [`${type}Images`]: images,
+      [`${type}Videos`]: videos,
+    }));
+    setActivePhotoCapture(null);
+  };
+
+  // Funkcia pre elektronický podpis
+  const handleSignatureSave = (signature: string, signerName: string) => {
+    const newSignature: ProtocolSignature = {
+      id: uuidv4(),
+      signature,
+      signerName,
+      signerRole: 'employee',
+      timestamp: new Date(),
+      location: protocol.location || 'Miesto prevzatia',
+      ipAddress: 'N/A', // V browseri nemôžeme získať IP
+    };
+
+    setProtocol(prev => ({
+      ...prev,
+      signatures: [...(prev.signatures || []), newSignature],
+    }));
+    setShowSignaturePad(false);
+  };
+
   const renderStepContent = (step: number) => {
     switch (step) {
       case 0:
@@ -240,9 +280,10 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                     <TextField
                       label="Miesto prevzatia"
                       value={protocol.location || ''}
-                      onChange={(e) => setProtocol(prev => ({ ...prev, location: e.target.value }))}
+                      InputProps={{ readOnly: true }}
                       variant="outlined"
                       fullWidth
+                      helperText="Automaticky načítané z prenájmu"
                     />
                     <TextField
                       label="Čas prevzatia"
@@ -323,6 +364,52 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           <Box>
             <Card variant="outlined">
               <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  <PhotoCamera sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Fotodokumentácia
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<PhotoCamera />}
+                    onClick={() => setActivePhotoCapture('vehicle')}
+                  >
+                    Fotky vozidla ({protocol.vehicleImages?.length || 0})
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<PhotoCamera />}
+                    onClick={() => setActivePhotoCapture('document')}
+                  >
+                    Fotky dokladov ({protocol.documentImages?.length || 0})
+                  </Button>
+                </Box>
+                
+                {/* Media summary */}
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Chip 
+                    label={`${(protocol.vehicleImages?.length || 0) + (protocol.documentImages?.length || 0)} fotiek`}
+                    color="primary"
+                    size="small"
+                  />
+                  <Chip 
+                    label={`${(protocol.vehicleVideos?.length || 0)} videí`}
+                    color="secondary"
+                    size="small"
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+        );
+
+
+
+      case 3:
+        return (
+          <Box>
+            <Card variant="outlined">
+              <CardContent>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                   <Typography variant="h6">
                     Škody a poškodenia
@@ -395,27 +482,44 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           </Box>
         );
 
-      case 3:
+      case 4:
         return (
           <Box>
             <Card variant="outlined">
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Dokončenie protokolu
+                  <DrawIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Elektronický podpis
                 </Typography>
                 <Stack spacing={2}>
                   <TextField
                     label="Poznámky"
                     multiline
-                    rows={4}
+                    rows={3}
                     value={protocol.notes || ''}
                     onChange={(e) => setProtocol(prev => ({ ...prev, notes: e.target.value }))}
                     variant="outlined"
                     fullWidth
                   />
-                  <Alert severity="info">
-                    Protokol bude označený ako dokončený a uložený do systému.
-                  </Alert>
+                  
+                  {(protocol.signatures || []).length === 0 ? (
+                    <Alert severity="info">
+                      Kliknite na tlačidlo nižšie pre pridanie elektronického podpisu s časovou pečiatkou.
+                    </Alert>
+                  ) : (
+                    <Alert severity="success">
+                      Podpis bol úspešne pridaný: {protocol.signatures?.[0]?.signerName} - {protocol.signatures?.[0]?.timestamp.toLocaleString('sk-SK')}
+                    </Alert>
+                  )}
+                  
+                  <Button
+                    variant="outlined"
+                    startIcon={<DrawIcon />}
+                    onClick={() => setShowSignaturePad(true)}
+                    disabled={(protocol.signatures || []).length > 0}
+                  >
+                    Pridať elektronický podpis
+                  </Button>
                 </Stack>
               </CardContent>
             </Card>
@@ -473,6 +577,80 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           </Step>
         ))}
       </Stepper>
+
+      {/* Photo capture dialog */}
+      {activePhotoCapture && (
+        <SerialPhotoCapture
+          open={!!activePhotoCapture}
+          onClose={() => setActivePhotoCapture(null)}
+          onSave={(images, videos) => handleMediaSave(activePhotoCapture as any, images, videos)}
+          title={
+            activePhotoCapture === 'vehicle' ? 'Fotky vozidla' :
+            activePhotoCapture === 'document' ? 'Fotky dokladov' :
+            'Fotky poškodení'
+          }
+          allowedTypes={
+            activePhotoCapture === 'vehicle' ? ['vehicle'] :
+            activePhotoCapture === 'document' ? ['document'] :
+            ['damage']
+          }
+        />
+      )}
+
+      {/* Signature pad dialog */}
+      {showSignaturePad && (
+        <Dialog
+          open={showSignaturePad}
+          onClose={() => setShowSignaturePad(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <DrawIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Elektronický podpis
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Podpíšte sa nižšie. Podpis bude uložený s časovou pečiatkou: {new Date().toLocaleString('sk-SK')}
+            </Typography>
+            <TextField
+              label="Meno podpisujúceho"
+              value={state.user?.username || ''}
+              InputProps={{ readOnly: true }}
+              fullWidth
+              sx={{ mb: 2 }}
+            />
+            <Box
+              sx={{
+                border: '2px dashed #ccc',
+                borderRadius: 1,
+                p: 2,
+                textAlign: 'center',
+                minHeight: 200,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#f9f9f9'
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                Tu bude canvas pre podpis (implementácia v ďalšom kroku)
+              </Typography>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowSignaturePad(false)}>
+              Zrušiť
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => handleSignatureSave('base64_signature_data', state.user?.username || 'admin')}
+            >
+              Uložiť podpis
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   );
 };
