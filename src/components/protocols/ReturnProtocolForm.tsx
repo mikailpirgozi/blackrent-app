@@ -181,7 +181,9 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       } as ReturnProtocol;
 
       await generateProtocolPDF(completeProtocol, {
-        filename: `odovzdavaci_protokol_${protocol.rentalData?.orderNumber || (protocol.id || uuidv4()).slice(-8)}_${new Date().toISOString().split('T')[0]}.pdf`
+        filename: `odovzdavaci_protokol_${protocol.rentalData?.orderNumber || (protocol.id || uuidv4()).slice(-8)}_${new Date().toISOString().split('T')[0]}.pdf`,
+        saveToR2: true, // Upload to Cloudflare R2
+        downloadLocal: true // Also download locally for user
       });
 
       console.log('✅ PDF generated and downloaded successfully');

@@ -178,4 +178,36 @@ router.delete('/return/:id', async (req, res) => {
   }
 });
 
+// Upload PDF to R2
+router.post('/upload-pdf', upload.single('pdf'), async (req, res) => {
+  try {
+    const { protocolId } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'No PDF file provided' });
+    }
+    
+    if (!protocolId) {
+      return res.status(400).json({ error: 'Protocol ID is required' });
+    }
+
+    console.log('📤 Uploading PDF to R2 for protocol:', protocolId);
+    
+    const url = await postgresDatabase.uploadProtocolPDF(protocolId, req.file.buffer);
+    
+    // Update protocol with PDF URL
+    await postgresDatabase.updateReturnProtocol(protocolId, { pdfUrl: url });
+    
+    res.json({ 
+      success: true,
+      url: url,
+      message: 'PDF uploaded successfully'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error uploading PDF:', error);
+    res.status(500).json({ error: 'Failed to upload PDF' });
+  }
+});
+
 export default router; 
