@@ -1815,31 +1815,51 @@ export class PostgresDatabase {
 
   // PROTOCOLS HELPER METHODS
   private extractUrls(mediaArray: any[]): string[] {
-    if (!Array.isArray(mediaArray)) {
-      console.log('⚠️ extractUrls: mediaArray is not an array:', mediaArray);
+    try {
+      // Bezpečná kontrola - ak nie je array, vráť prázdny array
+      if (!Array.isArray(mediaArray)) {
+        console.log('⚠️ extractUrls: mediaArray is not an array, returning empty array');
+        return [];
+      }
+      
+      // Ak je prázdny array, vráť prázdny array
+      if (mediaArray.length === 0) {
+        console.log('🔍 extractUrls: Empty mediaArray, returning empty array');
+        return [];
+      }
+      
+      console.log('🔍 extractUrls: Processing mediaArray with', mediaArray.length, 'items');
+      
+      const urls = mediaArray
+        .filter(item => item !== null && item !== undefined)
+        .map(item => {
+          try {
+            // Ak je item string, použij ho ako URL
+            if (typeof item === 'string') {
+              console.log('🔍 extractUrls: Found string item:', item);
+              return item;
+            }
+            // Ak je item objekt s url vlastnosťou, použij url
+            if (item && typeof item === 'object' && item.url) {
+              console.log('🔍 extractUrls: Found object with url:', item.url);
+              return item.url;
+            }
+            // Inak ignoruj
+            console.log('⚠️ extractUrls: Ignoring invalid item:', item);
+            return null;
+          } catch (error) {
+            console.error('❌ extractUrls: Error processing item:', error);
+            return null;
+          }
+        })
+        .filter(url => typeof url === 'string' && url.length > 0);
+      
+      console.log('✅ extractUrls: Successfully extracted', urls.length, 'URLs');
+      return urls;
+    } catch (error) {
+      console.error('❌ extractUrls: Critical error:', error);
       return [];
     }
-    
-    console.log('🔍 extractUrls: Processing mediaArray:', mediaArray);
-    
-    return mediaArray
-      .filter(item => item !== null && item !== undefined)
-      .map(item => {
-        // Ak je item string, použij ho ako URL
-        if (typeof item === 'string') {
-          console.log('🔍 extractUrls: Found string item:', item);
-          return item;
-        }
-        // Ak je item objekt s url vlastnosťou, použij url
-        if (item && typeof item === 'object' && item.url) {
-          console.log('🔍 extractUrls: Found object with url:', item.url);
-          return item.url;
-        }
-        // Inak ignoruj
-        console.log('⚠️ extractUrls: Ignoring invalid item:', item);
-        return null;
-      })
-      .filter(url => typeof url === 'string' && url.length > 0);
   }
 
   private mapUrlsToMediaObjects(urls: string[]): any[] {
@@ -2023,6 +2043,12 @@ export class PostgresDatabase {
         throw new Error('Rental ID is required');
       }
 
+      // Extract URLs from media arrays using nullish coalescing
+      const vehicleImagesUrls = this.extractUrls(protocolData.vehicleImages ?? []);
+      const vehicleVideosUrls = this.extractUrls(protocolData.vehicleVideos ?? []);
+      const documentImagesUrls = this.extractUrls(protocolData.documentImages ?? []);
+      const damageImagesUrls = this.extractUrls(protocolData.damageImages ?? []);
+
       const result = await client.query(`
         INSERT INTO handover_protocols (
           rental_id, location, odometer, fuel_level, fuel_type,
@@ -2041,10 +2067,10 @@ export class PostgresDatabase {
         protocolData.vehicleCondition?.exteriorCondition || 'Dobrý',
         protocolData.vehicleCondition?.interiorCondition || 'Dobrý',
         protocolData.vehicleCondition?.notes || '',
-        this.extractUrls(protocolData.vehicleImages ?? []),
-        this.extractUrls(protocolData.vehicleVideos ?? []),
-        this.extractUrls(protocolData.documentImages ?? []),
-        this.extractUrls(protocolData.damageImages ?? []),
+        vehicleImagesUrls,
+        vehicleVideosUrls,
+        documentImagesUrls,
+        damageImagesUrls,
         JSON.stringify(protocolData.damages || []),
         JSON.stringify(protocolData.signatures || []),
         JSON.stringify(protocolData.rentalData || {}),

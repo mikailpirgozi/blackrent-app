@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
-const uuid_1 = require("uuid");
 const router = (0, express_1.Router)();
 // GET /api/companies - Získanie všetkých firiem
 router.get('/', auth_1.authenticateToken, async (req, res) => {
@@ -32,16 +31,11 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
                 error: 'Názov firmy je povinný'
             });
         }
-        const newCompany = {
-            id: (0, uuid_1.v4)(),
-            name,
-            createdAt: new Date()
-        };
-        await postgres_database_1.postgresDatabase.createCompany(newCompany);
+        const createdCompany = await postgres_database_1.postgresDatabase.createCompany({ name });
         res.status(201).json({
             success: true,
             message: 'Firma úspešne vytvorená',
-            data: newCompany
+            data: createdCompany
         });
     }
     catch (error) {

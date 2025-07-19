@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
-const uuid_1 = require("uuid");
 const router = (0, express_1.Router)();
 // GET /api/vehicles - Získanie všetkých vozidiel
 router.get('/', auth_1.authenticateToken, async (req, res) => {
@@ -56,21 +55,19 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
                 error: 'Všetky povinné polia musia byť vyplnené'
             });
         }
-        const newVehicle = {
-            id: (0, uuid_1.v4)(),
+        const createdVehicle = await postgres_database_1.postgresDatabase.createVehicle({
             brand,
             model,
-            licensePlate: licensePlate || '', // ŠPZ môže byť prázdna
+            licensePlate: licensePlate || '',
             company,
             pricing: pricing || [],
             commission: commission || { type: 'percentage', value: 0 },
             status: status || 'available'
-        };
-        await postgres_database_1.postgresDatabase.createVehicle(newVehicle);
+        });
         res.status(201).json({
             success: true,
             message: 'Vozidlo úspešne vytvorené',
-            data: newVehicle
+            data: createdVehicle
         });
     }
     catch (error) {

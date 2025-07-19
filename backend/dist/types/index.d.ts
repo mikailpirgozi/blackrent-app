@@ -7,6 +7,7 @@ export interface Vehicle {
     pricing: PricingTier[];
     commission: Commission;
     status: VehicleStatus;
+    createdAt?: Date;
 }
 export interface PricingTier {
     id: string;
@@ -72,6 +73,18 @@ export interface Rental {
         }[];
     }[];
     orderNumber?: string;
+    deposit?: number;
+    allowedKilometers?: number;
+    extraKilometerRate?: number;
+    returnConditions?: string;
+    fuelLevel?: number;
+    odometer?: number;
+    returnFuelLevel?: number;
+    returnOdometer?: number;
+    actualKilometers?: number;
+    fuelRefillCost?: number;
+    handoverProtocolId?: string;
+    returnProtocolId?: string;
 }
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';
 export interface Expense {
@@ -89,6 +102,7 @@ export interface Insurance {
     id: string;
     vehicleId: string;
     type: string;
+    policyNumber: string;
     validFrom: Date;
     validTo: Date;
     price: number;

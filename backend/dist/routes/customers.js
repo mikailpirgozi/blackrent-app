@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
-const uuid_1 = require("uuid");
 const router = (0, express_1.Router)();
 // GET /api/customers - Získanie všetkých zákazníkov
 router.get('/', auth_1.authenticateToken, async (req, res) => {
@@ -25,32 +24,44 @@ router.get('/', auth_1.authenticateToken, async (req, res) => {
 // POST /api/customers - Vytvorenie nového zákazníka
 router.post('/', auth_1.authenticateToken, async (req, res) => {
     try {
+        console.log('🎯 Customer creation started with data:', req.body);
         const { name, email, phone } = req.body;
-        if (!name) {
+        if (!name || typeof name !== 'string' || name.trim() === '') {
+            console.log('❌ Customer validation failed - missing or invalid name:', name);
             return res.status(400).json({
                 success: false,
-                error: 'Meno zákazníka je povinné'
+                error: 'Meno zákazníka je povinné a musí byť vyplnené'
             });
         }
-        const newCustomer = {
-            id: (0, uuid_1.v4)(),
-            name,
-            email: email || '',
-            phone: phone || '',
-            createdAt: new Date()
-        };
-        await postgres_database_1.postgresDatabase.createCustomer(newCustomer);
+        console.log('✅ Customer validation passed, creating customer...');
+        console.log('📝 Customer data:', {
+            name: name.trim(),
+            email: email || null,
+            phone: phone || null
+        });
+        const createdCustomer = await postgres_database_1.postgresDatabase.createCustomer({
+            name: name.trim(),
+            email: email || null,
+            phone: phone || null
+        });
+        console.log('🎉 Customer created successfully:', createdCustomer.id);
         res.status(201).json({
             success: true,
             message: 'Zákazník úspešne vytvorený',
-            data: newCustomer
+            data: createdCustomer
         });
     }
     catch (error) {
-        console.error('Create customer error:', error);
+        console.error('❌ DETAILED Create customer error:');
+        console.error('   Error name:', error.name);
+        console.error('   Error message:', error.message);
+        console.error('   Error code:', error.code);
+        console.error('   Error detail:', error.detail);
+        console.error('   Error stack:', error.stack);
+        console.error('   Full error object:', error);
         res.status(500).json({
             success: false,
-            error: 'Chyba pri vytváraní zákazníka'
+            error: `Chyba pri vytváraní zákazníka: ${error.message || 'Neznáma chyba'}`
         });
     }
 });

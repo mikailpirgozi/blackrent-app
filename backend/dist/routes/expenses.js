@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
-const uuid_1 = require("uuid");
 const router = (0, express_1.Router)();
 // GET /api/expenses - Získanie všetkých nákladov
 router.get('/', auth_1.authenticateToken, async (req, res) => {
@@ -33,8 +32,7 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
                 error: 'Popis nákladu je povinný'
             });
         }
-        const newExpense = {
-            id: (0, uuid_1.v4)(),
+        const createdExpense = await postgres_database_1.postgresDatabase.createExpense({
             description: description.toString().trim(),
             amount: amount && !isNaN(Number(amount)) ? Number(amount) : 0,
             date: date ? new Date(date) : new Date(),
@@ -42,12 +40,11 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
             company: company && company.toString().trim() !== '' ? company.toString().trim() : 'Neznáma firma',
             category: category && ['service', 'insurance', 'fuel', 'other'].includes(category) ? category : 'other',
             note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
-        };
-        await postgres_database_1.postgresDatabase.createExpense(newExpense);
+        });
         res.status(201).json({
             success: true,
             message: 'Náklad úspešne vytvorený',
-            data: newExpense
+            data: createdExpense
         });
     }
     catch (error) {

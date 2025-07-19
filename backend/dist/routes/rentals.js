@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
-const uuid_1 = require("uuid");
 const router = (0, express_1.Router)();
 // GET /api/rentals - Získanie všetkých prenájmov
 router.get('/', auth_1.authenticateToken, async (req, res) => {
@@ -49,15 +48,14 @@ router.get('/:id', auth_1.authenticateToken, async (req, res) => {
 // POST /api/rentals - Vytvorenie nového prenájmu
 router.post('/', auth_1.authenticateToken, async (req, res) => {
     try {
-        const { vehicleId, customerId, customerName, startDate, endDate, totalPrice, commission, paymentMethod, discount, customCommission, extraKmCharge, paid, status, handoverPlace, confirmed, payments, history, orderNumber } = req.body;
+        const { vehicleId, customerId, customerName, startDate, endDate, totalPrice, commission, paymentMethod, discount, customCommission, extraKmCharge, paid, status, handoverPlace, confirmed, payments, history, orderNumber, deposit, allowedKilometers, extraKilometerRate, returnConditions, fuelLevel, odometer, returnFuelLevel, returnOdometer, actualKilometers, fuelRefillCost, handoverProtocolId, returnProtocolId } = req.body;
         if (!customerName || !startDate || !endDate) {
             return res.status(400).json({
                 success: false,
                 error: 'Všetky povinné polia musia byť vyplnené'
             });
         }
-        const newRental = {
-            id: (0, uuid_1.v4)(),
+        const createdRental = await postgres_database_1.postgresDatabase.createRental({
             vehicleId,
             customerId,
             customerName,
@@ -76,27 +74,28 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
             payments,
             history,
             orderNumber,
-            createdAt: new Date(),
-            vehicle: {
-                id: vehicleId,
-                brand: '',
-                model: '',
-                licensePlate: '',
-                company: '',
-                pricing: [],
-                commission: { type: 'percentage', value: 0 },
-                status: 'available'
-            }
-        };
-        await postgres_database_1.postgresDatabase.createRental(newRental);
+            deposit,
+            allowedKilometers,
+            extraKilometerRate,
+            returnConditions,
+            fuelLevel,
+            odometer,
+            returnFuelLevel,
+            returnOdometer,
+            actualKilometers,
+            fuelRefillCost,
+            handoverProtocolId,
+            returnProtocolId
+        });
         res.status(201).json({
             success: true,
             message: 'Prenájom úspešne vytvorený',
-            data: newRental
+            data: createdRental
         });
     }
     catch (error) {
         console.error('Create rental error:', error);
+        console.error('Request body:', JSON.stringify(req.body, null, 2));
         res.status(500).json({
             success: false,
             error: `Chyba pri vytváraní prenájmu: ${error instanceof Error ? error.message : 'Neznáma chyba'}`

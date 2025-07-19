@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
-const uuid_1 = require("uuid");
 const router = (0, express_1.Router)();
 // GET /api/insurances - Získanie všetkých poistiek
 router.get('/', auth_1.authenticateToken, async (req, res) => {
@@ -25,27 +24,26 @@ router.get('/', auth_1.authenticateToken, async (req, res) => {
 // POST /api/insurances - Vytvorenie novej poistky
 router.post('/', auth_1.authenticateToken, async (req, res) => {
     try {
-        const { vehicleId, type, validFrom, validTo, price, company } = req.body;
-        if (!vehicleId || !type || !validFrom || !validTo || !price || !company) {
+        const { vehicleId, type, policyNumber, validFrom, validTo, price, company } = req.body;
+        if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
             return res.status(400).json({
                 success: false,
                 error: 'Všetky povinné polia musia byť vyplnené'
             });
         }
-        const newInsurance = {
-            id: (0, uuid_1.v4)(),
+        const createdInsurance = await postgres_database_1.postgresDatabase.createInsurance({
             vehicleId,
             type,
+            policyNumber,
             validFrom: new Date(validFrom),
             validTo: new Date(validTo),
             price,
             company
-        };
-        await postgres_database_1.postgresDatabase.createInsurance(newInsurance);
+        });
         res.status(201).json({
             success: true,
             message: 'Poistka úspešne vytvorená',
-            data: newInsurance
+            data: createdInsurance
         });
     }
     catch (error) {

@@ -491,6 +491,160 @@ router.post('/emergency-fix', async (req, res) => {
         });
     }
 });
+router.post('/restore-basic-data', async (req, res) => {
+    try {
+        console.log('🔄 Restoring basic data that was lost during emergency fix...');
+        const client = await postgres_database_1.postgresDatabase.pool.connect();
+        try {
+            const results = {
+                actions: []
+            };
+            // Restore basic vehicles from the backup data I saw
+            console.log('📋 Restoring vehicles...');
+            const vehicles = [
+                {
+                    make: 'BMW',
+                    model: 'X5',
+                    year: 2020,
+                    license_plate: 'BA-123-AB',
+                    company: 'Default Company'
+                },
+                {
+                    make: 'Audi',
+                    model: 'A4',
+                    year: 2019,
+                    license_plate: 'KE-456-CD',
+                    company: 'Default Company'
+                }
+            ];
+            for (const vehicle of vehicles) {
+                try {
+                    await client.query(`
+            INSERT INTO vehicles (make, model, year, license_plate, company, pricing, commission, status, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+            ON CONFLICT (license_plate) DO UPDATE SET
+              make = $1,
+              model = $2,
+              year = $3,
+              company = $5,
+              updated_at = CURRENT_TIMESTAMP
+          `, [
+                        vehicle.make,
+                        vehicle.model,
+                        vehicle.year,
+                        vehicle.license_plate,
+                        vehicle.company,
+                        JSON.stringify([]),
+                        JSON.stringify({ "type": "percentage", "value": 15 }),
+                        'available'
+                    ]);
+                    console.log(`✅ Restored vehicle: ${vehicle.make} ${vehicle.model}`);
+                    results.actions.push(`Restored vehicle: ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`);
+                }
+                catch (err) {
+                    console.log(`⚠️ Error restoring vehicle:`, err.message);
+                    results.actions.push(`Error restoring vehicle: ${err.message}`);
+                }
+            }
+            // Restore basic companies
+            console.log('📋 Restoring companies...');
+            const companies = [
+                'Default Company',
+                'BMW Slovakia',
+                'Audi Centrum',
+                'Toyota Slovakia'
+            ];
+            for (const companyName of companies) {
+                try {
+                    await client.query(`
+            INSERT INTO companies (name, created_at)
+            VALUES ($1, CURRENT_TIMESTAMP)
+            ON CONFLICT (name) DO UPDATE SET
+              updated_at = CURRENT_TIMESTAMP
+          `, [companyName]);
+                    console.log(`✅ Restored company: ${companyName}`);
+                    results.actions.push(`Restored company: ${companyName}`);
+                }
+                catch (err) {
+                    console.log(`⚠️ Error restoring company:`, err.message);
+                }
+            }
+            // Restore basic insurers
+            console.log('📋 Restoring insurers...');
+            const insurers = [
+                'Allianz',
+                'Generali',
+                'Kooperativa',
+                'UNIQA'
+            ];
+            for (const insurerName of insurers) {
+                try {
+                    await client.query(`
+            INSERT INTO insurers (name, created_at)
+            VALUES ($1, CURRENT_TIMESTAMP)  
+            ON CONFLICT (name) DO UPDATE SET
+              updated_at = CURRENT_TIMESTAMP
+          `, [insurerName]);
+                    console.log(`✅ Restored insurer: ${insurerName}`);
+                    results.actions.push(`Restored insurer: ${insurerName}`);
+                }
+                catch (err) {
+                    console.log(`⚠️ Error restoring insurer:`, err.message);
+                }
+            }
+            // Create sample customer
+            console.log('📋 Creating sample customer...');
+            try {
+                await client.query(`
+          INSERT INTO customers (name, email, phone, created_at)
+          VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+          ON CONFLICT (email) DO UPDATE SET
+            name = $1,
+            phone = $3,
+            updated_at = CURRENT_TIMESTAMP
+        `, [
+                    'Vzorový Zákazník',
+                    'zakaznik@example.com',
+                    '+421900000000'
+                ]);
+                results.actions.push('Created sample customer');
+            }
+            catch (err) {
+                results.actions.push(`Error creating sample customer: ${err.message}`);
+            }
+            console.log('🎉 Basic data restoration completed!');
+            // Final summary
+            const summary = await client.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM vehicles) as vehicles_count,
+          (SELECT COUNT(*) FROM customers) as customers_count,
+          (SELECT COUNT(*) FROM companies) as companies_count,
+          (SELECT COUNT(*) FROM insurers) as insurers_count,
+          (SELECT COUNT(*) FROM expenses) as expenses_count,
+          (SELECT COUNT(*) FROM rentals) as rentals_count
+      `);
+            results.actions.push(`Final counts: ${JSON.stringify(summary.rows[0])}`);
+            res.json({
+                success: true,
+                message: 'Basic data restoration completed',
+                data: {
+                    actions: results.actions,
+                    summary: summary.rows[0]
+                }
+            });
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (error) {
+        console.error('❌ Basic data restoration failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Basic data restoration failed: ' + error.message
+        });
+    }
+});
 router.get('/debug-admin', async (req, res) => {
     try {
         console.log('🔍 DEBUG: Checking admin user in database...');
@@ -556,6 +710,222 @@ router.get('/debug-admin', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Debug failed: ' + error.message
+        });
+    }
+});
+router.post('/test-uuid-rental', async (req, res) => {
+    try {
+        console.log('🎯 Testing UUID rental creation without auth...');
+        const client = await postgres_database_1.postgresDatabase.pool.connect();
+        try {
+            // Simple insert test with UUID
+            const testRental = {
+                customer_name: 'UUID Test Bez Auth',
+                start_date: '2025-07-19T20:00:00Z',
+                end_date: '2025-07-20T08:00:00Z',
+                total_price: 888,
+                commission: 88,
+                payment_method: 'cash'
+            };
+            const result = await client.query(`
+        INSERT INTO rentals (customer_name, start_date, end_date, total_price, commission, payment_method, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+        RETURNING id, customer_name, total_price, created_at
+      `, [
+                testRental.customer_name,
+                testRental.start_date,
+                testRental.end_date,
+                testRental.total_price,
+                testRental.commission,
+                testRental.payment_method
+            ]);
+            const createdRental = result.rows[0];
+            console.log('✅ UUID rental created successfully:', createdRental);
+            res.json({
+                success: true,
+                message: 'UUID rental test successful',
+                data: {
+                    rental: {
+                        id: createdRental.id,
+                        customerName: createdRental.customer_name,
+                        totalPrice: createdRental.total_price,
+                        createdAt: createdRental.created_at
+                    },
+                    uuidTest: {
+                        idType: typeof createdRental.id,
+                        idLength: createdRental.id ? createdRental.id.toString().length : 0,
+                        isValidUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(createdRental.id)
+                    }
+                }
+            });
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (error) {
+        console.error('❌ UUID rental test failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'UUID rental test failed: ' + error.message
+        });
+    }
+});
+// POST /api/fix-database/add-rental-columns - Pridanie chýbajúcich stĺpcov do rentals tabuľky
+router.post('/add-rental-columns', async (req, res) => {
+    try {
+        const client = await postgres_database_1.postgresDatabase.pool.connect();
+        try {
+            console.log('🔧 Starting rental table columns migration...');
+            // Get current columns
+            const columnsResult = await client.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'rentals' AND table_schema = 'public'
+        ORDER BY ordinal_position
+      `);
+            const existingColumns = columnsResult.rows.map((row) => row.column_name);
+            console.log('📋 Existing columns:', existingColumns);
+            // Define required columns
+            const requiredColumns = [
+                { name: 'deposit', type: 'DECIMAL(10,2)', defaultValue: '0' },
+                { name: 'allowed_kilometers', type: 'INTEGER', defaultValue: '0' },
+                { name: 'extra_kilometer_rate', type: 'DECIMAL(10,2)', defaultValue: '0' },
+                { name: 'return_conditions', type: 'TEXT', defaultValue: null },
+                { name: 'fuel_level', type: 'INTEGER', defaultValue: '0' },
+                { name: 'odometer', type: 'INTEGER', defaultValue: '0' },
+                { name: 'return_fuel_level', type: 'INTEGER', defaultValue: null },
+                { name: 'return_odometer', type: 'INTEGER', defaultValue: null },
+                { name: 'actual_kilometers', type: 'INTEGER', defaultValue: null },
+                { name: 'fuel_refill_cost', type: 'DECIMAL(10,2)', defaultValue: null },
+                { name: 'handover_protocol_id', type: 'UUID', defaultValue: null },
+                { name: 'return_protocol_id', type: 'UUID', defaultValue: null }
+            ];
+            const addedColumns = [];
+            // Add missing columns
+            for (const column of requiredColumns) {
+                if (!existingColumns.includes(column.name)) {
+                    console.log(`➕ Adding column: ${column.name} (${column.type})`);
+                    let alterQuery = `ALTER TABLE rentals ADD COLUMN ${column.name} ${column.type}`;
+                    if (column.defaultValue !== null) {
+                        alterQuery += ` DEFAULT ${column.defaultValue}`;
+                    }
+                    await client.query(alterQuery);
+                    addedColumns.push(column.name);
+                }
+            }
+            // Get final columns
+            const finalColumnsResult = await client.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'rentals' AND table_schema = 'public'
+        ORDER BY ordinal_position
+      `);
+            const finalColumns = finalColumnsResult.rows.map((row) => `${row.column_name} (${row.data_type})`);
+            console.log('✅ Rental table migration completed');
+            console.log('📊 Added columns:', addedColumns);
+            console.log('📊 Total columns:', finalColumns.length);
+            res.json({
+                success: true,
+                message: 'Rental table columns migration completed',
+                data: {
+                    addedColumns,
+                    totalColumns: finalColumns.length,
+                    finalColumns
+                }
+            });
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (error) {
+        console.error('❌ Rental table migration error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+    }
+});
+// POST /api/fix-database/create-settlements-table
+router.post('/create-settlements-table', async (req, res) => {
+    try {
+        const client = await postgres_database_1.postgresDatabase.pool.connect();
+        try {
+            console.log('🔧 Creating settlements table...');
+            // Check if table exists
+            const tableExists = await client.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'settlements'
+        );
+      `);
+            if (tableExists.rows[0].exists) {
+                console.log('📋 Settlements table already exists');
+                const columnsResult = await client.query(`
+          SELECT column_name, data_type 
+          FROM information_schema.columns 
+          WHERE table_name = 'settlements' AND table_schema = 'public'
+          ORDER BY ordinal_position
+        `);
+                const columns = columnsResult.rows.map((row) => `${row.column_name} (${row.data_type})`);
+                return res.json({
+                    success: true,
+                    message: 'Settlements table already exists',
+                    data: {
+                        tableExists: true,
+                        columns
+                    }
+                });
+            }
+            // Create settlements table
+            await client.query(`
+        CREATE TABLE settlements (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company VARCHAR(100),
+          period_from TIMESTAMP NOT NULL,
+          period_to TIMESTAMP NOT NULL,
+          total_income DECIMAL(10,2) DEFAULT 0,
+          total_expenses DECIMAL(10,2) DEFAULT 0,
+          total_commission DECIMAL(10,2) DEFAULT 0,
+          profit DECIMAL(10,2) DEFAULT 0,
+          rentals_data JSONB,
+          expenses_data JSONB,
+          summary TEXT,
+          vehicle_id VARCHAR(50),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+            console.log('✅ Settlements table created successfully');
+            // Get table structure
+            const columnsResult = await client.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'settlements' AND table_schema = 'public'
+        ORDER BY ordinal_position
+      `);
+            const columns = columnsResult.rows.map((row) => `${row.column_name} (${row.data_type})`);
+            res.json({
+                success: true,
+                message: 'Settlements table created successfully',
+                data: {
+                    tableCreated: true,
+                    totalColumns: columns.length,
+                    columns
+                }
+            });
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (error) {
+        console.error('❌ Settlements table creation error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Table creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         });
     }
 });
