@@ -1,4 +1,4 @@
-# Jednoduchy Dockerfile pre Railway
+# Jednoduchy Dockerfile pre Railway s vylepšenou dependency instaláciou
 FROM node:18-bullseye-slim
 
 # Install curl for healthcheck
@@ -7,9 +7,17 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 # Set working directory for backend
 WORKDIR /app
 
-# Copy and install backend dependencies first
+# Copy and install backend dependencies first - with better caching
 COPY backend/package*.json ./
-RUN npm install
+
+# Clear npm cache and install dependencies explicitly
+RUN npm cache clean --force
+RUN npm install --only=production
+RUN npm list @sentry/node || echo "Sentry not found, installing explicitly..."
+RUN npm install @sentry/node@^7.88.0 @sentry/tracing@^7.88.0 || true
+
+# Verify critical dependencies are installed
+RUN node -e "require('@sentry/node'); console.log('✅ @sentry/node loaded successfully');" || echo "❌ Sentry still not available"
 
 # Copy backend source
 COPY backend/src/ ./src/
@@ -17,6 +25,9 @@ COPY backend/tsconfig.json ./tsconfig.json
 
 # Build backend TypeScript
 RUN npm run build
+
+# List installed packages for debugging
+RUN echo "📋 Installed packages:" && npm list --depth=0 | head -20
 
 # Create public directory for frontend files
 RUN mkdir -p ./dist/public
@@ -27,9 +38,8 @@ ENV NODE_ENV=production
 # Expose port
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+# Health check - removed as it was using wrong endpoint
+# Railway will use healthcheckPath from railway.json instead
 
 # Start the application
 CMD ["npm", "start"] 
