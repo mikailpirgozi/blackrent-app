@@ -389,6 +389,8 @@ class ApiService {
       createdBy: protocolData.createdBy || '',
       status: 'completed',
       completedAt: new Date(),
+      pdfUrl: protocolData.pdfUrl, // ✅ Pridané: PDF URL z R2
+      emailSent: protocolData.emailSent || false, // ✅ Pridané: email status
     };
     
     console.log('🔄 API createHandoverProtocol - complete data:', JSON.stringify(completeProtocolData, null, 2));
@@ -400,9 +402,20 @@ class ApiService {
   }
 
   async createReturnProtocol(protocolData: any): Promise<any> {
+    console.log('🔄 API createReturnProtocol - input:', JSON.stringify(protocolData, null, 2));
+    
+    // Ensure all required fields are present
+    const completeProtocolData = {
+      ...protocolData,
+      pdfUrl: protocolData.pdfUrl, // ✅ Pridané: PDF URL z R2
+      emailSent: protocolData.emailSent || false, // ✅ Pridané: email status
+    };
+    
+    console.log('🔄 API createReturnProtocol - complete data:', JSON.stringify(completeProtocolData, null, 2));
+    
     return this.request<any>('/protocols/return', {
       method: 'POST',
-      body: JSON.stringify(protocolData),
+      body: JSON.stringify(completeProtocolData),
     });
   }
 }
