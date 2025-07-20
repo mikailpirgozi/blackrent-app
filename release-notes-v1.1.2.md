@@ -1,6 +1,6 @@
 ## 🎉 BlackRent v1.1.2 - Ukladanie protokolov hotovo
 
-### 📅 Release Date: $(date '+%Y-%m-%d %H:%M:%S')
+### 📅 Release Date: 2025-01-15 16:42:00
 
 ### ✅ Nové funkcie v tejto verzii:
 
