@@ -60,8 +60,6 @@ import SignaturePad from '../common/SignaturePad';
 import R2FileUpload from '../common/R2FileUpload';
 import MobileFileUpload from '../common/MobileFileUpload';
 import PDFGenerator from '../../utils/pdfGenerator';
-import ImageProcessor from '../../utils/imageProcessor';
-import EnhancedPDFGenerator from '../../utils/enhancedPdfGenerator';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -261,31 +259,27 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       });
       
       // 🚀 KROK 2: Generovanie PDF s existujúcimi obrázkami
-      const enhancedPdfGenerator = new EnhancedPDFGenerator();
-      const pdfBlob = await enhancedPdfGenerator.generateCustomerProtocol({
+      const pdfGenerator = new PDFGenerator();
+      const pdfBlob = await pdfGenerator.generateProtocolPDF({
         id: protocol.id || protocolId,
         type: 'handover',
         rental: protocol.rental || rental,
         location: protocol.location || '',
         vehicleCondition: protocol.vehicleCondition || {},
-        vehicleImages: vehicleImages.map(img => ({
-          original: img.url,
-          thumbnail: img.url, // Použi rovnaký URL pre teraz
-          filename: (img as any).filename || 'image.jpg',
-          size: (img as any).size || 0
-        })),
-        documentImages: documentImages.map(img => ({
-          original: img.url,
-          thumbnail: img.url, // Použi rovnaký URL pre teraz
-          filename: (img as any).filename || 'document.jpg',
-          size: (img as any).size || 0
-        })),
-        damageImages: [],
+        vehicleImages: protocol.vehicleImages || [], // ✅ Priamo z protokolu
+        documentImages: protocol.documentImages || [], // ✅ Priamo z protokolu
+        damageImages: protocol.damageImages || [],
         damages: protocol.damages || [],
         signatures: protocol.signatures || [],
         notes: protocol.notes || '',
         createdAt: protocol.createdAt || new Date(),
         completedAt: protocol.completedAt || new Date(),
+      }, {
+        includeImages: true, // ✅ Explicitne povolené
+        includeSignatures: true,
+        imageQuality: 0.8,
+        maxImageWidth: 80,
+        maxImageHeight: 60
       });
       
       console.log('✅ PDF vygenerované s existujúcimi obrázkami');

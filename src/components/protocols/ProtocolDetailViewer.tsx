@@ -19,7 +19,7 @@ import {
   Image as ImageIcon,
   Description as DescriptionIcon
 } from '@mui/icons-material';
-import { ProcessedImage } from '../../utils/imageProcessor';
+import { ProtocolImage } from '../../types';
 
 interface ProtocolDetailViewerProps {
   protocolId: string;
@@ -32,9 +32,9 @@ interface ProtocolData {
   rental: any;
   location: string;
   vehicleCondition: any;
-  vehicleImages: ProcessedImage[];
-  documentImages: ProcessedImage[];
-  damageImages: ProcessedImage[];
+  vehicleImages: ProtocolImage[];
+  documentImages: ProtocolImage[];
+  damageImages: ProtocolImage[];
   damages: any[];
   signatures: any[];
   notes: string;
@@ -47,7 +47,7 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
   const [protocol, setProtocol] = useState<ProtocolData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<ProcessedImage | null>(null);
+  const [selectedImage, setSelectedImage] = useState<ProtocolImage | null>(null);
 
   useEffect(() => {
     loadProtocol();
@@ -106,8 +106,8 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
     }
   };
 
-  const handleViewOriginalImage = (image: ProcessedImage) => {
-    window.open(image.original, '_blank');
+  const handleViewOriginalImage = (image: ProtocolImage) => {
+    window.open(image.url, '_blank');
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -248,17 +248,17 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
                   <CardMedia
                     component="img"
                     height="200"
-                    image={image.thumbnail}
+                    image={image.url}
                     alt={`Fotka vozidla ${index + 1}`}
                     sx={{ cursor: 'pointer' }}
                     onClick={() => handleViewOriginalImage(image)}
                   />
                   <CardContent sx={{ py: 1 }}>
                     <Typography variant="caption" color="text.secondary">
-                      {image.filename}
+                      {image.type} - {new Date(image.timestamp).toLocaleString('sk-SK')}
                     </Typography>
                     <Typography variant="caption" display="block" color="text.secondary">
-                      {formatFileSize(image.size)}
+                      {image.originalSize ? formatFileSize(image.originalSize) : 'N/A'}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -281,17 +281,17 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
                   <CardMedia
                     component="img"
                     height="150"
-                    image={image.thumbnail}
+                    image={image.url}
                     alt={`Dokument ${index + 1}`}
                     sx={{ cursor: 'pointer' }}
                     onClick={() => handleViewOriginalImage(image)}
                   />
                   <CardContent sx={{ py: 1 }}>
                     <Typography variant="caption" color="text.secondary">
-                      {image.filename}
+                      {image.type} - {new Date(image.timestamp).toLocaleString('sk-SK')}
                     </Typography>
                     <Typography variant="caption" display="block" color="text.secondary">
-                      {formatFileSize(image.size)}
+                      {image.originalSize ? formatFileSize(image.originalSize) : 'N/A'}
                     </Typography>
                   </CardContent>
                 </Card>
