@@ -78,6 +78,8 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
   const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
   const [generatedPDF, setGeneratedPDF] = useState<Blob | null>(null); // ✅ Uložené PDF
   const [pdfGenerated, setPdfGenerated] = useState(false); // ✅ Stav generovania
+  const [pdfProgress, setPdfProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
   
   // Generuj UUID len raz pri vytvorení komponentu
   const [protocolId] = useState(() => uuidv4());
@@ -270,6 +272,8 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
   const handleSave = async () => {
     try {
       setLoading(true);
+      setPdfProgress(0);
+      setProgressMessage('Kontrolujem PDF...');
       
       console.log('🚀 Začínam ukladanie protokolu...');
       
@@ -280,10 +284,12 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         return;
       }
       
+      setPdfProgress(10);
+      setProgressMessage('Uploadujem PDF do R2...');
       console.log('✅ Používam uložené PDF z generovania');
       
-      // 🚀 KROK 2: Upload uloženého PDF do R2
-      const pdfFile = new File([generatedPDF], `protokol_prevzatie_${protocol.id || protocolId}_${new Date().toISOString().split('T')[0]}.pdf`, { 
+      //  KROK 2: Upload uloženého PDF do R2
+      const pdfFile = new File([generatedPDF], generateSmartFilename(protocol, 'pdf'), { 
         type: 'application/pdf' 
       });
       
@@ -305,66 +311,85 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       const pdfResult = await pdfResponse.json();
       console.log('✅ PDF uploadované do R2:', pdfResult.url);
       
-      // 🚀 KROK 3: Upload obrázkov do R2 (ak nie sú už tam)
-      const uploadImagesToR2 = async (images: ProtocolImage[], type: string) => {
+      setPdfProgress(30);
+      setProgressMessage('Spracovávam obrázky...');
+      
+      // 🚀 KROK 3: Batch upload obrázkov do R2
+      const uploadImagesToR2Batch = async (images: ProtocolImage[], type: string) => {
         const uploadedImages: ProtocolImage[] = [];
+        const imagesToUpload = images.filter(img => 
+          img.url.startsWith('data:image/') && 
+          !(img.url.startsWith('https://') && (img.url.includes('r2.dev') || img.url.includes('cloudflare.com')))
+        );
         
-        for (const image of images) {
-          // Ak už má R2 URL, použij ho
-          if (image.url.startsWith('https://') && (image.url.includes('r2.dev') || image.url.includes('cloudflare.com'))) {
-            uploadedImages.push(image);
-            continue;
-          }
-          
-          // Ak je base64, upload do R2
-          if (image.url.startsWith('data:image/')) {
-            try {
-              const response = await fetch(image.url);
-              const blob = await response.blob();
-              const file = new File([blob], `image_${Date.now()}.jpg`, { type: 'image/jpeg' });
-              
-              const imageFormData = new FormData();
-              imageFormData.append('file', file);
-              imageFormData.append('type', 'protocol');
-              imageFormData.append('entityId', protocol.id || protocolId);
-              
-              const uploadResponse = await fetch(`${apiBaseUrl}/files/upload`, {
-                method: 'POST',
-                body: imageFormData,
-              });
-              
-              if (uploadResponse.ok) {
-                const uploadResult = await uploadResponse.json();
-                uploadedImages.push({
-                  ...image,
-                  url: uploadResult.url
-                });
-                console.log(`✅ ${type} image uploaded to R2:`, uploadResult.url);
-              } else {
-                console.warn(`⚠️ Failed to upload ${type} image, keeping base64`);
-                uploadedImages.push(image);
-              }
-            } catch (error) {
-              console.warn(`⚠️ Error uploading ${type} image, keeping base64:`, error);
-              uploadedImages.push(image);
-            }
-          } else {
-            uploadedImages.push(image);
-          }
+        if (imagesToUpload.length === 0) {
+          return images; // Všetky už sú v R2
         }
         
-        return uploadedImages;
+        setProgressMessage(`Uploadujem ${imagesToUpload.length} ${type} obrázkov...`);
+        
+        // Batch upload - všetky naraz
+        const uploadPromises = imagesToUpload.map(async (image, index) => {
+          try {
+            const response = await fetch(image.url);
+            const blob = await response.blob();
+            const file = new File([blob], generateSmartFilename(protocol, 'image'), { type: 'image/jpeg' });
+            
+            const imageFormData = new FormData();
+            imageFormData.append('file', file);
+            imageFormData.append('type', 'protocol');
+            imageFormData.append('entityId', protocol.id || protocolId);
+            
+            const uploadResponse = await fetch(`${apiBaseUrl}/files/upload`, {
+              method: 'POST',
+              body: imageFormData,
+            });
+            
+            if (uploadResponse.ok) {
+              const uploadResult = await uploadResponse.json();
+              console.log(`✅ ${type} image uploaded to R2:`, uploadResult.url);
+              return {
+                ...image,
+                url: uploadResult.url
+              };
+            } else {
+              console.warn(`⚠️ Failed to upload ${type} image, keeping base64`);
+              return image;
+            }
+          } catch (error) {
+            console.warn(`⚠️ Error uploading ${type} image, keeping base64:`, error);
+            return image;
+          }
+        });
+        
+        const results = await Promise.all(uploadPromises);
+        
+        // Mapuj pôvodné obrázky s novými URL
+        return images.map(img => {
+          if (img.url.startsWith('https://') && (img.url.includes('r2.dev') || img.url.includes('cloudflare.com'))) {
+            return img; // Už je v R2
+          }
+          const uploaded = results.find(result => result.id === img.id);
+          return uploaded || img;
+        });
       };
       
-      const vehicleImages = await uploadImagesToR2(protocol.vehicleImages || [], 'vehicle');
-      const documentImages = await uploadImagesToR2(protocol.documentImages || [], 'document');
-      const damageImages = await uploadImagesToR2(protocol.damageImages || [], 'damage');
+      const vehicleImages = await uploadImagesToR2Batch(protocol.vehicleImages || [], 'vehicle');
+      setPdfProgress(50);
+      
+      const documentImages = await uploadImagesToR2Batch(protocol.documentImages || [], 'document');
+      setPdfProgress(70);
+      
+      const damageImages = await uploadImagesToR2Batch(protocol.damageImages || [], 'damage');
+      setPdfProgress(85);
       
       console.log('✅ Obrázky spracované:', {
         vehicle: vehicleImages.length,
         document: documentImages.length,
         damage: damageImages.length
       });
+      
+      setProgressMessage('Ukladám protokol do databázy...');
       
       // 🚀 KROK 4: Mapovanie na backend format s R2 URL
       const protocolData = {
@@ -395,9 +420,18 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       
       console.log('✅ Protokol pripravený na uloženie s R2 URL:', protocolData);
       
+      setPdfProgress(95);
+      setProgressMessage('Finalizujem...');
+      
       await onSave(protocolData);
       clearDraft(); // Vymaž koncept po úspešnom uložení
-      onClose();
+      
+      setPdfProgress(100);
+      setProgressMessage('Protokol úspešne uložený!');
+      
+      setTimeout(() => {
+        onClose();
+      }, 1000);
       
       console.log('🎉 Protokol úspešne uložený s R2 URL!');
     } catch (error) {
@@ -405,6 +439,8 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       alert('Nepodarilo sa uložiť protokol: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
     } finally {
       setLoading(false);
+      setPdfProgress(0);
+      setProgressMessage('');
     }
   };
 
@@ -550,769 +586,58 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     console.log('🗑️ Koncept protokolu vymazaný');
   };
 
-
-
-  const renderStepContent = (step: number) => {
-    switch (step) {
-      case 0:
-        return (
-          <Box display="flex" gap={3} flexWrap="wrap">
-            <Box flex="1" minWidth="300px">
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Informácie o prenájme
-                  </Typography>
-                  <Stack spacing={2}>
-                    <TextField
-                      label="Číslo objednávky"
-                      value={protocol.rentalData?.orderNumber || `RENT-${rental.id.slice(-8).toUpperCase()}`}
-                      InputProps={{ readOnly: true }}
-                      variant="outlined"
-                      fullWidth
-                      helperText="Automaticky generované z prenájmu"
-                    />
-                    <TextField
-                      label="Miesto prevzatia"
-                      value={protocol.location || ''}
-                      InputProps={{ readOnly: true }}
-                      variant="outlined"
-                      fullWidth
-                      helperText="Automaticky načítané z prenájmu"
-                    />
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Box>
-            <Box flex="1" minWidth="300px">
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    <CarRental sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Informácie o vozidle
-                  </Typography>
-                  <Stack spacing={2}>
-                    <TextField
-                      label="Značka a model"
-                      value={`${protocol.rentalData?.vehicle?.brand || ''} ${protocol.rentalData?.vehicle?.model || ''}`}
-                      InputProps={{ readOnly: true }}
-                      variant="outlined"
-                      fullWidth
-                    />
-                    <TextField
-                      label="ŠPZ"
-                      value={protocol.rentalData?.vehicle?.licensePlate || ''}
-                      InputProps={{ readOnly: true }}
-                      variant="outlined"
-                      fullWidth
-                    />
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Box>
-          </Box>
-        );
-
-      case 1:
-        return (
-          <Box display="flex" gap={3} flexWrap="wrap">
-            <Box flex="1" minWidth="300px">
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Stav vozidla
-                  </Typography>
-                  <Stack spacing={2}>
-                    <TextField
-                      label="Kilometre"
-                      type="number"
-                      value={protocol.vehicleCondition?.odometer || 0}
-                      onChange={(e) => handleVehicleConditionChange('odometer', parseInt(e.target.value) || 0)}
-                      variant="outlined"
-                      fullWidth
-                    />
-                    <TextField
-                      label="Stav paliva (%)"
-                      type="number"
-                      value={protocol.vehicleCondition?.fuelLevel || 100}
-                      onChange={(e) => handleVehicleConditionChange('fuelLevel', parseInt(e.target.value) || 0)}
-                      variant="outlined"
-                      fullWidth
-                      inputProps={{ min: 0, max: 100 }}
-                    />
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Box>
-            
-            <Box flex="1" minWidth="300px">
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    <PhotoCamera sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Fotodokumentácia stavu
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<PhotoCamera />}
-                      onClick={() => setActivePhotoCapture('odometer')}
-                    >
-                      Foto tachometra ({protocol.vehicleImages?.filter(img => img.type === 'odometer').length || 0})
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      startIcon={<PhotoCamera />}
-                      onClick={() => setActivePhotoCapture('fuel')}
-                    >
-                      Foto paliva ({protocol.vehicleImages?.filter(img => img.type === 'fuel').length || 0})
-                    </Button>
-                  </Box>
-                  
-                  {/* Zobrazenie fotiek */}
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Nahrané fotky:
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                          {protocol.vehicleImages?.filter(img => img.type === 'odometer').map((img, index) => (
-                      <Box key={img.id} sx={{ position: 'relative' }}>
-                        <img 
-                          src={img.url} 
-                          alt={`Tachometer ${index + 1}`}
-                          style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
-                          onError={(e) => {
-                            console.error('Chyba načítania obrázka:', img.url);
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                        <Chip 
-                          label="Tachometer" 
-                          size="small" 
-                          sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
-                        />
-                      </Box>
-                    ))}
-                    {protocol.vehicleImages?.filter(img => img.type === 'fuel').map((img, index) => (
-                      <Box key={img.id} sx={{ position: 'relative' }}>
-                        <img 
-                          src={img.url} 
-                          alt={`Palivo ${index + 1}`}
-                          style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
-                          onError={(e) => {
-                            console.error('Chyba načítania obrázka:', img.url);
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                        <Chip 
-                          label="Palivo" 
-                          size="small" 
-                          sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
-                        />
-                      </Box>
-                    ))}
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-          </Box>
-        );
-
-      case 2:
-        return (
-          <Box>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  <PhotoCamera sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Fotodokumentácia
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-                  <Button
-                    variant="outlined"
-                    startIcon={<PhotoCamera />}
-                    onClick={() => setActivePhotoCapture('vehicle')}
-                  >
-                    Fotky vozidla ({protocol.vehicleImages?.length || 0})
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<PhotoCamera />}
-                    onClick={() => setActivePhotoCapture('document')}
-                  >
-                    Fotky dokladov ({protocol.documentImages?.length || 0})
-                  </Button>
-                </Box>
-
-                                {/* R2 Upload sekcia */}
-                <Box sx={{ mt: 2, p: 2, border: '1px dashed rgba(255, 255, 255, 0.3)', borderRadius: 1 }}>
-                  <Typography variant="subtitle1" sx={{ mb: 2, color: 'white' }}>
-                    ☁️ Cloud Upload (R2 Storage)
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255, 255, 255, 0.7)' }}>
-                    Súbory sa nahrávajú do Cloudflare R2 cloud storage. Dostupné online, zálohované, lacné.
-                  </Typography>
-                  
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <R2FileUpload
-                        type="protocol"
-                        entityId={rental.id}
-                        onUploadSuccess={(fileData) => {
-                          console.log('📁 Vehicle image uploaded:', fileData);
-                          setProtocol(prev => ({
-                            ...prev,
-                            vehicleImages: [...(prev.vehicleImages || []), {
-                              id: uuidv4(),
-                              url: fileData.url,
-                              type: 'vehicle',
-                              filename: fileData.filename,
-                              timestamp: new Date(),
-                              uploadedAt: new Date()
-                            }]
-                          }));
-                        }}
-                        acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
-                        maxSize={10}
-                        multiple={true}
-                        label="☁️ Nahrať fotky vozidla do R2"
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <R2FileUpload
-                        type="document"
-                        entityId={rental.id}
-                        onUploadSuccess={(fileData) => {
-                          console.log('📁 Document uploaded:', fileData);
-                          setProtocol(prev => ({
-                            ...prev,
-                            documentImages: [...(prev.documentImages || []), {
-                              id: uuidv4(),
-                              url: fileData.url,
-                              type: 'document',
-                              filename: fileData.filename,
-                              timestamp: new Date(),
-                              uploadedAt: new Date()
-                            }]
-                          }));
-                        }}
-                        acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
-                        maxSize={50}
-                        multiple={true}
-                        label="☁️ Nahrať dokumenty do R2"
-                      />
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                {/* Mobilný Upload sekcia */}
-                <Box sx={{ mt: 2, p: 2, border: '1px dashed rgba(255, 255, 255, 0.3)', borderRadius: 1, backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
-                  <Typography variant="subtitle1" sx={{ mb: 2, color: 'white' }}>
-                    📱 Mobilný Upload (Kamera + Galéria)
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255, 255, 255, 0.7)' }}>
-                    Fotografovanie priamo v aplikácii alebo výber z galérie. Súbory sa nahrávajú do R2.
-                  </Typography>
-                  
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <MobileFileUpload
-                        type="protocol"
-                        entityId={rental.id}
-                        onUploadSuccess={(fileData) => {
-                          console.log('📱 Mobile vehicle image uploaded:', fileData);
-                          setProtocol(prev => ({
-                            ...prev,
-                            vehicleImages: [...(prev.vehicleImages || []), {
-                              id: uuidv4(),
-                              url: fileData.url,
-                              type: 'vehicle',
-                              filename: fileData.filename,
-                              timestamp: new Date(),
-                              uploadedAt: new Date()
-                            }]
-                          }));
-                        }}
-                        acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
-                        maxSize={10}
-                        multiple={true}
-                        label="📱 Mobilné fotky vozidla"
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <MobileFileUpload
-                        type="document"
-                        entityId={rental.id}
-                        onUploadSuccess={(fileData) => {
-                          console.log('📱 Mobile document uploaded:', fileData);
-                          setProtocol(prev => ({
-                            ...prev,
-                            documentImages: [...(prev.documentImages || []), {
-                              id: uuidv4(),
-                              url: fileData.url,
-                              type: 'document',
-                              filename: fileData.filename,
-                              timestamp: new Date(),
-                              uploadedAt: new Date()
-                            }]
-                          }));
-                        }}
-                        acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
-                        maxSize={50}
-                        multiple={true}
-                        label="📱 Mobilné dokumenty"
-                      />
-                    </Grid>
-                  </Grid>
-                </Box>
-                
-                {/* Media summary */}
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                  <Chip 
-                    label={`${(protocol.vehicleImages?.length || 0) + (protocol.documentImages?.length || 0)} fotiek`}
-                    color="primary"
-                    size="small"
-                  />
-                  <Chip 
-                    label={`${(protocol.vehicleVideos?.length || 0)} videí`}
-                    color="secondary"
-                    size="small"
-                  />
-                </Box>
-
-                {/* Zobrazenie fotiek */}
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom sx={{ color: 'white' }}>
-                    Nahrané fotky ({((protocol.vehicleImages?.length || 0) + (protocol.documentImages?.length || 0))}):
-                  </Typography>
-                  <Grid container spacing={1}>
-                    {protocol.vehicleImages?.map((img, index) => (
-                      <Grid item xs={6} sm={4} md={3} key={img.id}>
-                        <Card sx={{ 
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.2)',
-                          cursor: 'pointer',
-                          '&:hover': {
-                            borderColor: 'rgba(255, 255, 255, 0.5)',
-                            transform: 'scale(1.02)',
-                            transition: 'all 0.2s'
-                          }
-                        }}
-                        onClick={() => window.open(img.url, '_blank')}
-                      >
-                        <CardContent sx={{ p: 1 }}>
-                          <img 
-                            src={img.url} 
-                            alt={`Vozidlo ${index + 1}`}
-                            style={{ 
-                              width: '100%', 
-                              height: 120, 
-                              objectFit: 'cover', 
-                              borderRadius: 4,
-                              display: 'block'
-                            }}
-                            onError={(e) => {
-                              console.error('Chyba načítania obrázka:', img.url);
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                          <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Chip 
-                              label={img.type === 'odometer' ? 'Tachometer' : img.type === 'fuel' ? 'Palivo' : 'Vozidlo'} 
-                              size="small" 
-                              sx={{ fontSize: '0.7rem' }}
-                            />
-                            <IconButton size="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                              <Visibility fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    ))}
-                    {protocol.documentImages?.map((img, index) => (
-                      <Grid item xs={6} sm={4} md={3} key={img.id}>
-                        <Card sx={{ 
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.2)',
-                          cursor: 'pointer',
-                          '&:hover': {
-                            borderColor: 'rgba(255, 255, 255, 0.5)',
-                            transform: 'scale(1.02)',
-                            transition: 'all 0.2s'
-                          }
-                        }}
-                        onClick={() => window.open(img.url, '_blank')}
-                      >
-                        <CardContent sx={{ p: 1 }}>
-                          <img 
-                            src={img.url} 
-                            alt={`Doklad ${index + 1}`}
-                            style={{ 
-                              width: '100%', 
-                              height: 120, 
-                              objectFit: 'cover', 
-                              borderRadius: 4,
-                              display: 'block'
-                            }}
-                            onError={(e) => {
-                              console.error('Chyba načítania obrázka:', img.url);
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                          <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Chip 
-                              label="Doklad" 
-                              size="small" 
-                              sx={{ fontSize: '0.7rem' }}
-                            />
-                            <IconButton size="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                              <Visibility fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    ))}
-                  </Grid>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-        );
-
-
-
-      case 3:
-        return (
-          <Box>
-            <Card variant="outlined">
-              <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                  <Typography variant="h6">
-                    Škody a poškodenia
-                  </Typography>
-                  <Button startIcon={<AddIcon />} onClick={addDamage}>
-                    Pridať škodu
-                  </Button>
-                </Box>
-                
-                {(protocol.damages || []).length === 0 ? (
-                  <Alert severity="info">Žiadne škody neboli zaznamenané</Alert>
-                ) : (
-                  <List>
-                    {(protocol.damages || []).map((damage, index) => (
-                      <ListItem key={damage.id} divider>
-                        <ListItemAvatar>
-                          <Avatar>
-                            <DescriptionIcon />
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText
-                          primary={
-                            <TextField
-                              label="Popis škody"
-                              value={damage.description}
-                              onChange={(e) => updateDamage(damage.id, 'description', e.target.value)}
-                              variant="outlined"
-                              fullWidth
-                              size="small"
-                            />
-                          }
-                          secondary={
-                            <Box display="flex" gap={1} mt={1}>
-                              <FormControl size="small" sx={{ minWidth: 120 }}>
-                                <InputLabel>Závažnosť</InputLabel>
-                                <Select
-                                  value={damage.severity}
-                                  label="Závažnosť"
-                                  onChange={(e) => updateDamage(damage.id, 'severity', e.target.value)}
-                                >
-                                  <MenuItem value="low">Nízka</MenuItem>
-                                  <MenuItem value="medium">Stredná</MenuItem>
-                                  <MenuItem value="high">Vysoká</MenuItem>
-                                </Select>
-                              </FormControl>
-                              <TextField
-                                label="Lokalizácia"
-                                value={damage.location}
-                                onChange={(e) => updateDamage(damage.id, 'location', e.target.value)}
-                                variant="outlined"
-                                size="small"
-                                sx={{ flex: 1 }}
-                              />
-                              <IconButton
-                                size="small"
-                                onClick={() => removeDamage(damage.id)}
-                                color="error"
-                              >
-                                <RemoveIcon />
-                              </IconButton>
-                            </Box>
-                          }
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                )}
-              </CardContent>
-            </Card>
-          </Box>
-        );
-
-      case 4:
-        return (
-          <Box>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  <DrawIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Elektronický podpis
-                </Typography>
-                <Stack spacing={2}>
-                  <TextField
-                    label="Poznámky"
-                    multiline
-                    rows={3}
-                    value={protocol.notes || ''}
-                    onChange={(e) => {
-                      setProtocol(prev => ({ ...prev, notes: e.target.value }));
-                      triggerAutoSave();
-                    }}
-                    variant="outlined"
-                    fullWidth
-                  />
-                  
-                  {(protocol.signatures || []).length === 0 ? (
-                    <Alert severity="info">
-                      Kliknite na tlačidlo nižšie pre pridanie elektronického podpisu s časovou pečiatkou.
-                    </Alert>
-                  ) : (
-                    <Alert severity="success">
-                      <Typography variant="body2">
-                        <strong>Podpis úspešne pridaný:</strong><br />
-                        Podpisujúci: {protocol.signatures?.[0]?.signerName}<br />
-                        Časová pečiatka: {protocol.signatures?.[0]?.timestamp.toLocaleString('sk-SK', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit'
-                        })}<br />
-                        Miesto: {protocol.signatures?.[0]?.location}
-                      </Typography>
-                    </Alert>
-                  )}
-                  
-                  <Button
-                    variant="outlined"
-                    startIcon={<DrawIcon />}
-                    onClick={() => setShowSignaturePad(true)}
-                    disabled={(protocol.signatures || []).length > 0}
-                  >
-                    Pridať elektronický podpis
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Box>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <LinearProgress sx={{ width: '100%' }} />
-      </Box>
-    );
-  }
-
-  return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
-      <Typography variant="h4" gutterBottom>
-        Protokol o prevzatí vozidla
-      </Typography>
-      
-      <Stepper activeStep={activeStep} orientation="vertical">
-        {steps.map((step, index) => (
-          <Step key={step.label}>
-            <StepLabel 
-              onClick={() => handleStepClick(index)}
-              sx={{ 
-                cursor: 'pointer',
-                '&:hover': { 
-                  backgroundColor: 'action.hover',
-                  borderRadius: 1,
-                  px: 1
-                }
-              }}
-            >
-              {step.label}
-            </StepLabel>
-            <StepContent>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {step.description}
-              </Typography>
-              {renderStepContent(index)}
-              <Box sx={{ mb: 2, mt: 2 }}>
-                <Button
-                  variant="contained"
-                  onClick={index === steps.length - 1 ? handleSave : handleNext}
-                  sx={{ mr: 1 }}
-                >
-                  {index === steps.length - 1 ? 'Uložiť protokol' : 'Ďalej'}
-                </Button>
-                {index === steps.length - 1 && (
-                  <>
-                    <Button
-                      variant="outlined"
-                      onClick={handleGeneratePDF}
-                      disabled={loading}
-                      startIcon={<PdfIcon />}
-                      sx={{ mr: 1, color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
-                    >
-                      {pdfGenerated ? 'Znovu generovať PDF' : 'Generovať PDF'}
-                    </Button>
-                    {pdfGenerated && generatedPDF && (
-                      <Button
-                        variant="contained"
-                        onClick={handleDownloadPDF}
-                        startIcon={<PdfIcon />}
-                        sx={{ mr: 1, backgroundColor: 'success.main' }}
-                      >
-                        Stiahnuť PDF
-                      </Button>
-                    )}
-                    {pdfGenerated && (
-                      <Chip 
-                        label="PDF pripravené" 
-                        color="success" 
-                        size="small" 
-                        sx={{ mr: 1, color: 'white' }}
-                      />
-                    )}
-                  </>
-                )}
-                <Button
-                  disabled={index === 0}
-                  onClick={handleBack}
-                  sx={{ mr: 1 }}
-                >
-                  Späť
-                </Button>
-                <Button onClick={handleClose}>
-                  Zrušiť
-                </Button>
-              </Box>
-            </StepContent>
-          </Step>
-        ))}
-      </Stepper>
+  const generateSmartFilename = (protocol: any, type: 'pdf' | 'image') => {
+    const date = new Date().toISOString().split('T')[0];
+    const customer = protocol.rentalData?.customerName || rental?.customerName || 'unknown';
+    const vehicle = protocol.rentalData?.vehicle?.licensePlate || rental?.vehicle?.licensePlate || 'unknown';
+    const sanitizedCustomer = customer.replace(/[^a-zA-Z0-9]/g, '_');
+    const sanitizedVehicle = vehicle.replace(/[^a-zA-Z0-9]/g, '_');
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold mb-2">Ukladám protokol...</h3>
+              <p className="text-gray-600 mb-4">{progressMessage}</p>
+              
+              {/* Progress bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${pdfProgress}%` }}
+                ></div>
+              </div>
+              
+              <p className="text-sm text-gray-500">{pdfProgress}% dokončené</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Photo capture dialog */}
       {activePhotoCapture && (
         <SerialPhotoCapture
           open={!!activePhotoCapture}
           onClose={() => setActivePhotoCapture(null)}
-          onSave={(images, videos) => handleMediaSave(activePhotoCapture as any, images, videos)}
-          title={
-            activePhotoCapture === 'vehicle' ? 'Fotky vozidla' :
-            activePhotoCapture === 'document' ? 'Fotky dokladov' :
-            'Fotky poškodení'
-          }
-          allowedTypes={
-            activePhotoCapture === 'vehicle' ? ['vehicle'] :
-            activePhotoCapture === 'document' ? ['document'] :
-            activePhotoCapture === 'odometer' ? ['odometer'] :
-            activePhotoCapture === 'fuel' ? ['fuel'] :
-            ['damage']
-          }
-        />
-      )}
-
-      {/* Save draft dialog */}
-      {showSaveDialog && (
-        <Dialog
-          open={showSaveDialog}
-          onClose={() => setShowSaveDialog(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            Uložiť koncept protokolu?
-          </DialogTitle>
-          <DialogContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Máte neuložené zmeny. Chcete ich uložiť a pokračovať neskôr?
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Koncept sa automaticky načíta pri ďalšom otvorení protokolu.
-            </Typography>
+            />
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => {
-              clearDraft();
-              setShowSaveDialog(false);
-              onClose();
-            }}>
-              Zrušiť bez uloženia
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => {
-                saveDraft();
-                setShowSaveDialog(false);
-                onClose();
-              }}
-            >
-              Uložiť koncept
-            </Button>
-          </DialogActions>
         </Dialog>
       )}
+    </Box>
+  );
+};
 
-      {/* Signature pad dialog */}
-      {showSignaturePad && (
-        <Dialog
-          open={showSignaturePad}
-          onClose={() => setShowSignaturePad(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            <DrawIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-            Elektronický podpis
-          </DialogTitle>
-          <DialogContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Podpíšte sa nižšie. Podpis bude uložený s časovou a dátumovou pečiatkou.
-            </Typography>
-            <TextField
-              label="Meno podpisujúceho"
-              value={state.user?.username || ''}
-              InputProps={{ readOnly: true }}
-              fullWidth
-              sx={{ mb: 2 }}
+export default HandoverProtocolForm; 
+export default HandoverProtocolForm; 
+              onCancel={() => setShowSignaturePad(false)}
+              signerName={state.user?.username || 'admin'}
             />
-            <TextField
-              label="Časová pečiatka"
-              value={new Date().toLocaleString('sk-SK', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-              })}
+          </DialogContent>
+        </Dialog>
+      )}
+    </Box>
+  );
+};
+
+export default HandoverProtocolForm; 
               InputProps={{ readOnly: true }}
               fullWidth
               sx={{ mb: 2 }}
@@ -1328,5 +653,13 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     </Box>
   );
 };
+
+export default HandoverProtocolForm; 
+      )}
+    </Box>
+  );
+};
+
+export default HandoverProtocolForm; 
 
 export default HandoverProtocolForm; 
