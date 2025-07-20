@@ -163,6 +163,56 @@ class R2Storage {
         }
         return isConfigured;
     }
+    /**
+     * Načítanie súboru z R2 ako Buffer
+     */
+    async getFile(key) {
+        try {
+            const command = new client_s3_1.GetObjectCommand({
+                Bucket: this.config.bucketName,
+                Key: key,
+            });
+            const response = await this.client.send(command);
+            if (!response.Body) {
+                return null;
+            }
+            // Konverzia stream na Buffer
+            const chunks = [];
+            const stream = response.Body;
+            return new Promise((resolve, reject) => {
+                stream.on('data', (chunk) => chunks.push(chunk));
+                stream.on('end', () => resolve(Buffer.concat(chunks)));
+                stream.on('error', reject);
+            });
+        }
+        catch (error) {
+            console.error('R2 getFile error:', error);
+            return null;
+        }
+    }
+    /**
+     * Zistenie MIME typu z file key
+     */
+    getMimeTypeFromKey(key) {
+        const extension = key.split('.').pop()?.toLowerCase();
+        switch (extension) {
+            case 'jpg':
+            case 'jpeg':
+                return 'image/jpeg';
+            case 'png':
+                return 'image/png';
+            case 'webp':
+                return 'image/webp';
+            case 'gif':
+                return 'image/gif';
+            case 'pdf':
+                return 'application/pdf';
+            case 'svg':
+                return 'image/svg+xml';
+            default:
+                return 'application/octet-stream';
+        }
+    }
 }
 // Singleton instance
 exports.r2Storage = new R2Storage();

@@ -68,6 +68,7 @@ const protocols_1 = __importDefault(require("./routes/protocols"));
 const files_1 = __importDefault(require("./routes/files"));
 const settlements_1 = __importDefault(require("./routes/settlements"));
 const fix_database_1 = __importDefault(require("./routes/fix-database"));
+const migration_1 = __importDefault(require("./routes/migration"));
 // API routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/vehicles', vehicles_1.default);
@@ -81,6 +82,7 @@ app.use('/api/protocols', protocols_1.default);
 app.use('/api/files', files_1.default);
 app.use('/api/settlements', settlements_1.default);
 app.use('/api/fix-database', fix_database_1.default);
+app.use('/api/migration', migration_1.default);
 // API Health endpoint for frontend compatibility
 app.get('/api/health', (req, res) => {
     res.json({

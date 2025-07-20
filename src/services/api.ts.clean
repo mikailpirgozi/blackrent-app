@@ -1,37 +1,62 @@
-import { Vehicle, Rental, Customer, Expense, Insurance, Company, Insurer, Settlement } from '../types';
+import { Vehicle, Rental, Customer, Expense, Insurance, Company, Insurer, ApiResponse, Settlement } from '../types';
+import { v4 as uuidv4 } from 'uuid';
+
+// Railway backend URL
+const RAILWAY_API_URL = 'https://blackrent-app-production-4d6f.up.railway.app/api';
 
 const getApiBaseUrl = () => {
-  // V produkcii používame Railway URL
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://blackrent-app-production-4d6f.up.railway.app/api';
+  // Ak je nastavená custom API URL v environment
+  if (process.env.REACT_APP_API_URL) {
+    console.log('🌐 Používam API URL z .env:', process.env.REACT_APP_API_URL);
+    return process.env.REACT_APP_API_URL;
   }
   
-  // V developmente používame localhost
-  return process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  // Pre Railway deployment (celá aplikácia na Railway)
+  if (window.location.hostname.includes('railway.app')) {
+    const apiUrl = `${window.location.origin}/api`;
+    console.log('🌐 Railway detekované, používam relatívnu API URL:', apiUrl);
+    return apiUrl;
+  }
+  
+  // Pre GitHub Pages používaj Railway API
+  if (window.location.hostname === 'mikailpirgozi.github.io') {
+    console.log('🌐 GitHub Pages detekované, používam Railway API:', RAILWAY_API_URL);
+    return RAILWAY_API_URL;
+  }
+  
+  // Pre lokálny development
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    console.log('🌐 Localhost detekované, používam lokálny backend');
+    return 'http://localhost:5001/api';
+  }
+  
+  // Fallback na Railway API
+  console.log('🌐 Používam Railway API ako fallback:', RAILWAY_API_URL);
+  return RAILWAY_API_URL;
 };
 
 export const API_BASE_URL = getApiBaseUrl();
-
-interface ApiResponse<T = any> {
-  success: boolean;
-  message?: string;
-  data?: T;
-  error?: string;
-}
+console.log('🔗 API_BASE_URL nastavené na:', API_BASE_URL);
 
 class ApiService {
   private getAuthToken(): string | null {
-    return localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+    // Skús najskôr localStorage, potom sessionStorage
+    let token = localStorage.getItem('blackrent_token');
+    if (!token) {
+      token = sessionStorage.getItem('blackrent_token');
+    }
+    return token;
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = this.getAuthToken();
-
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
       },
       ...options,
     };
@@ -39,6 +64,7 @@ class ApiService {
     try {
       const response = await fetch(url, config);
       
+      // Ak je odpoveď 401 (Unauthorized) alebo 403 (Forbidden), presmeruj na prihlásenie
       if (response.status === 401 || response.status === 403) {
         console.warn('🚨 Auth error:', response.status, 'Clearing storage and redirecting to login');
         localStorage.removeItem('blackrent_token');
@@ -50,18 +76,20 @@ class ApiService {
         throw new Error('Neplatný token - presmerovanie na prihlásenie');
       }
 
+      const data: ApiResponse<T> = await response.json();
+
       if (!response.ok) {
-        throw new Error(`API chyba: ${response.status}`);
+        throw new Error(data.error || 'API chyba');
       }
 
-      const data = await response.json();
-      return data;
+      return data.data as T;
     } catch (error) {
-      console.error('❌ API chyba:', error);
+      console.error('API chyba:', error);
       throw error;
     }
   }
 
+  // Auth metódy
   async login(username: string, password: string): Promise<{ user: any; token: string }> {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
@@ -71,26 +99,42 @@ class ApiService {
       body: JSON.stringify({ username, password }),
     });
 
+    const data: ApiResponse<any> = await response.json();
+
     if (!response.ok) {
-      throw new Error('Neplatné prihlasovacie údaje');
+      throw new Error(data.error || 'Chyba pri prihlásení');
     }
 
-    const data = await response.json();
-    return data;
+    // Vráť len token a používateľa bez ukladania - o storage sa postará AuthContext
+    if (data.success && (data as any).token) {
+      return { user: (data as any).user, token: (data as any).token };
+    }
+
+    throw new Error('Neplatná odpoveď zo servera');
   }
 
   async logout(): Promise<void> {
-    try {
-      await this.request('/auth/logout', { method: 'POST' });
-    } catch (error) {
-      console.warn('⚠️ Logout error:', error);
-    } finally {
-      localStorage.removeItem('blackrent_token');
-      localStorage.removeItem('blackrent_user');
-      localStorage.removeItem('blackrent_remember_me');
-      sessionStorage.removeItem('blackrent_token');
-      sessionStorage.removeItem('blackrent_user');
+    const token = this.getAuthToken();
+    if (token) {
+      try {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      } catch (error) {
+        console.error('Logout API error:', error);
+      }
     }
+    
+    // Vymaž token z oboch storage typov
+    localStorage.removeItem('blackrent_token');
+    localStorage.removeItem('blackrent_user');
+    localStorage.removeItem('blackrent_remember_me');
+    sessionStorage.removeItem('blackrent_token');
+    sessionStorage.removeItem('blackrent_user');
   }
 
   // Vozidlá
@@ -117,7 +161,9 @@ class ApiService {
   }
 
   async deleteVehicle(id: string): Promise<void> {
-    return this.request<void>(`/vehicles/${id}`, { method: 'DELETE' });
+    return this.request<void>(`/vehicles/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   // Prenájmy
@@ -144,7 +190,9 @@ class ApiService {
   }
 
   async deleteRental(id: string): Promise<void> {
-    return this.request<void>(`/rentals/${id}`, { method: 'DELETE' });
+    return this.request<void>(`/rentals/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   // Zákazníci
@@ -167,7 +215,9 @@ class ApiService {
   }
 
   async deleteCustomer(id: string): Promise<void> {
-    return this.request<void>(`/customers/${id}`, { method: 'DELETE' });
+    return this.request<void>(`/customers/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   // Náklady
@@ -190,7 +240,9 @@ class ApiService {
   }
 
   async deleteExpense(id: string): Promise<void> {
-    return this.request<void>(`/expenses/${id}`, { method: 'DELETE' });
+    return this.request<void>(`/expenses/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   // Poistky
@@ -218,7 +270,9 @@ class ApiService {
   }
 
   async deleteCompany(id: string): Promise<void> {
-    return this.request<void>(`/companies/${id}`, { method: 'DELETE' });
+    return this.request<void>(`/companies/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   // Poisťovne
@@ -234,10 +288,12 @@ class ApiService {
   }
 
   async deleteInsurer(id: string): Promise<void> {
-    return this.request<void>(`/insurers/${id}`, { method: 'DELETE' });
+    return this.request<void>(`/insurers/${id}`, {
+      method: 'DELETE',
+    });
   }
 
-  // Vyúčtovania
+  // Settlements API
   async getSettlements(): Promise<Settlement[]> {
     return this.request<Settlement[]>('/settlements');
   }
@@ -261,7 +317,9 @@ class ApiService {
   }
 
   async deleteSettlement(id: string): Promise<void> {
-    return this.request<void>(`/settlements/${id}`, { method: 'DELETE' });
+    return this.request<void>(`/settlements/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   // Protokoly
@@ -358,14 +416,6 @@ class ApiService {
     return this.request<any>('/protocols/return', {
       method: 'POST',
       body: JSON.stringify(completeProtocolData),
-    });
-  }
-
-  async deleteProtocol(protocolId: string, type: 'handover' | 'return'): Promise<void> {
-    console.log(`🗑️ API deleteProtocol - deleting ${type} protocol:`, protocolId);
-    
-    return this.request<void>(`/protocols/${type}/${protocolId}`, {
-      method: 'DELETE',
     });
   }
 }

@@ -1,3 +1,4 @@
+import { PoolClient } from 'pg';
 import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement } from '../types';
 export declare class PostgresDatabase {
     private pool;
@@ -122,8 +123,8 @@ export declare class PostgresDatabase {
     }): Promise<Settlement>;
     updateSettlement(id: string, updateData: any): Promise<Settlement>;
     deleteSettlement(id: string): Promise<void>;
-    private extractUrls;
-    private mapUrlsToMediaObjects;
+    private extractMediaData;
+    private mapMediaObjectsFromDB;
     private getMediaTypeFromUrl;
     uploadProtocolFile(protocolId: string, file: Buffer, filename: string, contentType: string): Promise<string>;
     uploadProtocolPDF(protocolId: string, pdfBuffer: Buffer): Promise<string>;
@@ -137,6 +138,9 @@ export declare class PostgresDatabase {
     updateReturnProtocol(id: string, updateData: any): Promise<any>;
     private mapHandoverProtocolFromDB;
     private mapReturnProtocolFromDB;
+    deleteHandoverProtocol(id: string): Promise<boolean>;
+    deleteReturnProtocol(id: string): Promise<boolean>;
+    getClient(): Promise<PoolClient>;
     close(): Promise<void>;
 }
 export declare const postgresDatabase: PostgresDatabase;

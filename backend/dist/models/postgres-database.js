@@ -1626,65 +1626,70 @@ class PostgresDatabase {
         }
     }
     // PROTOCOLS HELPER METHODS
-    extractUrls(mediaArray) {
+    extractMediaData(mediaArray) {
         try {
-            // Bezpečná kontrola - ak nie je array, vráť prázdny array
             if (!Array.isArray(mediaArray)) {
-                console.log('⚠️ extractUrls: mediaArray is not an array, returning empty array');
+                console.log('⚠️ extractMediaData: mediaArray is not an array, returning empty array');
                 return [];
             }
-            // Ak je prázdny array, vráť prázdny array
             if (mediaArray.length === 0) {
-                console.log('🔍 extractUrls: Empty mediaArray, returning empty array');
+                console.log('🔍 extractMediaData: Empty mediaArray, returning empty array');
                 return [];
             }
-            console.log('🔍 extractUrls: Processing mediaArray with', mediaArray.length, 'items');
-            const urls = mediaArray
+            console.log('🔍 extractMediaData: Processing mediaArray with', mediaArray.length, 'items');
+            const mediaData = mediaArray
                 .filter(item => item !== null && item !== undefined)
                 .map(item => {
                 try {
-                    // Ak je item string, použij ho ako URL
+                    // Ak je item string (base64 URL), vytvor objekt
                     if (typeof item === 'string') {
-                        console.log('🔍 extractUrls: Found string item:', item);
+                        console.log('🔍 extractMediaData: Found string item (base64 URL)');
+                        return {
+                            id: `${Date.now()}_${Math.random()}`,
+                            url: item,
+                            type: 'vehicle',
+                            timestamp: new Date(),
+                            compressed: false
+                        };
+                    }
+                    // Ak je item objekt, použij ho ako je
+                    if (item && typeof item === 'object') {
+                        console.log('🔍 extractMediaData: Found object item:', item.id || 'no id');
                         return item;
                     }
-                    // Ak je item objekt s url vlastnosťou, použij url
-                    if (item && typeof item === 'object' && item.url) {
-                        console.log('🔍 extractUrls: Found object with url:', item.url);
-                        return item.url;
-                    }
-                    // Inak ignoruj
-                    console.log('⚠️ extractUrls: Ignoring invalid item:', item);
+                    console.log('⚠️ extractMediaData: Ignoring invalid item:', item);
                     return null;
                 }
                 catch (error) {
-                    console.error('❌ extractUrls: Error processing item:', error);
+                    console.error('❌ extractMediaData: Error processing item:', error);
                     return null;
                 }
             })
-                .filter(url => typeof url === 'string' && url.length > 0);
-            console.log('✅ extractUrls: Successfully extracted', urls.length, 'URLs');
-            return urls;
+                .filter(item => item !== null);
+            console.log('✅ extractMediaData: Successfully extracted', mediaData.length, 'media items');
+            return mediaData;
         }
         catch (error) {
-            console.error('❌ extractUrls: Critical error:', error);
+            console.error('❌ extractMediaData: Critical error:', error);
             return [];
         }
     }
-    mapUrlsToMediaObjects(urls) {
-        // Bezpečná kontrola - ak nie je array, vráť prázdny array
-        if (!Array.isArray(urls)) {
-            console.log('⚠️ mapUrlsToMediaObjects: urls is not an array, returning empty array');
+    mapMediaObjectsFromDB(mediaData) {
+        if (!Array.isArray(mediaData)) {
+            console.log('⚠️ mapMediaObjectsFromDB: mediaData is not an array, returning empty array');
             return [];
         }
-        return urls
-            .filter(url => typeof url === 'string' && url.length > 0)
-            .map((url, index) => ({
-            id: `${Date.now()}_${index}`,
-            url: url,
-            type: this.getMediaTypeFromUrl(url),
-            timestamp: new Date(),
-            compressed: false
+        return mediaData
+            .filter(item => item !== null && typeof item === 'object')
+            .map(item => ({
+            id: item.id || `${Date.now()}_${Math.random()}`,
+            url: item.url || item,
+            type: item.type || this.getMediaTypeFromUrl(item.url || ''),
+            description: item.description || '',
+            timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+            compressed: item.compressed || false,
+            originalSize: item.originalSize,
+            compressedSize: item.compressedSize
         }));
     }
     getMediaTypeFromUrl(url) {
@@ -1757,11 +1762,11 @@ class PostgresDatabase {
           interior_condition VARCHAR(100) DEFAULT 'Dobrý',
           condition_notes TEXT,
           
-          -- Media storage URLs (R2 Cloudflare)
-          vehicle_images_urls TEXT[], -- Array of R2 URLs
-          vehicle_videos_urls TEXT[], -- Array of R2 URLs  
-          document_images_urls TEXT[], -- Array of R2 URLs
-          damage_images_urls TEXT[], -- Array of R2 URLs
+          -- Media storage (JSONB for full objects with base64 data)
+          vehicle_images_urls JSONB DEFAULT '[]', -- Full media objects with base64 data
+          vehicle_videos_urls JSONB DEFAULT '[]', -- Full media objects with base64 data
+          document_images_urls JSONB DEFAULT '[]', -- Full media objects with base64 data
+          damage_images_urls JSONB DEFAULT '[]', -- Full media objects with base64 data
           
           -- Damages and signatures
           damages JSONB DEFAULT '[]',
@@ -1769,6 +1774,8 @@ class PostgresDatabase {
           
           -- Additional data
           rental_data JSONB,
+          pdf_url VARCHAR(500),
+          email_sent BOOLEAN DEFAULT FALSE,
           notes TEXT,
           created_by VARCHAR(100)
         );
@@ -1793,11 +1800,11 @@ class PostgresDatabase {
           interior_condition VARCHAR(100) DEFAULT 'Dobrý',
           condition_notes TEXT,
           
-          -- Media storage URLs (R2 Cloudflare)
-          vehicle_images_urls TEXT[], -- Array of R2 URLs
-          vehicle_videos_urls TEXT[], -- Array of R2 URLs  
-          document_images_urls TEXT[], -- Array of R2 URLs
-          damage_images_urls TEXT[], -- Array of R2 URLs
+          -- Media storage (JSONB for full objects with base64 data)
+          vehicle_images_urls JSONB DEFAULT '[]', -- Full media objects with base64 data
+          vehicle_videos_urls JSONB DEFAULT '[]', -- Full media objects with base64 data
+          document_images_urls JSONB DEFAULT '[]', -- Full media objects with base64 data
+          damage_images_urls JSONB DEFAULT '[]', -- Full media objects with base64 data
           
           -- Damages and signatures
           damages JSONB DEFAULT '[]',
@@ -1824,6 +1831,103 @@ class PostgresDatabase {
           created_by VARCHAR(100)
         );
       `);
+            // Migrácia existujúcich tabuliek na JSONB
+            try {
+                console.log('🔄 Running protocol tables migration...');
+                // Migrácia handover_protocols
+                await client.query(`
+          ALTER TABLE handover_protocols 
+          ALTER COLUMN vehicle_images_urls TYPE JSONB USING 
+            CASE 
+              WHEN vehicle_images_urls IS NULL THEN '[]'::jsonb
+              WHEN jsonb_typeof(vehicle_images_urls::jsonb) = 'array' THEN vehicle_images_urls::jsonb
+              ELSE '[]'::jsonb
+            END;
+        `);
+                await client.query(`
+          ALTER TABLE handover_protocols 
+          ALTER COLUMN vehicle_videos_urls TYPE JSONB USING 
+            CASE 
+              WHEN vehicle_videos_urls IS NULL THEN '[]'::jsonb
+              WHEN jsonb_typeof(vehicle_videos_urls::jsonb) = 'array' THEN vehicle_videos_urls::jsonb
+              ELSE '[]'::jsonb
+            END;
+        `);
+                await client.query(`
+          ALTER TABLE handover_protocols 
+          ALTER COLUMN document_images_urls TYPE JSONB USING 
+            CASE 
+              WHEN document_images_urls IS NULL THEN '[]'::jsonb
+              WHEN jsonb_typeof(document_images_urls::jsonb) = 'array' THEN document_images_urls::jsonb
+              ELSE '[]'::jsonb
+            END;
+        `);
+                await client.query(`
+          ALTER TABLE handover_protocols 
+          ALTER COLUMN damage_images_urls TYPE JSONB USING 
+            CASE 
+              WHEN damage_images_urls IS NULL THEN '[]'::jsonb
+              WHEN jsonb_typeof(damage_images_urls::jsonb) = 'array' THEN damage_images_urls::jsonb
+              ELSE '[]'::jsonb
+            END;
+        `);
+                // Migrácia return_protocols
+                await client.query(`
+          ALTER TABLE return_protocols 
+          ALTER COLUMN vehicle_images_urls TYPE JSONB USING 
+            CASE 
+              WHEN vehicle_images_urls IS NULL THEN '[]'::jsonb
+              WHEN jsonb_typeof(vehicle_images_urls::jsonb) = 'array' THEN vehicle_images_urls::jsonb
+              ELSE '[]'::jsonb
+            END;
+        `);
+                await client.query(`
+          ALTER TABLE return_protocols 
+          ALTER COLUMN vehicle_videos_urls TYPE JSONB USING 
+            CASE 
+              WHEN vehicle_videos_urls IS NULL THEN '[]'::jsonb
+              WHEN jsonb_typeof(vehicle_videos_urls::jsonb) = 'array' THEN vehicle_videos_urls::jsonb
+              ELSE '[]'::jsonb
+            END;
+        `);
+                await client.query(`
+          ALTER TABLE return_protocols 
+          ALTER COLUMN document_images_urls TYPE JSONB USING 
+            CASE 
+              WHEN document_images_urls IS NULL THEN '[]'::jsonb
+              WHEN jsonb_typeof(document_images_urls::jsonb) = 'array' THEN document_images_urls::jsonb
+              ELSE '[]'::jsonb
+            END;
+        `);
+                await client.query(`
+          ALTER TABLE return_protocols 
+          ALTER COLUMN damage_images_urls TYPE JSONB USING 
+            CASE 
+              WHEN damage_images_urls IS NULL THEN '[]'::jsonb
+              WHEN jsonb_typeof(damage_images_urls::jsonb) = 'array' THEN damage_images_urls::jsonb
+              ELSE '[]'::jsonb
+            END;
+        `);
+                // Pridanie chýbajúcich stĺpcov pre handover_protocols
+                try {
+                    await client.query(`
+            ALTER TABLE handover_protocols 
+            ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500);
+          `);
+                    await client.query(`
+            ALTER TABLE handover_protocols 
+            ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT FALSE;
+          `);
+                    console.log('✅ Added missing columns to handover_protocols');
+                }
+                catch (columnError) {
+                    console.log('⚠️ Column migration failed (columns might already exist):', columnError);
+                }
+                console.log('✅ Protocol tables migration completed');
+            }
+            catch (migrationError) {
+                console.log('⚠️ Protocol tables migration failed (tables might already be migrated):', migrationError);
+            }
             console.log('✅ Protocol tables initialized successfully');
         }
         catch (error) {
@@ -1842,23 +1946,25 @@ class PostgresDatabase {
             await this.initProtocolTables();
             console.log('🔄 Creating handover protocol:', protocolData.id);
             console.log('🔄 Protocol data:', JSON.stringify(protocolData, null, 2));
+            console.log('🔄 PDF URL from input:', protocolData.pdfUrl);
             // Validácia dát
             if (!protocolData.rentalId) {
                 throw new Error('Rental ID is required');
             }
-            // Extract URLs from media arrays using nullish coalescing
-            const vehicleImagesUrls = this.extractUrls(protocolData.vehicleImages ?? []);
-            const vehicleVideosUrls = this.extractUrls(protocolData.vehicleVideos ?? []);
-            const documentImagesUrls = this.extractUrls(protocolData.documentImages ?? []);
-            const damageImagesUrls = this.extractUrls(protocolData.damageImages ?? []);
+            // Extract full media data instead of just URLs
+            const vehicleImagesData = this.extractMediaData(protocolData.vehicleImages ?? []);
+            const vehicleVideosData = this.extractMediaData(protocolData.vehicleVideos ?? []);
+            const documentImagesData = this.extractMediaData(protocolData.documentImages ?? []);
+            const damageImagesData = this.extractMediaData(protocolData.damageImages ?? []);
+            console.log('🔄 PDF URL before DB insert:', protocolData.pdfUrl);
             const result = await client.query(`
         INSERT INTO handover_protocols (
           rental_id, location, odometer, fuel_level, fuel_type,
           exterior_condition, interior_condition, condition_notes,
           vehicle_images_urls, vehicle_videos_urls, document_images_urls, damage_images_urls,
-          damages, signatures, rental_data, notes, created_by
+          damages, signatures, rental_data, pdf_url, email_sent, notes, created_by
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
         ) RETURNING *
       `, [
                 protocolData.rentalId,
@@ -1869,19 +1975,24 @@ class PostgresDatabase {
                 protocolData.vehicleCondition?.exteriorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.interiorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.notes || '',
-                vehicleImagesUrls,
-                vehicleVideosUrls,
-                documentImagesUrls,
-                damageImagesUrls,
+                vehicleImagesData, // JSONB automaticky serializuje objekty
+                vehicleVideosData,
+                documentImagesData,
+                damageImagesData,
                 JSON.stringify(protocolData.damages || []),
                 JSON.stringify(protocolData.signatures || []),
                 JSON.stringify(protocolData.rentalData || {}),
+                protocolData.pdfUrl || null,
+                protocolData.emailSent || false,
                 protocolData.notes || '',
                 protocolData.createdBy || ''
             ]);
             const row = result.rows[0];
             console.log('✅ Handover protocol created:', row.id);
-            return this.mapHandoverProtocolFromDB(row);
+            console.log('✅ PDF URL in database:', row.pdf_url);
+            const mappedProtocol = this.mapHandoverProtocolFromDB(row);
+            console.log('✅ Mapped protocol pdfUrl:', mappedProtocol.pdfUrl);
+            return mappedProtocol;
         }
         catch (error) {
             console.error('❌ Error creating handover protocol:', error);
@@ -1964,10 +2075,10 @@ class PostgresDatabase {
                 protocolData.vehicleCondition?.exteriorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.interiorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.notes || '',
-                this.extractUrls(protocolData.vehicleImages ?? []),
-                this.extractUrls(protocolData.vehicleVideos ?? []),
-                this.extractUrls(protocolData.documentImages ?? []),
-                this.extractUrls(protocolData.damageImages ?? []),
+                this.extractMediaData(protocolData.vehicleImages ?? []),
+                this.extractMediaData(protocolData.vehicleVideos ?? []),
+                this.extractMediaData(protocolData.documentImages ?? []),
+                this.extractMediaData(protocolData.damageImages ?? []),
                 JSON.stringify(protocolData.damages || []),
                 JSON.stringify(protocolData.newDamages || []),
                 JSON.stringify(protocolData.signatures || []),
@@ -2086,7 +2197,12 @@ class PostgresDatabase {
                 return fallback;
             }
         };
-        return {
+        console.log('🔄 [DB] Mapping handover protocol from DB row:', {
+            id: row.id,
+            pdf_url: row.pdf_url,
+            pdf_url_type: typeof row.pdf_url
+        });
+        const mappedProtocol = {
             id: row.id,
             rentalId: row.rental_id,
             type: 'handover',
@@ -2102,16 +2218,21 @@ class PostgresDatabase {
                 interiorCondition: row.interior_condition || 'Dobrý',
                 notes: row.condition_notes || ''
             },
-            vehicleImages: this.mapUrlsToMediaObjects(row.vehicle_images_urls || []),
-            vehicleVideos: this.mapUrlsToMediaObjects(row.vehicle_videos_urls || []),
-            documentImages: this.mapUrlsToMediaObjects(row.document_images_urls || []),
-            damageImages: this.mapUrlsToMediaObjects(row.damage_images_urls || []),
+            vehicleImages: this.mapMediaObjectsFromDB(safeJsonParse(row.vehicle_images_urls, [])),
+            vehicleVideos: this.mapMediaObjectsFromDB(safeJsonParse(row.vehicle_videos_urls, [])),
+            documentImages: this.mapMediaObjectsFromDB(safeJsonParse(row.document_images_urls, [])),
+            damageImages: this.mapMediaObjectsFromDB(safeJsonParse(row.damage_images_urls, [])),
             damages: safeJsonParse(row.damages, []),
             signatures: safeJsonParse(row.signatures, []),
             rentalData: safeJsonParse(row.rental_data, {}),
+            pdfUrl: row.pdf_url,
+            emailSent: row.email_sent || false,
+            emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,
             notes: row.notes,
             createdBy: row.created_by
         };
+        console.log('🔄 [DB] Mapped protocol pdfUrl:', mappedProtocol.pdfUrl);
+        return mappedProtocol;
     }
     mapReturnProtocolFromDB(row) {
         // Safe JSON parsing function
@@ -2144,10 +2265,10 @@ class PostgresDatabase {
                 interiorCondition: row.interior_condition || 'Dobrý',
                 notes: row.condition_notes || ''
             },
-            vehicleImages: this.mapUrlsToMediaObjects(row.vehicle_images_urls || []),
-            vehicleVideos: this.mapUrlsToMediaObjects(row.vehicle_videos_urls || []),
-            documentImages: this.mapUrlsToMediaObjects(row.document_images_urls || []),
-            damageImages: this.mapUrlsToMediaObjects(row.damage_images_urls || []),
+            vehicleImages: this.mapMediaObjectsFromDB(safeJsonParse(row.vehicle_images_urls, [])),
+            vehicleVideos: this.mapMediaObjectsFromDB(safeJsonParse(row.vehicle_videos_urls, [])),
+            documentImages: this.mapMediaObjectsFromDB(safeJsonParse(row.document_images_urls, [])),
+            damageImages: this.mapMediaObjectsFromDB(safeJsonParse(row.damage_images_urls, [])),
             damages: safeJsonParse(row.damages, []),
             newDamages: safeJsonParse(row.new_damages, []),
             signatures: safeJsonParse(row.signatures, []),
@@ -2169,6 +2290,39 @@ class PostgresDatabase {
         };
     }
     // Zatvorenie spojenia
+    async deleteHandoverProtocol(id) {
+        const client = await this.pool.connect();
+        try {
+            console.log('🗑️ Deleting handover protocol:', id);
+            const result = await client.query('DELETE FROM handover_protocols WHERE id = $1 RETURNING id', [id]);
+            return result.rows.length > 0;
+        }
+        catch (error) {
+            console.error('❌ Error deleting handover protocol:', error);
+            throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
+    async deleteReturnProtocol(id) {
+        const client = await this.pool.connect();
+        try {
+            console.log('🗑️ Deleting return protocol:', id);
+            const result = await client.query('DELETE FROM return_protocols WHERE id = $1 RETURNING id', [id]);
+            return result.rows.length > 0;
+        }
+        catch (error) {
+            console.error('❌ Error deleting return protocol:', error);
+            throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
+    async getClient() {
+        return await this.pool.connect();
+    }
     async close() {
         await this.pool.end();
     }

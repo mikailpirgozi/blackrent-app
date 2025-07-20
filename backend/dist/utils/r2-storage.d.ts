@@ -38,6 +38,14 @@ declare class R2Storage {
      * Kontrola či je R2 správne nakonfigurované
      */
     isConfigured(): boolean;
+    /**
+     * Načítanie súboru z R2 ako Buffer
+     */
+    getFile(key: string): Promise<Buffer | null>;
+    /**
+     * Zistenie MIME typu z file key
+     */
+    getMimeTypeFromKey(key: string): string;
 }
 export declare const r2Storage: R2Storage;
 export default r2Storage;

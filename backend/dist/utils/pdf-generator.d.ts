@@ -3,8 +3,9 @@ import { HandoverProtocol, ReturnProtocol } from '../types';
 export declare class ProtocolPDFGenerator {
     private doc;
     constructor();
-    generateHandoverProtocol(protocol: HandoverProtocol): InstanceType<typeof PDFDocument>;
-    generateReturnProtocol(protocol: ReturnProtocol): InstanceType<typeof PDFDocument>;
+    private loadImageBuffer;
+    generateHandoverProtocol(protocol: HandoverProtocol): Promise<InstanceType<typeof PDFDocument>>;
+    generateReturnProtocol(protocol: ReturnProtocol): Promise<InstanceType<typeof PDFDocument>>;
     private setupHeader;
     private addSection;
     private addInfoRow;

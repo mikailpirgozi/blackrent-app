@@ -160,13 +160,39 @@ router.delete('/handover/:id', async (req, res) => {
     try {
         const { id } = req.params;
         console.log('🗑️ Deleting handover protocol:', id);
-        // For now, deletion is not implemented for safety
-        // Could be implemented with proper authorization checks
-        res.status(501).json({ error: 'Delete handover protocol not implemented for safety' });
+        if (!isValidUUID(id)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Neplatné UUID protokolu'
+            });
+        }
+        // TODO: Pridať autorizáciu - len admin môže mazať
+        // if (!req.user?.role || req.user.role !== 'admin') {
+        //   return res.status(403).json({ 
+        //     success: false, 
+        //     error: 'Len administrátor môže vymazať protokoly' 
+        //   });
+        // }
+        const deleted = await postgres_database_1.postgresDatabase.deleteHandoverProtocol(id);
+        if (deleted) {
+            res.json({
+                success: true,
+                message: 'Protokol prevzatia úspešne vymazaný'
+            });
+        }
+        else {
+            res.status(404).json({
+                success: false,
+                error: 'Protokol prevzatia nebol nájdený'
+            });
+        }
     }
     catch (error) {
         console.error('❌ Error deleting handover protocol:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri mazaní protokolu prevzatia'
+        });
     }
 });
 // Delete return protocol
@@ -174,13 +200,39 @@ router.delete('/return/:id', async (req, res) => {
     try {
         const { id } = req.params;
         console.log('🗑️ Deleting return protocol:', id);
-        // For now, deletion is not implemented for safety
-        // Could be implemented with proper authorization checks
-        res.status(501).json({ error: 'Delete return protocol not implemented for safety' });
+        if (!isValidUUID(id)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Neplatné UUID protokolu'
+            });
+        }
+        // TODO: Pridať autorizáciu - len admin môže mazať
+        // if (!req.user?.role || req.user.role !== 'admin') {
+        //   return res.status(403).json({ 
+        //     success: false, 
+        //     error: 'Len administrátor môže vymazať protokoly' 
+        //   });
+        // }
+        const deleted = await postgres_database_1.postgresDatabase.deleteReturnProtocol(id);
+        if (deleted) {
+            res.json({
+                success: true,
+                message: 'Protokol vrátenia úspešne vymazaný'
+            });
+        }
+        else {
+            res.status(404).json({
+                success: false,
+                error: 'Protokol vrátenia nebol nájdený'
+            });
+        }
     }
     catch (error) {
         console.error('❌ Error deleting return protocol:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri mazaní protokolu vrátenia'
+        });
     }
 });
 // Upload PDF to R2
@@ -302,6 +354,94 @@ router.get('/return/:id/download', async (req, res) => {
     catch (error) {
         console.error('❌ Error downloading PDF for return protocol:', error);
         res.status(500).json({ error: 'Failed to download PDF' });
+    }
+});
+// Fix existing protocols endpoint
+router.post('/fix-existing', async (req, res) => {
+    try {
+        console.log('🔧 Fixing existing protocols...');
+        const client = await postgres_database_1.postgresDatabase.getClient();
+        try {
+            // 1. Pridanie chýbajúcich stĺpcov
+            await client.query(`
+        ALTER TABLE handover_protocols 
+        ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500);
+      `);
+            await client.query(`
+        ALTER TABLE handover_protocols 
+        ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT FALSE;
+      `);
+            console.log('✅ Stĺpce pridané');
+            // 2. Aktualizácia existujúcich protokolov s pdfUrl
+            const result = await client.query(`
+        SELECT id, created_at FROM handover_protocols 
+        WHERE pdf_url IS NULL OR pdf_url = ''
+      `);
+            console.log(`📋 Našlo sa ${result.rows.length} protokolov bez pdfUrl`);
+            let fixedCount = 0;
+            for (const row of result.rows) {
+                const date = new Date(row.created_at).toISOString().split('T')[0];
+                const pdfUrl = `https://pub-4fec120a8a6a4a0cbadfa55f54b7e8a2.r2.dev/protocols/${row.id}/${date}/protokol_prevzatie_${row.id}_${date}.pdf`;
+                await client.query(`
+          UPDATE handover_protocols 
+          SET pdf_url = $1 
+          WHERE id = $2
+        `, [pdfUrl, row.id]);
+                fixedCount++;
+                console.log(`✅ Protokol ${row.id} opravený s pdfUrl: ${pdfUrl}`);
+            }
+            console.log('🎉 Všetky protokoly opravené!');
+            res.json({
+                success: true,
+                message: `Opravené ${fixedCount} protokolov`,
+                fixedCount: fixedCount
+            });
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (error) {
+        console.error('❌ Chyba pri oprave protokolov:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri oprave protokolov',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+// Delete handover protocol
+router.delete("/handover/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log("🗑️ Deleting handover protocol:", id);
+        const deleted = await postgres_database_1.postgresDatabase.deleteHandoverProtocol(id);
+        if (!deleted) {
+            return res.status(404).json({ error: "Handover protocol not found" });
+        }
+        console.log("✅ Handover protocol deleted:", id);
+        res.json({ message: "Handover protocol deleted successfully" });
+    }
+    catch (error) {
+        console.error("❌ Error deleting handover protocol:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+// Delete return protocol
+router.delete("/return/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log("🗑️ Deleting return protocol:", id);
+        const deleted = await postgres_database_1.postgresDatabase.deleteReturnProtocol(id);
+        if (!deleted) {
+            return res.status(404).json({ error: "Return protocol not found" });
+        }
+        console.log("✅ Return protocol deleted:", id);
+        res.json({ message: "Return protocol deleted successfully" });
+    }
+    catch (error) {
+        console.error("❌ Error deleting return protocol:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
 });
 exports.default = router;
