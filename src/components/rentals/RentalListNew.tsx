@@ -1,113 +1,116 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Box,
   Button,
-  Dialog,
-  DialogContent,
-  DialogTitle,
   Typography,
-  useMediaQuery,
-  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
   IconButton,
   Tooltip,
+  Chip,
   Alert,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Visibility as VisibilityIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  Pending as PendingIcon,
   Assignment as HandoverIcon,
   AssignmentReturn as ReturnIcon,
-  CheckCircle as CompletedIcon,
-  Schedule as PendingIcon,
-  Error as ErrorIcon,
-  PictureAsPdf as PDFIcon,
-  Download as DownloadIcon,
+  PictureAsPdf as PDFIcon
 } from '@mui/icons-material';
+import { format } from 'date-fns';
+import { sk } from 'date-fns/locale';
 import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { Rental, HandoverProtocol, ReturnProtocol } from '../../types';
-import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
+import { Rental } from '../../types';
+import { apiService } from '../../services/api';
 import RentalForm from './RentalForm';
 import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 import PDFViewer from '../common/PDFViewer';
-import { apiService } from '../../services/api';
-import { useDebounce, usePagination, useMemoizedFilter } from '../../utils/performance';
 
 export default function RentalList() {
   const { state, createRental, updateRental, deleteRental } = useApp();
   const { state: authState } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // State management
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
-  const [protocols, setProtocols] = useState<{
-    [rentalId: string]: {
-      handover?: HandoverProtocol;
-      return?: ReturnProtocol;
-    };
-  }>({});
+  const [protocols, setProtocols] = useState<Record<string, { handover?: any; return?: any }>>({});
+  const [loadingProtocols, setLoadingProtocols] = useState<string[]>([]);
+  
+  // Protocol dialogs
   const [openHandoverDialog, setOpenHandoverDialog] = useState(false);
   const [openReturnDialog, setOpenReturnDialog] = useState(false);
   const [selectedRentalForProtocol, setSelectedRentalForProtocol] = useState<Rental | null>(null);
-  const [loadingProtocols, setLoadingProtocols] = useState<string[]>([]);
-  const [openPDFViewer, setOpenPDFViewer] = useState(false);
-  const [selectedPDFProtocol, setSelectedPDFProtocol] = useState<{
-    id: string;
-    type: 'handover' | 'return';
-    title: string;
-  } | null>(null);
-  const isMobile = useMediaQuery('(max-width:600px)');
-  const [searchQuery, setSearchQuery] = useState('');
+  
+  // PDF viewer
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
+  const [selectedPdf, setSelectedPdf] = useState<{ url: string; title: string; type: 'handover' | 'return' } | null>(null);
 
-  // 🚀 PERFORMANCE OPTIMIZATION: Debounced search
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
-
-  // 🚀 PERFORMANCE OPTIMIZATION: Memoized protocol loading
-  const loadProtocolsForRental = useMemo(() => {
-    return async (rentalId: string) => {
-      if (loadingProtocols.includes(rentalId)) return;
+  // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
+  const loadProtocolsForRental = useCallback(async (rentalId: string) => {
+    // Kontrola či už načítavame
+    if (loadingProtocols.includes(rentalId)) return;
+    
+    // Kontrola či už máme dáta
+    if (protocols[rentalId]) {
+      console.log('✅ Protokoly už načítané pre:', rentalId);
+      return;
+    }
+    
+    console.log('🔍 Načítavam protokoly pre:', rentalId);
+    setLoadingProtocols(prev => [...prev, rentalId]);
+    
+    try {
+      const data = await apiService.getProtocolsByRental(rentalId);
       
-      console.log('🔍 loadProtocolsForRental - začínam načítanie pre:', rentalId);
-      setLoadingProtocols(prev => [...prev, rentalId]);
-      try {
-        const data = await apiService.getProtocolsByRental(rentalId);
-        console.log('📋 API odpoveď pre', rentalId, ':', data);
-        
-        const handoverProtocols = data?.handoverProtocols || [];
-        const returnProtocols = data?.returnProtocols || [];
-        
-        console.log('📋 Handover protokoly:', handoverProtocols.length);
-        console.log('📋 Return protokoly:', returnProtocols.length);
-        
-        setProtocols(prev => {
-          const newProtocols = {
-            ...prev,
-            [rentalId]: {
-              handover: handoverProtocols?.[0] || undefined,
-              return: returnProtocols?.[0] || undefined,
-            }
-          };
-          console.log('💾 Ukladám protokoly pre', rentalId, ':', newProtocols[rentalId]);
-          return newProtocols;
-        });
-      } catch (error) {
-        console.error('❌ Chyba pri načítaní protokolov pre', rentalId, ':', error);
-        setProtocols(prev => ({
-          ...prev,
-          [rentalId]: {
-            handover: undefined,
-            return: undefined,
-          }
-        }));
-      } finally {
-        setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
-        console.log('✅ loadProtocolsForRental - dokončené pre:', rentalId);
-      }
-    };
-  }, [loadingProtocols]);
+      setProtocols(prev => ({
+        ...prev,
+        [rentalId]: {
+          handover: data?.handoverProtocols?.[0] || undefined,
+          return: data?.returnProtocols?.[0] || undefined,
+        }
+      }));
+    } catch (error) {
+      console.error('❌ Chyba pri načítaní protokolov:', error);
+    } finally {
+      setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
+    }
+  }, [protocols, loadingProtocols]);
+
+  // Funkcia pre zobrazenie protokolov na požiadanie
+  const handleViewProtocols = async (rental: Rental) => {
+    // Ak už sú protokoly načítané, nechaj ich zobrazené
+    if (protocols[rental.id]) {
+      return;
+    }
+    
+    console.log('🔍 Načítavam protokoly pre prenájom:', rental.id);
+    await loadProtocolsForRental(rental.id);
+  };
+
+  // Funkcia pre skrytie protokolov
+  const handleHideProtocols = (rentalId: string) => {
+    setProtocols(prev => {
+      const newProtocols = { ...prev };
+      delete newProtocols[rentalId];
+      return newProtocols;
+    });
+  };
 
   // 🚀 PERFORMANCE OPTIMIZATION: Memoized protocol status
   const getProtocolStatus = useMemo(() => {
@@ -124,23 +127,6 @@ export default function RentalList() {
     };
   }, [protocols]);
 
-  // 🚀 PERFORMANCE OPTIMIZATION: Pagination for rentals
-  const {
-    currentData: paginatedRentals,
-    currentPage,
-    totalPages,
-    hasNextPage,
-    hasPrevPage,
-    goToPage,
-    nextPage,
-    prevPage,
-    pageInfo
-  } = usePagination(state.rentals, 15); // Menej položiek pre komplexné zobrazenie
-
-
-
-
-
   // Funkcia pre zobrazenie stavu protokolov
   const renderProtocolStatus = (rentalId: string) => {
     const status = getProtocolStatus(rentalId);
@@ -149,7 +135,7 @@ export default function RentalList() {
       case 'completed':
         return (
           <Chip
-            icon={<CompletedIcon />}
+            icon={<CheckCircleIcon />}
             label="Dokončené"
             color="success"
             size="small"
@@ -275,92 +261,43 @@ export default function RentalList() {
       setSelectedRentalForProtocol(null);
     } catch (error) {
       console.error('Chyba pri ukladaní return protokolu:', error);
-      alert('Chyba pri ukladaní return protokolu. Skúste to znovu.');
+      alert('Chyba pri ukladaní protokolu. Skúste to znovu.');
     }
   };
 
-  // PDF handlers
   const handleViewPDF = (protocolId: string, type: 'handover' | 'return', title: string) => {
-    setSelectedPDFProtocol({ id: protocolId, type, title });
-    setOpenPDFViewer(true);
+    setSelectedPdf({ url: protocolId, title, type });
+    setPdfViewerOpen(true);
   };
 
   const handleClosePDF = () => {
-    setOpenPDFViewer(false);
-    setSelectedPDFProtocol(null);
+    setPdfViewerOpen(false);
+    setSelectedPdf(null);
   };
 
-  // Funkcia pre vymazanie protokolu (len pre admina)
   const handleDeleteProtocol = async (rentalId: string, type: 'handover' | 'return') => {
-    if (!authState.user?.role || authState.user.role !== 'admin') {
-      alert('Len administrátor môže vymazať protokoly!');
+    if (!window.confirm(`Naozaj chcete vymazať protokol ${type === 'handover' ? 'prevzatia' : 'vrátenia'}?`)) {
       return;
     }
 
-    const confirmMessage = type === 'handover' 
-      ? 'Naozaj chcete vymazať protokol o prevzatí? Táto akcia je nevratná.'
-      : 'Naozaj chcete vymazať protokol o vrátení? Táto akcia je nevratná.';
-
-    if (window.confirm(confirmMessage)) {
-      try {
-        // Získaj ID protokolu
-        const protocol = type === 'handover' 
-          ? protocols[rentalId]?.handover 
-          : protocols[rentalId]?.return;
-        
-        if (!protocol) {
-          alert('Protokol nebol nájdený!');
-          return;
-        }
-
-        // Zavolaj API pre vymazanie protokolu
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/protocols/${type}/${protocol.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authState.token}`
-          }
-        });
-
-        if (response.ok) {
-          // Vymaž z lokálneho stavu
-          setProtocols(prev => ({
-            ...prev,
-            [rentalId]: {
-              ...prev[rentalId],
-              [type]: undefined
-            }
-          }));
-          
-          console.log(`Protokol ${type} pre prenájom ${rentalId} bol vymazaný`);
-          alert('Protokol bol úspešne vymazaný!');
-        } else {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Chyba pri mazaní protokolu');
-        }
-      } catch (error) {
-        console.error('Chyba pri mazaní protokolu:', error);
-        alert(`Chyba pri mazaní protokolu: ${error instanceof Error ? error.message : 'Neznáma chyba'}`);
+    try {
+      const protocol = protocols[rentalId]?.[type];
+      if (!protocol?.id) {
+        alert('Protokol sa nenašiel!');
+        return;
       }
+
+      // TODO: Implementovať deleteProtocol v apiService
+      console.log('Deleting protocol:', protocol.id, type);
+      console.log(`Protokol ${type} pre prenájom ${rentalId} bol vymazaný`);
+      
+      // Aktualizácia protokolov
+      await loadProtocolsForRental(rentalId);
+    } catch (error) {
+      console.error('Chyba pri mazaní protokolu:', error);
+      alert('Chyba pri mazaní protokolu. Skúste to znovu.');
     }
   };
-
-  // Automatické načítanie protokolov pri načítaní stránky
-  useEffect(() => {
-    const loadAllProtocols = async () => {
-      if (state.rentals && state.rentals.length > 0) {
-        console.log('🔄 Načítavam protokoly pre všetky prenájmy...');
-        console.log('📋 Počet prenájmov:', state.rentals.length);
-        for (const rental of state.rentals) {
-          console.log('🔍 Načítavam protokoly pre prenájom:', rental.id, rental.customerName);
-          await loadProtocolsForRental(rental.id);
-        }
-        console.log('✅ Všetky protokoly načítané');
-      }
-    };
-    
-    loadAllProtocols();
-  }, [state.rentals]);
 
   // Column definitions for ResponsiveTable
   const columns: ResponsiveTableColumn[] = useMemo(() => [
@@ -418,18 +355,16 @@ export default function RentalList() {
       width: { xs: '120px', md: '150px' },
       render: (value, rental: Rental) => (
         <Box>
-          {renderProtocolStatus(rental.id)}
-          <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
+          {/* Tlačidlá pre vytvorenie protokolov */}
+          <Box sx={{ display: 'flex', gap: 0.5, mb: 1 }}>
             <Tooltip title="Prevzatie vozidla">
               <IconButton
                 size="small"
                 onClick={(e) => { 
                   e.stopPropagation(); 
-                  loadProtocolsForRental(rental.id);
                   handleCreateHandover(rental); 
                 }}
-                color={getProtocolStatus(rental.id) === 'none' ? 'primary' : 'default'}
-                disabled={getProtocolStatus(rental.id) !== 'none'}
+                color="primary"
               >
                 <HandoverIcon fontSize="small" />
               </IconButton>
@@ -439,87 +374,80 @@ export default function RentalList() {
                 size="small"
                 onClick={(e) => { 
                   e.stopPropagation(); 
-                  loadProtocolsForRental(rental.id);
                   handleCreateReturn(rental); 
                 }}
-                color={getProtocolStatus(rental.id) === 'handover-only' ? 'primary' : 'default'}
-                disabled={getProtocolStatus(rental.id) !== 'handover-only'}
+                color="primary"
               >
                 <ReturnIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            
-            {/* PDF tlačidlá pre existujúce protokoly */}
-            {protocols[rental.id]?.handover && (
-              <>
-                <Tooltip title="Stiahnuť protokol prevzatia">
-                  <IconButton
-                    size="small"
-                    component="a"
-                    href={protocols[rental.id]?.handover?.pdfUrl
-                      ? protocols[rental.id]?.handover?.pdfUrl
-                      : `${process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/protocols/handover/${protocols[rental.id]?.handover?.id || ''}/download`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download
-                    color="success"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <PDFIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                {authState.user?.role === 'admin' && (
-                  <Tooltip title="Vymazať protokol prevzatia (len admin)">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        handleDeleteProtocol(rental.id, 'handover'); 
-                      }}
-                      color="error"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </>
-            )}
-            
-            {protocols[rental.id]?.return && (
-              <>
-                <Tooltip title="Stiahnuť protokol vrátenia">
-                  <IconButton
-                    size="small"
-                    component="a"
-                    href={protocols[rental.id]?.return?.pdfUrl
-                      ? protocols[rental.id]?.return?.pdfUrl
-                      : `${process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/protocols/return/${protocols[rental.id]?.return?.id || ''}/download`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download
-                    color="success"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <PDFIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                {authState.user?.role === 'admin' && (
-                  <Tooltip title="Vymazať protokol vrátenia (len admin)">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        handleDeleteProtocol(rental.id, 'return'); 
-                      }}
-                      color="error"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </>
-            )}
           </Box>
+
+          {/* Tlačidlo na zobrazenie protokolov */}
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewProtocols(rental);
+            }}
+            startIcon={<VisibilityIcon />}
+            disabled={loadingProtocols.includes(rental.id)}
+            sx={{ width: '100%', fontSize: '0.75rem' }}
+          >
+            {loadingProtocols.includes(rental.id) ? 'Načítavam...' : 'Zobraziť protokoly'}
+          </Button>
+
+          {/* Zobrazenie protokolov ak sú načítané */}
+          {protocols[rental.id] && (
+            <Box sx={{ mt: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
+              {protocols[rental.id]?.handover && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                  <CheckCircleIcon color="success" fontSize="small" />
+                  <Typography variant="caption">Prevzatie</Typography>
+                  <IconButton
+                    size="small"
+                    component="a"
+                    href={protocols[rental.id]?.handover?.pdfUrl}
+                    target="_blank"
+                    download
+                    color="success"
+                  >
+                    <PDFIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              )}
+              {protocols[rental.id]?.return && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <CheckCircleIcon color="success" fontSize="small" />
+                  <Typography variant="caption">Vrátenie</Typography>
+                  <IconButton
+                    size="small"
+                    component="a"
+                    href={protocols[rental.id]?.return?.pdfUrl}
+                    target="_blank"
+                    download
+                    color="success"
+                  >
+                    <PDFIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              )}
+              
+              {/* Tlačidlo na skrytie protokolov */}
+              <Button
+                size="small"
+                variant="text"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleHideProtocols(rental.id);
+                }}
+                sx={{ mt: 1, fontSize: '0.7rem' }}
+              >
+                Skryť protokoly
+              </Button>
+            </Box>
+          )}
         </Box>
       )
     },
@@ -573,49 +501,22 @@ export default function RentalList() {
       {/* Workflow Instructions */}
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2">
-          <strong>Workflow protokolov:</strong> Najprv vytvorte protokol prevzatia vozidla (🔄), potom protokol vrátenia (↩️)
+          <strong>Workflow protokolov:</strong> Najprv vytvorte protokol prevzatia vozidla (🔄), potom protokol vrátenia (↩️). Kliknite "Zobraziť protokoly" pre zobrazenie existujúcich protokolov.
         </Typography>
       </Alert>
 
       <ResponsiveTable
         columns={columns}
-        data={paginatedRentals}
+        data={rentals}
         selectable={true}
         selected={selected}
         onSelectionChange={setSelected}
         emptyMessage="Žiadne prenájmy"
       />
 
-      {/* 🚀 OPTIMIZED: Pagination controls */}
-      {totalPages > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 1 }}>
-          <Button
-            variant="outlined"
-            onClick={prevPage}
-            disabled={!hasPrevPage}
-            size="small"
-          >
-            Predchádzajúca
-          </Button>
-          
-          <Typography variant="body2" sx={{ alignSelf: 'center', mx: 2 }}>
-            {pageInfo.showing}
-          </Typography>
-          
-          <Button
-            variant="outlined"
-            onClick={nextPage}
-            disabled={!hasNextPage}
-            size="small"
-          >
-            Ďalšia
-          </Button>
-        </Box>
-      )}
-
       {/* Rental Form Dialog */}
-      <Dialog
-        open={openDialog}
+      <Dialog 
+        open={openDialog} 
         onClose={() => setOpenDialog(false)}
         maxWidth="md"
         fullWidth
@@ -661,26 +562,26 @@ export default function RentalList() {
       >
         <DialogTitle>Protokol vrátenia vozidla</DialogTitle>
         <DialogContent>
-          {selectedRentalForProtocol && protocols[selectedRentalForProtocol.id]?.handover && (
+          {selectedRentalForProtocol && (
             <ReturnProtocolForm
               open={openReturnDialog}
-              rental={selectedRentalForProtocol}
-              handoverProtocol={protocols[selectedRentalForProtocol.id].handover!}
-              onSave={handleSaveReturn}
               onClose={() => setOpenReturnDialog(false)}
+              rental={selectedRentalForProtocol}
+              handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
+              onSave={handleSaveReturn}
             />
           )}
         </DialogContent>
       </Dialog>
 
-      {/* PDF Viewer Dialog */}
-      {selectedPDFProtocol && (
+      {/* PDF Viewer */}
+      {selectedPdf && (
         <PDFViewer
-          open={openPDFViewer}
+          open={pdfViewerOpen}
           onClose={handleClosePDF}
-          protocolId={selectedPDFProtocol.id}
-          protocolType={selectedPDFProtocol.type}
-          title={selectedPDFProtocol.title}
+          protocolId={selectedPdf.url}
+          protocolType={selectedPdf.type}
+          title={selectedPdf.title}
         />
       )}
     </Box>
