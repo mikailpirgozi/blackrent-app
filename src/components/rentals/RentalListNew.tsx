@@ -443,74 +443,6 @@ export default function RentalList() {
                 <HandoverIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'handover');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
             <Tooltip title="Vrátenie vozidla">
               <IconButton
                 size="small"
@@ -530,74 +462,6 @@ export default function RentalList() {
                 <ReturnIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'handover');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
           </Box>
 
           {/* Stav protokolov - kompaktný */}
@@ -636,74 +500,6 @@ export default function RentalList() {
                       <PDFIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'handover');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
                   <Tooltip title="Galerie obrázkov">
                     <IconButton
                       size="small"
@@ -726,64 +522,13 @@ export default function RentalList() {
                       size="small"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
                         handleDeleteProtocol(rental.id, 'handover');
                       }}
                       sx={{ 
                         width: 24, 
                         height: 24,
                         color: 'error.main',
-                        '</Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
+                        '&:hover': { bgcolor: 'error.light' }
                       }}
                     >
                       <DeleteIcon sx={{ fontSize: 16 }} />
@@ -825,74 +570,6 @@ export default function RentalList() {
                     <VisibilityIcon sx={{ fontSize: 16 }} />
                   </IconButton>
                 </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'handover');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
               </Box>
             )}
 
@@ -930,74 +607,6 @@ export default function RentalList() {
                       <PDFIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'handover');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
                   <Tooltip title="Galerie obrázkov">
                     <IconButton
                       size="small"
@@ -1026,58 +635,7 @@ export default function RentalList() {
                         width: 24, 
                         height: 24,
                         color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'handover');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
+                        '&:hover': { bgcolor: 'error.light' }
                       }}
                     >
                       <DeleteIcon sx={{ fontSize: 16 }} />
@@ -1119,74 +677,6 @@ export default function RentalList() {
                     <VisibilityIcon sx={{ fontSize: 16 }} />
                   </IconButton>
                 </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'handover');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
               </Box>
             ) : (
               <Box sx={{ 
@@ -1222,74 +712,6 @@ export default function RentalList() {
                     <VisibilityIcon sx={{ fontSize: 16 }} />
                   </IconButton>
                 </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'handover');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '</Tooltip>:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
               </Box>
             )}
           </Box>
