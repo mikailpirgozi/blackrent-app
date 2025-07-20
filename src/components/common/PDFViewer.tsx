@@ -46,10 +46,15 @@ export default function PDFViewer({
     try {
       // Najprv skús načítať protokol aby získal pdfUrl
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
-      const protocolResponse = await fetch(`${apiBaseUrl}/protocols/${protocolType}/${protocolId}`);
+      const protocolUrl = `${apiBaseUrl}/protocols/${protocolType}/${protocolId}`;
+      console.log('🔍 Loading protocol from:', protocolUrl);
+      
+      const protocolResponse = await fetch(protocolUrl);
+      console.log('📋 Protocol response status:', protocolResponse.status);
       
       if (protocolResponse.ok) {
         const protocol = await protocolResponse.json();
+        console.log('📋 Protocol data:', protocol);
         setProtocolData(protocol);
         
         // Ak má protokol pdfUrl, použij ho
@@ -57,7 +62,13 @@ export default function PDFViewer({
           console.log('✅ Using existing PDF URL from protocol:', protocol.pdfUrl);
           setPdfUrl(protocol.pdfUrl);
           return;
+        } else {
+          console.log('⚠️ Protocol has no pdfUrl field');
         }
+      } else {
+        console.log('❌ Protocol response not ok:', protocolResponse.status, protocolResponse.statusText);
+        const errorText = await protocolResponse.text();
+        console.log('❌ Error response:', errorText);
       }
       
       // Ak nemá pdfUrl, vygeneruj nové PDF
