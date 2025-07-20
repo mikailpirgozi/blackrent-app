@@ -604,7 +604,336 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
 
   return (
     <Box>
-      {/* ... existing JSX ... */}
+      <Stepper activeStep={activeStep} orientation="vertical">
+        {steps.map((step, index) => (
+          <Step key={step.label}>
+            <StepLabel
+              onClick={() => handleStepClick(index)}
+              style={{ cursor: 'pointer' }}
+            >
+              {step.label}
+            </StepLabel>
+            <StepContent>
+              <Typography>{step.description}</Typography>
+              
+              {/* Step 1: Basic Info */}
+              {index === 0 && (
+                <Card sx={{ mt: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Informácie o prenájme
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Číslo objednávky"
+                          value={protocol.rentalData?.orderNumber || ''}
+                          fullWidth
+                          margin="normal"
+                          InputProps={{ readOnly: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Zákazník"
+                          value={protocol.rentalData?.customer?.name || ''}
+                          fullWidth
+                          margin="normal"
+                          InputProps={{ readOnly: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Vozidlo"
+                          value={`${protocol.rentalData?.vehicle?.brand} ${protocol.rentalData?.vehicle?.model} (${protocol.rentalData?.vehicle?.licensePlate})`}
+                          fullWidth
+                          margin="normal"
+                          InputProps={{ readOnly: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Cena"
+                          value={`${protocol.rentalData?.totalPrice} ${protocol.rentalData?.currency}`}
+                          fullWidth
+                          margin="normal"
+                          InputProps={{ readOnly: true }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Step 2: Vehicle Condition */}
+              {index === 1 && (
+                <Card sx={{ mt: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Stav vozidla
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Kilometre"
+                          type="number"
+                          value={protocol.vehicleCondition?.odometer || 0}
+                          onChange={(e) => handleVehicleConditionChange('odometer', parseInt(e.target.value) || 0)}
+                          fullWidth
+                          margin="normal"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Stav paliva (%)"
+                          type="number"
+                          value={protocol.vehicleCondition?.fuelLevel || 100}
+                          onChange={(e) => handleVehicleConditionChange('fuelLevel', parseInt(e.target.value) || 100)}
+                          fullWidth
+                          margin="normal"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <FormControl fullWidth margin="normal">
+                          <InputLabel>Typ paliva</InputLabel>
+                          <Select
+                            value={protocol.vehicleCondition?.fuelType || 'gasoline'}
+                            onChange={(e) => handleVehicleConditionChange('fuelType', e.target.value)}
+                            label="Typ paliva"
+                          >
+                            <MenuItem value="gasoline">Benzín</MenuItem>
+                            <MenuItem value="diesel">Nafta</MenuItem>
+                            <MenuItem value="electric">Elektrické</MenuItem>
+                            <MenuItem value="hybrid">Hybrid</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <FormControl fullWidth margin="normal">
+                          <InputLabel>Stav exteriéru</InputLabel>
+                          <Select
+                            value={protocol.vehicleCondition?.exteriorCondition || 'Dobrý'}
+                            onChange={(e) => handleVehicleConditionChange('exteriorCondition', e.target.value)}
+                            label="Stav exteriéru"
+                          >
+                            <MenuItem value="Výborný">Výborný</MenuItem>
+                            <MenuItem value="Dobrý">Dobrý</MenuItem>
+                            <MenuItem value="Uspokojivý">Uspokojivý</MenuItem>
+                            <MenuItem value="Zlý">Zlý</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Poznámky k stavu vozidla"
+                          multiline
+                          rows={3}
+                          value={protocol.vehicleCondition?.notes || ''}
+                          onChange={(e) => handleVehicleConditionChange('notes', e.target.value)}
+                          fullWidth
+                          margin="normal"
+                        />
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Step 3: Photo Documentation */}
+              {index === 2 && (
+                <Card sx={{ mt: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Fotodokumentácia
+                    </Typography>
+                    
+                    <Stack spacing={2}>
+                      <Button
+                        variant="outlined"
+                        startIcon={<PhotoCamera />}
+                        onClick={() => setActivePhotoCapture('vehicle')}
+                        fullWidth
+                      >
+                        Fotografovať vozidlo
+                      </Button>
+                      
+                      <Button
+                        variant="outlined"
+                        startIcon={<DescriptionIcon />}
+                        onClick={() => setActivePhotoCapture('document')}
+                        fullWidth
+                      >
+                        Fotografovať doklady
+                      </Button>
+                    </Stack>
+                    
+                    {/* Display uploaded images */}
+                    {(protocol.vehicleImages && protocol.vehicleImages.length > 0) && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle1" gutterBottom>
+                          Obrázky vozidla ({protocol.vehicleImages.length})
+                        </Typography>
+                        <Grid container spacing={1}>
+                          {protocol.vehicleImages.map((image, idx) => (
+                            <Grid item xs={6} sm={4} md={3} key={idx}>
+                              <img
+                                src={image.url}
+                                alt={`Vehicle ${idx + 1}`}
+                                style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px' }}
+                              />
+                            </Grid>
+                          ))}
+                        </Grid>
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Step 4: Damages and Notes */}
+              {index === 3 && (
+                <Card sx={{ mt: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Škody a poznámky
+                    </Typography>
+                    
+                    <Button
+                      variant="outlined"
+                      startIcon={<AddIcon />}
+                      onClick={addDamage}
+                      sx={{ mb: 2 }}
+                    >
+                      Pridať škodu
+                    </Button>
+                    
+                    {protocol.damages && protocol.damages.map((damage, idx) => (
+                      <Card key={damage.id} sx={{ mb: 2, p: 2 }}>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              label="Popis škody"
+                              value={damage.description}
+                              onChange={(e) => updateDamage(damage.id, 'description', e.target.value)}
+                              fullWidth
+                              multiline
+                              rows={2}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              label="Lokalizácia"
+                              value={damage.location}
+                              onChange={(e) => updateDamage(damage.id, 'location', e.target.value)}
+                              fullWidth
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth>
+                              <InputLabel>Závažnosť</InputLabel>
+                              <Select
+                                value={damage.severity}
+                                onChange={(e) => updateDamage(damage.id, 'severity', e.target.value)}
+                                label="Závažnosť"
+                              >
+                                <MenuItem value="low">Menšia</MenuItem>
+                                <MenuItem value="medium">Stredná</MenuItem>
+                                <MenuItem value="high">Vážna</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </Grid>
+                          <Grid item xs={12}>
+                            <IconButton
+                              color="error"
+                              onClick={() => removeDamage(damage.id)}
+                              size="small"
+                            >
+                              <RemoveIcon />
+                            </IconButton>
+                          </Grid>
+                        </Grid>
+                      </Card>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Step 5: Signatures */}
+              {index === 4 && (
+                <Card sx={{ mt: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Elektronický podpis
+                    </Typography>
+                    
+                    <Button
+                      variant="outlined"
+                      startIcon={<DrawIcon />}
+                      onClick={() => setShowSignaturePad(true)}
+                      fullWidth
+                    >
+                      Podpísať protokol
+                    </Button>
+                    
+                    {protocol.signatures && protocol.signatures.map((signature, idx) => (
+                      <Card key={signature.id} sx={{ mt: 2, p: 2 }}>
+                        <Typography variant="subtitle2">
+                          Podpis: {signature.signerName}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Čas: {new Date(signature.timestamp).toLocaleString()}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Miesto: {signature.location}
+                        </Typography>
+                      </Card>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              
+              <Box sx={{ mb: 2 }}>
+                <div>
+                  <Button
+                    variant="contained"
+                    onClick={handleNext}
+                    sx={{ mt: 1, mr: 1 }}
+                    disabled={activeStep === steps.length - 1}
+                  >
+                    {activeStep === steps.length - 1 ? 'Dokončiť' : 'Pokračovať'}
+                  </Button>
+                  <Button
+                    disabled={activeStep === 0}
+                    onClick={handleBack}
+                    sx={{ mt: 1, mr: 1 }}
+                  >
+                    Späť
+                  </Button>
+                </div>
+              </Box>
+            </StepContent>
+          </Step>
+        ))}
+      </Stepper>
+
+      <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+        <Button
+          onClick={handleGeneratePDF}
+          startIcon={<PdfIcon />}
+          variant="outlined"
+          disabled={!protocol.location || !protocol.vehicleCondition?.odometer}
+        >
+          Generovať PDF
+        </Button>
+        <Button
+          onClick={handleSave}
+          startIcon={<SaveIcon />}
+          variant="contained"
+          disabled={!pdfGenerated}
+        >
+          Uložiť protokol
+        </Button>
+      </Box>
 
       {/* Progress Modal */}
       {loading && (
