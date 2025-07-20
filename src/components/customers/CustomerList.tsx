@@ -24,10 +24,12 @@ import {
   Email as EmailIcon,
   Search as SearchIcon,
   FilterList as FilterListIcon,
+  History as HistoryIcon,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { Customer, Rental } from '../../types';
 import CustomerForm from './CustomerForm';
+import CustomerRentalHistory from './CustomerRentalHistory';
 import { v4 as uuidv4 } from 'uuid';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
@@ -39,6 +41,7 @@ export default function CustomerList() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [importError, setImportError] = useState('');
+  const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   // Hook na detekciu mobilu
@@ -201,6 +204,14 @@ export default function CustomerList() {
     }
   };
 
+  const handleShowHistory = (customer: Customer) => {
+    setSelectedCustomerForHistory(customer);
+  };
+
+  const handleCloseHistory = () => {
+    setSelectedCustomerForHistory(null);
+  };
+
   // Column definitions for ResponsiveTable
   const columns: ResponsiveTableColumn[] = useMemo(() => [
     {
@@ -268,9 +279,17 @@ export default function CustomerList() {
     {
       id: 'actions',
       label: 'Akcie',
-      width: { xs: '100px', md: '120px' },
+      width: { xs: '100px', md: '150px' },
       render: (value, customer: Customer) => (
         <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <IconButton
+            size="small"
+            onClick={(e) => { e.stopPropagation(); handleShowHistory(customer); }}
+            color="info"
+            title="História prenájmov"
+          >
+            <HistoryIcon fontSize="small" />
+          </IconButton>
           <IconButton
             size="small"
             onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}
@@ -625,6 +644,25 @@ export default function CustomerList() {
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
                     <IconButton
                       size="small"
+                      onClick={() => handleShowHistory(customer)}
+                      sx={{ 
+                        color: 'white',
+                        bgcolor: 'info.main',
+                        border: '1px solid',
+                        borderColor: 'info.main',
+                        '&:hover': { 
+                          bgcolor: 'info.dark', 
+                          borderColor: 'info.dark',
+                          transform: 'scale(1.05)'
+                        },
+                        transition: 'all 0.2s ease-in-out'
+                      }}
+                      title="História prenájmov"
+                    >
+                      <HistoryIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
                       onClick={() => handleEdit(customer)}
                       sx={{ 
                         color: 'white',
@@ -737,6 +775,17 @@ export default function CustomerList() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* História prenájmov zákazníka */}
+      {selectedCustomerForHistory && (
+        <CustomerRentalHistory
+          open={!!selectedCustomerForHistory}
+          onClose={handleCloseHistory}
+          customer={selectedCustomerForHistory}
+          rentals={state.rentals}
+          vehicles={state.vehicles}
+        />
+      )}
     </Box>
   );
 } 
