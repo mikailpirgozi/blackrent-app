@@ -592,6 +592,23 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     const vehicle = protocol.rentalData?.vehicle?.licensePlate || rental?.vehicle?.licensePlate || 'unknown';
     const sanitizedCustomer = customer.replace(/[^a-zA-Z0-9]/g, '_');
     const sanitizedVehicle = vehicle.replace(/[^a-zA-Z0-9]/g, '_');
+    
+    if (type === 'pdf') {
+      return `protokol_${sanitizedCustomer}_${sanitizedVehicle}_${date}.pdf`;
+    } else {
+      return `${type}_${sanitizedCustomer}_${sanitizedVehicle}_${date}.jpg`;
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <Box>
+      {/* ... existing JSX ... */}
+
+      {/* Progress Modal */}
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -617,27 +634,20 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         <SerialPhotoCapture
           open={!!activePhotoCapture}
           onClose={() => setActivePhotoCapture(null)}
-            />
-          </DialogContent>
-        </Dialog>
+          onSave={(images, videos) => handleMediaSave(activePhotoCapture as 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel', images, videos)}
+          title={`Fotografovanie ${activePhotoCapture === 'vehicle' ? 'vozidla' : 'dokladov'}`}
+          allowedTypes={[activePhotoCapture as 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel']}
+        />
       )}
-    </Box>
-  );
-};
 
-export default HandoverProtocolForm; 
-export default HandoverProtocolForm; 
-              onCancel={() => setShowSignaturePad(false)}
-              signerName={state.user?.username || 'admin'}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-    </Box>
-  );
-};
-
-export default HandoverProtocolForm; 
+      {/* Signature dialog */}
+      {showSignaturePad && (
+        <Dialog open={showSignaturePad} onClose={() => setShowSignaturePad(false)} maxWidth="md" fullWidth>
+          <DialogContent>
+            <DialogTitle>Elektronický podpis</DialogTitle>
+            <TextField
+              label="Meno podpisujúceho"
+              value={state.user?.username || 'admin'}
               InputProps={{ readOnly: true }}
               fullWidth
               sx={{ mb: 2 }}
@@ -653,13 +663,5 @@ export default HandoverProtocolForm;
     </Box>
   );
 };
-
-export default HandoverProtocolForm; 
-      )}
-    </Box>
-  );
-};
-
-export default HandoverProtocolForm; 
 
 export default HandoverProtocolForm; 
