@@ -76,6 +76,8 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
+  const [generatedPDF, setGeneratedPDF] = useState<Blob | null>(null); // ✅ Uložené PDF
+  const [pdfGenerated, setPdfGenerated] = useState(false); // ✅ Stav generovania
   
   // Generuj UUID len raz pri vytvorení komponentu
   const [protocolId] = useState(() => uuidv4());
@@ -231,16 +233,10 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     return pdfBlob;
   };
 
-  const handleGeneratePDF = async () => {
-    try {
-      setLoading(true);
-      
-      console.log('🔄 Generating PDF for protocol:', protocol.id);
-      
-      const pdfBlob = await generateProtocolPDF();
-
-      // Vytvorenie download linku
-      const url = URL.createObjectURL(pdfBlob);
+  // Funkcia na sťahovanie vygenerovaného PDF
+  const handleDownloadPDF = () => {
+    if (generatedPDF) {
+      const url = URL.createObjectURL(generatedPDF);
       const link = document.createElement('a');
       link.href = url;
       link.download = `protokol_prevzatie_${protocol.id || protocolId}_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -248,8 +244,21 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      console.log('✅ PDF downloaded successfully');
+    }
+  };
 
-      console.log('✅ PDF generated and downloaded successfully');
+  const handleGeneratePDF = async () => {
+    try {
+      setLoading(true);
+      
+      console.log('🔄 Generating PDF for protocol:', protocol.id);
+      
+      const pdfBlob = await generateProtocolPDF();
+      setGeneratedPDF(pdfBlob); // Ulož PDF do stavu
+      setPdfGenerated(true); // Označ, že PDF bol generovaný
+
+      console.log('✅ PDF generated and stored in state');
     } catch (error) {
       console.error('❌ Error generating PDF:', error);
       alert('Nepodarilo sa vygenerovať PDF: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
@@ -264,12 +273,17 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       
       console.log('🚀 Začínam ukladanie protokolu...');
       
-      // 🚀 KROK 1: Generovanie PDF s rovnakými dátami ako pred uložením
-      const pdfBlob = await generateProtocolPDF();
-      console.log('✅ PDF vygenerované s rovnakými dátami');
+      // 🚀 KROK 1: Kontrola či je PDF vygenerované
+      if (!generatedPDF || !pdfGenerated) {
+        alert('Najprv musíte vygenerovať PDF pred uložením protokolu!');
+        setLoading(false);
+        return;
+      }
       
-      // 🚀 KROK 2: Upload PDF do R2
-      const pdfFile = new File([pdfBlob], `protokol_prevzatie_${protocol.id || protocolId}_${new Date().toISOString().split('T')[0]}.pdf`, { 
+      console.log('✅ Používam uložené PDF z generovania');
+      
+      // 🚀 KROK 2: Upload uloženého PDF do R2
+      const pdfFile = new File([generatedPDF], `protokol_prevzatie_${protocol.id || protocolId}_${new Date().toISOString().split('T')[0]}.pdf`, { 
         type: 'application/pdf' 
       });
       
@@ -1158,15 +1172,35 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                   {index === steps.length - 1 ? 'Uložiť protokol' : 'Ďalej'}
                 </Button>
                 {index === steps.length - 1 && (
-                  <Button
-                    variant="outlined"
-                    onClick={handleGeneratePDF}
-                    disabled={loading}
-                    startIcon={<PdfIcon />}
-                    sx={{ mr: 1, color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
-                  >
-                    Generovať PDF
-                  </Button>
+                  <>
+                    <Button
+                      variant="outlined"
+                      onClick={handleGeneratePDF}
+                      disabled={loading}
+                      startIcon={<PdfIcon />}
+                      sx={{ mr: 1, color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
+                    >
+                      {pdfGenerated ? 'Znovu generovať PDF' : 'Generovať PDF'}
+                    </Button>
+                    {pdfGenerated && generatedPDF && (
+                      <Button
+                        variant="contained"
+                        onClick={handleDownloadPDF}
+                        startIcon={<PdfIcon />}
+                        sx={{ mr: 1, backgroundColor: 'success.main' }}
+                      >
+                        Stiahnuť PDF
+                      </Button>
+                    )}
+                    {pdfGenerated && (
+                      <Chip 
+                        label="PDF pripravené" 
+                        color="success" 
+                        size="small" 
+                        sx={{ mr: 1, color: 'white' }}
+                      />
+                    )}
+                  </>
                 )}
                 <Button
                   disabled={index === 0}
