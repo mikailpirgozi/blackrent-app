@@ -126,8 +126,8 @@ export declare class PostgresDatabase {
     private extractMediaData;
     private mapMediaObjectsFromDB;
     private getMediaTypeFromUrl;
-    uploadProtocolFile(protocolId: string, file: Buffer, filename: string, contentType: string): Promise<string>;
-    uploadProtocolPDF(protocolId: string, pdfBuffer: Buffer): Promise<string>;
+    uploadProtocolFile(protocolId: string, file: Buffer, filename: string, contentType: string, mediaType?: 'vehicle-images' | 'document-images' | 'damage-images' | 'vehicle-videos'): Promise<string>;
+    uploadProtocolPDF(protocolId: string, pdfBuffer: Buffer, protocolType?: 'handover' | 'return'): Promise<string>;
     initProtocolTables(): Promise<void>;
     createHandoverProtocol(protocolData: any): Promise<any>;
     getHandoverProtocolsByRental(rentalId: string): Promise<any[]>;

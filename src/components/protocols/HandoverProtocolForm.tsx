@@ -681,17 +681,23 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     console.log('🗑️ Koncept protokolu vymazaný');
   };
 
-  const generateSmartFilename = (protocol: any, type: 'pdf' | 'image') => {
+  const generateSmartFilename = (protocol: any, type: 'pdf' | 'image', mediaType?: string, index?: number): string => {
     const date = new Date().toISOString().split('T')[0];
     const customer = protocol.rentalData?.customerName || rental?.customerName || 'unknown';
     const vehicle = protocol.rentalData?.vehicle?.licensePlate || rental?.vehicle?.licensePlate || 'unknown';
-    const sanitizedCustomer = customer.replace(/[^a-zA-Z0-9]/g, '_');
-    const sanitizedVehicle = vehicle.replace(/[^a-zA-Z0-9]/g, '_');
     
-    if (type === 'pdf') {
-      return `protokol_${sanitizedCustomer}_${sanitizedVehicle}_${date}.pdf`;
-    } else {
-      return `${type}_${sanitizedCustomer}_${sanitizedVehicle}_${date}.jpg`;
+    // ✅ LEPŠIE NÁZVY SÚBOROV
+    switch (type) {
+      case 'pdf':
+        return `handover-protocol-${customer}-${vehicle}-${date}.pdf`;
+      case 'image':
+        const mediaTypeLabel = mediaType === 'vehicle' ? 'vehicle' : 
+                             mediaType === 'document' ? 'document' : 
+                             mediaType === 'damage' ? 'damage' : 'image';
+        const indexLabel = index !== undefined ? `-${index + 1}` : '';
+        return `${mediaTypeLabel}-${customer}-${vehicle}-${date}${indexLabel}.jpg`;
+      default:
+        return `file-${Date.now()}.jpg`;
     }
   };
 

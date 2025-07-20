@@ -19,9 +19,29 @@ declare class R2Storage {
      */
     deleteFile(key: string): Promise<void>;
     /**
-     * Generovanie štruktúrovaného key pre súbor
+     * Generovanie lepšie organizovaných kľúčov pre súbory
      */
-    generateFileKey(type: 'vehicle' | 'protocol' | 'document', entityId: string, filename: string): string;
+    generateFileKey(type: 'vehicle' | 'protocol' | 'document', entityId: string, filename: string, mediaType?: 'vehicle-images' | 'document-images' | 'damage-images' | 'vehicle-videos' | 'pdf'): string;
+    /**
+     * Generovanie kľúča pre protokol PDF
+     */
+    generateProtocolPDFKey(protocolId: string, protocolType: 'handover' | 'return'): string;
+    /**
+     * Generovanie kľúča pre médiá protokolu
+     */
+    generateProtocolMediaKey(protocolId: string, mediaType: 'vehicle-images' | 'document-images' | 'damage-images' | 'vehicle-videos', filename: string): string;
+    /**
+     * Mazanie všetkých súborov protokolu
+     */
+    deleteProtocolFiles(protocolId: string): Promise<void>;
+    /**
+     * Získanie zoznamu všetkých súborov protokolu
+     */
+    listProtocolFiles(protocolId: string): Promise<string[]>;
+    /**
+     * Získanie zoznamu súborov podľa pattern
+     */
+    listFiles(prefix: string): Promise<string[]>;
     /**
      * Validácia typu súboru
      */

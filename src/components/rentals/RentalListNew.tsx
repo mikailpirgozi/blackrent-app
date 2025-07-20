@@ -229,7 +229,12 @@ export default function RentalList() {
       const data = await apiService.createHandoverProtocol(protocolData);
       console.log('Handover protocol created:', data);
       
-      // Aktualizácia protokolov - použij rentalId z protocolData
+      // ✅ VYČISTI CACHE A ZNOVU NAČÍTAJ PROTOKOLY
+      setProtocols(prev => {
+        const newProtocols = { ...prev };
+        delete newProtocols[protocolData.rentalId];
+        return newProtocols;
+      });
       await loadProtocolsForRental(protocolData.rentalId);
       
       alert('Prevzatie vozidla úspešne dokončené!');
@@ -258,7 +263,12 @@ export default function RentalList() {
       const data = await apiService.createReturnProtocol(protocolData);
       console.log('Return protocol created:', data);
       
-      // Aktualizácia protokolov - použij rentalId z protocolData
+      // ✅ VYČISTI CACHE A ZNOVU NAČÍTAJ PROTOKOLY
+      setProtocols(prev => {
+        const newProtocols = { ...prev };
+        delete newProtocols[protocolData.rentalId];
+        return newProtocols;
+      });
       await loadProtocolsForRental(protocolData.rentalId);
       
       alert('Vrátenie vozidla úspešne dokončené!');
@@ -369,7 +379,12 @@ export default function RentalList() {
       
       console.log(`Protokol ${type} pre prenájom ${rentalId} bol vymazaný`);
       
-      // Aktualizácia protokolov
+      // ✅ VYČISTI CACHE A ZNOVU NAČÍTAJ PROTOKOLY
+      setProtocols(prev => {
+        const newProtocols = { ...prev };
+        delete newProtocols[rentalId];
+        return newProtocols;
+      });
       await loadProtocolsForRental(rentalId);
     } catch (error) {
       console.error('Chyba pri mazaní protokolu:', error);

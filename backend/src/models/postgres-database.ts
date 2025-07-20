@@ -1899,38 +1899,42 @@ export class PostgresDatabase {
     protocolId: string, 
     file: Buffer, 
     filename: string, 
-    contentType: string
+    contentType: string,
+    mediaType: 'vehicle-images' | 'document-images' | 'damage-images' | 'vehicle-videos' = 'vehicle-images'
   ): Promise<string> {
     try {
-      const fileKey = r2Storage.generateFileKey('protocol', protocolId, filename);
+      // ✅ POUŽIJ NOVÉ R2 METÓDY S LEPŠOU ORGANIZÁCIOU
+      const fileKey = r2Storage.generateProtocolMediaKey(protocolId, mediaType, filename);
       const url = await r2Storage.uploadFile(fileKey, file, contentType, {
         protocol_id: protocolId,
+        media_type: mediaType,
         uploaded_at: new Date().toISOString()
       });
       
-      console.log('✅ Protocol file uploaded to R2:', url);
+      console.log(`✅ Protocol ${mediaType} uploaded to R2:`, url);
       return url;
     } catch (error) {
-      console.error('❌ Error uploading protocol file to R2:', error);
+      console.error(`❌ Error uploading protocol ${mediaType} to R2:`, error);
       throw error;
     }
   }
 
-  async uploadProtocolPDF(protocolId: string, pdfBuffer: Buffer): Promise<string> {
+  async uploadProtocolPDF(protocolId: string, pdfBuffer: Buffer, protocolType: 'handover' | 'return' = 'handover'): Promise<string> {
     try {
-      const filename = `protocol_${protocolId}_${Date.now()}.pdf`;
-      const fileKey = r2Storage.generateFileKey('protocol', protocolId, filename);
+      // ✅ POUŽIJ NOVÉ R2 METÓDY PRE PDF
+      const fileKey = r2Storage.generateProtocolPDFKey(protocolId, protocolType);
       
       const url = await r2Storage.uploadFile(fileKey, pdfBuffer, 'application/pdf', {
         protocol_id: protocolId,
+        protocol_type: protocolType,
         file_type: 'pdf',
         uploaded_at: new Date().toISOString()
       });
       
-      console.log('✅ Protocol PDF uploaded to R2:', url);
+      console.log(`✅ Protocol PDF (${protocolType}) uploaded to R2:`, url);
       return url;
     } catch (error) {
-      console.error('❌ Error uploading protocol PDF to R2:', error);
+      console.error(`❌ Error uploading protocol PDF (${protocolType}) to R2:`, error);
       throw error;
     }
   }
@@ -2165,11 +2169,13 @@ export class PostgresDatabase {
         throw new Error('Rental ID is required');
       }
 
-      // Extract full media data instead of just URLs
-      const vehicleImagesData = this.extractMediaData(protocolData.vehicleImages ?? []);
-      const vehicleVideosData = this.extractMediaData(protocolData.vehicleVideos ?? []);
-      const documentImagesData = this.extractMediaData(protocolData.documentImages ?? []);
-      const damageImagesData = this.extractMediaData(protocolData.damageImages ?? []);
+      // MÉDIA: Použij priamo médiá z frontendu - už sú v správnom formáte
+      console.log('🔄 [DB] Media before DB insert:', {
+        vehicleImages: protocolData.vehicleImages?.length || 0,
+        vehicleVideos: protocolData.vehicleVideos?.length || 0,
+        documentImages: protocolData.documentImages?.length || 0,
+        damageImages: protocolData.damageImages?.length || 0
+      });
 
       console.log('🔄 PDF URL before DB insert:', protocolData.pdfUrl);
 
@@ -2191,10 +2197,10 @@ export class PostgresDatabase {
         protocolData.vehicleCondition?.exteriorCondition || 'Dobrý',
         protocolData.vehicleCondition?.interiorCondition || 'Dobrý',
         protocolData.vehicleCondition?.notes || '',
-        vehicleImagesData, // JSONB automaticky serializuje objekty
-        vehicleVideosData,
-        documentImagesData,
-        damageImagesData,
+        protocolData.vehicleImages || [], // ✅ PRIAMO - bez extractMediaData
+        protocolData.vehicleVideos || [], // ✅ PRIAMO - bez extractMediaData
+        protocolData.documentImages || [], // ✅ PRIAMO - bez extractMediaData
+        protocolData.damageImages || [], // ✅ PRIAMO - bez extractMediaData
         JSON.stringify(protocolData.damages || []),
         JSON.stringify(protocolData.signatures || []),
         JSON.stringify(protocolData.rentalData || {}),
@@ -2207,9 +2213,21 @@ export class PostgresDatabase {
       const row = result.rows[0];
       console.log('✅ Handover protocol created:', row.id);
       console.log('✅ PDF URL in database:', row.pdf_url);
+      console.log('✅ Media in database:', {
+        vehicleImages: row.vehicle_images_urls?.length || 0,
+        vehicleVideos: row.vehicle_videos_urls?.length || 0,
+        documentImages: row.document_images_urls?.length || 0,
+        damageImages: row.damage_images_urls?.length || 0
+      });
       
       const mappedProtocol = this.mapHandoverProtocolFromDB(row);
       console.log('✅ Mapped protocol pdfUrl:', mappedProtocol.pdfUrl);
+      console.log('✅ Mapped protocol media:', {
+        vehicleImages: mappedProtocol.vehicleImages?.length || 0,
+        vehicleVideos: mappedProtocol.vehicleVideos?.length || 0,
+        documentImages: mappedProtocol.documentImages?.length || 0,
+        damageImages: mappedProtocol.damageImages?.length || 0
+      });
       
       return mappedProtocol;
     } catch (error) {
@@ -2525,17 +2543,39 @@ export class PostgresDatabase {
   async deleteHandoverProtocol(id: string): Promise<boolean> {
     const client = await this.pool.connect();
     try {
-      console.log('🗑️ Deleting handover protocol:', id);
+      console.log(`🗑️ Deleting handover protocol: ${id}`);
       
-      const result = await client.query(
-        'DELETE FROM handover_protocols WHERE id = $1 RETURNING id',
-        [id]
-      );
+      // Najprv získaj protokol aby sme vedeli vymazať súbory
+      const protocol = await this.getHandoverProtocolById(id);
+      if (!protocol) {
+        console.log(`⚠️ Protocol ${id} not found`);
+        return false;
+      }
       
-      return result.rows.length > 0;
+      // Vymazanie z databázy
+      const result = await client.query(`
+        DELETE FROM handover_protocols WHERE id = $1::uuid
+      `, [id]);
+      
+      if (result.rowCount === 0) {
+        console.log(`⚠️ No protocol deleted from database: ${id}`);
+        return false;
+      }
+      
+      // ✅ MAZANIE SÚBOROV Z R2
+      try {
+        await r2Storage.deleteProtocolFiles(id);
+        console.log(`✅ Protocol files deleted from R2: ${id}`);
+      } catch (error) {
+        console.error(`❌ Error deleting protocol files from R2: ${error}`);
+        // Pokračujeme aj keď sa súbory nevymazali
+      }
+      
+      console.log(`✅ Handover protocol deleted successfully: ${id}`);
+      return true;
     } catch (error) {
       console.error('❌ Error deleting handover protocol:', error);
-      throw error;
+      return false;
     } finally {
       client.release();
     }
@@ -2544,17 +2584,39 @@ export class PostgresDatabase {
   async deleteReturnProtocol(id: string): Promise<boolean> {
     const client = await this.pool.connect();
     try {
-      console.log('🗑️ Deleting return protocol:', id);
+      console.log(`🗑️ Deleting return protocol: ${id}`);
       
-      const result = await client.query(
-        'DELETE FROM return_protocols WHERE id = $1 RETURNING id',
-        [id]
-      );
+      // Najprv získaj protokol aby sme vedeli vymazať súbory
+      const protocol = await this.getReturnProtocolById(id);
+      if (!protocol) {
+        console.log(`⚠️ Protocol ${id} not found`);
+        return false;
+      }
       
-      return result.rows.length > 0;
+      // Vymazanie z databázy
+      const result = await client.query(`
+        DELETE FROM return_protocols WHERE id = $1::uuid
+      `, [id]);
+      
+      if (result.rowCount === 0) {
+        console.log(`⚠️ No protocol deleted from database: ${id}`);
+        return false;
+      }
+      
+      // ✅ MAZANIE SÚBOROV Z R2
+      try {
+        await r2Storage.deleteProtocolFiles(id);
+        console.log(`✅ Protocol files deleted from R2: ${id}`);
+      } catch (error) {
+        console.error(`❌ Error deleting protocol files from R2: ${error}`);
+        // Pokračujeme aj keď sa súbory nevymazali
+      }
+      
+      console.log(`✅ Return protocol deleted successfully: ${id}`);
+      return true;
     } catch (error) {
       console.error('❌ Error deleting return protocol:', error);
-      throw error;
+      return false;
     } finally {
       client.release();
     }

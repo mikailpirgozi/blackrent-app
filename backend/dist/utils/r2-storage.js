@@ -93,20 +93,110 @@ class R2Storage {
         }
     }
     /**
-     * Generovanie štruktúrovaného key pre súbor
+     * Generovanie lepšie organizovaných kľúčov pre súbory
      */
-    generateFileKey(type, entityId, filename) {
+    generateFileKey(type, entityId, filename, mediaType) {
         const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
         const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
         switch (type) {
             case 'vehicle':
                 return `vehicles/photos/${entityId}/${sanitizedFilename}`;
             case 'protocol':
-                return `protocols/${entityId}/${timestamp}/${sanitizedFilename}`;
+                // ✅ LEPŠIA ORGANIZÁCIA: protocols/type/date/protocol-id/filename
+                if (mediaType) {
+                    return `protocols/${mediaType}/${timestamp}/${entityId}/${sanitizedFilename}`;
+                }
+                return `protocols/general/${timestamp}/${entityId}/${sanitizedFilename}`;
             case 'document':
                 return `documents/rentals/${entityId}/${timestamp}/${sanitizedFilename}`;
             default:
                 return `temp/uploads/${timestamp}/${sanitizedFilename}`;
+        }
+    }
+    /**
+     * Generovanie kľúča pre protokol PDF
+     */
+    generateProtocolPDFKey(protocolId, protocolType) {
+        const timestamp = new Date().toISOString().split('T')[0];
+        return `protocols/pdf/${timestamp}/${protocolId}/${protocolType}-protocol.pdf`;
+    }
+    /**
+     * Generovanie kľúča pre médiá protokolu
+     */
+    generateProtocolMediaKey(protocolId, mediaType, filename) {
+        const timestamp = new Date().toISOString().split('T')[0];
+        const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+        return `protocols/${mediaType}/${timestamp}/${protocolId}/${sanitizedFilename}`;
+    }
+    /**
+     * Mazanie všetkých súborov protokolu
+     */
+    async deleteProtocolFiles(protocolId) {
+        try {
+            console.log(`🗑️ Deleting all files for protocol: ${protocolId}`);
+            // Získanie zoznamu všetkých súborov protokolu
+            const filesToDelete = await this.listProtocolFiles(protocolId);
+            if (filesToDelete.length === 0) {
+                console.log(`ℹ️ No files found for protocol: ${protocolId}`);
+                return;
+            }
+            console.log(`🗑️ Found ${filesToDelete.length} files to delete`);
+            // Mazanie súborov v batch
+            const deletePromises = filesToDelete.map(key => this.deleteFile(key));
+            await Promise.all(deletePromises);
+            console.log(`✅ Successfully deleted ${filesToDelete.length} files for protocol: ${protocolId}`);
+        }
+        catch (error) {
+            console.error(`❌ Error deleting protocol files: ${error}`);
+            throw error;
+        }
+    }
+    /**
+     * Získanie zoznamu všetkých súborov protokolu
+     */
+    async listProtocolFiles(protocolId) {
+        try {
+            // Hľadanie súborov v rôznych priečinkoch
+            const searchPatterns = [
+                `protocols/vehicle-images/*/${protocolId}/*`,
+                `protocols/document-images/*/${protocolId}/*`,
+                `protocols/damage-images/*/${protocolId}/*`,
+                `protocols/vehicle-videos/*/${protocolId}/*`,
+                `protocols/pdf/*/${protocolId}/*`,
+                `protocols/general/*/${protocolId}/*`
+            ];
+            const allFiles = [];
+            for (const pattern of searchPatterns) {
+                try {
+                    const files = await this.listFiles(pattern);
+                    allFiles.push(...files);
+                }
+                catch (error) {
+                    console.warn(`⚠️ Error listing files with pattern ${pattern}:`, error);
+                }
+            }
+            return allFiles;
+        }
+        catch (error) {
+            console.error(`❌ Error listing protocol files: ${error}`);
+            return [];
+        }
+    }
+    /**
+     * Získanie zoznamu súborov podľa pattern
+     */
+    async listFiles(prefix) {
+        try {
+            const command = new client_s3_1.ListObjectsV2Command({
+                Bucket: this.config.bucketName,
+                Prefix: prefix,
+            });
+            const response = await this.client.send(command);
+            return response.Contents?.map(obj => obj.Key || '').filter(Boolean) || [];
+        }
+        catch (error) {
+            console.error(`❌ Error listing files with prefix ${prefix}:`, error);
+            return [];
         }
     }
     /**
