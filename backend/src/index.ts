@@ -76,6 +76,7 @@ import protocolRoutes from './routes/protocols';
 import fileRoutes from './routes/files';
 import settlementRoutes from './routes/settlements';
 import fixDatabaseRoutes from './routes/fix-database';
+import migrationRoutes from './routes/migration';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -90,6 +91,7 @@ app.use('/api/protocols', protocolRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/settlements', settlementRoutes);
 app.use('/api/fix-database', fixDatabaseRoutes);
+app.use('/api/migration', migrationRoutes);
 
 // API Health endpoint for frontend compatibility
 app.get('/api/health', (req, res) => {

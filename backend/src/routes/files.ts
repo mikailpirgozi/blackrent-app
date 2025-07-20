@@ -1,239 +1,227 @@
 import express from 'express';
 import multer from 'multer';
-import { r2Storage } from '../utils/r2-storage';
-import { authenticateToken } from '../middleware/auth';
+import { r2Storage } from '../utils/r2-storage.js';
 
 const router = express.Router();
 
-// Multer konfigurácia pre memory storage
-const upload = multer({ 
+// Multer konfigurácia pre upload súborov
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB max
-  }
+  },
+  fileFilter: (req, file, cb) => {
+    if (r2Storage.validateFileType(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Nepodporovaný typ súboru'));
+    }
+  },
 });
 
-/**
- * Upload súboru do R2 storage
- * POST /api/files/upload
- */
-router.post('/upload', authenticateToken, upload.single('file'), async (req, res) => {
+// Upload súboru do R2
+router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No file provided' });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Žiadny súbor nebol nahraný' 
+      });
     }
 
-    // Kontrola či je R2 nakonfigurované
-    if (!r2Storage.isConfigured()) {
-      return res.status(503).json({ 
-        error: 'File storage not configured. Using local storage fallback.' 
+    const { type, entityId } = req.body;
+    
+    if (!type || !entityId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba type alebo entityId' 
       });
     }
 
     // Validácia typu súboru
     if (!r2Storage.validateFileType(req.file.mimetype)) {
       return res.status(400).json({ 
-        error: 'Invalid file type. Allowed: JPEG, PNG, WebP, PDF, SVG' 
+        success: false, 
+        error: 'Nepodporovaný typ súboru' 
       });
     }
 
     // Validácia veľkosti súboru
     const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'document';
     if (!r2Storage.validateFileSize(req.file.size, fileType)) {
-      const maxSize = fileType === 'image' ? '10MB' : '50MB';
       return res.status(400).json({ 
-        error: `File too large. Maximum size for ${fileType}s: ${maxSize}` 
+        success: false, 
+        error: 'Súbor je príliš veľký' 
       });
     }
 
-    // Získanie parametrov z query/body
-    const { type = 'temp', entityId = 'unknown' } = req.body;
-    
-    // Generovanie key pre R2
+    // Generovanie file key
     const fileKey = r2Storage.generateFileKey(
-      type as 'vehicle' | 'protocol' | 'document',
-      entityId,
+      type as 'vehicle' | 'protocol' | 'document', 
+      entityId, 
       req.file.originalname
     );
 
     // Upload do R2
-    const publicUrl = await r2Storage.uploadFile(
+    const url = await r2Storage.uploadFile(
       fileKey,
       req.file.buffer,
       req.file.mimetype,
       {
-        originalName: req.file.originalname,
-        uploadedBy: (req as any).user?.id?.toString() || 'unknown',
-        uploadedAt: new Date().toISOString(),
+        original_name: req.file.originalname,
+        uploaded_at: new Date().toISOString(),
+        entity_id: entityId,
+        file_type: type
       }
     );
 
-    // Úspešná odpoveď
+    console.log('✅ File uploaded to R2:', url);
+
     res.json({
       success: true,
-      data: {
-        url: publicUrl,
-        key: fileKey,
-        filename: req.file.originalname,
-        size: req.file.size,
-        type: req.file.mimetype,
-      }
+      url: url,
+      key: fileKey,
+      filename: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype
     });
 
   } catch (error) {
-    console.error('File upload error:', error);
+    console.error('❌ Error uploading file:', error);
     res.status(500).json({ 
-      error: 'Failed to upload file',
-      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
+      success: false, 
+      error: 'Chyba pri nahrávaní súboru' 
     });
   }
 });
 
-/**
- * Vytvorenie presigned URL pre direct upload z frontendu
- * POST /api/files/presigned-upload-url
- */
-router.post('/presigned-upload-url', authenticateToken, async (req, res) => {
+// Vytvorenie presigned URL pre direct upload
+router.post('/presigned-url', async (req, res) => {
   try {
-    const { filename, contentType, type = 'temp', entityId = 'unknown' } = req.body;
-
-    if (!filename || !contentType) {
+    const { type, entityId, filename, contentType } = req.body;
+    
+    if (!type || !entityId || !filename || !contentType) {
       return res.status(400).json({ 
-        error: 'Filename and contentType are required' 
-      });
-    }
-
-    // Kontrola či je R2 nakonfigurované
-    if (!r2Storage.isConfigured()) {
-      return res.status(503).json({ 
-        error: 'File storage not configured' 
+        success: false, 
+        error: 'Chýbajú povinné parametre' 
       });
     }
 
     // Validácia typu súboru
     if (!r2Storage.validateFileType(contentType)) {
       return res.status(400).json({ 
-        error: 'Invalid file type. Allowed: JPEG, PNG, WebP, PDF, SVG' 
+        success: false, 
+        error: 'Nepodporovaný typ súboru' 
       });
     }
 
-    // Generovanie key pre R2
+    // Generovanie file key
     const fileKey = r2Storage.generateFileKey(
-      type as 'vehicle' | 'protocol' | 'document',
-      entityId,
+      type as 'vehicle' | 'protocol' | 'document', 
+      entityId, 
       filename
     );
 
     // Vytvorenie presigned URL
-    const uploadUrl = await r2Storage.createPresignedUploadUrl(fileKey, contentType);
-    const publicUrl = r2Storage.getPublicUrl(fileKey);
+    const presignedUrl = await r2Storage.createPresignedUploadUrl(
+      fileKey,
+      contentType,
+      3600 // 1 hodina
+    );
 
     res.json({
       success: true,
-      data: {
-        uploadUrl,
-        publicUrl,
-        key: fileKey,
-        expiresIn: 3600, // 1 hodina
-      }
+      presignedUrl: presignedUrl,
+      key: fileKey,
+      publicUrl: r2Storage.getPublicUrl(fileKey)
     });
 
   } catch (error) {
-    console.error('Presigned URL error:', error);
+    console.error('❌ Error creating presigned URL:', error);
     res.status(500).json({ 
-      error: 'Failed to create upload URL',
-      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
+      success: false, 
+      error: 'Chyba pri vytváraní presigned URL' 
     });
   }
 });
 
-/**
- * Vytvorenie presigned URL pre download
- * GET /api/files/:key/download-url
- */
-router.get('/:key/download-url', authenticateToken, async (req, res) => {
+// Zmazanie súboru z R2
+router.delete('/:key', async (req, res) => {
   try {
     const { key } = req.params;
     
-    // Dekódovanie key (môže obsahovať slashes)
-    const decodedKey = decodeURIComponent(key);
-
-    // Kontrola či je R2 nakonfigurované
-    if (!r2Storage.isConfigured()) {
-      return res.status(503).json({ 
-        error: 'File storage not configured' 
+    if (!key) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba file key' 
       });
     }
 
-    // Vytvorenie presigned download URL
-    const downloadUrl = await r2Storage.createPresignedDownloadUrl(decodedKey);
+    await r2Storage.deleteFile(key);
+    
+    console.log('✅ File deleted from R2:', key);
 
     res.json({
       success: true,
-      data: {
-        downloadUrl,
-        expiresIn: 3600,
-      }
+      message: 'Súbor bol úspešne vymazaný'
     });
 
   } catch (error) {
-    console.error('Download URL error:', error);
+    console.error('❌ Error deleting file:', error);
     res.status(500).json({ 
-      error: 'Failed to create download URL',
-      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
+      success: false, 
+      error: 'Chyba pri mazaní súboru' 
     });
   }
 });
 
-/**
- * Zmazanie súboru z R2
- * DELETE /api/files/:key
- */
-router.delete('/:key', authenticateToken, async (req, res) => {
+// Získanie public URL pre súbor
+router.get('/:key/url', async (req, res) => {
   try {
     const { key } = req.params;
     
-    // Dekódovanie key
-    const decodedKey = decodeURIComponent(key);
-
-    // Kontrola či je R2 nakonfigurované
-    if (!r2Storage.isConfigured()) {
-      return res.status(503).json({ 
-        error: 'File storage not configured' 
+    if (!key) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba file key' 
       });
     }
 
-    // Zmazanie súboru
-    await r2Storage.deleteFile(decodedKey);
+    const publicUrl = r2Storage.getPublicUrl(key);
 
     res.json({
       success: true,
-      message: 'File deleted successfully'
+      url: publicUrl,
+      key: key
     });
 
   } catch (error) {
-    console.error('File delete error:', error);
+    console.error('❌ Error getting file URL:', error);
     res.status(500).json({ 
-      error: 'Failed to delete file',
-      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
+      success: false, 
+      error: 'Chyba pri získavaní URL' 
     });
   }
 });
 
-/**
- * Health check pre file storage
- * GET /api/files/health
- */
-router.get('/health', (req, res) => {
-  const isConfigured = r2Storage.isConfigured();
-  
-  res.json({
-    success: true,
-    r2Storage: {
+// Kontrola R2 konfigurácie
+router.get('/status', async (req, res) => {
+  try {
+    const isConfigured = r2Storage.isConfigured();
+    
+    res.json({
+      success: true,
       configured: isConfigured,
-      status: isConfigured ? 'ready' : 'not configured'
-    }
-  });
+      message: isConfigured ? 'R2 Storage je nakonfigurované' : 'R2 Storage nie je nakonfigurované'
+    });
+
+  } catch (error) {
+    console.error('❌ Error checking R2 status:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri kontrole R2 stavu' 
+    });
+  }
 });
 
 export default router; 
