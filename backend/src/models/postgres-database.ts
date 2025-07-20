@@ -2158,6 +2158,7 @@ export class PostgresDatabase {
       
       console.log('🔄 Creating handover protocol:', protocolData.id);
       console.log('🔄 Protocol data:', JSON.stringify(protocolData, null, 2));
+      console.log('🔄 PDF URL from input:', protocolData.pdfUrl);
 
       // Validácia dát
       if (!protocolData.rentalId) {
@@ -2169,6 +2170,8 @@ export class PostgresDatabase {
       const vehicleVideosData = this.extractMediaData(protocolData.vehicleVideos ?? []);
       const documentImagesData = this.extractMediaData(protocolData.documentImages ?? []);
       const damageImagesData = this.extractMediaData(protocolData.damageImages ?? []);
+
+      console.log('🔄 PDF URL before DB insert:', protocolData.pdfUrl);
 
       const result = await client.query(`
         INSERT INTO handover_protocols (
@@ -2203,8 +2206,12 @@ export class PostgresDatabase {
 
       const row = result.rows[0];
       console.log('✅ Handover protocol created:', row.id);
-      return this.mapHandoverProtocolFromDB(row);
-
+      console.log('✅ PDF URL in database:', row.pdf_url);
+      
+      const mappedProtocol = this.mapHandoverProtocolFromDB(row);
+      console.log('✅ Mapped protocol pdfUrl:', mappedProtocol.pdfUrl);
+      
+      return mappedProtocol;
     } catch (error) {
       console.error('❌ Error creating handover protocol:', error);
       console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
@@ -2418,7 +2425,13 @@ export class PostgresDatabase {
       }
     };
 
-    return {
+    console.log('🔄 [DB] Mapping handover protocol from DB row:', {
+      id: row.id,
+      pdf_url: row.pdf_url,
+      pdf_url_type: typeof row.pdf_url
+    });
+
+    const mappedProtocol = {
       id: row.id,
       rentalId: row.rental_id,
       type: 'handover',
@@ -2447,6 +2460,9 @@ export class PostgresDatabase {
       notes: row.notes,
       createdBy: row.created_by
     };
+
+    console.log('🔄 [DB] Mapped protocol pdfUrl:', mappedProtocol.pdfUrl);
+    return mappedProtocol;
   }
 
   private mapReturnProtocolFromDB(row: any): any {

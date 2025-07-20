@@ -301,16 +301,33 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       formData.append('entityId', protocol.id || protocolId);
       
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      console.log('🔄 Uploading PDF to R2...', {
+        fileSize: pdfFile.size,
+        filename: pdfFile.name,
+        entityId: protocol.id || protocolId
+      });
+      
       const pdfResponse = await fetch(`${apiBaseUrl}/files/upload`, {
         method: 'POST',
         body: formData,
       });
       
+      console.log('📋 PDF upload response status:', pdfResponse.status);
+      
       if (!pdfResponse.ok) {
-        throw new Error('Nepodarilo sa uploadovať PDF do R2');
+        const errorText = await pdfResponse.text();
+        console.error('❌ PDF upload failed:', errorText);
+        throw new Error(`Nepodarilo sa uploadovať PDF do R2: ${pdfResponse.status} - ${errorText}`);
       }
       
       const pdfResult = await pdfResponse.json();
+      console.log('✅ PDF upload response:', pdfResult);
+      
+      if (!pdfResult.url) {
+        console.error('❌ PDF upload response missing URL:', pdfResult);
+        throw new Error('PDF upload response neobsahuje URL');
+      }
+      
       console.log('✅ PDF uploadované do R2:', pdfResult.url);
       
       setPdfProgress(30);
@@ -420,7 +437,20 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         pdfUrl: pdfResult.url, // R2 URL na PDF
       };
       
-      console.log('✅ Protokol pripravený na uloženie s R2 URL:', protocolData);
+      console.log('✅ Protokol pripravený na uloženie s R2 URL:', {
+        id: protocolData.id,
+        rentalId: protocolData.rentalId,
+        pdfUrl: protocolData.pdfUrl,
+        vehicleImagesCount: protocolData.vehicleImages?.length || 0,
+        documentImagesCount: protocolData.documentImages?.length || 0,
+        damageImagesCount: protocolData.damageImages?.length || 0
+      });
+      
+      // Kontrola či pdfUrl existuje
+      if (!protocolData.pdfUrl) {
+        console.error('❌ CRITICAL: pdfUrl is missing from protocol data!');
+        throw new Error('PDF URL chýba v protokol dátach');
+      }
       
       setPdfProgress(95);
       setProgressMessage('Finalizujem...');
