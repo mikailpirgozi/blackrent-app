@@ -21,6 +21,9 @@ import {
   Tab,
   useTheme,
   useMediaQuery,
+  Button,
+  Collapse,
+  IconButton,
 } from '@mui/material';
 import {
   BarChart,
@@ -42,6 +45,8 @@ import {
 import { useApp } from '../context/AppContext';
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -74,6 +79,7 @@ const Statistics: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [tabValue, setTabValue] = useState(0);
+  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
 
   // Reálne dáta z aplikácie
   const stats = useMemo(() => {
@@ -212,8 +218,45 @@ const Statistics: React.FC = () => {
     }));
   }, [state.expenses]);
 
+  // Dáta pre mesačný prehľad prenájmov
+  const monthlyRentalsData = useMemo(() => {
+    const months = eachMonthOfInterval({
+      start: new Date(selectedYear, 0, 1),
+      end: new Date(selectedYear, 11, 31),
+    });
+
+    return months.map(month => {
+      const monthStart = startOfMonth(month);
+      const monthEnd = endOfMonth(month);
+      
+      const monthRentals = state.rentals.filter(rental => {
+        const rentalDate = new Date(rental.startDate);
+        return rentalDate >= monthStart && rentalDate <= monthEnd;
+      });
+
+      const revenue = monthRentals.reduce((sum, rental) => sum + (rental.totalPrice || 0), 0);
+      const commission = monthRentals.reduce((sum, rental) => sum + (rental.commission || 0), 0);
+      const avgPrice = monthRentals.length > 0 ? revenue / monthRentals.length : 0;
+
+      return {
+        month: format(month, 'MMMM yyyy', { locale: sk }),
+        monthKey: format(month, 'yyyy-MM'),
+        rentals: monthRentals,
+        count: monthRentals.length,
+        revenue,
+        commission,
+        avgPrice,
+        monthDate: month,
+      };
+    });
+  }, [state.rentals, selectedYear]);
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+  };
+
+  const toggleMonthExpansion = (monthKey: string) => {
+    setExpandedMonth(expandedMonth === monthKey ? null : monthKey);
   };
 
   return (
@@ -293,6 +336,7 @@ const Statistics: React.FC = () => {
       <Paper sx={{ width: '100%' }}>
         <Tabs value={tabValue} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label="📈 Mesačné trendy" />
+          <Tab label="📅 Mesačný prehľad prenájmov" />
           <Tab label="🚗 Vozidlá" />
           <Tab label="💰 Náklady" />
           <Tab label="📋 Detailné reporty" />
@@ -343,8 +387,181 @@ const Statistics: React.FC = () => {
           </Grid>
         </TabPanel>
 
-        {/* Vozidlá */}
+        {/* Mesačný prehľad prenájmov */}
         <TabPanel value={tabValue} index={1}>
+          <Box sx={{ mb: 3 }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Rok</InputLabel>
+                  <Select
+                    value={selectedYear}
+                    label="Rok"
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  >
+                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                      <MenuItem key={year} value={year}>{year}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item>
+                <Typography variant="body2" color="text.secondary">
+                  Celkovo {monthlyRentalsData.reduce((sum, month) => sum + month.count, 0)} prenájmov v roku {selectedYear}
+                </Typography>
+              </Grid>
+            </Grid>
+          </Box>
+
+          <Grid container spacing={3}>
+            <Grid item xs={12} lg={8}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Prenájmy podľa mesiacov - {selectedYear}
+                  </Typography>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={monthlyRentalsData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value, name) => [
+                        name === 'revenue' ? `€${value?.toLocaleString()}` : value,
+                        name === 'revenue' ? 'Príjmy' : 'Počet prenájmov'
+                      ]} />
+                      <Legend />
+                      <Bar dataKey="revenue" fill="#8884d8" name="Príjmy" />
+                      <Bar dataKey="count" fill="#82ca9d" name="Počet prenájmov" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} lg={4}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Priemerná cena prenájmu
+                  </Typography>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={monthlyRentalsData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => `€${value?.toLocaleString()}`} />
+                      <Line type="monotone" dataKey="avgPrice" stroke="#ff7300" name="Priemerná cena" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Detailný prehľad prenájmov podľa mesiacov
+                  </Typography>
+                  
+                  {monthlyRentalsData.map((monthData) => (
+                    <Box key={monthData.monthKey} sx={{ mb: 2 }}>
+                      <Card variant="outlined">
+                        <CardContent sx={{ py: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                              <Typography variant="h6" sx={{ minWidth: 120 }}>
+                                {monthData.month}
+                              </Typography>
+                              <Chip 
+                                label={`${monthData.count} prenájmov`} 
+                                color="primary" 
+                                size="small" 
+                              />
+                              <Typography variant="body2" color="success.main" fontWeight="bold">
+                                €{monthData.revenue.toLocaleString()}
+                              </Typography>
+                              <Typography variant="body2" color="info.main">
+                                Priemer: €{monthData.avgPrice.toLocaleString()}
+                              </Typography>
+                            </Box>
+                            <IconButton
+                              size="small"
+                              onClick={() => toggleMonthExpansion(monthData.monthKey)}
+                            >
+                              {expandedMonth === monthData.monthKey ? 
+                                <KeyboardArrowUpIcon /> : 
+                                <KeyboardArrowDownIcon />
+                              }
+                            </IconButton>
+                          </Box>
+                          
+                          <Collapse in={expandedMonth === monthData.monthKey}>
+                            <Box sx={{ mt: 2 }}>
+                              {monthData.rentals.length > 0 ? (
+                                <TableContainer>
+                                  <Table size="small">
+                                    <TableHead>
+                                      <TableRow>
+                                        <TableCell>Dátum</TableCell>
+                                        <TableCell>Zákazník</TableCell>
+                                        <TableCell>Vozidlo</TableCell>
+                                        <TableCell>Doba</TableCell>
+                                        <TableCell align="right">Cena</TableCell>
+                                        <TableCell align="right">Provízia</TableCell>
+                                      </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                      {monthData.rentals.map((rental) => {
+                                        const vehicle = state.vehicles.find(v => v.id === rental.vehicleId);
+                                        const startDate = new Date(rental.startDate);
+                                        const endDate = new Date(rental.endDate);
+                                        const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                                        
+                                        return (
+                                          <TableRow key={rental.id}>
+                                            <TableCell>
+                                              {format(startDate, 'dd.MM.yyyy')}
+                                            </TableCell>
+                                            <TableCell>{rental.customerName}</TableCell>
+                                            <TableCell>
+                                              {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'N/A'}
+                                              <Typography variant="caption" display="block" color="text.secondary">
+                                                {vehicle?.licensePlate || 'N/A'}
+                                              </Typography>
+                                            </TableCell>
+                                            <TableCell>{days} dní</TableCell>
+                                            <TableCell align="right">
+                                              €{rental.totalPrice?.toLocaleString()}
+                                            </TableCell>
+                                            <TableCell align="right">
+                                              €{rental.commission?.toLocaleString()}
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                    </TableBody>
+                                  </Table>
+                                </TableContainer>
+                              ) : (
+                                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                                  Žiadne prenájmy v tomto mesiaci
+                                </Typography>
+                              )}
+                            </Box>
+                          </Collapse>
+                        </CardContent>
+                      </Card>
+                    </Box>
+                  ))}
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </TabPanel>
+
+        {/* Vozidlá */}
+        <TabPanel value={tabValue} index={2}>
           <Grid container spacing={3}>
             <Grid item xs={12} lg={8}>
               <Card>
@@ -411,7 +628,7 @@ const Statistics: React.FC = () => {
         </TabPanel>
 
         {/* Náklady */}
-        <TabPanel value={tabValue} index={2}>
+        <TabPanel value={tabValue} index={3}>
           <Grid container spacing={3}>
             <Grid item xs={12} lg={6}>
               <Card>
@@ -476,7 +693,7 @@ const Statistics: React.FC = () => {
         </TabPanel>
 
         {/* Detailné reporty */}
-        <TabPanel value={tabValue} index={3}>
+        <TabPanel value={tabValue} index={4}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Card>
