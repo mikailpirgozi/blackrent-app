@@ -229,10 +229,8 @@ export default function RentalList() {
       const data = await apiService.createHandoverProtocol(protocolData);
       console.log('Handover protocol created:', data);
       
-      // Aktualizácia protokolov
-      if (selectedRentalForProtocol) {
-        await loadProtocolsForRental(selectedRentalForProtocol.id);
-      }
+      // Aktualizácia protokolov - použij rentalId z protocolData
+      await loadProtocolsForRental(protocolData.rentalId);
       
       alert('Prevzatie vozidla úspešne dokončené!');
       setOpenHandoverDialog(false);
@@ -260,10 +258,8 @@ export default function RentalList() {
       const data = await apiService.createReturnProtocol(protocolData);
       console.log('Return protocol created:', data);
       
-      // Aktualizácia protokolov
-      if (selectedRentalForProtocol) {
-        await loadProtocolsForRental(selectedRentalForProtocol.id);
-      }
+      // Aktualizácia protokolov - použij rentalId z protocolData
+      await loadProtocolsForRental(protocolData.rentalId);
       
       alert('Vrátenie vozidla úspešne dokončené!');
       setOpenReturnDialog(false);
@@ -291,6 +287,14 @@ export default function RentalList() {
       alert('Protokol nebol nájdený!');
       return;
     }
+
+    console.log('🔍 Opening gallery for protocol:', protocol);
+    console.log('🔍 Protocol media:', {
+      vehicleImages: protocol.vehicleImages?.length || 0,
+      vehicleVideos: protocol.vehicleVideos?.length || 0,
+      documentImages: protocol.documentImages?.length || 0,
+      damageImages: protocol.damageImages?.length || 0
+    });
 
     // Zber všetkých obrázkov z protokolu
     const allImages: any[] = [];
@@ -327,6 +331,8 @@ export default function RentalList() {
         type: 'damage'
       })));
     }
+
+    console.log('🔍 Collected media:', { allImages: allImages.length, allVideos: allVideos.length });
 
     if (allImages.length === 0 && allVideos.length === 0) {
       alert('Protokol neobsahuje žiadne médiá!');

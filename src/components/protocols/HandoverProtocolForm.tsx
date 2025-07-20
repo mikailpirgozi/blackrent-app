@@ -568,20 +568,37 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
 
   // Funkcie pre fotky
   const handleMediaSave = (type: 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel', images: ProtocolImage[], videos: ProtocolVideo[]) => {
+    console.log('📸 handleMediaSave called:', { type, imagesCount: images.length, videosCount: videos.length });
+    
     if (type === 'odometer' || type === 'fuel') {
       // Pre odometer a fuel pridaj do vehicleImages s správnym typom
-      setProtocol(prev => ({
-        ...prev,
-        vehicleImages: [...(prev.vehicleImages || []), ...images],
-        vehicleVideos: [...(prev.vehicleVideos || []), ...videos],
-      }));
+      setProtocol(prev => {
+        const newProtocol = {
+          ...prev,
+          vehicleImages: [...(prev.vehicleImages || []), ...images],
+          vehicleVideos: [...(prev.vehicleVideos || []), ...videos],
+        };
+        console.log('📸 Updated protocol with odometer/fuel images:', { 
+          totalVehicleImages: newProtocol.vehicleImages?.length || 0,
+          totalVehicleVideos: newProtocol.vehicleVideos?.length || 0
+        });
+        return newProtocol;
+      });
     } else {
       // Opravené: Pridaj nové médiá k existujúcim namiesto prepisovania
-      setProtocol(prev => ({
-        ...prev,
-        [`${type}Images`]: [...(prev[`${type}Images`] || []), ...images],
-        [`${type}Videos`]: [...(prev[`${type}Videos`] || []), ...videos],
-      }));
+      setProtocol(prev => {
+        const newProtocol = {
+          ...prev,
+          [`${type}Images`]: [...(prev[`${type}Images`] || []), ...images],
+          [`${type}Videos`]: [...(prev[`${type}Videos`] || []), ...videos],
+        };
+        console.log('📸 Updated protocol with media:', { 
+          type,
+          totalImages: newProtocol[`${type}Images`]?.length || 0,
+          totalVideos: newProtocol[`${type}Videos`]?.length || 0
+        });
+        return newProtocol;
+      });
     }
     setActivePhotoCapture(null);
     triggerAutoSave();
