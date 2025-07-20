@@ -25,7 +25,8 @@ import {
   Pending as PendingIcon,
   Assignment as HandoverIcon,
   AssignmentReturn as ReturnIcon,
-  PictureAsPdf as PDFIcon
+  PictureAsPdf as PDFIcon,
+  PhotoLibrary as GalleryIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -38,6 +39,7 @@ import RentalForm from './RentalForm';
 import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 import PDFViewer from '../common/PDFViewer';
+import ImageGalleryModal from '../common/ImageGalleryModal';
 
 export default function RentalList() {
   const { state, createRental, updateRental, deleteRental } = useApp();
@@ -60,6 +62,11 @@ export default function RentalList() {
   // PDF viewer
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState<{ url: string; title: string; type: 'handover' | 'return' } | null>(null);
+  
+  // Image gallery
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [selectedProtocolImages, setSelectedProtocolImages] = useState<any[]>([]);
+  const [galleryTitle, setGalleryTitle] = useState('');
 
   // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
   const loadProtocolsForRental = useCallback(async (rentalId: string) => {
@@ -275,6 +282,57 @@ export default function RentalList() {
     setSelectedPdf(null);
   };
 
+  // Image gallery handlers
+  const handleOpenGallery = (rental: Rental, protocolType: 'handover' | 'return') => {
+    const protocol = protocols[rental.id]?.[protocolType];
+    if (!protocol) {
+      alert('Protokol nebol nájdený!');
+      return;
+    }
+
+    // Zber všetkých obrázkov z protokolu
+    const allImages: any[] = [];
+    
+    // Vehicle images
+    if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
+      allImages.push(...protocol.vehicleImages.map((img: any) => ({
+        ...img,
+        type: 'vehicle'
+      })));
+    }
+    
+    // Document images
+    if (protocol.documentImages && protocol.documentImages.length > 0) {
+      allImages.push(...protocol.documentImages.map((img: any) => ({
+        ...img,
+        type: 'document'
+      })));
+    }
+    
+    // Damage images
+    if (protocol.damageImages && protocol.damageImages.length > 0) {
+      allImages.push(...protocol.damageImages.map((img: any) => ({
+        ...img,
+        type: 'damage'
+      })));
+    }
+
+    if (allImages.length === 0) {
+      alert('Protokol neobsahuje žiadne obrázky!');
+      return;
+    }
+
+    setSelectedProtocolImages(allImages);
+    setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} vozidla - ${rental.customerName}`);
+    setGalleryOpen(true);
+  };
+
+  const handleCloseGallery = () => {
+    setGalleryOpen(false);
+    setSelectedProtocolImages([]);
+    setGalleryTitle('');
+  };
+
   const handleDeleteProtocol = async (rentalId: string, type: 'handover' | 'return') => {
     if (!window.confirm(`Naozaj chcete vymazať protokol ${type === 'handover' ? 'prevzatia' : 'vrátenia'}?`)) {
       return;
@@ -415,6 +473,18 @@ export default function RentalList() {
                   >
                     <PDFIcon fontSize="small" />
                   </IconButton>
+                  <Tooltip title="Galerie obrázkov">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenGallery(rental, 'handover');
+                      }}
+                      color="primary"
+                    >
+                      <GalleryIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
               )}
               {protocols[rental.id]?.return && (
@@ -431,6 +501,18 @@ export default function RentalList() {
                   >
                     <PDFIcon fontSize="small" />
                   </IconButton>
+                  <Tooltip title="Galerie obrázkov">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenGallery(rental, 'return');
+                      }}
+                      color="primary"
+                    >
+                      <GalleryIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
               )}
               
@@ -584,6 +666,14 @@ export default function RentalList() {
           title={selectedPdf.title}
         />
       )}
+
+      {/* Image Gallery Modal */}
+      <ImageGalleryModal
+        open={galleryOpen}
+        onClose={handleCloseGallery}
+        images={selectedProtocolImages}
+        title={galleryTitle}
+      />
     </Box>
   );
 } 
