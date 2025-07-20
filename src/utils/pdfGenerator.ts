@@ -549,6 +549,16 @@ class PDFGenerator {
    */
   private async loadImageFromUrl(url: string): Promise<string> {
     return new Promise((resolve, reject) => {
+      // Skontroluj či je to base64 URL
+      const isBase64Url = url.startsWith('data:image/');
+      
+      if (isBase64Url) {
+        // Base64 URL - vráť priamo
+        console.log('✅ Using base64 image data directly');
+        resolve(url);
+        return;
+      }
+      
       // Skontroluj či je to R2 URL a potrebuje proxy
       const isR2Url = url.includes('r2.dev') || url.includes('cloudflare.com');
       

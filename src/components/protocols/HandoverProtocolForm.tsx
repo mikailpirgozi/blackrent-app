@@ -195,34 +195,49 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     }
   };
 
+  // Zjednotená funkcia pre generovanie PDF
+  const generateProtocolPDF = async (): Promise<Blob> => {
+    console.log('🔄 Generating PDF with unified data...');
+    
+    // Zjednotené dáta pre PDF
+    const pdfData = {
+      id: protocol.id || protocolId,
+      type: 'handover' as const,
+      rental: rental, // ✅ Vždy použij prop z komponentu pre konzistenciu
+      location: protocol.location || '',
+      vehicleCondition: protocol.vehicleCondition || {},
+      vehicleImages: protocol.vehicleImages || [],
+      documentImages: protocol.documentImages || [],
+      damageImages: protocol.damageImages || [],
+      damages: protocol.damages || [],
+      signatures: protocol.signatures || [],
+      notes: protocol.notes || '',
+      createdAt: protocol.createdAt || new Date(),
+      completedAt: protocol.completedAt || new Date(),
+    };
+
+    console.log('📋 PDF data:', pdfData);
+    
+    const pdfGenerator = new PDFGenerator();
+    const pdfBlob = await pdfGenerator.generateProtocolPDF(pdfData, {
+      includeImages: true,
+      includeSignatures: true,
+      imageQuality: 0.8,
+      maxImageWidth: 80,
+      maxImageHeight: 60
+    });
+
+    console.log('✅ PDF generated successfully');
+    return pdfBlob;
+  };
+
   const handleGeneratePDF = async () => {
     try {
       setLoading(true);
       
       console.log('🔄 Generating PDF for protocol:', protocol.id);
       
-      const pdfGenerator = new PDFGenerator();
-      const pdfBlob = await pdfGenerator.generateProtocolPDF({
-        id: protocol.id || protocolId,
-        type: 'handover',
-        rental: protocol.rental || rental,
-        location: protocol.location || '',
-        vehicleCondition: protocol.vehicleCondition || {},
-        vehicleImages: protocol.vehicleImages || [],
-        documentImages: protocol.documentImages || [],
-        damageImages: protocol.damageImages || [],
-        damages: protocol.damages || [],
-        signatures: protocol.signatures || [],
-        notes: protocol.notes || '',
-        createdAt: protocol.createdAt || new Date(),
-        completedAt: protocol.completedAt || new Date(),
-      }, {
-        includeImages: true,
-        includeSignatures: true,
-        imageQuality: 0.8,
-        maxImageWidth: 80,
-        maxImageHeight: 60
-      });
+      const pdfBlob = await generateProtocolPDF();
 
       // Vytvorenie download linku
       const url = URL.createObjectURL(pdfBlob);
@@ -237,7 +252,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       console.log('✅ PDF generated and downloaded successfully');
     } catch (error) {
       console.error('❌ Error generating PDF:', error);
-      // TODO: Show error message to user
+      alert('Nepodarilo sa vygenerovať PDF: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
     } finally {
       setLoading(false);
     }
@@ -249,43 +264,15 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       
       console.log('🚀 Začínam ukladanie protokolu...');
       
-      // 🚀 KROK 1: Použij existujúce obrázky z protokolu (už sú v R2)
-      const vehicleImages = protocol.vehicleImages || [];
-      const documentImages = protocol.documentImages || [];
+      // 🚀 KROK 1: Generovanie PDF s rovnakými dátami ako pred uložením
+      const pdfBlob = await generateProtocolPDF();
+      console.log('✅ PDF vygenerované s rovnakými dátami');
       
-      console.log('✅ Používam existujúce obrázky:', {
-        vehicle: vehicleImages.length,
-        documents: documentImages.length
+      // 🚀 KROK 2: Upload PDF do R2
+      const pdfFile = new File([pdfBlob], `protokol_prevzatie_${protocol.id || protocolId}_${new Date().toISOString().split('T')[0]}.pdf`, { 
+        type: 'application/pdf' 
       });
       
-      // 🚀 KROK 2: Generovanie PDF s existujúcimi obrázkami
-      const pdfGenerator = new PDFGenerator();
-      const pdfBlob = await pdfGenerator.generateProtocolPDF({
-        id: protocol.id || protocolId,
-        type: 'handover',
-        rental: protocol.rental || rental,
-        location: protocol.location || '',
-        vehicleCondition: protocol.vehicleCondition || {},
-        vehicleImages: protocol.vehicleImages || [], // ✅ Priamo z protokolu
-        documentImages: protocol.documentImages || [], // ✅ Priamo z protokolu
-        damageImages: protocol.damageImages || [],
-        damages: protocol.damages || [],
-        signatures: protocol.signatures || [],
-        notes: protocol.notes || '',
-        createdAt: protocol.createdAt || new Date(),
-        completedAt: protocol.completedAt || new Date(),
-      }, {
-        includeImages: true, // ✅ Explicitne povolené
-        includeSignatures: true,
-        imageQuality: 0.8,
-        maxImageWidth: 80,
-        maxImageHeight: 60
-      });
-      
-      console.log('✅ PDF vygenerované s existujúcimi obrázkami');
-      
-      // 🚀 KROK 3: Upload PDF do R2 cez existujúci systém
-      const pdfFile = new File([pdfBlob], 'customer-protocol.pdf', { type: 'application/pdf' });
       const formData = new FormData();
       formData.append('file', pdfFile);
       formData.append('type', 'protocol');
@@ -298,13 +285,74 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       });
       
       if (!pdfResponse.ok) {
-        throw new Error('Nepodarilo sa uploadovať PDF');
+        throw new Error('Nepodarilo sa uploadovať PDF do R2');
       }
       
       const pdfResult = await pdfResponse.json();
       console.log('✅ PDF uploadované do R2:', pdfResult.url);
       
-      // 🚀 KROK 4: Mapovanie na backend format s existujúcimi obrázkami
+      // 🚀 KROK 3: Upload obrázkov do R2 (ak nie sú už tam)
+      const uploadImagesToR2 = async (images: ProtocolImage[], type: string) => {
+        const uploadedImages: ProtocolImage[] = [];
+        
+        for (const image of images) {
+          // Ak už má R2 URL, použij ho
+          if (image.url.startsWith('https://') && (image.url.includes('r2.dev') || image.url.includes('cloudflare.com'))) {
+            uploadedImages.push(image);
+            continue;
+          }
+          
+          // Ak je base64, upload do R2
+          if (image.url.startsWith('data:image/')) {
+            try {
+              const response = await fetch(image.url);
+              const blob = await response.blob();
+              const file = new File([blob], `image_${Date.now()}.jpg`, { type: 'image/jpeg' });
+              
+              const imageFormData = new FormData();
+              imageFormData.append('file', file);
+              imageFormData.append('type', 'protocol');
+              imageFormData.append('entityId', protocol.id || protocolId);
+              
+              const uploadResponse = await fetch(`${apiBaseUrl}/files/upload`, {
+                method: 'POST',
+                body: imageFormData,
+              });
+              
+              if (uploadResponse.ok) {
+                const uploadResult = await uploadResponse.json();
+                uploadedImages.push({
+                  ...image,
+                  url: uploadResult.url
+                });
+                console.log(`✅ ${type} image uploaded to R2:`, uploadResult.url);
+              } else {
+                console.warn(`⚠️ Failed to upload ${type} image, keeping base64`);
+                uploadedImages.push(image);
+              }
+            } catch (error) {
+              console.warn(`⚠️ Error uploading ${type} image, keeping base64:`, error);
+              uploadedImages.push(image);
+            }
+          } else {
+            uploadedImages.push(image);
+          }
+        }
+        
+        return uploadedImages;
+      };
+      
+      const vehicleImages = await uploadImagesToR2(protocol.vehicleImages || [], 'vehicle');
+      const documentImages = await uploadImagesToR2(protocol.documentImages || [], 'document');
+      const damageImages = await uploadImagesToR2(protocol.damageImages || [], 'damage');
+      
+      console.log('✅ Obrázky spracované:', {
+        vehicle: vehicleImages.length,
+        document: documentImages.length,
+        damage: damageImages.length
+      });
+      
+      // 🚀 KROK 4: Mapovanie na backend format s R2 URL
       const protocolData = {
         id: protocol.id || protocolId,
         rentalId: protocol.rentalId,
@@ -317,10 +365,10 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           interiorCondition: 'Dobrý',
           notes: ''
         },
-        vehicleImages: vehicleImages, // Použi existujúce obrázky
+        vehicleImages: vehicleImages, // R2 URL
         vehicleVideos: protocol.vehicleVideos || [],
-        documentImages: documentImages, // Použi existujúce obrázky
-        damageImages: protocol.damageImages || [],
+        documentImages: documentImages, // R2 URL
+        damageImages: damageImages, // R2 URL
         damages: protocol.damages || [],
         signatures: protocol.signatures || [],
         rentalData: protocol.rentalData || {},
@@ -328,16 +376,16 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         createdBy: protocol.createdBy || '',
         status: 'completed',
         completedAt: protocol.completedAt || new Date(),
-        pdfUrl: pdfResult.url, // URL na PDF v R2
+        pdfUrl: pdfResult.url, // R2 URL na PDF
       };
       
-      console.log('✅ Protokol pripravený na uloženie:', protocolData);
+      console.log('✅ Protokol pripravený na uloženie s R2 URL:', protocolData);
       
       await onSave(protocolData);
       clearDraft(); // Vymaž koncept po úspešnom uložení
       onClose();
       
-      console.log('🎉 Protokol úspešne uložený!');
+      console.log('🎉 Protokol úspešne uložený s R2 URL!');
     } catch (error) {
       console.error('❌ Chyba pri ukladaní protokolu:', error);
       alert('Nepodarilo sa uložiť protokol: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
