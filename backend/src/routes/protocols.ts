@@ -419,4 +419,70 @@ router.get('/return/:id/download', async (req, res) => {
   }
 });
 
+// Fix existing protocols endpoint
+router.post('/fix-existing', async (req, res) => {
+  try {
+    console.log('🔧 Fixing existing protocols...');
+    
+    const client = await postgresDatabase.getClient();
+    
+    try {
+      // 1. Pridanie chýbajúcich stĺpcov
+      await client.query(`
+        ALTER TABLE handover_protocols 
+        ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500);
+      `);
+      
+      await client.query(`
+        ALTER TABLE handover_protocols 
+        ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT FALSE;
+      `);
+      
+      console.log('✅ Stĺpce pridané');
+      
+      // 2. Aktualizácia existujúcich protokolov s pdfUrl
+      const result = await client.query(`
+        SELECT id, created_at FROM handover_protocols 
+        WHERE pdf_url IS NULL OR pdf_url = ''
+      `);
+      
+      console.log(`📋 Našlo sa ${result.rows.length} protokolov bez pdfUrl`);
+      
+      let fixedCount = 0;
+      for (const row of result.rows) {
+        const date = new Date(row.created_at).toISOString().split('T')[0];
+        const pdfUrl = `https://pub-4fec120a8a6a4a0cbadfa55f54b7e8a2.r2.dev/protocols/${row.id}/${date}/protokol_prevzatie_${row.id}_${date}.pdf`;
+        
+        await client.query(`
+          UPDATE handover_protocols 
+          SET pdf_url = $1 
+          WHERE id = $2
+        `, [pdfUrl, row.id]);
+        
+        fixedCount++;
+        console.log(`✅ Protokol ${row.id} opravený s pdfUrl: ${pdfUrl}`);
+      }
+      
+      console.log('🎉 Všetky protokoly opravené!');
+      
+      res.json({
+        success: true,
+        message: `Opravené ${fixedCount} protokolov`,
+        fixedCount: fixedCount
+      });
+      
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('❌ Chyba pri oprave protokolov:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri oprave protokolov',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router; 

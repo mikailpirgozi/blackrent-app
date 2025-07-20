@@ -2544,6 +2544,10 @@ export class PostgresDatabase {
     }
   }
 
+  async getClient() {
+    return await this.pool.connect();
+  }
+
   async close() {
     await this.pool.end();
   }
