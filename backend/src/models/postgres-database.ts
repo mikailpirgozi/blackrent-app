@@ -1972,6 +1972,8 @@ export class PostgresDatabase {
           
           -- Additional data
           rental_data JSONB,
+          pdf_url VARCHAR(500),
+          email_sent BOOLEAN DEFAULT FALSE,
           notes TEXT,
           created_by VARCHAR(100)
         );
@@ -2114,6 +2116,23 @@ export class PostgresDatabase {
               ELSE '[]'::jsonb
             END;
         `);
+        
+        // Pridanie chýbajúcich stĺpcov pre handover_protocols
+        try {
+          await client.query(`
+            ALTER TABLE handover_protocols 
+            ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500);
+          `);
+          
+          await client.query(`
+            ALTER TABLE handover_protocols 
+            ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT FALSE;
+          `);
+          
+          console.log('✅ Added missing columns to handover_protocols');
+        } catch (columnError) {
+          console.log('⚠️ Column migration failed (columns might already exist):', columnError);
+        }
         
         console.log('✅ Protocol tables migration completed');
       } catch (migrationError) {
