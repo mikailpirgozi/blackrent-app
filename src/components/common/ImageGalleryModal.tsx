@@ -1,389 +1,443 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
   IconButton,
   Typography,
   Box,
-  Grid,
   Chip,
   Button,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
 import {
-  Close as CloseIcon,
-  NavigateBefore as PrevIcon,
-  NavigateNext as NextIcon,
-  Download as DownloadIcon,
-  PhotoLibrary as GalleryIcon,
+  Close,
+  NavigateBefore,
+  NavigateNext,
+  Download,
+  ZoomIn,
+  ZoomOut,
+  Fullscreen,
+  FullscreenExit,
 } from '@mui/icons-material';
-
-interface ProtocolImage {
-  id: string;
-  url: string;
-  filename: string;
-  size?: number;
-  uploadedAt?: Date;
-  type?: 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel';
-}
+import { ProtocolImage, ProtocolVideo } from '../../types';
 
 interface ImageGalleryModalProps {
   open: boolean;
   onClose: () => void;
   images: ProtocolImage[];
+  videos: ProtocolVideo[];
   title?: string;
 }
 
-const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
+export default function ImageGalleryModal({
   open,
   onClose,
   images,
-  title = 'Galerie obrázkov'
-}) => {
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  videos,
+  title = 'Galéria médií'
+}: ImageGalleryModalProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [zoom, setZoom] = useState(1);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const allMedia = [...images, ...videos];
+  const currentMedia = allMedia[currentIndex];
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Minimum swipe distance (in px)
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
+  // Touch gestures pre mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX);
   };
 
-  const onTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = (e: React.TouchEvent) => {
     setTouchEnd(e.targetTouches[0].clientX);
   };
 
-  const onTouchEnd = () => {
+  const handleTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
     
     const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
 
-    if (isLeftSwipe) {
-      handleNext();
+    if (isLeftSwipe && currentIndex < allMedia.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else if (isRightSwipe && currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
     }
-    if (isRightSwipe) {
-      handlePrev();
+
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!open) return;
+      
+      switch (e.key) {
+        case 'ArrowLeft':
+          if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
+          break;
+        case 'ArrowRight':
+          if (currentIndex < allMedia.length - 1) setCurrentIndex(currentIndex + 1);
+          break;
+        case 'Escape':
+          onClose();
+          break;
+        case 'f':
+          setIsFullscreen(!isFullscreen);
+          break;
+        case '+':
+        case '=':
+          setZoom(Math.min(zoom + 0.2, 3));
+          break;
+        case '-':
+          setZoom(Math.max(zoom - 0.2, 0.5));
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, currentIndex, allMedia.length, onClose, isFullscreen, zoom]);
+
+  // Reset zoom when changing media
+  useEffect(() => {
+    setZoom(1);
+  }, [currentIndex]);
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
     }
   };
 
-  const handlePrev = useCallback(() => {
-    setSelectedImageIndex((prev) => 
-      prev === 0 ? images.length - 1 : prev - 1
-    );
-  }, [images.length]);
-
-  const handleNext = useCallback(() => {
-    setSelectedImageIndex((prev) => 
-      prev === images.length - 1 ? 0 : prev + 1
-    );
-  }, [images.length]);
-
-  const handleImageClick = (index: number) => {
-    setSelectedImageIndex(index);
-    setIsFullscreen(true);
+  const handleNext = () => {
+    if (currentIndex < allMedia.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
   };
 
-  const handleCloseFullscreen = () => {
-    setIsFullscreen(false);
-  };
-
-  const handleDownload = async (image: ProtocolImage) => {
+  const handleDownload = async () => {
+    if (!currentMedia) return;
+    
     try {
-      const response = await fetch(image.url);
+      const response = await fetch(currentMedia.url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
+      
       const a = document.createElement('a');
       a.href = url;
-      a.download = image.filename;
+      a.download = `${currentMedia.type}_${new Date(currentMedia.timestamp).toISOString().split('T')[0]}.${currentMedia.url.includes('video') ? 'mp4' : 'jpg'}`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Chyba pri sťahovaní obrázka:', error);
+      console.error('Chyba pri sťahovaní:', error);
     }
   };
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!open) return;
-    
-    switch (e.key) {
-      case 'ArrowLeft':
-        handlePrev();
-        break;
-      case 'ArrowRight':
-        handleNext();
-        break;
-      case 'Escape':
-        if (isFullscreen) {
-          handleCloseFullscreen();
-        } else {
-          onClose();
-        }
-        break;
-    }
-  }, [open, isFullscreen, handlePrev, handleNext, onClose]);
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
 
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  const resetZoom = () => {
+    setZoom(1);
+  };
 
-  useEffect(() => {
-    if (!open) {
-      setSelectedImageIndex(0);
-      setIsFullscreen(false);
-    }
-  }, [open]);
+  if (!currentMedia) return null;
 
-  if (!open || images.length === 0) return null;
-
-  const selectedImage = images[selectedImageIndex];
-
-  // Fullscreen view
-  if (isFullscreen) {
-    return (
-      <Box
-        sx={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.95)',
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
-        {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            p: 2,
-            color: 'white',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          }}
-        >
-          <Typography variant="h6">
-            {selectedImage.filename}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton
-              onClick={() => handleDownload(selectedImage)}
-              sx={{ color: 'white' }}
-            >
-              <DownloadIcon />
-            </IconButton>
-            <IconButton
-              onClick={handleCloseFullscreen}
-              sx={{ color: 'white' }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </Box>
-
-        {/* Image */}
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            p: 2,
-          }}
-        >
-          <img
-            src={selectedImage.url}
-            alt={selectedImage.filename}
-            style={{
-              maxWidth: '100%',
-              maxHeight: '100%',
-              objectFit: 'contain',
-              userSelect: 'none',
-            }}
-          />
-        </Box>
-
-        {/* Navigation */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            p: 2,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          }}
-        >
-          <IconButton
-            onClick={handlePrev}
-            sx={{ color: 'white' }}
-            size="large"
-          >
-            <PrevIcon />
-          </IconButton>
-          
-          <Typography variant="body2" sx={{ color: 'white' }}>
-            {selectedImageIndex + 1} / {images.length}
-          </Typography>
-          
-          <IconButton
-            onClick={handleNext}
-            sx={{ color: 'white' }}
-            size="large"
-          >
-            <NextIcon />
-          </IconButton>
-        </Box>
-      </Box>
-    );
-  }
-
-  // Gallery view
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="lg"
+      maxWidth={false}
       fullWidth
-      fullScreen={isMobile}
+      fullScreen={isFullscreen}
       PaperProps={{
         sx: {
-          height: isMobile ? '100%' : '80vh',
-          maxHeight: isMobile ? '100%' : '80vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.95)',
+          color: 'white',
+          minHeight: isFullscreen ? '100vh' : '80vh',
         }
       }}
     >
+      {/* Header */}
       <Box
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           p: 2,
-          borderBottom: 1,
-          borderColor: 'divider',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         }}
       >
-        <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <GalleryIcon />
-          {title} ({images.length})
+        <Typography variant="h6" sx={{ color: 'white' }}>
+          {title} ({currentIndex + 1} / {allMedia.length})
         </Typography>
-        <IconButton onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
+        
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Chip 
+            label={currentMedia.type} 
+            size="small" 
+            sx={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
+          />
+          <IconButton onClick={toggleFullscreen} sx={{ color: 'white' }}>
+            {isFullscreen ? <FullscreenExit /> : <Fullscreen />}
+          </IconButton>
+          <IconButton onClick={onClose} sx={{ color: 'white' }}>
+            <Close />
+          </IconButton>
+        </Box>
       </Box>
 
-      <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
-        <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-          <Grid container spacing={2}>
-            {images.map((image, index) => (
-              <Grid item xs={6} sm={4} md={3} lg={2} key={image.id}>
-                <Box
-                  sx={{
-                    position: 'relative',
-                    cursor: 'pointer',
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                    border: 2,
-                    borderColor: selectedImageIndex === index ? 'primary.main' : 'transparent',
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                    },
-                  }}
-                  onClick={() => handleImageClick(index)}
-                >
-                  <img
-                    src={image.url}
-                    alt={image.filename}
-                    style={{
-                      width: '100%',
-                      height: '150px',
-                      objectFit: 'cover',
-                    }}
-                  />
-                  
-                  {/* Image info overlay */}
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                      p: 1,
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: 'white',
-                        fontSize: '0.7rem',
-                        display: 'block',
-                        textOverflow: 'ellipsis',
-                        overflow: 'hidden',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {image.filename}
-                    </Typography>
-                    
-                    {image.type && (
-                      <Chip
-                        label={image.type}
-                        size="small"
-                        sx={{
-                          height: '16px',
-                          fontSize: '0.6rem',
-                          mt: 0.5,
-                        }}
-                      />
-                    )}
-                  </Box>
+      {/* Content */}
+      <DialogContent
+        sx={{
+          p: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: isFullscreen ? 'calc(100vh - 120px)' : '60vh',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+        ref={containerRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Navigation arrows */}
+        {!isMobile && (
+          <>
+            <IconButton
+              onClick={handlePrevious}
+              disabled={currentIndex === 0}
+              sx={{
+                position: 'absolute',
+                left: 16,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                color: 'white',
+                '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
+                '&.Mui-disabled': { opacity: 0.3 }
+              }}
+            >
+              <NavigateBefore />
+            </IconButton>
+            
+            <IconButton
+              onClick={handleNext}
+              disabled={currentIndex === allMedia.length - 1}
+              sx={{
+                position: 'absolute',
+                right: 16,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                color: 'white',
+                '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
+                '&.Mui-disabled': { opacity: 0.3 }
+              }}
+            >
+              <NavigateNext />
+            </IconButton>
+          </>
+        )}
 
-                  {/* Download button */}
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(image);
-                    }}
-                    sx={{
-                      position: 'absolute',
-                      top: 4,
-                      right: 4,
-                      backgroundColor: 'rgba(0,0,0,0.5)',
-                      color: 'white',
-                      '&:hover': {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
-                      },
-                    }}
-                  >
-                    <DownloadIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
+        {/* Media content */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            transform: `scale(${zoom})`,
+            transition: 'transform 0.2s ease-in-out',
+          }}
+        >
+          {currentMedia.url.includes('video') ? (
+            <video
+              ref={videoRef}
+              src={currentMedia.url}
+              controls
+              autoPlay
+              loop
+              muted
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+              }}
+            />
+          ) : (
+            <img
+              ref={imageRef}
+              src={currentMedia.url}
+              alt={`${currentMedia.type} - ${currentMedia.description}`}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+                userSelect: 'none',
+              }}
+            />
+          )}
+        </Box>
+
+        {/* Media info */}
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 16,
+            left: 16,
+            right: 16,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            borderRadius: 1,
+            p: 2,
+          }}
+        >
+          <Typography variant="body2" sx={{ color: 'white', mb: 1 }}>
+            {currentMedia.description || `${currentMedia.type} - ${new Date(currentMedia.timestamp).toLocaleString('sk-SK')}`}
+          </Typography>
+          
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Chip 
+              label={`${currentMedia.type}`} 
+              size="small" 
+              sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'white' }}
+            />
+            {currentMedia.compressed && (
+              <Chip 
+                label="Komprimované" 
+                size="small" 
+                sx={{ backgroundColor: 'rgba(0, 255, 0, 0.2)', color: 'white' }}
+              />
+            )}
+            {currentMedia.originalSize && currentMedia.compressedSize && (
+              <Chip 
+                label={`${Math.round((currentMedia.originalSize - currentMedia.compressedSize) / currentMedia.originalSize * 100)}% úspora`}
+                size="small" 
+                sx={{ backgroundColor: 'rgba(0, 255, 0, 0.2)', color: 'white' }}
+              />
+            )}
+          </Box>
         </Box>
       </DialogContent>
+
+      {/* Controls */}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 2,
+          p: 2,
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        <Button
+          variant="outlined"
+          startIcon={<ZoomOut />}
+          onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
+          sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
+        >
+          Zmenšiť
+        </Button>
+        
+        <Button
+          variant="outlined"
+          onClick={resetZoom}
+          sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
+        >
+          {Math.round(zoom * 100)}%
+        </Button>
+        
+        <Button
+          variant="outlined"
+          startIcon={<ZoomIn />}
+          onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
+          sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
+        >
+          Zväčšiť
+        </Button>
+        
+        <Button
+          variant="contained"
+          startIcon={<Download />}
+          onClick={handleDownload}
+          sx={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
+        >
+          Stiahnuť
+        </Button>
+      </Box>
+
+      {/* Thumbnail navigation */}
+      {allMedia.length > 1 && (
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            p: 2,
+            overflowX: 'auto',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          {allMedia.map((media, index) => (
+            <Box
+              key={media.id}
+              onClick={() => setCurrentIndex(index)}
+              sx={{
+                width: 60,
+                height: 60,
+                borderRadius: 1,
+                overflow: 'hidden',
+                cursor: 'pointer',
+                border: index === currentIndex ? '2px solid white' : '2px solid transparent',
+                opacity: index === currentIndex ? 1 : 0.7,
+                '&:hover': { opacity: 1 },
+                flexShrink: 0,
+              }}
+            >
+              {media.url.includes('video') ? (
+                <video
+                  src={media.url}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+              ) : (
+                <img
+                  src={media.url}
+                  alt={`Thumbnail ${index + 1}`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+              )}
+            </Box>
+          ))}
+        </Box>
+      )}
     </Dialog>
   );
-};
-
-export default ImageGalleryModal; 
+} 

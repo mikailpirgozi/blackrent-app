@@ -67,6 +67,7 @@ export default function RentalList() {
   // Image gallery
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [selectedProtocolImages, setSelectedProtocolImages] = useState<any[]>([]);
+  const [selectedProtocolVideos, setSelectedProtocolVideos] = useState<any[]>([]);
   const [galleryTitle, setGalleryTitle] = useState('');
 
   // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
@@ -293,11 +294,20 @@ export default function RentalList() {
 
     // Zber všetkých obrázkov z protokolu
     const allImages: any[] = [];
+    const allVideos: any[] = [];
     
     // Vehicle images
     if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
       allImages.push(...protocol.vehicleImages.map((img: any) => ({
         ...img,
+        type: 'vehicle'
+      })));
+    }
+    
+    // Vehicle videos
+    if (protocol.vehicleVideos && protocol.vehicleVideos.length > 0) {
+      allVideos.push(...protocol.vehicleVideos.map((video: any) => ({
+        ...video,
         type: 'vehicle'
       })));
     }
@@ -318,12 +328,13 @@ export default function RentalList() {
       })));
     }
 
-    if (allImages.length === 0) {
-      alert('Protokol neobsahuje žiadne obrázky!');
+    if (allImages.length === 0 && allVideos.length === 0) {
+      alert('Protokol neobsahuje žiadne médiá!');
       return;
     }
 
     setSelectedProtocolImages(allImages);
+    setSelectedProtocolVideos(allVideos);
     setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} vozidla - ${rental.customerName}`);
     setGalleryOpen(true);
   };
@@ -331,6 +342,7 @@ export default function RentalList() {
   const handleCloseGallery = () => {
     setGalleryOpen(false);
     setSelectedProtocolImages([]);
+    setSelectedProtocolVideos([]);
     setGalleryTitle('');
   };
 
@@ -856,6 +868,7 @@ export default function RentalList() {
         open={galleryOpen}
         onClose={handleCloseGallery}
         images={selectedProtocolImages}
+        videos={selectedProtocolVideos}
         title={galleryTitle}
       />
     </Box>
