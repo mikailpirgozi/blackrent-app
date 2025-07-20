@@ -309,4 +309,193 @@ router.get('/status', async (req, res) => {
   }
 });
 
+// 🚀 NOVÝ ENDPOINT: Upload obrázkov pre protokol (originál + thumbnail)
+router.post('/protocol-upload', upload.single('file'), async (req, res) => {
+  try {
+    console.log('🔄 Protocol upload request received:', {
+      hasFile: !!req.file,
+      fileSize: req.file?.size,
+      mimetype: req.file?.mimetype,
+      protocolId: req.body.protocolId,
+      type: req.body.type
+    });
+
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Žiadny súbor nebol nahraný' 
+      });
+    }
+
+    const { protocolId, type } = req.body;
+    
+    if (!protocolId || !type) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba protocolId alebo type' 
+      });
+    }
+
+    // Validácia typu súboru
+    if (!r2Storage.validateFileType(req.file.mimetype)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Nepodporovaný typ súboru' 
+      });
+    }
+
+    // Validácia veľkosti súboru
+    if (!r2Storage.validateFileSize(req.file.size, 'image')) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Súbor je príliš veľký' 
+      });
+    }
+
+    // Generovanie file key podľa typu
+    let fileKey: string;
+    if (type === 'original') {
+      fileKey = `protocols/${protocolId}/original-images/${req.file.originalname}`;
+    } else if (type === 'thumbnail') {
+      fileKey = `protocols/${protocolId}/thumbnails/${req.file.originalname}`;
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Neplatný typ (musí byť original alebo thumbnail)' 
+      });
+    }
+
+    // Upload do R2
+    const url = await r2Storage.uploadFile(
+      fileKey,
+      req.file.buffer,
+      req.file.mimetype,
+      {
+        original_name: req.file.originalname,
+        uploaded_at: new Date().toISOString(),
+        protocol_id: protocolId,
+        file_type: type
+      }
+    );
+
+    console.log('✅ Protocol file uploaded to R2:', url);
+
+    res.json({
+      success: true,
+      url: url,
+      key: fileKey,
+      filename: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+      type: type
+    });
+
+  } catch (error) {
+    console.error('❌ Error uploading protocol file:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri nahrávaní súboru protokolu',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    });
+  }
+});
+
+// 🚀 NOVÝ ENDPOINT: Upload PDF protokolu
+router.post('/protocol-pdf', upload.single('file'), async (req, res) => {
+  try {
+    console.log('🔄 Protocol PDF upload request received:', {
+      hasFile: !!req.file,
+      fileSize: req.file?.size,
+      protocolId: req.body.protocolId
+    });
+
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Žiadny PDF súbor nebol nahraný' 
+      });
+    }
+
+    const { protocolId } = req.body;
+    
+    if (!protocolId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba protocolId' 
+      });
+    }
+
+    // Validácia - len PDF súbory
+    if (req.file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Len PDF súbory sú povolené' 
+      });
+    }
+
+    // Generovanie file key pre PDF
+    const fileKey = `protocols/${protocolId}/customer-protocol.pdf`;
+
+    // Upload do R2
+    const url = await r2Storage.uploadFile(
+      fileKey,
+      req.file.buffer,
+      req.file.mimetype,
+      {
+        original_name: 'customer-protocol.pdf',
+        uploaded_at: new Date().toISOString(),
+        protocol_id: protocolId,
+        file_type: 'pdf'
+      }
+    );
+
+    console.log('✅ Protocol PDF uploaded to R2:', url);
+
+    res.json({
+      success: true,
+      url: url,
+      key: fileKey,
+      filename: 'customer-protocol.pdf',
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    });
+
+  } catch (error) {
+    console.error('❌ Error uploading protocol PDF:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri nahrávaní PDF protokolu',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    });
+  }
+});
+
+// 🚀 NOVÝ ENDPOINT: Získanie obrázkov protokolu
+router.get('/protocol/:protocolId/images', async (req, res) => {
+  try {
+    const { protocolId } = req.params;
+    
+    if (!protocolId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba protocolId' 
+      });
+    }
+
+    // TODO: Implementovať načítanie obrázkov z databázy
+    // Pre teraz vrátime prázdny array
+    res.json({
+      success: true,
+      images: []
+    });
+
+  } catch (error) {
+    console.error('❌ Error loading protocol images:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri načítaní obrázkov protokolu' 
+    });
+  }
+});
+
 export default router; 

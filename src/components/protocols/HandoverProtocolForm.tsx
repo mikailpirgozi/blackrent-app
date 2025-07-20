@@ -60,6 +60,8 @@ import SignaturePad from '../common/SignaturePad';
 import R2FileUpload from '../common/R2FileUpload';
 import MobileFileUpload from '../common/MobileFileUpload';
 import PDFGenerator from '../../utils/pdfGenerator';
+import ImageProcessor from '../../utils/imageProcessor';
+import EnhancedPDFGenerator from '../../utils/enhancedPdfGenerator';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -247,9 +249,81 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     try {
       setLoading(true);
       
-      // Mapovanie na backend format - vždy posielaj všetky polia
+      console.log('🚀 Začínam ukladanie protokolu s novým systémom...');
+      
+      // 🚀 KROK 1: Spracovanie obrázkov cez ImageProcessor
+      const imageProcessor = new ImageProcessor();
+      
+      // Konverzia ProtocolImage na File objekty pre vehicleImages
+      const vehicleImageFiles = protocol.vehicleImages?.map(img => {
+        // Vytvorenie File z URL alebo base64
+        const imageData = img.url.startsWith('data:') ? img.url : `data:image/jpeg;base64,${img.url}`;
+        return new File([imageData], `vehicle_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      }) || [];
+      
+      const processedVehicleImages = await imageProcessor.processImages(
+        vehicleImageFiles,
+        protocol.id || protocolId
+      );
+      
+      // Konverzia ProtocolImage na File objekty pre documentImages
+      const documentImageFiles = protocol.documentImages?.map(img => {
+        // Vytvorenie File z URL alebo base64
+        const imageData = img.url.startsWith('data:') ? img.url : `data:image/jpeg;base64,${img.url}`;
+        return new File([imageData], `document_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      }) || [];
+      
+      const processedDocumentImages = await imageProcessor.processImages(
+        documentImageFiles,
+        protocol.id || protocolId
+      );
+      
+      console.log('✅ Obrázky spracované:', {
+        vehicle: processedVehicleImages.length,
+        documents: processedDocumentImages.length
+      });
+      
+      // 🚀 KROK 2: Generovanie PDF s vloženými obrázkami
+      const enhancedPdfGenerator = new EnhancedPDFGenerator();
+      const pdfBlob = await enhancedPdfGenerator.generateCustomerProtocol({
+        id: protocol.id || protocolId,
+        type: 'handover',
+        rental: protocol.rental || rental,
+        location: protocol.location || '',
+        vehicleCondition: protocol.vehicleCondition || {},
+        vehicleImages: processedVehicleImages,
+        documentImages: processedDocumentImages,
+        damageImages: [],
+        damages: protocol.damages || [],
+        signatures: protocol.signatures || [],
+        notes: protocol.notes || '',
+        createdAt: protocol.createdAt || new Date(),
+        completedAt: protocol.completedAt || new Date(),
+      });
+      
+      console.log('✅ PDF vygenerované s vloženými obrázkami');
+      
+      // 🚀 KROK 3: Upload PDF do R2
+      const pdfFile = new File([pdfBlob], 'customer-protocol.pdf', { type: 'application/pdf' });
+      const formData = new FormData();
+      formData.append('file', pdfFile);
+      formData.append('protocolId', protocol.id || protocolId);
+      
+      const pdfResponse = await fetch('/api/files/protocol-pdf', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!pdfResponse.ok) {
+        throw new Error('Nepodarilo sa uploadovať PDF');
+      }
+      
+      const pdfResult = await pdfResponse.json();
+      console.log('✅ PDF uploadované do R2:', pdfResult.url);
+      
+      // 🚀 KROK 4: Mapovanie na backend format s novými obrázkami
       const protocolData = {
-        id: protocol.id || protocolId, // Fallback na protocolId ak sa stratil
+        id: protocol.id || protocolId,
         rentalId: protocol.rentalId,
         location: protocol.location || '',
         vehicleCondition: protocol.vehicleCondition || {
@@ -260,9 +334,9 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           interiorCondition: 'Dobrý',
           notes: ''
         },
-        vehicleImages: protocol.vehicleImages || [],
+        vehicleImages: processedVehicleImages, // 🚀 Nové spracované obrázky
         vehicleVideos: protocol.vehicleVideos || [],
-        documentImages: protocol.documentImages || [],
+        documentImages: processedDocumentImages, // 🚀 Nové spracované obrázky
         damageImages: protocol.damageImages || [],
         damages: protocol.damages || [],
         signatures: protocol.signatures || [],
@@ -270,17 +344,20 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         notes: protocol.notes || '',
         createdBy: protocol.createdBy || '',
         status: 'completed',
-        completedAt: protocol.completedAt || new Date(), // Použi čas z podpisu alebo aktuálny čas
+        completedAt: protocol.completedAt || new Date(),
+        pdfUrl: pdfResult.url, // 🚀 URL na PDF v R2
       };
       
-      // Debug log
-      console.log('ProtocolData:', protocolData);
+      console.log('✅ Protokol pripravený na uloženie:', protocolData);
       
       await onSave(protocolData);
       clearDraft(); // Vymaž koncept po úspešnom uložení
       onClose();
+      
+      console.log('🎉 Protokol úspešne uložený s novým systémom!');
     } catch (error) {
-      console.error('Error saving protocol:', error);
+      console.error('❌ Chyba pri ukladaní protokolu:', error);
+      alert('Nepodarilo sa uložiť protokol: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
     } finally {
       setLoading(false);
     }
@@ -1110,7 +1187,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           </DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Máte neuložené zmeny. Chcete ich uložiť ako koncept a pokračovať neskôr?
+              Máte neuložené zmeny. Chcete ich uložiť a pokračovať neskôr?
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Koncept sa automaticky načíta pri ďalšom otvorení protokolu.
