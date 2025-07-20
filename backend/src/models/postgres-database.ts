@@ -2420,6 +2420,9 @@ export class PostgresDatabase {
       damages: safeJsonParse(row.damages, []),
       signatures: safeJsonParse(row.signatures, []),
       rentalData: safeJsonParse(row.rental_data, {}),
+      pdfUrl: row.pdf_url,
+      emailSent: row.email_sent || false,
+      emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,
       notes: row.notes,
       createdBy: row.created_by
     };

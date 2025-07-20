@@ -36,8 +36,46 @@ export default function PDFViewer({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [protocolData, setProtocolData] = useState<any>(null);
 
-  // Generovanie PDF URL
+  // Načítanie protokolu a jeho PDF URL
+  const loadProtocolData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Najprv skús načítať protokol aby získal pdfUrl
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      const protocolResponse = await fetch(`${apiBaseUrl}/protocols/${protocolType}/${protocolId}`);
+      
+      if (protocolResponse.ok) {
+        const protocol = await protocolResponse.json();
+        setProtocolData(protocol);
+        
+        // Ak má protokol pdfUrl, použij ho
+        if (protocol.pdfUrl) {
+          console.log('✅ Using existing PDF URL from protocol:', protocol.pdfUrl);
+          setPdfUrl(protocol.pdfUrl);
+          return;
+        }
+      }
+      
+      // Ak nemá pdfUrl, vygeneruj nové PDF
+      console.log('⚠️ No PDF URL found, generating new PDF');
+      const generateUrl = generatePDFUrl();
+      setPdfUrl(generateUrl);
+      
+    } catch (err) {
+      console.error('❌ Error loading protocol data:', err);
+      // Fallback na generovanie PDF
+      const generateUrl = generatePDFUrl();
+      setPdfUrl(generateUrl);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generovanie PDF URL (fallback)
   const generatePDFUrl = () => {
     // Použi rovnakú logiku ako v api.ts
     let baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app';
@@ -59,9 +97,14 @@ export default function PDFViewer({
     return `${baseUrl}${apiPath}/protocols/${protocolType}/${protocolId}/pdf`;
   };
 
-  // Download URL
+  // Download URL - použij existujúce PDF URL ak existuje
   const getDownloadUrl = () => {
-    // Použi rovnakú logiku ako v api.ts
+    // Ak máme pdfUrl z protokolu, použij ho
+    if (protocolData?.pdfUrl) {
+      return protocolData.pdfUrl;
+    }
+    
+    // Fallback na generovanie
     let baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app';
     
     if (process.env.REACT_APP_API_URL) {
@@ -83,18 +126,7 @@ export default function PDFViewer({
 
   // Načítanie PDF
   const handleLoadPDF = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const url = generatePDFUrl();
-      setPdfUrl(url);
-    } catch (err) {
-      setError('Chyba pri načítaní PDF');
-      console.error('PDF loading error:', err);
-    } finally {
-      setLoading(false);
-    }
+    await loadProtocolData();
   };
 
   // Stiahnutie PDF
@@ -110,7 +142,7 @@ export default function PDFViewer({
 
   // Otvorenie v novom okne
   const handleOpenInNewWindow = () => {
-    const url = generatePDFUrl();
+    const url = pdfUrl || generatePDFUrl();
     window.open(url, '_blank');
   };
 
