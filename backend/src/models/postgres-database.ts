@@ -2156,9 +2156,9 @@ export class PostgresDatabase {
           rental_id, location, odometer, fuel_level, fuel_type,
           exterior_condition, interior_condition, condition_notes,
           vehicle_images_urls, vehicle_videos_urls, document_images_urls, damage_images_urls,
-          damages, signatures, rental_data, notes, created_by
+          damages, signatures, rental_data, pdf_url, email_sent, notes, created_by
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
         ) RETURNING *
       `, [
         protocolData.rentalId,
@@ -2176,6 +2176,8 @@ export class PostgresDatabase {
         JSON.stringify(protocolData.damages || []),
         JSON.stringify(protocolData.signatures || []),
         JSON.stringify(protocolData.rentalData || {}),
+        protocolData.pdfUrl || null,
+        protocolData.emailSent || false,
         protocolData.notes || '',
         protocolData.createdBy || ''
       ]);
