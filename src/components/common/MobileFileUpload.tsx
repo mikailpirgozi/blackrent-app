@@ -78,6 +78,57 @@ const MobileFileUpload: React.FC<MobileFileUploadProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Funkcia pre kompresiu obrázkov
+  const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Výpočet nových rozmerov (max 1920px šírka)
+        const maxWidth = 1920;
+        const maxHeight = 1080;
+        let { width, height } = img;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Kreslenie obrázka s novými rozmermi
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Konverzia na blob s kompresiou
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file); // Fallback na originál
+          }
+        }, 'image/jpeg', 0.8); // 80% kvalita
+      };
+      
+      img.onerror = () => {
+        resolve(file); // Fallback na originál pri chybe
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   // Kontrola či je mobilné zariadenie
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const hasCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
@@ -138,23 +189,26 @@ const MobileFileUpload: React.FC<MobileFileUploadProps> = ({
     // Kreslenie videa na canvas
     ctx.drawImage(video, 0, 0);
 
-    // Konverzia na blob
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        const preview = URL.createObjectURL(blob);
-        
-        const capturedFile: CapturedFile = {
-          id: Date.now().toString(),
-          file,
-          preview,
-          type: 'image',
-          timestamp: new Date()
-        };
+            // Konverzia na blob s kompresiou
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            const originalFile = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            
+            // Ďalšia kompresia pre lepšiu kvalitu
+            const compressedFile = await compressImage(originalFile);
+            const preview = URL.createObjectURL(compressedFile);
+            
+            const capturedFile: CapturedFile = {
+              id: Date.now().toString(),
+              file: compressedFile,
+              preview,
+              type: 'image',
+              timestamp: new Date()
+            };
 
-        setCapturedFiles(prev => multiple ? [...prev, capturedFile] : [capturedFile]);
-      }
-    }, 'image/jpeg', 0.8);
+            setCapturedFiles(prev => multiple ? [...prev, capturedFile] : [capturedFile]);
+          }
+        }, 'image/jpeg', 0.8);
   }, [multiple]);
 
   /**
@@ -201,8 +255,14 @@ const MobileFileUpload: React.FC<MobileFileUploadProps> = ({
 
     try {
       const uploadPromises = capturedFiles.map(async (capturedFile) => {
+        // Automatická kompresia obrázkov
+        let processedFile = capturedFile.file;
+        if (capturedFile.file.type.startsWith('image/')) {
+          processedFile = await compressImage(capturedFile.file);
+        }
+
         const formData = new FormData();
-        formData.append('file', capturedFile.file);
+        formData.append('file', processedFile);
         formData.append('type', type);
         formData.append('entityId', entityId);
 

@@ -60,6 +60,7 @@ export default function RentalList() {
     title: string;
   } | null>(null);
   const isMobile = useMediaQuery('(max-width:600px)');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // 🚀 PERFORMANCE OPTIMIZATION: Debounced search
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -136,62 +137,9 @@ export default function RentalList() {
     pageInfo
   } = usePagination(state.rentals, 15); // Menej položiek pre komplexné zobrazenie
 
-  // Načítanie protokolov pre prenájom
-  const loadProtocolsForRental = async (rentalId: string) => {
-    if (loadingProtocols.includes(rentalId)) return;
-    
-    console.log('🔍 loadProtocolsForRental - začínam načítanie pre:', rentalId);
-    setLoadingProtocols(prev => [...prev, rentalId]);
-    try {
-      const data = await apiService.getProtocolsByRental(rentalId);
-      console.log('📋 API odpoveď pre', rentalId, ':', data);
-      
-      // Bezpečné destructuring s fallback
-      const handoverProtocols = data?.handoverProtocols || [];
-      const returnProtocols = data?.returnProtocols || [];
-      
-      console.log('📋 Handover protokoly:', handoverProtocols.length);
-      console.log('📋 Return protokoly:', returnProtocols.length);
-      
-      setProtocols(prev => {
-        const newProtocols = {
-          ...prev,
-          [rentalId]: {
-            handover: handoverProtocols?.[0] || undefined,
-            return: returnProtocols?.[0] || undefined,
-          }
-        };
-        console.log('💾 Ukladám protokoly pre', rentalId, ':', newProtocols[rentalId]);
-        return newProtocols;
-      });
-    } catch (error) {
-      console.error('❌ Chyba pri načítaní protokolov pre', rentalId, ':', error);
-      // Nastav prázdne protokoly pri chybe
-      setProtocols(prev => ({
-        ...prev,
-        [rentalId]: {
-          handover: undefined,
-          return: undefined,
-        }
-      }));
-    } finally {
-      setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
-      console.log('✅ loadProtocolsForRental - dokončené pre:', rentalId);
-    }
-  };
 
-  // Funkcia pre získanie stavu protokolov
-  const getProtocolStatus = (rentalId: string) => {
-    const rentalProtocols = protocols[rentalId];
-    if (!rentalProtocols) return 'none';
-    
-    const hasHandover = !!rentalProtocols.handover;
-    const hasReturn = !!rentalProtocols.return;
-    
-    if (hasReturn) return 'completed';
-    if (hasHandover) return 'handover-only';
-    return 'none';
-  };
+
+
 
   // Funkcia pre zobrazenie stavu protokolov
   const renderProtocolStatus = (rentalId: string) => {
