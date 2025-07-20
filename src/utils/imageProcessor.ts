@@ -6,6 +6,13 @@ export interface ProcessedImage {
 }
 
 export class ImageProcessor {
+  private apiBaseUrl: string;
+
+  constructor() {
+    // Použi Railway backend URL
+    this.apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+  }
+
   /**
    * Spracovanie obrázkov - originál + 800px thumbnail
    */
@@ -46,7 +53,7 @@ export class ImageProcessor {
     formData.append('protocolId', protocolId);
     formData.append('type', 'original');
     
-    const response = await fetch('/api/files/protocol-upload', {
+    const response = await fetch(`${this.apiBaseUrl}/files/protocol-upload`, {
       method: 'POST',
       body: formData,
     });
@@ -69,7 +76,7 @@ export class ImageProcessor {
     formData.append('protocolId', protocolId);
     formData.append('type', 'thumbnail');
     
-    const response = await fetch('/api/files/protocol-upload', {
+    const response = await fetch(`${this.apiBaseUrl}/files/protocol-upload`, {
       method: 'POST',
       body: formData,
     });
@@ -131,7 +138,7 @@ export class ImageProcessor {
    */
   async loadOriginalImages(protocolId: string): Promise<ProcessedImage[]> {
     try {
-      const response = await fetch(`/api/files/protocol/${protocolId}/images`);
+      const response = await fetch(`${this.apiBaseUrl}/files/protocol/${protocolId}/images`);
       if (!response.ok) {
         throw new Error('Failed to load images');
       }

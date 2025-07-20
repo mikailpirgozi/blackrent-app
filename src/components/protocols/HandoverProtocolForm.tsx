@@ -249,41 +249,18 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     try {
       setLoading(true);
       
-      console.log('🚀 Začínam ukladanie protokolu s novým systémom...');
+      console.log('🚀 Začínam ukladanie protokolu...');
       
-      // 🚀 KROK 1: Spracovanie obrázkov cez ImageProcessor
-      const imageProcessor = new ImageProcessor();
+      // 🚀 KROK 1: Použij existujúce obrázky z protokolu (už sú v R2)
+      const vehicleImages = protocol.vehicleImages || [];
+      const documentImages = protocol.documentImages || [];
       
-      // Konverzia ProtocolImage na File objekty pre vehicleImages
-      const vehicleImageFiles = protocol.vehicleImages?.map(img => {
-        // Vytvorenie File z URL alebo base64
-        const imageData = img.url.startsWith('data:') ? img.url : `data:image/jpeg;base64,${img.url}`;
-        return new File([imageData], `vehicle_${Date.now()}.jpg`, { type: 'image/jpeg' });
-      }) || [];
-      
-      const processedVehicleImages = await imageProcessor.processImages(
-        vehicleImageFiles,
-        protocol.id || protocolId
-      );
-      
-      // Konverzia ProtocolImage na File objekty pre documentImages
-      const documentImageFiles = protocol.documentImages?.map(img => {
-        // Vytvorenie File z URL alebo base64
-        const imageData = img.url.startsWith('data:') ? img.url : `data:image/jpeg;base64,${img.url}`;
-        return new File([imageData], `document_${Date.now()}.jpg`, { type: 'image/jpeg' });
-      }) || [];
-      
-      const processedDocumentImages = await imageProcessor.processImages(
-        documentImageFiles,
-        protocol.id || protocolId
-      );
-      
-      console.log('✅ Obrázky spracované:', {
-        vehicle: processedVehicleImages.length,
-        documents: processedDocumentImages.length
+      console.log('✅ Používam existujúce obrázky:', {
+        vehicle: vehicleImages.length,
+        documents: documentImages.length
       });
       
-      // 🚀 KROK 2: Generovanie PDF s vloženými obrázkami
+      // 🚀 KROK 2: Generovanie PDF s existujúcimi obrázkami
       const enhancedPdfGenerator = new EnhancedPDFGenerator();
       const pdfBlob = await enhancedPdfGenerator.generateCustomerProtocol({
         id: protocol.id || protocolId,
@@ -291,8 +268,18 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         rental: protocol.rental || rental,
         location: protocol.location || '',
         vehicleCondition: protocol.vehicleCondition || {},
-        vehicleImages: processedVehicleImages,
-        documentImages: processedDocumentImages,
+        vehicleImages: vehicleImages.map(img => ({
+          original: img.url,
+          thumbnail: img.url, // Použi rovnaký URL pre teraz
+          filename: (img as any).filename || 'image.jpg',
+          size: (img as any).size || 0
+        })),
+        documentImages: documentImages.map(img => ({
+          original: img.url,
+          thumbnail: img.url, // Použi rovnaký URL pre teraz
+          filename: (img as any).filename || 'document.jpg',
+          size: (img as any).size || 0
+        })),
         damageImages: [],
         damages: protocol.damages || [],
         signatures: protocol.signatures || [],
@@ -301,15 +288,17 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         completedAt: protocol.completedAt || new Date(),
       });
       
-      console.log('✅ PDF vygenerované s vloženými obrázkami');
+      console.log('✅ PDF vygenerované s existujúcimi obrázkami');
       
-      // 🚀 KROK 3: Upload PDF do R2
+      // 🚀 KROK 3: Upload PDF do R2 cez existujúci systém
       const pdfFile = new File([pdfBlob], 'customer-protocol.pdf', { type: 'application/pdf' });
       const formData = new FormData();
       formData.append('file', pdfFile);
-      formData.append('protocolId', protocol.id || protocolId);
+      formData.append('type', 'protocol');
+      formData.append('entityId', protocol.id || protocolId);
       
-      const pdfResponse = await fetch('/api/files/protocol-pdf', {
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      const pdfResponse = await fetch(`${apiBaseUrl}/files/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -321,7 +310,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       const pdfResult = await pdfResponse.json();
       console.log('✅ PDF uploadované do R2:', pdfResult.url);
       
-      // 🚀 KROK 4: Mapovanie na backend format s novými obrázkami
+      // 🚀 KROK 4: Mapovanie na backend format s existujúcimi obrázkami
       const protocolData = {
         id: protocol.id || protocolId,
         rentalId: protocol.rentalId,
@@ -334,9 +323,9 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           interiorCondition: 'Dobrý',
           notes: ''
         },
-        vehicleImages: processedVehicleImages, // 🚀 Nové spracované obrázky
+        vehicleImages: vehicleImages, // Použi existujúce obrázky
         vehicleVideos: protocol.vehicleVideos || [],
-        documentImages: processedDocumentImages, // 🚀 Nové spracované obrázky
+        documentImages: documentImages, // Použi existujúce obrázky
         damageImages: protocol.damageImages || [],
         damages: protocol.damages || [],
         signatures: protocol.signatures || [],
@@ -345,7 +334,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         createdBy: protocol.createdBy || '',
         status: 'completed',
         completedAt: protocol.completedAt || new Date(),
-        pdfUrl: pdfResult.url, // 🚀 URL na PDF v R2
+        pdfUrl: pdfResult.url, // URL na PDF v R2
       };
       
       console.log('✅ Protokol pripravený na uloženie:', protocolData);
@@ -354,7 +343,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       clearDraft(); // Vymaž koncept po úspešnom uložení
       onClose();
       
-      console.log('🎉 Protokol úspešne uložený s novým systémom!');
+      console.log('🎉 Protokol úspešne uložený!');
     } catch (error) {
       console.error('❌ Chyba pri ukladaní protokolu:', error);
       alert('Nepodarilo sa uložiť protokol: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
