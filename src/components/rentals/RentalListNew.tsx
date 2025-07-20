@@ -314,7 +314,7 @@ export default function RentalList() {
         }
 
         // Zavolaj API pre vymazanie protokolu
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/protocols/${type}/${protocol.id}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/protocols/${type}/${protocol.id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',

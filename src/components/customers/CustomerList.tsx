@@ -54,7 +54,7 @@ export default function CustomerList() {
       if (!debouncedSearchQuery) return true;
       
       const q = debouncedSearchQuery.toLowerCase();
-      return (
+      return !!(
         (customer.name && customer.name.toLowerCase().includes(q)) ||
         (customer.email && customer.email.toLowerCase().includes(q)) ||
         (customer.phone && customer.phone.includes(q))

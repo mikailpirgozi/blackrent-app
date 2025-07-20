@@ -502,4 +502,10 @@ class PDFGenerator {
   }
 }
 
+// Export funkcie pre kompatibilitu
+export const generateProtocolPDF = async (protocol: ProtocolData, options: PDFOptions = {}): Promise<Blob> => {
+  const generator = new PDFGenerator();
+  return generator.generateProtocolPDF(protocol, options);
+};
+
 export default PDFGenerator; 
