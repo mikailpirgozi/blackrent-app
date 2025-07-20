@@ -22,6 +22,14 @@ const upload = multer({
 // Upload súboru do R2
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
+    console.log('🔄 Upload request received:', {
+      hasFile: !!req.file,
+      fileSize: req.file?.size,
+      mimetype: req.file?.mimetype,
+      type: req.body.type,
+      entityId: req.body.entityId
+    });
+
     if (!req.file) {
       return res.status(400).json({ 
         success: false, 
@@ -38,8 +46,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       });
     }
 
+    console.log('🔍 Validating file...');
+
     // Validácia typu súboru
     if (!r2Storage.validateFileType(req.file.mimetype)) {
+      console.log('❌ Invalid file type:', req.file.mimetype);
       return res.status(400).json({ 
         success: false, 
         error: 'Nepodporovaný typ súboru' 
@@ -49,11 +60,14 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     // Validácia veľkosti súboru
     const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'document';
     if (!r2Storage.validateFileSize(req.file.size, fileType)) {
+      console.log('❌ File too large:', req.file.size);
       return res.status(400).json({ 
         success: false, 
         error: 'Súbor je príliš veľký' 
       });
     }
+
+    console.log('🔍 Generating file key...');
 
     // Generovanie file key
     const fileKey = r2Storage.generateFileKey(
@@ -61,6 +75,19 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       entityId, 
       req.file.originalname
     );
+
+    console.log('🔍 File key generated:', fileKey);
+
+    // Kontrola R2 konfigurácie
+    if (!r2Storage.isConfigured()) {
+      console.log('❌ R2 not configured');
+      return res.status(500).json({
+        success: false,
+        error: 'R2 Storage nie je nakonfigurované'
+      });
+    }
+
+    console.log('🔍 Uploading to R2...');
 
     // Upload do R2
     const url = await r2Storage.uploadFile(
@@ -88,9 +115,20 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error uploading file:', error);
+    
+    // Detailnejšie error logging
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
+    
     res.status(500).json({ 
       success: false, 
-      error: 'Chyba pri nahrávaní súboru' 
+      error: 'Chyba pri nahrávaní súboru',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     });
   }
 });
