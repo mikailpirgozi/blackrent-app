@@ -18,8 +18,36 @@ export class ProtocolPDFGenerator {
     });
   }
 
+  // Funkcia pre načítanie obrázka z R2 URL alebo base64
+  private async loadImageBuffer(imageUrl: string): Promise<Buffer> {
+    try {
+      // Ak je to R2 URL alebo iná HTTP URL
+      if (imageUrl.startsWith('http')) {
+        console.log('🔄 Načítavam obrázok z URL:', imageUrl);
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+      }
+      
+      // Ak je to base64
+      if (imageUrl.startsWith('data:image/')) {
+        console.log('🔄 Načítavam obrázok z base64');
+        const base64Data = imageUrl.split(',')[1];
+        return Buffer.from(base64Data, 'base64');
+      }
+      
+      throw new Error('Nepodporovaný formát obrázka');
+    } catch (error) {
+      console.error('❌ Chyba pri načítaní obrázka:', error);
+      throw error;
+    }
+  }
+
   // Generovanie handover protokolu
-  generateHandoverProtocol(protocol: HandoverProtocol): InstanceType<typeof PDFDocument> {
+  async generateHandoverProtocol(protocol: HandoverProtocol): Promise<InstanceType<typeof PDFDocument>> {
     this.setupHeader('PROTOKOL PREVZATIA VOZIDLA');
     
     // Základné informácie
@@ -93,8 +121,8 @@ export class ProtocolPDFGenerator {
         for (let i = 0; i < imagesToShow.length; i++) {
           const image = imagesToShow[i];
           try {
-            // Konvertuj base64 na buffer
-            const imageBuffer = Buffer.from(image.url.split(',')[1], 'base64');
+            // Načítaj obrázok z R2 URL alebo base64
+            const imageBuffer = await this.loadImageBuffer(image.url);
             
             // Pridaj obrázok do PDF
             this.doc.image(imageBuffer, {
@@ -138,23 +166,23 @@ export class ProtocolPDFGenerator {
     // Podpisy
     if (protocol.signatures && protocol.signatures.length > 0) {
       this.addSection('Podpisy');
-      protocol.signatures.forEach((signature, index) => {
+      for (const [index, signature] of protocol.signatures.entries()) {
         this.addInfoRow(`Podpis ${index + 1}:`, `${signature.signerName} (${signature.signerRole})`);
         this.addInfoRow(`Časová pečiatka:`, new Date(signature.timestamp).toLocaleString('sk-SK'));
         this.addInfoRow(`Miesto:`, signature.location);
         
-                  // Pridaj obrázok podpisu
-          try {
-            const signatureBuffer = Buffer.from(signature.signature.split(',')[1], 'base64');
-            this.doc.image(signatureBuffer, {
-              fit: [200, 80]
-            });
-            this.doc.moveDown(0.5);
-          } catch (error) {
-            console.error('Chyba pri vkladaní podpisu do PDF:', error);
-            this.doc.fontSize(8).text('Chyba pri načítaní podpisu', { align: 'center' });
-          }
-      });
+        // Pridaj obrázok podpisu
+        try {
+          const signatureBuffer = await this.loadImageBuffer(signature.signature);
+          this.doc.image(signatureBuffer, {
+            fit: [200, 80]
+          });
+          this.doc.moveDown(0.5);
+        } catch (error) {
+          console.error('Chyba pri vkladaní podpisu do PDF:', error);
+          this.doc.fontSize(8).text('Chyba pri načítaní podpisu', { align: 'center' });
+        }
+      }
     }
     
     // Poznámky
@@ -168,7 +196,7 @@ export class ProtocolPDFGenerator {
   }
 
   // Generovanie return protokolu
-  generateReturnProtocol(protocol: ReturnProtocol): InstanceType<typeof PDFDocument> {
+  async generateReturnProtocol(protocol: ReturnProtocol): Promise<InstanceType<typeof PDFDocument>> {
     this.setupHeader('PROTOKOL VRÁTENIA VOZIDLA');
     
     // Základné informácie
@@ -295,14 +323,14 @@ export class ProtocolPDFGenerator {
     // Podpisy
     if (protocol.signatures && protocol.signatures.length > 0) {
       this.addSection('Podpisy');
-      protocol.signatures.forEach((signature, index) => {
+      for (const [index, signature] of protocol.signatures.entries()) {
         this.addInfoRow(`Podpis ${index + 1}:`, `${signature.signerName} (${signature.signerRole})`);
         this.addInfoRow(`Časová pečiatka:`, new Date(signature.timestamp).toLocaleString('sk-SK'));
         this.addInfoRow(`Miesto:`, signature.location);
         
         // Pridaj obrázok podpisu
         try {
-          const signatureBuffer = Buffer.from(signature.signature.split(',')[1], 'base64');
+          const signatureBuffer = await this.loadImageBuffer(signature.signature);
           this.doc.image(signatureBuffer, {
             fit: [200, 80]
           });
@@ -311,7 +339,7 @@ export class ProtocolPDFGenerator {
           console.error('Chyba pri vkladaní podpisu do PDF:', error);
           this.doc.fontSize(8).text('Chyba pri načítaní podpisu', { align: 'center' });
         }
-      });
+      }
     }
     
     // Poznámky
@@ -392,12 +420,12 @@ export class ProtocolPDFGenerator {
 // Export funkcie pre jednoduché použitie
 export const generateHandoverPDF = async (protocol: HandoverProtocol): Promise<Buffer> => {
   const generator = new ProtocolPDFGenerator();
-  generator.generateHandoverProtocol(protocol);
+  await generator.generateHandoverProtocol(protocol);
   return generator.getBuffer();
 };
 
 export const generateReturnPDF = async (protocol: ReturnProtocol): Promise<Buffer> => {
   const generator = new ProtocolPDFGenerator();
-  generator.generateReturnProtocol(protocol);
+  await generator.generateReturnProtocol(protocol);
   return generator.getBuffer();
 }; 

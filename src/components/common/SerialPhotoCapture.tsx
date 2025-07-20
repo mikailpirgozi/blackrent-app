@@ -43,6 +43,8 @@ interface SerialPhotoCaptureProps {
   maxVideos?: number;
   compressImages?: boolean;
   compressVideos?: boolean;
+  entityId?: string; // ID pre R2 upload
+  autoUploadToR2?: boolean; // Automatický upload na R2
 }
 
 interface CapturedMedia {
@@ -69,13 +71,48 @@ export default function SerialPhotoCapture({
   maxVideos = 5,
   compressImages = true,
   compressVideos = true,
+  entityId,
+  autoUploadToR2 = true,
 }: SerialPhotoCaptureProps) {
   const [capturedMedia, setCapturedMedia] = useState<CapturedMedia[]>([]);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [previewMedia, setPreviewMedia] = useState<CapturedMedia | null>(null);
+  const [uploadingToR2, setUploadingToR2] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // Funkcia pre upload na R2
+  const uploadToR2 = async (file: File, type: 'image' | 'video'): Promise<string> => {
+    if (!entityId || !autoUploadToR2) {
+      // Fallback na base64 ak nie je R2 upload
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', 'protocol');
+    formData.append('entityId', entityId);
+
+    const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+    
+    const response = await fetch(`${apiBaseUrl}/files/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`R2 upload failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.url;
+  };
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -101,91 +138,89 @@ export default function SerialPhotoCapture({
     setProcessing(true);
     setProgress(0);
 
-    const newMedia: CapturedMedia[] = [];
-    
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const isVideo = file.type.startsWith('video/');
-      
-      try {
+    try {
+      const newMedia: CapturedMedia[] = [];
+      let processedCount = 0;
+
+      for (const file of files) {
+        const isVideo = file.type.startsWith('video/');
+        const mediaType = allowedTypes[0]; // Default type
+
+        // Automatická kompresia ak je povolená
         let processedFile = file;
-        let preview: string;
         let compressed = false;
+        let originalSize = file.size;
         let compressedSize = file.size;
-        
-        if (isVideo) {
-          preview = await generateVideoThumbnail(file);
-          // Automatická kompresia videí ak je povolená
-          if (compressVideos && file.size > 10 * 1024 * 1024) { // 10MB limit
-            try {
-              const compressedResult = await compressVideo(file);
-              processedFile = compressedResult.compressedFile;
-              compressed = true;
-              compressedSize = compressedResult.compressedFile.size;
-            } catch (error) {
-              console.warn('Video compression failed, using original:', error);
-            }
-          }
+
+        if (isVideo && compressVideos) {
+          setProgress((processedCount / files.length) * 50);
+          const compressionResult = await compressVideo(file);
+          processedFile = compressionResult.compressedFile;
+          compressed = true;
+          compressedSize = compressionResult.compressedFile.size;
+        } else if (!isVideo && compressImages) {
+          setProgress((processedCount / files.length) * 50);
+          const compressionResult = await compressImage(file);
+          processedFile = new File([compressionResult.compressedBlob], file.name, {
+            type: file.type,
+            lastModified: Date.now()
+          });
+          compressed = true;
+          compressedSize = compressionResult.compressedBlob.size;
+        }
+
+        // Okamžitý upload na R2 ak je povolený
+        let url: string;
+        if (autoUploadToR2 && entityId) {
+          setUploadingToR2(true);
+          setUploadProgress((processedCount / files.length) * 100);
+          url = await uploadToR2(processedFile, isVideo ? 'video' : 'image');
+          setUploadingToR2(false);
         } else {
-          // Automatická kompresia obrázkov ak je povolená
-          if (compressImages) {
-            try {
-              const compressedResult = await compressImage(file, {
-                maxWidth: 1920,
-                maxHeight: 1080,
-                quality: 0.8,
-                maxSize: 500 // 500KB
-              });
-              processedFile = new File([compressedResult.compressedBlob], file.name, {
-                type: file.type,
-                lastModified: Date.now()
-              });
-              preview = URL.createObjectURL(processedFile);
-              compressed = true;
-              compressedSize = compressedResult.compressedSize;
-            } catch (error) {
-              console.warn('Image compression failed, using original:', error);
-              preview = URL.createObjectURL(file);
-            }
-          } else {
-            preview = URL.createObjectURL(file);
-          }
+          // Fallback na base64
+          url = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(processedFile);
+          });
         }
 
         const media: CapturedMedia = {
           id: uuidv4(),
           file: processedFile,
           type: isVideo ? 'video' : 'image',
-          mediaType: allowedTypes[0] || 'vehicle',
+          mediaType,
           description: '',
-          preview,
+          preview: url,
           timestamp: new Date(),
           compressed,
-          originalSize: file.size,
+          originalSize,
           compressedSize,
-          compressionRatio: compressed ? ((file.size - compressedSize) / file.size) * 100 : undefined,
+          compressionRatio: originalSize > 0 ? ((originalSize - compressedSize) / originalSize) * 100 : 0,
         };
 
         newMedia.push(media);
-      } catch (error) {
-        console.error('Error processing file:', error);
+        processedCount++;
+        setProgress((processedCount / files.length) * 100);
       }
-      
-      setProgress(((i + 1) / files.length) * 100);
-    }
 
-    setCapturedMedia(prev => [...prev, ...newMedia]);
-    setProcessing(false);
-    setProgress(0);
-    
-    // Clear file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      setCapturedMedia(prev => [...prev, ...newMedia]);
+      console.log(`✅ Pridané ${newMedia.length} médií s ${autoUploadToR2 ? 'R2 upload' : 'base64'}`);
+
+    } catch (error) {
+      console.error('❌ Chyba pri spracovaní súborov:', error);
+      alert('Chyba pri spracovaní súborov: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
+    } finally {
+      setProcessing(false);
+      setProgress(0);
+      setUploadingToR2(false);
+      setUploadProgress(0);
+      // Reset file input
+      if (event.target) {
+        event.target.value = '';
+      }
     }
-    if (videoInputRef.current) {
-      videoInputRef.current.value = '';
-    }
-  }, [allowedTypes, capturedMedia, maxImages, maxVideos, compressImages, compressVideos]);
+  }, [capturedMedia, maxImages, maxVideos, allowedTypes, compressImages, compressVideos, autoUploadToR2, entityId]);
 
   const handleMediaTypeChange = (id: string, type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer') => {
     setCapturedMedia(prev => 
@@ -287,16 +322,22 @@ export default function SerialPhotoCapture({
     const videos: ProtocolVideo[] = [];
 
     for (const media of capturedMedia) {
-      const dataUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(media.file);
-      });
+      // Ak je preview už R2 URL, použij ho priamo
+      let url = media.preview;
+      
+      // Ak nie je R2 URL, konvertuj na base64
+      if (!url.startsWith('https://') || (!url.includes('r2.dev') && !url.includes('cloudflare.com'))) {
+        url = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(media.file);
+        });
+      }
 
       if (media.type === 'image') {
         images.push({
           id: media.id,
-          url: dataUrl,
+          url: url,
           type: media.mediaType,
           description: media.description,
           timestamp: media.timestamp,
@@ -307,7 +348,7 @@ export default function SerialPhotoCapture({
       } else {
         videos.push({
           id: media.id,
-          url: dataUrl,
+          url: url,
           type: media.mediaType,
           description: media.description,
           timestamp: media.timestamp,
@@ -318,6 +359,7 @@ export default function SerialPhotoCapture({
       }
     }
 
+    console.log(`✅ Ukladám ${images.length} obrázkov a ${videos.length} videí`);
     onSave(images, videos);
     handleClose();
   };
@@ -400,12 +442,19 @@ export default function SerialPhotoCapture({
             onChange={handleFileSelect}
           />
 
-          {/* Processing indicator */}
-          {processing && (
+          {/* Progress indicators */}
+          {(processing || uploadingToR2) && (
             <Box sx={{ mb: 2 }}>
-              <LinearProgress variant="determinate" value={progress} />
-              <Typography variant="body2" color="text.primary" sx={{ mt: 1 }}>
-                Spracovávam: {Math.round(progress)}%
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {uploadingToR2 ? 'Uploadujem na R2...' : 'Spracovávam súbory...'}
+              </Typography>
+              <LinearProgress 
+                variant="determinate" 
+                value={uploadingToR2 ? uploadProgress : progress} 
+                sx={{ height: 8, borderRadius: 4 }}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                {uploadingToR2 ? uploadProgress.toFixed(0) : progress.toFixed(0)}%
               </Typography>
             </Box>
           )}

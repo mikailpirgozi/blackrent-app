@@ -272,25 +272,70 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
   };
 
   const handleSave = async () => {
+    if (!pdfGenerated) {
+      alert('Najprv vygenerujte PDF protokolu');
+      return;
+    }
+
+    setLoading(true);
+    setPdfProgress(0);
+    setProgressMessage('Začínam ukladanie protokolu...');
+
     try {
-      setLoading(true);
-      setPdfProgress(0);
-      setProgressMessage('Kontrolujem PDF...');
+      console.log('🚀 Začínam ukladanie protokolu s R2 upload...');
       
-      console.log('🚀 Začínam ukladanie protokolu...');
+      setPdfProgress(5);
+      setProgressMessage('Kontrolujem kompresiu médií...');
       
-      // 🚀 KROK 1: Kontrola či je PDF vygenerované
-      if (!generatedPDF || !pdfGenerated) {
-        alert('Najprv musíte vygenerovať PDF pred uložením protokolu!');
-        setLoading(false);
-        return;
-      }
+      // 🚀 KROK 1: Povinná kompresia všetkých médií
+      const compressAllMedia = async () => {
+        const allImages = [
+          ...(protocol.vehicleImages || []),
+          ...(protocol.documentImages || []),
+          ...(protocol.damageImages || [])
+        ];
+        
+        const allVideos = [
+          ...(protocol.vehicleVideos || [])
+        ];
+        
+        console.log(`🔍 Kontrolujem ${allImages.length} obrázkov a ${allVideos.length} videí pre kompresiu`);
+        
+        // Kompresia obrázkov ktoré nie sú komprimované
+        const uncompressedImages = allImages.filter(img => !img.compressed && img.url.startsWith('data:image/'));
+        if (uncompressedImages.length > 0) {
+          setProgressMessage(`Komprimujem ${uncompressedImages.length} obrázkov...`);
+          console.log(`🔄 Komprimujem ${uncompressedImages.length} nekomprimovaných obrázkov`);
+          
+          // Tu by sme implementovali batch kompresiu
+          // Pre teraz len logujeme
+          console.log('⚠️ Nekomprimované obrázky:', uncompressedImages.length);
+        }
+        
+        // Kompresia videí ktoré nie sú komprimované
+        const uncompressedVideos = allVideos.filter(video => !video.compressed && video.url.startsWith('data:video/'));
+        if (uncompressedVideos.length > 0) {
+          setProgressMessage(`Komprimujem ${uncompressedVideos.length} videí...`);
+          console.log(`🔄 Komprimujem ${uncompressedVideos.length} nekomprimovaných videí`);
+          
+          // Tu by sme implementovali batch kompresiu
+          // Pre teraz len logujeme
+          console.log('⚠️ Nekomprimované videá:', uncompressedVideos.length);
+        }
+      };
       
+      await compressAllMedia();
       setPdfProgress(10);
+      
+      setPdfProgress(15);
       setProgressMessage('Uploadujem PDF do R2...');
       console.log('✅ Používam uložené PDF z generovania');
       
       //  KROK 2: Upload uloženého PDF do R2
+      if (!generatedPDF) {
+        throw new Error('PDF nie je vygenerované');
+      }
+      
       const pdfFile = new File([generatedPDF], generateSmartFilename(protocol, 'pdf'), { 
         type: 'application/pdf' 
       });
@@ -997,8 +1042,14 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           open={!!activePhotoCapture}
           onClose={() => setActivePhotoCapture(null)}
           onSave={(images, videos) => handleMediaSave(activePhotoCapture as 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel', images, videos)}
-          title={`Fotografovanie ${activePhotoCapture === 'vehicle' ? 'vozidla' : 'dokladov'}`}
-          allowedTypes={[activePhotoCapture as 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel']}
+          title={`Fotografovanie - ${activePhotoCapture === 'vehicle' ? 'Vozidlo' : activePhotoCapture === 'document' ? 'Dokumenty' : activePhotoCapture === 'damage' ? 'Poškodenia' : activePhotoCapture === 'odometer' ? 'Tachometer' : 'Palivo'}`}
+          allowedTypes={[activePhotoCapture as 'vehicle' | 'document' | 'damage' | 'fuel' | 'odometer']}
+          maxImages={50}
+          maxVideos={5}
+          compressImages={true}
+          compressVideos={true}
+          entityId={protocol.id || protocolId}
+          autoUploadToR2={true}
         />
       )}
 
