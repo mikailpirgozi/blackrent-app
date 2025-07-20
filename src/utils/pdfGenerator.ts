@@ -445,19 +445,25 @@ class PDFGenerator {
     for (let i = 0; i < signatures.length; i++) {
       const signature = signatures[i];
       
-      if (!signature.url) {
-        console.warn('⚠️ Signature without URL:', signature);
-        continue;
-      }
+      // Podpis môže mať buď URL alebo base64 data
+      let imgData: string;
       
-      try {
-        let imgData: string;
+      if (signature.url) {
+        // Ak má URL, načítaj z URL
         try {
           imgData = await this.loadImageFromUrl(signature.url);
         } catch (error) {
           imgData = this.createImagePlaceholder(maxWidth, maxHeight, 'Podpis');
         }
+      } else if (signature.signature && signature.signature.startsWith('data:image/')) {
+        // Ak má base64 data, použij priamo
+        imgData = signature.signature;
+      } else {
+        console.warn('⚠️ Signature without URL or base64 data:', signature);
+        imgData = this.createImagePlaceholder(maxWidth, maxHeight, 'Podpis');
+      }
 
+      try {
         const { width, height } = await this.calculateImageDimensions(imgData, maxWidth, maxHeight);
         
         if (this.currentY + height > this.pageHeight - 30) {
@@ -486,7 +492,7 @@ class PDFGenerator {
           rowHeight = 0;
         }
       } catch (error) {
-        console.error('❌ Error loading signature:', signature.url, error);
+        console.error('❌ Error loading signature:', signature.url || signature.signature, error);
         this.doc.setFontSize(10);
         this.doc.setTextColor(255, 0, 0);
         this.doc.text(`Chyba nacitania podpisu: ${signature.signerName || 'Podpis'}`, currentX, this.currentY);
