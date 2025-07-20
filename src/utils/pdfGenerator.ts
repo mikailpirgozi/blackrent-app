@@ -475,9 +475,9 @@ class PDFGenerator {
           imgData = this.createImagePlaceholder(maxWidth, maxHeight, 'Podpis');
         }
 
-        const { width, height } = this.calculateImageDimensions(imgData, maxWidth, maxHeight);
-        
-        if (this.currentY + height > this.pageHeight - 30) {
+                 const { width, height } = await this.calculateImageDimensions(imgData, maxWidth, maxHeight);
+         
+         if (this.currentY + height > this.pageHeight - 30) {
           this.doc.addPage();
           this.currentY = 20;
           currentX = this.margin;
