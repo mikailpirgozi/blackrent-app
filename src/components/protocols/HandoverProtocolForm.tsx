@@ -29,6 +29,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Grid,
 } from '@mui/material';
 import {
   Assignment,
@@ -54,6 +55,7 @@ import { useAuth } from '../../context/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
+import R2FileUpload from '../common/R2FileUpload';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -374,6 +376,8 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     console.log('🗑️ Koncept protokolu vymazaný');
   };
 
+
+
   const renderStepContent = (step: number) => {
     switch (step) {
       case 0:
@@ -566,6 +570,65 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                   >
                     Fotky dokladov ({protocol.documentImages?.length || 0})
                   </Button>
+                </Box>
+
+                {/* R2 Upload sekcia */}
+                <Box sx={{ mt: 2, p: 2, border: '1px dashed rgba(255, 255, 255, 0.3)', borderRadius: 1 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2, color: 'white' }}>
+                    📁 R2 Cloud Upload
+                  </Typography>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <R2FileUpload
+                        type="protocol"
+                        entityId={rental.id}
+                                                 onUploadSuccess={(fileData) => {
+                           console.log('📁 Vehicle image uploaded:', fileData);
+                           setProtocol(prev => ({
+                             ...prev,
+                             vehicleImages: [...(prev.vehicleImages || []), {
+                               id: uuidv4(),
+                               url: fileData.url,
+                               type: 'vehicle',
+                               filename: fileData.filename,
+                               timestamp: new Date(),
+                               uploadedAt: new Date()
+                             }]
+                           }));
+                         }}
+                        acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
+                        maxSize={10}
+                        multiple={true}
+                        label="Nahrať fotky vozidla do R2"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <R2FileUpload
+                        type="document"
+                        entityId={rental.id}
+                                                 onUploadSuccess={(fileData) => {
+                           console.log('📁 Document uploaded:', fileData);
+                           setProtocol(prev => ({
+                             ...prev,
+                             documentImages: [...(prev.documentImages || []), {
+                               id: uuidv4(),
+                               url: fileData.url,
+                               type: 'document',
+                               filename: fileData.filename,
+                               timestamp: new Date(),
+                               uploadedAt: new Date()
+                             }]
+                           }));
+                         }}
+                        acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
+                        maxSize={50}
+                        multiple={true}
+                        label="Nahrať dokumenty do R2"
+                      />
+                    </Grid>
+                  </Grid>
                 </Box>
                 
                 {/* Media summary */}
