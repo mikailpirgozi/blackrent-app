@@ -103,9 +103,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     vehicleImages: [],
     vehicleVideos: [],
     documentImages: [],
-    documentVideos: [],
     damageImages: [],
-    damageVideos: [],
     damages: [],
     signatures: [],
     rentalData: {
@@ -163,7 +161,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     if (protocol.location && protocol.vehicleCondition) {
       triggerAutoSave();
     }
-  }, [protocol.location, protocol.vehicleCondition, protocol.notes, protocol.damages, protocol.vehicleImages, protocol.vehicleVideos, protocol.documentImages, protocol.documentVideos, protocol.damageImages, protocol.damageVideos]);
+  }, [protocol.location, protocol.vehicleCondition, protocol.notes, protocol.damages, protocol.vehicleImages, protocol.documentImages]);
 
   // Cleanup timer pri unmount
   useEffect(() => {
@@ -501,11 +499,10 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         vehicleVideos: [...(prev.vehicleVideos || []), ...videos],
       }));
     } else {
-      // Opravené: Pridaj nové médiá k existujúcim namiesto prepisovania
       setProtocol(prev => ({
         ...prev,
-        [`${type}Images`]: [...(prev[`${type}Images`] || []), ...images],
-        [`${type}Videos`]: [...(prev[`${type}Videos`] || []), ...videos],
+        [`${type}Images`]: images,
+        [`${type}Videos`]: videos,
       }));
     }
     setActivePhotoCapture(null);

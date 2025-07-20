@@ -66,7 +66,7 @@ export default function SerialPhotoCapture({
   title,
   allowedTypes,
   maxImages = 50,
-  maxVideos = 10,
+  maxVideos = 5,
   compressImages = true,
   compressVideos = true,
 }: SerialPhotoCaptureProps) {
@@ -81,6 +81,23 @@ export default function SerialPhotoCapture({
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
+    // Kontrola limitov
+    const currentImages = capturedMedia.filter(m => m.type === 'image').length;
+    const currentVideos = capturedMedia.filter(m => m.type === 'video').length;
+    
+    const newImages = files.filter(f => !f.type.startsWith('video/')).length;
+    const newVideos = files.filter(f => f.type.startsWith('video/')).length;
+    
+    if (currentImages + newImages > maxImages) {
+      alert(`Môžete nahrať maximálne ${maxImages} obrázkov. Aktuálne máte ${currentImages} a pokúšate sa pridať ${newImages}.`);
+      return;
+    }
+    
+    if (currentVideos + newVideos > maxVideos) {
+      alert(`Môžete nahrať maximálne ${maxVideos} videí. Aktuálne máte ${currentVideos} a pokúšate sa pridať ${newVideos}.`);
+      return;
+    }
+
     setProcessing(true);
     setProgress(0);
 
@@ -91,24 +108,62 @@ export default function SerialPhotoCapture({
       const isVideo = file.type.startsWith('video/');
       
       try {
+        let processedFile = file;
         let preview: string;
+        let compressed = false;
+        let compressedSize = file.size;
         
         if (isVideo) {
           preview = await generateVideoThumbnail(file);
+          // Automatická kompresia videí ak je povolená
+          if (compressVideos && file.size > 10 * 1024 * 1024) { // 10MB limit
+            try {
+              const compressedResult = await compressVideo(file);
+              processedFile = compressedResult.compressedFile;
+              compressed = true;
+              compressedSize = compressedResult.compressedFile.size;
+            } catch (error) {
+              console.warn('Video compression failed, using original:', error);
+            }
+          }
         } else {
-          preview = URL.createObjectURL(file);
+          // Automatická kompresia obrázkov ak je povolená
+          if (compressImages) {
+            try {
+              const compressedResult = await compressImage(file, {
+                maxWidth: 1920,
+                maxHeight: 1080,
+                quality: 0.8,
+                maxSize: 500 // 500KB
+              });
+              processedFile = new File([compressedResult.compressedBlob], file.name, {
+                type: file.type,
+                lastModified: Date.now()
+              });
+              preview = URL.createObjectURL(processedFile);
+              compressed = true;
+              compressedSize = compressedResult.compressedSize;
+            } catch (error) {
+              console.warn('Image compression failed, using original:', error);
+              preview = URL.createObjectURL(file);
+            }
+          } else {
+            preview = URL.createObjectURL(file);
+          }
         }
 
         const media: CapturedMedia = {
           id: uuidv4(),
-          file,
+          file: processedFile,
           type: isVideo ? 'video' : 'image',
           mediaType: allowedTypes[0] || 'vehicle',
           description: '',
           preview,
           timestamp: new Date(),
-          compressed: false,
+          compressed,
           originalSize: file.size,
+          compressedSize,
+          compressionRatio: compressed ? ((file.size - compressedSize) / file.size) * 100 : undefined,
         };
 
         newMedia.push(media);
@@ -130,7 +185,7 @@ export default function SerialPhotoCapture({
     if (videoInputRef.current) {
       videoInputRef.current.value = '';
     }
-  }, [allowedTypes]);
+  }, [allowedTypes, capturedMedia, maxImages, maxVideos, compressImages, compressVideos]);
 
   const handleMediaTypeChange = (id: string, type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer') => {
     setCapturedMedia(prev => 
@@ -356,29 +411,36 @@ export default function SerialPhotoCapture({
           )}
 
           {/* Stats */}
-          {capturedMedia.length > 0 && (
-            <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-              <Chip 
-                label={`${capturedMedia.filter(m => m.type === 'image').length} fotiek`} 
-                size="small" 
-              />
-              <Chip 
-                label={`${capturedMedia.filter(m => m.type === 'video').length} videí`} 
-                size="small" 
-              />
-              <Chip 
-                label={`${(totalSize / 1024 / 1024).toFixed(1)} MB`} 
-                size="small" 
-              />
-              {compressionRatio > 0 && (
+          <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Limity: {maxImages} fotiek, {maxVideos} videí
+            </Typography>
+            {capturedMedia.length > 0 && (
+              <>
                 <Chip 
-                  label={`${compressionRatio.toFixed(1)}% komprimované`} 
+                  label={`${capturedMedia.filter(m => m.type === 'image').length}/${maxImages} fotiek`} 
                   size="small" 
-                  color="success" 
+                  color={capturedMedia.filter(m => m.type === 'image').length >= maxImages ? 'error' : 'default'}
                 />
-              )}
-            </Box>
-          )}
+                <Chip 
+                  label={`${capturedMedia.filter(m => m.type === 'video').length}/${maxVideos} videí`} 
+                  size="small" 
+                  color={capturedMedia.filter(m => m.type === 'video').length >= maxVideos ? 'error' : 'default'}
+                />
+                <Chip 
+                  label={`${(totalSize / 1024 / 1024).toFixed(1)} MB`} 
+                  size="small" 
+                />
+                {compressionRatio > 0 && (
+                  <Chip 
+                    label={`${compressionRatio.toFixed(1)}% komprimované`} 
+                    size="small" 
+                    color="success" 
+                  />
+                )}
+              </>
+            )}
+          </Box>
 
           {/* Media grid */}
           <Box sx={{ 
@@ -468,8 +530,16 @@ export default function SerialPhotoCapture({
                   />
                   
                   <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>
-                    {(media.file.size / 1024 / 1024).toFixed(2)} MB
-                    {media.compressionRatio && ` (${media.compressionRatio.toFixed(1)}% komprimované)`}
+                    {media.compressed ? (
+                      <>
+                        {(media.compressedSize! / 1024 / 1024).toFixed(2)} MB 
+                        <span style={{ color: 'success.main' }}>
+                          ({media.compressionRatio!.toFixed(1)}% komprimované)
+                        </span>
+                      </>
+                    ) : (
+                      `${(media.file.size / 1024 / 1024).toFixed(2)} MB`
+                    )}
                   </Typography>
                 </CardContent>
               </Card>

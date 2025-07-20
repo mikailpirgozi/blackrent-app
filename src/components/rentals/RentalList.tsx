@@ -2554,7 +2554,9 @@ export default function RentalList() {
                 vehicleImages: [],
                 vehicleVideos: [],
                 documentImages: [],
+                documentVideos: [],
                 damageImages: [],
+                damageVideos: [],
                 damages: [],
                 signatures: [],
                 rentalData: {

@@ -269,7 +269,9 @@ export interface HandoverProtocol {
   vehicleImages: ProtocolImage[];
   vehicleVideos: ProtocolVideo[];
   documentImages: ProtocolImage[];
+  documentVideos: ProtocolVideo[];
   damageImages: ProtocolImage[];
+  damageVideos: ProtocolVideo[];
   damages: ProtocolDamage[];
   signatures: ProtocolSignature[];
   rentalData: {
@@ -305,7 +307,9 @@ export interface ReturnProtocol {
   vehicleImages: ProtocolImage[];
   vehicleVideos: ProtocolVideo[];
   documentImages: ProtocolImage[];
+  documentVideos: ProtocolVideo[];
   damageImages: ProtocolImage[];
+  damageVideos: ProtocolVideo[];
   damages: ProtocolDamage[];
   newDamages: ProtocolDamage[];
   signatures: ProtocolSignature[];

@@ -284,7 +284,9 @@ export interface HandoverProtocol {
   vehicleImages: ProtocolImage[];
   vehicleVideos: ProtocolVideo[];
   documentImages: ProtocolImage[];
+  documentVideos: ProtocolVideo[];
   damageImages: ProtocolImage[];
+  damageVideos: ProtocolVideo[];
   
   // Damages
   damages: ProtocolDamage[];
@@ -340,7 +342,9 @@ export interface ReturnProtocol {
   vehicleImages: ProtocolImage[];
   vehicleVideos: ProtocolVideo[];
   documentImages: ProtocolImage[];
+  documentVideos: ProtocolVideo[];
   damageImages: ProtocolImage[];
+  damageVideos: ProtocolVideo[];
   
   // Damages
   damages: ProtocolDamage[];
