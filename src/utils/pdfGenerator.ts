@@ -549,31 +549,65 @@ class PDFGenerator {
    */
   private async loadImageFromUrl(url: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // Skontroluj či je to R2 URL a potrebuje proxy
+      const isR2Url = url.includes('r2.dev') || url.includes('cloudflare.com');
       
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+      if (isR2Url) {
+        // Extrahuj key z R2 URL
+        const urlParts = url.split('/');
+        const key = urlParts.slice(-2).join('/'); // Zober posledné 2 časti ako key
         
-        if (!ctx) {
-          reject(new Error('Canvas context not available'));
-          return;
-        }
+        // Použi proxy endpoint
+        const proxyUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/files/proxy/${encodeURIComponent(key)}`;
         
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
+        console.log('🔄 Loading R2 image via proxy:', proxyUrl);
         
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        resolve(dataUrl);
-      };
-      
-      img.onerror = () => {
-        reject(new Error(`Failed to load image: ${url}`));
-      };
-      
-      img.src = url;
+        fetch(proxyUrl)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.blob();
+          })
+          .then(blob => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              resolve(result);
+            };
+            reader.onerror = () => reject(new Error('Failed to read blob'));
+            reader.readAsDataURL(blob);
+          })
+          .catch(error => {
+            console.error('❌ Proxy fetch error:', error);
+            reject(error);
+          });
+      } else {
+        // Pre iné URL použij priame načítanie
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            resolve(dataUrl);
+          } else {
+            reject(new Error('Failed to get canvas context'));
+          }
+        };
+        
+        img.onerror = () => {
+          reject(new Error('Failed to load image'));
+        };
+        
+        img.src = url;
+      }
     });
   }
 

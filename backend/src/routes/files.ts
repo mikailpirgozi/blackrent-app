@@ -198,10 +198,10 @@ router.delete('/:key', async (req, res) => {
     await r2Storage.deleteFile(key);
     
     console.log('✅ File deleted from R2:', key);
-
-    res.json({
-      success: true,
-      message: 'Súbor bol úspešne vymazaný'
+    
+    res.json({ 
+      success: true, 
+      message: 'Súbor bol úspešne vymazaný' 
     });
 
   } catch (error) {
@@ -209,6 +209,53 @@ router.delete('/:key', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Chyba pri mazaní súboru' 
+    });
+  }
+});
+
+// Proxy endpoint pre načítanie obrázkov z R2 (pre PDF generovanie)
+router.get('/proxy/:key', async (req, res) => {
+  try {
+    const { key } = req.params;
+    
+    if (!key) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba file key' 
+      });
+    }
+
+    console.log('🔄 Loading image from R2 via proxy:', key);
+
+    // Načítanie súboru z R2
+    const fileBuffer = await r2Storage.getFile(key);
+    
+    if (!fileBuffer) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Súbor nebol nájdený' 
+      });
+    }
+
+    // Zistenie MIME typu z file key
+    const mimeType = r2Storage.getMimeTypeFromKey(key);
+    
+    // Nastavenie headers pre obrázok
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Length', fileBuffer.length);
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache na 1 hodinu
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Povoliť CORS
+    
+    // Odoslanie súboru
+    res.send(fileBuffer);
+    
+    console.log('✅ Image served via proxy:', key);
+
+  } catch (error) {
+    console.error('❌ Error serving image via proxy:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri načítaní obrázka' 
     });
   }
 });
