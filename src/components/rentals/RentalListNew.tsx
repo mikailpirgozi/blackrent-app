@@ -35,6 +35,7 @@ import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 import PDFViewer from '../common/PDFViewer';
 import { apiService } from '../../services/api';
+import { useDebounce, usePagination, useMemoizedFilter } from '../../utils/performance';
 
 export default function RentalList() {
   const { state, createRental, updateRental, deleteRental } = useApp();
@@ -59,6 +60,81 @@ export default function RentalList() {
     title: string;
   } | null>(null);
   const isMobile = useMediaQuery('(max-width:600px)');
+
+  // 🚀 PERFORMANCE OPTIMIZATION: Debounced search
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // 🚀 PERFORMANCE OPTIMIZATION: Memoized protocol loading
+  const loadProtocolsForRental = useMemo(() => {
+    return async (rentalId: string) => {
+      if (loadingProtocols.includes(rentalId)) return;
+      
+      console.log('🔍 loadProtocolsForRental - začínam načítanie pre:', rentalId);
+      setLoadingProtocols(prev => [...prev, rentalId]);
+      try {
+        const data = await apiService.getProtocolsByRental(rentalId);
+        console.log('📋 API odpoveď pre', rentalId, ':', data);
+        
+        const handoverProtocols = data?.handoverProtocols || [];
+        const returnProtocols = data?.returnProtocols || [];
+        
+        console.log('📋 Handover protokoly:', handoverProtocols.length);
+        console.log('📋 Return protokoly:', returnProtocols.length);
+        
+        setProtocols(prev => {
+          const newProtocols = {
+            ...prev,
+            [rentalId]: {
+              handover: handoverProtocols?.[0] || undefined,
+              return: returnProtocols?.[0] || undefined,
+            }
+          };
+          console.log('💾 Ukladám protokoly pre', rentalId, ':', newProtocols[rentalId]);
+          return newProtocols;
+        });
+      } catch (error) {
+        console.error('❌ Chyba pri načítaní protokolov pre', rentalId, ':', error);
+        setProtocols(prev => ({
+          ...prev,
+          [rentalId]: {
+            handover: undefined,
+            return: undefined,
+          }
+        }));
+      } finally {
+        setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
+        console.log('✅ loadProtocolsForRental - dokončené pre:', rentalId);
+      }
+    };
+  }, [loadingProtocols]);
+
+  // 🚀 PERFORMANCE OPTIMIZATION: Memoized protocol status
+  const getProtocolStatus = useMemo(() => {
+    return (rentalId: string) => {
+      const rentalProtocols = protocols[rentalId];
+      if (!rentalProtocols) return 'none';
+      
+      const hasHandover = !!rentalProtocols.handover;
+      const hasReturn = !!rentalProtocols.return;
+      
+      if (hasReturn) return 'completed';
+      if (hasHandover) return 'handover-only';
+      return 'none';
+    };
+  }, [protocols]);
+
+  // 🚀 PERFORMANCE OPTIMIZATION: Pagination for rentals
+  const {
+    currentData: paginatedRentals,
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    goToPage,
+    nextPage,
+    prevPage,
+    pageInfo
+  } = usePagination(state.rentals, 15); // Menej položiek pre komplexné zobrazenie
 
   // Načítanie protokolov pre prenájom
   const loadProtocolsForRental = async (rentalId: string) => {
@@ -555,12 +631,39 @@ export default function RentalList() {
 
       <ResponsiveTable
         columns={columns}
-        data={rentals}
+        data={paginatedRentals}
         selectable={true}
         selected={selected}
         onSelectionChange={setSelected}
         emptyMessage="Žiadne prenájmy"
       />
+
+      {/* 🚀 OPTIMIZED: Pagination controls */}
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={prevPage}
+            disabled={!hasPrevPage}
+            size="small"
+          >
+            Predchádzajúca
+          </Button>
+          
+          <Typography variant="body2" sx={{ alignSelf: 'center', mx: 2 }}>
+            {pageInfo.showing}
+          </Typography>
+          
+          <Button
+            variant="outlined"
+            onClick={nextPage}
+            disabled={!hasNextPage}
+            size="small"
+          >
+            Ďalšia
+          </Button>
+        </Box>
+      )}
 
       {/* Rental Form Dialog */}
       <Dialog

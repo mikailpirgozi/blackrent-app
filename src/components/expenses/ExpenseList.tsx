@@ -44,6 +44,7 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { v4 as uuidv4 } from 'uuid';
+import { useDebounce, usePagination, useMemoizedFilter } from '../../utils/performance';
 
 const getCategoryText = (category: ExpenseCategory) => {
   switch (category) {
@@ -97,14 +98,13 @@ export default function ExpenseList() {
   // Hook na detekciu mobilu
   const isMobile = useMediaQuery('(max-width:600px)');
 
-  const handleShowHistory = (expense: Expense) => {
-    setSelectedHistoryExpense(expense);
-  };
-  const handleCloseHistory = () => {
-    setSelectedHistoryExpense(null);
-  };
+  // 🚀 PERFORMANCE OPTIMIZATION: Debounced search
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  const filteredExpenses = state.expenses.filter((expense) => {
+  // 🚀 PERFORMANCE OPTIMIZATION: Memoized filtering
+  const filteredExpenses = useMemoizedFilter(
+    state.expenses,
+    (expense) => {
     if (filterVehicle && expense.vehicleId !== filterVehicle) return false;
     if (filterCompany && expense.company !== filterCompany) return false;
     if (filterCategory && expense.category !== filterCategory) return false;
@@ -113,8 +113,10 @@ export default function ExpenseList() {
     if (filterAmountFrom && expense.amount < parseFloat(filterAmountFrom)) return false;
     if (filterAmountTo && expense.amount > parseFloat(filterAmountTo)) return false;
     if (filterDescription && !expense.description.toLowerCase().includes(filterDescription.toLowerCase())) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+      
+      // 🚀 OPTIMIZED: Debounced search
+      if (debouncedSearchQuery) {
+        const q = debouncedSearchQuery.toLowerCase();
       if (
         !expense.description.toLowerCase().includes(q) &&
         !expense.company.toLowerCase().includes(q) &&
@@ -125,7 +127,30 @@ export default function ExpenseList() {
       }
     }
     return true;
-  });
+    },
+    [filterVehicle, filterCompany, filterCategory, filterDateFrom, filterDateTo, 
+     filterAmountFrom, filterAmountTo, filterDescription, debouncedSearchQuery, state.vehicles]
+  );
+
+  // 🚀 PERFORMANCE OPTIMIZATION: Pagination
+  const {
+    currentData: paginatedExpenses,
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    goToPage,
+    nextPage,
+    prevPage,
+    pageInfo
+  } = usePagination(filteredExpenses, 20);
+
+  const handleShowHistory = (expense: Expense) => {
+    setSelectedHistoryExpense(expense);
+  };
+  const handleCloseHistory = () => {
+    setSelectedHistoryExpense(null);
+  };
 
   const handleAdd = () => {
     setEditingExpense(null);
@@ -503,7 +528,7 @@ export default function ExpenseList() {
   ], [state.vehicles, handleEdit, handleDelete, handleShowHistory]);
 
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Náklady</Typography>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
@@ -783,7 +808,7 @@ export default function ExpenseList() {
       {/* Mobilné zobrazenie - karty */}
       {isMobile ? (
         <Box>
-          {filteredExpenses.map((expense) => (
+          {paginatedExpenses.map((expense) => (
             <Card 
               key={expense.id} 
               sx={{ 
@@ -933,12 +958,39 @@ export default function ExpenseList() {
       ) : (
         <ResponsiveTable
           columns={columns}
-          data={filteredExpenses}
+          data={paginatedExpenses}
           selectable={true}
           selected={selected}
           onSelectionChange={setSelected}
           emptyMessage="Žiadne náklady"
         />
+      )}
+
+      {/* 🚀 OPTIMIZED: Pagination controls */}
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={prevPage}
+            disabled={!hasPrevPage}
+                          size="small"
+          >
+            Predchádzajúca
+          </Button>
+          
+          <Typography variant="body2" sx={{ alignSelf: 'center', mx: 2 }}>
+            {pageInfo.showing}
+          </Typography>
+          
+          <Button
+            variant="outlined"
+            onClick={nextPage}
+            disabled={!hasNextPage}
+                          size="small"
+          >
+            Ďalšia
+          </Button>
+        </Box>
       )}
 
       <Dialog
@@ -969,7 +1021,7 @@ export default function ExpenseList() {
         <DialogContent>
           {(selectedHistoryExpense as any)?.history && (selectedHistoryExpense as any).history.length > 0 ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {(selectedHistoryExpense as any).history.map((entry: any, idx: number) => (
+                {(selectedHistoryExpense as any).history.map((entry: any, idx: number) => (
                 <Card key={idx} sx={{ p: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2" color="text.secondary">
@@ -980,14 +1032,14 @@ export default function ExpenseList() {
                     </Typography>
                   </Box>
                   <Box>
-                    {entry.changes.map((c: any, i: number) => (
+                      {entry.changes.map((c: any, i: number) => (
                       <Typography key={i} variant="body2" sx={{ mb: 0.5 }}>
                         <strong>{c.field}:</strong> {String(c.oldValue)} → {String(c.newValue)}
                       </Typography>
-                    ))}
+                      ))}
                   </Box>
                 </Card>
-              ))}
+                ))}
             </Box>
           ) : (
             <Typography>Žiadne zmeny.</Typography>

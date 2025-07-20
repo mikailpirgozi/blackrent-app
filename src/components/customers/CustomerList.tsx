@@ -31,6 +31,7 @@ import CustomerForm from './CustomerForm';
 import { v4 as uuidv4 } from 'uuid';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
+import { useDebounce, usePagination, useMemoizedFilter } from '../../utils/performance';
 
 export default function CustomerList() {
   const { state, dispatch, createCustomer, updateCustomer, deleteCustomer, updateRental } = useApp();
@@ -43,11 +44,37 @@ export default function CustomerList() {
   // Hook na detekciu mobilu
   const isMobile = useMediaQuery('(max-width:600px)');
 
-  const filteredCustomers = (state.customers || []).filter(customer =>
-    (customer.name && customer.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (customer.phone && customer.phone.includes(searchQuery))
+  // 🚀 PERFORMANCE OPTIMIZATION: Debounced search
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // 🚀 PERFORMANCE OPTIMIZATION: Memoized filtering
+  const filteredCustomers = useMemoizedFilter(
+    state.customers || [],
+    (customer) => {
+      if (!debouncedSearchQuery) return true;
+      
+      const q = debouncedSearchQuery.toLowerCase();
+      return (
+        (customer.name && customer.name.toLowerCase().includes(q)) ||
+        (customer.email && customer.email.toLowerCase().includes(q)) ||
+        (customer.phone && customer.phone.includes(q))
+      );
+    },
+    [debouncedSearchQuery]
   );
+
+  // 🚀 PERFORMANCE OPTIMIZATION: Pagination
+  const {
+    currentData: paginatedCustomers,
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    goToPage,
+    nextPage,
+    prevPage,
+    pageInfo
+  } = usePagination(filteredCustomers, 20);
 
   const handleAdd = () => {
     setEditingCustomer(null);
@@ -373,7 +400,7 @@ export default function CustomerList() {
   };
 
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" component="h1">
@@ -492,7 +519,7 @@ export default function CustomerList() {
       {/* Mobilné zobrazenie - karty */}
       {isMobile ? (
         <Box>
-          {filteredCustomers.length === 0 ? (
+          {paginatedCustomers.length === 0 ? (
             <Card sx={{ p: 3, textAlign: 'center' }}>
               <Typography color="text.secondary">
                 {searchQuery ? 'Žiadni zákazníci nevyhovujú vyhľadávaniu' : 'Žiadni zákazníci'}
@@ -525,7 +552,7 @@ export default function CustomerList() {
               )}
             </Card>
           ) : (
-            filteredCustomers.map((customer) => (
+            paginatedCustomers.map((customer) => (
               <Card 
                 key={customer.id} 
                 sx={{ 
@@ -641,9 +668,36 @@ export default function CustomerList() {
       ) : (
         <ResponsiveTable
           columns={columns}
-          data={filteredCustomers}
+          data={paginatedCustomers}
           emptyMessage={searchQuery ? 'Žiadni zákazníci nevyhovujú vyhľadávaniu' : 'Žiadni zákazníci'}
         />
+      )}
+
+      {/* 🚀 OPTIMIZED: Pagination controls */}
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={prevPage}
+            disabled={!hasPrevPage}
+            size="small"
+          >
+            Predchádzajúca
+          </Button>
+          
+          <Typography variant="body2" sx={{ alignSelf: 'center', mx: 2 }}>
+            {pageInfo.showing}
+          </Typography>
+          
+          <Button
+            variant="outlined"
+            onClick={nextPage}
+            disabled={!hasNextPage}
+            size="small"
+          >
+            Ďalšia
+          </Button>
+        </Box>
       )}
 
       {/* FAB tlačidlo pre mobilné zariadenia */}

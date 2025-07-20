@@ -36,6 +36,7 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { v4 as uuidv4 } from 'uuid';
+import { useDebounce, usePagination, useMemoizedFilter } from '../../utils/performance';
 
 const getStatusColor = (status: VehicleStatus) => {
   switch (status) {
@@ -122,6 +123,49 @@ export default function VehicleList() {
   // Hook na detekciu mobilu
   const isMobile = useMediaQuery('(max-width:600px)');
 
+  // 🚀 PERFORMANCE OPTIMIZATION: Debounced search
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // 🚀 PERFORMANCE OPTIMIZATION: Memoized filtering
+  const filteredVehicles = useMemoizedFilter(
+    getFilteredVehicles(),
+    (vehicle) => {
+      if (filterBrand && !vehicle.brand.toLowerCase().includes(filterBrand.toLowerCase())) return false;
+      if (filterModel && !vehicle.model.toLowerCase().includes(filterModel.toLowerCase())) return false;
+      if (filterCompany && vehicle.company !== filterCompany) return false;
+      if (filterLicensePlate && !vehicle.licensePlate.toLowerCase().includes(filterLicensePlate.toLowerCase())) return false;
+      if (filterStatus && vehicle.status !== filterStatus) return false;
+      
+      // 🚀 OPTIMIZED: Debounced search
+      if (debouncedSearchQuery) {
+        const q = debouncedSearchQuery.toLowerCase();
+        if (
+          !vehicle.brand.toLowerCase().includes(q) &&
+          !vehicle.model.toLowerCase().includes(q) &&
+          !vehicle.licensePlate.toLowerCase().includes(q) &&
+          !vehicle.company.toLowerCase().includes(q)
+        ) {
+          return false;
+        }
+      }
+      return true;
+    },
+    [filterBrand, filterModel, filterCompany, filterLicensePlate, filterStatus, debouncedSearchQuery]
+  );
+
+  // 🚀 PERFORMANCE OPTIMIZATION: Pagination
+  const {
+    currentData: paginatedVehicles,
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    goToPage,
+    nextPage,
+    prevPage,
+    pageInfo
+  } = usePagination(filteredVehicles, 20);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelected(filteredVehicles.map(v => v.id));
@@ -152,26 +196,6 @@ export default function VehicleList() {
   const handleCloseHistory = () => {
     setSelectedHistoryVehicle(null);
   };
-
-  const filteredVehicles = getFilteredVehicles().filter((vehicle) => {
-    if (filterBrand && !vehicle.brand.toLowerCase().includes(filterBrand.toLowerCase())) return false;
-    if (filterModel && !vehicle.model.toLowerCase().includes(filterModel.toLowerCase())) return false;
-    if (filterCompany && vehicle.company !== filterCompany) return false;
-    if (filterLicensePlate && !vehicle.licensePlate.toLowerCase().includes(filterLicensePlate.toLowerCase())) return false;
-    if (filterStatus && vehicle.status !== filterStatus) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      if (
-        !vehicle.brand.toLowerCase().includes(q) &&
-        !vehicle.model.toLowerCase().includes(q) &&
-        !vehicle.licensePlate.toLowerCase().includes(q) &&
-        !vehicle.company.toLowerCase().includes(q)
-      ) {
-        return false;
-      }
-    }
-    return true;
-  });
 
   const handleAdd = () => {
     setEditingVehicle(null);
@@ -599,12 +623,39 @@ export default function VehicleList() {
 
       <ResponsiveTable
         columns={columns}
-        data={filteredVehicles}
+        data={paginatedVehicles}
         selectable={true}
         selected={selected}
         onSelectionChange={setSelected}
         emptyMessage="Žiadne vozidlá"
       />
+
+      {/* 🚀 OPTIMIZED: Pagination controls */}
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={prevPage}
+            disabled={!hasPrevPage}
+            size="small"
+          >
+            Predchádzajúca
+          </Button>
+          
+          <Typography variant="body2" sx={{ alignSelf: 'center', mx: 2 }}>
+            {pageInfo.showing}
+          </Typography>
+          
+          <Button
+            variant="outlined"
+            onClick={nextPage}
+            disabled={!hasNextPage}
+            size="small"
+          >
+            Ďalšia
+          </Button>
+        </Box>
+      )}
 
       <Dialog
         open={openDialog}

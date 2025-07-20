@@ -48,6 +48,7 @@ import {
   PhotoCamera,
   Draw as DrawIcon,
   PictureAsPdf as PdfIcon,
+  Visibility,
 } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs, { Dayjs } from 'dayjs';
@@ -626,7 +627,10 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                                 {/* R2 Upload sekcia */}
                 <Box sx={{ mt: 2, p: 2, border: '1px dashed rgba(255, 255, 255, 0.3)', borderRadius: 1 }}>
                   <Typography variant="subtitle1" sx={{ mb: 2, color: 'white' }}>
-                    📁 R2 Cloud Upload
+                    ☁️ Cloud Upload (R2 Storage)
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255, 255, 255, 0.7)' }}>
+                    Súbory sa nahrávajú do Cloudflare R2 cloud storage. Dostupné online, zálohované, lacné.
                   </Typography>
                   
                   <Grid container spacing={2}>
@@ -651,7 +655,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                         acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
                         maxSize={10}
                         multiple={true}
-                        label="Nahrať fotky vozidla do R2"
+                        label="☁️ Nahrať fotky vozidla do R2"
                       />
                     </Grid>
                     
@@ -676,7 +680,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                         acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
                         maxSize={50}
                         multiple={true}
-                        label="Nahrať dokumenty do R2"
+                        label="☁️ Nahrať dokumenty do R2"
                       />
                     </Grid>
                   </Grid>
@@ -686,6 +690,9 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                 <Box sx={{ mt: 2, p: 2, border: '1px dashed rgba(255, 255, 255, 0.3)', borderRadius: 1, backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
                   <Typography variant="subtitle1" sx={{ mb: 2, color: 'white' }}>
                     📱 Mobilný Upload (Kamera + Galéria)
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255, 255, 255, 0.7)' }}>
+                    Fotografovanie priamo v aplikácii alebo výber z galérie. Súbory sa nahrávajú do R2.
                   </Typography>
                   
                   <Grid container spacing={2}>
@@ -710,7 +717,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                         acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
                         maxSize={10}
                         multiple={true}
-                        label="Mobilné fotky vozidla"
+                        label="📱 Mobilné fotky vozidla"
                       />
                     </Grid>
                     
@@ -735,7 +742,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                         acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
                         maxSize={50}
                         multiple={true}
-                        label="Mobilné dokumenty"
+                        label="📱 Mobilné dokumenty"
                       />
                     </Grid>
                   </Grid>
@@ -757,47 +764,99 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
 
                 {/* Zobrazenie fotiek */}
                 <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Nahrané fotky:
+                  <Typography variant="subtitle2" gutterBottom sx={{ color: 'white' }}>
+                    Nahrané fotky ({((protocol.vehicleImages?.length || 0) + (protocol.documentImages?.length || 0))}):
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Grid container spacing={1}>
                     {protocol.vehicleImages?.map((img, index) => (
-                      <Box key={img.id} sx={{ position: 'relative' }}>
-                        <img 
-                          src={img.url} 
-                          alt={`Vozidlo ${index + 1}`}
-                          style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
-                          onError={(e) => {
-                            console.error('Chyba načítania obrázka:', img.url);
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                        <Chip 
-                          label={img.type === 'odometer' ? 'Tachometer' : img.type === 'fuel' ? 'Palivo' : 'Vozidlo'} 
-                          size="small" 
-                          sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
-                        />
-                      </Box>
+                      <Grid item xs={6} sm={4} md={3} key={img.id}>
+                        <Card sx={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            borderColor: 'rgba(255, 255, 255, 0.5)',
+                            transform: 'scale(1.02)',
+                            transition: 'all 0.2s'
+                          }
+                        }}
+                        onClick={() => window.open(img.url, '_blank')}
+                      >
+                        <CardContent sx={{ p: 1 }}>
+                          <img 
+                            src={img.url} 
+                            alt={`Vozidlo ${index + 1}`}
+                            style={{ 
+                              width: '100%', 
+                              height: 120, 
+                              objectFit: 'cover', 
+                              borderRadius: 4,
+                              display: 'block'
+                            }}
+                            onError={(e) => {
+                              console.error('Chyba načítania obrázka:', img.url);
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                          <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Chip 
+                              label={img.type === 'odometer' ? 'Tachometer' : img.type === 'fuel' ? 'Palivo' : 'Vozidlo'} 
+                              size="small" 
+                              sx={{ fontSize: '0.7rem' }}
+                            />
+                            <IconButton size="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                              <Visibility fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
                     ))}
                     {protocol.documentImages?.map((img, index) => (
-                      <Box key={img.id} sx={{ position: 'relative' }}>
-                        <img 
-                          src={img.url} 
-                          alt={`Doklad ${index + 1}`}
-                          style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
-                          onError={(e) => {
-                            console.error('Chyba načítania obrázka:', img.url);
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                        <Chip 
-                          label="Doklad" 
-                          size="small" 
-                          sx={{ position: 'absolute', top: -8, left: -8, fontSize: '0.6rem' }}
-                        />
-                      </Box>
+                      <Grid item xs={6} sm={4} md={3} key={img.id}>
+                        <Card sx={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            borderColor: 'rgba(255, 255, 255, 0.5)',
+                            transform: 'scale(1.02)',
+                            transition: 'all 0.2s'
+                          }
+                        }}
+                        onClick={() => window.open(img.url, '_blank')}
+                      >
+                        <CardContent sx={{ p: 1 }}>
+                          <img 
+                            src={img.url} 
+                            alt={`Doklad ${index + 1}`}
+                            style={{ 
+                              width: '100%', 
+                              height: 120, 
+                              objectFit: 'cover', 
+                              borderRadius: 4,
+                              display: 'block'
+                            }}
+                            onError={(e) => {
+                              console.error('Chyba načítania obrázka:', img.url);
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                          <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Chip 
+                              label="Doklad" 
+                              size="small" 
+                              sx={{ fontSize: '0.7rem' }}
+                            />
+                            <IconButton size="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                              <Visibility fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
                     ))}
-                  </Box>
+                  </Grid>
                 </Box>
               </CardContent>
             </Card>
