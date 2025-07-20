@@ -419,10 +419,17 @@ export default function CustomerList() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: 'space-between', 
+        alignItems: { xs: 'flex-start', sm: 'center' }, 
+        mb: 3,
+        gap: { xs: 2, sm: 0 }
+      }}>
         <Box>
-          <Typography variant="h4" component="h1">
+          <Typography variant={isMobile ? "h5" : "h4"} component="h1">
             Zákazníci
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -430,7 +437,7 @@ export default function CustomerList() {
           </Typography>
         </Box>
         {!isMobile && (
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
               onClick={handleImportExistingCustomers}
@@ -476,7 +483,7 @@ export default function CustomerList() {
           </Box>
         )}
         {isMobile && (
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
             <Button
               variant="outlined"
               onClick={() => exportCustomersToCSV(state.customers)}
@@ -522,7 +529,8 @@ export default function CustomerList() {
         sx={{ 
           mb: 3,
           '& .MuiOutlinedInput-root': {
-            borderRadius: isMobile ? 2 : 1
+            borderRadius: isMobile ? 2 : 1,
+            backgroundColor: 'background.paper',
           }
         }}
         placeholder={isMobile ? "Meno, email, telefón..." : undefined}

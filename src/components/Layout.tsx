@@ -121,7 +121,9 @@ export default function Layout({ children }: LayoutProps) {
     <Box 
       sx={{ 
         height: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: isDarkMode 
+          ? 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         position: 'relative',
         '&::before': {
           content: '""',
@@ -130,7 +132,9 @@ export default function Layout({ children }: LayoutProps) {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(255, 255, 255, 0.1)',
+          background: isDarkMode 
+            ? 'rgba(0, 0, 0, 0.1)'
+            : 'rgba(255, 255, 255, 0.1)',
           backdropFilter: 'blur(10px)',
         }
       }}
@@ -149,14 +153,16 @@ export default function Layout({ children }: LayoutProps) {
                 width: 40,
                 height: 40,
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)',
+                background: isDarkMode 
+                  ? 'linear-gradient(135deg, #334155 0%, #475569 100%)'
+                  : 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
               }}
             >
-              <CarRental sx={{ color: 'primary.main', fontSize: 24 }} />
+              <CarRental sx={{ color: 'white', fontSize: 24 }} />
             </Box>
             <Typography 
               variant="h6" 
@@ -184,16 +190,22 @@ export default function Layout({ children }: LayoutProps) {
                   minHeight: 48,
                   color: 'white',
                   '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    backgroundColor: isDarkMode 
+                      ? 'rgba(255, 255, 255, 0.1)'
+                      : 'rgba(255, 255, 255, 0.15)',
                     transform: 'translateX(4px)',
                     transition: 'all 0.2s ease-in-out',
                   },
                   '&.Mui-selected': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    backgroundColor: isDarkMode 
+                      ? 'rgba(255, 255, 255, 0.15)'
+                      : 'rgba(255, 255, 255, 0.2)',
                     color: 'white',
                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
                     '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                      backgroundColor: isDarkMode 
+                        ? 'rgba(255, 255, 255, 0.2)'
+                        : 'rgba(255, 255, 255, 0.25)',
                     },
                   },
                   transition: 'all 0.2s ease-in-out',
@@ -230,8 +242,13 @@ export default function Layout({ children }: LayoutProps) {
             left: 0,
             right: 0,
             p: 2,
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderTop: '1px solid',
+            borderColor: isDarkMode 
+              ? 'rgba(255, 255, 255, 0.1)'
+              : 'rgba(255, 255, 255, 0.2)',
+            backgroundColor: isDarkMode 
+              ? 'rgba(0, 0, 0, 0.1)'
+              : 'rgba(255, 255, 255, 0.05)',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -285,9 +302,10 @@ export default function Layout({ children }: LayoutProps) {
           sx={{
             zIndex: (theme) => theme.zIndex.drawer + 1,
             boxShadow: 'none',
-            borderBottom: '1px solid #e2e8f0',
-            backgroundColor: '#ffffff',
-            color: '#1e293b',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: 'background.paper',
+            color: 'text.primary',
           }}
         >
           <Toolbar sx={{ justifyContent: 'space-between' }}>
@@ -296,7 +314,7 @@ export default function Layout({ children }: LayoutProps) {
                 variant="h6" 
                 sx={{ 
                   fontWeight: 700,
-                  color: '#1e293b',
+                  color: 'text.primary',
                   fontSize: '1.125rem',
                 }}
               >
@@ -329,8 +347,9 @@ export default function Layout({ children }: LayoutProps) {
                 onClick={toggleTheme}
                 sx={{ 
                   borderRadius: '8px',
+                  color: 'text.primary',
                   '&:hover': {
-                    backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f1f5f9',
+                    backgroundColor: 'action.hover',
                   },
                 }}
                 title={isDarkMode ? 'Prepnúť na svetlý režim' : 'Prepnúť na tmavý režim'}
@@ -343,7 +362,7 @@ export default function Layout({ children }: LayoutProps) {
                 sx={{ 
                   borderRadius: '8px',
                   '&:hover': {
-                    backgroundColor: '#f1f5f9',
+                    backgroundColor: 'action.hover',
                   },
                 }}
               >
@@ -357,7 +376,9 @@ export default function Layout({ children }: LayoutProps) {
                   sx: {
                     borderRadius: '12px',
                     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    backgroundColor: 'background.paper',
                     minWidth: 180,
                   },
                 }}
@@ -383,7 +404,9 @@ export default function Layout({ children }: LayoutProps) {
           position="fixed"
           sx={{
             zIndex: (theme) => theme.zIndex.drawer + 1,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: isDarkMode 
+              ? 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
+              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           }}
         >
@@ -408,6 +431,20 @@ export default function Layout({ children }: LayoutProps) {
               BlackRent
             </Typography>
             <IconButton
+              onClick={toggleTheme}
+              sx={{ 
+                color: 'inherit',
+                mr: 1,
+                borderRadius: '8px',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                },
+              }}
+              title={isDarkMode ? 'Prepnúť na svetlý režim' : 'Prepnúť na tmavý režim'}
+            >
+              {isDarkMode ? <LightMode /> : <DarkMode />}
+            </IconButton>
+            <IconButton
               color="inherit"
               onClick={handleMenuOpen}
             >
@@ -421,7 +458,9 @@ export default function Layout({ children }: LayoutProps) {
                 sx: {
                   borderRadius: '12px',
                   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                  border: '1px solid #e2e8f0',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  backgroundColor: 'background.paper',
                   minWidth: 180,
                 },
               }}
@@ -457,6 +496,7 @@ export default function Layout({ children }: LayoutProps) {
               boxSizing: 'border-box',
               width: drawerWidth,
               border: 'none',
+              backgroundColor: 'background.paper',
               boxShadow: isMobile ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' : 'none',
             },
           }}
@@ -472,7 +512,7 @@ export default function Layout({ children }: LayoutProps) {
           flexGrow: 1,
           width: { lg: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
-          backgroundColor: '#ffffff',
+          backgroundColor: 'background.default',
           position: 'relative',
         }}
       >
@@ -508,13 +548,14 @@ export default function Layout({ children }: LayoutProps) {
               left: 0,
               right: 0,
               zIndex: 1000,
-              backgroundColor: '#ffffff',
-              borderTop: '1px solid #e2e8f0',
+              backgroundColor: 'background.paper',
+              borderTop: '1px solid',
+              borderColor: 'divider',
               boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.1)',
               '& .MuiBottomNavigationAction-root': {
-                color: '#64748b',
+                color: 'text.secondary',
                 '&.Mui-selected': {
-                  color: '#2563eb',
+                  color: 'primary.main',
                 },
               },
             }}

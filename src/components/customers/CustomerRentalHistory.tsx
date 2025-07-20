@@ -80,6 +80,7 @@ export default function CustomerRentalHistory({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
 
   // Filtrujeme prenájmy pre tohto zákazníka
@@ -128,6 +129,7 @@ export default function CustomerRentalHistory({
             backgroundColor: 'background.paper',
             minHeight: isMobile ? '100vh' : 'auto',
             maxHeight: isMobile ? '100vh' : '90vh',
+            borderRadius: isMobile ? 0 : 2,
           }
         }}
       >
@@ -143,7 +145,7 @@ export default function CustomerRentalHistory({
           }
         }}>
           <Box>
-            <Typography variant={isMobile ? "h6" : "h5"} component="h2" sx={{ color: 'white', fontWeight: 'bold' }}>
+            <Typography variant={isSmallScreen ? "h6" : isMobile ? "h5" : "h4"} component="h2" sx={{ color: 'white', fontWeight: 'bold' }}>
               História prenájmov - {customer.name}
             </Typography>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
@@ -169,7 +171,7 @@ export default function CustomerRentalHistory({
             <Box>
               {/* Mobilné zobrazenie - karty */}
               {isMobile ? (
-                <Box sx={{ p: 2 }}>
+                <Box sx={{ p: isSmallScreen ? 1 : 2 }}>
                   {customerRentals.map((rental) => {
                     const status = getRentalStatus(rental);
                     const days = calculateRentalDays(rental.startDate, rental.endDate);
@@ -266,7 +268,11 @@ export default function CustomerRentalHistory({
                 </Box>
               ) : (
                 /* Desktop zobrazenie - tabuľka */
-                <TableContainer component={Paper} sx={{ maxHeight: 600, backgroundColor: 'background.paper' }}>
+                <TableContainer component={Paper} sx={{ 
+                  maxHeight: isTablet ? 500 : 600, 
+                  backgroundColor: 'background.paper',
+                  borderRadius: isTablet ? 1 : 2,
+                }}>
                   <Table stickyHeader>
                     <TableHead>
                       <TableRow sx={{ backgroundColor: 'primary.main' }}>
@@ -398,6 +404,7 @@ export default function CustomerRentalHistory({
               backgroundColor: 'background.paper',
               minHeight: isMobile ? '100vh' : 'auto',
               maxHeight: isMobile ? '100vh' : '90vh',
+              borderRadius: isMobile ? 0 : 2,
             }
           }}
         >
@@ -412,7 +419,7 @@ export default function CustomerRentalHistory({
               color: 'white'
             }
           }}>
-            <Typography variant={isMobile ? "h6" : "h5"} sx={{ color: 'white', fontWeight: 'bold' }}>
+            <Typography variant={isSmallScreen ? "h6" : isMobile ? "h5" : "h4"} sx={{ color: 'white', fontWeight: 'bold' }}>
               Detail prenájmu
             </Typography>
             <IconButton onClick={handleCloseRentalDetail} sx={{ color: 'white' }}>
@@ -432,7 +439,7 @@ export default function CustomerRentalHistory({
               />
             </Box>
 
-            <Grid container spacing={2}>
+            <Grid container spacing={isSmallScreen ? 1 : 2}>
               <Grid item xs={12} md={6}>
                 <Card sx={{ backgroundColor: 'background.paper', height: '100%' }}>
                   <CardContent>

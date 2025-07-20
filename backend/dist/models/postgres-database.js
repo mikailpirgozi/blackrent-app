@@ -2092,10 +2092,10 @@ class PostgresDatabase {
                 protocolData.vehicleCondition?.exteriorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.interiorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.notes || '',
-                this.extractMediaData(protocolData.vehicleImages ?? []),
-                this.extractMediaData(protocolData.vehicleVideos ?? []),
-                this.extractMediaData(protocolData.documentImages ?? []),
-                this.extractMediaData(protocolData.damageImages ?? []),
+                protocolData.vehicleImages || [], // ✅ PRIAMO - bez extractMediaData
+                protocolData.vehicleVideos || [], // ✅ PRIAMO - bez extractMediaData
+                protocolData.documentImages || [], // ✅ PRIAMO - bez extractMediaData
+                protocolData.damageImages || [], // ✅ PRIAMO - bez extractMediaData
                 JSON.stringify(protocolData.damages || []),
                 JSON.stringify(protocolData.newDamages || []),
                 JSON.stringify(protocolData.signatures || []),
@@ -2235,10 +2235,10 @@ class PostgresDatabase {
                 interiorCondition: row.interior_condition || 'Dobrý',
                 notes: row.condition_notes || ''
             },
-            vehicleImages: this.mapMediaObjectsFromDB(safeJsonParse(row.vehicle_images_urls, [])),
-            vehicleVideos: this.mapMediaObjectsFromDB(safeJsonParse(row.vehicle_videos_urls, [])),
-            documentImages: this.mapMediaObjectsFromDB(safeJsonParse(row.document_images_urls, [])),
-            damageImages: this.mapMediaObjectsFromDB(safeJsonParse(row.damage_images_urls, [])),
+            vehicleImages: safeJsonParse(row.vehicle_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
+            vehicleVideos: safeJsonParse(row.vehicle_videos_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
+            documentImages: safeJsonParse(row.document_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
+            damageImages: safeJsonParse(row.damage_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
             damages: safeJsonParse(row.damages, []),
             signatures: safeJsonParse(row.signatures, []),
             rentalData: safeJsonParse(row.rental_data, {}),
@@ -2282,10 +2282,10 @@ class PostgresDatabase {
                 interiorCondition: row.interior_condition || 'Dobrý',
                 notes: row.condition_notes || ''
             },
-            vehicleImages: this.mapMediaObjectsFromDB(safeJsonParse(row.vehicle_images_urls, [])),
-            vehicleVideos: this.mapMediaObjectsFromDB(safeJsonParse(row.vehicle_videos_urls, [])),
-            documentImages: this.mapMediaObjectsFromDB(safeJsonParse(row.document_images_urls, [])),
-            damageImages: this.mapMediaObjectsFromDB(safeJsonParse(row.damage_images_urls, [])),
+            vehicleImages: safeJsonParse(row.vehicle_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
+            vehicleVideos: safeJsonParse(row.vehicle_videos_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
+            documentImages: safeJsonParse(row.document_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
+            damageImages: safeJsonParse(row.damage_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
             damages: safeJsonParse(row.damages, []),
             newDamages: safeJsonParse(row.new_damages, []),
             signatures: safeJsonParse(row.signatures, []),
