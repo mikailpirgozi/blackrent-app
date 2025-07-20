@@ -78,11 +78,82 @@ export class ProtocolPDFGenerator {
     this.addInfoRow('Počet fotiek:', totalImages.toString());
     this.addInfoRow('Počet videí:', totalVideos.toString());
     
+    // Zobrazenie fotiek
+    if (totalImages > 0) {
+      this.addSection('Fotodokumentácia');
+      
+      // Vozidlo fotky
+      if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
+        this.doc.fontSize(12).font('Helvetica-Bold').text('Fotky vozidla:', { continued: true });
+        this.doc.fontSize(10).font('Helvetica').text(` ${protocol.vehicleImages.length} fotiek`);
+        this.doc.moveDown(0.5);
+        
+        // Zobrazenie prvých 3 fotiek ako thumbnail
+        const imagesToShow = protocol.vehicleImages.slice(0, 3);
+        for (let i = 0; i < imagesToShow.length; i++) {
+          const image = imagesToShow[i];
+          try {
+            // Konvertuj base64 na buffer
+            const imageBuffer = Buffer.from(image.url.split(',')[1], 'base64');
+            
+            // Pridaj obrázok do PDF
+            this.doc.image(imageBuffer, {
+              fit: [150, 100]
+            });
+            
+            this.doc.fontSize(8).text(`${image.type || 'Vozidlo'} - ${new Date(image.timestamp).toLocaleString('sk-SK')}`, {
+              align: 'center'
+            });
+            
+            if (i < imagesToShow.length - 1) {
+              this.doc.moveDown(0.5);
+            }
+          } catch (error) {
+            console.error('Chyba pri vkladaní obrázka do PDF:', error);
+            this.doc.fontSize(8).text(`Chyba pri načítaní obrázka ${i + 1}`, { align: 'center' });
+          }
+        }
+        
+        if (protocol.vehicleImages.length > 3) {
+          this.doc.fontSize(8).text(`... a ďalších ${protocol.vehicleImages.length - 3} fotiek`, { align: 'center' });
+        }
+        this.doc.moveDown(1);
+      }
+      
+      // Doklady fotky
+      if (protocol.documentImages && protocol.documentImages.length > 0) {
+        this.doc.fontSize(12).font('Helvetica-Bold').text('Fotky dokladov:', { continued: true });
+        this.doc.fontSize(10).font('Helvetica').text(` ${protocol.documentImages.length} fotiek`);
+        this.doc.moveDown(0.5);
+      }
+      
+      // Poškodenia fotky
+      if (protocol.damageImages && protocol.damageImages.length > 0) {
+        this.doc.fontSize(12).font('Helvetica-Bold').text('Fotky poškodení:', { continued: true });
+        this.doc.fontSize(10).font('Helvetica').text(` ${protocol.damageImages.length} fotiek`);
+        this.doc.moveDown(0.5);
+      }
+    }
+    
     // Podpisy
     if (protocol.signatures && protocol.signatures.length > 0) {
       this.addSection('Podpisy');
       protocol.signatures.forEach((signature, index) => {
         this.addInfoRow(`Podpis ${index + 1}:`, `${signature.signerName} (${signature.signerRole})`);
+        this.addInfoRow(`Časová pečiatka:`, new Date(signature.timestamp).toLocaleString('sk-SK'));
+        this.addInfoRow(`Miesto:`, signature.location);
+        
+                  // Pridaj obrázok podpisu
+          try {
+            const signatureBuffer = Buffer.from(signature.signature.split(',')[1], 'base64');
+            this.doc.image(signatureBuffer, {
+              fit: [200, 80]
+            });
+            this.doc.moveDown(0.5);
+          } catch (error) {
+            console.error('Chyba pri vkladaní podpisu do PDF:', error);
+            this.doc.fontSize(8).text('Chyba pri načítaní podpisu', { align: 'center' });
+          }
       });
     }
     
@@ -164,11 +235,82 @@ export class ProtocolPDFGenerator {
     this.addInfoRow('Počet fotiek:', totalImages.toString());
     this.addInfoRow('Počet videí:', totalVideos.toString());
     
+    // Zobrazenie fotiek
+    if (totalImages > 0) {
+      this.addSection('Fotodokumentácia');
+      
+      // Vozidlo fotky
+      if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
+        this.doc.fontSize(12).font('Helvetica-Bold').text('Fotky vozidla:', { continued: true });
+        this.doc.fontSize(10).font('Helvetica').text(` ${protocol.vehicleImages.length} fotiek`);
+        this.doc.moveDown(0.5);
+        
+        // Zobrazenie prvých 3 fotiek ako thumbnail
+        const imagesToShow = protocol.vehicleImages.slice(0, 3);
+        for (let i = 0; i < imagesToShow.length; i++) {
+          const image = imagesToShow[i];
+          try {
+            // Konvertuj base64 na buffer
+            const imageBuffer = Buffer.from(image.url.split(',')[1], 'base64');
+            
+            // Pridaj obrázok do PDF
+            this.doc.image(imageBuffer, {
+              fit: [150, 100]
+            });
+            
+            this.doc.fontSize(8).text(`${image.type || 'Vozidlo'} - ${new Date(image.timestamp).toLocaleString('sk-SK')}`, {
+              align: 'center'
+            });
+            
+            if (i < imagesToShow.length - 1) {
+              this.doc.moveDown(0.5);
+            }
+          } catch (error) {
+            console.error('Chyba pri vkladaní obrázka do PDF:', error);
+            this.doc.fontSize(8).text(`Chyba pri načítaní obrázka ${i + 1}`, { align: 'center' });
+          }
+        }
+        
+        if (protocol.vehicleImages.length > 3) {
+          this.doc.fontSize(8).text(`... a ďalších ${protocol.vehicleImages.length - 3} fotiek`, { align: 'center' });
+        }
+        this.doc.moveDown(1);
+      }
+      
+      // Doklady fotky
+      if (protocol.documentImages && protocol.documentImages.length > 0) {
+        this.doc.fontSize(12).font('Helvetica-Bold').text('Fotky dokladov:', { continued: true });
+        this.doc.fontSize(10).font('Helvetica').text(` ${protocol.documentImages.length} fotiek`);
+        this.doc.moveDown(0.5);
+      }
+      
+      // Poškodenia fotky
+      if (protocol.damageImages && protocol.damageImages.length > 0) {
+        this.doc.fontSize(12).font('Helvetica-Bold').text('Fotky poškodení:', { continued: true });
+        this.doc.fontSize(10).font('Helvetica').text(` ${protocol.damageImages.length} fotiek`);
+        this.doc.moveDown(0.5);
+      }
+    }
+    
     // Podpisy
     if (protocol.signatures && protocol.signatures.length > 0) {
       this.addSection('Podpisy');
       protocol.signatures.forEach((signature, index) => {
         this.addInfoRow(`Podpis ${index + 1}:`, `${signature.signerName} (${signature.signerRole})`);
+        this.addInfoRow(`Časová pečiatka:`, new Date(signature.timestamp).toLocaleString('sk-SK'));
+        this.addInfoRow(`Miesto:`, signature.location);
+        
+        // Pridaj obrázok podpisu
+        try {
+          const signatureBuffer = Buffer.from(signature.signature.split(',')[1], 'base64');
+          this.doc.image(signatureBuffer, {
+            fit: [200, 80]
+          });
+          this.doc.moveDown(0.5);
+        } catch (error) {
+          console.error('Chyba pri vkladaní podpisu do PDF:', error);
+          this.doc.fontSize(8).text('Chyba pri načítaní podpisu', { align: 'center' });
+        }
       });
     }
     

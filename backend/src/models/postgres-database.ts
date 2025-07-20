@@ -2386,6 +2386,44 @@ export class PostgresDatabase {
   }
 
   // Zatvorenie spojenia
+  async deleteHandoverProtocol(id: string): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      console.log('🗑️ Deleting handover protocol:', id);
+      
+      const result = await client.query(
+        'DELETE FROM handover_protocols WHERE id = $1 RETURNING id',
+        [id]
+      );
+      
+      return result.rows.length > 0;
+    } catch (error) {
+      console.error('❌ Error deleting handover protocol:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async deleteReturnProtocol(id: string): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      console.log('🗑️ Deleting return protocol:', id);
+      
+      const result = await client.query(
+        'DELETE FROM return_protocols WHERE id = $1 RETURNING id',
+        [id]
+      );
+      
+      return result.rows.length > 0;
+    } catch (error) {
+      console.error('❌ Error deleting return protocol:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async close() {
     await this.pool.end();
   }

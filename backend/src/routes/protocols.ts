@@ -181,13 +181,41 @@ router.delete('/handover/:id', async (req, res) => {
     const { id } = req.params;
     console.log('🗑️ Deleting handover protocol:', id);
     
-    // For now, deletion is not implemented for safety
-    // Could be implemented with proper authorization checks
-    res.status(501).json({ error: 'Delete handover protocol not implemented for safety' });
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Neplatné UUID protokolu' 
+      });
+    }
+
+    // TODO: Pridať autorizáciu - len admin môže mazať
+    // if (!req.user?.role || req.user.role !== 'admin') {
+    //   return res.status(403).json({ 
+    //     success: false, 
+    //     error: 'Len administrátor môže vymazať protokoly' 
+    //   });
+    // }
+
+    const deleted = await postgresDatabase.deleteHandoverProtocol(id);
+    
+    if (deleted) {
+      res.json({
+        success: true,
+        message: 'Protokol prevzatia úspešne vymazaný'
+      });
+    } else {
+      res.status(404).json({ 
+        success: false, 
+        error: 'Protokol prevzatia nebol nájdený' 
+      });
+    }
     
   } catch (error) {
     console.error('❌ Error deleting handover protocol:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri mazaní protokolu prevzatia' 
+    });
   }
 });
 
@@ -197,13 +225,41 @@ router.delete('/return/:id', async (req, res) => {
     const { id } = req.params;
     console.log('🗑️ Deleting return protocol:', id);
     
-    // For now, deletion is not implemented for safety
-    // Could be implemented with proper authorization checks
-    res.status(501).json({ error: 'Delete return protocol not implemented for safety' });
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Neplatné UUID protokolu' 
+      });
+    }
+
+    // TODO: Pridať autorizáciu - len admin môže mazať
+    // if (!req.user?.role || req.user.role !== 'admin') {
+    //   return res.status(403).json({ 
+    //     success: false, 
+    //     error: 'Len administrátor môže vymazať protokoly' 
+    //   });
+    // }
+
+    const deleted = await postgresDatabase.deleteReturnProtocol(id);
+    
+    if (deleted) {
+      res.json({
+        success: true,
+        message: 'Protokol vrátenia úspešne vymazaný'
+      });
+    } else {
+      res.status(404).json({ 
+        success: false, 
+        error: 'Protokol vrátenia nebol nájdený' 
+      });
+    }
     
   } catch (error) {
     console.error('❌ Error deleting return protocol:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri mazaní protokolu vrátenia' 
+    });
   }
 });
 

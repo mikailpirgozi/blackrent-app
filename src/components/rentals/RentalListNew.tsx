@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { Rental, HandoverProtocol, ReturnProtocol } from '../../types';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -37,6 +38,7 @@ import { apiService } from '../../services/api';
 
 export default function RentalList() {
   const { state, createRental, updateRental, deleteRental } = useApp();
+  const { state: authState } = useAuth();
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
@@ -264,6 +266,61 @@ export default function RentalList() {
     setSelectedPDFProtocol(null);
   };
 
+  // Funkcia pre vymazanie protokolu (len pre admina)
+  const handleDeleteProtocol = async (rentalId: string, type: 'handover' | 'return') => {
+    if (!authState.user?.role || authState.user.role !== 'admin') {
+      alert('Len administrátor môže vymazať protokoly!');
+      return;
+    }
+
+    const confirmMessage = type === 'handover' 
+      ? 'Naozaj chcete vymazať protokol o prevzatí? Táto akcia je nevratná.'
+      : 'Naozaj chcete vymazať protokol o vrátení? Táto akcia je nevratná.';
+
+    if (window.confirm(confirmMessage)) {
+      try {
+        // Získaj ID protokolu
+        const protocol = type === 'handover' 
+          ? protocols[rentalId]?.handover 
+          : protocols[rentalId]?.return;
+        
+        if (!protocol) {
+          alert('Protokol nebol nájdený!');
+          return;
+        }
+
+        // Zavolaj API pre vymazanie protokolu
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/protocols/${type}/${protocol.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authState.token}`
+          }
+        });
+
+        if (response.ok) {
+          // Vymaž z lokálneho stavu
+          setProtocols(prev => ({
+            ...prev,
+            [rentalId]: {
+              ...prev[rentalId],
+              [type]: undefined
+            }
+          }));
+          
+          console.log(`Protokol ${type} pre prenájom ${rentalId} bol vymazaný`);
+          alert('Protokol bol úspešne vymazaný!');
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Chyba pri mazaní protokolu');
+        }
+      } catch (error) {
+        console.error('Chyba pri mazaní protokolu:', error);
+        alert(`Chyba pri mazaní protokolu: ${error instanceof Error ? error.message : 'Neznáma chyba'}`);
+      }
+    }
+  };
+
   // Automatické načítanie protokolov pri načítaní stránky
   useEffect(() => {
     const loadAllProtocols = async () => {
@@ -370,41 +427,73 @@ export default function RentalList() {
             
             {/* PDF tlačidlá pre existujúce protokoly */}
             {protocols[rental.id]?.handover && (
-              <Tooltip title="Zobraziť protokol prevzatia">
-                <IconButton
-                  size="small"
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    handleViewPDF(
-                      protocols[rental.id].handover!.id, 
-                      'handover', 
-                      `Protokol prevzatia - ${rental.orderNumber || rental.id.slice(-8)}`
-                    ); 
-                  }}
-                  color="success"
-                >
-                  <PDFIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <>
+                <Tooltip title="Zobraziť protokol prevzatia">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      handleViewPDF(
+                        protocols[rental.id].handover!.id, 
+                        'handover', 
+                        `Protokol prevzatia - ${rental.orderNumber || rental.id.slice(-8)}`
+                      ); 
+                    }}
+                    color="success"
+                  >
+                    <PDFIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                {authState.user?.role === 'admin' && (
+                  <Tooltip title="Vymazať protokol prevzatia (len admin)">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleDeleteProtocol(rental.id, 'handover'); 
+                      }}
+                      color="error"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </>
             )}
             
             {protocols[rental.id]?.return && (
-              <Tooltip title="Zobraziť protokol vrátenia">
-                <IconButton
-                  size="small"
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    handleViewPDF(
-                      protocols[rental.id].return!.id, 
-                      'return', 
-                      `Protokol vrátenia - ${rental.orderNumber || rental.id.slice(-8)}`
-                    ); 
-                  }}
-                  color="success"
-                >
-                  <PDFIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <>
+                <Tooltip title="Zobraziť protokol vrátenia">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      handleViewPDF(
+                        protocols[rental.id].return!.id, 
+                        'return', 
+                        `Protokol vrátenia - ${rental.orderNumber || rental.id.slice(-8)}`
+                      ); 
+                    }}
+                    color="success"
+                  >
+                    <PDFIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                {authState.user?.role === 'admin' && (
+                  <Tooltip title="Vymazať protokol vrátenia (len admin)">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleDeleteProtocol(rental.id, 'return'); 
+                      }}
+                      color="error"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </>
             )}
           </Box>
         </Box>
