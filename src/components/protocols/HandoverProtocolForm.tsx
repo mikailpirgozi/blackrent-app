@@ -47,6 +47,7 @@ import {
   Description as DescriptionIcon,
   PhotoCamera,
   Draw as DrawIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs, { Dayjs } from 'dayjs';
@@ -56,6 +57,8 @@ import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
 import R2FileUpload from '../common/R2FileUpload';
+import MobileFileUpload from '../common/MobileFileUpload';
+import PDFGenerator from '../../utils/pdfGenerator';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -188,6 +191,54 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     } else {
       clearDraft();
       onClose();
+    }
+  };
+
+  const handleGeneratePDF = async () => {
+    try {
+      setLoading(true);
+      
+      console.log('🔄 Generating PDF for protocol:', protocol.id);
+      
+      const pdfGenerator = new PDFGenerator();
+      const pdfBlob = await pdfGenerator.generateProtocolPDF({
+        id: protocol.id || protocolId,
+        type: 'handover',
+        rental: protocol.rental || rental,
+        location: protocol.location || '',
+        vehicleCondition: protocol.vehicleCondition || {},
+        vehicleImages: protocol.vehicleImages || [],
+        documentImages: protocol.documentImages || [],
+        damageImages: protocol.damageImages || [],
+        damages: protocol.damages || [],
+        signatures: protocol.signatures || [],
+        notes: protocol.notes || '',
+        createdAt: protocol.createdAt || new Date(),
+        completedAt: protocol.completedAt || new Date(),
+      }, {
+        includeImages: true,
+        includeSignatures: true,
+        imageQuality: 0.8,
+        maxImageWidth: 80,
+        maxImageHeight: 60
+      });
+
+      // Vytvorenie download linku
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `protokol_prevzatie_${protocol.id || protocolId}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log('✅ PDF generated and downloaded successfully');
+    } catch (error) {
+      console.error('❌ Error generating PDF:', error);
+      // TODO: Show error message to user
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -572,7 +623,7 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                   </Button>
                 </Box>
 
-                {/* R2 Upload sekcia */}
+                                {/* R2 Upload sekcia */}
                 <Box sx={{ mt: 2, p: 2, border: '1px dashed rgba(255, 255, 255, 0.3)', borderRadius: 1 }}>
                   <Typography variant="subtitle1" sx={{ mb: 2, color: 'white' }}>
                     📁 R2 Cloud Upload
@@ -583,20 +634,20 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                       <R2FileUpload
                         type="protocol"
                         entityId={rental.id}
-                                                 onUploadSuccess={(fileData) => {
-                           console.log('📁 Vehicle image uploaded:', fileData);
-                           setProtocol(prev => ({
-                             ...prev,
-                             vehicleImages: [...(prev.vehicleImages || []), {
-                               id: uuidv4(),
-                               url: fileData.url,
-                               type: 'vehicle',
-                               filename: fileData.filename,
-                               timestamp: new Date(),
-                               uploadedAt: new Date()
-                             }]
-                           }));
-                         }}
+                        onUploadSuccess={(fileData) => {
+                          console.log('📁 Vehicle image uploaded:', fileData);
+                          setProtocol(prev => ({
+                            ...prev,
+                            vehicleImages: [...(prev.vehicleImages || []), {
+                              id: uuidv4(),
+                              url: fileData.url,
+                              type: 'vehicle',
+                              filename: fileData.filename,
+                              timestamp: new Date(),
+                              uploadedAt: new Date()
+                            }]
+                          }));
+                        }}
                         acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
                         maxSize={10}
                         multiple={true}
@@ -608,24 +659,83 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                       <R2FileUpload
                         type="document"
                         entityId={rental.id}
-                                                 onUploadSuccess={(fileData) => {
-                           console.log('📁 Document uploaded:', fileData);
-                           setProtocol(prev => ({
-                             ...prev,
-                             documentImages: [...(prev.documentImages || []), {
-                               id: uuidv4(),
-                               url: fileData.url,
-                               type: 'document',
-                               filename: fileData.filename,
-                               timestamp: new Date(),
-                               uploadedAt: new Date()
-                             }]
-                           }));
-                         }}
+                        onUploadSuccess={(fileData) => {
+                          console.log('📁 Document uploaded:', fileData);
+                          setProtocol(prev => ({
+                            ...prev,
+                            documentImages: [...(prev.documentImages || []), {
+                              id: uuidv4(),
+                              url: fileData.url,
+                              type: 'document',
+                              filename: fileData.filename,
+                              timestamp: new Date(),
+                              uploadedAt: new Date()
+                            }]
+                          }));
+                        }}
                         acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
                         maxSize={50}
                         multiple={true}
                         label="Nahrať dokumenty do R2"
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {/* Mobilný Upload sekcia */}
+                <Box sx={{ mt: 2, p: 2, border: '1px dashed rgba(255, 255, 255, 0.3)', borderRadius: 1, backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2, color: 'white' }}>
+                    📱 Mobilný Upload (Kamera + Galéria)
+                  </Typography>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <MobileFileUpload
+                        type="protocol"
+                        entityId={rental.id}
+                        onUploadSuccess={(fileData) => {
+                          console.log('📱 Mobile vehicle image uploaded:', fileData);
+                          setProtocol(prev => ({
+                            ...prev,
+                            vehicleImages: [...(prev.vehicleImages || []), {
+                              id: uuidv4(),
+                              url: fileData.url,
+                              type: 'vehicle',
+                              filename: fileData.filename,
+                              timestamp: new Date(),
+                              uploadedAt: new Date()
+                            }]
+                          }));
+                        }}
+                        acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
+                        maxSize={10}
+                        multiple={true}
+                        label="Mobilné fotky vozidla"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <MobileFileUpload
+                        type="document"
+                        entityId={rental.id}
+                        onUploadSuccess={(fileData) => {
+                          console.log('📱 Mobile document uploaded:', fileData);
+                          setProtocol(prev => ({
+                            ...prev,
+                            documentImages: [...(prev.documentImages || []), {
+                              id: uuidv4(),
+                              url: fileData.url,
+                              type: 'document',
+                              filename: fileData.filename,
+                              timestamp: new Date(),
+                              uploadedAt: new Date()
+                            }]
+                          }));
+                        }}
+                        acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
+                        maxSize={50}
+                        multiple={true}
+                        label="Mobilné dokumenty"
                       />
                     </Grid>
                   </Grid>
@@ -880,6 +990,17 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                 >
                   {index === steps.length - 1 ? 'Uložiť protokol' : 'Ďalej'}
                 </Button>
+                {index === steps.length - 1 && (
+                  <Button
+                    variant="outlined"
+                    onClick={handleGeneratePDF}
+                    disabled={loading}
+                    startIcon={<PdfIcon />}
+                    sx={{ mr: 1, color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
+                  >
+                    Generovať PDF
+                  </Button>
+                )}
                 <Button
                   disabled={index === 0}
                   onClick={handleBack}
