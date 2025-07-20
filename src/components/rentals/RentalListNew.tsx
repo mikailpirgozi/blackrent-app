@@ -358,6 +358,11 @@ export default function RentalList() {
         return;
       }
 
+      // Vymazanie protokolu cez API
+      await apiService.deleteProtocol(protocol.id, type);
+      
+      console.log(`Protokol ${type} pre prenájom ${rentalId} bol vymazaný`);
+      
       // Aktualizácia protokolov
       await loadProtocolsForRental(rentalId);
     } catch (error) {

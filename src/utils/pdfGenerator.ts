@@ -565,7 +565,8 @@ class PDFGenerator {
       if (isR2Url) {
         // Extrahuj key z R2 URL
         const urlParts = url.split('/');
-        const key = urlParts.slice(-2).join('/'); // Zober posledné 2 časti ako key
+        // Zober všetky časti po doméne ako key (preskoč https:// a doménu)
+        const key = urlParts.slice(3).join('/');
         
         // Použi proxy endpoint
         const proxyUrl = `${process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/files/proxy/${encodeURIComponent(key)}`;
