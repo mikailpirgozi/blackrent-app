@@ -13,7 +13,8 @@ import {
   Chip,
   Alert,
   useMediaQuery,
-  useTheme
+  useTheme,
+  CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -413,8 +414,8 @@ export default function RentalList() {
       width: { xs: '120px', md: '150px' },
       render: (value, rental: Rental) => (
         <Box>
-          {/* Tlačidlá pre vytvorenie protokolov */}
-          <Box sx={{ display: 'flex', gap: 0.5, mb: 1 }}>
+          {/* Hlavné tlačidlá pre vytvorenie protokolov */}
+          <Box sx={{ display: 'flex', gap: 0.5, mb: 1, justifyContent: 'center' }}>
             <Tooltip title="Prevzatie vozidla">
               <IconButton
                 size="small"
@@ -423,6 +424,13 @@ export default function RentalList() {
                   handleCreateHandover(rental); 
                 }}
                 color="primary"
+                sx={{ 
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '&:hover': { bgcolor: 'primary.dark' },
+                  width: 32,
+                  height: 32
+                }}
               >
                 <HandoverIcon fontSize="small" />
               </IconButton>
@@ -435,44 +443,55 @@ export default function RentalList() {
                   handleCreateReturn(rental); 
                 }}
                 color="primary"
+                sx={{ 
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '&:hover': { bgcolor: 'primary.dark' },
+                  width: 32,
+                  height: 32
+                }}
               >
                 <ReturnIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           </Box>
 
-          {/* Tlačidlo na zobrazenie protokolov */}
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewProtocols(rental);
-            }}
-            startIcon={<VisibilityIcon />}
-            disabled={loadingProtocols.includes(rental.id)}
-            sx={{ width: '100%', fontSize: '0.75rem' }}
-          >
-            {loadingProtocols.includes(rental.id) ? 'Načítavam...' : 'Zobraziť protokoly'}
-          </Button>
-
-          {/* Zobrazenie protokolov ak sú načítané */}
-          {protocols[rental.id] && (
-            <Box sx={{ mt: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
-              {protocols[rental.id]?.handover && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                  <CheckCircleIcon color="success" fontSize="small" />
-                  <Typography variant="caption">Prevzatie</Typography>
-                  <IconButton
-                    size="small"
-                    component="a"
-                    href={protocols[rental.id]?.handover?.pdfUrl}
-                    target="_blank"
-                    download
-                    color="success"
-                  >
-                    <PDFIcon fontSize="small" />
-                  </IconButton>
+          {/* Stav protokolov - kompaktný */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {/* Handover protokol */}
+            {protocols[rental.id]?.handover ? (
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 0.5,
+                p: 0.5,
+                bgcolor: 'success.light',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'success.main'
+              }}>
+                <CheckCircleIcon color="success" fontSize="small" />
+                <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 500 }}>
+                  Prevzatie
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.25, ml: 'auto' }}>
+                  <Tooltip title="Stiahnuť PDF">
+                    <IconButton
+                      size="small"
+                      component="a"
+                      href={protocols[rental.id]?.handover?.pdfUrl}
+                      target="_blank"
+                      download
+                      sx={{ 
+                        width: 24, 
+                        height: 24,
+                        color: 'success.main',
+                        '&:hover': { bgcolor: 'success.light' }
+                      }}
+                    >
+                      <PDFIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title="Galerie obrázkov">
                     <IconButton
                       size="small"
@@ -480,27 +499,89 @@ export default function RentalList() {
                         e.stopPropagation();
                         handleOpenGallery(rental, 'handover');
                       }}
-                      color="primary"
+                      sx={{ 
+                        width: 24, 
+                        height: 24,
+                        color: 'primary.main',
+                        '&:hover': { bgcolor: 'primary.light' }
+                      }}
                     >
-                      <GalleryIcon fontSize="small" />
+                      <GalleryIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                   </Tooltip>
                 </Box>
-              )}
-              {protocols[rental.id]?.return && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <CheckCircleIcon color="success" fontSize="small" />
-                  <Typography variant="caption">Vrátenie</Typography>
+              </Box>
+            ) : (
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 0.5,
+                p: 0.5,
+                bgcolor: 'grey.100',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'grey.300'
+              }}>
+                <ErrorIcon color="disabled" fontSize="small" />
+                <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                  Bez prevzatia
+                </Typography>
+                <Tooltip title="Zobraziť protokoly">
                   <IconButton
                     size="small"
-                    component="a"
-                    href={protocols[rental.id]?.return?.pdfUrl}
-                    target="_blank"
-                    download
-                    color="success"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewProtocols(rental);
+                    }}
+                    disabled={loadingProtocols.includes(rental.id)}
+                    sx={{ 
+                      width: 24, 
+                      height: 24,
+                      ml: 'auto',
+                      color: 'primary.main',
+                      '&:hover': { bgcolor: 'primary.light' }
+                    }}
                   >
-                    <PDFIcon fontSize="small" />
+                    <VisibilityIcon sx={{ fontSize: 16 }} />
                   </IconButton>
+                </Tooltip>
+              </Box>
+            )}
+
+            {/* Return protokol */}
+            {protocols[rental.id]?.return ? (
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 0.5,
+                p: 0.5,
+                bgcolor: 'success.light',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'success.main'
+              }}>
+                <CheckCircleIcon color="success" fontSize="small" />
+                <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 500 }}>
+                  Vrátenie
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.25, ml: 'auto' }}>
+                  <Tooltip title="Stiahnuť PDF">
+                    <IconButton
+                      size="small"
+                      component="a"
+                      href={protocols[rental.id]?.return?.pdfUrl}
+                      target="_blank"
+                      download
+                      sx={{ 
+                        width: 24, 
+                        height: 24,
+                        color: 'success.main',
+                        '&:hover': { bgcolor: 'success.light' }
+                      }}
+                    >
+                      <PDFIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title="Galerie obrázkov">
                     <IconButton
                       size="small"
@@ -508,15 +589,112 @@ export default function RentalList() {
                         e.stopPropagation();
                         handleOpenGallery(rental, 'return');
                       }}
-                      color="primary"
+                      sx={{ 
+                        width: 24, 
+                        height: 24,
+                        color: 'primary.main',
+                        '&:hover': { bgcolor: 'primary.light' }
+                      }}
                     >
-                      <GalleryIcon fontSize="small" />
+                      <GalleryIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                   </Tooltip>
                 </Box>
-              )}
-              
-              {/* Tlačidlo na skrytie protokolov */}
+              </Box>
+            ) : protocols[rental.id]?.handover ? (
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 0.5,
+                p: 0.5,
+                bgcolor: 'warning.light',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'warning.main'
+              }}>
+                <PendingIcon color="warning" fontSize="small" />
+                <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 500 }}>
+                  Čaká na vrátenie
+                </Typography>
+                <Tooltip title="Zobraziť protokoly">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewProtocols(rental);
+                    }}
+                    disabled={loadingProtocols.includes(rental.id)}
+                    sx={{ 
+                      width: 24, 
+                      height: 24,
+                      ml: 'auto',
+                      color: 'warning.main',
+                      '&:hover': { bgcolor: 'warning.light' }
+                    }}
+                  >
+                    <VisibilityIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            ) : (
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 0.5,
+                p: 0.5,
+                bgcolor: 'grey.100',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'grey.300'
+              }}>
+                <ErrorIcon color="disabled" fontSize="small" />
+                <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                  Bez vrátenia
+                </Typography>
+                <Tooltip title="Zobraziť protokoly">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewProtocols(rental);
+                    }}
+                    disabled={loadingProtocols.includes(rental.id)}
+                    sx={{ 
+                      width: 24, 
+                      height: 24,
+                      ml: 'auto',
+                      color: 'primary.main',
+                      '&:hover': { bgcolor: 'primary.light' }
+                    }}
+                  >
+                    <VisibilityIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            )}
+          </Box>
+
+          {/* Loading indikátor */}
+          {loadingProtocols.includes(rental.id) && (
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 0.5, 
+              mt: 0.5,
+              p: 0.5,
+              bgcolor: 'info.light',
+              borderRadius: 1
+            }}>
+              <CircularProgress size={12} />
+              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                Načítavam...
+              </Typography>
+            </Box>
+          )}
+
+          {/* Tlačidlo na skrytie protokolov ak sú zobrazené */}
+          {protocols[rental.id] && (
+            <Box sx={{ mt: 0.5, textAlign: 'center' }}>
               <Button
                 size="small"
                 variant="text"
@@ -524,9 +702,15 @@ export default function RentalList() {
                   e.stopPropagation();
                   handleHideProtocols(rental.id);
                 }}
-                sx={{ mt: 1, fontSize: '0.7rem' }}
+                sx={{ 
+                  fontSize: '0.65rem',
+                  minWidth: 'auto',
+                  p: 0.25,
+                  color: 'text.secondary',
+                  '&:hover': { bgcolor: 'grey.100' }
+                }}
               >
-                Skryť protokoly
+                Skryť
               </Button>
             </Box>
           )}
