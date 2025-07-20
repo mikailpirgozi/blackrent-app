@@ -55,6 +55,12 @@ class ApiService {
       }
 
       const data = await response.json();
+      
+      // Ak je to API response objekt s success/data, vráť len data
+      if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
+        return data.data;
+      }
+      
       return data;
     } catch (error) {
       console.error('❌ API chyba:', error);
