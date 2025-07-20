@@ -119,7 +119,7 @@ class PDFGenerator {
     this.doc.setFontSize(18);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(255, 255, 255);
-    const title = protocol.type === 'handover' ? 'PROTOKOL O PREVZATÍ VOZIDLA' : 'PROTOKOL O VRÁTENÍ VOZIDLA';
+    const title = protocol.type === 'handover' ? 'PROTOKOL O PREVZATI VOZIDLA' : 'PROTOKOL O VRATENI VOZIDLA';
     this.doc.text(title, this.pageWidth / 2, 25, { align: 'center' });
     
     // Reset pozície
@@ -128,10 +128,10 @@ class PDFGenerator {
     // Informácie o protokole
     this.doc.setFontSize(10);
     this.doc.setTextColor(...this.secondaryColor);
-    this.doc.text(`Číslo protokolu: ${protocol.id}`, this.margin, this.currentY);
+    this.doc.text(`Cislo protokolu: ${protocol.id}`, this.margin, this.currentY);
     this.currentY += 6;
     
-    this.doc.text(`Dátum: ${new Date(protocol.completedAt).toLocaleDateString('sk-SK')}`, this.margin, this.currentY);
+    this.doc.text(`Datum: ${new Date(protocol.completedAt).toLocaleDateString('sk-SK')}`, this.margin, this.currentY);
     this.currentY += 6;
     
     this.doc.text(`Miesto: ${protocol.location}`, this.margin, this.currentY);
@@ -139,97 +139,80 @@ class PDFGenerator {
   }
 
   /**
-   * Pridanie základných informácií s tabuľkou
+   * Pridanie základných informácií bez tabuľky
    */
   private addBasicInfo(protocol: ProtocolData) {
-    this.addSectionTitle('ZÁKLADNÉ INFORMÁCIE');
+    this.addSectionTitle('ZAKLADNE INFORMACIE');
     
     const rental = protocol.rental;
     const vehicle = rental.vehicle || {};
     const customer = rental.customer || {};
 
     const basicInfo = [
-      ['Číslo objednávky:', rental.orderNumber || 'N/A'],
+      ['Cislo objednavky:', rental.orderNumber || 'N/A'],
       ['Vozidlo:', `${vehicle.brand || ''} ${vehicle.model || ''} (${vehicle.licensePlate || 'N/A'})`],
-      ['Zákazník:', `${customer.name || ''} ${customer.surname || ''}`],
-      ['Telefón:', customer.phone || 'N/A'],
+      ['Zakaznik:', `${customer.name || ''} ${customer.surname || ''}`],
+      ['Telefon:', customer.phone || 'N/A'],
       ['Email:', customer.email || 'N/A'],
-      ['Dátum prenájmu:', `${new Date(rental.startDate).toLocaleDateString('sk-SK')} - ${new Date(rental.endDate).toLocaleDateString('sk-SK')}`],
+      ['Datum prenajmu:', `${new Date(rental.startDate).toLocaleDateString('sk-SK')} - ${new Date(rental.endDate).toLocaleDateString('sk-SK')}`],
       ['Cena:', `${rental.totalPrice} ${rental.currency || 'EUR'}`],
     ];
 
-    // Vytvorenie tabuľky
-    const tableData = basicInfo.map(([label, value]) => [label, value]);
-    
-    (this.doc as any).autoTable({
-      startY: this.currentY,
-      head: [['Položka', 'Hodnota']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: {
-        fillColor: this.primaryColor,
-        textColor: [255, 255, 255],
-        fontStyle: 'bold'
-      },
-      styles: {
-        fontSize: 9,
-        cellPadding: 3
-      },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 50 },
-        1: { cellWidth: 100 }
-      }
+    // Jednoduchý layout bez tabuľky
+    basicInfo.forEach(([label, value]) => {
+      this.doc.setFontSize(10);
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(...this.primaryColor);
+      this.doc.text(label, this.margin, this.currentY);
+      
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setTextColor(...this.secondaryColor);
+      this.doc.text(value, this.margin + 60, this.currentY);
+      this.currentY += 6;
     });
 
-    this.currentY = (this.doc as any).lastAutoTable.finalY + 10;
+    this.currentY += 10;
   }
 
   /**
-   * Pridanie stavu vozidla
+   * Pridanie stavu vozidla bez tabuľky
    */
   private addVehicleCondition(protocol: ProtocolData) {
     this.addSectionTitle('STAV VOZIDLA');
     
     const condition = protocol.vehicleCondition;
     const vehicleInfo = [
-      ['Počet kilometrov:', `${condition.odometer?.toLocaleString() || 0} km`],
-      ['Úroveň paliva:', `${condition.fuelLevel || 0}%`],
+      ['Pocet kilometrov:', `${condition.odometer?.toLocaleString() || 0} km`],
+      ['Uroven paliva:', `${condition.fuelLevel || 0}%`],
       ['Typ paliva:', condition.fuelType || 'N/A'],
-      ['Exteriér:', condition.exteriorCondition || 'N/A'],
-      ['Interiér:', condition.interiorCondition || 'N/A'],
+      ['Exterier:', condition.exteriorCondition || 'N/A'],
+      ['Interier:', condition.interiorCondition || 'N/A'],
     ];
 
-    const tableData = vehicleInfo.map(([label, value]) => [label, value]);
-    
-    (this.doc as any).autoTable({
-      startY: this.currentY,
-      head: [['Parameter', 'Hodnota']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: {
-        fillColor: this.primaryColor,
-        textColor: [255, 255, 255],
-        fontStyle: 'bold'
-      },
-      styles: {
-        fontSize: 9,
-        cellPadding: 3
-      },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 50 },
-        1: { cellWidth: 100 }
-      }
+    // Jednoduchý layout bez tabuľky
+    vehicleInfo.forEach(([label, value]) => {
+      this.doc.setFontSize(10);
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(...this.primaryColor);
+      this.doc.text(label, this.margin, this.currentY);
+      
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setTextColor(...this.secondaryColor);
+      this.doc.text(value, this.margin + 60, this.currentY);
+      this.currentY += 6;
     });
 
-    this.currentY = (this.doc as any).lastAutoTable.finalY + 10;
+    this.currentY += 5;
 
     if (condition.notes) {
       this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('Poznámky k stavu:', this.margin, this.currentY);
+      this.doc.setTextColor(...this.primaryColor);
+      this.doc.text('Poznamky k stavu:', this.margin, this.currentY);
       this.currentY += 5;
       
       this.doc.setFont('helvetica', 'normal');
+      this.doc.setTextColor(...this.secondaryColor);
       this.doc.text(condition.notes, this.margin + 10, this.currentY);
       this.currentY += 10;
     }
@@ -239,12 +222,12 @@ class PDFGenerator {
    * Pridanie fotiek vozidla s lepším layoutom
    */
   private async addVehicleImages(images: any[], maxWidth: number, maxHeight: number, quality: number) {
-    this.addSectionTitle('FOTODOKUMENTÁCIA VOZIDLA');
+    this.addSectionTitle('FOTODOKUMENTACIA VOZIDLA');
     
     if (images.length === 0) {
       this.doc.setFontSize(10);
       this.doc.setTextColor(128, 128, 128);
-      this.doc.text('Žiadne fotky nie sú k dispozícii', this.margin, this.currentY);
+      this.doc.text('Ziadne fotky nie su k dispozicii', this.margin, this.currentY);
       this.currentY += 10;
       return;
     }
@@ -268,10 +251,10 @@ class PDFGenerator {
           imgData = this.createImagePlaceholder(maxWidth, maxHeight, `Fotka ${i + 1}`);
         }
 
-                 const { width, height } = await this.calculateImageDimensions(imgData, maxWidth, maxHeight);
-         
-         // Kontrola či sa zmestí na stránku
-         if (this.currentY + height > this.pageHeight - 30) {
+        const { width, height } = await this.calculateImageDimensions(imgData, maxWidth, maxHeight);
+        
+        // Kontrola či sa zmestí na stránku
+        if (this.currentY + height > this.pageHeight - 30) {
           this.doc.addPage();
           this.currentY = 20;
           currentX = this.margin;
@@ -322,7 +305,7 @@ class PDFGenerator {
     if (images.length === 0) {
       this.doc.setFontSize(10);
       this.doc.setTextColor(128, 128, 128);
-      this.doc.text('Žiadne dokumenty nie sú k dispozícii', this.margin, this.currentY);
+      this.doc.text('Ziadne dokumenty nie su k dispozicii', this.margin, this.currentY);
       this.currentY += 10;
       return;
     }
@@ -344,9 +327,9 @@ class PDFGenerator {
           imgData = this.createImagePlaceholder(maxWidth * 0.7, maxHeight * 0.7, `Dokument ${i + 1}`);
         }
 
-                 const { width, height } = await this.calculateImageDimensions(imgData, maxWidth * 0.7, maxHeight * 0.7);
-         
-         if (this.currentY + height > this.pageHeight - 30) {
+        const { width, height } = await this.calculateImageDimensions(imgData, maxWidth * 0.7, maxHeight * 0.7);
+        
+        if (this.currentY + height > this.pageHeight - 30) {
           this.doc.addPage();
           this.currentY = 20;
           currentX = this.margin;
@@ -389,12 +372,12 @@ class PDFGenerator {
    * Pridanie škôd s lepším formátovaním
    */
   private addDamages(damages: any[]) {
-    this.addSectionTitle('ŠKODY A POŠKODENIA');
+    this.addSectionTitle('SKODY A POSKODENIA');
     
     if (damages.length === 0) {
       this.doc.setFontSize(10);
       this.doc.setTextColor(0, 128, 0);
-      this.doc.text('✅ Žiadne škody neboli zaznamenané', this.margin, this.currentY);
+      this.doc.text('✅ Ziadne skody neboli zaznamenane', this.margin, this.currentY);
       this.currentY += 10;
       return;
     }
@@ -408,14 +391,14 @@ class PDFGenerator {
       this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(...this.primaryColor);
-      this.doc.text(`Škoda ${index + 1}:`, this.margin + 5, this.currentY + 8);
+      this.doc.text(`Skoda ${index + 1}:`, this.margin + 5, this.currentY + 8);
       
       this.doc.setFont('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
       this.doc.text(`Popis: ${damage.description || 'N/A'}`, this.margin + 5, this.currentY + 15);
       
       if (damage.location) {
-        this.doc.text(`Lokalizácia: ${damage.location}`, this.margin + 5, this.currentY + 22);
+        this.doc.text(`Lokalizacia: ${damage.location}`, this.margin + 5, this.currentY + 22);
       }
       
       this.currentY += 30;
@@ -426,7 +409,7 @@ class PDFGenerator {
    * Pridanie poznámok
    */
   private addNotes(notes: string) {
-    this.addSectionTitle('POZNÁMKY');
+    this.addSectionTitle('POZNAMKY');
     
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
@@ -450,7 +433,7 @@ class PDFGenerator {
     if (signatures.length === 0) {
       this.doc.setFontSize(10);
       this.doc.setTextColor(128, 128, 128);
-      this.doc.text('Žiadne podpisy nie sú k dispozícii', this.margin, this.currentY);
+      this.doc.text('Ziadne podpisy nie su k dispozicii', this.margin, this.currentY);
       this.currentY += 10;
       return;
     }
@@ -475,9 +458,9 @@ class PDFGenerator {
           imgData = this.createImagePlaceholder(maxWidth, maxHeight, 'Podpis');
         }
 
-                 const { width, height } = await this.calculateImageDimensions(imgData, maxWidth, maxHeight);
-         
-         if (this.currentY + height > this.pageHeight - 30) {
+        const { width, height } = await this.calculateImageDimensions(imgData, maxWidth, maxHeight);
+        
+        if (this.currentY + height > this.pageHeight - 30) {
           this.doc.addPage();
           this.currentY = 20;
           currentX = this.margin;
@@ -506,7 +489,7 @@ class PDFGenerator {
         console.error('❌ Error loading signature:', signature.url, error);
         this.doc.setFontSize(10);
         this.doc.setTextColor(255, 0, 0);
-        this.doc.text(`Chyba načítania podpisu: ${signature.signerName || 'Podpis'}`, currentX, this.currentY);
+        this.doc.text(`Chyba nacitania podpisu: ${signature.signerName || 'Podpis'}`, currentX, this.currentY);
         currentX += 100;
       }
     }
@@ -532,11 +515,11 @@ class PDFGenerator {
     this.doc.setFontSize(8);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...this.secondaryColor);
-    this.doc.text(`Protokol vygenerovaný: ${new Date().toLocaleString('sk-SK')}`, this.margin, this.currentY);
+    this.doc.text(`Protokol vygenerovany: ${new Date().toLocaleString('sk-SK')}`, this.margin, this.currentY);
     this.currentY += 4;
     this.doc.text(`ID protokolu: ${protocol.id}`, this.margin, this.currentY);
     this.currentY += 4;
-    this.doc.text('BlackRent - Profesionálne riešenia pre autopožičovne', this.margin, this.currentY);
+    this.doc.text('BlackRent - Profesionalne riesenia pre autopozicovne', this.margin, this.currentY);
   }
 
   /**
