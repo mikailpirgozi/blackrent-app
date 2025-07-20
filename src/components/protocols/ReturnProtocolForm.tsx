@@ -32,7 +32,7 @@ import {
 import { ReturnProtocol, Rental, HandoverProtocol, ProtocolImage, ProtocolVideo, VehicleCondition } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
-import { generateProtocolPDF } from '../../utils/pdfGenerator';
+import { generateProtocolPDF, ProtocolData } from '../../utils/pdfGenerator';
 
 interface ReturnProtocolFormProps {
   open: boolean;
@@ -177,10 +177,28 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       
       const completeProtocol: ReturnProtocol = {
         ...protocol,
+        notes: protocol.notes || '', // Fallback pre undefined notes
         status: 'completed',
       } as ReturnProtocol;
 
-      await generateProtocolPDF(completeProtocol, {
+      // Konverzia na ProtocolData pre PDF generátor
+      const pdfProtocol: ProtocolData = {
+        id: completeProtocol.id,
+        type: 'return',
+        rental: completeProtocol.rentalData,
+        location: completeProtocol.location,
+        vehicleCondition: completeProtocol.vehicleCondition,
+        vehicleImages: completeProtocol.vehicleImages || [],
+        documentImages: completeProtocol.documentImages || [],
+        damageImages: completeProtocol.damageImages || [],
+        damages: completeProtocol.damages || [],
+        signatures: completeProtocol.signatures || [],
+        notes: completeProtocol.notes || '',
+        createdAt: completeProtocol.createdAt,
+        completedAt: completeProtocol.completedAt || new Date(),
+      };
+
+      await generateProtocolPDF(pdfProtocol, {
         filename: `odovzdavaci_protokol_${protocol.rentalData?.orderNumber || (protocol.id || uuidv4()).slice(-8)}_${new Date().toISOString().split('T')[0]}.pdf`,
         saveToR2: true, // Upload to Cloudflare R2
         downloadLocal: true // Also download locally for user

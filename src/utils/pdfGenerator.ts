@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
-interface ProtocolData {
+export interface ProtocolData {
   id: string;
   type: 'handover' | 'return';
   rental: any;
@@ -23,6 +23,9 @@ interface PDFOptions {
   imageQuality?: number;
   maxImageWidth?: number;
   maxImageHeight?: number;
+  filename?: string;
+  saveToR2?: boolean;
+  downloadLocal?: boolean;
 }
 
 class PDFGenerator {
