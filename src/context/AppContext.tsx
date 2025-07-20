@@ -216,27 +216,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { state: authState } = useAuth();
 
   const getFilteredVehicles = (): Vehicle[] => {
-    return state.vehicles;
+    return state.vehicles || [];
   };
 
   const getFilteredRentals = (): Rental[] => {
-    return state.rentals;
+    return state.rentals || [];
   };
 
   const getFilteredExpenses = (): Expense[] => {
-    return state.expenses;
+    return state.expenses || [];
   };
 
   const getFilteredInsurances = (): Insurance[] => {
-    return state.insurances;
+    return state.insurances || [];
   };
 
   const getFilteredSettlements = (): Settlement[] => {
-    return state.settlements;
+    return state.settlements || [];
   };
 
   const getFilteredCompanies = (): Company[] => {
-    return state.companies;
+    return state.companies || [];
   };
 
   // Funkcia na načítanie dát z API

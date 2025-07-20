@@ -85,6 +85,11 @@ export function useMemoizedFilter<T>(
   dependencies: any[] = []
 ): T[] {
   return useMemo(() => {
+    // Bezpečnostná kontrola - ak data nie je pole, vráť prázdne pole
+    if (!Array.isArray(data)) {
+      console.warn('useMemoizedFilter: data is not an array:', data);
+      return [];
+    }
     return data.filter(filterFn);
   }, [data, ...dependencies]);
 }
