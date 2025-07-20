@@ -452,18 +452,18 @@ export default function RentalList() {
             {/* PDF tlačidlá pre existujúce protokoly */}
             {protocols[rental.id]?.handover && (
               <>
-                <Tooltip title="Zobraziť protokol prevzatia">
+                <Tooltip title="Stiahnuť protokol prevzatia">
                   <IconButton
                     size="small"
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      handleViewPDF(
-                        protocols[rental.id].handover!.id, 
-                        'handover', 
-                        `Protokol prevzatia - ${rental.orderNumber || rental.id.slice(-8)}`
-                      ); 
-                    }}
+                    component="a"
+                    href={protocols[rental.id]?.handover?.pdfUrl
+                      ? protocols[rental.id]?.handover?.pdfUrl
+                      : `${process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/protocols/handover/${protocols[rental.id]?.handover?.id || ''}/download`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
                     color="success"
+                    onClick={e => e.stopPropagation()}
                   >
                     <PDFIcon fontSize="small" />
                   </IconButton>
@@ -487,18 +487,18 @@ export default function RentalList() {
             
             {protocols[rental.id]?.return && (
               <>
-                <Tooltip title="Zobraziť protokol vrátenia">
+                <Tooltip title="Stiahnuť protokol vrátenia">
                   <IconButton
                     size="small"
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      handleViewPDF(
-                        protocols[rental.id].return!.id, 
-                        'return', 
-                        `Protokol vrátenia - ${rental.orderNumber || rental.id.slice(-8)}`
-                      ); 
-                    }}
+                    component="a"
+                    href={protocols[rental.id]?.return?.pdfUrl
+                      ? protocols[rental.id]?.return?.pdfUrl
+                      : `${process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/protocols/return/${protocols[rental.id]?.return?.id || ''}/download`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
                     color="success"
+                    onClick={e => e.stopPropagation()}
                   >
                     <PDFIcon fontSize="small" />
                   </IconButton>
