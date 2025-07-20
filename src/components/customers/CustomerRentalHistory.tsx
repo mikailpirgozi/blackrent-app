@@ -20,6 +20,8 @@ import {
   Paper,
   useMediaQuery,
   useTheme,
+  Divider,
+  Grid,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -77,6 +79,7 @@ export default function CustomerRentalHistory({
 }: CustomerRentalHistoryProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
 
   // Filtrujeme prenájmy pre tohto zákazníka
@@ -120,33 +123,45 @@ export default function CustomerRentalHistory({
         maxWidth="lg"
         fullWidth
         fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            backgroundColor: 'background.paper',
+            minHeight: isMobile ? '100vh' : 'auto',
+            maxHeight: isMobile ? '100vh' : '90vh',
+          }
+        }}
       >
         <DialogTitle sx={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
-          pb: 1
+          pb: 1,
+          backgroundColor: 'primary.main',
+          color: 'white',
+          '& .MuiTypography-root': {
+            color: 'white'
+          }
         }}>
           <Box>
-            <Typography variant="h5" component="h2" color="white">
+            <Typography variant={isMobile ? "h6" : "h5"} component="h2" sx={{ color: 'white', fontWeight: 'bold' }}>
               História prenájmov - {customer.name}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
               {customerRentals.length} prenájmov celkovo
             </Typography>
           </Box>
-          <IconButton onClick={onClose} color="inherit">
+          <IconButton onClick={onClose} sx={{ color: 'white' }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 0 }}>
+        <DialogContent sx={{ p: 0, backgroundColor: 'background.default' }}>
           {customerRentals.length === 0 ? (
-            <Box sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+            <Box sx={{ p: 3, textAlign: 'center', backgroundColor: 'background.paper' }}>
+              <Typography variant="h6" sx={{ color: 'text.primary', mb: 2 }}>
                 Žiadne prenájmy
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 Tento zákazník zatiaľ nemá žiadne prenájmy.
               </Typography>
             </Box>
@@ -166,6 +181,7 @@ export default function CustomerRentalHistory({
                           mb: 2,
                           border: '1px solid',
                           borderColor: 'divider',
+                          backgroundColor: 'background.paper',
                           '&:hover': { 
                             boxShadow: 3,
                             transform: 'translateY(-1px)',
@@ -177,7 +193,7 @@ export default function CustomerRentalHistory({
                           {/* Hlavička karty */}
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
                             <Box sx={{ flex: 1 }}>
-                              <Typography variant="h6" fontWeight="bold" color="white" sx={{ mb: 0.5 }}>
+                              <Typography variant="h6" fontWeight="bold" sx={{ color: 'text.primary', mb: 0.5 }}>
                                 {getVehicleInfo(rental)}
                               </Typography>
                               <Chip 
@@ -204,11 +220,11 @@ export default function CustomerRentalHistory({
                           <Box sx={{ mb: 1.5 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                               <CalendarIcon sx={{ color: 'text.secondary', fontSize: 16 }} />
-                              <Typography variant="body2" color="white">
+                              <Typography variant="body2" sx={{ color: 'text.primary' }}>
                                 {dayjs(rental.startDate).format('DD.MM.YYYY')} - {dayjs(rental.endDate).format('DD.MM.YYYY')}
                               </Typography>
                             </Box>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                               {days} dní • {dayjs(rental.createdAt).format('DD.MM.YYYY')}
                             </Typography>
                           </Box>
@@ -216,15 +232,15 @@ export default function CustomerRentalHistory({
                           {/* Cena a platba */}
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Box>
-                              <Typography variant="h6" color="white" fontWeight="bold">
+                              <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
                                 {rental.totalPrice.toFixed(2)} €
                               </Typography>
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                 {getPaymentMethodText(rental.paymentMethod)}
                               </Typography>
                             </Box>
                             <Box sx={{ textAlign: 'right' }}>
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                 Provízia: {rental.commission.toFixed(2)} €
                               </Typography>
                               {rental.paid ? (
@@ -250,18 +266,18 @@ export default function CustomerRentalHistory({
                 </Box>
               ) : (
                 /* Desktop zobrazenie - tabuľka */
-                <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
+                <TableContainer component={Paper} sx={{ maxHeight: 600, backgroundColor: 'background.paper' }}>
                   <Table stickyHeader>
                     <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Vozidlo</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Dátumy</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Dní</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Cena</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Provízia</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Platba</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Stav</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Akcie</TableCell>
+                      <TableRow sx={{ backgroundColor: 'primary.main' }}>
+                        <TableCell sx={{ fontWeight: 'bold', color: 'white', borderBottom: '2px solid', borderColor: 'primary.dark' }}>Vozidlo</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', color: 'white', borderBottom: '2px solid', borderColor: 'primary.dark' }}>Dátumy</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', color: 'white', borderBottom: '2px solid', borderColor: 'primary.dark' }}>Dní</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', color: 'white', borderBottom: '2px solid', borderColor: 'primary.dark' }}>Cena</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', color: 'white', borderBottom: '2px solid', borderColor: 'primary.dark' }}>Provízia</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', color: 'white', borderBottom: '2px solid', borderColor: 'primary.dark' }}>Platba</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', color: 'white', borderBottom: '2px solid', borderColor: 'primary.dark' }}>Stav</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', color: 'white', borderBottom: '2px solid', borderColor: 'primary.dark' }}>Akcie</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -273,46 +289,50 @@ export default function CustomerRentalHistory({
                           <TableRow 
                             key={rental.id}
                             sx={{ 
+                              backgroundColor: 'background.paper',
                               '&:hover': { 
-                                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                backgroundColor: 'action.hover',
                                 cursor: 'pointer'
+                              },
+                              '&:nth-of-type(even)': {
+                                backgroundColor: 'action.hover'
                               }
                             }}
                           >
-                            <TableCell>
+                            <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <CarIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                                <Typography variant="body2" color="white">
+                                <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 'medium' }}>
                                   {getVehicleInfo(rental)}
                                 </Typography>
                               </Box>
                             </TableCell>
-                            <TableCell>
-                              <Typography variant="body2" color="white">
+                            <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                              <Typography variant="body2" sx={{ color: 'text.primary' }}>
                                 {dayjs(rental.startDate).format('DD.MM.YYYY')}
                               </Typography>
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                 {dayjs(rental.endDate).format('DD.MM.YYYY')}
                               </Typography>
                             </TableCell>
-                            <TableCell>
-                              <Typography variant="body2" color="white">
+                            <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                              <Typography variant="body2" sx={{ color: 'text.primary' }}>
                                 {days}
                               </Typography>
                             </TableCell>
-                            <TableCell>
-                              <Typography variant="body2" color="white" fontWeight="bold">
+                            <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                              <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
                                 {rental.totalPrice.toFixed(2)} €
                               </Typography>
                             </TableCell>
-                            <TableCell>
-                              <Typography variant="body2" color="text.secondary">
+                            <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                 {rental.commission.toFixed(2)} €
                               </Typography>
                             </TableCell>
-                            <TableCell>
+                            <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                               <Box>
-                                <Typography variant="body2" color="white">
+                                <Typography variant="body2" sx={{ color: 'text.primary' }}>
                                   {getPaymentMethodText(rental.paymentMethod)}
                                 </Typography>
                                 {rental.paid ? (
@@ -331,14 +351,14 @@ export default function CustomerRentalHistory({
                                 )}
                               </Box>
                             </TableCell>
-                            <TableCell>
+                            <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                               <Chip 
                                 label={status.label}
                                 color={status.color}
                                 size="small"
                               />
                             </TableCell>
-                            <TableCell>
+                            <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                               <IconButton
                                 size="small"
                                 onClick={() => handleViewRentalDetail(rental)}
@@ -358,8 +378,8 @@ export default function CustomerRentalHistory({
           )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={onClose} variant="outlined">
+        <DialogActions sx={{ p: 2, backgroundColor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}>
+          <Button onClick={onClose} variant="outlined" sx={{ minWidth: 100 }}>
             Zavrieť
           </Button>
         </DialogActions>
@@ -372,24 +392,37 @@ export default function CustomerRentalHistory({
           onClose={handleCloseRentalDetail}
           maxWidth="md"
           fullWidth
+          fullScreen={isMobile}
+          PaperProps={{
+            sx: {
+              backgroundColor: 'background.paper',
+              minHeight: isMobile ? '100vh' : 'auto',
+              maxHeight: isMobile ? '100vh' : '90vh',
+            }
+          }}
         >
           <DialogTitle sx={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
-            pb: 1
+            pb: 1,
+            backgroundColor: 'primary.main',
+            color: 'white',
+            '& .MuiTypography-root': {
+              color: 'white'
+            }
           }}>
-            <Typography variant="h6" color="white">
+            <Typography variant={isMobile ? "h6" : "h5"} sx={{ color: 'white', fontWeight: 'bold' }}>
               Detail prenájmu
             </Typography>
-            <IconButton onClick={handleCloseRentalDetail} color="inherit">
+            <IconButton onClick={handleCloseRentalDetail} sx={{ color: 'white' }}>
               <CloseIcon />
             </IconButton>
           </DialogTitle>
 
-          <DialogContent>
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" color="white" gutterBottom>
+          <DialogContent sx={{ backgroundColor: 'background.default' }}>
+            <Box sx={{ mb: 3, p: 2, backgroundColor: 'background.paper', borderRadius: 1 }}>
+              <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 1 }}>
                 {getVehicleInfo(selectedRental)}
               </Typography>
               <Chip 
@@ -399,99 +432,121 @@ export default function CustomerRentalHistory({
               />
             </Box>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-              <Box>
-                <Typography variant="subtitle1" color="white" gutterBottom>
-                  Základné informácie
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Začiatok:</Typography>
-                    <Typography variant="body2" color="white">
-                      {dayjs(selectedRental.startDate).format('DD.MM.YYYY HH:mm')}
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Card sx={{ backgroundColor: 'background.paper', height: '100%' }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
+                      Základné informácie
                     </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Koniec:</Typography>
-                    <Typography variant="body2" color="white">
-                      {dayjs(selectedRental.endDate).format('DD.MM.YYYY HH:mm')}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Dní:</Typography>
-                    <Typography variant="body2" color="white">
-                      {calculateRentalDays(selectedRental.startDate, selectedRental.endDate)}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Vytvorený:</Typography>
-                    <Typography variant="body2" color="white">
-                      {dayjs(selectedRental.createdAt).format('DD.MM.YYYY HH:mm')}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Začiatok:</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                          {dayjs(selectedRental.startDate).format('DD.MM.YYYY HH:mm')}
+                        </Typography>
+                      </Box>
+                      <Divider />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Koniec:</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                          {dayjs(selectedRental.endDate).format('DD.MM.YYYY HH:mm')}
+                        </Typography>
+                      </Box>
+                      <Divider />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Dní:</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
+                          {calculateRentalDays(selectedRental.startDate, selectedRental.endDate)}
+                        </Typography>
+                      </Box>
+                      <Divider />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Vytvorený:</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                          {dayjs(selectedRental.createdAt).format('DD.MM.YYYY HH:mm')}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
 
-              <Box>
-                <Typography variant="subtitle1" color="white" gutterBottom>
-                  Finančné informácie
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Celková cena:</Typography>
-                    <Typography variant="body2" color="white" fontWeight="bold">
-                      {selectedRental.totalPrice.toFixed(2)} €
+              <Grid item xs={12} md={6}>
+                <Card sx={{ backgroundColor: 'background.paper', height: '100%' }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
+                      Finančné informácie
                     </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Provízia:</Typography>
-                    <Typography variant="body2" color="white">
-                      {selectedRental.commission.toFixed(2)} €
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Spôsob platby:</Typography>
-                    <Typography variant="body2" color="white">
-                      {getPaymentMethodText(selectedRental.paymentMethod)}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Stav platby:</Typography>
-                    <Typography variant="body2" color="white">
-                      {selectedRental.paid ? 'Zaplatené' : 'Nezaplatené'}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-            </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Celková cena:</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                          {selectedRental.totalPrice.toFixed(2)} €
+                        </Typography>
+                      </Box>
+                      <Divider />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Provízia:</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                          {selectedRental.commission.toFixed(2)} €
+                        </Typography>
+                      </Box>
+                      <Divider />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Spôsob platby:</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                          {getPaymentMethodText(selectedRental.paymentMethod)}
+                        </Typography>
+                      </Box>
+                      <Divider />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Stav platby:</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                          {selectedRental.paid ? 'Zaplatené' : 'Nezaplatené'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
 
             {selectedRental.notes && (
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="subtitle1" color="white" gutterBottom>
-                  Poznámky
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {selectedRental.notes}
-                </Typography>
-              </Box>
+              <Grid item xs={12}>
+                <Card sx={{ backgroundColor: 'background.paper', mt: 2 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
+                      Poznámky
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
+                      {selectedRental.notes}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
             )}
 
             {selectedRental.discount && (
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="subtitle1" color="white" gutterBottom>
-                  Zľava
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {selectedRental.discount.type === 'percentage' 
-                    ? `${selectedRental.discount.value}%` 
-                    : `${selectedRental.discount.value} €`}
-                </Typography>
-              </Box>
+              <Grid item xs={12}>
+                <Card sx={{ backgroundColor: 'background.paper', mt: 2 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
+                      Zľava
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      {selectedRental.discount.type === 'percentage' 
+                        ? `${selectedRental.discount.value}%` 
+                        : `${selectedRental.discount.value} €`}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
             )}
           </DialogContent>
 
-          <DialogActions>
-            <Button onClick={handleCloseRentalDetail} variant="outlined">
+          <DialogActions sx={{ p: 2, backgroundColor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}>
+            <Button onClick={handleCloseRentalDetail} variant="outlined" sx={{ minWidth: 100 }}>
               Zavrieť
             </Button>
           </DialogActions>
