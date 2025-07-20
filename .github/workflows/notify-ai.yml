@@ -1,0 +1,31 @@
+name: Notify AI Assistant
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  deployment_status:
+  issues:
+    types: [opened, closed]
+  workflow_run:
+    workflows: ["Deploy to Railway"]
+    types: [completed]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Notify AI Assistant
+      run: |
+        curl -X POST "${{ secrets.AI_WEBHOOK_URL }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "event": "${{ github.event_name }}",
+            "repository": "${{ github.repository }}",
+            "branch": "${{ github.ref }}",
+            "commit": "${{ github.sha }}",
+            "author": "${{ github.actor }}",
+            "message": "${{ github.event.head_commit.message }}",
+            "timestamp": "${{ github.event.head_commit.timestamp }}"
+          }'

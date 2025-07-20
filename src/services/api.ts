@@ -421,3 +421,11 @@ class ApiService {
 }
 
 export const apiService = new ApiService();
+  async deleteProtocol(protocolId: string, type: 'handover' | 'return'): Promise<void> {
+    console.log(`��️ API deleteProtocol - deleting ${type} protocol:`, protocolId);
+    
+    return this.request<void>(`/protocols/${type}/${protocolId}`, {
+      method: 'DELETE',
+    });
+  }
+}

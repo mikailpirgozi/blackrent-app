@@ -485,4 +485,46 @@ router.post('/fix-existing', async (req, res) => {
   }
 });
 
+
+// Delete handover protocol
+router.delete("/handover/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log("🗑️ Deleting handover protocol:", id);
+    
+    const deleted = await postgresDatabase.deleteHandoverProtocol(id);
+    
+    if (!deleted) {
+      return res.status(404).json({ error: "Handover protocol not found" });
+    }
+    
+    console.log("✅ Handover protocol deleted:", id);
+    res.json({ message: "Handover protocol deleted successfully" });
+    
+  } catch (error) {
+    console.error("❌ Error deleting handover protocol:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Delete return protocol
+router.delete("/return/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log("🗑️ Deleting return protocol:", id);
+    
+    const deleted = await postgresDatabase.deleteReturnProtocol(id);
+    
+    if (!deleted) {
+      return res.status(404).json({ error: "Return protocol not found" });
+    }
+    
+    console.log("✅ Return protocol deleted:", id);
+    res.json({ message: "Return protocol deleted successfully" });
+    
+  } catch (error) {
+    console.error("❌ Error deleting return protocol:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 export default router; 
