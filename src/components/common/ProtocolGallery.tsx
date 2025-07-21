@@ -40,28 +40,27 @@ export default function ProtocolGallery({
   videos,
   title = 'Galéria protokolu'
 }: ProtocolGalleryProps) {
-  // Debug log pre diagnostiku
-  console.log('🔍 ProtocolGallery received:', {
-    open,
-    imagesCount: images?.length,
-    videosCount: videos?.length,
-    title,
-    images: images?.map(img => ({ 
-      id: img.id, 
-      url: img.url, 
-      type: img.type,
-      hasUrl: !!img.url,
-      urlType: typeof img.url
-    }))
-  });
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoom, setZoom] = useState(1);
   
-  const allMedia = [...images, ...videos];
+  // Debugovanie - zobraz čo galéria dostáva
+  useEffect(() => {
+    console.log('🔍 ProtocolGallery received:', {
+      open,
+      imagesCount: images?.length || 0,
+      videosCount: videos?.length || 0,
+      title,
+      images: images?.slice(0, 3).map(img => ({
+        id: img.id,
+        url: img.url,
+        type: img.type,
+        description: img.description
+      })) || []
+    });
+  }, [open, images, videos, title]);
+
+  const allMedia = [...(images || []), ...(videos || [])];
   const totalCount = allMedia.length;
   const currentMedia = allMedia[selectedIndex];
 
@@ -221,7 +220,16 @@ export default function ProtocolGallery({
           ) : (
             <Grid container spacing={2}>
               {/* Images */}
-              {images.map((image, index) => (
+              {images.map((image, index) => {
+                console.log(`🖼️ Rendering image ${index}:`, {
+                  id: image.id,
+                  url: image.url,
+                  type: image.type,
+                  hasUrl: !!image.url,
+                  urlType: typeof image.url
+                });
+                
+                return (
                 <Grid item xs={12} sm={6} md={4} lg={3} key={image.id || index}>
                   <Box
                     sx={{
@@ -249,8 +257,11 @@ export default function ProtocolGallery({
                           display: 'block'
                         }}
                         onError={(e) => {
-                          console.error('Chyba načítania obrázka:', image.url);
+                          console.error('❌ Chyba načítania obrázka:', image.url);
                           (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                        onLoad={() => {
+                          console.log('✅ Obrázok úspešne načítaný:', image.url);
                         }}
                       />
                     ) : (
@@ -297,7 +308,8 @@ export default function ProtocolGallery({
                     </Box>
                   </Box>
                 </Grid>
-              ))}
+                );
+              })}
 
               {/* Videos */}
               {videos.map((video, index) => (
