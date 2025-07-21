@@ -14,7 +14,9 @@ import {
   Alert,
   useMediaQuery,
   useTheme,
-  CircularProgress
+  CircularProgress,
+  Card,
+  CardContent
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -27,7 +29,9 @@ import {
   Assignment as HandoverIcon,
   AssignmentReturn as ReturnIcon,
   PictureAsPdf as PDFIcon,
-  PhotoLibrary as GalleryIcon
+  PhotoLibrary as GalleryIcon,
+  ViewList as ViewListIcon,
+  ViewModule as ViewModuleIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -54,6 +58,7 @@ export default function RentalList() {
   const [selected, setSelected] = useState<string[]>([]);
   const [protocols, setProtocols] = useState<Record<string, { handover?: any; return?: any }>>({});
   const [loadingProtocols, setLoadingProtocols] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   
   // Protocol dialogs
   const [openHandoverDialog, setOpenHandoverDialog] = useState(false);
@@ -817,8 +822,43 @@ export default function RentalList() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Prenájmy</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>Prenájmy</Typography>
+        
+        {/* Prepínač kariet/tabuľky */}
+        <Box sx={{ display: 'flex', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          <IconButton
+            size="small"
+            onClick={() => setViewMode('table')}
+            sx={{
+              bgcolor: viewMode === 'table' ? 'primary.main' : 'transparent',
+              color: viewMode === 'table' ? 'white' : 'text.primary',
+              borderRadius: 0,
+              '&:hover': {
+                bgcolor: viewMode === 'table' ? 'primary.dark' : 'action.hover'
+              }
+            }}
+            title="Zobraziť tabuľku"
+          >
+            <ViewListIcon />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => setViewMode('cards')}
+            sx={{
+              bgcolor: viewMode === 'cards' ? 'primary.main' : 'transparent',
+              color: viewMode === 'cards' ? 'white' : 'text.primary',
+              borderRadius: 0,
+              '&:hover': {
+                bgcolor: viewMode === 'cards' ? 'primary.dark' : 'action.hover'
+              }
+            }}
+            title="Zobraziť karty"
+          >
+            <ViewModuleIcon />
+          </IconButton>
+        </Box>
+        
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -839,14 +879,106 @@ export default function RentalList() {
         </Typography>
       </Alert>
 
-      <ResponsiveTable
-        columns={columns}
-        data={rentals}
-        selectable={true}
-        selected={selected}
-        onSelectionChange={setSelected}
-        emptyMessage="Žiadne prenájmy"
-      />
+      {/* Zobrazenie kariet alebo tabuľky podľa viewMode */}
+      {viewMode === 'cards' ? (
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
+          {rentals.map((rental) => (
+            <Card key={rental.id} sx={{ 
+              backgroundColor: 'background.paper',
+              '&:hover': { boxShadow: 3 },
+              cursor: 'pointer'
+            }} onClick={() => handleEdit(rental)}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Box>
+                    <Typography variant="h6" fontWeight="bold" sx={{ color: 'white' }}>
+                      {rental.vehicle ? `${rental.vehicle.brand} ${rental.vehicle.model}` : 'Bez vozidla'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {rental.vehicle?.licensePlate || 'N/A'}
+                    </Typography>
+                  </Box>
+                  <Chip 
+                    label={getProtocolStatus(rental.id) === 'completed' ? 'Dokončené' : 
+                           getProtocolStatus(rental.id) === 'handover-only' ? 'Prevzaté' : 'Bez protokolu'}
+                    color={getProtocolStatus(rental.id) === 'completed' ? 'success' : 
+                           getProtocolStatus(rental.id) === 'handover-only' ? 'warning' : 'default'}
+                    size="small"
+                  />
+                </Box>
+                
+                <Typography variant="body2" sx={{ mb: 1, color: 'white' }}>
+                  <strong>Zákazník:</strong> {rental.customerName}
+                </Typography>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Od: {format(new Date(rental.startDate), 'dd.MM.yyyy', { locale: sk })}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Do: {format(new Date(rental.endDate), 'dd.MM.yyyy', { locale: sk })}
+                  </Typography>
+                </Box>
+                
+                <Typography variant="h6" fontWeight="bold" sx={{ color: 'white', mb: 2 }}>
+                  {typeof rental.totalPrice === 'number' ? rental.totalPrice.toFixed(2) : '0.00'} €
+                </Typography>
+                
+                {/* Protokoly */}
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                  <Tooltip title="Prevzatie vozidla">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleCreateHandover(rental); 
+                      }}
+                      color="primary"
+                      sx={{ 
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        '&:hover': { bgcolor: 'primary.dark' },
+                        width: 32,
+                        height: 32
+                      }}
+                    >
+                      <HandoverIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Vrátenie vozidla">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleCreateReturn(rental); 
+                      }}
+                      color="primary"
+                      sx={{ 
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        '&:hover': { bgcolor: 'primary.dark' },
+                        width: 32,
+                        height: 32
+                      }}
+                    >
+                      <ReturnIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+      ) : (
+        <ResponsiveTable
+          columns={columns}
+          data={rentals}
+          selectable={true}
+          selected={selected}
+          onSelectionChange={setSelected}
+          emptyMessage="Žiadne prenájmy"
+        />
+      )}
 
       {/* Rental Form Dialog */}
       <Dialog 
