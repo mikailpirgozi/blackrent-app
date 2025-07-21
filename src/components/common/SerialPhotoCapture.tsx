@@ -104,6 +104,22 @@ export default function SerialPhotoCapture({
       throw new Error('EntityId is required for R2 upload');
     }
 
+    // ✅ NOVÉ RIEŠENIE: Cloudflare Worker proxy
+    const useWorkerProxy = process.env.REACT_APP_USE_WORKER_PROXY === 'true';
+    
+    if (useWorkerProxy) {
+      console.log('🔄 Using Cloudflare Worker proxy...');
+      return await workerUpload(file);
+    }
+
+    // ✅ RÝCHLE RIEŠENIE: Vypnutie signed URL cez environment variable
+    const useSignedUrl = process.env.REACT_APP_USE_SIGNED_URL !== 'false';
+    
+    if (!useSignedUrl) {
+      console.log('🔄 Signed URL disabled, using direct upload...');
+      return await directUpload(file);
+    }
+
     try {
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
       
@@ -185,31 +201,66 @@ export default function SerialPhotoCapture({
     } catch (error) {
       console.error('❌ Signed URL upload failed:', error);
       
-      // Fallback na starý systém ak signed URL zlyhá
+      // Fallback na direct upload ak signed URL zlyhá
       console.log('🔄 Falling back to direct upload...');
-      
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('protocolId', entityId);
-      formData.append('protocolType', protocolType);
-      formData.append('mediaType', mediaType);
-      formData.append('label', file.name);
-
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
-      
-      const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      return result.url;
+      return await directUpload(file);
     }
+  };
+
+  // ✅ NOVÁ FUNKCIA: Cloudflare Worker upload
+  const workerUpload = async (file: File): Promise<string> => {
+    const workerUrl = process.env.REACT_APP_WORKER_URL || 'https://blackrent-upload-worker.your-subdomain.workers.dev';
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('protocolId', entityId!);
+    formData.append('protocolType', protocolType);
+    formData.append('mediaType', mediaType);
+    formData.append('label', file.name);
+
+    const response = await fetch(workerUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Worker upload failed: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(`Worker upload failed: ${result.error}`);
+    }
+
+    console.log('✅ File uploaded via Cloudflare Worker');
+    return result.url;
+  };
+
+  // ✅ NOVÁ FUNKCIA: Direct upload (fallback)
+  const directUpload = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('protocolId', entityId!);
+    formData.append('protocolType', protocolType);
+    formData.append('mediaType', mediaType);
+    formData.append('label', file.name);
+
+    const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+    
+    const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result.url;
   };
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
