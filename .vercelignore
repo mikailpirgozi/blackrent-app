@@ -1,34 +1,11 @@
-# Backend files - Vercel nepotrebuje
-backend/
-*.db
-*.sqlite3
-
-# Build artifacts
-dist/
-build/
-logs/
-backups/
-
-# Config files
-.env
-.env.local
-.env.production
-docker-compose.yml
-Dockerfile
-
-# Railway files
-railway.json
-auto-deploy.sh
-sync-railway.sh
-deploy.sh
-
-# Documentation
-*.md
-AI-*
-RAILWAY-*
-DEPLOY*
-MIGRATION-*
-
-# Other
+node_modules
+.git
 .DS_Store
-node_modules/ 
+*.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log* 
