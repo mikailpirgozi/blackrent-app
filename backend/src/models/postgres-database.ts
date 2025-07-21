@@ -2432,22 +2432,39 @@ export class PostgresDatabase {
   private mapHandoverProtocolFromDB(row: any): any {
     // Safe JSON parsing function for JSONB fields
     const safeJsonParse = (value: any, fallback: any = []) => {
+      console.log('🔍 [DB] safeJsonParse input:', {
+        value: value,
+        type: typeof value,
+        isArray: Array.isArray(value),
+        isNull: value === null,
+        isUndefined: value === undefined,
+        stringLength: typeof value === 'string' ? value.length : 'N/A'
+      });
+
       if (!value || value === 'null' || value === 'undefined') {
+        console.log('🔍 [DB] safeJsonParse: returning fallback (null/undefined)');
         return fallback;
       }
+      
       // JSONB sa automaticky parsuje PostgreSQL, takže ak je to už objekt, vráť ho
       if (typeof value === 'object' && value !== null) {
+        console.log('🔍 [DB] safeJsonParse: value is already object, returning as is');
         return value;
       }
+      
       // Ak je to string, skús ho parsovať
       if (typeof value === 'string') {
         try {
-          return JSON.parse(value);
+          const parsed = JSON.parse(value);
+          console.log('🔍 [DB] safeJsonParse: successfully parsed string to:', parsed);
+          return parsed;
         } catch (error) {
           console.log('⚠️ JSON parse error in mapHandoverProtocolFromDB:', error);
           return fallback;
         }
       }
+      
+      console.log('🔍 [DB] safeJsonParse: returning fallback (unknown type)');
       return fallback;
     };
 
@@ -2456,7 +2473,8 @@ export class PostgresDatabase {
       pdf_url: row.pdf_url,
       pdf_url_type: typeof row.pdf_url,
       vehicle_images_type: typeof row.vehicle_images_urls,
-      vehicle_images_length: Array.isArray(row.vehicle_images_urls) ? row.vehicle_images_urls.length : 'not array'
+      vehicle_images_length: Array.isArray(row.vehicle_images_urls) ? row.vehicle_images_urls.length : 'not array',
+      vehicle_images_raw: row.vehicle_images_urls
     });
 
     const mappedProtocol = {
@@ -2493,7 +2511,8 @@ export class PostgresDatabase {
       vehicleImages: mappedProtocol.vehicleImages?.length || 0,
       vehicleVideos: mappedProtocol.vehicleVideos?.length || 0,
       documentImages: mappedProtocol.documentImages?.length || 0,
-      damageImages: mappedProtocol.damageImages?.length || 0
+      damageImages: mappedProtocol.damageImages?.length || 0,
+      vehicleImagesSample: mappedProtocol.vehicleImages?.slice(0, 2) || []
     });
     
     return mappedProtocol;
