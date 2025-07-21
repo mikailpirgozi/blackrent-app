@@ -1203,43 +1203,6 @@ export default function RentalList() {
           />
         </Box>
 
-        {/* Protocol status indicator */}
-        <Box sx={{
-          position: 'absolute',
-          top: 8,
-          left: 8,
-          zIndex: 1
-        }}>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            {hasHandover && (
-              <Chip
-                icon={<HandoverIcon />}
-                label=""
-                color="success"
-                size="small"
-                sx={{ 
-                  minWidth: 32,
-                  height: 24,
-                  '& .MuiChip-icon': { fontSize: 16 }
-                }}
-              />
-            )}
-            {hasReturn && (
-              <Chip
-                icon={<ReturnIcon />}
-                label=""
-                color="primary"
-                size="small"
-                sx={{ 
-                  minWidth: 32,
-                  height: 24,
-                  '& .MuiChip-icon': { fontSize: 16 }
-                }}
-              />
-            )}
-          </Box>
-        </Box>
-
         <CardContent sx={{ p: 3, pt: 4 }}>
           {/* Vehicle info */}
           <Box sx={{ mb: 2 }}>
@@ -1299,7 +1262,7 @@ export default function RentalList() {
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center', 
-            mb: 2,
+            mb: 3,
             p: 2,
             bgcolor: 'background.default',
             borderRadius: 1
@@ -1317,103 +1280,173 @@ export default function RentalList() {
               </Typography>
             </Box>
           </Box>
-          
-          {/* Action buttons */}
-          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Tooltip title="Prevzatie vozidla">
-                <IconButton
-                  size="small"
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    handleCreateHandover(rental); 
-                  }}
-                  color={hasHandover ? "success" : "primary"}
-                  sx={{ 
-                    bgcolor: hasHandover ? 'success.main' : 'primary.main',
-                    color: 'white',
-                    '&:hover': { 
-                      bgcolor: hasHandover ? 'success.dark' : 'primary.dark',
-                      transform: 'scale(1.1)'
-                    },
-                    width: 36,
-                    height: 36,
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <HandoverIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Vrátenie vozidla">
-                <IconButton
-                  size="small"
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    handleCreateReturn(rental); 
-                  }}
-                  color={hasReturn ? "success" : "primary"}
-                  sx={{ 
-                    bgcolor: hasReturn ? 'success.main' : 'primary.main',
-                    color: 'white',
-                    '&:hover': { 
-                      bgcolor: hasReturn ? 'success.dark' : 'primary.dark',
-                      transform: 'scale(1.1)'
-                    },
-                    width: 36,
-                    height: 36,
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <ReturnIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
+
+          {/* PROTOKOLY - NOVÉ MOBILNÉ ZOBRAZENIE */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2, color: 'text.primary' }}>
+              📋 Protokoly
+            </Typography>
             
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Tooltip title="Upraviť prenájom">
-                <IconButton
-                  size="small"
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    handleEdit(rental); 
-                  }}
-                  sx={{ 
-                    bgcolor: 'action.hover',
-                    '&:hover': { 
-                      bgcolor: 'action.selected',
-                      transform: 'scale(1.1)'
-                    },
-                    width: 36,
-                    height: 36,
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Vymazať prenájom">
-                <IconButton
-                  size="small"
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    handleDelete(rental.id); 
-                  }}
-                  sx={{ 
-                    bgcolor: 'error.light',
-                    color: 'white',
-                    '&:hover': { 
-                      bgcolor: 'error.main',
-                      transform: 'scale(1.1)'
-                    },
-                    width: 36,
-                    height: 36,
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+            {/* Preberací protokol */}
+            <Box sx={{ mb: 2 }}>
+              <Button
+                fullWidth
+                variant={hasHandover ? "contained" : "outlined"}
+                color={hasHandover ? "success" : "primary"}
+                startIcon={<HandoverIcon sx={{ fontSize: 24 }} />}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handleCreateHandover(rental); 
+                }}
+                sx={{
+                  justifyContent: 'flex-start',
+                  py: 2,
+                  px: 3,
+                  borderRadius: 2,
+                  borderWidth: 2,
+                  borderColor: hasHandover ? 'success.main' : 'primary.main',
+                  bgcolor: hasHandover ? 'success.main' : 'background.paper',
+                  color: hasHandover ? 'white' : 'primary.main',
+                  boxShadow: hasHandover ? 2 : 0,
+                  '&:hover': {
+                    bgcolor: hasHandover ? 'success.dark' : 'primary.light',
+                    borderColor: hasHandover ? 'success.dark' : 'primary.dark',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                  },
+                  transition: 'all 0.3s ease',
+                  fontSize: '1rem',
+                  fontWeight: 600
+                }}
+              >
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
+                  <Typography variant="body1" fontWeight="bold">
+                    {hasHandover ? '✅ Preberací protokol' : '🔄 Vytvoriť preberací protokol'}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    {hasHandover ? 'Protokol je vytvorený' : 'Kliknite pre vytvorenie'}
+                  </Typography>
+                </Box>
+              </Button>
             </Box>
+
+            {/* Vratný protokol */}
+            <Box sx={{ mb: 2 }}>
+              <Button
+                fullWidth
+                variant={hasReturn ? "contained" : "outlined"}
+                color={hasReturn ? "warning" : "primary"}
+                startIcon={<ReturnIcon sx={{ fontSize: 24 }} />}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handleCreateReturn(rental); 
+                }}
+                disabled={!hasHandover}
+                sx={{
+                  justifyContent: 'flex-start',
+                  py: 2,
+                  px: 3,
+                  borderRadius: 2,
+                  borderWidth: 2,
+                  borderColor: hasReturn ? 'warning.main' : hasHandover ? 'primary.main' : 'grey.400',
+                  bgcolor: hasReturn ? 'warning.main' : hasHandover ? 'background.paper' : 'grey.100',
+                  color: hasReturn ? 'white' : hasHandover ? 'primary.main' : 'grey.500',
+                  boxShadow: hasReturn ? 2 : 0,
+                  '&:hover': {
+                    bgcolor: hasReturn ? 'warning.dark' : hasHandover ? 'primary.light' : 'grey.100',
+                    borderColor: hasReturn ? 'warning.dark' : hasHandover ? 'primary.dark' : 'grey.400',
+                    transform: hasHandover ? 'translateY(-2px)' : 'none',
+                    boxShadow: hasHandover ? '0 4px 12px rgba(0,0,0,0.15)' : 'none'
+                  },
+                  transition: 'all 0.3s ease',
+                  fontSize: '1rem',
+                  fontWeight: 600
+                }}
+              >
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
+                  <Typography variant="body1" fontWeight="bold">
+                    {hasReturn ? '✅ Vratný protokol' : hasHandover ? '↩️ Vytvoriť vratný protokol' : '⏳ Čaká na preberací protokol'}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    {hasReturn ? 'Protokol je vytvorený' : hasHandover ? 'Kliknite pre vytvorenie' : 'Najprv vytvorte preberací protokol'}
+                  </Typography>
+                </Box>
+              </Button>
+            </Box>
+
+            {/* Stav protokolov */}
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 1, 
+              justifyContent: 'center',
+              mt: 2
+            }}>
+              <Chip
+                icon={<HandoverIcon />}
+                label={hasHandover ? "Prevzatie" : "Bez prevzatia"}
+                color={hasHandover ? "success" : "error"}
+                variant={hasHandover ? "filled" : "outlined"}
+                size="small"
+                sx={{ fontWeight: 600 }}
+              />
+              <Chip
+                icon={<ReturnIcon />}
+                label={hasReturn ? "Vrátenie" : hasHandover ? "Čaká" : "N/A"}
+                color={hasReturn ? "success" : hasHandover ? "warning" : "error"}
+                variant={hasReturn ? "filled" : "outlined"}
+                size="small"
+                sx={{ fontWeight: 600 }}
+              />
+            </Box>
+          </Box>
+          
+          {/* Ostatné akcie */}
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between' }}>
+            <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                handleEdit(rental); 
+              }}
+              sx={{ 
+                flex: 1,
+                py: 1.5,
+                borderRadius: 2,
+                borderWidth: 2,
+                '&:hover': {
+                  bgcolor: 'primary.light',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Upraviť
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                handleDelete(rental.id); 
+              }}
+              sx={{ 
+                flex: 1,
+                py: 1.5,
+                borderRadius: 2,
+                borderWidth: 2,
+                '&:hover': {
+                  bgcolor: 'error.light',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Zmazať
+            </Button>
           </Box>
         </CardContent>
       </Card>

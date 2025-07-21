@@ -173,26 +173,60 @@ const RentalMobileCard = memo<RentalMobileCardProps>(({
           </Box>
         )}
 
-        {/* Action buttons */}
-        <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+        {/* Action buttons - PROTOKOLY */}
+        <Box sx={{ display: 'flex', gap: 1, mt: 2, flexDirection: 'column' }}>
           <Button
-            size="small"
-            variant="outlined"
-            startIcon={<HandoverProtocolIcon />}
+            size="large"
+            variant={rental.handoverProtocolId ? 'contained' : 'outlined'}
+            color={rental.handoverProtocolId ? 'success' : 'inherit'}
+            startIcon={<HandoverProtocolIcon sx={{ fontSize: 28, color: rental.handoverProtocolId ? 'white' : 'grey.500' }} />}
             onClick={() => onProtocol(rental, 'handover')}
-            sx={{ flex: 1 }}
+            sx={{
+              flex: 1,
+              justifyContent: 'flex-start',
+              borderWidth: 2,
+              borderColor: rental.handoverProtocolId ? 'success.main' : 'grey.400',
+              bgcolor: rental.handoverProtocolId ? 'success.main' : 'background.paper',
+              color: rental.handoverProtocolId ? 'white' : 'text.primary',
+              boxShadow: rental.handoverProtocolId ? 2 : 0,
+              mb: 0.5,
+              '&:hover': {
+                bgcolor: rental.handoverProtocolId ? 'success.dark' : 'grey.100',
+                borderColor: rental.handoverProtocolId ? 'success.dark' : 'grey.500',
+              },
+            }}
+            title={rental.handoverProtocolId ? 'Preberací protokol je vytvorený' : 'Vytvoriť preberací protokol'}
           >
-            Prevzatie
+            {rental.handoverProtocolId ? 'Preberací protokol' : 'Vytvoriť preberací protokol'}
           </Button>
           <Button
-            size="small"
-            variant="outlined"
-            startIcon={<ReturnProtocolIcon />}
+            size="large"
+            variant={rental.returnProtocolId ? 'contained' : 'outlined'}
+            color={rental.returnProtocolId ? 'warning' : 'inherit'}
+            startIcon={<ReturnProtocolIcon sx={{ fontSize: 28, color: rental.returnProtocolId ? 'white' : 'grey.500' }} />}
             onClick={() => onProtocol(rental, 'return')}
-            sx={{ flex: 1 }}
+            sx={{
+              flex: 1,
+              justifyContent: 'flex-start',
+              borderWidth: 2,
+              borderColor: rental.returnProtocolId ? 'warning.main' : 'grey.400',
+              bgcolor: rental.returnProtocolId ? 'warning.main' : 'background.paper',
+              color: rental.returnProtocolId ? 'white' : 'text.primary',
+              boxShadow: rental.returnProtocolId ? 2 : 0,
+              mb: 0.5,
+              '&:hover': {
+                bgcolor: rental.returnProtocolId ? 'warning.dark' : 'grey.100',
+                borderColor: rental.returnProtocolId ? 'warning.dark' : 'grey.500',
+              },
+            }}
+            title={rental.returnProtocolId ? 'Vratný protokol je vytvorený' : 'Vytvoriť vratný protokol'}
+            disabled={!rental.handoverProtocolId}
           >
-            Vrátenie
+            {rental.returnProtocolId ? 'Vratný protokol' : 'Vytvoriť vratný protokol'}
           </Button>
+        </Box>
+        {/* Ostatné akcie */}
+        <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
           <Button
             size="small"
             variant="outlined"
