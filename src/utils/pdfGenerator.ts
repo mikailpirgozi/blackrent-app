@@ -1,6 +1,5 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import QRCode from 'qrcode';
 
 export interface ProtocolData {
   id: string;
@@ -285,21 +284,20 @@ class PDFGenerator {
         
         this.doc.text(linkIcon, iconX, iconY);
         
-        // QR kód pre mobilné zariadenia
-        try {
-          const qrDataUrl = await QRCode.toDataURL(image.url, {
-            width: 30,
-            margin: 1,
-            color: {
-              dark: '#000000',
-              light: '#FFFFFF'
-            }
-          });
-          
-          this.doc.addImage(qrDataUrl, 'PNG', currentX, iconY + 5, 15, 15);
-        } catch (error) {
-          console.warn('QR kód sa nepodarilo vygenerovať:', error);
-        }
+        // Malá ikonka s URL
+        this.doc.setFontSize(6);
+        this.doc.setTextColor(100, 100, 100);
+        const urlIcon = '🔗';
+        const urlIconX = currentX + width - 8;
+        const urlIconY = iconY + 3;
+        
+        this.doc.text(urlIcon, urlIconX, urlIconY);
+        
+        // Tooltip s URL (malým písmom)
+        this.doc.setFontSize(4);
+        this.doc.setTextColor(150, 150, 150);
+        const urlText = image.url;
+        this.doc.text(urlText, currentX, urlIconY + 4);
         
         // Tooltip s celým linkom
         this.doc.setFontSize(6);
@@ -391,21 +389,20 @@ class PDFGenerator {
         
         this.doc.text(linkIcon, iconX, iconY);
         
-        // QR kód pre mobilné zariadenia (menší pre dokumenty)
-        try {
-          const qrDataUrl = await QRCode.toDataURL(image.url, {
-            width: 20,
-            margin: 1,
-            color: {
-              dark: '#000000',
-              light: '#FFFFFF'
-            }
-          });
-          
-          this.doc.addImage(qrDataUrl, 'PNG', currentX, iconY + 3, 10, 10);
-        } catch (error) {
-          console.warn('QR kód sa nepodarilo vygenerovať:', error);
-        }
+        // Malá ikonka s URL pre dokumenty
+        this.doc.setFontSize(5);
+        this.doc.setTextColor(100, 100, 100);
+        const urlIcon = '🔗';
+        const urlIconX = currentX + width - 6;
+        const urlIconY = iconY + 2;
+        
+        this.doc.text(urlIcon, urlIconX, urlIconY);
+        
+        // Tooltip s URL (malým písmom)
+        this.doc.setFontSize(3);
+        this.doc.setTextColor(150, 150, 150);
+        const urlText = image.url;
+        this.doc.text(urlText, currentX, urlIconY + 3);
         
         // Tooltip s celým linkom
         this.doc.setFontSize(4);
@@ -652,9 +649,9 @@ class PDFGenerator {
     
     const explanations = [
       '🔗 - Ikonka linku: Kliknite na ikonku pre otvorenie fotky v prehliadači',
-      '📱 - Pre mobilné zariadenia: Naskenujte QR kód alebo kliknite na ikonku',
+      '📄 - URL adresa: Pod každou fotkou je plná URL adresa',
       '💾 - Download: Stiahnite si fotku do zariadenia',
-      '📄 - PDF: Tento dokument obsahuje všetky fotky s linkmi'
+      '📱 - Mobilné zariadenia: Kopírujte URL a otvorte v prehliadači'
     ];
     
     explanations.forEach((explanation, index) => {
