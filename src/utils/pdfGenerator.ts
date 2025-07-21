@@ -90,8 +90,7 @@ class PDFGenerator {
         await this.addSignatures(protocol.signatures, maxImageWidth, maxImageHeight, imageQuality);
       }
       
-      // ✅ Pridanie vysvetlenia pre ikonky
-      this.addLinkExplanation();
+      // ✅ Vysvetlenie odstránené - čistý PDF
       
       // Footer
       this.addFooter(protocol);
@@ -638,34 +637,7 @@ class PDFGenerator {
     this.currentY += 10;
   }
 
-  /**
-   * Pridanie vysvetlenia pre ikonky linkov
-   */
-  private addLinkExplanation() {
-    this.addSectionTitle('VYSVETLENIE');
-    
-    this.doc.setFontSize(9);
-    this.doc.setTextColor(...this.secondaryColor);
-    
-    const explanations = [
-      '🔗 - Ikonka linku: Kliknite na ikonku pre otvorenie fotky v prehliadači',
-      '📄 - URL adresa: Pod každou fotkou je plná URL adresa',
-      '💾 - Download: Stiahnite si fotku do zariadenia',
-      '📱 - Mobilné zariadenia: Kopírujte URL a otvorte v prehliadači'
-    ];
-    
-    explanations.forEach((explanation, index) => {
-      if (this.currentY > this.pageHeight - 30) {
-        this.doc.addPage();
-        this.currentY = 20;
-      }
-      
-      this.doc.text(explanation, this.margin, this.currentY);
-      this.currentY += 6;
-    });
-    
-    this.currentY += 10;
-  }
+
 
   /**
    * Pridanie päty
