@@ -71,7 +71,7 @@ import RentalForm from './RentalForm';
 import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 import PDFViewer from '../common/PDFViewer';
-import ImageGalleryModal from '../common/ImageGalleryModal';
+import SimpleImageGallery from '../common/SimpleImageGallery';
 import RentalAdvancedFilters, { FilterState } from './RentalAdvancedFilters';
 import RentalViewToggle, { ViewMode } from './RentalViewToggle';
 import RentalCardView, { CardViewMode } from './RentalCardView';
@@ -162,12 +162,9 @@ export default function RentalList() {
   
   // Image gallery
   const [galleryOpen, setGalleryOpen] = useState(false);
-  const [selectedProtocolDirectMedia, setSelectedProtocolDirectMedia] = useState<{
-    images: any[];
-    videos: any[];
-  }>({ images: [], videos: [] });
-  const [selectedProtocolId, setSelectedProtocolId] = useState<string>('');
-  const [selectedProtocolType, setSelectedProtocolType] = useState<'handover' | 'return'>('handover');
+  const [galleryImages, setGalleryImages] = useState<any[]>([]);
+  const [galleryVideos, setGalleryVideos] = useState<any[]>([]);
+  const [galleryTitle, setGalleryTitle] = useState('');
 
   // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
   const loadProtocolsForRental = useCallback(async (rentalId: string) => {
@@ -381,39 +378,39 @@ export default function RentalList() {
       });
 
       // ✅ PRIAMO Z DATABÁZY - žiadne brute-force
-      const directMedia = {
-        images: [
-          ...(Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages : []),
-          ...(Array.isArray(protocol.documentImages) ? protocol.documentImages : []),
-          ...(Array.isArray(protocol.damageImages) ? protocol.damageImages : [])
-        ],
-        videos: [
-          ...(Array.isArray(protocol.vehicleVideos) ? protocol.vehicleVideos : []),
-          ...(Array.isArray(protocol.documentVideos) ? protocol.documentVideos : []),
-          ...(Array.isArray(protocol.damageVideos) ? protocol.damageVideos : [])
-        ]
-      };
+      const images = [
+        ...(Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages : []),
+        ...(Array.isArray(protocol.documentImages) ? protocol.documentImages : []),
+        ...(Array.isArray(protocol.damageImages) ? protocol.damageImages : [])
+      ];
+      
+      const videos = [
+        ...(Array.isArray(protocol.vehicleVideos) ? protocol.vehicleVideos : []),
+        ...(Array.isArray(protocol.documentVideos) ? protocol.documentVideos : []),
+        ...(Array.isArray(protocol.damageVideos) ? protocol.damageVideos : [])
+      ];
 
-      console.log('🖼️ DirectMedia prepared:', {
-        imagesCount: directMedia.images.length,
-        videosCount: directMedia.videos.length,
-        images: directMedia.images.map(img => ({ id: img.id, url: img.url, type: img.type }))
+      console.log('🖼️ Gallery data prepared:', {
+        imagesCount: images.length,
+        videosCount: videos.length,
+        images: images.map(img => ({ id: img.id, url: img.url, type: img.type }))
       });
 
-      if (directMedia.images.length === 0 && directMedia.videos.length === 0) {
+      if (images.length === 0 && videos.length === 0) {
         alert('Nenašli sa žiadne obrázky pre tento protokol!');
         return;
       }
       
       console.log('🖼️ Setting gallery data:', { 
-        directMedia, 
+        images, 
+        videos,
         protocolId: protocol.id, 
         protocolType 
       });
       
-      setSelectedProtocolDirectMedia(directMedia);
-      setSelectedProtocolId(protocol.id);
-      setSelectedProtocolType(protocolType);
+      setGalleryImages(images);
+      setGalleryVideos(videos);
+      setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} - ${rental.vehicle?.brand} ${rental.vehicle?.model}`);
       setGalleryOpen(true);
       
       console.log('️ Gallery state set, should open now');
@@ -430,9 +427,9 @@ export default function RentalList() {
   const handleCloseGallery = () => {
     console.log('🖼️ Closing gallery');
     setGalleryOpen(false);
-    setSelectedProtocolDirectMedia({ images: [], videos: [] });
-    setSelectedProtocolId('');
-    setSelectedProtocolType('handover');
+    setGalleryImages([]);
+    setGalleryVideos([]);
+    setGalleryTitle('');
   };
 
   const handleDeleteProtocol = async (rentalId: string, type: 'handover' | 'return') => {
@@ -2333,13 +2330,13 @@ export default function RentalList() {
         />
       )}
 
-      {/* Image Gallery Modal */}
-      <ImageGalleryModal
+      {/* Simple Image Gallery */}
+      <SimpleImageGallery
         open={galleryOpen}
         onClose={handleCloseGallery}
-        protocolId={selectedProtocolId}
-        protocolType={selectedProtocolType}
-        directMedia={selectedProtocolDirectMedia}
+        images={galleryImages}
+        videos={galleryVideos}
+        title={galleryTitle}
       />
     </Box>
   );
