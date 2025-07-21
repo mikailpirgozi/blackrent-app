@@ -40,6 +40,14 @@ export default function ProtocolGallery({
   videos,
   title = 'Galéria protokolu'
 }: ProtocolGalleryProps) {
+  // Debug log pre diagnostiku
+  console.log('🔍 ProtocolGallery received:', {
+    open,
+    imagesCount: images?.length,
+    videosCount: videos?.length,
+    title,
+    images: images?.map(img => ({ id: img.id, url: img.url, type: img.type }))
+  });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   

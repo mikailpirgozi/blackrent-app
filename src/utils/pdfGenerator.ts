@@ -45,8 +45,8 @@ class PDFGenerator {
     this.pageWidth = this.doc.internal.pageSize.getWidth();
     this.pageHeight = this.doc.internal.pageSize.getHeight();
     
-    // Nastavenie základného fontu
-    this.doc.setFont('helvetica');
+    // Nastavenie fontu pre diakritiku - použiť Times alebo Arial
+    this.doc.setFont('times');
   }
 
   /**
@@ -118,13 +118,13 @@ class PDFGenerator {
     this.doc.setFillColor(255, 255, 255);
     this.doc.circle(25, 17.5, 8, 'F');
     this.doc.setFontSize(12);
-    this.doc.setFont('helvetica', 'bold');
+    this.doc.setFont('times', 'bold');
     this.doc.setTextColor(255, 255, 255);
     this.doc.text('BR', 25, 21, { align: 'center' });
     
     // Názov protokolu
     this.doc.setFontSize(16);
-    this.doc.setFont('helvetica', 'bold');
+    this.doc.setFont('times', 'bold');
     this.doc.setTextColor(255, 255, 255);
     const title = protocol.type === 'handover' ? 'PROTOKOL O PREVZATÍ VOZIDLA' : 'PROTOKOL O VRÁTENÍ VOZIDLA';
     this.doc.text(title, this.pageWidth / 2, 22, { align: 'center' });
@@ -134,7 +134,7 @@ class PDFGenerator {
     
     // Informácie o protokole
     this.doc.setFontSize(10);
-    this.doc.setFont('helvetica', 'normal');
+    this.doc.setFont('times', 'normal');
     this.doc.setTextColor(...this.secondaryColor);
     this.doc.text(`Číslo protokolu: ${protocol.id}`, this.margin, this.currentY);
     this.currentY += 6;
@@ -174,11 +174,11 @@ class PDFGenerator {
       const y = this.currentY + (row * 7);
       
       this.doc.setFontSize(10);
-      this.doc.setFont('helvetica', 'bold');
+      this.doc.setFont('times', 'bold');
       this.doc.setTextColor(...this.primaryColor);
       this.doc.text(label, x, y);
       
-      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFont('times', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
       this.doc.text(value, x + 50, y);
     });
@@ -210,11 +210,11 @@ class PDFGenerator {
       const y = this.currentY + (row * 7);
       
       this.doc.setFontSize(10);
-      this.doc.setFont('helvetica', 'bold');
+      this.doc.setFont('times', 'bold');
       this.doc.setTextColor(...this.primaryColor);
       this.doc.text(label, x, y);
       
-      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFont('times', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
       this.doc.text(value, x + 50, y);
     });
@@ -269,7 +269,7 @@ class PDFGenerator {
         
         // Popis obrázka
         this.doc.setFontSize(8);
-        this.doc.setFont('helvetica', 'bold');
+        this.doc.setFont('times', 'bold');
         this.doc.setTextColor(...this.primaryColor);
         this.doc.text(`Fotka ${i + 1}`, currentX, this.currentY + height + 3);
         
@@ -279,7 +279,7 @@ class PDFGenerator {
           const encodedUrl = urlText.replace(/\s/g, '%20');
           
           this.doc.setFontSize(4);
-          this.doc.setFont('helvetica', 'normal');
+          this.doc.setFont('times', 'normal');
           this.doc.setTextColor(...this.accentColor);
           
           if (this.doc.getTextWidth(encodedUrl) > width) {
@@ -358,7 +358,7 @@ class PDFGenerator {
         this.doc.addImage(imgData, 'JPEG', currentX, this.currentY, width, height);
         
         this.doc.setFontSize(8);
-        this.doc.setFont('helvetica', 'bold');
+        this.doc.setFont('times', 'bold');
         this.doc.setTextColor(...this.primaryColor);
         this.doc.text(`Dokument ${i + 1}`, currentX, this.currentY + height + 3);
         
@@ -367,7 +367,7 @@ class PDFGenerator {
           const encodedUrl = urlText.replace(/\s/g, '%20');
           
           this.doc.setFontSize(4);
-          this.doc.setFont('helvetica', 'normal');
+          this.doc.setFont('times', 'normal');
           this.doc.setTextColor(...this.accentColor);
           
           if (this.doc.getTextWidth(encodedUrl) > width) {
@@ -418,11 +418,11 @@ class PDFGenerator {
 
     damages.forEach((damage, index) => {
       this.doc.setFontSize(10);
-      this.doc.setFont('helvetica', 'bold');
+      this.doc.setFont('times', 'bold');
       this.doc.setTextColor(...this.warningColor);
       this.doc.text(`${index + 1}.`, this.margin, this.currentY);
       
-      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFont('times', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
       this.doc.text(damage.description || 'N/A', this.margin + 15, this.currentY);
       
@@ -446,7 +446,7 @@ class PDFGenerator {
     this.addSectionTitle('POZNÁMKY');
     
     this.doc.setFontSize(10);
-    this.doc.setFont('helvetica', 'normal');
+    this.doc.setFont('times', 'normal');
     this.doc.setTextColor(...this.secondaryColor);
     this.doc.text(notes, this.margin, this.currentY);
     
@@ -509,7 +509,7 @@ class PDFGenerator {
         this.doc.addImage(imgData, 'JPEG', currentX, this.currentY, width, height);
         
         this.doc.setFontSize(8);
-        this.doc.setFont('helvetica', 'bold');
+        this.doc.setFont('times', 'bold');
         this.doc.setTextColor(...this.primaryColor);
         this.doc.text(`Podpis ${i + 1}`, currentX, this.currentY + height + 3);
         
@@ -518,7 +518,7 @@ class PDFGenerator {
           const encodedUrl = urlText.replace(/\s/g, '%20');
           
           this.doc.setFontSize(4);
-          this.doc.setFont('helvetica', 'normal');
+          this.doc.setFont('times', 'normal');
           this.doc.setTextColor(...this.accentColor);
           
           if (this.doc.getTextWidth(encodedUrl) > width) {
@@ -565,7 +565,7 @@ class PDFGenerator {
     this.currentY += 5;
     
     this.doc.setFontSize(8);
-    this.doc.setFont('helvetica', 'normal');
+    this.doc.setFont('times', 'normal');
     this.doc.setTextColor(...this.secondaryColor);
     this.doc.text(`Protokol vygenerovaný: ${new Date().toLocaleString('sk-SK')}`, this.margin, this.currentY);
     this.currentY += 4;
