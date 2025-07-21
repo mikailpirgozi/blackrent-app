@@ -126,7 +126,7 @@ export default function ProtocolGallery({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `protocol-media-${selectedIndex + 1}.${'url' in currentMedia && currentMedia.url.includes('video') ? 'mp4' : 'jpg'}`;
+      link.download = `protocol-media-${selectedIndex + 1}.${currentMedia.url.includes('video') ? 'mp4' : 'jpg'}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
