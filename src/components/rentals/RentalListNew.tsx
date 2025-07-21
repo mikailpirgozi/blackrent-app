@@ -846,15 +846,16 @@ export default function RentalList() {
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: 0.5, 
-              mt: 0.5,
-              p: 0.5,
+              gap: 1, 
+              justifyContent: 'center',
+              p: 1,
               bgcolor: 'info.light',
-              borderRadius: 1
+              borderRadius: 1,
+              mb: 2
             }}>
-              <CircularProgress size={12} />
-              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                Načítavam...
+              <CircularProgress size={16} />
+              <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+                Načítavam protokoly...
               </Typography>
             </Box>
           )}
@@ -1400,21 +1401,131 @@ export default function RentalList() {
               />
             </Box>
 
-            {/* Loading indikátor */}
-            {loadingProtocols.includes(rental.id) && (
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1, 
-                justifyContent: 'center',
-                p: 1,
-                bgcolor: 'info.light',
-                borderRadius: 1
-              }}>
-                <CircularProgress size={16} />
-                <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-                  Načítavam protokoly...
+            {/* PDF a Galéria tlačidlá - zobrazené len ak existujú protokoly */}
+            {(hasHandover || hasReturn) && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, textAlign: 'center' }}>
+                  Stiahnuť a zobraziť
                 </Typography>
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {/* Preberací protokol PDF */}
+                  {hasHandover && (
+                    <Tooltip title="Stiahnuť preberací protokol PDF">
+                      <IconButton
+                        size="small"
+                        component="a"
+                        href={protocols[rental.id]?.handover?.pdfUrl}
+                        target="_blank"
+                        download
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{ 
+                          bgcolor: 'success.main',
+                          color: 'white',
+                          border: '2px solid',
+                          borderColor: 'success.main',
+                          '&:hover': { 
+                            bgcolor: 'success.dark',
+                            borderColor: 'success.dark',
+                            transform: 'scale(1.05)'
+                          },
+                          transition: 'all 0.2s ease',
+                          width: 40,
+                          height: 40
+                        }}
+                      >
+                        <PDFIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+
+                  {/* Vratný protokol PDF */}
+                  {hasReturn && (
+                    <Tooltip title="Stiahnuť vratný protokol PDF">
+                      <IconButton
+                        size="small"
+                        component="a"
+                        href={protocols[rental.id]?.return?.pdfUrl}
+                        target="_blank"
+                        download
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{ 
+                          bgcolor: 'warning.main',
+                          color: 'white',
+                          border: '2px solid',
+                          borderColor: 'warning.main',
+                          '&:hover': { 
+                            bgcolor: 'warning.dark',
+                            borderColor: 'warning.dark',
+                            transform: 'scale(1.05)'
+                          },
+                          transition: 'all 0.2s ease',
+                          width: 40,
+                          height: 40
+                        }}
+                      >
+                        <PDFIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+
+                  {/* Galéria preberacieho protokolu */}
+                  {hasHandover && (
+                    <Tooltip title="Galerie preberacieho protokolu">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenGallery(rental, 'handover');
+                        }}
+                        sx={{ 
+                          bgcolor: 'primary.main',
+                          color: 'white',
+                          border: '2px solid',
+                          borderColor: 'primary.main',
+                          '&:hover': { 
+                            bgcolor: 'primary.dark',
+                            borderColor: 'primary.dark',
+                            transform: 'scale(1.05)'
+                          },
+                          transition: 'all 0.2s ease',
+                          width: 40,
+                          height: 40
+                        }}
+                      >
+                        <GalleryIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+
+                  {/* Galéria vratného protokolu */}
+                  {hasReturn && (
+                    <Tooltip title="Galerie vratného protokolu">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenGallery(rental, 'return');
+                        }}
+                        sx={{ 
+                          bgcolor: 'secondary.main',
+                          color: 'white',
+                          border: '2px solid',
+                          borderColor: 'secondary.main',
+                          '&:hover': { 
+                            bgcolor: 'secondary.dark',
+                            borderColor: 'secondary.dark',
+                            transform: 'scale(1.05)'
+                          },
+                          transition: 'all 0.2s ease',
+                          width: 40,
+                          height: 40
+                        }}
+                      >
+                        <GalleryIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
               </Box>
             )}
           </Box>
