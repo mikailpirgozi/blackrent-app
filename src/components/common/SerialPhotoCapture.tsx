@@ -90,74 +90,126 @@ export default function SerialPhotoCapture({
 
   // Funkcia pre upload na R2
   const uploadToR2 = async (file: File, type: 'image' | 'video'): Promise<string> => {
-    if (!entityId || !autoUploadToR2) {
-      // Fallback na base64 ak nie je R2 upload
-      return new Promise<string>((resolve) => {
+    // Fallback na base64 ak R2 nie je povolené
+    if (!autoUploadToR2) {
+      return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.readAsDataURL(file);
       });
     }
 
-    // ✅ NOVÝ SYSTÉM: Upload cez /api/files/protocol-photo
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('protocolId', entityId);
-    formData.append('protocolType', protocolType);
-    formData.append('mediaType', mediaType);
-    formData.append('label', file.name);
-
-    const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
-    
-    console.log('🔄 Uploading photo via new endpoint:', {
-      protocolId: entityId,
-      filename: file.name,
-      size: file.size
-    });
-
-    const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ R2 upload failed:', errorText);
-      throw new Error(`R2 upload failed: ${response.status} - ${errorText}`);
+    // Kontrola entityId
+    if (!entityId) {
+      throw new Error('EntityId is required for R2 upload');
     }
 
-    const result = await response.json();
-    console.log('✅ Photo uploaded successfully:', result);
+    try {
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      
+      // 🚀 NOVÝ SYSTÉM: Signed URL upload
+      console.log('🔄 Getting presigned URL for:', {
+        protocolId: entityId,
+        filename: file.name,
+        size: file.size,
+        contentType: file.type
+      });
 
-    // ✅ AUTOMATICKÉ ULOŽENIE DO DATABÁZY
-    if (result.success && result.photo) {
-      try {
-        const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-        
-        const dbResponse = await fetch(`${apiBaseUrl}/protocols/${entityId}/add-photo`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` })
-          },
-          body: JSON.stringify({
-            photo: result.photo,
-            protocolType: protocolType
+      // 1. Získanie presigned URL
+      const presignedResponse = await fetch(`${apiBaseUrl}/files/presigned-upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(localStorage.getItem('blackrent_token') && { 
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}` 
           })
-        });
+        },
+        body: JSON.stringify({
+          protocolId: entityId,
+          protocolType: protocolType,
+          mediaType: mediaType,
+          filename: file.name,
+          contentType: file.type
+        })
+      });
 
-        if (dbResponse.ok) {
-          console.log('✅ Photo saved to database successfully');
-        } else {
-          console.warn('⚠️ Photo uploaded to R2 but failed to save to database');
-        }
-      } catch (dbError) {
-        console.warn('⚠️ Error saving photo to database:', dbError);
-        // Pokračujeme aj keď sa neuloží do DB - fotka je na R2
+      if (!presignedResponse.ok) {
+        throw new Error(`Failed to get presigned URL: ${presignedResponse.status}`);
       }
-    }
 
-    return result.url;
+      const presignedData = await presignedResponse.json();
+      console.log('✅ Presigned URL received:', presignedData);
+
+      // 2. Upload priamo do R2 cez presigned URL
+      const uploadResponse = await fetch(presignedData.presignedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+        },
+        body: file
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload to R2: ${uploadResponse.status}`);
+      }
+
+      console.log('✅ File uploaded directly to R2');
+
+      // 3. Uloženie metadát do databázy
+      const metadataResponse = await fetch(`${apiBaseUrl}/protocols/${entityId}/save-uploaded-photo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(localStorage.getItem('blackrent_token') && { 
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}` 
+          })
+        },
+        body: JSON.stringify({
+          fileUrl: presignedData.publicUrl,
+          label: file.name,
+          type: mediaType,
+          protocolType: protocolType,
+          filename: file.name,
+          size: file.size
+        })
+      });
+
+      if (metadataResponse.ok) {
+        console.log('✅ Photo metadata saved to database');
+      } else {
+        console.warn('⚠️ Photo uploaded to R2 but failed to save metadata');
+      }
+
+      return presignedData.publicUrl;
+
+    } catch (error) {
+      console.error('❌ Signed URL upload failed:', error);
+      
+      // Fallback na starý systém ak signed URL zlyhá
+      console.log('🔄 Falling back to direct upload...');
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('protocolId', entityId);
+      formData.append('protocolType', protocolType);
+      formData.append('mediaType', mediaType);
+      formData.append('label', file.name);
+
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      
+      const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      return result.url;
+    }
   };
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {

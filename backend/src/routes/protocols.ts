@@ -728,4 +728,105 @@ router.post('/:protocolId/add-photo', async (req, res) => {
   }
 });
 
+// 🚀 NOVÝ ENDPOINT: Uloženie metadát po signed URL upload
+router.post('/:protocolId/save-uploaded-photo', async (req, res) => {
+  try {
+    const { protocolId } = req.params;
+    const { fileUrl, label, type, protocolType, filename, size } = req.body;
+    
+    console.log('🔄 Saving uploaded photo metadata:', {
+      protocolId,
+      fileUrl,
+      label,
+      type,
+      protocolType
+    });
+
+    if (!protocolId || !fileUrl || !type || !protocolType) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýbajú povinné parametre' 
+      });
+    }
+
+    if (!isValidUUID(protocolId)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Neplatný protocolId format' 
+      });
+    }
+
+    // Vytvorenie photo objektu
+    const photoObject = {
+      id: require('uuid').v4(),
+      url: fileUrl,
+      type: type, // 'vehicle', 'document', 'damage'
+      description: label || filename || 'Uploaded photo',
+      timestamp: new Date(),
+      compressed: false,
+      originalSize: size || 0,
+      compressedSize: size || 0,
+      filename: filename || 'uploaded-file'
+    };
+
+    let updatedProtocol;
+    
+    if (protocolType === 'handover') {
+      const existingProtocol = await postgresDatabase.getHandoverProtocolById(protocolId);
+      if (!existingProtocol) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Protokol nebol nájdený' 
+        });
+      }
+
+      const fieldName = `${type}Images`;
+      const updatedImages = [...(existingProtocol[fieldName] || []), photoObject];
+      
+      updatedProtocol = await postgresDatabase.updateHandoverProtocol(protocolId, {
+        [fieldName]: updatedImages
+      });
+      
+    } else if (protocolType === 'return') {
+      const existingProtocol = await postgresDatabase.getReturnProtocolById(protocolId);
+      if (!existingProtocol) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Protokol nebol nájdený' 
+        });
+      }
+
+      const fieldName = `${type}Images`;
+      const updatedImages = [...(existingProtocol[fieldName] || []), photoObject];
+      
+      updatedProtocol = await postgresDatabase.updateReturnProtocol(protocolId, {
+        [fieldName]: updatedImages
+      });
+      
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Neplatný protocolType' 
+      });
+    }
+
+    console.log('✅ Uploaded photo metadata saved successfully');
+    
+    res.json({
+      success: true,
+      message: 'Metadáta fotky boli úspešne uložené',
+      photo: photoObject,
+      protocol: updatedProtocol
+    });
+
+  } catch (error) {
+    console.error('❌ Error saving uploaded photo metadata:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri ukladaní metadát',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    });
+  }
+});
+
 export default router; 

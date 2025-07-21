@@ -599,4 +599,66 @@ router.post('/protocol-photo', upload.single('file'), async (req, res) => {
   }
 });
 
+// 🚀 NOVÝ ENDPOINT: Generovanie signed URL pre direct upload
+router.post('/presigned-upload', async (req, res) => {
+  try {
+    const { protocolId, protocolType, mediaType, filename, contentType } = req.body;
+    
+    console.log('🔄 Generating presigned URL for:', {
+      protocolId,
+      protocolType,
+      mediaType,
+      filename,
+      contentType
+    });
+
+    if (!protocolId || !protocolType || !mediaType || !filename || !contentType) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýbajú povinné parametre' 
+      });
+    }
+
+    // Validácia typu súboru
+    if (!contentType.startsWith('image/')) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Len obrázky sú povolené' 
+      });
+    }
+
+    // Generovanie file key
+    const today = new Date().toISOString().split('T')[0];
+    const fileKey = `protocols/${protocolType}/${today}/${protocolId}/${filename}`;
+
+    // Vytvorenie presigned URL (platná 5 minút)
+    const presignedUrl = await r2Storage.createPresignedUploadUrl(
+      fileKey, 
+      contentType, 
+      300 // 5 minút
+    );
+
+    // Public URL pre neskoršie použitie
+    const publicUrl = r2Storage.getPublicUrl(fileKey);
+
+    console.log('✅ Presigned URL generated:', fileKey);
+
+    res.json({
+      success: true,
+      presignedUrl: presignedUrl,
+      publicUrl: publicUrl,
+      fileKey: fileKey,
+      expiresIn: 300
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating presigned URL:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri generovaní signed URL',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    });
+  }
+});
+
 export default router; 
