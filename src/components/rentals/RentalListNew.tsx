@@ -53,7 +53,14 @@ import {
   DirectionsCar as CarIcon,
   Payment as PaymentIcon,
   CheckCircleOutline as CheckIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  Euro as EuroIcon,
+  Schedule as ScheduleIcon,
+  LocationOn as LocationIcon,
+  AccessTime as TimeIcon,
+  Star as StarIcon,
+  TrendingUp as TrendingUpIcon,
+  Speed as SpeedIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -976,117 +983,342 @@ export default function RentalList() {
   }, [rentals]);
   
   // Card renderer for mobile/card view
-  const renderRentalCard = useCallback((rental: Rental, index: number) => (
-    <Card key={rental.id} sx={{ mb: 2, cursor: 'pointer' }} onClick={() => handleEdit(rental)}>
-      <CardContent sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Box>
-            <Typography variant="h6" fontWeight="bold">
-              {rental.vehicle ? `${rental.vehicle.brand} ${rental.vehicle.model}` : 'Bez vozidla'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
+  const renderRentalCard = useCallback((rental: Rental, index: number) => {
+    const hasHandover = !!protocols[rental.id]?.handover;
+    const hasReturn = !!protocols[rental.id]?.return;
+    const isActive = rental.status === 'active';
+    const isFinished = rental.status === 'finished';
+    
+    return (
+      <Card 
+        key={rental.id} 
+        sx={{ 
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          border: isActive ? '2px solid #4caf50' : '1px solid rgba(0,0,0,0.12)',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+            borderColor: isActive ? '#4caf50' : 'primary.main'
+          },
+          position: 'relative',
+          overflow: 'visible'
+        }} 
+        onClick={() => handleEdit(rental)}
+      >
+        {/* Status indicator */}
+        <Box sx={{
+          position: 'absolute',
+          top: -8,
+          right: 16,
+          zIndex: 1
+        }}>
+          <Chip 
+            label={rental.status} 
+            color={isActive ? 'success' : isFinished ? 'default' : 'warning'}
+            size="small"
+            sx={{ 
+              fontWeight: 'bold',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+            }}
+          />
+        </Box>
+
+        {/* Protocol status indicator */}
+        <Box sx={{
+          position: 'absolute',
+          top: 8,
+          left: 8,
+          zIndex: 1
+        }}>
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            {hasHandover && (
+              <Chip
+                icon={<HandoverIcon />}
+                label=""
+                color="success"
+                size="small"
+                sx={{ 
+                  minWidth: 32,
+                  height: 24,
+                  '& .MuiChip-icon': { fontSize: 16 }
+                }}
+              />
+            )}
+            {hasReturn && (
+              <Chip
+                icon={<ReturnIcon />}
+                label=""
+                color="primary"
+                size="small"
+                sx={{ 
+                  minWidth: 32,
+                  height: 24,
+                  '& .MuiChip-icon': { fontSize: 16 }
+                }}
+              />
+            )}
+          </Box>
+        </Box>
+
+        <CardContent sx={{ p: 3, pt: 4 }}>
+          {/* Vehicle info */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <CarIcon color="primary" fontSize="small" />
+              <Typography variant="h6" fontWeight="bold" color="primary">
+                {rental.vehicle ? `${rental.vehicle.brand} ${rental.vehicle.model}` : 'Bez vozidla'}
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
               {rental.vehicle?.licensePlate || 'N/A'}
             </Typography>
           </Box>
-          <Chip 
-            label={rental.status} 
-            color={rental.status === 'active' ? 'success' : 'default'}
-            size="small"
-          />
-        </Box>
-        
-        <Box sx={{ mb: 1 }}>
-          <Typography variant="body2">
-            <strong>Zákazník:</strong> {rental.customerName}
-          </Typography>
-          <Typography variant="body2">
-            <strong>Firma:</strong> {rental.vehicle?.company || 'N/A'}
-          </Typography>
-        </Box>
-        
-        <Box sx={{ display: 'flex', gap: 2, mb: 1 }}>
-          <Typography variant="body2">
-            <strong>Od:</strong> {format(new Date(rental.startDate), 'dd.MM.yyyy')}
-          </Typography>
-          <Typography variant="body2">
-            <strong>Do:</strong> {format(new Date(rental.endDate), 'dd.MM.yyyy')}
-          </Typography>
-        </Box>
-        
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-          <Typography variant="h6" color="primary" fontWeight="bold">
-            {typeof rental.totalPrice === 'number' ? rental.totalPrice.toFixed(2) : '0.00'} €
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {rental.paymentMethod}
-          </Typography>
-        </Box>
-        
-        {/* Protocol buttons */}
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-          <Tooltip title="Prevzatie vozidla">
-            <IconButton
-              size="small"
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                handleCreateHandover(rental); 
-              }}
-              color="primary"
-              sx={{ 
-                bgcolor: 'primary.main',
-                color: 'white',
-                '&:hover': { bgcolor: 'primary.dark' },
-                width: 32,
-                height: 32
-              }}
-            >
-              <HandoverIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Vrátenie vozidla">
-            <IconButton
-              size="small"
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                handleCreateReturn(rental); 
-              }}
-              color="primary"
-              sx={{ 
-                bgcolor: 'primary.main',
-                color: 'white',
-                '&:hover': { bgcolor: 'primary.dark' },
-                width: 32,
-                height: 32
-              }}
-            >
-              <ReturnIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </CardContent>
-    </Card>
-  ), [handleEdit, handleCreateHandover, handleCreateReturn]);
+          
+          {/* Customer and company */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <PersonIcon color="action" fontSize="small" />
+              <Typography variant="body1" fontWeight="medium">
+                {rental.customerName}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <BusinessIcon color="action" fontSize="small" />
+              <Typography variant="body2" color="text.secondary">
+                {rental.vehicle?.company || 'N/A'}
+              </Typography>
+            </Box>
+          </Box>
+          
+          {/* Dates */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <ScheduleIcon color="action" fontSize="small" />
+              <Typography variant="body2" fontWeight="medium">
+                Obdobie prenájmu
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, ml: 3 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Od</Typography>
+                <Typography variant="body2" fontWeight="medium">
+                  {format(new Date(rental.startDate), 'dd.MM.yyyy')}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Do</Typography>
+                <Typography variant="body2" fontWeight="medium">
+                  {format(new Date(rental.endDate), 'dd.MM.yyyy')}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+          
+          {/* Price and payment */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mb: 2,
+            p: 2,
+            bgcolor: 'background.default',
+            borderRadius: 1
+          }}>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Celková cena</Typography>
+              <Typography variant="h5" color="primary" fontWeight="bold">
+                {typeof rental.totalPrice === 'number' ? rental.totalPrice.toFixed(2) : '0.00'} €
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="caption" color="text.secondary">Spôsob platby</Typography>
+              <Typography variant="body2" fontWeight="medium">
+                {rental.paymentMethod}
+              </Typography>
+            </Box>
+          </Box>
+          
+          {/* Action buttons */}
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Tooltip title="Prevzatie vozidla">
+                <IconButton
+                  size="small"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleCreateHandover(rental); 
+                  }}
+                  color={hasHandover ? "success" : "primary"}
+                  sx={{ 
+                    bgcolor: hasHandover ? 'success.main' : 'primary.main',
+                    color: 'white',
+                    '&:hover': { 
+                      bgcolor: hasHandover ? 'success.dark' : 'primary.dark',
+                      transform: 'scale(1.1)'
+                    },
+                    width: 36,
+                    height: 36,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <HandoverIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Vrátenie vozidla">
+                <IconButton
+                  size="small"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleCreateReturn(rental); 
+                  }}
+                  color={hasReturn ? "success" : "primary"}
+                  sx={{ 
+                    bgcolor: hasReturn ? 'success.main' : 'primary.main',
+                    color: 'white',
+                    '&:hover': { 
+                      bgcolor: hasReturn ? 'success.dark' : 'primary.dark',
+                      transform: 'scale(1.1)'
+                    },
+                    width: 36,
+                    height: 36,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <ReturnIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+            
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Tooltip title="Upraviť prenájom">
+                <IconButton
+                  size="small"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleEdit(rental); 
+                  }}
+                  sx={{ 
+                    bgcolor: 'action.hover',
+                    '&:hover': { 
+                      bgcolor: 'action.selected',
+                      transform: 'scale(1.1)'
+                    },
+                    width: 36,
+                    height: 36,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Vymazať prenájom">
+                <IconButton
+                  size="small"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleDelete(rental.id); 
+                  }}
+                  sx={{ 
+                    bgcolor: 'error.light',
+                    color: 'white',
+                    '&:hover': { 
+                      bgcolor: 'error.main',
+                      transform: 'scale(1.1)'
+                    },
+                    width: 36,
+                    height: 36,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  }, [handleEdit, handleCreateHandover, handleCreateReturn, handleDelete, protocols]);
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Prenájmy</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAdd}
-          sx={{ 
-            minWidth: isMobile ? 'auto' : 'auto',
-            px: isMobile ? 2 : 3
-          }}
-        >
-          {isMobile ? 'Pridať' : 'Nový prenájom'}
-        </Button>
-      </Box>
+      {/* Enhanced Header */}
+      <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box>
+              <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
+                Prenájmy
+              </Typography>
+              <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                Správa a prehľad všetkých prenájmov vozidiel
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ textAlign: 'right', mr: 2 }}>
+                <Box sx={{ display: 'flex', gap: 3 }}>
+                  <Box>
+                    <Typography variant="h6" fontWeight="bold">
+                      {filteredRentals.length}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      zobrazených
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" fontWeight="bold" color="success.light">
+                      {filteredRentals.filter(r => r.status === 'active').length}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      aktívnych
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" fontWeight="bold" color="warning.light">
+                      {filteredRentals.filter(r => protocols[r.id]?.handover && !protocols[r.id]?.return).length}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      čakajú na vrátenie
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleAdd}
+                sx={{ 
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  backdropFilter: 'blur(10px)',
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.3)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
+                  },
+                  transition: 'all 0.3s ease',
+                  px: 3,
+                  py: 1.5,
+                  borderRadius: 2
+                }}
+              >
+                {isMobile ? 'Pridať' : 'Nový prenájom'}
+              </Button>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
 
       {/* Moderné vyhľadávanie a filtre */}
-      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
-        <CardContent sx={{ p: 2 }}>
+      <Card sx={{ 
+        mb: 3, 
+        backgroundColor: 'background.paper',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+        border: '1px solid rgba(0,0,0,0.06)'
+      }}>
+        <CardContent sx={{ p: 3 }}>
           {/* Hlavný riadok s vyhľadávaním a tlačidlami */}
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
             {/* Search Input */}
@@ -1100,10 +1332,18 @@ export default function RentalList() {
                 sx={{
                   flex: 1,
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
+                    borderRadius: 3,
                     backgroundColor: 'background.default',
+                    transition: 'all 0.3s ease',
                     '&:hover': {
-                      backgroundColor: 'action.hover'
+                      backgroundColor: 'action.hover',
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    },
+                    '&.Mui-focused': {
+                      backgroundColor: 'background.paper',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 6px 20px rgba(0,0,0,0.15)'
                     }
                   }
                 }}
@@ -1125,9 +1365,14 @@ export default function RentalList() {
                   onClick={() => setViewMode('table')}
                   color={viewMode === 'table' ? 'primary' : 'default'}
                   sx={{ 
-                    bgcolor: viewMode === 'table' ? 'primary.main' : 'transparent',
+                    bgcolor: viewMode === 'table' ? 'primary.main' : 'rgba(0,0,0,0.04)',
                     color: viewMode === 'table' ? 'white' : 'inherit',
-                    '&:hover': { bgcolor: viewMode === 'table' ? 'primary.dark' : 'action.hover' }
+                    borderRadius: 2,
+                    transition: 'all 0.3s ease',
+                    '&:hover': { 
+                      bgcolor: viewMode === 'table' ? 'primary.dark' : 'rgba(0,0,0,0.08)',
+                      transform: 'scale(1.1)'
+                    }
                   }}
                 >
                   <ViewListIcon fontSize="small" />
@@ -1139,9 +1384,14 @@ export default function RentalList() {
                   onClick={() => setViewMode('cards')}
                   color={viewMode === 'cards' ? 'primary' : 'default'}
                   sx={{ 
-                    bgcolor: viewMode === 'cards' ? 'primary.main' : 'transparent',
+                    bgcolor: viewMode === 'cards' ? 'primary.main' : 'rgba(0,0,0,0.04)',
                     color: viewMode === 'cards' ? 'white' : 'inherit',
-                    '&:hover': { bgcolor: viewMode === 'cards' ? 'primary.dark' : 'action.hover' }
+                    borderRadius: 2,
+                    transition: 'all 0.3s ease',
+                    '&:hover': { 
+                      bgcolor: viewMode === 'cards' ? 'primary.dark' : 'rgba(0,0,0,0.08)',
+                      transform: 'scale(1.1)'
+                    }
                   }}
                 >
                   <ViewModuleIcon fontSize="small" />
@@ -1153,9 +1403,14 @@ export default function RentalList() {
                   onClick={() => setViewMode('compact')}
                   color={viewMode === 'compact' ? 'primary' : 'default'}
                   sx={{ 
-                    bgcolor: viewMode === 'compact' ? 'primary.main' : 'transparent',
+                    bgcolor: viewMode === 'compact' ? 'primary.main' : 'rgba(0,0,0,0.04)',
                     color: viewMode === 'compact' ? 'white' : 'inherit',
-                    '&:hover': { bgcolor: viewMode === 'compact' ? 'primary.dark' : 'action.hover' }
+                    borderRadius: 2,
+                    transition: 'all 0.3s ease',
+                    '&:hover': { 
+                      bgcolor: viewMode === 'compact' ? 'primary.dark' : 'rgba(0,0,0,0.08)',
+                      transform: 'scale(1.1)'
+                    }
                   }}
                 >
                   <ViewComfyIcon fontSize="small" />
@@ -1171,7 +1426,16 @@ export default function RentalList() {
               sx={{
                 borderRadius: 2,
                 textTransform: 'none',
-                fontWeight: 500
+                fontWeight: 500,
+                transition: 'all 0.3s ease',
+                borderColor: showFilters ? 'primary.main' : 'rgba(0,0,0,0.23)',
+                bgcolor: showFilters ? 'primary.main' : 'transparent',
+                color: showFilters ? 'white' : 'inherit',
+                '&:hover': {
+                  bgcolor: showFilters ? 'primary.dark' : 'rgba(0,0,0,0.04)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }
               }}
             >
               Filtre {showFilters ? '▼' : '▶'}
@@ -1185,7 +1449,15 @@ export default function RentalList() {
               sx={{
                 borderRadius: 2,
                 textTransform: 'none',
-                fontWeight: 500
+                fontWeight: 500,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  bgcolor: 'error.light',
+                  color: 'white',
+                  borderColor: 'error.main',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }
               }}
             >
               Reset
@@ -1449,10 +1721,16 @@ export default function RentalList() {
 
       {/* Conditional rendering based on view mode */}
       {viewMode === 'cards' ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {filteredRentals.map((rental, index) => renderRentalCard(rental, index))}
+        <Box>
+          <Grid container spacing={3}>
+            {filteredRentals.map((rental, index) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={rental.id}>
+                {renderRentalCard(rental, index)}
+              </Grid>
+            ))}
+          </Grid>
           {filteredRentals.length === 0 && (
-            <Card sx={{ p: 3, textAlign: 'center' }}>
+            <Card sx={{ p: 3, textAlign: 'center', mt: 2 }}>
               <Typography variant="h6" color="text.secondary">
                 Žiadne prenájmy
               </Typography>
