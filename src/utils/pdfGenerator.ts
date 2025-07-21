@@ -90,8 +90,7 @@ class PDFGenerator {
         await this.addSignatures(protocol.signatures, maxImageWidth, maxImageHeight, imageQuality);
       }
       
-      // ✅ NOVÉ: Linky na fotky
-      this.addImageLinksSection(protocol);
+      // ✅ Linky sú už priamo pod fotkami - odstránené duplicitné sekcie
       
       // Footer
       this.addFooter(protocol);
@@ -268,10 +267,27 @@ class PDFGenerator {
         // Pridanie obrázka
         this.doc.addImage(imgData, 'JPEG', currentX, this.currentY, width, height);
         
-        // Popis obrázka
+        // Popis obrázka a link
         this.doc.setFontSize(8);
         this.doc.setTextColor(...this.secondaryColor);
         this.doc.text(`Fotka ${i + 1}`, currentX, this.currentY + height + 3);
+        
+        // Link pod fotkou
+        this.doc.setFontSize(6);
+        this.doc.setTextColor(0, 0, 255);
+        const linkText = image.url;
+        const maxLinkWidth = width - 2;
+        
+        // Skrátenie linku ak je príliš dlhý
+        let displayLink = linkText;
+        if (this.doc.getTextWidth(displayLink) > maxLinkWidth) {
+          while (this.doc.getTextWidth(displayLink + '...') > maxLinkWidth && displayLink.length > 20) {
+            displayLink = displayLink.slice(0, -1);
+          }
+          displayLink += '...';
+        }
+        
+        this.doc.text(displayLink, currentX, this.currentY + height + 6);
         
         currentX += width + 10;
         rowHeight = Math.max(rowHeight, height + 15);
@@ -345,6 +361,23 @@ class PDFGenerator {
         this.doc.setFontSize(7);
         this.doc.setTextColor(...this.secondaryColor);
         this.doc.text(`Dokument ${i + 1}`, currentX, this.currentY + height + 2);
+        
+        // Link pod dokumentom
+        this.doc.setFontSize(5);
+        this.doc.setTextColor(0, 0, 255);
+        const linkText = image.url;
+        const maxLinkWidth = width - 2;
+        
+        // Skrátenie linku ak je príliš dlhý
+        let displayLink = linkText;
+        if (this.doc.getTextWidth(displayLink) > maxLinkWidth) {
+          while (this.doc.getTextWidth(displayLink + '...') > maxLinkWidth && displayLink.length > 15) {
+            displayLink = displayLink.slice(0, -1);
+          }
+          displayLink += '...';
+        }
+        
+        this.doc.text(displayLink, currentX, this.currentY + height + 4);
         
         currentX += width + 5;
         rowHeight = Math.max(rowHeight, height + 10);

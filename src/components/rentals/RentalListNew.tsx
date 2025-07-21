@@ -197,6 +197,10 @@ export default function RentalList() {
           )[0] 
         : undefined;
       
+      console.log('🔍 API response:', data);
+      console.log('🔍 Latest handover:', latestHandover);
+      console.log('🔍 Latest return:', latestReturn);
+      
       setProtocols(prev => ({
         ...prev,
         [rentalId]: {
