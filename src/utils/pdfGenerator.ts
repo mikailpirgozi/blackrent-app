@@ -275,18 +275,21 @@ class PDFGenerator {
         // URL link pod obrázkom
         const urlText = image.url;
         
+        // URL encoding - nahradíme medzery za %20
+        const encodedUrl = urlText.replace(/\s/g, '%20');
+        
         this.doc.setFontSize(4);
         this.doc.setTextColor(0, 0, 255);
         
         // Ak je URL príliš dlhé, zmenšíme písmo
-        if (this.doc.getTextWidth(urlText) > 80) {
+        if (this.doc.getTextWidth(encodedUrl) > 80) {
           this.doc.setFontSize(3);
-          if (this.doc.getTextWidth(urlText) > 80) {
+          if (this.doc.getTextWidth(encodedUrl) > 80) {
             this.doc.setFontSize(2);
           }
         }
         
-        this.doc.text(urlText, currentX, this.currentY + height + 6);
+        this.doc.text(encodedUrl, currentX, this.currentY + height + 6);
         
         currentX += width + 10;
         rowHeight = Math.max(rowHeight, height + 15);
@@ -364,15 +367,18 @@ class PDFGenerator {
         // URL link pod dokumentom
         const urlText = image.url;
         
+        // URL encoding - nahradíme medzery za %20
+        const encodedUrl = urlText.replace(/\s/g, '%20');
+        
         this.doc.setFontSize(3);
         this.doc.setTextColor(0, 0, 255);
         
         // Ak je URL príliš dlhé, zmenšíme písmo
-        if (this.doc.getTextWidth(urlText) > 60) {
+        if (this.doc.getTextWidth(encodedUrl) > 60) {
           this.doc.setFontSize(2);
         }
         
-        this.doc.text(urlText, currentX, this.currentY + height + 4);
+        this.doc.text(encodedUrl, currentX, this.currentY + height + 4);
         
         currentX += width + 5;
         rowHeight = Math.max(rowHeight, height + 10);
