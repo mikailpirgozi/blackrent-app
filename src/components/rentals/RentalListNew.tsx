@@ -917,33 +917,31 @@ export default function RentalList() {
   // Get unique values for filter dropdowns
   const uniqueStatuses = useMemo(() => {
     const statuses = new Set(rentals.map(rental => rental.status).filter(Boolean));
-    return Array.from(statuses).sort();
+    return Array.from(statuses).sort() as string[];
   }, [rentals]);
 
   const uniqueCompanies = useMemo(() => {
     const companies = new Set(rentals.map(rental => rental.vehicle?.company).filter(Boolean));
-    return Array.from(companies).sort();
+    return Array.from(companies).sort() as string[];
   }, [rentals]);
 
   const uniquePaymentMethods = useMemo(() => {
     const methods = new Set(rentals.map(rental => rental.paymentMethod).filter(Boolean));
-    return Array.from(methods).sort();
+    return Array.from(methods).sort() as string[];
   }, [rentals]);
 
   const uniqueVehicleBrands = useMemo(() => {
     const brands = new Set(rentals.map(rental => rental.vehicle?.brand).filter(Boolean));
-    return Array.from(brands).sort();
+    return Array.from(brands).sort() as string[];
   }, [rentals]);
 
   const uniqueInsuranceCompanies = useMemo(() => {
-    const companies = new Set(rentals.map(rental => rental.insurance?.company).filter(Boolean));
-    return Array.from(companies).sort();
-  }, [rentals]);
+    return [] as string[];
+  }, []);
 
   const uniqueInsuranceTypes = useMemo(() => {
-    const types = new Set(rentals.map(rental => rental.insurance?.type).filter(Boolean));
-    return Array.from(types).sort();
-  }, [rentals]);
+    return [] as string[];
+  }, []);
   
   // Reset all filters function
   const resetAllFilters = () => {
@@ -1112,22 +1110,11 @@ export default function RentalList() {
       );
     }
 
-    // Customer company filter
-    if (filters.customerCompany) {
-      filtered = filtered.filter(rental => 
-        rental.customerCompany?.toLowerCase().includes(filters.customerCompany.toLowerCase())
-      );
-    }
+    // Customer company filter - removed as property doesn't exist
 
-    // Insurance company filter
-    if (filters.insuranceCompany !== 'all') {
-      filtered = filtered.filter(rental => rental.insurance?.company === filters.insuranceCompany);
-    }
+    // Insurance company filter - removed as property doesn't exist
 
-    // Insurance type filter
-    if (filters.insuranceType !== 'all') {
-      filtered = filtered.filter(rental => rental.insurance?.type === filters.insuranceType);
-    }
+    // Insurance type filter - removed as property doesn't exist
 
     // Payment status filter
     if (filters.paymentStatus !== 'all') {
@@ -1172,21 +1159,7 @@ export default function RentalList() {
     return filtered;
   }, [rentals, searchQuery, advancedFilters, protocols]);
   
-  // Get unique values for filters
-  const uniqueCompanies = useMemo(() => {
-    const companies = new Set(rentals.map(rental => rental.vehicle?.company).filter(Boolean));
-    return Array.from(companies).sort();
-  }, [rentals]);
-  
-  const uniquePaymentMethods = useMemo(() => {
-    const methods = new Set(rentals.map(rental => rental.paymentMethod).filter(Boolean));
-    return Array.from(methods).sort();
-  }, [rentals]);
-  
-  const uniqueStatuses = useMemo(() => {
-    const statuses = new Set(rentals.map(rental => rental.status).filter(Boolean));
-    return Array.from(statuses).sort();
-  }, [rentals]);
+  // Get unique values for filters (already declared above)
   
   // Card renderer for mobile/card view
   const renderRentalCard = useCallback((rental: Rental, index: number) => {
@@ -2084,7 +2057,7 @@ export default function RentalList() {
           selected={selected}
           onSelectionChange={setSelected}
           emptyMessage="Žiadne prenájmy"
-          mobileCardRenderer={viewMode === 'compact' ? renderRentalCard : undefined}
+          mobileCardRenderer={cardViewMode === 'compact' ? renderRentalCard : undefined}
         />
       ) : (
         <RentalCardView

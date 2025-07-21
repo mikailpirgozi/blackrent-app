@@ -70,7 +70,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
     switch (status?.toLowerCase()) {
       case 'aktívny':
       case 'active':
@@ -89,7 +89,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string | undefined) => {
     switch (status?.toLowerCase()) {
       case 'aktívny':
       case 'active':
