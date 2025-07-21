@@ -33,9 +33,12 @@ class PDFGenerator {
   private currentY: number = 20;
   private pageWidth: number;
   private pageHeight: number;
-  private margin: number = 20;
-  private primaryColor: [number, number, number] = [25, 118, 210]; // Blue
-  private secondaryColor: [number, number, number] = [66, 66, 66]; // Dark gray
+  private margin: number = 25;
+  private primaryColor: [number, number, number] = [17, 24, 39]; // Modern dark blue
+  private secondaryColor: [number, number, number] = [107, 114, 128]; // Gray
+  private accentColor: [number, number, number] = [59, 130, 246]; // Blue accent
+  private successColor: [number, number, number] = [34, 197, 94]; // Green
+  private warningColor: [number, number, number] = [245, 158, 11]; // Orange
 
   constructor() {
     this.doc = new jsPDF('p', 'mm', 'a4');
@@ -50,191 +53,225 @@ class PDFGenerator {
     const {
       includeImages = true,
       includeSignatures = true,
-      imageQuality = 0.8,
-      maxImageWidth = 80,
-      maxImageHeight = 60
+      imageQuality = 0.9,
+      maxImageWidth = 120, // Väčšie fotky
+      maxImageHeight = 90  // Väčšie fotky
     } = options;
 
     try {
-      // Header s logom a názvom
-      this.addHeader(protocol);
+      // Moderný header s gradientom
+      this.addModernHeader(protocol);
       
-      // Základné informácie
-      this.addBasicInfo(protocol);
+      // Základné informácie v cards
+      this.addBasicInfoCards(protocol);
       
-      // Stav vozidla
-      this.addVehicleCondition(protocol);
+      // Stav vozidla v modernom layout
+      this.addVehicleConditionModern(protocol);
       
-      // Fotky vozidla
+      // Fotky vozidla - väčšie a peknejšie
       if (includeImages && protocol.vehicleImages && protocol.vehicleImages.length > 0) {
-        await this.addVehicleImages(protocol.vehicleImages, maxImageWidth, maxImageHeight, imageQuality);
+        await this.addVehicleImagesModern(protocol.vehicleImages, maxImageWidth, maxImageHeight, imageQuality);
       }
       
       // Dokumenty
       if (includeImages && protocol.documentImages && protocol.documentImages.length > 0) {
-        await this.addDocumentImages(protocol.documentImages, maxImageWidth, maxImageHeight, imageQuality);
+        await this.addDocumentImagesModern(protocol.documentImages, maxImageWidth, maxImageHeight, imageQuality);
       }
       
-      // Škody
+      // Škody v modernom layout
       if (protocol.damages && protocol.damages.length > 0) {
-        this.addDamages(protocol.damages);
+        this.addDamagesModern(protocol.damages);
       }
       
-      // Poznámky
+      // Poznámky v card
       if (protocol.notes) {
-        this.addNotes(protocol.notes);
+        this.addNotesModern(protocol.notes);
       }
       
-      // Podpisy
+      // Podpisy v modernom layout
       if (includeSignatures && protocol.signatures && protocol.signatures.length > 0) {
-        await this.addSignatures(protocol.signatures, maxImageWidth, maxImageHeight, imageQuality);
+        await this.addSignaturesModern(protocol.signatures, maxImageWidth, maxImageHeight, imageQuality);
       }
-      
-      // ✅ Vysvetlenie odstránené - čistý PDF
       
       // Footer
-      this.addFooter(protocol);
+      this.addModernFooter(protocol);
 
       return this.doc.output('blob');
     } catch (error) {
       console.error('❌ Error generating PDF:', error);
-      throw new Error('Chyba pri generovaní PDF');
+      throw error;
     }
   }
 
   /**
-   * Pridanie hlavičky s moderným dizajnom
+   * Moderný header s gradientom a lepším dizajnom
    */
-  private addHeader(protocol: ProtocolData) {
-    // Pozadie pre header
+  private addModernHeader(protocol: ProtocolData) {
+    // Gradient pozadie pre header
     this.doc.setFillColor(...this.primaryColor);
-    this.doc.rect(0, 0, this.pageWidth, 40, 'F');
+    this.doc.rect(0, 0, this.pageWidth, 50, 'F');
     
-    // Logo placeholder (môžete pridať vlastné logo)
+    // Akcentová čiara
+    this.doc.setFillColor(...this.accentColor);
+    this.doc.rect(0, 48, this.pageWidth, 2, 'F');
+    
+    // Logo s moderným dizajnom
     this.doc.setFillColor(255, 255, 255);
-    this.doc.circle(30, 20, 8, 'F');
-    this.doc.setFontSize(12);
-    this.doc.setTextColor(255, 255, 255);
-    this.doc.text('BR', 30, 24, { align: 'center' });
-    
-    // Názov protokolu
-    this.doc.setFontSize(18);
+    this.doc.circle(35, 25, 12, 'F');
+    this.doc.setFillColor(...this.accentColor);
+    this.doc.circle(35, 25, 8, 'F');
+    this.doc.setFontSize(14);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(255, 255, 255);
-    const title = protocol.type === 'handover' ? 'PROTOKOL O PREVZATI VOZIDLA' : 'PROTOKOL O VRATENI VOZIDLA';
-    this.doc.text(title, this.pageWidth / 2, 25, { align: 'center' });
+    this.doc.text('BR', 35, 29, { align: 'center' });
+    
+    // Názov protokolu s modernou typografiou
+    this.doc.setFontSize(20);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setTextColor(255, 255, 255);
+    const title = protocol.type === 'handover' ? 'PROTOKOL O PREVZATÍ VOZIDLA' : 'PROTOKOL O VRÁTENÍ VOZIDLA';
+    this.doc.text(title, this.pageWidth / 2, 30, { align: 'center' });
     
     // Reset pozície
-    this.currentY = 50;
+    this.currentY = 70;
     
-    // Informácie o protokole
-    this.doc.setFontSize(10);
-    this.doc.setTextColor(...this.secondaryColor);
-    this.doc.text(`Cislo protokolu: ${protocol.id}`, this.margin, this.currentY);
-    this.currentY += 6;
-    
-    this.doc.text(`Datum: ${new Date(protocol.completedAt).toLocaleDateString('sk-SK')}`, this.margin, this.currentY);
-    this.currentY += 6;
-    
-    this.doc.text(`Miesto: ${protocol.location}`, this.margin, this.currentY);
-    this.currentY += 15;
+    // Informácie o protokole v modernom layout
+    this.addProtocolInfoModern(protocol);
   }
 
   /**
-   * Pridanie základných informácií bez tabuľky
+   * Moderné informácie o protokole
    */
-  private addBasicInfo(protocol: ProtocolData) {
-    this.addSectionTitle('ZAKLADNE INFORMACIE');
+  private addProtocolInfoModern(protocol: ProtocolData) {
+    // Card pozadie
+    this.doc.setFillColor(249, 250, 251);
+    this.doc.roundedRect(this.margin - 5, this.currentY - 5, this.pageWidth - 2 * this.margin + 10, 25, 3, 3, 'F');
+    
+    // Border
+    this.doc.setDrawColor(229, 231, 235);
+    this.doc.roundedRect(this.margin - 5, this.currentY - 5, this.pageWidth - 2 * this.margin + 10, 25, 3, 3, 'D');
+    
+    this.doc.setFontSize(11);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setTextColor(...this.primaryColor);
+    this.doc.text(`Číslo protokolu: ${protocol.id}`, this.margin, this.currentY + 5);
+    
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.setTextColor(...this.secondaryColor);
+    this.doc.text(`Dátum: ${new Date(protocol.completedAt).toLocaleDateString('sk-SK')}`, this.margin + 80, this.currentY + 5);
+    
+    this.doc.text(`Miesto: ${protocol.location}`, this.margin + 160, this.currentY + 5);
+    
+    this.currentY += 35;
+  }
+
+  /**
+   * Základné informácie v moderných cards
+   */
+  private addBasicInfoCards(protocol: ProtocolData) {
+    this.addSectionTitleModern('ZÁKLADNÉ INFORMÁCIE');
     
     const rental = protocol.rental;
     const vehicle = rental.vehicle || {};
     const customer = rental.customer || {};
 
+    // Card pozadie
+    this.doc.setFillColor(249, 250, 251);
+    this.doc.roundedRect(this.margin - 5, this.currentY - 5, this.pageWidth - 2 * this.margin + 10, 50, 3, 3, 'F');
+    
+    // Border
+    this.doc.setDrawColor(229, 231, 235);
+    this.doc.roundedRect(this.margin - 5, this.currentY - 5, this.pageWidth - 2 * this.margin + 10, 50, 3, 3, 'D');
+
     const basicInfo = [
-      ['Cislo objednavky:', rental.orderNumber || 'N/A'],
+      ['Číslo objednávky:', rental.orderNumber || 'N/A'],
       ['Vozidlo:', `${vehicle.brand || ''} ${vehicle.model || ''} (${vehicle.licensePlate || 'N/A'})`],
-      ['Zakaznik:', `${customer.name || ''} ${customer.surname || ''}`],
-      ['Telefon:', customer.phone || 'N/A'],
+      ['Zákazník:', `${customer.name || ''} ${customer.surname || ''}`],
+      ['Telefón:', customer.phone || 'N/A'],
       ['Email:', customer.email || 'N/A'],
-      ['Datum prenajmu:', `${new Date(rental.startDate).toLocaleDateString('sk-SK')} - ${new Date(rental.endDate).toLocaleDateString('sk-SK')}`],
+      ['Dátum prenájmu:', `${new Date(rental.startDate).toLocaleDateString('sk-SK')} - ${new Date(rental.endDate).toLocaleDateString('sk-SK')}`],
       ['Cena:', `${rental.totalPrice} ${rental.currency || 'EUR'}`],
     ];
 
-    // Jednoduchý layout bez tabuľky
-    basicInfo.forEach(([label, value]) => {
+    // Moderný layout s lepším rozložením
+    basicInfo.forEach(([label, value], index) => {
+      const row = Math.floor(index / 2);
+      const col = index % 2;
+      const x = col === 0 ? this.margin : this.margin + 90;
+      const y = this.currentY + (row * 7);
+      
       this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(...this.primaryColor);
-      this.doc.text(label, this.margin, this.currentY);
+      this.doc.text(label, x, y);
       
       this.doc.setFont('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
-      this.doc.text(value, this.margin + 60, this.currentY);
-      this.currentY += 6;
+      this.doc.text(value, x + 45, y);
     });
 
-    this.currentY += 10;
+    this.currentY += 60;
   }
 
   /**
-   * Pridanie stavu vozidla bez tabuľky
+   * Stav vozidla v modernom layout
    */
-  private addVehicleCondition(protocol: ProtocolData) {
-    this.addSectionTitle('STAV VOZIDLA');
+  private addVehicleConditionModern(protocol: ProtocolData) {
+    this.addSectionTitleModern('STAV VOZIDLA');
     
     const condition = protocol.vehicleCondition;
+    
+    // Card pozadie
+    this.doc.setFillColor(249, 250, 251);
+    this.doc.roundedRect(this.margin - 5, this.currentY - 5, this.pageWidth - 2 * this.margin + 10, 40, 3, 3, 'F');
+    
+    // Border
+    this.doc.setDrawColor(229, 231, 235);
+    this.doc.roundedRect(this.margin - 5, this.currentY - 5, this.pageWidth - 2 * this.margin + 10, 40, 3, 3, 'D');
+    
     const vehicleInfo = [
-      ['Pocet kilometrov:', `${condition.odometer?.toLocaleString() || 0} km`],
-      ['Uroven paliva:', `${condition.fuelLevel || 0}%`],
+      ['Počet kilometrov:', `${condition.odometer?.toLocaleString() || 0} km`],
+      ['Úroveň paliva:', `${condition.fuelLevel || 0}%`],
       ['Typ paliva:', condition.fuelType || 'N/A'],
-      ['Exterier:', condition.exteriorCondition || 'N/A'],
-      ['Interier:', condition.interiorCondition || 'N/A'],
+      ['Exteriér:', condition.exteriorCondition || 'N/A'],
+      ['Interiér:', condition.interiorCondition || 'N/A'],
     ];
 
-    // Jednoduchý layout bez tabuľky
-    vehicleInfo.forEach(([label, value]) => {
+    // Moderný layout
+    vehicleInfo.forEach(([label, value], index) => {
+      const row = Math.floor(index / 2);
+      const col = index % 2;
+      const x = col === 0 ? this.margin : this.margin + 90;
+      const y = this.currentY + (row * 7);
+      
       this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(...this.primaryColor);
-      this.doc.text(label, this.margin, this.currentY);
+      this.doc.text(label, x, y);
       
       this.doc.setFont('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
-      this.doc.text(value, this.margin + 60, this.currentY);
-      this.currentY += 6;
+      this.doc.text(value, x + 45, y);
     });
 
-    this.currentY += 5;
-
-    if (condition.notes) {
-      this.doc.setFontSize(10);
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.setTextColor(...this.primaryColor);
-      this.doc.text('Poznamky k stavu:', this.margin, this.currentY);
-      this.currentY += 5;
-      
-      this.doc.setFont('helvetica', 'normal');
-      this.doc.setTextColor(...this.secondaryColor);
-      this.doc.text(condition.notes, this.margin + 10, this.currentY);
-      this.currentY += 10;
-    }
+    this.currentY += 50;
   }
 
   /**
-   * Pridanie fotiek vozidla s lepším layoutom
+   * Pridanie fotiek vozidla s moderným dizajnom
    */
-  private async addVehicleImages(images: any[], maxWidth: number, maxHeight: number, quality: number) {
-    this.addSectionTitle('FOTODOKUMENTACIA VOZIDLA');
+  private async addVehicleImagesModern(images: any[], maxWidth: number, maxHeight: number, quality: number) {
+    this.addSectionTitleModern('FOTODOKUMENTÁCIA VOZIDLA');
     
     if (images.length === 0) {
       this.doc.setFontSize(10);
       this.doc.setTextColor(128, 128, 128);
-      this.doc.text('Ziadne fotky nie su k dispozicii', this.margin, this.currentY);
+      this.doc.text('Žiadne fotky nie sú k dispozícii', this.margin, this.currentY);
       this.currentY += 10;
       return;
     }
 
-    const imagesPerRow = 2;
+    const imagesPerRow = 2; // 2 fotky na riadok pre väčšie zobrazenie
     let currentX = this.margin;
     let rowHeight = 0;
     let imagesInRow = 0;
@@ -256,7 +293,7 @@ class PDFGenerator {
         const { width, height } = await this.calculateImageDimensions(imgData, maxWidth, maxHeight);
         
         // Kontrola či sa zmestí na stránku
-        if (this.currentY + height > this.pageHeight - 30) {
+        if (this.currentY + height + 20 > this.pageHeight - 30) {
           this.doc.addPage();
           this.currentY = 20;
           currentX = this.margin;
@@ -264,35 +301,43 @@ class PDFGenerator {
           imagesInRow = 0;
         }
 
+        // Card pozadie pre fotku
+        this.doc.setFillColor(249, 250, 251);
+        this.doc.roundedRect(currentX - 5, this.currentY - 5, width + 10, height + 25, 3, 3, 'F');
+        
+        // Border
+        this.doc.setDrawColor(229, 231, 235);
+        this.doc.roundedRect(currentX - 5, this.currentY - 5, width + 10, height + 25, 3, 3, 'D');
+
         // Pridanie obrázka
         this.doc.addImage(imgData, 'JPEG', currentX, this.currentY, width, height);
         
-        // Popis obrázka a link
-        this.doc.setFontSize(8);
-        this.doc.setTextColor(...this.secondaryColor);
-        this.doc.text(`Fotka ${i + 1}`, currentX, this.currentY + height + 3);
+        // Moderný popis obrázka
+        this.doc.setFontSize(9);
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setTextColor(...this.primaryColor);
+        this.doc.text(`Fotka ${i + 1}`, currentX, this.currentY + height + 8);
         
-        // URL link pod obrázkom
+        // URL link pod obrázkom s moderným dizajnom
         const urlText = image.url;
-        
-        // URL encoding - nahradíme medzery za %20
         const encodedUrl = urlText.replace(/\s/g, '%20');
         
-        this.doc.setFontSize(4);
-        this.doc.setTextColor(0, 0, 255);
+        this.doc.setFontSize(5);
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setTextColor(...this.accentColor);
         
         // Ak je URL príliš dlhé, zmenšíme písmo
-        if (this.doc.getTextWidth(encodedUrl) > 80) {
-          this.doc.setFontSize(3);
-          if (this.doc.getTextWidth(encodedUrl) > 80) {
-            this.doc.setFontSize(2);
+        if (this.doc.getTextWidth(encodedUrl) > width) {
+          this.doc.setFontSize(4);
+          if (this.doc.getTextWidth(encodedUrl) > width) {
+            this.doc.setFontSize(3);
           }
         }
         
-        this.doc.text(encodedUrl, currentX, this.currentY + height + 6);
+        this.doc.text(encodedUrl, currentX, this.currentY + height + 12);
         
-        currentX += width + 10;
-        rowHeight = Math.max(rowHeight, height + 15);
+        currentX += width + 20; // Väčší medzera medzi fotkami
+        rowHeight = Math.max(rowHeight, height + 30);
         imagesInRow++;
 
         if (imagesInRow >= imagesPerRow) {
@@ -306,7 +351,7 @@ class PDFGenerator {
         // Pridaj placeholder pre chybný obrázok
         const placeholder = this.createImagePlaceholder(maxWidth, maxHeight, `Chyba ${i + 1}`);
         this.doc.addImage(placeholder, 'JPEG', currentX, this.currentY, maxWidth, maxHeight);
-        currentX += maxWidth + 10;
+        currentX += maxWidth + 20;
       }
     }
 
@@ -314,25 +359,24 @@ class PDFGenerator {
       this.currentY += rowHeight;
     }
 
-    this.currentY += 10;
+    this.currentY += 15;
   }
 
   /**
-   * Pridanie dokumentov
+   * Pridanie dokumentov s moderným dizajnom
    */
-  private async addDocumentImages(images: any[], maxWidth: number, maxHeight: number, quality: number) {
-    this.addSectionTitle('DOKUMENTY');
+  private async addDocumentImagesModern(images: any[], maxWidth: number, maxHeight: number, quality: number) {
+    this.addSectionTitleModern('DOKUMENTY');
     
     if (images.length === 0) {
       this.doc.setFontSize(10);
       this.doc.setTextColor(128, 128, 128);
-      this.doc.text('Ziadne dokumenty nie su k dispozicii', this.margin, this.currentY);
+      this.doc.text('Žiadne dokumenty nie sú k dispozícii', this.margin, this.currentY);
       this.currentY += 10;
       return;
     }
 
-    // Podobne ako addVehicleImages, ale s menšími obrázkami
-    const imagesPerRow = 3;
+    const imagesPerRow = 2;
     let currentX = this.margin;
     let rowHeight = 0;
     let imagesInRow = 0;
@@ -345,12 +389,14 @@ class PDFGenerator {
         try {
           imgData = await this.loadImageFromUrl(image.url);
         } catch (error) {
-          imgData = this.createImagePlaceholder(maxWidth * 0.7, maxHeight * 0.7, `Dokument ${i + 1}`);
+          console.warn('⚠️ CORS error, trying proxy approach:', image.url);
+          imgData = this.createImagePlaceholder(maxWidth, maxHeight, `Dokument ${i + 1}`);
         }
 
-        const { width, height } = await this.calculateImageDimensions(imgData, maxWidth * 0.7, maxHeight * 0.7);
+        const { width, height } = await this.calculateImageDimensions(imgData, maxWidth, maxHeight);
         
-        if (this.currentY + height > this.pageHeight - 30) {
+        // Kontrola či sa zmestí na stránku
+        if (this.currentY + height + 20 > this.pageHeight - 30) {
           this.doc.addPage();
           this.currentY = 20;
           currentX = this.margin;
@@ -358,30 +404,42 @@ class PDFGenerator {
           imagesInRow = 0;
         }
 
+        // Card pozadie pre dokument
+        this.doc.setFillColor(249, 250, 251);
+        this.doc.roundedRect(currentX - 5, this.currentY - 5, width + 10, height + 25, 3, 3, 'F');
+        
+        // Border
+        this.doc.setDrawColor(229, 231, 235);
+        this.doc.roundedRect(currentX - 5, this.currentY - 5, width + 10, height + 25, 3, 3, 'D');
+
+        // Pridanie obrázka
         this.doc.addImage(imgData, 'JPEG', currentX, this.currentY, width, height);
         
-        this.doc.setFontSize(7);
-        this.doc.setTextColor(...this.secondaryColor);
-        this.doc.text(`Dokument ${i + 1}`, currentX, this.currentY + height + 2);
+        // Moderný popis dokumentu
+        this.doc.setFontSize(9);
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setTextColor(...this.primaryColor);
+        this.doc.text(`Dokument ${i + 1}`, currentX, this.currentY + height + 8);
         
         // URL link pod dokumentom
         const urlText = image.url;
-        
-        // URL encoding - nahradíme medzery za %20
         const encodedUrl = urlText.replace(/\s/g, '%20');
         
-        this.doc.setFontSize(3);
-        this.doc.setTextColor(0, 0, 255);
+        this.doc.setFontSize(5);
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setTextColor(...this.accentColor);
         
-        // Ak je URL príliš dlhé, zmenšíme písmo
-        if (this.doc.getTextWidth(encodedUrl) > 60) {
-          this.doc.setFontSize(2);
+        if (this.doc.getTextWidth(encodedUrl) > width) {
+          this.doc.setFontSize(4);
+          if (this.doc.getTextWidth(encodedUrl) > width) {
+            this.doc.setFontSize(3);
+          }
         }
         
-        this.doc.text(encodedUrl, currentX, this.currentY + height + 4);
+        this.doc.text(encodedUrl, currentX, this.currentY + height + 12);
         
-        currentX += width + 5;
-        rowHeight = Math.max(rowHeight, height + 10);
+        currentX += width + 20;
+        rowHeight = Math.max(rowHeight, height + 30);
         imagesInRow++;
 
         if (imagesInRow >= imagesPerRow) {
@@ -391,10 +449,10 @@ class PDFGenerator {
           imagesInRow = 0;
         }
       } catch (error) {
-        console.error('❌ Error loading document:', image.url, error);
-        const placeholder = this.createImagePlaceholder(maxWidth * 0.7, maxHeight * 0.7, `Chyba ${i + 1}`);
-        this.doc.addImage(placeholder, 'JPEG', currentX, this.currentY, maxWidth * 0.7, maxHeight * 0.7);
-        currentX += maxWidth * 0.7 + 5;
+        console.error('❌ Error processing document:', image.url, error);
+        const placeholder = this.createImagePlaceholder(maxWidth, maxHeight, `Chyba ${i + 1}`);
+        this.doc.addImage(placeholder, 'JPEG', currentX, this.currentY, maxWidth, maxHeight);
+        currentX += maxWidth + 20;
       }
     }
 
@@ -402,75 +460,88 @@ class PDFGenerator {
       this.currentY += rowHeight;
     }
 
-    this.currentY += 10;
+    this.currentY += 15;
   }
 
   /**
-   * Pridanie škôd s lepším formátovaním
+   * Pridanie škôd s moderným dizajnom
    */
-  private addDamages(damages: any[]) {
-    this.addSectionTitle('SKODY A POSKODENIA');
+  private addDamagesModern(damages: any[]) {
+    this.addSectionTitleModern('ŠKODY A POŠKODENIA');
     
     if (damages.length === 0) {
       this.doc.setFontSize(10);
-      this.doc.setTextColor(0, 128, 0);
-      this.doc.text('✅ Ziadne skody neboli zaznamenane', this.margin, this.currentY);
+      this.doc.setTextColor(128, 128, 128);
+      this.doc.text('Žiadne škody nie sú zaznamenané', this.margin, this.currentY);
       this.currentY += 10;
       return;
     }
 
+    // Card pozadie
+    this.doc.setFillColor(249, 250, 251);
+    this.doc.roundedRect(this.margin - 5, this.currentY - 5, this.pageWidth - 2 * this.margin + 10, damages.length * 15 + 10, 3, 3, 'F');
+    
+    // Border
+    this.doc.setDrawColor(229, 231, 235);
+    this.doc.roundedRect(this.margin - 5, this.currentY - 5, this.pageWidth - 2 * this.margin + 10, damages.length * 15 + 10, 3, 3, 'D');
+
     damages.forEach((damage, index) => {
-      // Box pre škodu
-      this.doc.setDrawColor(...this.primaryColor);
-      this.doc.setFillColor(255, 248, 220);
-      this.doc.roundedRect(this.margin, this.currentY, this.pageWidth - 2 * this.margin, 25, 3, 3, 'FD');
+      const y = this.currentY + (index * 15);
       
+      // Číslo škody
       this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.setTextColor(...this.primaryColor);
-      this.doc.text(`Skoda ${index + 1}:`, this.margin + 5, this.currentY + 8);
+      this.doc.setTextColor(...this.warningColor);
+      this.doc.text(`${index + 1}.`, this.margin, y);
       
+      // Popis škody
       this.doc.setFont('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
-      this.doc.text(`Popis: ${damage.description || 'N/A'}`, this.margin + 5, this.currentY + 15);
+      this.doc.text(damage.description || 'N/A', this.margin + 15, y);
       
+      // Lokácia škody
       if (damage.location) {
-        this.doc.text(`Lokalizacia: ${damage.location}`, this.margin + 5, this.currentY + 22);
+        this.doc.setFontSize(8);
+        this.doc.setTextColor(128, 128, 128);
+        this.doc.text(`Lokácia: ${damage.location}`, this.margin + 15, y + 4);
       }
-      
-      this.currentY += 30;
     });
+
+    this.currentY += damages.length * 15 + 20;
   }
 
   /**
-   * Pridanie poznámok
+   * Pridanie poznámok s moderným dizajnom
    */
-  private addNotes(notes: string) {
-    this.addSectionTitle('POZNAMKY');
+  private addNotesModern(notes: string) {
+    this.addSectionTitleModern('POZNÁMKY');
+    
+    // Card pozadie
+    this.doc.setFillColor(249, 250, 251);
+    this.doc.roundedRect(this.margin - 5, this.currentY - 5, this.pageWidth - 2 * this.margin + 10, 30, 3, 3, 'F');
+    
+    // Border
+    this.doc.setDrawColor(229, 231, 235);
+    this.doc.roundedRect(this.margin - 5, this.currentY - 5, this.pageWidth - 2 * this.margin + 10, 30, 3, 3, 'D');
     
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...this.secondaryColor);
+    this.doc.text(notes, this.margin, this.currentY + 10);
     
-    // Box pre poznámky
-    this.doc.setDrawColor(...this.primaryColor);
-    this.doc.setFillColor(248, 249, 250);
-    this.doc.roundedRect(this.margin, this.currentY, this.pageWidth - 2 * this.margin, 20, 3, 3, 'FD');
-    
-    this.doc.text(notes, this.margin + 5, this.currentY + 8);
-    this.currentY += 25;
+    this.currentY += 40;
   }
 
   /**
-   * Pridanie podpisov
+   * Pridanie podpisov s moderným dizajnom
    */
-  private async addSignatures(signatures: any[], maxWidth: number, maxHeight: number, quality: number) {
-    this.addSectionTitle('PODPISY');
+  private async addSignaturesModern(signatures: any[], maxWidth: number, maxHeight: number, quality: number) {
+    this.addSectionTitleModern('PODPISY');
     
     if (signatures.length === 0) {
       this.doc.setFontSize(10);
       this.doc.setTextColor(128, 128, 128);
-      this.doc.text('Ziadne podpisy nie su k dispozicii', this.margin, this.currentY);
+      this.doc.text('Žiadne podpisy nie sú k dispozícii', this.margin, this.currentY);
       this.currentY += 10;
       return;
     }
@@ -478,77 +549,95 @@ class PDFGenerator {
     const signaturesPerRow = 2;
     let currentX = this.margin;
     let rowHeight = 0;
+    let signaturesInRow = 0;
 
     for (let i = 0; i < signatures.length; i++) {
       const signature = signatures[i];
       
-      // Podpis môže mať buď URL alebo base64 data
-      let imgData: string;
-      
-      if (signature.url) {
-        // Ak má URL, načítaj z URL
+      try {
+        let imgData: string;
         try {
           imgData = await this.loadImageFromUrl(signature.url);
         } catch (error) {
-          imgData = this.createImagePlaceholder(maxWidth, maxHeight, 'Podpis');
+          console.warn('⚠️ CORS error, trying proxy approach:', signature.url);
+          imgData = this.createImagePlaceholder(maxWidth, maxHeight, `Podpis ${i + 1}`);
         }
-      } else if (signature.signature && signature.signature.startsWith('data:image/')) {
-        // Ak má base64 data, použij priamo
-        imgData = signature.signature;
-      } else {
-        console.warn('⚠️ Signature without URL or base64 data:', signature);
-        imgData = this.createImagePlaceholder(maxWidth, maxHeight, 'Podpis');
-      }
 
-      try {
         const { width, height } = await this.calculateImageDimensions(imgData, maxWidth, maxHeight);
         
-        if (this.currentY + height > this.pageHeight - 30) {
+        // Kontrola či sa zmestí na stránku
+        if (this.currentY + height + 20 > this.pageHeight - 30) {
           this.doc.addPage();
           this.currentY = 20;
           currentX = this.margin;
+          rowHeight = 0;
+          signaturesInRow = 0;
         }
 
-        // Box pre podpis
-        this.doc.setDrawColor(...this.primaryColor);
-        this.doc.setFillColor(255, 255, 255);
-        this.doc.roundedRect(currentX - 2, this.currentY - 2, width + 4, height + 15, 3, 3, 'FD');
+        // Card pozadie pre podpis
+        this.doc.setFillColor(249, 250, 251);
+        this.doc.roundedRect(currentX - 5, this.currentY - 5, width + 10, height + 25, 3, 3, 'F');
+        
+        // Border
+        this.doc.setDrawColor(229, 231, 235);
+        this.doc.roundedRect(currentX - 5, this.currentY - 5, width + 10, height + 25, 3, 3, 'D');
 
+        // Pridanie podpisu
         this.doc.addImage(imgData, 'JPEG', currentX, this.currentY, width, height);
         
-        this.doc.setFontSize(8);
-        this.doc.setTextColor(...this.secondaryColor);
-        this.doc.text(signature.signerName || `Podpis ${i + 1}`, currentX, this.currentY + height + 8);
+        // Moderný popis podpisu
+        this.doc.setFontSize(9);
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setTextColor(...this.primaryColor);
+        this.doc.text(`Podpis ${i + 1}`, currentX, this.currentY + height + 8);
+        
+        // URL link pod podpisom
+        const urlText = signature.url;
+        const encodedUrl = urlText.replace(/\s/g, '%20');
+        
+        this.doc.setFontSize(5);
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setTextColor(...this.accentColor);
+        
+        if (this.doc.getTextWidth(encodedUrl) > width) {
+          this.doc.setFontSize(4);
+          if (this.doc.getTextWidth(encodedUrl) > width) {
+            this.doc.setFontSize(3);
+          }
+        }
+        
+        this.doc.text(encodedUrl, currentX, this.currentY + height + 12);
         
         currentX += width + 20;
-        rowHeight = Math.max(rowHeight, height + 20);
+        rowHeight = Math.max(rowHeight, height + 30);
+        signaturesInRow++;
 
-        if ((i + 1) % signaturesPerRow === 0) {
+        if (signaturesInRow >= signaturesPerRow) {
           this.currentY += rowHeight;
           currentX = this.margin;
           rowHeight = 0;
+          signaturesInRow = 0;
         }
       } catch (error) {
-        console.error('❌ Error loading signature:', signature.url || signature.signature, error);
-        this.doc.setFontSize(10);
-        this.doc.setTextColor(255, 0, 0);
-        this.doc.text(`Chyba nacitania podpisu: ${signature.signerName || 'Podpis'}`, currentX, this.currentY);
-        currentX += 100;
+        console.error('❌ Error processing signature:', signature.url, error);
+        const placeholder = this.createImagePlaceholder(maxWidth, maxHeight, `Chyba ${i + 1}`);
+        this.doc.addImage(placeholder, 'JPEG', currentX, this.currentY, maxWidth, maxHeight);
+        currentX += maxWidth + 20;
       }
     }
 
-    if (signatures.length % signaturesPerRow !== 0) {
+    if (signaturesInRow > 0) {
       this.currentY += rowHeight;
     }
 
-    this.currentY += 10;
+    this.currentY += 15;
   }
 
   /**
    * Pridanie linkov pod každú fotku
    */
   private addImageLinksSection(protocol: ProtocolData) {
-    this.addSectionTitle('LINKY NA FOTKY');
+    this.addSectionTitleModern('LINKY NA FOTKY');
     
     const allImages = [
       ...(protocol.vehicleImages || []).map((img, i) => ({ ...img, type: 'Vozidlo', index: i + 1 })),
@@ -613,38 +702,38 @@ class PDFGenerator {
   /**
    * Pridanie päty
    */
-  private addFooter(protocol: ProtocolData) {
+  private addModernFooter(protocol: ProtocolData) {
     this.currentY = this.pageHeight - 30;
     
-    // Čiara
-    this.doc.setDrawColor(...this.primaryColor);
-    this.doc.line(this.margin, this.currentY, this.pageWidth - this.margin, this.currentY);
-    this.currentY += 5;
+    // Akcentová čiara
+    this.doc.setFillColor(...this.accentColor);
+    this.doc.rect(this.margin, this.currentY, this.pageWidth - 2 * this.margin, 1, 'F');
     
+    this.currentY += 10;
+    
+    // Footer text
     this.doc.setFontSize(8);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...this.secondaryColor);
-    this.doc.text(`Protokol vygenerovany: ${new Date().toLocaleString('sk-SK')}`, this.margin, this.currentY);
-    this.currentY += 4;
-    this.doc.text(`ID protokolu: ${protocol.id}`, this.margin, this.currentY);
-    this.currentY += 4;
-    this.doc.text('BlackRent - Profesionalne riesenia pre autopozicovne', this.margin, this.currentY);
+    this.doc.text(`BlackRent - Protokol vygenerovaný ${new Date().toLocaleString('sk-SK')}`, this.margin, this.currentY);
+    
+    this.doc.text(`ID: ${protocol.id}`, this.pageWidth - this.margin - 20, this.currentY, { align: 'right' });
   }
 
   /**
    * Pridanie názvu sekcie
    */
-  private addSectionTitle(title: string) {
-    this.doc.setFontSize(14);
+  private addSectionTitleModern(title: string) {
+    this.doc.setFontSize(16);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...this.primaryColor);
     this.doc.text(title, this.margin, this.currentY);
-    this.currentY += 8;
     
-    // Čiara pod názvom
-    this.doc.setDrawColor(...this.primaryColor);
-    this.doc.line(this.margin, this.currentY, this.pageWidth - this.margin, this.currentY);
-    this.currentY += 8;
+    // Podčiarknutie
+    this.doc.setFillColor(...this.accentColor);
+    this.doc.rect(this.margin, this.currentY + 2, 50, 2, 'F');
+    
+    this.currentY += 15;
   }
 
   /**
