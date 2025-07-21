@@ -44,6 +44,9 @@ class PDFGenerator {
     this.doc = new jsPDF('p', 'mm', 'a4');
     this.pageWidth = this.doc.internal.pageSize.getWidth();
     this.pageHeight = this.doc.internal.pageSize.getHeight();
+    
+    // Nastavenie fontu pre diakritiku
+    this.doc.setFont('helvetica');
   }
 
   /**
@@ -88,7 +91,7 @@ class PDFGenerator {
         this.addNotesModern(protocol.notes);
       }
       
-      // Podpisy v modernom layout
+      // Podpisy v modernom layout - len ak existujú
       if (includeSignatures && protocol.signatures && protocol.signatures.length > 0) {
         await this.addSignaturesModern(protocol.signatures, maxImageWidth, maxImageHeight, imageQuality);
       }
@@ -554,12 +557,30 @@ class PDFGenerator {
     for (let i = 0; i < signatures.length; i++) {
       const signature = signatures[i];
       
+      // Kontrola či má signature URL alebo base64 data
+      if (!signature.url && !signature.signature) {
+        console.warn('⚠️ Signature without URL or base64 data:', signature);
+        continue;
+      }
+      
       try {
         let imgData: string;
-        try {
-          imgData = await this.loadImageFromUrl(signature.url);
-        } catch (error) {
-          console.warn('⚠️ CORS error, trying proxy approach:', signature.url);
+        
+        // Ak má URL, načítaj z URL
+        if (signature.url) {
+          try {
+            imgData = await this.loadImageFromUrl(signature.url);
+          } catch (error) {
+            console.warn('⚠️ CORS error, trying proxy approach:', signature.url);
+            imgData = this.createImagePlaceholder(maxWidth, maxHeight, `Podpis ${i + 1}`);
+          }
+        } 
+        // Ak má base64 data, použij priamo
+        else if (signature.signature && signature.signature.startsWith('data:image/')) {
+          imgData = signature.signature;
+        } 
+        // Fallback - placeholder
+        else {
           imgData = this.createImagePlaceholder(maxWidth, maxHeight, `Podpis ${i + 1}`);
         }
 
@@ -591,22 +612,24 @@ class PDFGenerator {
         this.doc.setTextColor(...this.primaryColor);
         this.doc.text(`Podpis ${i + 1}`, currentX, this.currentY + height + 8);
         
-        // URL link pod podpisom
-        const urlText = signature.url;
-        const encodedUrl = urlText.replace(/\s/g, '%20');
-        
-        this.doc.setFontSize(5);
-        this.doc.setFont('helvetica', 'normal');
-        this.doc.setTextColor(...this.accentColor);
-        
-        if (this.doc.getTextWidth(encodedUrl) > width) {
-          this.doc.setFontSize(4);
+        // URL link pod podpisom - len ak existuje URL
+        if (signature.url) {
+          const urlText = signature.url;
+          const encodedUrl = urlText.replace(/\s/g, '%20');
+          
+          this.doc.setFontSize(5);
+          this.doc.setFont('helvetica', 'normal');
+          this.doc.setTextColor(...this.accentColor);
+          
           if (this.doc.getTextWidth(encodedUrl) > width) {
-            this.doc.setFontSize(3);
+            this.doc.setFontSize(4);
+            if (this.doc.getTextWidth(encodedUrl) > width) {
+              this.doc.setFontSize(3);
+            }
           }
+          
+          this.doc.text(encodedUrl, currentX, this.currentY + height + 12);
         }
-        
-        this.doc.text(encodedUrl, currentX, this.currentY + height + 12);
         
         currentX += width + 20;
         rowHeight = Math.max(rowHeight, height + 30);
@@ -619,7 +642,7 @@ class PDFGenerator {
           signaturesInRow = 0;
         }
       } catch (error) {
-        console.error('❌ Error processing signature:', signature.url, error);
+        console.error('❌ Error processing signature:', signature.url || signature.signature, error);
         const placeholder = this.createImagePlaceholder(maxWidth, maxHeight, `Chyba ${i + 1}`);
         this.doc.addImage(placeholder, 'JPEG', currentX, this.currentY, maxWidth, maxHeight);
         currentX += maxWidth + 20;
@@ -741,6 +764,12 @@ class PDFGenerator {
    */
   private async loadImageFromUrl(url: string): Promise<string> {
     return new Promise((resolve, reject) => {
+      // Kontrola či URL existuje
+      if (!url) {
+        reject(new Error('URL is undefined or empty'));
+        return;
+      }
+      
       // Skontroluj či je to base64 URL
       const isBase64Url = url.startsWith('data:image/');
       
@@ -755,61 +784,71 @@ class PDFGenerator {
       const isR2Url = url.includes('r2.dev') || url.includes('cloudflare.com');
       
       if (isR2Url) {
-        // Extrahuj key z R2 URL
-        const urlParts = url.split('/');
-        // Zober všetky časti po doméne ako key (preskoč https:// a doménu)
-        const key = urlParts.slice(3).join('/');
-        
-        // Použi proxy endpoint
-        const proxyUrl = `${process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/files/proxy/${encodeURIComponent(key)}`;
-        
-        console.log('🔄 Loading R2 image via proxy:', proxyUrl);
-        
-        fetch(proxyUrl)
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            return response.blob();
-          })
-          .then(blob => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const result = reader.result as string;
-              resolve(result);
-            };
-            reader.onerror = () => reject(new Error('Failed to read blob'));
-            reader.readAsDataURL(blob);
-          })
-          .catch(error => {
-            console.error('❌ Proxy fetch error:', error);
-            reject(error);
-          });
+        try {
+          // Extrahuj key z R2 URL
+          const urlParts = url.split('/');
+          // Zober všetky časti po doméne ako key (preskoč https:// a doménu)
+          const key = urlParts.slice(3).join('/');
+          
+          // Použi proxy endpoint
+          const proxyUrl = `${process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/files/proxy/${encodeURIComponent(key)}`;
+          
+          console.log('🔄 Loading R2 image via proxy:', proxyUrl);
+          
+          fetch(proxyUrl)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              }
+              return response.blob();
+            })
+            .then(blob => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const result = reader.result as string;
+                resolve(result);
+              };
+              reader.onerror = () => reject(new Error('Failed to read blob'));
+              reader.readAsDataURL(blob);
+            })
+            .catch(error => {
+              console.error('❌ Proxy fetch error:', error);
+              reject(error);
+            });
+        } catch (error) {
+          console.error('❌ Error processing R2 URL:', error);
+          reject(error);
+        }
       } else {
         // Pre iné URL použij priame načítanie
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
           
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-            resolve(dataUrl);
-          } else {
-            reject(new Error('Failed to get canvas context'));
-          }
-        };
-        
-        img.onerror = () => {
-          reject(new Error('Failed to load image'));
-        };
-        
-        img.src = url;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+              resolve(dataUrl);
+            } else {
+              reject(new Error('Failed to get canvas context'));
+            }
+          };
+          
+          img.onerror = () => {
+            reject(new Error('Failed to load image'));
+          };
+          
+          img.src = url;
+        } catch (error) {
+          console.error('❌ Error loading image:', error);
+          reject(error);
+        }
       }
     });
   }
