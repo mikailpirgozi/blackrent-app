@@ -74,6 +74,9 @@ import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 import PDFViewer from '../common/PDFViewer';
 import ImageGalleryModal from '../common/ImageGalleryModal';
+import RentalAdvancedFilters, { FilterState } from './RentalAdvancedFilters';
+import RentalViewToggle, { ViewMode } from './RentalViewToggle';
+import RentalCardView, { CardViewMode } from './RentalCardView';
 
 export default function RentalList() {
   const { state, createRental, updateRental, deleteRental } = useApp();
@@ -92,18 +95,50 @@ export default function RentalList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   
-  // Advanced filters
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>('all');
-  const [filterCompany, setFilterCompany] = useState<string>('all');
-  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
-  const [filterDateTo, setFilterDateTo] = useState<string>('');
-  const [filterPriceMin, setFilterPriceMin] = useState<string>('');
-  const [filterPriceMax, setFilterPriceMax] = useState<string>('');
-  const [filterProtocolStatus, setFilterProtocolStatus] = useState<string>('all');
-  
   // View mode
-  const [viewMode, setViewMode] = useState<'table' | 'cards' | 'compact'>('table');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [cardViewMode, setCardViewMode] = useState<CardViewMode>('compact');
+  
+  // Advanced filters state
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+    // Základné filtre
+    status: 'all',
+    paymentMethod: 'all',
+    company: 'all',
+    dateFrom: '',
+    dateTo: '',
+    priceMin: '',
+    priceMax: '',
+    protocolStatus: 'all',
+    
+    // Rozšírené filtre
+    customerName: '',
+    vehicleBrand: 'all',
+    vehicleModel: '',
+    licensePlate: '',
+    customerEmail: '',
+    customerPhone: '',
+    customerCompany: '',
+    insuranceCompany: 'all',
+    insuranceType: 'all',
+    
+    // Časové filtre
+    timeFilter: 'all',
+    
+    // Cenové filtre
+    priceRange: 'all',
+    
+    // Stav platby
+    paymentStatus: 'all',
+    
+    // Zobrazenie
+    showOnlyActive: false,
+    showOnlyOverdue: false,
+    showOnlyCompleted: false
+  });
+  
+  // Show advanced filters
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
   // Column visibility
   const [visibleColumns, setVisibleColumns] = useState({
@@ -879,17 +914,87 @@ export default function RentalList() {
 
   const rentals = state.rentals || [];
   
+  // Get unique values for filter dropdowns
+  const uniqueStatuses = useMemo(() => {
+    const statuses = new Set(rentals.map(rental => rental.status).filter(Boolean));
+    return Array.from(statuses).sort();
+  }, [rentals]);
+
+  const uniqueCompanies = useMemo(() => {
+    const companies = new Set(rentals.map(rental => rental.vehicle?.company).filter(Boolean));
+    return Array.from(companies).sort();
+  }, [rentals]);
+
+  const uniquePaymentMethods = useMemo(() => {
+    const methods = new Set(rentals.map(rental => rental.paymentMethod).filter(Boolean));
+    return Array.from(methods).sort();
+  }, [rentals]);
+
+  const uniqueVehicleBrands = useMemo(() => {
+    const brands = new Set(rentals.map(rental => rental.vehicle?.brand).filter(Boolean));
+    return Array.from(brands).sort();
+  }, [rentals]);
+
+  const uniqueInsuranceCompanies = useMemo(() => {
+    const companies = new Set(rentals.map(rental => rental.insurance?.company).filter(Boolean));
+    return Array.from(companies).sort();
+  }, [rentals]);
+
+  const uniqueInsuranceTypes = useMemo(() => {
+    const types = new Set(rentals.map(rental => rental.insurance?.type).filter(Boolean));
+    return Array.from(types).sort();
+  }, [rentals]);
+  
   // Reset all filters function
   const resetAllFilters = () => {
     setSearchQuery('');
-    setFilterStatus('all');
-    setFilterPaymentMethod('all');
-    setFilterCompany('all');
-    setFilterDateFrom('');
-    setFilterDateTo('');
-    setFilterPriceMin('');
-    setFilterPriceMax('');
-    setFilterProtocolStatus('all');
+    setAdvancedFilters({
+      // Základné filtre
+      status: 'all',
+      paymentMethod: 'all',
+      company: 'all',
+      dateFrom: '',
+      dateTo: '',
+      priceMin: '',
+      priceMax: '',
+      protocolStatus: 'all',
+      
+      // Rozšírené filtre
+      customerName: '',
+      vehicleBrand: 'all',
+      vehicleModel: '',
+      licensePlate: '',
+      customerEmail: '',
+      customerPhone: '',
+      customerCompany: '',
+      insuranceCompany: 'all',
+      insuranceType: 'all',
+      
+      // Časové filtre
+      timeFilter: 'all',
+      
+      // Cenové filtre
+      priceRange: 'all',
+      
+      // Stav platby
+      paymentStatus: 'all',
+      
+      // Zobrazenie
+      showOnlyActive: false,
+      showOnlyOverdue: false,
+      showOnlyCompleted: false
+    });
+  };
+
+  // Handle advanced filters change
+  const handleAdvancedFiltersChange = (newFilters: FilterState) => {
+    setAdvancedFilters(newFilters);
+  };
+
+  // Save filter preset
+  const handleSaveFilterPreset = () => {
+    // TODO: Implement preset saving
+    console.log('💾 Ukladám filter preset:', advancedFilters);
   };
   
   // Filter rentals based on all filters
@@ -908,63 +1013,164 @@ export default function RentalList() {
       );
     }
     
+    // Advanced filters
+    const filters = advancedFilters;
+    
     // Status filter
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(rental => rental.status === filterStatus);
+    if (filters.status !== 'all') {
+      filtered = filtered.filter(rental => rental.status === filters.status);
     }
     
     // Payment method filter
-    if (filterPaymentMethod !== 'all') {
-      filtered = filtered.filter(rental => rental.paymentMethod === filterPaymentMethod);
+    if (filters.paymentMethod !== 'all') {
+      filtered = filtered.filter(rental => rental.paymentMethod === filters.paymentMethod);
     }
     
     // Company filter
-    if (filterCompany !== 'all') {
-      filtered = filtered.filter(rental => rental.vehicle?.company === filterCompany);
+    if (filters.company !== 'all') {
+      filtered = filtered.filter(rental => rental.vehicle?.company === filters.company);
     }
     
     // Date range filter
-    if (filterDateFrom) {
-      const fromDate = new Date(filterDateFrom);
+    if (filters.dateFrom) {
+      const fromDate = new Date(filters.dateFrom);
       filtered = filtered.filter(rental => new Date(rental.startDate) >= fromDate);
     }
     
-    if (filterDateTo) {
-      const toDate = new Date(filterDateTo);
+    if (filters.dateTo) {
+      const toDate = new Date(filters.dateTo);
       filtered = filtered.filter(rental => new Date(rental.endDate) <= toDate);
     }
     
     // Price range filter
-    if (filterPriceMin) {
-      const minPrice = parseFloat(filterPriceMin);
+    if (filters.priceMin) {
+      const minPrice = parseFloat(filters.priceMin);
       filtered = filtered.filter(rental => rental.totalPrice >= minPrice);
     }
     
-    if (filterPriceMax) {
-      const maxPrice = parseFloat(filterPriceMax);
+    if (filters.priceMax) {
+      const maxPrice = parseFloat(filters.priceMax);
       filtered = filtered.filter(rental => rental.totalPrice <= maxPrice);
     }
     
     // Protocol status filter
-    if (filterProtocolStatus !== 'all') {
+    if (filters.protocolStatus !== 'all') {
       filtered = filtered.filter(rental => {
         const rentalProtocols = protocols[rental.id];
-        if (!rentalProtocols) return filterProtocolStatus === 'none';
+        if (!rentalProtocols) return filters.protocolStatus === 'none';
         
         const hasHandover = !!rentalProtocols.handover;
         const hasReturn = !!rentalProtocols.return;
         
-        switch (filterProtocolStatus) {
+        switch (filters.protocolStatus) {
           case 'none': return !hasHandover && !hasReturn;
-          case 'handover-only': return hasHandover && !hasReturn;
-          case 'completed': return hasHandover && hasReturn;
+          case 'handover': return hasHandover && !hasReturn;
+          case 'return': return !hasHandover && hasReturn;
+          case 'both': return hasHandover && hasReturn;
           default: return true;
         }
       });
     }
+
+    // Customer name filter
+    if (filters.customerName) {
+      filtered = filtered.filter(rental => 
+        rental.customerName?.toLowerCase().includes(filters.customerName.toLowerCase())
+      );
+    }
+
+    // Vehicle brand filter
+    if (filters.vehicleBrand !== 'all') {
+      filtered = filtered.filter(rental => rental.vehicle?.brand === filters.vehicleBrand);
+    }
+
+    // Vehicle model filter
+    if (filters.vehicleModel) {
+      filtered = filtered.filter(rental => 
+        rental.vehicle?.model?.toLowerCase().includes(filters.vehicleModel.toLowerCase())
+      );
+    }
+
+    // License plate filter
+    if (filters.licensePlate) {
+      filtered = filtered.filter(rental => 
+        rental.vehicle?.licensePlate?.toLowerCase().includes(filters.licensePlate.toLowerCase())
+      );
+    }
+
+    // Customer email filter
+    if (filters.customerEmail) {
+      filtered = filtered.filter(rental => 
+        rental.customerEmail?.toLowerCase().includes(filters.customerEmail.toLowerCase())
+      );
+    }
+
+    // Customer phone filter
+    if (filters.customerPhone) {
+      filtered = filtered.filter(rental => 
+        rental.customerPhone?.includes(filters.customerPhone)
+      );
+    }
+
+    // Customer company filter
+    if (filters.customerCompany) {
+      filtered = filtered.filter(rental => 
+        rental.customerCompany?.toLowerCase().includes(filters.customerCompany.toLowerCase())
+      );
+    }
+
+    // Insurance company filter
+    if (filters.insuranceCompany !== 'all') {
+      filtered = filtered.filter(rental => rental.insurance?.company === filters.insuranceCompany);
+    }
+
+    // Insurance type filter
+    if (filters.insuranceType !== 'all') {
+      filtered = filtered.filter(rental => rental.insurance?.type === filters.insuranceType);
+    }
+
+    // Payment status filter
+    if (filters.paymentStatus !== 'all') {
+      filtered = filtered.filter(rental => {
+        switch (filters.paymentStatus) {
+          case 'paid': return rental.paid === true;
+          case 'unpaid': return rental.paid === false;
+          case 'partial': return rental.paid === null || rental.paid === undefined;
+          default: return true;
+        }
+      });
+    }
+
+    // Show only active rentals
+    if (filters.showOnlyActive) {
+      filtered = filtered.filter(rental => {
+        const now = new Date();
+        const startDate = new Date(rental.startDate);
+        const endDate = new Date(rental.endDate);
+        return now >= startDate && now <= endDate;
+      });
+    }
+
+    // Show only overdue rentals
+    if (filters.showOnlyOverdue) {
+      filtered = filtered.filter(rental => {
+        const now = new Date();
+        const endDate = new Date(rental.endDate);
+        return now > endDate;
+      });
+    }
+
+    // Show only completed rentals
+    if (filters.showOnlyCompleted) {
+      filtered = filtered.filter(rental => {
+        const now = new Date();
+        const endDate = new Date(rental.endDate);
+        return now > endDate;
+      });
+    }
     
     return filtered;
-  }, [rentals, searchQuery, filterStatus, filterPaymentMethod, filterCompany, filterDateFrom, filterDateTo, filterPriceMin, filterPriceMax, filterProtocolStatus, protocols]);
+  }, [rentals, searchQuery, advancedFilters, protocols]);
   
   // Get unique values for filters
   const uniqueCompanies = useMemo(() => {
@@ -1358,65 +1564,13 @@ export default function RentalList() {
             </Box>
 
             {/* View Mode Toggle */}
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Tooltip title="Tabuľkový zobrazenie">
-                <IconButton
-                  size="small"
-                  onClick={() => setViewMode('table')}
-                  color={viewMode === 'table' ? 'primary' : 'default'}
-                  sx={{ 
-                    bgcolor: viewMode === 'table' ? 'primary.main' : 'rgba(0,0,0,0.04)',
-                    color: viewMode === 'table' ? 'white' : 'inherit',
-                    borderRadius: 2,
-                    transition: 'all 0.3s ease',
-                    '&:hover': { 
-                      bgcolor: viewMode === 'table' ? 'primary.dark' : 'rgba(0,0,0,0.08)',
-                      transform: 'scale(1.1)'
-                    }
-                  }}
-                >
-                  <ViewListIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Karty">
-                <IconButton
-                  size="small"
-                  onClick={() => setViewMode('cards')}
-                  color={viewMode === 'cards' ? 'primary' : 'default'}
-                  sx={{ 
-                    bgcolor: viewMode === 'cards' ? 'primary.main' : 'rgba(0,0,0,0.04)',
-                    color: viewMode === 'cards' ? 'white' : 'inherit',
-                    borderRadius: 2,
-                    transition: 'all 0.3s ease',
-                    '&:hover': { 
-                      bgcolor: viewMode === 'cards' ? 'primary.dark' : 'rgba(0,0,0,0.08)',
-                      transform: 'scale(1.1)'
-                    }
-                  }}
-                >
-                  <ViewModuleIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Kompaktné zobrazenie">
-                <IconButton
-                  size="small"
-                  onClick={() => setViewMode('compact')}
-                  color={viewMode === 'compact' ? 'primary' : 'default'}
-                  sx={{ 
-                    bgcolor: viewMode === 'compact' ? 'primary.main' : 'rgba(0,0,0,0.04)',
-                    color: viewMode === 'compact' ? 'white' : 'inherit',
-                    borderRadius: 2,
-                    transition: 'all 0.3s ease',
-                    '&:hover': { 
-                      bgcolor: viewMode === 'compact' ? 'primary.dark' : 'rgba(0,0,0,0.08)',
-                      transform: 'scale(1.1)'
-                    }
-                  }}
-                >
-                  <ViewComfyIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
+            <RentalViewToggle
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              totalCount={rentals.length}
+              filteredCount={filteredRentals.length}
+              showCounts={true}
+            />
 
             {/* Filter Button */}
             <Button
@@ -1438,7 +1592,30 @@ export default function RentalList() {
                 }
               }}
             >
-              Filtre {showFilters ? '▼' : '▶'}
+              Základné filtre {showFilters ? '▼' : '▶'}
+            </Button>
+
+            {/* Advanced Filters Button */}
+            <Button
+              variant="outlined"
+              startIcon={<FilterListIcon />}
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 500,
+                transition: 'all 0.3s ease',
+                borderColor: showAdvancedFilters ? 'secondary.main' : 'rgba(0,0,0,0.23)',
+                bgcolor: showAdvancedFilters ? 'secondary.main' : 'transparent',
+                color: showAdvancedFilters ? 'white' : 'inherit',
+                '&:hover': {
+                  bgcolor: showAdvancedFilters ? 'secondary.dark' : 'rgba(0,0,0,0.04)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }
+              }}
+            >
+              Rozšírené filtre {showAdvancedFilters ? '▼' : '▶'}
             </Button>
 
             {/* Reset Button */}
@@ -1465,7 +1642,7 @@ export default function RentalList() {
           </Box>
 
           {/* Search results info */}
-          {(searchQuery || filterStatus !== 'all' || filterPaymentMethod !== 'all' || filterCompany !== 'all' || filterDateFrom || filterDateTo || filterPriceMin || filterPriceMax || filterProtocolStatus !== 'all') && (
+          {(searchQuery || advancedFilters.status !== 'all' || advancedFilters.paymentMethod !== 'all' || advancedFilters.company !== 'all' || advancedFilters.dateFrom || advancedFilters.dateTo || advancedFilters.priceMin || advancedFilters.priceMax || advancedFilters.protocolStatus !== 'all') && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Zobrazených: {filteredRentals.length} z {rentals.length} prenájmov
             </Typography>
@@ -1487,8 +1664,8 @@ export default function RentalList() {
                   <FormControl size="small" fullWidth>
                     <InputLabel>Stav prenájmu</InputLabel>
                     <Select
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
+                      value={advancedFilters.status}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, status: e.target.value })}
                       label="Stav prenájmu"
                     >
                       <MenuItem value="all">Všetky stavy</MenuItem>
@@ -1502,8 +1679,8 @@ export default function RentalList() {
                   <FormControl size="small" fullWidth>
                     <InputLabel>Spôsob platby</InputLabel>
                     <Select
-                      value={filterPaymentMethod}
-                      onChange={(e) => setFilterPaymentMethod(e.target.value)}
+                      value={advancedFilters.paymentMethod}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, paymentMethod: e.target.value })}
                       label="Spôsob platby"
                     >
                       <MenuItem value="all">Všetky spôsoby</MenuItem>
@@ -1517,8 +1694,8 @@ export default function RentalList() {
                   <FormControl size="small" fullWidth>
                     <InputLabel>Firma</InputLabel>
                     <Select
-                      value={filterCompany}
-                      onChange={(e) => setFilterCompany(e.target.value)}
+                      value={advancedFilters.company}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, company: e.target.value })}
                       label="Firma"
                     >
                       <MenuItem value="all">Všetky firmy</MenuItem>
@@ -1544,8 +1721,8 @@ export default function RentalList() {
                       label="Od dátumu"
                       type="date"
                       size="small"
-                      value={filterDateFrom}
-                      onChange={(e) => setFilterDateFrom(e.target.value)}
+                      value={advancedFilters.dateFrom}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, dateFrom: e.target.value })}
                       InputLabelProps={{ shrink: true }}
                       sx={{ flex: 1 }}
                     />
@@ -1553,8 +1730,8 @@ export default function RentalList() {
                       label="Do dátumu"
                       type="date"
                       size="small"
-                      value={filterDateTo}
-                      onChange={(e) => setFilterDateTo(e.target.value)}
+                      value={advancedFilters.dateTo}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, dateTo: e.target.value })}
                       InputLabelProps={{ shrink: true }}
                       sx={{ flex: 1 }}
                     />
@@ -1566,16 +1743,16 @@ export default function RentalList() {
                       label="Min. cena (€)"
                       type="number"
                       size="small"
-                      value={filterPriceMin}
-                      onChange={(e) => setFilterPriceMin(e.target.value)}
+                      value={advancedFilters.priceMin}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, priceMin: e.target.value })}
                       sx={{ flex: 1 }}
                     />
                     <TextField
                       label="Max. cena (€)"
                       type="number"
                       size="small"
-                      value={filterPriceMax}
-                      onChange={(e) => setFilterPriceMax(e.target.value)}
+                      value={advancedFilters.priceMax}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, priceMax: e.target.value })}
                       sx={{ flex: 1 }}
                     />
                   </Box>
@@ -1584,16 +1761,177 @@ export default function RentalList() {
                   <FormControl size="small" fullWidth>
                     <InputLabel>Stav protokolov</InputLabel>
                     <Select
-                      value={filterProtocolStatus}
-                      onChange={(e) => setFilterProtocolStatus(e.target.value)}
+                      value={advancedFilters.protocolStatus}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, protocolStatus: e.target.value })}
                       label="Stav protokolov"
                     >
                       <MenuItem value="all">Všetky stavy</MenuItem>
                       <MenuItem value="none">Bez protokolov</MenuItem>
-                      <MenuItem value="handover-only">Len preberací protokol</MenuItem>
-                      <MenuItem value="completed">Kompletné protokoly</MenuItem>
+                      <MenuItem value="handover">Len preberací protokol</MenuItem>
+                      <MenuItem value="return">Len vrátený protokol</MenuItem>
+                      <MenuItem value="both">Kompletné protokoly</MenuItem>
                     </Select>
                   </FormControl>
+                </Box>
+              </Grid>
+
+              {/* Rozšírené filtre */}
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PersonIcon fontSize="small" />
+                  Rozšírené filtre
+                </Typography>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {/* Customer Name */}
+                  <TextField
+                    label="Meno zákazníka"
+                    size="small"
+                    value={advancedFilters.customerName}
+                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, customerName: e.target.value })}
+                    sx={{ flex: 1 }}
+                  />
+
+                  {/* Vehicle Brand */}
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Značka vozidla</InputLabel>
+                    <Select
+                      value={advancedFilters.vehicleBrand}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, vehicleBrand: e.target.value })}
+                      label="Značka vozidla"
+                    >
+                      <MenuItem value="all">Všetky značky</MenuItem>
+                      {uniqueVehicleBrands.map(brand => (
+                        <MenuItem key={brand} value={brand}>{brand}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* Vehicle Model */}
+                  <TextField
+                    label="Model vozidla"
+                    size="small"
+                    value={advancedFilters.vehicleModel}
+                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, vehicleModel: e.target.value })}
+                    sx={{ flex: 1 }}
+                  />
+
+                  {/* License Plate */}
+                  <TextField
+                    label="Registrované číslo"
+                    size="small"
+                    value={advancedFilters.licensePlate}
+                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, licensePlate: e.target.value })}
+                    sx={{ flex: 1 }}
+                  />
+
+                  {/* Customer Email */}
+                  <TextField
+                    label="Email zákazníka"
+                    size="small"
+                    value={advancedFilters.customerEmail}
+                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, customerEmail: e.target.value })}
+                    sx={{ flex: 1 }}
+                  />
+
+                  {/* Customer Phone */}
+                  <TextField
+                    label="Telefón zákazníka"
+                    size="small"
+                    value={advancedFilters.customerPhone}
+                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, customerPhone: e.target.value })}
+                    sx={{ flex: 1 }}
+                  />
+
+                  {/* Customer Company */}
+                  <TextField
+                    label="Spoločnosť zákazníka"
+                    size="small"
+                    value={advancedFilters.customerCompany}
+                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, customerCompany: e.target.value })}
+                    sx={{ flex: 1 }}
+                  />
+
+                  {/* Insurance Company */}
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Spoločnosť poistenia</InputLabel>
+                    <Select
+                      value={advancedFilters.insuranceCompany}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, insuranceCompany: e.target.value })}
+                      label="Spoločnosť poistenia"
+                    >
+                      <MenuItem value="all">Všetky spoločnosti</MenuItem>
+                      {uniqueInsuranceCompanies.map(company => (
+                        <MenuItem key={company} value={company}>{company}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* Insurance Type */}
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Typ poistenia</InputLabel>
+                    <Select
+                      value={advancedFilters.insuranceType}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, insuranceType: e.target.value })}
+                      label="Typ poistenia"
+                    >
+                      <MenuItem value="all">Všetky typy</MenuItem>
+                      {uniqueInsuranceTypes.map(type => (
+                        <MenuItem key={type} value={type}>{type}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* Payment Status */}
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Stav platby</InputLabel>
+                    <Select
+                      value={advancedFilters.paymentStatus}
+                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, paymentStatus: e.target.value })}
+                      label="Stav platby"
+                    >
+                      <MenuItem value="all">Všetky stavy</MenuItem>
+                      <MenuItem value="paid">Uhradené</MenuItem>
+                      <MenuItem value="unpaid">Nezahradené</MenuItem>
+                      <MenuItem value="partial">Čiastočne uhradené</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  {/* Show Only Active */}
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={advancedFilters.showOnlyActive}
+                        onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, showOnlyActive: e.target.checked })}
+                        size="small"
+                      />
+                    }
+                    label="Použiť len aktívne prenájmy"
+                  />
+
+                  {/* Show Only Overdue */}
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={advancedFilters.showOnlyOverdue}
+                        onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, showOnlyOverdue: e.target.checked })}
+                        size="small"
+                      />
+                    }
+                    label="Použiť len preverované prenájmy"
+                  />
+
+                  {/* Show Only Completed */}
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={advancedFilters.showOnlyCompleted}
+                        onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, showOnlyCompleted: e.target.checked })}
+                        size="small"
+                      />
+                    }
+                    label="Použiť len dokončené prenájmy"
+                  />
                 </Box>
               </Grid>
 
@@ -1709,6 +2047,24 @@ export default function RentalList() {
               </Grid>
             </Grid>
           </Collapse>
+
+          {/* Rozšírené filtre */}
+          <Collapse in={showAdvancedFilters}>
+            <Box sx={{ mt: 2 }}>
+              <RentalAdvancedFilters
+                filters={advancedFilters}
+                onFiltersChange={handleAdvancedFiltersChange}
+                onReset={resetAllFilters}
+                onSavePreset={handleSaveFilterPreset}
+                availableStatuses={uniqueStatuses}
+                availableCompanies={uniqueCompanies}
+                availablePaymentMethods={uniquePaymentMethods}
+                availableVehicleBrands={uniqueVehicleBrands}
+                availableInsuranceCompanies={uniqueInsuranceCompanies}
+                availableInsuranceTypes={uniqueInsuranceTypes}
+              />
+            </Box>
+          </Collapse>
         </CardContent>
       </Card>
 
@@ -1719,25 +2075,8 @@ export default function RentalList() {
         </Typography>
       </Alert>
 
-      {/* Conditional rendering based on view mode */}
-      {viewMode === 'cards' ? (
-        <Box>
-          <Grid container spacing={3}>
-            {filteredRentals.map((rental, index) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={rental.id}>
-                {renderRentalCard(rental, index)}
-              </Grid>
-            ))}
-          </Grid>
-          {filteredRentals.length === 0 && (
-            <Card sx={{ p: 3, textAlign: 'center', mt: 2 }}>
-              <Typography variant="h6" color="text.secondary">
-                Žiadne prenájmy
-              </Typography>
-            </Card>
-          )}
-        </Box>
-      ) : (
+      {/* Content based on view mode */}
+      {viewMode === 'table' ? (
         <ResponsiveTable
           columns={columns}
           data={filteredRentals}
@@ -1746,6 +2085,19 @@ export default function RentalList() {
           onSelectionChange={setSelected}
           emptyMessage="Žiadne prenájmy"
           mobileCardRenderer={viewMode === 'compact' ? renderRentalCard : undefined}
+        />
+      ) : (
+        <RentalCardView
+          rentals={filteredRentals}
+          viewMode={cardViewMode}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onCreateHandover={handleCreateHandover}
+          onCreateReturn={handleCreateReturn}
+          onViewPDF={handleViewPDF}
+          onOpenGallery={handleOpenGallery}
+          protocols={protocols}
+          loadingProtocols={loadingProtocols}
         />
       )}
 

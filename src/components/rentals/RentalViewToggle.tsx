@@ -5,99 +5,164 @@ import {
   ToggleButtonGroup,
   Tooltip,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Typography,
+  Chip
 } from '@mui/material';
 import {
   ViewList as ViewListIcon,
   ViewModule as ViewModuleIcon,
   ViewComfy as ViewComfyIcon,
-  GridView as GridViewIcon
+  GridView as GridViewIcon,
+  ViewColumn as ViewColumnIcon,
+  ViewAgenda as ViewAgendaIcon
 } from '@mui/icons-material';
 
-export type ViewMode = 'table' | 'cards' | 'grid' | 'list';
+export type ViewMode = 'table' | 'cards' | 'grid' | 'list' | 'compact' | 'detailed';
 
 interface RentalViewToggleProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  totalCount: number;
+  filteredCount: number;
+  showCounts?: boolean;
 }
 
 const RentalViewToggle: React.FC<RentalViewToggleProps> = ({
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  totalCount,
+  filteredCount,
+  showCounts = true
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const handleChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newMode: ViewMode | null,
-  ) => {
-    if (newMode !== null) {
-      onViewModeChange(newMode);
+  const viewModes = [
+    {
+      value: 'table' as ViewMode,
+      icon: <ViewListIcon />,
+      label: 'Tabuľka',
+      description: 'Klasické zobrazenie v tabuľke'
+    },
+    {
+      value: 'cards' as ViewMode,
+      icon: <ViewModuleIcon />,
+      label: 'Karty',
+      description: 'Zobrazenie v kartách'
+    },
+    {
+      value: 'grid' as ViewMode,
+      icon: <GridViewIcon />,
+      label: 'Mriežka',
+      description: 'Kompaktné zobrazenie v mriežke'
+    },
+    {
+      value: 'list' as ViewMode,
+      icon: <ViewAgendaIcon />,
+      label: 'Zoznam',
+      description: 'Jednoduchý zoznam'
+    },
+    {
+      value: 'compact' as ViewMode,
+      icon: <ViewComfyIcon />,
+      label: 'Kompaktné',
+      description: 'Minimálne zobrazenie'
+    },
+    {
+      value: 'detailed' as ViewMode,
+      icon: <ViewColumnIcon />,
+      label: 'Detailné',
+      description: 'Rozšírené informácie'
     }
-  };
+  ];
 
-  // Na mobile zobrazujeme len relevantné možnosti
-  const mobileModes: ViewMode[] = ['cards', 'list'];
-  const desktopModes: ViewMode[] = ['table', 'cards', 'grid'];
+  // Na mobile zobrazíme len najdôležitejšie režimy
+  const mobileViewModes = viewModes.filter(mode => 
+    ['table', 'cards', 'compact'].includes(mode.value)
+  );
 
-  const modes = isMobile ? mobileModes : desktopModes;
+  const availableModes = isMobile ? mobileViewModes : viewModes;
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: 2,
+      flexWrap: 'wrap'
+    }}>
+      {/* Počty */}
+      {showCounts && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Zobrazených:
+          </Typography>
+          <Chip
+            label={`${filteredCount} z ${totalCount}`}
+            size="small"
+            color={filteredCount < totalCount ? 'primary' : 'default'}
+            variant={filteredCount < totalCount ? 'filled' : 'outlined'}
+          />
+        </Box>
+      )}
+
+      {/* Prepínače zobrazenia */}
       <ToggleButtonGroup
         value={viewMode}
         exclusive
-        onChange={handleChange}
+        onChange={(_, newMode) => {
+          if (newMode !== null) {
+            onViewModeChange(newMode);
+          }
+        }}
         size="small"
         sx={{
           '& .MuiToggleButton-root': {
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
             px: 2,
             py: 1,
-            borderRadius: 2,
-            textTransform: 'none',
-            fontWeight: 500,
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              bgcolor: 'action.hover',
+              transform: 'translateY(-1px)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            },
             '&.Mui-selected': {
-              backgroundColor: 'primary.main',
-              color: 'primary.contrastText',
+              bgcolor: 'primary.main',
+              color: 'white',
+              borderColor: 'primary.main',
               '&:hover': {
-                backgroundColor: 'primary.dark',
+                bgcolor: 'primary.dark'
               }
             }
           }
         }}
       >
-        {modes.includes('table') && (
-          <ToggleButton value="table">
-            <Tooltip title="Tabuľka">
-              <ViewListIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-        )}
-        
-        {modes.includes('cards') && (
-          <ToggleButton value="cards">
-            <Tooltip title="Karty">
-              <ViewModuleIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-        )}
-        
-        {modes.includes('grid') && (
-          <ToggleButton value="grid">
-            <Tooltip title="Mriežka">
-              <GridViewIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-        )}
-        
-        {modes.includes('list') && (
-          <ToggleButton value="list">
-            <Tooltip title="Zoznam">
-              <ViewComfyIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-        )}
+        {availableModes.map((mode) => (
+          <Tooltip
+            key={mode.value}
+            title={mode.description}
+            placement="top"
+          >
+            <ToggleButton value={mode.value}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                flexDirection: isMobile ? 'column' : 'row'
+              }}>
+                {mode.icon}
+                {!isMobile && (
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {mode.label}
+                  </Typography>
+                )}
+              </Box>
+            </ToggleButton>
+          </Tooltip>
+        ))}
       </ToggleButtonGroup>
     </Box>
   );
