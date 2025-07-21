@@ -402,84 +402,143 @@ export default function ImageGalleryModal({
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
-              {/* Navigation buttons */}
-              <IconButton
-                onClick={handlePrevious}
-                sx={{
-                  position: 'absolute',
-                  left: 16,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                  color: 'white',
-                  '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' }
-                }}
-              >
-                <NavigateBefore />
-              </IconButton>
+              {/* Grid Gallery - no navigation buttons needed */}
 
-              <IconButton
-                onClick={handleNext}
-                sx={{
-                  position: 'absolute',
-                  right: 16,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                  color: 'white',
-                  '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' }
-                }}
-              >
-                <NavigateNext />
-              </IconButton>
-
-              {/* Media content */}
-              {currentMedia && (
+                          {/* Grid Gallery */}
+            <Box sx={{ 
+              p: 2,
+              height: '100%',
+              overflow: 'auto'
+            }}>
+              {allMedia.images.length === 0 && allMedia.videos.length === 0 ? (
                 <Box sx={{ 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  width: '100%',
                   height: '100%',
-                  transform: `scale(${zoom})`,
-                  transition: 'transform 0.3s ease'
+                  color: 'text.secondary'
                 }}>
-                  {'url' in currentMedia && currentMedia.url.includes('video') ? (
-                    <video
-                      ref={videoRef}
-                      src={getImageUrl(currentMedia)}
-                      controls
-                      style={{
-                        maxWidth: '100%',
-                        maxHeight: '100%',
-                        objectFit: 'contain',
+                  <Typography variant="h6">Žiadne fotky nie sú k dispozícii</Typography>
+                </Box>
+              ) : (
+                <Box sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: 2,
+                  p: 1
+                }}>
+                  {/* Images */}
+                  {allMedia.images.map((image, index) => (
+                    <Box
+                      key={image.id || index}
+                      sx={{
+                        position: 'relative',
+                        cursor: 'pointer',
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        border: '2px solid transparent',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          transform: 'scale(1.02)'
+                        }
                       }}
-                    />
-                  ) : (
-                    <img
-                      ref={imageRef}
-                      src={getImageUrl(currentMedia)}
-                      alt={`${currentMedia.type} - ${currentMedia.description}`}
-                      style={{
-                        maxWidth: '100%',
-                        maxHeight: '100%',
-                        objectFit: 'contain',
-                        userSelect: 'none',
+                                             onClick={() => {
+                         setCurrentIndex(index);
+                         setZoom(1);
+                       }}
+                    >
+                      <img
+                        src={getImageUrl(image)}
+                        alt={`${image.type} - ${image.description}`}
+                        style={{
+                          width: '100%',
+                          height: '150px',
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                        onError={() => {
+                          console.log('🖼️ Grid image load error:', image.url);
+                        }}
+                        onLoad={() => {
+                          console.log('🖼️ Grid image loaded:', image.url);
+                        }}
+                      />
+                      <Box sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                        color: 'white',
+                        p: 1,
+                        fontSize: '0.75rem'
+                      }}>
+                                                 {image.description || `Fotka ${index + 1}`}
+                      </Box>
+                    </Box>
+                  ))}
+                  
+                  {/* Videos */}
+                  {allMedia.videos.map((video, index) => (
+                    <Box
+                      key={video.id || `video-${index}`}
+                      sx={{
+                        position: 'relative',
+                        cursor: 'pointer',
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        border: '2px solid transparent',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          transform: 'scale(1.02)'
+                        }
                       }}
-                      onError={() => {
-                        console.log('🖼️ Image load error:', currentMedia.url);
-                        handleImageError(currentMedia.url);
-                      }}
-                      onLoad={() => {
-                        console.log('🖼️ Image loaded successfully:', currentMedia.url);
-                      }}
-                    />
-                  )}
+                                             onClick={() => {
+                         setCurrentIndex(allMedia.images.length + index);
+                         setZoom(1);
+                       }}
+                    >
+                      <video
+                        src={getImageUrl(video)}
+                        style={{
+                          width: '100%',
+                          height: '150px',
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                      />
+                      <Box sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        color: 'white',
+                        fontSize: '2rem'
+                      }}>
+                        ▶️
+                      </Box>
+                      <Box sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                        color: 'white',
+                        p: 1,
+                        fontSize: '0.75rem'
+                      }}>
+                                                 {video.description || `Video ${index + 1}`}
+                      </Box>
+                    </Box>
+                  ))}
                 </Box>
               )}
             </Box>
+            </Box>
 
-            {/* Controls */}
+            {/* Grid Gallery Controls */}
             <Box sx={{ 
               p: 2, 
               display: 'flex', 
@@ -488,97 +547,18 @@ export default function ImageGalleryModal({
               borderTop: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <IconButton onClick={() => setZoom(prev => Math.max(prev - 0.25, 0.5))} color="inherit">
-                  <ZoomOut />
-                </IconButton>
-                <Typography variant="body2">
-                  {Math.round(zoom * 100)}%
+                <Typography variant="body2" color="inherit">
+                  {allMedia.images.length + allMedia.videos.length} fotiek
                 </Typography>
-                <IconButton onClick={() => setZoom(prev => Math.min(prev + 0.25, 3))} color="inherit">
-                  <ZoomIn />
-                </IconButton>
-                <IconButton onClick={() => setZoom(1)} color="inherit">
-                  Reset
-                </IconButton>
               </Box>
-
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body2">
-                  {currentIndex + 1} z {totalMedia}
-                </Typography>
                 <IconButton onClick={handleDownload} color="inherit">
                   <Download />
                 </IconButton>
+                <IconButton onClick={onClose} color="inherit">
+                  <Close />
+                </IconButton>
               </Box>
-            </Box>
-
-            {/* Thumbnails */}
-            <Box sx={{ 
-              p: 2, 
-              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-              maxHeight: 120,
-              overflow: 'auto'
-            }}>
-              <Grid container spacing={1}>
-                {allMedia.images.map((media, index) => (
-                  <Grid item key={media.id}>
-                    <Box
-                      sx={{
-                        width: 80,
-                        height: 60,
-                        border: currentIndex === index ? '2px solid #1976d2' : '1px solid rgba(255, 255, 255, 0.2)',
-                        borderRadius: 1,
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        '&:hover': { borderColor: '#1976d2' }
-                      }}
-                      onClick={() => setCurrentIndex(index)}
-                    >
-                      <img
-                        src={getImageUrl(media)}
-                        alt={`Thumbnail ${index + 1}`}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                        onError={() => handleImageError(media.url)}
-                      />
-                    </Box>
-                  </Grid>
-                ))}
-                {allMedia.videos.map((media, index) => (
-                  <Grid item key={media.id}>
-                    <Box
-                      sx={{
-                        width: 80,
-                        height: 60,
-                        border: currentIndex === allMedia.images.length + index ? '2px solid #1976d2' : '1px solid rgba(255, 255, 255, 0.2)',
-                        borderRadius: 1,
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        '&:hover': { borderColor: '#1976d2' }
-                      }}
-                      onClick={() => setCurrentIndex(allMedia.images.length + index)}
-                    >
-                      <Box sx={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        backgroundImage: `url(${getImageUrl(media)})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <Typography variant="caption" sx={{ color: 'white', textShadow: '1px 1px 2px black' }}>
-                          VIDEO
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
             </Box>
           </>
         )}
