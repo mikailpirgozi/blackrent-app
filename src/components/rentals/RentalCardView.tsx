@@ -239,6 +239,89 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
             </Box>
           </Box>
 
+          {/* Debug info */}
+          <Box sx={{ mb: 1, p: 0.5, bgcolor: 'info.light', borderRadius: 1 }}>
+            <Typography variant="caption" color="info.dark" sx={{ fontSize: '0.65rem' }}>
+              Debug: hasHandover={!!hasHandover}, hasReturn={!!hasReturn}, protocols={Object.keys(protocols).length}
+            </Typography>
+          </Box>
+
+          {/* Protocol actions */}
+          {(hasHandover || hasReturn) && (
+            <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<VisibilityIcon />}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  onViewProtocols(rental); 
+                }}
+                disabled={loadingProtocols.includes(rental.id)}
+                sx={{ flex: 1, minWidth: 'fit-content' }}
+              >
+                Zobraziť
+              </Button>
+              {hasHandover && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<PDFIcon />}
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    onViewPDF(hasHandover.id, 'handover', 'Preberací protokol'); 
+                  }}
+                  sx={{ minWidth: 'fit-content' }}
+                >
+                  PDF
+                </Button>
+              )}
+              {hasReturn && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<PDFIcon />}
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    onViewPDF(hasReturn.id, 'return', 'Protokol vrátenia'); 
+                  }}
+                  sx={{ minWidth: 'fit-content' }}
+                >
+                  PDF
+                </Button>
+              )}
+            </Box>
+          )}
+
+          {/* Protocol details when loaded */}
+          {protocols[rental.id] && (
+            <Box sx={{ mb: 1, p: 0.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.65rem' }}>
+                Detaily protokolov:
+              </Typography>
+              {hasHandover && (
+                <Box sx={{ mt: 0.5, p: 0.5, bgcolor: 'success.light', borderRadius: 1 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'success.dark', fontSize: '0.6rem' }}>
+                    ✅ Preberací protokol
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.55rem' }}>
+                    {format(new Date(hasHandover.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                  </Typography>
+                </Box>
+              )}
+              {hasReturn && (
+                <Box sx={{ mt: 0.5, p: 0.5, bgcolor: 'success.light', borderRadius: 1 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'success.dark', fontSize: '0.6rem' }}>
+                    ✅ Protokol vrátenia
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.55rem' }}>
+                    {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+
           {/* Actions */}
           <Box sx={{ 
             display: 'flex', 
@@ -455,6 +538,13 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
           </Box>
 
           {/* Protocol actions for existing protocols */}
+          {/* Debug info */}
+          <Box sx={{ mb: 1, p: 0.5, bgcolor: 'info.light', borderRadius: 1 }}>
+            <Typography variant="caption" color="info.dark">
+              Debug: hasHandover={!!hasHandover}, hasReturn={!!hasReturn}, protocols={Object.keys(protocols).length}
+            </Typography>
+          </Box>
+          
           {(hasHandover || hasReturn) && (
             <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
               <Button
