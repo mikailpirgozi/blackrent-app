@@ -114,10 +114,12 @@ export default function ImageGalleryModal({
   // ✅ Funkcia na získanie URL pre obrázok
   const getImageUrl = (media: ProtocolImage | ProtocolVideo): string => {
     const url = media.url;
+    const proxyUrl = convertToProxyUrl(url);
+    console.log('🖼️ Image URL conversion:', { original: url, proxy: proxyUrl });
     if (imageErrors.has(url)) {
-      return convertToProxyUrl(url);
+      return proxyUrl;
     }
-    return convertToProxyUrl(url);
+    return proxyUrl;
   };
 
   // ✅ Načítanie médií z API (fallback)
