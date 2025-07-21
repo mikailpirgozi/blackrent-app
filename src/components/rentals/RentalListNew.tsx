@@ -378,16 +378,39 @@ export default function RentalList() {
       });
 
       // ✅ PRIAMO Z DATABÁZY - žiadne brute-force
+      // Parsovanie JSON stringov pre obrázky
+      const parseImages = (imageData: any): any[] => {
+        if (!imageData) return [];
+        
+        // Ak je to string, skús to parsovať ako JSON
+        if (typeof imageData === 'string') {
+          try {
+            const parsed = JSON.parse(imageData);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (error) {
+            console.warn('⚠️ Failed to parse image data as JSON:', imageData);
+            return [];
+          }
+        }
+        
+        // Ak je to už pole, vráť ho
+        if (Array.isArray(imageData)) {
+          return imageData;
+        }
+        
+        return [];
+      };
+
       const images = [
-        ...(Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages : []),
-        ...(Array.isArray(protocol.documentImages) ? protocol.documentImages : []),
-        ...(Array.isArray(protocol.damageImages) ? protocol.damageImages : [])
+        ...parseImages(protocol.vehicleImages),
+        ...parseImages(protocol.documentImages),
+        ...parseImages(protocol.damageImages)
       ];
       
       const videos = [
-        ...(Array.isArray(protocol.vehicleVideos) ? protocol.vehicleVideos : []),
-        ...(Array.isArray(protocol.documentVideos) ? protocol.documentVideos : []),
-        ...(Array.isArray(protocol.damageVideos) ? protocol.damageVideos : [])
+        ...parseImages(protocol.vehicleVideos),
+        ...parseImages(protocol.documentVideos),
+        ...parseImages(protocol.damageVideos)
       ];
 
       console.log('🖼️ Gallery data prepared:', {
