@@ -61,7 +61,7 @@ import SignaturePad from '../common/SignaturePad';
 import R2FileUpload from '../common/R2FileUpload';
 import MobileFileUpload from '../common/MobileFileUpload';
 import PDFGenerator from '../../utils/pdfGenerator';
-// ImageGalleryModal removed - will be replaced with new implementation
+import ProtocolGallery from '../common/ProtocolGallery';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -917,16 +917,15 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                       </Button>
 
                       {/* ✅ NOVÉ TLAČIDLO GALÉRIE */}
-                      {/* Gallery button temporarily disabled - will be replaced with new implementation */}
                       <Button
                         variant="contained"
                         startIcon={<PhotoLibrary />}
-                        onClick={() => {/* setGalleryOpen(true) */}}
-                        disabled={true} // Temporarily disabled
+                        onClick={() => setGalleryOpen(true)}
+                        disabled={getTotalMediaCount() === 0}
                         fullWidth
                         sx={{ mt: 1 }}
                       >
-                        Galéria (dočasne nedostupná)
+                        Zobraziť galériu ({getTotalMediaCount()} médií)
                       </Button>
                     </Stack>
                     
@@ -1161,14 +1160,14 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         </Dialog>
       )}
 
-      {/* ✅ Image Gallery Modal - REMOVED - will be replaced with new implementation */}
-      {/* <ImageGalleryModal
+      {/* ✅ New Protocol Gallery */}
+      <ProtocolGallery
         open={galleryOpen}
         onClose={() => setGalleryOpen(false)}
-        protocolId={protocolId}
-        protocolType="handover"
-        directMedia={getAllMediaForGallery()}
-      /> */}
+        images={getAllMediaForGallery().images}
+        videos={getAllMediaForGallery().videos}
+        title={`Galéria protokolu prevzatia - ${protocol.rentalData?.vehicle?.brand} ${protocol.rentalData?.vehicle?.model}`}
+      />
     </Box>
   );
 };

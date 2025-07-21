@@ -71,7 +71,7 @@ import RentalForm from './RentalForm';
 import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 import PDFViewer from '../common/PDFViewer';
-// SimpleImageGallery removed - will be replaced with new implementation
+import ProtocolGallery from '../common/ProtocolGallery';
 import RentalAdvancedFilters, { FilterState } from './RentalAdvancedFilters';
 import RentalViewToggle, { ViewMode } from './RentalViewToggle';
 import RentalCardView, { CardViewMode } from './RentalCardView';
@@ -350,76 +350,75 @@ export default function RentalList() {
     setSelectedPdf(null);
   };
 
-  // Image gallery handlers - TEMPORARILY DISABLED
+  // Image gallery handlers - NEW IMPLEMENTATION
   const handleOpenGallery = async (rental: Rental, protocolType: 'handover' | 'return') => {
-    alert('Galéria je dočasne nedostupná - bude nahradená novou implementáciou');
-    // try {
-    //   console.log('🔍 Opening gallery for protocol:', protocolType, 'rental:', rental.id);
-    //   
-    //   if (!protocols[rental.id]?.[protocolType]) {
-    //     console.log('📥 Loading protocol for gallery...');
-    //     await loadProtocolsForRental(rental.id);
-    //   }
-    //   
-    //   const protocol = protocols[rental.id]?.[protocolType];
-    //   if (!protocol) {
-    //     alert('Protokol nebol nájdený!');
-    //     return;
-    //   }
+    try {
+      console.log('🔍 Opening gallery for protocol:', protocolType, 'rental:', rental.id);
+      
+      if (!protocols[rental.id]?.[protocolType]) {
+        console.log('📥 Loading protocol for gallery...');
+        await loadProtocolsForRental(rental.id);
+      }
+      
+      const protocol = protocols[rental.id]?.[protocolType];
+      if (!protocol) {
+        alert('Protokol nebol nájdený!');
+        return;
+      }
 
-    //   console.log('🔍 Protocol found:', protocol);
-    //   console.log('🔍 Protocol details:', {
-    //     id: protocol.id,
-    //     vehicleImages: protocol.vehicleImages,
-    //     documentImages: protocol.documentImages,
-    //     damageImages: protocol.damageImages,
-    //     vehicleImagesLength: Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages.length : 'not array',
-    //     documentImagesLength: Array.isArray(protocol.documentImages) ? protocol.documentImages.length : 'not array',
-    //     damageImagesLength: Array.isArray(protocol.damageImages) ? protocol.damageImages.length : 'not array'
-    //   });
+      console.log('🔍 Protocol found:', protocol);
+      console.log('🔍 Protocol details:', {
+        id: protocol.id,
+        vehicleImages: protocol.vehicleImages,
+        documentImages: protocol.documentImages,
+        damageImages: protocol.damageImages,
+        vehicleImagesLength: Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages.length : 'not array',
+        documentImagesLength: Array.isArray(protocol.documentImages) ? protocol.documentImages.length : 'not array',
+        damageImagesLength: Array.isArray(protocol.damageImages) ? protocol.damageImages.length : 'not array'
+      });
 
-    //   // ✅ PRIAMO Z DATABÁZY - žiadne brute-force
-    //   const images = [
-    //     ...(Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages : []),
-    //     ...(Array.isArray(protocol.documentImages) ? protocol.documentImages : []),
-    //     ...(Array.isArray(protocol.damageImages) ? protocol.damageImages : [])
-    //   ];
-    //   
-    //   const videos = [
-    //     ...(Array.isArray(protocol.vehicleVideos) ? protocol.vehicleVideos : []),
-    //     ...(Array.isArray(protocol.documentVideos) ? protocol.documentVideos : []),
-    //     ...(Array.isArray(protocol.damageVideos) ? protocol.damageVideos : [])
-    //   ];
+      // ✅ PRIAMO Z DATABÁZY - žiadne brute-force
+      const images = [
+        ...(Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages : []),
+        ...(Array.isArray(protocol.documentImages) ? protocol.documentImages : []),
+        ...(Array.isArray(protocol.damageImages) ? protocol.damageImages : [])
+      ];
+      
+      const videos = [
+        ...(Array.isArray(protocol.vehicleVideos) ? protocol.vehicleVideos : []),
+        ...(Array.isArray(protocol.documentVideos) ? protocol.documentVideos : []),
+        ...(Array.isArray(protocol.damageVideos) ? protocol.damageVideos : [])
+      ];
 
-    //   console.log('🖼️ Gallery data prepared:', {
-    //     imagesCount: images.length,
-    //     videosCount: videos.length,
-    //     images: images.map(img => ({ id: img.id, url: img.url, type: img.type }))
-    //   });
+      console.log('🖼️ Gallery data prepared:', {
+        imagesCount: images.length,
+        videosCount: videos.length,
+        images: images.map(img => ({ id: img.id, url: img.url, type: img.type }))
+      });
 
-    //   if (images.length === 0 && videos.length === 0) {
-    //     alert('Nenašli sa žiadne obrázky pre tento protokol!');
-    //     return;
-    //   }
-    //   
-    //   console.log('🖼️ Setting gallery data:', { 
-    //     images, 
-    //     videos,
-    //     protocolId: protocol.id, 
-    //     protocolType 
-    //   });
-    //   
-    //   setGalleryImages(images);
-    //   setGalleryVideos(videos);
-    //   setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} - ${rental.vehicle?.brand} ${rental.vehicle?.model}`);
-    //   setGalleryOpen(true);
-    //   
-    //   console.log('️ Gallery state set, should open now');
-    //   
-    // } catch (error) {
-    //   console.error('❌ Error opening gallery:', error);
-    //   alert('Chyba pri otváraní galérie: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
-    // }
+      if (images.length === 0 && videos.length === 0) {
+        alert('Nenašli sa žiadne obrázky pre tento protokol!');
+        return;
+      }
+      
+      console.log('🖼️ Setting gallery data:', { 
+        images, 
+        videos,
+        protocolId: protocol.id, 
+        protocolType 
+      });
+      
+      setGalleryImages(images);
+      setGalleryVideos(videos);
+      setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} - ${rental.vehicle?.brand} ${rental.vehicle?.model}`);
+      setGalleryOpen(true);
+      
+      console.log('️ Gallery state set, should open now');
+      
+    } catch (error) {
+      console.error('❌ Error opening gallery:', error);
+      alert('Chyba pri otváraní galérie: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
+    }
   };
 
 
@@ -2331,14 +2330,14 @@ export default function RentalList() {
         />
       )}
 
-      {/* Simple Image Gallery - REMOVED - will be replaced with new implementation */}
-      {/* <SimpleImageGallery
+      {/* New Protocol Gallery */}
+      <ProtocolGallery
         open={galleryOpen}
         onClose={handleCloseGallery}
         images={galleryImages}
         videos={galleryVideos}
         title={galleryTitle}
-      /> */}
+      />
     </Box>
   );
 } 

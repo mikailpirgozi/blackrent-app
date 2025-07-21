@@ -34,7 +34,7 @@ import { ReturnProtocol, Rental, HandoverProtocol, ProtocolImage, ProtocolVideo,
 import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import { generateProtocolPDF, ProtocolData } from '../../utils/pdfGenerator';
-// ImageGalleryModal removed - will be replaced with new implementation
+import ProtocolGallery from '../common/ProtocolGallery';
 
 interface ReturnProtocolFormProps {
   open: boolean;
@@ -607,15 +607,14 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
                   Fotky poškodení ({protocol.damageImages?.length || 0})
                 </Button>
 
-                {/* ✅ NOVÉ TLAČIDLO GALÉRIE - TEMPORARILY DISABLED */}
                 <Button
                   variant="contained"
                   startIcon={<PhotoLibrary />}
-                  onClick={() => {/* setGalleryOpen(true) */}}
-                  disabled={true} // Temporarily disabled
+                  onClick={() => setGalleryOpen(true)}
+                  disabled={getTotalMediaCount() === 0}
                   color="primary"
                 >
-                  Galéria (dočasne nedostupná)
+                  Zobraziť galériu ({getTotalMediaCount()})
                 </Button>
               </Box>
               
@@ -695,14 +694,14 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
         />
       )}
 
-      {/* ✅ Image Gallery Modal - REMOVED - will be replaced with new implementation */}
-      {/* <ImageGalleryModal
+      {/* ✅ New Protocol Gallery */}
+      <ProtocolGallery
         open={galleryOpen}
         onClose={() => setGalleryOpen(false)}
-        protocolId={protocol.id || 'temp-id'}
-        protocolType="return"
-        directMedia={getAllMediaForGallery()}
-      /> */}
+        images={getAllMediaForGallery().images}
+        videos={getAllMediaForGallery().videos}
+        title={`Galéria protokolu vrátenia - ${protocol.rentalData?.vehicle?.brand} ${protocol.rentalData?.vehicle?.model}`}
+      />
     </Box>
   );
 } 
