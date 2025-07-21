@@ -1287,91 +1287,92 @@ export default function RentalList() {
               📋 Protokoly
             </Typography>
             
-            {/* Preberací protokol */}
-            <Box sx={{ mb: 2 }}>
-              <Button
-                fullWidth
-                variant={hasHandover ? "contained" : "outlined"}
-                color={hasHandover ? "success" : "primary"}
-                startIcon={<HandoverIcon sx={{ fontSize: 24 }} />}
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  handleCreateHandover(rental); 
-                }}
-                sx={{
-                  justifyContent: 'flex-start',
-                  py: 2,
-                  px: 3,
-                  borderRadius: 2,
-                  borderWidth: 2,
-                  borderColor: hasHandover ? 'success.main' : 'primary.main',
-                  bgcolor: hasHandover ? 'success.main' : 'background.paper',
-                  color: hasHandover ? 'white' : 'primary.main',
-                  boxShadow: hasHandover ? 2 : 0,
-                  '&:hover': {
-                    bgcolor: hasHandover ? 'success.dark' : 'primary.light',
-                    borderColor: hasHandover ? 'success.dark' : 'primary.dark',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                  },
-                  transition: 'all 0.3s ease',
-                  fontSize: '1rem',
-                  fontWeight: 600
-                }}
-              >
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
-                  <Typography variant="body1" fontWeight="bold">
-                    {hasHandover ? '✅ Preberací protokol' : '🔄 Vytvoriť preberací protokol'}
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                    {hasHandover ? 'Protokol je vytvorený' : 'Kliknite pre vytvorenie'}
-                  </Typography>
-                </Box>
-              </Button>
-            </Box>
+            {/* Protokolové tlačidlá - kompaktné */}
+            <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+              {/* Preberací protokol */}
+              <Tooltip title={hasHandover ? "Preberací protokol je vytvorený" : "Vytvoriť preberací protokol"}>
+                <IconButton
+                  size="medium"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleCreateHandover(rental); 
+                  }}
+                  color={hasHandover ? "success" : "primary"}
+                  sx={{ 
+                    bgcolor: hasHandover ? 'success.main' : 'primary.main',
+                    color: 'white',
+                    border: '2px solid',
+                    borderColor: hasHandover ? 'success.main' : 'primary.main',
+                    '&:hover': { 
+                      bgcolor: hasHandover ? 'success.dark' : 'primary.dark',
+                      borderColor: hasHandover ? 'success.dark' : 'primary.dark',
+                      transform: 'scale(1.05)'
+                    },
+                    transition: 'all 0.2s ease',
+                    width: 48,
+                    height: 48
+                  }}
+                >
+                  <HandoverIcon fontSize="medium" />
+                </IconButton>
+              </Tooltip>
 
-            {/* Vratný protokol */}
-            <Box sx={{ mb: 2 }}>
-              <Button
-                fullWidth
-                variant={hasReturn ? "contained" : "outlined"}
-                color={hasReturn ? "warning" : "primary"}
-                startIcon={<ReturnIcon sx={{ fontSize: 24 }} />}
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  handleCreateReturn(rental); 
-                }}
-                disabled={!hasHandover}
-                sx={{
-                  justifyContent: 'flex-start',
-                  py: 2,
-                  px: 3,
-                  borderRadius: 2,
-                  borderWidth: 2,
-                  borderColor: hasReturn ? 'warning.main' : hasHandover ? 'primary.main' : 'grey.400',
-                  bgcolor: hasReturn ? 'warning.main' : hasHandover ? 'background.paper' : 'grey.100',
-                  color: hasReturn ? 'white' : hasHandover ? 'primary.main' : 'grey.500',
-                  boxShadow: hasReturn ? 2 : 0,
-                  '&:hover': {
-                    bgcolor: hasReturn ? 'warning.dark' : hasHandover ? 'primary.light' : 'grey.100',
-                    borderColor: hasReturn ? 'warning.dark' : hasHandover ? 'primary.dark' : 'grey.400',
-                    transform: hasHandover ? 'translateY(-2px)' : 'none',
-                    boxShadow: hasHandover ? '0 4px 12px rgba(0,0,0,0.15)' : 'none'
-                  },
-                  transition: 'all 0.3s ease',
-                  fontSize: '1rem',
-                  fontWeight: 600
-                }}
-              >
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
-                  <Typography variant="body1" fontWeight="bold">
-                    {hasReturn ? '✅ Vratný protokol' : hasHandover ? '↩️ Vytvoriť vratný protokol' : '⏳ Čaká na preberací protokol'}
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                    {hasReturn ? 'Protokol je vytvorený' : hasHandover ? 'Kliknite pre vytvorenie' : 'Najprv vytvorte preberací protokol'}
-                  </Typography>
-                </Box>
-              </Button>
+              {/* Vratný protokol */}
+              <Tooltip title={hasReturn ? "Vratný protokol je vytvorený" : hasHandover ? "Vytvoriť vratný protokol" : "Najprv vytvorte preberací protokol"}>
+                <IconButton
+                  size="medium"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleCreateReturn(rental); 
+                  }}
+                  color={hasReturn ? "warning" : "primary"}
+                  disabled={!hasHandover}
+                  sx={{ 
+                    bgcolor: hasReturn ? 'warning.main' : hasHandover ? 'primary.main' : 'grey.400',
+                    color: 'white',
+                    border: '2px solid',
+                    borderColor: hasReturn ? 'warning.main' : hasHandover ? 'primary.main' : 'grey.400',
+                    '&:hover': { 
+                      bgcolor: hasReturn ? 'warning.dark' : hasHandover ? 'primary.dark' : 'grey.400',
+                      borderColor: hasReturn ? 'warning.dark' : hasHandover ? 'primary.dark' : 'grey.400',
+                      transform: hasHandover ? 'scale(1.05)' : 'none'
+                    },
+                    transition: 'all 0.2s ease',
+                    width: 48,
+                    height: 48
+                  }}
+                >
+                  <ReturnIcon fontSize="medium" />
+                </IconButton>
+              </Tooltip>
+
+              {/* Zobraziť protokoly */}
+              <Tooltip title="Zobraziť protokoly">
+                <IconButton
+                  size="medium"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleViewProtocols(rental); 
+                  }}
+                  disabled={loadingProtocols.includes(rental.id)}
+                  sx={{ 
+                    bgcolor: 'info.main',
+                    color: 'white',
+                    border: '2px solid',
+                    borderColor: 'info.main',
+                    '&:hover': { 
+                      bgcolor: 'info.dark',
+                      borderColor: 'info.dark',
+                      transform: 'scale(1.05)'
+                    },
+                    transition: 'all 0.2s ease',
+                    width: 48,
+                    height: 48
+                  }}
+                >
+                  <VisibilityIcon fontSize="medium" />
+                </IconButton>
+              </Tooltip>
             </Box>
 
             {/* Stav protokolov */}
@@ -1379,7 +1380,7 @@ export default function RentalList() {
               display: 'flex', 
               gap: 1, 
               justifyContent: 'center',
-              mt: 2
+              mb: 2
             }}>
               <Chip
                 icon={<HandoverIcon />}
@@ -1398,6 +1399,24 @@ export default function RentalList() {
                 sx={{ fontWeight: 600 }}
               />
             </Box>
+
+            {/* Loading indikátor */}
+            {loadingProtocols.includes(rental.id) && (
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1, 
+                justifyContent: 'center',
+                p: 1,
+                bgcolor: 'info.light',
+                borderRadius: 1
+              }}>
+                <CircularProgress size={16} />
+                <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+                  Načítavam protokoly...
+                </Typography>
+              </Box>
+            )}
           </Box>
           
           {/* Ostatné akcie */}

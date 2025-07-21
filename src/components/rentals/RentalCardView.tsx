@@ -239,59 +239,50 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
             </Box>
           </Box>
 
-          {/* Debug info */}
-          <Box sx={{ mb: 1, p: 0.5, bgcolor: 'info.light', borderRadius: 1 }}>
-            <Typography variant="caption" color="info.dark" sx={{ fontSize: '0.65rem' }}>
-              Debug: hasHandover={!!hasHandover}, hasReturn={!!hasReturn}, protocols={Object.keys(protocols).length}
-            </Typography>
-          </Box>
-
-          {/* Protocol actions */}
-          {(hasHandover || hasReturn) && (
-            <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
+          {/* Protocol actions - vždy zobrazené */}
+          <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<VisibilityIcon />}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                onViewProtocols(rental); 
+              }}
+              disabled={loadingProtocols.includes(rental.id)}
+              sx={{ flex: 1, minWidth: 'fit-content' }}
+            >
+              {loadingProtocols.includes(rental.id) ? 'Načítavam...' : 'Zobraziť protokoly'}
+            </Button>
+            {hasHandover && (
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<VisibilityIcon />}
+                startIcon={<PDFIcon />}
                 onClick={(e) => { 
                   e.stopPropagation(); 
-                  onViewProtocols(rental); 
+                  onViewPDF(hasHandover.id, 'handover', 'Preberací protokol'); 
                 }}
-                disabled={loadingProtocols.includes(rental.id)}
-                sx={{ flex: 1, minWidth: 'fit-content' }}
+                sx={{ minWidth: 'fit-content' }}
               >
-                Zobraziť
+                PDF
               </Button>
-              {hasHandover && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<PDFIcon />}
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onViewPDF(hasHandover.id, 'handover', 'Preberací protokol'); 
-                  }}
-                  sx={{ minWidth: 'fit-content' }}
-                >
-                  PDF
-                </Button>
-              )}
-              {hasReturn && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<PDFIcon />}
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onViewPDF(hasReturn.id, 'return', 'Protokol vrátenia'); 
-                  }}
-                  sx={{ minWidth: 'fit-content' }}
-                >
-                  PDF
-                </Button>
-              )}
-            </Box>
-          )}
+            )}
+            {hasReturn && (
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<PDFIcon />}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  onViewPDF(hasReturn.id, 'return', 'Protokol vrátenia'); 
+                }}
+                sx={{ minWidth: 'fit-content' }}
+              >
+                PDF
+              </Button>
+            )}
+          </Box>
 
           {/* Protocol details when loaded */}
           {protocols[rental.id] && (
