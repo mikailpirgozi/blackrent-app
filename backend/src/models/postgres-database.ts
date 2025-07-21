@@ -2392,6 +2392,42 @@ export class PostgresDatabase {
     }
   }
 
+  async updateReturnProtocol(id: string, updateData: any): Promise<any> {
+    const client = await this.pool.connect();
+    try {
+      await this.initProtocolTables();
+
+      const result = await client.query(`
+        UPDATE return_protocols SET
+          status = COALESCE($2, status),
+          completed_at = COALESCE($3, completed_at),
+          pdf_url = COALESCE($4, pdf_url),
+          email_sent = COALESCE($5, email_sent),
+          email_sent_at = COALESCE($6, email_sent_at),
+          notes = COALESCE($7, notes)
+        WHERE id = $1::uuid
+        RETURNING *
+      `, [
+        id,
+        updateData.status,
+        updateData.completedAt,
+        updateData.pdfUrl,
+        updateData.emailSent,
+        updateData.emailSentAt,
+        updateData.notes
+      ]);
+
+      if (result.rows.length === 0) return null;
+      return this.mapReturnProtocolFromDB(result.rows[0]);
+
+    } catch (error) {
+      console.error('❌ Error updating return protocol:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   // Mapping methods
   private mapHandoverProtocolFromDB(row: any): any {
     // Safe JSON parsing function
@@ -2672,100 +2708,6 @@ export class PostgresDatabase {
 
     } catch (error) {
       console.error('❌ Error updating handover protocol:', error);
-      throw error;
-    } finally {
-      client.release();
-    }
-  }
-
-  // 🚀 NOVÁ METÓDA: Aktualizácia return protokolu
-  async updateReturnProtocol(id: string, updateData: any): Promise<any> {
-    const client = await this.pool.connect();
-    try {
-      console.log('🔄 Updating return protocol:', id);
-      console.log('🔄 Update data:', JSON.stringify(updateData, null, 2));
-
-      // Dynamické vytvorenie SET klauzuly
-      const setFields: string[] = [];
-      const values: any[] = [];
-      let paramIndex = 1;
-
-      // Mapovanie polí
-      const fieldMappings: { [key: string]: string } = {
-        vehicleImages: 'vehicle_images_urls',
-        vehicleVideos: 'vehicle_videos_urls',
-        documentImages: 'document_images_urls',
-        documentVideos: 'document_videos_urls',
-        damageImages: 'damage_images_urls',
-        damageVideos: 'damage_videos_urls',
-        damages: 'damages',
-        newDamages: 'new_damages',
-        signatures: 'signatures',
-        rentalData: 'rental_data',
-        pdfUrl: 'pdf_url',
-        emailSent: 'email_sent',
-        notes: 'notes',
-        location: 'location',
-        status: 'status',
-        completedAt: 'completed_at',
-        kilometersUsed: 'kilometers_used',
-        kilometerOverage: 'kilometer_overage',
-        kilometerFee: 'kilometer_fee',
-        fuelUsed: 'fuel_used',
-        fuelFee: 'fuel_fee',
-        totalExtraFees: 'total_extra_fees',
-        depositRefund: 'deposit_refund',
-        additionalCharges: 'additional_charges',
-        finalRefund: 'final_refund'
-      };
-
-      for (const [key, value] of Object.entries(updateData)) {
-        if (fieldMappings[key]) {
-          setFields.push(`${fieldMappings[key]} = $${paramIndex}`);
-          
-          // Špeciálne spracovanie pre JSON polia
-          if (['vehicleImages', 'vehicleVideos', 'documentImages', 'documentVideos', 'damageImages', 'damageVideos', 'damages', 'newDamages', 'signatures', 'rentalData'].includes(key)) {
-            values.push(JSON.stringify(value));
-          } else if (key === 'completedAt' && value) {
-            values.push(new Date(value as string | number | Date));
-          } else {
-            values.push(value);
-          }
-          paramIndex++;
-        }
-      }
-
-      if (setFields.length === 0) {
-        throw new Error('Žiadne platné polia na aktualizáciu');
-      }
-
-      // Pridanie updated_at
-      setFields.push('updated_at = CURRENT_TIMESTAMP');
-
-      const query = `
-        UPDATE return_protocols 
-        SET ${setFields.join(', ')}
-        WHERE id = $${paramIndex}::uuid
-        RETURNING *
-      `;
-      values.push(id);
-
-      console.log('🔄 Update query:', query);
-      console.log('🔄 Update values:', values);
-
-      const result = await client.query(query, values);
-
-      if (result.rows.length === 0) {
-        throw new Error('Protokol nebol nájdený');
-      }
-
-      const updatedProtocol = this.mapReturnProtocolFromDB(result.rows[0]);
-      console.log('✅ Return protocol updated successfully');
-      
-      return updatedProtocol;
-
-    } catch (error) {
-      console.error('❌ Error updating return protocol:', error);
       throw error;
     } finally {
       client.release();
