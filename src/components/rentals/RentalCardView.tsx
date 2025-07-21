@@ -551,16 +551,16 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
   const getGridSize = () => {
     switch (viewMode) {
       case 'compact':
-        return { xs: 12, sm: 6, md: 4, lg: 3 };
+        return { xs: 12, sm: 6, md: 4, lg: 3, xl: 2 };
       case 'detailed':
-        return { xs: 12, sm: 6, md: 6, lg: 4 };
+        return { xs: 12, sm: 12, md: 6, lg: 4, xl: 3 };
       default:
-        return { xs: 12, sm: 6, md: 4, lg: 3 };
+        return { xs: 12, sm: 6, md: 4, lg: 3, xl: 2 };
     }
   };
 
   return (
-    <Grid container spacing={2}>
+    <Grid container spacing={{ xs: 1, md: 2 }}>
       {rentals.map((rental) => (
         <Grid item key={rental.id} {...getGridSize()}>
           {renderCard(rental)}

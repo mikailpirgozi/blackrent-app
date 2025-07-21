@@ -152,7 +152,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
     <Box sx={{ 
       bgcolor: 'background.paper', 
       borderRadius: 2, 
-      p: 3, 
+      p: { xs: 2, md: 3 }, 
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       border: '1px solid',
       borderColor: 'divider'
@@ -160,15 +160,26 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
       {/* Header */}
       <Box sx={{ 
         display: 'flex', 
-        alignItems: 'center', 
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'stretch', sm: 'center' }, 
         justifyContent: 'space-between', 
-        mb: 3 
+        mb: 3,
+        gap: { xs: 2, sm: 0 }
       }}>
-        <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography variant="h6" sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          fontSize: { xs: '1.1rem', md: '1.25rem' }
+        }}>
           <FilterListIcon color="primary" />
           Rozšírené filtre
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 1,
+          justifyContent: { xs: 'center', sm: 'flex-end' }
+        }}>
           <Tooltip title="Uložiť preset">
             <IconButton size="small" onClick={onSavePreset} color="primary">
               <SaveIcon />
@@ -184,10 +195,19 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
 
       {/* Rýchle filtre */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+        <Typography variant="subtitle2" sx={{ 
+          mb: 2, 
+          fontWeight: 600,
+          fontSize: { xs: '0.875rem', md: '1rem' }
+        }}>
           Rýchle filtre
         </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: { xs: 0.5, md: 1 },
+          justifyContent: { xs: 'center', md: 'flex-start' }
+        }}>
           <Chip
             label="Dnes"
             onClick={() => handleQuickFilter('today', 'today')}

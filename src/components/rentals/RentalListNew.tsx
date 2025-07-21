@@ -1424,19 +1424,44 @@ export default function RentalList() {
     <Box>
       {/* Enhanced Header */}
       <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', md: 'row' },
+            justifyContent: 'space-between', 
+            alignItems: { xs: 'stretch', md: 'center' },
+            gap: { xs: 2, md: 0 }
+          }}>
             <Box>
-              <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
+              <Typography variant="h4" fontWeight="bold" sx={{ 
+                mb: 1,
+                fontSize: { xs: '1.75rem', md: '2.125rem' }
+              }}>
                 Prenájmy
               </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.9 }}>
+              <Typography variant="body1" sx={{ 
+                opacity: 0.9,
+                fontSize: { xs: '0.875rem', md: '1rem' }
+              }}>
                 Správa a prehľad všetkých prenájmov vozidiel
               </Typography>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box sx={{ textAlign: 'right', mr: 2 }}>
-                <Box sx={{ display: 'flex', gap: 3 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'stretch', sm: 'center' }, 
+              gap: 2 
+            }}>
+              <Box sx={{ 
+                textAlign: { xs: 'center', md: 'right' }, 
+                mr: { xs: 0, md: 2 },
+                mb: { xs: 2, md: 0 }
+              }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: { xs: 2, md: 3 },
+                  justifyContent: { xs: 'center', md: 'flex-end' }
+                }}>
                   <Box>
                     <Typography variant="h6" fontWeight="bold">
                       {filteredRentals.length}
@@ -1497,19 +1522,19 @@ export default function RentalList() {
         boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
         border: '1px solid rgba(0,0,0,0.06)'
       }}>
-        <CardContent sx={{ p: 3 }}>
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
           {/* Hlavný riadok s vyhľadávaním a tlačidlami */}
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, alignItems: { xs: 'stretch', md: 'center' }, mb: 2 }}>
             {/* Search Input */}
-            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 250 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', flex: { xs: 'none', md: 1 }, minWidth: { xs: '100%', md: 250 } }}>
               <TextField
                 placeholder="Hľadať prenájmy..."
                 variant="outlined"
                 size="small"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
+                fullWidth
                 sx={{
-                  flex: 1,
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
                     backgroundColor: 'background.default',
@@ -1536,82 +1561,104 @@ export default function RentalList() {
               />
             </Box>
 
-            {/* View Mode Toggle */}
-            <RentalViewToggle
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              totalCount={rentals.length}
-              filteredCount={filteredRentals.length}
-              showCounts={true}
-            />
+            {/* Tlačidlá v riadku na mobile, vedľa seba na desktop */}
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'row', md: 'row' }, 
+              gap: 1, 
+              flexWrap: 'wrap',
+              justifyContent: { xs: 'space-between', md: 'flex-start' }
+            }}>
+              {/* View Mode Toggle */}
+              <RentalViewToggle
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                totalCount={rentals.length}
+                filteredCount={filteredRentals.length}
+                showCounts={false}
+              />
 
-            {/* Filter Button */}
-            <Button
-              variant="outlined"
-              startIcon={<FilterListIcon />}
-              onClick={() => setShowFilters(!showFilters)}
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 500,
-                transition: 'all 0.3s ease',
-                borderColor: showFilters ? 'primary.main' : 'rgba(0,0,0,0.23)',
-                bgcolor: showFilters ? 'primary.main' : 'transparent',
-                color: showFilters ? 'white' : 'inherit',
-                '&:hover': {
-                  bgcolor: showFilters ? 'primary.dark' : 'rgba(0,0,0,0.04)',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }
-              }}
-            >
-              Základné filtre {showFilters ? '▼' : '▶'}
-            </Button>
+              {/* Filter Button */}
+              <Button
+                variant="outlined"
+                startIcon={<FilterListIcon />}
+                onClick={() => setShowFilters(!showFilters)}
+                size="small"
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  transition: 'all 0.3s ease',
+                  borderColor: showFilters ? 'primary.main' : 'rgba(0,0,0,0.23)',
+                  bgcolor: showFilters ? 'primary.main' : 'transparent',
+                  color: showFilters ? 'white' : 'inherit',
+                  fontSize: { xs: '0.75rem', md: '0.875rem' },
+                  px: { xs: 1, md: 2 },
+                  '&:hover': {
+                    bgcolor: showFilters ? 'primary.dark' : 'rgba(0,0,0,0.04)',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  }
+                }}
+              >
+                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Základné filtre</Box>
+                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>Filtre</Box>
+                {showFilters ? '▼' : '▶'}
+              </Button>
 
-            {/* Advanced Filters Button */}
-            <Button
-              variant="outlined"
-              startIcon={<FilterListIcon />}
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 500,
-                transition: 'all 0.3s ease',
-                borderColor: showAdvancedFilters ? 'secondary.main' : 'rgba(0,0,0,0.23)',
-                bgcolor: showAdvancedFilters ? 'secondary.main' : 'transparent',
-                color: showAdvancedFilters ? 'white' : 'inherit',
-                '&:hover': {
-                  bgcolor: showAdvancedFilters ? 'secondary.dark' : 'rgba(0,0,0,0.04)',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }
-              }}
-            >
-              Rozšírené filtre {showAdvancedFilters ? '▼' : '▶'}
-            </Button>
+              {/* Advanced Filters Button */}
+              <Button
+                variant="outlined"
+                startIcon={<FilterListIcon />}
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                size="small"
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  transition: 'all 0.3s ease',
+                  borderColor: showAdvancedFilters ? 'secondary.main' : 'rgba(0,0,0,0.23)',
+                  bgcolor: showAdvancedFilters ? 'secondary.main' : 'transparent',
+                  color: showAdvancedFilters ? 'white' : 'inherit',
+                  fontSize: { xs: '0.75rem', md: '0.875rem' },
+                  px: { xs: 1, md: 2 },
+                  '&:hover': {
+                    bgcolor: showAdvancedFilters ? 'secondary.dark' : 'rgba(0,0,0,0.04)',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  }
+                }}
+              >
+                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Rozšírené filtre</Box>
+                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>Rozšírené</Box>
+                {showAdvancedFilters ? '▼' : '▶'}
+              </Button>
 
-            {/* Reset Button */}
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={resetAllFilters}
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 500,
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  bgcolor: 'error.light',
-                  color: 'white',
-                  borderColor: 'error.main',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }
-              }}
-            >
-              Reset
-            </Button>
+              {/* Reset Button */}
+              <Button
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={resetAllFilters}
+                size="small"
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  transition: 'all 0.3s ease',
+                  fontSize: { xs: '0.75rem', md: '0.875rem' },
+                  px: { xs: 1, md: 2 },
+                  '&:hover': {
+                    bgcolor: 'error.light',
+                    color: 'white',
+                    borderColor: 'error.main',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  }
+                }}
+              >
+                Reset
+              </Button>
+            </Box>
           </Box>
 
           {/* Search results info */}

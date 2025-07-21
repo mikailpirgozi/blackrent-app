@@ -88,13 +88,13 @@ const RentalViewToggle: React.FC<RentalViewToggleProps> = ({
     <Box sx={{ 
       display: 'flex', 
       alignItems: 'center', 
-      gap: 2,
+      gap: { xs: 1, md: 2 },
       flexWrap: 'wrap'
     }}>
       {/* Počty */}
       {showCounts && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
             Zobrazených:
           </Typography>
           <Chip
@@ -102,6 +102,7 @@ const RentalViewToggle: React.FC<RentalViewToggleProps> = ({
             size="small"
             color={filteredCount < totalCount ? 'primary' : 'default'}
             variant={filteredCount < totalCount ? 'filled' : 'outlined'}
+            sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}
           />
         </Box>
       )}
@@ -121,8 +122,10 @@ const RentalViewToggle: React.FC<RentalViewToggleProps> = ({
             border: '1px solid',
             borderColor: 'divider',
             borderRadius: 2,
-            px: 2,
-            py: 1,
+            px: { xs: 1, md: 2 },
+            py: { xs: 0.5, md: 1 },
+            minWidth: { xs: 40, md: 'auto' },
+            height: { xs: 40, md: 'auto' },
             transition: 'all 0.3s ease',
             '&:hover': {
               bgcolor: 'action.hover',
@@ -150,10 +153,12 @@ const RentalViewToggle: React.FC<RentalViewToggleProps> = ({
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                gap: 1,
+                gap: { xs: 0, md: 1 },
                 flexDirection: isMobile ? 'column' : 'row'
               }}>
-                {mode.icon}
+                <Box sx={{ fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
+                  {mode.icon}
+                </Box>
                 {!isMobile && (
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
                     {mode.label}
