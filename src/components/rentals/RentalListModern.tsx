@@ -476,11 +476,7 @@ export default function RentalListModern() {
   const handleDeleteProtocol = async (rentalId: string, type: 'handover' | 'return') => {
     if (window.confirm(`Naozaj chcete zmazať protokol ${type === 'handover' ? 'prevzatia' : 'vrátenia'}?`)) {
       try {
-        if (type === 'handover') {
-          await apiService.deleteHandoverProtocol(protocols[rentalId]?.handover?.id);
-        } else {
-          await apiService.deleteReturnProtocol(protocols[rentalId]?.return?.id);
-        }
+        await apiService.deleteProtocol(protocols[rentalId]?.[type]?.id, type);
         
         setProtocols(prev => ({
           ...prev,
