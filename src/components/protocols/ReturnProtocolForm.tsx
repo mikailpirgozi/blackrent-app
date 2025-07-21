@@ -695,9 +695,9 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       <ImageGalleryModal
         open={galleryOpen}
         onClose={() => setGalleryOpen(false)}
-        images={getAllMediaForGallery().images}
-        videos={getAllMediaForGallery().videos}
-        title={`Galéria vratného protokolu - ${rental.customerName}`}
+        protocolId={protocol.id || 'temp-id'}
+        protocolType="return"
+        directMedia={getAllMediaForGallery()}
       />
     </Box>
   );

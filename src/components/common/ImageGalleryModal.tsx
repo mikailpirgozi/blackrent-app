@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
+  DialogTitle,
   DialogContent,
   IconButton,
-  Typography,
   Box,
+  Typography,
   Chip,
+  Grid,
   Button,
   useTheme,
   useMediaQuery,
@@ -14,28 +16,35 @@ import {
   Close,
   NavigateBefore,
   NavigateNext,
-  Download,
-  ZoomIn,
-  ZoomOut,
   Fullscreen,
   FullscreenExit,
+  ZoomIn,
+  ZoomOut,
+  RotateLeft,
+  RotateRight,
+  Download,
+  PhotoLibrary,
 } from '@mui/icons-material';
 import { ProtocolImage, ProtocolVideo } from '../../types';
 
 interface ImageGalleryModalProps {
   open: boolean;
   onClose: () => void;
-  images: ProtocolImage[];
-  videos: ProtocolVideo[];
-  title?: string;
+  protocolId: string;
+  protocolType: 'handover' | 'return';
+  // ✅ PRIDANÉ: Priame médiá z protokolu
+  directMedia?: {
+    images: ProtocolImage[];
+    videos: ProtocolVideo[];
+  };
 }
 
 export default function ImageGalleryModal({
   open,
   onClose,
-  images,
-  videos,
-  title = 'Galéria médií'
+  protocolId,
+  protocolType,
+  directMedia
 }: ImageGalleryModalProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -50,9 +59,14 @@ export default function ImageGalleryModal({
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [retryCount, setRetryCount] = useState<Record<string, number>>({});
   
-  const allMedia = [...images, ...videos];
-  const currentMedia = allMedia[currentIndex];
-  
+  // ✅ Pridané stavy pre načítanie z API (fallback)
+  const [apiMedia, setApiMedia] = useState<{
+    images: ProtocolImage[];
+    videos: ProtocolVideo[];
+  }>({ images: [], videos: [] });
+  const [loadingFromApi, setLoadingFromApi] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -76,35 +90,137 @@ export default function ImageGalleryModal({
       const retries = retryCount[url] || 0;
       if (retries < 2) {
         setRetryCount(prev => ({ ...prev, [url]: retries + 1 }));
-        // Skús načítať opravenú URL
+        // Retry s opraveným URL
         setTimeout(() => {
-          const img = new Image();
-          img.onload = () => {
-            setImageErrors(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(url);
-              return newSet;
-            });
-          };
-          img.src = fixedUrl;
+          setImageErrors(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(url);
+            return newSet;
+          });
         }, 1000);
       }
     }
   };
 
-  // ✅ Funkcia na získanie správnej URL
+  // ✅ Funkcia na získanie URL pre obrázok
   const getImageUrl = (media: ProtocolImage | ProtocolVideo): string => {
-    const originalUrl = media.url;
-    
-    // Ak je obrázok v errore, skús opravenú URL
-    if (imageErrors.has(originalUrl)) {
-      return fixR2Url(originalUrl);
+    const url = media.url;
+    if (imageErrors.has(url)) {
+      return fixR2Url(url);
     }
-    
-    return originalUrl;
+    return url;
   };
 
-  // Touch gestures pre mobile
+  // ✅ Načítanie médií z API (fallback)
+  const loadMediaFromApi = async () => {
+    if (directMedia && (directMedia.images.length > 0 || directMedia.videos.length > 0)) {
+      console.log('📸 Using direct media from protocol');
+      return;
+    }
+
+    console.log('📸 Trying to load media from API...');
+    setLoadingFromApi(true);
+    setApiError(null);
+
+    try {
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+
+      const response = await fetch(`${apiBaseUrl}/protocols/media/${protocolId}?type=${protocolType}`, {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('📥 API media loaded:', result);
+
+      if (result.success) {
+        setApiMedia({
+          images: result.images || [],
+          videos: result.videos || []
+        });
+      } else {
+        setApiError(result.error || 'Failed to load media');
+      }
+    } catch (error) {
+      console.error('❌ Error loading media from API:', error);
+      setApiError(error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setLoadingFromApi(false);
+    }
+  };
+
+  // ✅ Získanie všetkých médií (priorita: directMedia > apiMedia)
+  const getAllMedia = () => {
+    if (directMedia && (directMedia.images.length > 0 || directMedia.videos.length > 0)) {
+      return {
+        images: directMedia.images,
+        videos: directMedia.videos
+      };
+    }
+    return apiMedia;
+  };
+
+  const allMedia = getAllMedia();
+  const currentMedia = allMedia.images[currentIndex] || allMedia.videos[currentIndex - allMedia.images.length];
+
+  useEffect(() => {
+    if (open) {
+      loadMediaFromApi();
+    }
+  }, [open, protocolId, protocolType, directMedia]);
+
+  useEffect(() => {
+    if (open && allMedia.images.length + allMedia.videos.length === 0) {
+      loadMediaFromApi();
+    }
+  }, [open, allMedia.images.length, allMedia.videos.length]);
+
+  const handlePrevious = () => {
+    setCurrentIndex(prev => 
+      prev === 0 ? allMedia.images.length + allMedia.videos.length - 1 : prev - 1
+    );
+  };
+
+  const handleNext = () => {
+    setCurrentIndex(prev => 
+      prev === allMedia.images.length + allMedia.videos.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (!open) return;
+    
+    switch (event.key) {
+      case 'ArrowLeft':
+        handlePrevious();
+        break;
+      case 'ArrowRight':
+        handleNext();
+        break;
+      case 'Escape':
+        onClose();
+        break;
+      case '+':
+      case '=':
+        setZoom(prev => Math.min(prev + 0.25, 3));
+        break;
+      case '-':
+        setZoom(prev => Math.max(prev - 0.25, 0.5));
+        break;
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX);
   };
@@ -120,377 +236,301 @@ export default function ImageGalleryModal({
     const isLeftSwipe = distance > 50;
     const isRightSwipe = distance < -50;
 
-    if (isLeftSwipe && currentIndex < allMedia.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else if (isRightSwipe && currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+    if (isLeftSwipe) {
+      handleNext();
+    } else if (isRightSwipe) {
+      handlePrevious();
     }
 
     setTouchStart(null);
     setTouchEnd(null);
   };
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!open) return;
-      
-      switch (e.key) {
-        case 'ArrowLeft':
-          if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
-          break;
-        case 'ArrowRight':
-          if (currentIndex < allMedia.length - 1) setCurrentIndex(currentIndex + 1);
-          break;
-        case 'Escape':
-          onClose();
-          break;
-        case 'f':
-          setIsFullscreen(!isFullscreen);
-          break;
-        case '+':
-        case '=':
-          setZoom(Math.min(zoom + 0.2, 3));
-          break;
-        case '-':
-          setZoom(Math.max(zoom - 0.2, 0.5));
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, currentIndex, allMedia.length, onClose, isFullscreen, zoom]);
-
-  // Reset zoom when changing media
-  useEffect(() => {
-    setZoom(1);
-  }, [currentIndex]);
-
-  const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentIndex < allMedia.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (!currentMedia) return;
     
-    try {
-      const response = await fetch(currentMedia.url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${currentMedia.type}_${new Date(currentMedia.timestamp).toISOString().split('T')[0]}.${currentMedia.url.includes('video') ? 'mp4' : 'jpg'}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Chyba pri sťahovaní:', error);
-    }
+    const link = document.createElement('a');
+    link.href = getImageUrl(currentMedia);
+         link.download = `protocol-media-${currentIndex + 1}.${'url' in currentMedia && currentMedia.url.includes('video') ? 'mp4' : 'jpg'}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-  };
+  const totalMedia = allMedia.images.length + allMedia.videos.length;
 
-  const resetZoom = () => {
-    setZoom(1);
-  };
-
-  if (!currentMedia) return null;
+  if (!open) return null;
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
       maxWidth={false}
-      fullWidth
       fullScreen={isFullscreen}
       PaperProps={{
         sx: {
-          backgroundColor: 'rgba(0, 0, 0, 0.95)',
-          color: 'white',
-          minHeight: isFullscreen ? '100vh' : '80vh',
+          width: isFullscreen ? '100vw' : '90vw',
+          height: isFullscreen ? '100vh' : '90vh',
+          maxWidth: 'none',
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
         }
       }}
     >
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          p: 2,
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        }}
-      >
-        <Typography variant="h6" sx={{ color: 'white' }}>
-          {title} ({currentIndex + 1} / {allMedia.length})
-        </Typography>
-        
+      <DialogTitle sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        color: 'white',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <PhotoLibrary />
+          <Typography variant="h6">
+            Galéria protokolu ({totalMedia} médií)
+          </Typography>
+          {loadingFromApi && (
+            <Chip label="Načítavam..." size="small" color="primary" />
+          )}
+          {apiError && (
+            <Chip label="Chyba načítania" size="small" color="error" />
+          )}
+        </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Chip 
-            label={currentMedia.type} 
-            size="small" 
-            sx={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
-          />
-          <IconButton onClick={toggleFullscreen} sx={{ color: 'white' }}>
+          <IconButton onClick={() => setIsFullscreen(!isFullscreen)} color="inherit">
             {isFullscreen ? <FullscreenExit /> : <Fullscreen />}
           </IconButton>
-          <IconButton onClick={onClose} sx={{ color: 'white' }}>
+          <IconButton onClick={onClose} color="inherit">
             <Close />
           </IconButton>
         </Box>
-      </Box>
+      </DialogTitle>
 
-      {/* Content */}
-      <DialogContent
-        sx={{
-          p: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: isFullscreen ? 'calc(100vh - 120px)' : '60vh',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-        ref={containerRef}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Navigation arrows */}
-        {!isMobile && (
-          <>
-            <IconButton
-              onClick={handlePrevious}
-              disabled={currentIndex === 0}
-              sx={{
-                position: 'absolute',
-                left: 16,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                color: 'white',
-                '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
-                '&.Mui-disabled': { opacity: 0.3 }
-              }}
-            >
-              <NavigateBefore />
-            </IconButton>
-            
-            <IconButton
-              onClick={handleNext}
-              disabled={currentIndex === allMedia.length - 1}
-              sx={{
-                position: 'absolute',
-                right: 16,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                color: 'white',
-                '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
-                '&.Mui-disabled': { opacity: 0.3 }
-              }}
-            >
-              <NavigateNext />
-            </IconButton>
-          </>
-        )}
-
-        {/* Media content */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
+      <DialogContent sx={{ 
+        p: 0, 
+        display: 'flex', 
+        flexDirection: 'column',
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        color: 'white'
+      }}>
+        {totalMedia === 0 ? (
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
             height: '100%',
-            transform: `scale(${zoom})`,
-            transition: 'transform 0.2s ease-in-out',
-          }}
-        >
-          {currentMedia.url.includes('video') ? (
-            <video
-              ref={videoRef}
-              src={currentMedia.url}
-              controls
-              autoPlay
-              loop
-              muted
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-              }}
-            />
-          ) : (
-            <img
-              ref={imageRef}
-              src={getImageUrl(currentMedia)}
-              alt={`${currentMedia.type} - ${currentMedia.description}`}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                userSelect: 'none',
-              }}
-              onError={() => handleImageError(currentMedia.url)}
-            />
-          )}
-        </Box>
-
-        {/* Media info */}
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: 16,
-            left: 16,
-            right: 16,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            borderRadius: 1,
-            p: 2,
-          }}
-        >
-          <Typography variant="body2" sx={{ color: 'white', mb: 1 }}>
-            {currentMedia.description || `${currentMedia.type} - ${new Date(currentMedia.timestamp).toLocaleString('sk-SK')}`}
-          </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Chip 
-              label={`${currentMedia.type}`} 
-              size="small" 
-              sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'white' }}
-            />
-            {currentMedia.compressed && (
-              <Chip 
-                label="Komprimované" 
-                size="small" 
-                sx={{ backgroundColor: 'rgba(0, 255, 0, 0.2)', color: 'white' }}
-              />
+            gap: 2
+          }}>
+            <PhotoLibrary sx={{ fontSize: 64, opacity: 0.5 }} />
+            <Typography variant="h6" color="text.secondary">
+              {loadingFromApi ? 'Načítavam médiá...' : 'Žiadne médiá neboli nájdené'}
+            </Typography>
+            {apiError && (
+              <Typography variant="body2" color="error">
+                {apiError}
+              </Typography>
             )}
-            {currentMedia.originalSize && currentMedia.compressedSize && (
-              <Chip 
-                label={`${Math.round((currentMedia.originalSize - currentMedia.compressedSize) / currentMedia.originalSize * 100)}% úspora`}
-                size="small" 
-                sx={{ backgroundColor: 'rgba(0, 255, 0, 0.2)', color: 'white' }}
-              />
-            )}
-          </Box>
-        </Box>
-      </DialogContent>
-
-      {/* Controls */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: 2,
-          p: 2,
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        }}
-      >
-        <Button
-          variant="outlined"
-          startIcon={<ZoomOut />}
-          onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
-          sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
-        >
-          Zmenšiť
-        </Button>
-        
-        <Button
-          variant="outlined"
-          onClick={resetZoom}
-          sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
-        >
-          {Math.round(zoom * 100)}%
-        </Button>
-        
-        <Button
-          variant="outlined"
-          startIcon={<ZoomIn />}
-          onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
-          sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
-        >
-          Zväčšiť
-        </Button>
-        
-        <Button
-          variant="contained"
-          startIcon={<Download />}
-          onClick={handleDownload}
-          sx={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
-        >
-          Stiahnuť
-        </Button>
-      </Box>
-
-      {/* Thumbnail navigation */}
-      {allMedia.length > 1 && (
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1,
-            p: 2,
-            overflowX: 'auto',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          }}
-        >
-          {allMedia.map((media, index) => (
-            <Box
-              key={media.id}
-              onClick={() => setCurrentIndex(index)}
-              sx={{
-                width: 60,
-                height: 60,
-                borderRadius: 1,
-                overflow: 'hidden',
-                cursor: 'pointer',
-                border: index === currentIndex ? '2px solid white' : '2px solid transparent',
-                opacity: index === currentIndex ? 1 : 0.7,
-                '&:hover': { opacity: 1 },
-                flexShrink: 0,
-              }}
+            <Button 
+              variant="outlined" 
+              onClick={loadMediaFromApi}
+              disabled={loadingFromApi}
             >
-              {media.url.includes('video') ? (
-                <video
-                  src={media.url}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                />
-              ) : (
-                <img
-                  src={getImageUrl(media)}
-                  alt={`Thumbnail ${index + 1}`}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                  onError={() => handleImageError(media.url)}
-                />
+              Skúsiť znovu
+            </Button>
+          </Box>
+        ) : (
+          <>
+            {/* Main media display */}
+            <Box 
+              ref={containerRef}
+              sx={{ 
+                flex: 1, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {/* Navigation buttons */}
+              <IconButton
+                onClick={handlePrevious}
+                sx={{
+                  position: 'absolute',
+                  left: 16,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  color: 'white',
+                  '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' }
+                }}
+              >
+                <NavigateBefore />
+              </IconButton>
+
+              <IconButton
+                onClick={handleNext}
+                sx={{
+                  position: 'absolute',
+                  right: 16,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  color: 'white',
+                  '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' }
+                }}
+              >
+                <NavigateNext />
+              </IconButton>
+
+              {/* Media content */}
+              {currentMedia && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  width: '100%',
+                  height: '100%',
+                  transform: `scale(${zoom})`,
+                  transition: 'transform 0.3s ease'
+                }}>
+                  {'url' in currentMedia && currentMedia.url.includes('video') ? (
+                    <video
+                      ref={videoRef}
+                      src={getImageUrl(currentMedia)}
+                      controls
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                      }}
+                    />
+                  ) : (
+                    <img
+                      ref={imageRef}
+                      src={getImageUrl(currentMedia)}
+                      alt={`${currentMedia.type} - ${currentMedia.description}`}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        userSelect: 'none',
+                      }}
+                      onError={() => handleImageError(currentMedia.url)}
+                    />
+                  )}
+                </Box>
               )}
             </Box>
-          ))}
-        </Box>
-      )}
+
+            {/* Controls */}
+            <Box sx={{ 
+              p: 2, 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <IconButton onClick={() => setZoom(prev => Math.max(prev - 0.25, 0.5))} color="inherit">
+                  <ZoomOut />
+                </IconButton>
+                <Typography variant="body2">
+                  {Math.round(zoom * 100)}%
+                </Typography>
+                <IconButton onClick={() => setZoom(prev => Math.min(prev + 0.25, 3))} color="inherit">
+                  <ZoomIn />
+                </IconButton>
+                <IconButton onClick={() => setZoom(1)} color="inherit">
+                  Reset
+                </IconButton>
+              </Box>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2">
+                  {currentIndex + 1} z {totalMedia}
+                </Typography>
+                <IconButton onClick={handleDownload} color="inherit">
+                  <Download />
+                </IconButton>
+              </Box>
+            </Box>
+
+            {/* Thumbnails */}
+            <Box sx={{ 
+              p: 2, 
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              maxHeight: 120,
+              overflow: 'auto'
+            }}>
+              <Grid container spacing={1}>
+                {allMedia.images.map((media, index) => (
+                  <Grid item key={media.id}>
+                    <Box
+                      sx={{
+                        width: 80,
+                        height: 60,
+                        border: currentIndex === index ? '2px solid #1976d2' : '1px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        '&:hover': { borderColor: '#1976d2' }
+                      }}
+                      onClick={() => setCurrentIndex(index)}
+                    >
+                      <img
+                        src={getImageUrl(media)}
+                        alt={`Thumbnail ${index + 1}`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                        onError={() => handleImageError(media.url)}
+                      />
+                    </Box>
+                  </Grid>
+                ))}
+                {allMedia.videos.map((media, index) => (
+                  <Grid item key={media.id}>
+                    <Box
+                      sx={{
+                        width: 80,
+                        height: 60,
+                        border: currentIndex === allMedia.images.length + index ? '2px solid #1976d2' : '1px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        '&:hover': { borderColor: '#1976d2' }
+                      }}
+                      onClick={() => setCurrentIndex(allMedia.images.length + index)}
+                    >
+                      <Box sx={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        backgroundImage: `url(${getImageUrl(media)})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Typography variant="caption" sx={{ color: 'white', textShadow: '1px 1px 2px black' }}>
+                          VIDEO
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          </>
+        )}
+      </DialogContent>
     </Dialog>
   );
 } 

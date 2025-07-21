@@ -1162,9 +1162,9 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       <ImageGalleryModal
         open={galleryOpen}
         onClose={() => setGalleryOpen(false)}
-        images={getAllMediaForGallery().images}
-        videos={getAllMediaForGallery().videos}
-        title={`Galéria protokolu - ${rental.customerName}`}
+        protocolId={protocolId}
+        protocolType="handover"
+        directMedia={getAllMediaForGallery()}
       />
     </Box>
   );
