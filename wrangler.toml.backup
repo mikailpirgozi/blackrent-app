@@ -3,7 +3,7 @@ main = "cloudflare-worker.js"
 compatibility_date = "2024-01-01"
 
 [vars]
-R2_PUBLIC_URL = "https://pub-4fec120a8a6a4a0cbadfa55f54b7e8a2.r2.dev"
+R2_PUBLIC_URL = "https://blackrent-storage.9ccdca0d876e24bd9acefabe56f94f53.r2.dev"
 
 [[r2_buckets]]
 binding = "R2_BUCKET"
