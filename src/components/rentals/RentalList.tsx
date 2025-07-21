@@ -48,6 +48,8 @@ import {
   Assignment as HandoverProtocolIcon,
   AssignmentReturn as ReturnProtocolIcon,
   AssignmentTurnedIn as ProtocolCompleteIcon,
+  Search as SearchIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { Rental, PaymentMethod, Vehicle } from '../../types';
@@ -1201,6 +1203,52 @@ export default function RentalList() {
           </Button>
         )}
       </TableCell>
+      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+        {rental.handoverProtocolId ? (
+          <Chip
+            label="Vytvorený"
+            color="success"
+            size="small"
+            icon={<HandoverProtocolIcon />}
+            title="Preberací protokol je vytvorený"
+          />
+        ) : (
+          <Chip
+            label="Chýba"
+            color="error"
+            size="small"
+            variant="outlined"
+            title="Preberací protokol nie je vytvorený"
+          />
+        )}
+      </TableCell>
+      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+        {rental.returnProtocolId ? (
+          <Chip
+            label="Vytvorený"
+            color="success"
+            size="small"
+            icon={<ReturnProtocolIcon />}
+            title="Vratný protokol je vytvorený"
+          />
+        ) : rental.handoverProtocolId ? (
+          <Chip
+            label="Chýba"
+            color="warning"
+            size="small"
+            variant="outlined"
+            title="Vratný protokol nie je vytvorený"
+          />
+        ) : (
+          <Chip
+            label="Čaká na preberací"
+            color="default"
+            size="small"
+            variant="outlined"
+            title="Najprv treba vytvoriť preberací protokol"
+          />
+        )}
+      </TableCell>
       <TableCell>
         <IconButton
           size="small"
@@ -1418,23 +1466,84 @@ export default function RentalList() {
         <Box sx={{ color: 'error.main', mb: 2 }}>{importError}</Box>
       )}
 
-      {/* Vyhľadávacie pole */}
-      <Box sx={{ display: 'flex', justifyContent: isMobile ? 'stretch' : 'flex-end', mb: 2 }}>
-        <TextField
-          label={isMobile ? "Vyhľadávanie..." : "Rýchle vyhľadávanie (zákazník, ŠPZ, firma)"}
-          variant="outlined"
-          size="small"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          sx={{ 
-            minWidth: isMobile ? '100%' : 320,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: isMobile ? 2 : 1
-            }
-          }}
-          placeholder={isMobile ? "Zákazník, ŠPZ, firma..." : undefined}
-        />
-      </Box>
+      {/* Moderné vyhľadávanie a filtre */}
+      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <CardContent sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Search Input */}
+            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 250 }}>
+              <TextField
+                placeholder="Hľadať prenájmy..."
+                variant="outlined"
+                size="small"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                sx={{ 
+                  flex: 1,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: 'background.default',
+                    '&:hover': {
+                      backgroundColor: 'action.hover'
+                    }
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                      <SearchIcon fontSize="small" />
+                    </Box>
+                  )
+                }}
+              />
+            </Box>
+            
+            {/* Filter Button */}
+            <Button
+              variant="outlined"
+              startIcon={<FilterListIcon />}
+              onClick={() => setShowFiltersMobile((prev) => !prev)}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
+              Filtre
+            </Button>
+            
+            {/* Reset Button */}
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={() => {
+                setSearchQuery('');
+                setFilterVehicle('');
+                setFilterCompany('');
+                setFilterCustomer('');
+                setFilterPaymentMethod('');
+                setFilterDateFrom('');
+                setFilterDateTo('');
+                setGroupBy('');
+                setShowActive(true);
+                setShowTodayReturns(true);
+                setShowTomorrowReturns(true);
+                setShowUnconfirmed(true);
+                setShowFuture(true);
+                setShowOldConfirmed(true);
+                setShowAll(true);
+              }}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
+              Reset
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
 
       {/* Zaškrtávacie políčka - na desktope len 'Všetky prenájmy', na mobile všetky */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
@@ -2014,6 +2123,8 @@ export default function RentalList() {
                     <TableCell sx={{ width: { xs: '80px', md: '100px' }, display: { xs: 'none', sm: 'table-cell' } }}>Platba</TableCell>
                     <TableCell sx={{ width: '80px', display: { xs: 'none', lg: 'table-cell' } }}>Uhradené</TableCell>
                     <TableCell sx={{ width: '100px', display: { xs: 'none', lg: 'table-cell' } }}>Stav</TableCell>
+                    <TableCell sx={{ width: '120px', display: { xs: 'none', md: 'table-cell' } }}>Preberací protokol</TableCell>
+                    <TableCell sx={{ width: '120px', display: { xs: 'none', md: 'table-cell' } }}>Vratný protokol</TableCell>
                     <TableCell sx={{ width: { xs: '120px', md: '150px' } }}>Akcie</TableCell>
                   </TableRow>
                 </TableHead>
@@ -2022,7 +2133,7 @@ export default function RentalList() {
                     groupBy ? (
                       <React.Fragment key={groupKey}>
                         <TableRow>
-                          <TableCell colSpan={12} sx={{ backgroundColor: 'background.paper', position: 'sticky', left: 0, zIndex: 1 }}>
+                          <TableCell colSpan={14} sx={{ backgroundColor: 'background.paper', position: 'sticky', left: 0, zIndex: 1 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <IconButton
@@ -2369,7 +2480,7 @@ export default function RentalList() {
                 </TableBody>
                 <TableFooter>
                   <TableRow>
-                    <TableCell colSpan={6} sx={{ fontWeight: 'bold' }}>
+                    <TableCell colSpan={8} sx={{ fontWeight: 'bold' }}>
                       Súčet za zobrazené prenájmy ({filteredRentals.length}):
                     </TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>
@@ -2378,6 +2489,7 @@ export default function RentalList() {
                     <TableCell sx={{ fontWeight: 'bold', display: { xs: 'none', md: 'table-cell' } }}>
                       {filteredRentals.reduce((sum: number, r: Rental) => sum + (typeof r.commission === 'number' ? r.commission : parseFloat(r.commission) || 0), 0).toFixed(2)} €
                     </TableCell>
+                    <TableCell />
                     <TableCell />
                     <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }} />
                     <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }} />
