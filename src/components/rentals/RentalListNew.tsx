@@ -2116,6 +2116,7 @@ export default function RentalList() {
           onCreateReturn={handleCreateReturn}
           onViewPDF={handleViewPDF}
           onOpenGallery={handleOpenGallery}
+          onViewProtocols={handleViewProtocols}
           protocols={protocols}
           loadingProtocols={loadingProtocols}
         />

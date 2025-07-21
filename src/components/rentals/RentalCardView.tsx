@@ -34,7 +34,8 @@ import {
   TrendingUp as TrendingUpIcon,
   Speed as SpeedIcon,
   LocationOn as LocationIcon,
-  AccessTime as TimeIcon
+  AccessTime as TimeIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -51,6 +52,7 @@ interface RentalCardViewProps {
   onCreateReturn: (rental: Rental) => void;
   onViewPDF: (protocolId: string, type: 'handover' | 'return', title: string) => void;
   onOpenGallery: (rental: Rental, protocolType: 'handover' | 'return') => void;
+  onViewProtocols: (rental: Rental) => void;
   protocols: Record<string, { handover?: any; return?: any }>;
   loadingProtocols: string[];
 }
@@ -64,6 +66,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
   onCreateReturn,
   onViewPDF,
   onOpenGallery,
+  onViewProtocols,
   protocols,
   loadingProtocols
 }) => {
@@ -454,6 +457,19 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
           {/* Protocol actions for existing protocols */}
           {(hasHandover || hasReturn) && (
             <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<VisibilityIcon />}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  onViewProtocols(rental); 
+                }}
+                disabled={loadingProtocols.includes(rental.id)}
+                sx={{ flex: 1 }}
+              >
+                Zobraziť protokoly
+              </Button>
               {hasHandover && (
                 <Button
                   size="small"
@@ -495,6 +511,64 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                 >
                   Galéria
                 </Button>
+              )}
+            </Box>
+          )}
+
+          {/* Protocol details when loaded */}
+          {protocols[rental.id] && (
+            <Box sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                Detaily protokolov:
+              </Typography>
+              {hasHandover && (
+                <Box sx={{ mb: 1, p: 1, bgcolor: 'success.light', borderRadius: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 500, color: 'success.dark' }}>
+                    ✅ Preberací protokol
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Vytvorený: {format(new Date(hasHandover.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                  </Typography>
+                </Box>
+              )}
+              {hasReturn && (
+                <Box sx={{ mb: 1, p: 1, bgcolor: 'success.light', borderRadius: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 500, color: 'success.dark' }}>
+                    ✅ Protokol vrátenia
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Vytvorený: {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+
+          {/* Protocol details when loaded */}
+          {protocols[rental.id] && (
+            <Box sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+                Detaily protokolov:
+              </Typography>
+              {hasHandover && (
+                <Box sx={{ mb: 1, p: 0.5, bgcolor: 'success.light', borderRadius: 1 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'success.dark' }}>
+                    ✅ Preberací protokol
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
+                    {format(new Date(hasHandover.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                  </Typography>
+                </Box>
+              )}
+              {hasReturn && (
+                <Box sx={{ mb: 1, p: 0.5, bgcolor: 'success.light', borderRadius: 1 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'success.dark' }}>
+                    ✅ Protokol vrátenia
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
+                    {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                  </Typography>
+                </Box>
               )}
             </Box>
           )}
