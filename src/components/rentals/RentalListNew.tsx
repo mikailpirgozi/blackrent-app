@@ -341,10 +341,11 @@ export default function RentalList() {
   // Image gallery handlers - NOVÉ RIEŠENIE
   const handleOpenGallery = async (rental: Rental, protocolType: 'handover' | 'return') => {
     try {
-      console.log('🔍 Opening gallery for protocol:', protocolType, 'rental:', rental.id);
+      console.log('🖼️ Opening gallery for protocol:', protocolType, 'rental:', rental.id);
       
-      if (!protocols[rental.id]?.[protocolType]) {
-        console.log('📥 Loading protocol for gallery...');
+      // Načítanie protokolov ak nie sú k dispozícii
+      if (!protocols[rental.id]) {
+        console.log('📥 Loading protocols for rental:', rental.id);
         await loadProtocolsForRental(rental.id);
       }
       
@@ -355,6 +356,14 @@ export default function RentalList() {
       }
 
       console.log('🔍 Protocol found:', protocol);
+      console.log('🔍 Protocol media fields:', {
+        vehicleImages: protocol.vehicleImages,
+        documentImages: protocol.documentImages,
+        damageImages: protocol.damageImages,
+        vehicleVideos: protocol.vehicleVideos,
+        documentVideos: protocol.documentVideos,
+        damageVideos: protocol.damageVideos
+      });
 
       // ✅ PRIAMO Z DATABÁZY - žiadne brute-force
       const directMedia = {
@@ -370,10 +379,18 @@ export default function RentalList() {
         ]
       };
 
+      console.log('🔍 Direct media prepared:', directMedia);
+
       if (directMedia.images.length === 0 && directMedia.videos.length === 0) {
         alert('Nenašli sa žiadne obrázky pre tento protokol!');
         return;
       }
+      
+      console.log('✅ Setting gallery state:', {
+        directMedia,
+        protocolId: protocol.id,
+        protocolType
+      });
       
       setSelectedProtocolDirectMedia(directMedia);
       setSelectedProtocolId(protocol.id);
