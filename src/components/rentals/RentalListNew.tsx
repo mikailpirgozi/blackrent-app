@@ -381,6 +381,12 @@ export default function RentalList() {
         ]
       };
 
+      console.log('🖼️ DirectMedia prepared:', {
+        imagesCount: directMedia.images.length,
+        videosCount: directMedia.videos.length,
+        images: directMedia.images.map(img => ({ id: img.id, url: img.url, type: img.type }))
+      });
+
       if (directMedia.images.length === 0 && directMedia.videos.length === 0) {
         alert('Nenašli sa žiadne obrázky pre tento protokol!');
         return;
@@ -397,6 +403,8 @@ export default function RentalList() {
       setSelectedProtocolType(protocolType);
       setGalleryOpen(true);
       
+      console.log('️ Gallery state set, should open now');
+      
     } catch (error) {
       console.error('❌ Error opening gallery:', error);
       alert('Chyba pri otváraní galérie: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
@@ -407,6 +415,7 @@ export default function RentalList() {
 
 
   const handleCloseGallery = () => {
+    console.log('🖼️ Closing gallery');
     setGalleryOpen(false);
     setSelectedProtocolDirectMedia({ images: [], videos: [] });
     setSelectedProtocolId('');

@@ -90,6 +90,9 @@ class PDFGenerator {
         await this.addSignatures(protocol.signatures, maxImageWidth, maxImageHeight, imageQuality);
       }
       
+      // ✅ NOVÉ: Linky na fotky
+      this.addImageLinksSection(protocol);
+      
       // Footer
       this.addFooter(protocol);
 
@@ -502,6 +505,47 @@ class PDFGenerator {
 
     if (signatures.length % signaturesPerRow !== 0) {
       this.currentY += rowHeight;
+    }
+
+    this.currentY += 10;
+  }
+
+  /**
+   * Pridanie sekcie s linkmi na všetky fotky
+   */
+  private addImageLinksSection(protocol: ProtocolData) {
+    this.addSectionTitle('LINKY NA FOTKY');
+    
+    const allImages = [
+      ...(protocol.vehicleImages || []).map((img, i) => ({ ...img, type: 'Vozidlo', index: i + 1 })),
+      ...(protocol.documentImages || []).map((img, i) => ({ ...img, type: 'Dokument', index: i + 1 })),
+      ...(protocol.damageImages || []).map((img, i) => ({ ...img, type: 'Škoda', index: i + 1 }))
+    ];
+
+    if (allImages.length === 0) {
+      this.doc.setFontSize(10);
+      this.doc.setTextColor(128, 128, 128);
+      this.doc.text('Žiadne fotky nie sú k dispozícii', this.margin, this.currentY);
+      this.currentY += 10;
+      return;
+    }
+
+    this.doc.setFontSize(9);
+    this.doc.setTextColor(0, 0, 255); // Modrá farba pre linky
+    
+    for (let i = 0; i < allImages.length; i++) {
+      const image = allImages[i];
+      const linkText = `${image.type} - Fotka ${image.index}: ${image.url}`;
+      
+      // Kontrola či sa zmestí na stránku
+      if (this.currentY > this.pageHeight - 30) {
+        this.doc.addPage();
+        this.currentY = 20;
+      }
+
+      // Pridanie linku
+      this.doc.text(linkText, this.margin, this.currentY);
+      this.currentY += 6;
     }
 
     this.currentY += 10;

@@ -104,16 +104,16 @@ export default function SerialPhotoCapture({
       throw new Error('EntityId is required for R2 upload');
     }
 
-    // ✅ NOVÉ RIEŠENIE: Cloudflare Worker proxy
-    const useWorkerProxy = process.env.REACT_APP_USE_WORKER_PROXY === 'true';
+    // ✅ NOVÉ: Default na Worker namiesto signed URL
+    const useWorkerProxy = process.env.REACT_APP_USE_WORKER !== 'false';
     
     if (useWorkerProxy) {
       console.log('🔄 Using Cloudflare Worker proxy...');
       return await workerUpload(file);
     }
 
-    // ✅ RÝCHLE RIEŠENIE: Vypnutie signed URL cez environment variable
-    const useSignedUrl = process.env.REACT_APP_USE_SIGNED_URL !== 'false';
+    // ✅ Fallback na signed URL ak Worker nie je dostupný
+    const useSignedUrl = process.env.REACT_APP_USE_SIGNED_URL === 'true';
     
     if (!useSignedUrl) {
       console.log('🔄 Signed URL disabled, using direct upload...');
@@ -209,7 +209,7 @@ export default function SerialPhotoCapture({
 
   // ✅ NOVÁ FUNKCIA: Cloudflare Worker upload
   const workerUpload = async (file: File): Promise<string> => {
-    const workerUrl = process.env.REACT_APP_WORKER_URL || 'https://blackrent-upload-worker.your-subdomain.workers.dev';
+    const workerUrl = process.env.REACT_APP_WORKER_URL || 'https://blackrent-upload-worker.r2workerblackrentapp.workers.dev';
     
     const formData = new FormData();
     formData.append('file', file);
