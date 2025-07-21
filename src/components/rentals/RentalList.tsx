@@ -1438,7 +1438,48 @@ export default function RentalList() {
   }
 
   return (
-    <Box>
+    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+      {/* Hlavička s prepínačom kariet/tabuľky */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ color: 'white', fontWeight: 'bold' }}>
+          Prenájmy
+        </Typography>
+        
+        {/* Prepínač kariet/tabuľky */}
+        <Box sx={{ display: 'flex', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          <IconButton
+            size="small"
+            onClick={() => setViewMode('table')}
+            sx={{
+              bgcolor: viewMode === 'table' ? 'primary.main' : 'transparent',
+              color: viewMode === 'table' ? 'white' : 'text.primary',
+              borderRadius: 0,
+              '&:hover': {
+                bgcolor: viewMode === 'table' ? 'primary.dark' : 'action.hover'
+              }
+            }}
+            title="Zobraziť tabuľku"
+          >
+            <ViewListIcon />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => setViewMode('cards')}
+            sx={{
+              bgcolor: viewMode === 'cards' ? 'primary.main' : 'transparent',
+              color: viewMode === 'cards' ? 'white' : 'text.primary',
+              borderRadius: 0,
+              '&:hover': {
+                bgcolor: viewMode === 'cards' ? 'primary.dark' : 'action.hover'
+              }
+            }}
+            title="Zobraziť karty"
+          >
+            <ViewModuleIcon />
+          </IconButton>
+        </Box>
+      </Box>
+
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Prenájmy</Typography>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
@@ -1516,41 +1557,8 @@ export default function RentalList() {
         <Box sx={{ color: 'error.main', mb: 2 }}>{importError}</Box>
       )}
 
-      {/* View Mode Toggle */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Box sx={{ display: 'flex', border: 1, borderColor: 'divider', borderRadius: 1 }}>
-          <IconButton
-            size="small"
-            onClick={() => setViewMode('table')}
-            sx={{
-              bgcolor: viewMode === 'table' ? 'primary.main' : 'transparent',
-              color: viewMode === 'table' ? 'white' : 'text.primary',
-              borderRadius: 0,
-              '&:hover': {
-                bgcolor: viewMode === 'table' ? 'primary.dark' : 'action.hover'
-              }
-            }}
-          >
-            <ViewListIcon />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => setViewMode('cards')}
-            sx={{
-              bgcolor: viewMode === 'cards' ? 'primary.main' : 'transparent',
-              color: viewMode === 'cards' ? 'white' : 'text.primary',
-              borderRadius: 0,
-              '&:hover': {
-                bgcolor: viewMode === 'cards' ? 'primary.dark' : 'action.hover'
-              }
-            }}
-          >
-            <ViewModuleIcon />
-          </IconButton>
-        </Box>
-        
-        {/* Vyhľadávacie pole */}
-        <Box sx={{ display: 'flex', justifyContent: isMobile ? 'stretch' : 'flex-end' }}>
+      {/* Vyhľadávacie pole */}
+      <Box sx={{ display: 'flex', justifyContent: isMobile ? 'stretch' : 'flex-end', mb: 2 }}>
         <TextField
           label={isMobile ? "Vyhľadávanie..." : "Rýchle vyhľadávanie (zákazník, ŠPZ, firma)"}
           variant="outlined"
@@ -1565,7 +1573,6 @@ export default function RentalList() {
           }}
           placeholder={isMobile ? "Zákazník, ŠPZ, firma..." : undefined}
         />
-        </Box>
       </Box>
 
       {/* Zaškrtávacie políčka - na desktope len 'Všetky prenájmy', na mobile všetky */}
