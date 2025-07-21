@@ -488,7 +488,7 @@ export default function RentalList() {
       console.log('📥 Loading media from API for protocol:', protocolId);
       
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
-      const response = await fetch(`${apiBaseUrl}/protocols/${protocolId}/media?type=${protocolType}`, {
+      const response = await fetch(`${apiBaseUrl}/protocols/media/${protocolId}?type=${protocolType}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

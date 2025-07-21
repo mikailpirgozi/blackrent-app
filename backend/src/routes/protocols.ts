@@ -39,6 +39,114 @@ router.get('/rental/:rentalId', async (req, res) => {
   }
 });
 
+// 🚀 NOVÝ ENDPOINT: Získanie médií z protokolu pre galériu - Z DATABÁZY
+router.get('/media/:protocolId', async (req, res) => {
+  try {
+    const { protocolId } = req.params;
+    const { type } = req.query; // 'handover' alebo 'return'
+    
+    console.log('📸 Loading media from database for protocol:', protocolId, 'type:', type);
+    
+    if (!protocolId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba protocolId' 
+      });
+    }
+
+    if (!type || (type !== 'handover' && type !== 'return')) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba alebo neplatný typ protokolu (handover/return)' 
+      });
+    }
+
+    // ✅ NAČÍTANIE PROTOKOLU Z DATABÁZY
+    let protocol;
+    if (type === 'handover') {
+      protocol = await postgresDatabase.getHandoverProtocolById(protocolId);
+    } else {
+      protocol = await postgresDatabase.getReturnProtocolById(protocolId);
+    }
+
+    if (!protocol) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Protokol nebol nájdený' 
+      });
+    }
+
+    // Zber všetkých médií z protokolu
+    const allImages: any[] = [];
+    const allVideos: any[] = [];
+    
+    // Vehicle images
+    if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
+      allImages.push(...protocol.vehicleImages.map((img: any) => ({
+        ...img,
+        type: 'vehicle',
+        category: 'Vozidlo'
+      })));
+    }
+    
+    // Vehicle videos
+    if (protocol.vehicleVideos && protocol.vehicleVideos.length > 0) {
+      allVideos.push(...protocol.vehicleVideos.map((video: any) => ({
+        ...video,
+        type: 'vehicle',
+        category: 'Vozidlo'
+      })));
+    }
+    
+    // Document images
+    if (protocol.documentImages && protocol.documentImages.length > 0) {
+      allImages.push(...protocol.documentImages.map((img: any) => ({
+        ...img,
+        type: 'document',
+        category: 'Doklady'
+      })));
+    }
+    
+    // Damage images
+    if (protocol.damageImages && protocol.damageImages.length > 0) {
+      allImages.push(...protocol.damageImages.map((img: any) => ({
+        ...img,
+        type: 'damage',
+        category: 'Poškodenia'
+      })));
+    }
+
+    console.log('📸 Database media loaded:', { 
+      images: allImages.length, 
+      videos: allVideos.length,
+      protocolId,
+      type 
+    });
+
+    res.json({
+      success: true,
+      images: allImages,
+      videos: allVideos,
+      source: 'database',
+      protocol: {
+        id: protocol.id,
+        type: protocol.type,
+        status: protocol.status,
+        location: protocol.location,
+        createdAt: protocol.createdAt
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error loading protocol media from database:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri načítaní médií protokolu z databázy',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Create handover protocol
 router.post('/handover', async (req, res) => {
   try {
@@ -525,113 +633,6 @@ router.delete("/return/:id", async (req, res) => {
   } catch (error) {
     console.error("❌ Error deleting return protocol:", error);
     res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-// 🚀 NOVÝ ENDPOINT: Získanie médií z protokolu pre galériu
-router.get('/:protocolId/media', async (req, res) => {
-  try {
-    const { protocolId } = req.params;
-    const { type } = req.query; // 'handover' alebo 'return'
-    
-    console.log('📸 Loading media for protocol:', protocolId, 'type:', type);
-    
-    if (!protocolId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Chýba protocolId' 
-      });
-    }
-
-    if (!type || (type !== 'handover' && type !== 'return')) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Chýba alebo neplatný typ protokolu (handover/return)' 
-      });
-    }
-
-    // Načítanie protokolu z databázy
-    let protocol;
-    if (type === 'handover') {
-      protocol = await postgresDatabase.getHandoverProtocolById(protocolId);
-    } else {
-      protocol = await postgresDatabase.getReturnProtocolById(protocolId);
-    }
-
-    if (!protocol) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Protokol nebol nájdený' 
-      });
-    }
-
-    // Zber všetkých médií z protokolu
-    const allImages: any[] = [];
-    const allVideos: any[] = [];
-    
-    // Vehicle images
-    if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
-      allImages.push(...protocol.vehicleImages.map((img: any) => ({
-        ...img,
-        type: 'vehicle',
-        category: 'Vozidlo'
-      })));
-    }
-    
-    // Vehicle videos
-    if (protocol.vehicleVideos && protocol.vehicleVideos.length > 0) {
-      allVideos.push(...protocol.vehicleVideos.map((video: any) => ({
-        ...video,
-        type: 'vehicle',
-        category: 'Vozidlo'
-      })));
-    }
-    
-    // Document images
-    if (protocol.documentImages && protocol.documentImages.length > 0) {
-      allImages.push(...protocol.documentImages.map((img: any) => ({
-        ...img,
-        type: 'document',
-        category: 'Doklady'
-      })));
-    }
-    
-    // Damage images
-    if (protocol.damageImages && protocol.damageImages.length > 0) {
-      allImages.push(...protocol.damageImages.map((img: any) => ({
-        ...img,
-        type: 'damage',
-        category: 'Poškodenia'
-      })));
-    }
-
-    console.log('📸 Media loaded:', { 
-      images: allImages.length, 
-      videos: allVideos.length,
-      protocolId,
-      type 
-    });
-
-    res.json({
-      success: true,
-      images: allImages,
-      videos: allVideos,
-      protocol: {
-        id: protocol.id,
-        type: protocol.type,
-        status: protocol.status,
-        location: protocol.location,
-        createdAt: protocol.createdAt
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Error loading protocol media:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Chyba pri načítaní médií protokolu',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
   }
 });
 
