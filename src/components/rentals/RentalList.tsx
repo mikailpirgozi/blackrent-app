@@ -1022,30 +1022,13 @@ export default function RentalList() {
     
     try {
       if (protocolType === 'handover' && selectedRentalForProtocol) {
-        // Vytvorenie handover protokolu cez API
-        const response = await fetch('/api/protocols/handover', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            ...protocolData,
-            rentalId: selectedRentalForProtocol.id
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Chyba pri vytváraní preberacieho protokolu');
-        }
-
-        const result = await response.json();
-        console.log('Handover protocol created:', result);
-
+        // Generovanie ID protokolu
+        const protocolId = uuidv4();
+        
         // Aktualizácia prenájmu s ID protokolu
         const updatedRental = {
           ...selectedRentalForProtocol,
-          handoverProtocolId: result.protocol.id
+          handoverProtocolId: protocolId
         };
         
         // Uloženie aktualizovaného prenájmu
@@ -1054,30 +1037,13 @@ export default function RentalList() {
         alert('Preberací protokol bol úspešne vytvorený!');
         console.log('Handover protocol data:', protocolData);
       } else if (protocolType === 'return' && selectedRentalForProtocol) {
-        // Vytvorenie return protokolu cez API
-        const response = await fetch('/api/protocols/return', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            ...protocolData,
-            rentalId: selectedRentalForProtocol.id
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Chyba pri vytváraní vratného protokolu');
-        }
-
-        const result = await response.json();
-        console.log('Return protocol created:', result);
-
+        // Generovanie ID protokolu
+        const protocolId = uuidv4();
+        
         // Aktualizácia prenájmu s ID protokolu
         const updatedRental = {
           ...selectedRentalForProtocol,
-          returnProtocolId: result.protocol.id
+          returnProtocolId: protocolId
         };
         
         // Uloženie aktualizovaného prenájmu
@@ -1089,9 +1055,6 @@ export default function RentalList() {
       
       // Zatvorenie dialógu
       handleCloseProtocolDialog();
-      
-      // Refresh dát
-      window.location.reload();
     } catch (error) {
       console.error('Chyba pri vytváraní protokolu:', error);
       alert('Chyba pri vytváraní protokolu. Skúste to znovu.');
