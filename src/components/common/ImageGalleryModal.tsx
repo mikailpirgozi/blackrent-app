@@ -46,12 +46,63 @@ export default function ImageGalleryModal({
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   
+  // ✅ Pridané stavy pre error handling
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [retryCount, setRetryCount] = useState<Record<string, number>>({});
+  
   const allMedia = [...images, ...videos];
   const currentMedia = allMedia[currentIndex];
   
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // ✅ Funkcia na opravu R2 URL
+  const fixR2Url = (url: string): string => {
+    if (url.includes('r2.dev')) {
+      return url.replace('r2.dev', 'cloudflare.com');
+    }
+    return url;
+  };
+
+  // ✅ Error handling pre obrázky
+  const handleImageError = (url: string) => {
+    console.error('Image load error:', url);
+    setImageErrors(prev => new Set(prev).add(url));
+    
+    // Skús opraviť URL
+    const fixedUrl = fixR2Url(url);
+    if (fixedUrl !== url) {
+      const retries = retryCount[url] || 0;
+      if (retries < 2) {
+        setRetryCount(prev => ({ ...prev, [url]: retries + 1 }));
+        // Skús načítať opravenú URL
+        setTimeout(() => {
+          const img = new Image();
+          img.onload = () => {
+            setImageErrors(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(url);
+              return newSet;
+            });
+          };
+          img.src = fixedUrl;
+        }, 1000);
+      }
+    }
+  };
+
+  // ✅ Funkcia na získanie správnej URL
+  const getImageUrl = (media: ProtocolImage | ProtocolVideo): string => {
+    const originalUrl = media.url;
+    
+    // Ak je obrázok v errore, skús opravenú URL
+    if (imageErrors.has(originalUrl)) {
+      return fixR2Url(originalUrl);
+    }
+    
+    return originalUrl;
+  };
 
   // Touch gestures pre mobile
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -288,7 +339,7 @@ export default function ImageGalleryModal({
           ) : (
             <img
               ref={imageRef}
-              src={currentMedia.url}
+              src={getImageUrl(currentMedia)}
               alt={`${currentMedia.type} - ${currentMedia.description}`}
               style={{
                 maxWidth: '100%',
@@ -296,6 +347,7 @@ export default function ImageGalleryModal({
                 objectFit: 'contain',
                 userSelect: 'none',
               }}
+              onError={() => handleImageError(currentMedia.url)}
             />
           )}
         </Box>
@@ -425,13 +477,14 @@ export default function ImageGalleryModal({
                 />
               ) : (
                 <img
-                  src={media.url}
+                  src={getImageUrl(media)}
                   alt={`Thumbnail ${index + 1}`}
                   style={{
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
                   }}
+                  onError={() => handleImageError(media.url)}
                 />
               )}
             </Box>

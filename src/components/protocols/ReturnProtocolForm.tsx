@@ -28,11 +28,13 @@ import {
   Calculate,
   MoneyOff,
   Receipt,
+  PhotoLibrary,
 } from '@mui/icons-material';
 import { ReturnProtocol, Rental, HandoverProtocol, ProtocolImage, ProtocolVideo, VehicleCondition } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import { generateProtocolPDF, ProtocolData } from '../../utils/pdfGenerator';
+import ImageGalleryModal from '../common/ImageGalleryModal';
 
 interface ReturnProtocolFormProps {
   open: boolean;
@@ -96,6 +98,9 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [autoCalculate, setAutoCalculate] = useState(true);
+  
+  // ✅ Pridané stavy pre galériu
+  const [galleryOpen, setGalleryOpen] = useState(false);
 
   // Automatické prepočítanie poplatkov
   useEffect(() => {
@@ -237,6 +242,50 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
     } finally {
       setProcessing(false);
     }
+  };
+
+  // ✅ Funkcia na výpočet celkového počtu médií
+  const getTotalMediaCount = () => {
+    return (
+      (protocol.vehicleImages?.length || 0) +
+      (protocol.vehicleVideos?.length || 0) +
+      (protocol.documentImages?.length || 0) +
+      (protocol.documentVideos?.length || 0) +
+      (protocol.damageImages?.length || 0) +
+      (protocol.damageVideos?.length || 0)
+    );
+  };
+
+  // ✅ Funkcia na zber všetkých médií pre galériu
+  const getAllMediaForGallery = () => {
+    const allImages: ProtocolImage[] = [];
+    const allVideos: ProtocolVideo[] = [];
+
+    // Vehicle media
+    if (protocol.vehicleImages) {
+      allImages.push(...protocol.vehicleImages.map(img => ({ ...img, category: 'Vozidlo' })));
+    }
+    if (protocol.vehicleVideos) {
+      allVideos.push(...protocol.vehicleVideos.map(video => ({ ...video, category: 'Vozidlo' })));
+    }
+
+    // Document media
+    if (protocol.documentImages) {
+      allImages.push(...protocol.documentImages.map(img => ({ ...img, category: 'Doklady' })));
+    }
+    if (protocol.documentVideos) {
+      allVideos.push(...protocol.documentVideos.map(video => ({ ...video, category: 'Doklady' })));
+    }
+
+    // Damage media
+    if (protocol.damageImages) {
+      allImages.push(...protocol.damageImages.map(img => ({ ...img, category: 'Poškodenia' })));
+    }
+    if (protocol.damageVideos) {
+      allVideos.push(...protocol.damageVideos.map(video => ({ ...video, category: 'Poškodenia' })));
+    }
+
+    return { images: allImages, videos: allVideos };
   };
 
   if (!open) return null;
@@ -557,6 +606,17 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
                 >
                   Fotky poškodení ({protocol.damageImages?.length || 0})
                 </Button>
+
+                {/* ✅ NOVÉ TLAČIDLO GALÉRIE */}
+                <Button
+                  variant="contained"
+                  startIcon={<PhotoLibrary />}
+                  onClick={() => setGalleryOpen(true)}
+                  disabled={getTotalMediaCount() === 0}
+                  color="primary"
+                >
+                  Zobraziť galériu ({getTotalMediaCount()})
+                </Button>
               </Box>
               
               {/* Media summary */}
@@ -630,6 +690,15 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           }
         />
       )}
+
+      {/* ✅ Image Gallery Modal */}
+      <ImageGalleryModal
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+        images={getAllMediaForGallery().images}
+        videos={getAllMediaForGallery().videos}
+        title={`Galéria vratného protokolu - ${rental.customerName}`}
+      />
     </Box>
   );
 } 
