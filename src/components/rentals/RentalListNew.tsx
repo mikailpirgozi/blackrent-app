@@ -420,17 +420,17 @@ export default function RentalList() {
         damageImages: protocol.damageImages?.length || 0
       });
 
-      // ✅ Zber všetkých médií z protokolu pre directMedia
+      // ✅ Zber všetkých médií z protokolu pre directMedia s lepšou kontrolou
       const directMedia = {
         images: [
-          ...(protocol.vehicleImages || []),
-          ...(protocol.documentImages || []),
-          ...(protocol.damageImages || [])
+          ...(Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages : []),
+          ...(Array.isArray(protocol.documentImages) ? protocol.documentImages : []),
+          ...(Array.isArray(protocol.damageImages) ? protocol.damageImages : [])
         ],
         videos: [
-          ...(protocol.vehicleVideos || []),
-          ...(protocol.documentVideos || []),
-          ...(protocol.damageVideos || [])
+          ...(Array.isArray(protocol.vehicleVideos) ? protocol.vehicleVideos : []),
+          ...(Array.isArray(protocol.documentVideos) ? protocol.documentVideos : []),
+          ...(Array.isArray(protocol.damageVideos) ? protocol.damageVideos : [])
         ]
       };
 
