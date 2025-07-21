@@ -191,18 +191,41 @@ export default function ImageGalleryModal({
 
   const allMedia = getAllMedia();
   const currentMedia = allMedia.images[currentIndex] || allMedia.videos[currentIndex - allMedia.images.length];
+  
+  console.log('🖼️ Gallery state:', { 
+    open,
+    currentIndex, 
+    totalImages: allMedia.images.length, 
+    totalVideos: allMedia.videos.length,
+    currentMedia: currentMedia ? {
+      id: currentMedia.id,
+      url: currentMedia.url,
+      type: currentMedia.type
+    } : null,
+    directMedia: directMedia ? {
+      imagesCount: directMedia.images.length,
+      videosCount: directMedia.videos.length
+    } : null
+  });
 
   useEffect(() => {
-    if (open) {
+    // ✅ Načítaj z API len ak nemáš directMedia
+    if (open && (!directMedia || (directMedia.images.length === 0 && directMedia.videos.length === 0))) {
+      console.log('🖼️ Loading media from API (no directMedia)');
       loadMediaFromApi();
+    } else if (open && directMedia) {
+      console.log('📸 Using directMedia, skipping API load');
     }
   }, [open, protocolId, protocolType, directMedia]);
 
   useEffect(() => {
-    if (open && allMedia.images.length + allMedia.videos.length === 0) {
+    // ✅ Načítaj z API len ak nemáš žiadne médiá
+    if (open && allMedia.images.length + allMedia.videos.length === 0 && 
+        (!directMedia || (directMedia.images.length === 0 && directMedia.videos.length === 0))) {
+      console.log('🖼️ Loading media from API (no media available)');
       loadMediaFromApi();
     }
-  }, [open, allMedia.images.length, allMedia.videos.length]);
+  }, [open, allMedia.images.length, allMedia.videos.length, directMedia]);
 
   const handlePrevious = () => {
     setCurrentIndex(prev => 
@@ -443,7 +466,13 @@ export default function ImageGalleryModal({
                         objectFit: 'contain',
                         userSelect: 'none',
                       }}
-                      onError={() => handleImageError(currentMedia.url)}
+                      onError={() => {
+                        console.log('🖼️ Image load error:', currentMedia.url);
+                        handleImageError(currentMedia.url);
+                      }}
+                      onLoad={() => {
+                        console.log('🖼️ Image loaded successfully:', currentMedia.url);
+                      }}
                     />
                   )}
                 </Box>
