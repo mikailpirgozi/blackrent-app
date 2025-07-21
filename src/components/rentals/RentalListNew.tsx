@@ -59,14 +59,12 @@ import {
   LocationOn as LocationIcon,
   AccessTime as TimeIcon,
   Star as StarIcon,
-  TrendingUp as TrendingUpIcon,
-  Speed as SpeedIcon
+  TrendingUp as TrendingUpIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import { useApp } from '../../context/AppContext';
-import { useAuth } from '../../context/AuthContext';
 import { Rental } from '../../types';
 import { apiService } from '../../services/api';
 import RentalForm from './RentalForm';
@@ -80,7 +78,6 @@ import RentalCardView, { CardViewMode } from './RentalCardView';
 
 export default function RentalList() {
   const { state, createRental, updateRental, deleteRental } = useApp();
-  const { state: authState } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -97,7 +94,7 @@ export default function RentalList() {
   
   // View mode
   const [viewMode, setViewMode] = useState<ViewMode>('table');
-  const [cardViewMode, setCardViewMode] = useState<CardViewMode>('compact');
+  const [cardViewMode] = useState<CardViewMode>('compact');
   
   // Advanced filters state
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
@@ -165,15 +162,12 @@ export default function RentalList() {
   
   // Image gallery
   const [galleryOpen, setGalleryOpen] = useState(false);
-  const [selectedProtocolImages, setSelectedProtocolImages] = useState<any[]>([]);
-  const [selectedProtocolVideos, setSelectedProtocolVideos] = useState<any[]>([]);
   const [selectedProtocolDirectMedia, setSelectedProtocolDirectMedia] = useState<{
     images: any[];
     videos: any[];
   }>({ images: [], videos: [] });
   const [selectedProtocolId, setSelectedProtocolId] = useState<string>('');
   const [selectedProtocolType, setSelectedProtocolType] = useState<'handover' | 'return'>('handover');
-  const [galleryTitle, setGalleryTitle] = useState('');
 
   // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
   const loadProtocolsForRental = useCallback(async (rentalId: string) => {
@@ -226,60 +220,9 @@ export default function RentalList() {
     });
   };
 
-  // 🚀 PERFORMANCE OPTIMIZATION: Memoized protocol status
-  const getProtocolStatus = useMemo(() => {
-    return (rentalId: string) => {
-      const rentalProtocols = protocols[rentalId];
-      if (!rentalProtocols) return 'none';
-      
-      const hasHandover = !!rentalProtocols.handover;
-      const hasReturn = !!rentalProtocols.return;
-      
-      if (hasReturn) return 'completed';
-      if (hasHandover) return 'handover-only';
-      return 'none';
-    };
-  }, [protocols]);
 
-  // Funkcia pre zobrazenie stavu protokolov
-  const renderProtocolStatus = (rentalId: string) => {
-    const status = getProtocolStatus(rentalId);
-    
-    switch (status) {
-      case 'completed':
-        return (
-          <Chip
-            icon={<CheckCircleIcon />}
-            label="Dokončené"
-            color="success"
-            size="small"
-            variant="outlined"
-          />
-        );
-      case 'handover-only':
-        return (
-          <Chip
-            icon={<PendingIcon />}
-            label="Čaká na vrátenie"
-            color="warning"
-            size="small"
-            variant="outlined"
-          />
-        );
-      case 'none':
-        return (
-          <Chip
-            icon={<ErrorIcon />}
-            label="Bez protokolu"
-            color="error"
-            size="small"
-            variant="outlined"
-          />
-        );
-      default:
-        return null;
-    }
-  };
+
+
 
   const handleAdd = () => {
     setEditingRental(null);
@@ -413,14 +356,39 @@ export default function RentalList() {
       }
 
       console.log('🔍 Protocol found:', protocol);
-      console.log('🔍 Protocol media:', {
-        vehicleImages: protocol.vehicleImages?.length || 0,
-        vehicleVideos: protocol.vehicleVideos?.length || 0,
-        documentImages: protocol.documentImages?.length || 0,
-        damageImages: protocol.damageImages?.length || 0
-      });
 
-      // ✅ Zber všetkých médií z protokolu pre directMedia s lepšou kontrolou
+      // ✅ SKÚSIME PRIAME NAČÍTANIE Z R2
+      console.log('🔄 Trying to load images directly from R2...');
+      const r2Images = await loadImagesFromR2(protocol.id);
+      
+      if (r2Images.length > 0) {
+        // ✅ Našli sme obrázky na R2!
+        console.log('✅ Found', r2Images.length, 'images on R2');
+        
+        // Konvertujeme na format ktorý očakáva galéria
+        const directMedia = {
+          images: r2Images.map((img, index) => ({
+            id: `r2-${index}`,
+            url: img.url,
+            type: 'vehicle' as const,
+            description: img.filename,
+            timestamp: new Date(),
+            compressed: false,
+            originalSize: 0,
+            compressedSize: 0,
+          })),
+          videos: []
+        };
+        
+        setSelectedProtocolDirectMedia(directMedia);
+        setSelectedProtocolId(protocol.id);
+        setSelectedProtocolType(protocolType);
+        setGalleryOpen(true);
+        return;
+      }
+
+      // ✅ FALLBACK: Skúsime z protokolu
+      console.log('🔄 Fallback: trying protocol media...');
       const directMedia = {
         images: [
           ...(Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages : []),
@@ -434,29 +402,21 @@ export default function RentalList() {
         ]
       };
 
-      console.log('🔍 Collected direct media:', { 
-        images: directMedia.images.length, 
-        videos: directMedia.videos.length 
-      });
-
       if (directMedia.images.length === 0 && directMedia.videos.length === 0) {
-        // Skús načítať fotky priamo z API ak protokol neobsahuje médiá
-        console.log('🔄 Trying to load media directly from API...');
+        // ✅ FALLBACK: Skúsime API
+        console.log('🔄 Fallback: trying API...');
         const apiMedia = await loadMediaFromAPI(protocol.id, protocolType);
         
         if (apiMedia.images.length === 0 && apiMedia.videos.length === 0) {
-          alert('Protokol neobsahuje žiadne médiá!');
+          alert('Nenašli sa žiadne obrázky pre tento protokol!');
           return;
         }
         
-        // Nastav priame médiá z API
         setSelectedProtocolDirectMedia(apiMedia);
       } else {
-        // Nastav priame médiá z protokolu
         setSelectedProtocolDirectMedia(directMedia);
       }
       
-      setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} vozidla - ${rental.customerName}`);
       setSelectedProtocolId(protocol.id);
       setSelectedProtocolType(protocolType);
       setGalleryOpen(true);
@@ -465,6 +425,120 @@ export default function RentalList() {
       console.error('❌ Error opening gallery:', error);
       alert('Chyba pri otváraní galérie: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
     }
+  };
+
+  // ✅ Nová funkcia na generovanie možných R2 URL adresy
+  const generatePossibleUrls = (protocolId: string): Array<{url: string, filename: string}> => {
+    const possibleImages: Array<{url: string, filename: string}> = [];
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    // ✅ Rôzne možné cesty k obrázkom
+    const possiblePaths = [
+      // Hlavná cesta ktorú vidíme v logu
+      `protocols/general/${dateStr}/${protocolId}`,
+      // Alternatívne cesty
+      `protocols/handover/${dateStr}/${protocolId}`,
+      `protocols/return/${dateStr}/${protocolId}`,
+      `protocols/general/${protocolId}`,
+      // Staršie dáta
+      `protocols/general/2025-07-21/${protocolId}`,
+      `protocols/general/2025-07-20/${protocolId}`,
+      `protocols/general/2025-07-19/${protocolId}`,
+    ];
+
+    // ✅ Bežné názvy súborov
+    const commonFilenames = [
+      'IMG_1997.JPG',
+      'IMG_1998.JPG', 
+      'IMG_1999.JPG',
+      'IMG_2000.JPG',
+      'IMG_2001.JPG',
+      'IMG_2002.JPG',
+      'IMG_2003.JPG',
+      'IMG_2004.JPG',
+      'IMG_2005.JPG',
+      'IMG_2006.JPG',
+      'IMG_2007.JPG',
+      'IMG_2008.JPG',
+      'IMG_2009.JPG',
+      'IMG_2010.JPG',
+      // Alternatívne názvy
+      'photo1.jpg',
+      'photo2.jpg',
+      'photo3.jpg',
+      'photo4.jpg',
+      'photo5.jpg',
+      'image1.jpg',
+      'image2.jpg',
+      'image3.jpg',
+      'image4.jpg',
+      'image5.jpg',
+    ];
+
+    // ✅ Generovanie všetkých možných kombinácií
+    possiblePaths.forEach(path => {
+      commonFilenames.forEach(filename => {
+        const url = `https://blackrent-app-production-4d6f.up.railway.app/api/files/proxy/${encodeURIComponent(path)}/${encodeURIComponent(filename)}`;
+        possibleImages.push({ url, filename });
+      });
+    });
+
+    return possibleImages;
+  };
+
+  // ✅ Funkcia na testovanie URL adresy
+  const testImageUrl = async (url: string): Promise<boolean> => {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      return response.ok && (response.headers.get('content-type')?.includes('image') || false);
+    } catch {
+      return false;
+    }
+  };
+
+  // ✅ Funkcia na načítanie všetkých dostupných obrázkov
+  const loadImagesFromR2 = async (protocolId: string) => {
+    console.log('🔍 Loading images from R2 for protocol:', protocolId);
+    
+    const possibleUrls = generatePossibleUrls(protocolId);
+    console.log('🔍 Generated', possibleUrls.length, 'possible URLs');
+    
+    const validImages: Array<{url: string, filename: string}> = [];
+    
+    // ✅ Testujeme prvých 20 URL paralelne
+    const testBatch = possibleUrls.slice(0, 20);
+    const testPromises = testBatch.map(async (imageInfo) => {
+      const isValid = await testImageUrl(imageInfo.url);
+      return isValid ? imageInfo : null;
+    });
+    
+    const results = await Promise.all(testPromises);
+    const foundImages = results.filter(Boolean) as Array<{url: string, filename: string}>;
+    
+    if (foundImages.length > 0) {
+      console.log('✅ Found', foundImages.length, 'valid images');
+      return foundImages;
+    } else {
+      console.log('❌ No images found, trying more URLs...');
+      
+      // ✅ Skúsime ďalších 20 URL
+      const testBatch2 = possibleUrls.slice(20, 40);
+      const testPromises2 = testBatch2.map(async (imageInfo) => {
+        const isValid = await testImageUrl(imageInfo.url);
+        return isValid ? imageInfo : null;
+      });
+      
+      const results2 = await Promise.all(testPromises2);
+      const foundImages2 = results2.filter(Boolean) as Array<{url: string, filename: string}>;
+      
+      if (foundImages2.length > 0) {
+        console.log('✅ Found', foundImages2.length, 'more valid images');
+        return foundImages2;
+      }
+    }
+    
+    return [];
   };
 
   // Nová funkcia na načítanie médií priamo z API
@@ -500,12 +574,9 @@ export default function RentalList() {
 
   const handleCloseGallery = () => {
     setGalleryOpen(false);
-    setSelectedProtocolImages([]);
-    setSelectedProtocolVideos([]);
     setSelectedProtocolDirectMedia({ images: [], videos: [] });
     setSelectedProtocolId('');
     setSelectedProtocolType('handover');
-    setGalleryTitle('');
   };
 
   const handleDeleteProtocol = async (rentalId: string, type: 'handover' | 'return') => {
@@ -960,28 +1031,30 @@ export default function RentalList() {
     }
   ], [protocols, loadingProtocols]);
 
-  const rentals = state.rentals || [];
-  
   // Get unique values for filter dropdowns
   const uniqueStatuses = useMemo(() => {
+    const rentals = state.rentals || [];
     const statuses = new Set(rentals.map(rental => rental.status).filter(Boolean));
     return Array.from(statuses).sort() as string[];
-  }, [rentals]);
+  }, [state.rentals]);
 
   const uniqueCompanies = useMemo(() => {
+    const rentals = state.rentals || [];
     const companies = new Set(rentals.map(rental => rental.vehicle?.company).filter(Boolean));
     return Array.from(companies).sort() as string[];
-  }, [rentals]);
+  }, [state.rentals]);
 
   const uniquePaymentMethods = useMemo(() => {
+    const rentals = state.rentals || [];
     const methods = new Set(rentals.map(rental => rental.paymentMethod).filter(Boolean));
     return Array.from(methods).sort() as string[];
-  }, [rentals]);
+  }, [state.rentals]);
 
   const uniqueVehicleBrands = useMemo(() => {
+    const rentals = state.rentals || [];
     const brands = new Set(rentals.map(rental => rental.vehicle?.brand).filter(Boolean));
     return Array.from(brands).sort() as string[];
-  }, [rentals]);
+  }, [state.rentals]);
 
   const uniqueInsuranceCompanies = useMemo(() => {
     return [] as string[];
@@ -1045,6 +1118,7 @@ export default function RentalList() {
   
   // Filter rentals based on all filters
   const filteredRentals = useMemo(() => {
+    const rentals = state.rentals || [];
     let filtered = rentals;
     
     // Search query filter
@@ -1205,7 +1279,7 @@ export default function RentalList() {
     }
     
     return filtered;
-  }, [rentals, searchQuery, advancedFilters, protocols]);
+      }, [state.rentals, searchQuery, advancedFilters, protocols]);
   
   // Get unique values for filters (already declared above)
   
@@ -1783,8 +1857,8 @@ export default function RentalList() {
               <RentalViewToggle
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
-                totalCount={rentals.length}
-                filteredCount={filteredRentals.length}
+                        totalCount={state.rentals?.length || 0}
+        filteredCount={filteredRentals.length}
                 showCounts={false}
               />
 
@@ -1874,7 +1948,7 @@ export default function RentalList() {
           {/* Search results info */}
           {(searchQuery || advancedFilters.status !== 'all' || advancedFilters.paymentMethod !== 'all' || advancedFilters.company !== 'all' || advancedFilters.dateFrom || advancedFilters.dateTo || advancedFilters.priceMin || advancedFilters.priceMax || advancedFilters.protocolStatus !== 'all') && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Zobrazených: {filteredRentals.length} z {rentals.length} prenájmov
+              Zobrazených: {filteredRentals.length} z {state.rentals?.length || 0} prenájmov
             </Typography>
           )}
 

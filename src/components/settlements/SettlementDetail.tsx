@@ -12,7 +12,7 @@ import {
   TableHead,
   TableRow,
   Typography,
-  Divider,
+
 } from '@mui/material';
 import { Settlement } from '../../types';
 import { format } from 'date-fns';

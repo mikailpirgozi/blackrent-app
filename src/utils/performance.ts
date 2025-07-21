@@ -91,7 +91,7 @@ export function useMemoizedFilter<T>(
       return [];
     }
     return data.filter(filterFn);
-  }, [data, ...dependencies]);
+  }, [data, filterFn, ...dependencies]);
 }
 
 /**

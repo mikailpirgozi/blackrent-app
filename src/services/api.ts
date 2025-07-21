@@ -12,12 +12,7 @@ const getApiBaseUrl = () => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
-interface ApiResponse<T = any> {
-  success: boolean;
-  message?: string;
-  data?: T;
-  error?: string;
-}
+
 
 class ApiService {
   private getAuthToken(): string | null {
