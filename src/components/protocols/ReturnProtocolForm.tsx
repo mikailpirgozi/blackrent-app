@@ -34,7 +34,7 @@ import { ReturnProtocol, Rental, HandoverProtocol, ProtocolImage, ProtocolVideo,
 import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import { generateProtocolPDF, ProtocolData } from '../../utils/pdfGenerator';
-import ImageGalleryModal from '../common/ImageGalleryModal';
+// ImageGalleryModal removed - will be replaced with new implementation
 
 interface ReturnProtocolFormProps {
   open: boolean;
@@ -607,15 +607,15 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
                   Fotky poškodení ({protocol.damageImages?.length || 0})
                 </Button>
 
-                {/* ✅ NOVÉ TLAČIDLO GALÉRIE */}
+                {/* ✅ NOVÉ TLAČIDLO GALÉRIE - TEMPORARILY DISABLED */}
                 <Button
                   variant="contained"
                   startIcon={<PhotoLibrary />}
-                  onClick={() => setGalleryOpen(true)}
-                  disabled={getTotalMediaCount() === 0}
+                  onClick={() => {/* setGalleryOpen(true) */}}
+                  disabled={true} // Temporarily disabled
                   color="primary"
                 >
-                  Zobraziť galériu ({getTotalMediaCount()})
+                  Galéria (dočasne nedostupná)
                 </Button>
               </Box>
               
@@ -695,14 +695,14 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
         />
       )}
 
-      {/* ✅ Image Gallery Modal */}
-      <ImageGalleryModal
+      {/* ✅ Image Gallery Modal - REMOVED - will be replaced with new implementation */}
+      {/* <ImageGalleryModal
         open={galleryOpen}
         onClose={() => setGalleryOpen(false)}
         protocolId={protocol.id || 'temp-id'}
         protocolType="return"
         directMedia={getAllMediaForGallery()}
-      />
+      /> */}
     </Box>
   );
 } 

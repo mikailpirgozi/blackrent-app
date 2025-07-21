@@ -61,7 +61,7 @@ import SignaturePad from '../common/SignaturePad';
 import R2FileUpload from '../common/R2FileUpload';
 import MobileFileUpload from '../common/MobileFileUpload';
 import PDFGenerator from '../../utils/pdfGenerator';
-import ImageGalleryModal from '../common/ImageGalleryModal';
+// ImageGalleryModal removed - will be replaced with new implementation
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -917,15 +917,16 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
                       </Button>
 
                       {/* ✅ NOVÉ TLAČIDLO GALÉRIE */}
+                      {/* Gallery button temporarily disabled - will be replaced with new implementation */}
                       <Button
                         variant="contained"
                         startIcon={<PhotoLibrary />}
-                        onClick={() => setGalleryOpen(true)}
-                        disabled={getTotalMediaCount() === 0}
+                        onClick={() => {/* setGalleryOpen(true) */}}
+                        disabled={true} // Temporarily disabled
                         fullWidth
                         sx={{ mt: 1 }}
                       >
-                        Zobraziť galériu ({getTotalMediaCount()} médií)
+                        Galéria (dočasne nedostupná)
                       </Button>
                     </Stack>
                     
@@ -1160,14 +1161,14 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
         </Dialog>
       )}
 
-      {/* ✅ Image Gallery Modal */}
-      <ImageGalleryModal
+      {/* ✅ Image Gallery Modal - REMOVED - will be replaced with new implementation */}
+      {/* <ImageGalleryModal
         open={galleryOpen}
         onClose={() => setGalleryOpen(false)}
         protocolId={protocolId}
         protocolType="handover"
         directMedia={getAllMediaForGallery()}
-      />
+      /> */}
     </Box>
   );
 };
