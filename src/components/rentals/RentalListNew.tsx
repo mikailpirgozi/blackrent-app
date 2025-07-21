@@ -366,6 +366,15 @@ export default function RentalList() {
       }
 
       console.log('🔍 Protocol found:', protocol);
+      console.log('🔍 Protocol details:', {
+        id: protocol.id,
+        vehicleImages: protocol.vehicleImages,
+        documentImages: protocol.documentImages,
+        damageImages: protocol.damageImages,
+        vehicleImagesLength: Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages.length : 'not array',
+        documentImagesLength: Array.isArray(protocol.documentImages) ? protocol.documentImages.length : 'not array',
+        damageImagesLength: Array.isArray(protocol.damageImages) ? protocol.damageImages.length : 'not array'
+      });
 
       // ✅ PRIAMO Z DATABÁZY - žiadne brute-force
       const directMedia = {

@@ -511,7 +511,7 @@ class PDFGenerator {
   }
 
   /**
-   * Pridanie sekcie s linkmi na všetky fotky
+   * Pridanie linkov pod každú fotku
    */
   private addImageLinksSection(protocol: ProtocolData) {
     this.addSectionTitle('LINKY NA FOTKY');
@@ -533,20 +533,43 @@ class PDFGenerator {
     this.doc.setFontSize(9);
     this.doc.setTextColor(0, 0, 255); // Modrá farba pre linky
     
-    for (let i = 0; i < allImages.length; i++) {
-      const image = allImages[i];
-      const linkText = `${image.type} - Fotka ${image.index}: ${image.url}`;
-      
-      // Kontrola či sa zmestí na stránku
-      if (this.currentY > this.pageHeight - 30) {
-        this.doc.addPage();
-        this.currentY = 20;
-      }
+    // Zoskupenie podľa typu
+    const groupedImages = {
+      'Vozidlo': allImages.filter(img => img.type === 'Vozidlo'),
+      'Dokument': allImages.filter(img => img.type === 'Dokument'),
+      'Škoda': allImages.filter(img => img.type === 'Škoda')
+    };
 
-      // Pridanie linku
-      this.doc.text(linkText, this.margin, this.currentY);
-      this.currentY += 6;
-    }
+    Object.entries(groupedImages).forEach(([type, images]) => {
+      if (images.length > 0) {
+        // Nadpis pre typ
+        this.doc.setFontSize(11);
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setTextColor(...this.primaryColor);
+        this.doc.text(`${type} (${images.length} fotiek):`, this.margin, this.currentY);
+        this.currentY += 8;
+
+        // Linky pre každú fotku
+        this.doc.setFontSize(8);
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setTextColor(0, 0, 255);
+        
+        images.forEach((image, index) => {
+          const linkText = `${index + 1}. ${image.filename || image.description || `Fotka ${image.index}`}: ${image.url}`;
+          
+          // Kontrola či sa zmestí na stránku
+          if (this.currentY > this.pageHeight - 30) {
+            this.doc.addPage();
+            this.currentY = 20;
+          }
+
+          this.doc.text(linkText, this.margin + 5, this.currentY);
+          this.currentY += 5;
+        });
+        
+        this.currentY += 5;
+      }
+    });
 
     this.currentY += 10;
   }
