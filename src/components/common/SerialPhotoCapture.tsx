@@ -43,8 +43,11 @@ interface SerialPhotoCaptureProps {
   maxVideos?: number;
   compressImages?: boolean;
   compressVideos?: boolean;
-  entityId?: string; // ID pre R2 upload
-  autoUploadToR2?: boolean; // Automatický upload na R2
+  entityId?: string;
+  autoUploadToR2?: boolean;
+  // ✅ NOVÉ PROPS pre nový systém
+  protocolType?: 'handover' | 'return';
+  mediaType?: 'vehicle' | 'document' | 'damage';
 }
 
 interface CapturedMedia {
@@ -73,6 +76,8 @@ export default function SerialPhotoCapture({
   compressVideos = true,
   entityId,
   autoUploadToR2 = true,
+  protocolType = 'handover',
+  mediaType = 'vehicle',
 }: SerialPhotoCaptureProps) {
   const [capturedMedia, setCapturedMedia] = useState<CapturedMedia[]>([]);
   const [processing, setProcessing] = useState(false);
@@ -94,23 +99,64 @@ export default function SerialPhotoCapture({
       });
     }
 
+    // ✅ NOVÝ SYSTÉM: Upload cez /api/files/protocol-photo
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('type', 'protocol');
-    formData.append('entityId', entityId);
+    formData.append('protocolId', entityId);
+    formData.append('protocolType', protocolType);
+    formData.append('mediaType', mediaType);
+    formData.append('label', file.name);
 
     const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
     
-    const response = await fetch(`${apiBaseUrl}/files/upload`, {
+    console.log('🔄 Uploading photo via new endpoint:', {
+      protocolId: entityId,
+      filename: file.name,
+      size: file.size
+    });
+
+    const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
       method: 'POST',
       body: formData,
     });
 
     if (!response.ok) {
-      throw new Error(`R2 upload failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ R2 upload failed:', errorText);
+      throw new Error(`R2 upload failed: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
+    console.log('✅ Photo uploaded successfully:', result);
+
+    // ✅ AUTOMATICKÉ ULOŽENIE DO DATABÁZY
+    if (result.success && result.photo) {
+      try {
+        const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+        
+        const dbResponse = await fetch(`${apiBaseUrl}/protocols/${entityId}/add-photo`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` })
+          },
+          body: JSON.stringify({
+            photo: result.photo,
+            protocolType: protocolType
+          })
+        });
+
+        if (dbResponse.ok) {
+          console.log('✅ Photo saved to database successfully');
+        } else {
+          console.warn('⚠️ Photo uploaded to R2 but failed to save to database');
+        }
+      } catch (dbError) {
+        console.warn('⚠️ Error saving photo to database:', dbError);
+        // Pokračujeme aj keď sa neuloží do DB - fotka je na R2
+      }
+    }
+
     return result.url;
   };
 

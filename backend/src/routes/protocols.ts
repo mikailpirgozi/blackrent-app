@@ -636,4 +636,96 @@ router.delete("/return/:id", async (req, res) => {
   }
 });
 
+// 🚀 NOVÝ ENDPOINT: Pridanie fotky do protokolu v databáze
+router.post('/:protocolId/add-photo', async (req, res) => {
+  try {
+    const { protocolId } = req.params;
+    const { photo, protocolType } = req.body; // photo je objekt z /files/protocol-photo
+    
+    console.log('🔄 Adding photo to protocol:', protocolId, 'type:', protocolType);
+    console.log('🔄 Photo data:', photo);
+    
+    if (!protocolId || !photo || !protocolType) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba protocolId, photo alebo protocolType' 
+      });
+    }
+
+    if (!isValidUUID(protocolId)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Neplatný protocolId format' 
+      });
+    }
+
+    let updatedProtocol;
+    
+    if (protocolType === 'handover') {
+      // Načítanie existujúceho protokolu
+      const existingProtocol = await postgresDatabase.getHandoverProtocolById(protocolId);
+      if (!existingProtocol) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Protokol nebol nájdený' 
+        });
+      }
+
+      // Pridanie fotky do príslušného poľa
+      const mediaType = photo.type; // 'vehicle', 'document', 'damage'
+      const fieldName = `${mediaType}Images`;
+      
+      const updatedImages = [...(existingProtocol[fieldName] || []), photo];
+      
+      // Aktualizácia protokolu v databáze
+      updatedProtocol = await postgresDatabase.updateHandoverProtocol(protocolId, {
+        [fieldName]: updatedImages
+      });
+      
+    } else if (protocolType === 'return') {
+      // Načítanie existujúceho protokolu
+      const existingProtocol = await postgresDatabase.getReturnProtocolById(protocolId);
+      if (!existingProtocol) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Protokol nebol nájdený' 
+        });
+      }
+
+      // Pridanie fotky do príslušného poľa
+      const mediaType = photo.type; // 'vehicle', 'document', 'damage'
+      const fieldName = `${mediaType}Images`;
+      
+      const updatedImages = [...(existingProtocol[fieldName] || []), photo];
+      
+      // Aktualizácia protokolu v databáze
+      updatedProtocol = await postgresDatabase.updateReturnProtocol(protocolId, {
+        [fieldName]: updatedImages
+      });
+      
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Neplatný protocolType (musí byť handover alebo return)' 
+      });
+    }
+
+    console.log('✅ Photo added to protocol successfully');
+    
+    res.json({
+      success: true,
+      message: 'Fotka bola úspešne pridaná do protokolu',
+      protocol: updatedProtocol
+    });
+
+  } catch (error) {
+    console.error('❌ Error adding photo to protocol:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri pridávaní fotky do protokolu',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    });
+  }
+});
+
 export default router; 

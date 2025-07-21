@@ -1134,6 +1134,8 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           compressVideos={true}
           entityId={protocol.id || protocolId}
           autoUploadToR2={true}
+          protocolType="handover"
+          mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage'}
         />
       )}
 

@@ -343,7 +343,6 @@ export default function RentalList() {
     try {
       console.log('🔍 Opening gallery for protocol:', protocolType, 'rental:', rental.id);
       
-      // Najprv skús načítať protokol ak nie je načítaný
       if (!protocols[rental.id]?.[protocolType]) {
         console.log('📥 Loading protocol for gallery...');
         await loadProtocolsForRental(rental.id);
@@ -357,38 +356,7 @@ export default function RentalList() {
 
       console.log('🔍 Protocol found:', protocol);
 
-      // ✅ SKÚSIME PRIAME NAČÍTANIE Z R2
-      console.log('🔄 Trying to load images directly from R2...');
-      const r2Images = await loadImagesFromR2(protocol.id);
-      
-      if (r2Images.length > 0) {
-        // ✅ Našli sme obrázky na R2!
-        console.log('✅ Found', r2Images.length, 'images on R2');
-        
-        // Konvertujeme na format ktorý očakáva galéria
-        const directMedia = {
-          images: r2Images.map((img, index) => ({
-            id: `r2-${index}`,
-            url: img.url,
-            type: 'vehicle' as const,
-            description: img.filename,
-            timestamp: new Date(),
-            compressed: false,
-            originalSize: 0,
-            compressedSize: 0,
-          })),
-          videos: []
-        };
-        
-        setSelectedProtocolDirectMedia(directMedia);
-        setSelectedProtocolId(protocol.id);
-        setSelectedProtocolType(protocolType);
-        setGalleryOpen(true);
-        return;
-      }
-
-      // ✅ FALLBACK: Skúsime z protokolu
-      console.log('🔄 Fallback: trying protocol media...');
+      // ✅ PRIAMO Z DATABÁZY - žiadne brute-force
       const directMedia = {
         images: [
           ...(Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages : []),
@@ -403,20 +371,11 @@ export default function RentalList() {
       };
 
       if (directMedia.images.length === 0 && directMedia.videos.length === 0) {
-        // ✅ FALLBACK: Skúsime API
-        console.log('🔄 Fallback: trying API...');
-        const apiMedia = await loadMediaFromAPI(protocol.id, protocolType);
-        
-        if (apiMedia.images.length === 0 && apiMedia.videos.length === 0) {
-          alert('Nenašli sa žiadne obrázky pre tento protokol!');
-          return;
-        }
-        
-        setSelectedProtocolDirectMedia(apiMedia);
-      } else {
-        setSelectedProtocolDirectMedia(directMedia);
+        alert('Nenašli sa žiadne obrázky pre tento protokol!');
+        return;
       }
       
+      setSelectedProtocolDirectMedia(directMedia);
       setSelectedProtocolId(protocol.id);
       setSelectedProtocolType(protocolType);
       setGalleryOpen(true);
@@ -427,150 +386,8 @@ export default function RentalList() {
     }
   };
 
-  // ✅ Nová funkcia na generovanie možných R2 URL adresy
-  const generatePossibleUrls = (protocolId: string): Array<{url: string, filename: string}> => {
-    const possibleImages: Array<{url: string, filename: string}> = [];
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
-    
-    // ✅ Rôzne možné cesty k obrázkom
-    const possiblePaths = [
-      // Hlavná cesta ktorú vidíme v logu
-      `protocols/general/${dateStr}/${protocolId}`,
-      // Alternatívne cesty
-      `protocols/handover/${dateStr}/${protocolId}`,
-      `protocols/return/${dateStr}/${protocolId}`,
-      `protocols/general/${protocolId}`,
-      // Staršie dáta
-      `protocols/general/2025-07-21/${protocolId}`,
-      `protocols/general/2025-07-20/${protocolId}`,
-      `protocols/general/2025-07-19/${protocolId}`,
-    ];
 
-    // ✅ Bežné názvy súborov
-    const commonFilenames = [
-      'IMG_1997.JPG',
-      'IMG_1998.JPG', 
-      'IMG_1999.JPG',
-      'IMG_2000.JPG',
-      'IMG_2001.JPG',
-      'IMG_2002.JPG',
-      'IMG_2003.JPG',
-      'IMG_2004.JPG',
-      'IMG_2005.JPG',
-      'IMG_2006.JPG',
-      'IMG_2007.JPG',
-      'IMG_2008.JPG',
-      'IMG_2009.JPG',
-      'IMG_2010.JPG',
-      // Alternatívne názvy
-      'photo1.jpg',
-      'photo2.jpg',
-      'photo3.jpg',
-      'photo4.jpg',
-      'photo5.jpg',
-      'image1.jpg',
-      'image2.jpg',
-      'image3.jpg',
-      'image4.jpg',
-      'image5.jpg',
-    ];
 
-    // ✅ Generovanie všetkých možných kombinácií
-    possiblePaths.forEach(path => {
-      commonFilenames.forEach(filename => {
-        const url = `https://blackrent-app-production-4d6f.up.railway.app/api/files/proxy/${encodeURIComponent(path)}/${encodeURIComponent(filename)}`;
-        possibleImages.push({ url, filename });
-      });
-    });
-
-    return possibleImages;
-  };
-
-  // ✅ Funkcia na testovanie URL adresy
-  const testImageUrl = async (url: string): Promise<boolean> => {
-    try {
-      const response = await fetch(url, { method: 'HEAD' });
-      return response.ok && (response.headers.get('content-type')?.includes('image') || false);
-    } catch {
-      return false;
-    }
-  };
-
-  // ✅ Funkcia na načítanie všetkých dostupných obrázkov
-  const loadImagesFromR2 = async (protocolId: string) => {
-    console.log('🔍 Loading images from R2 for protocol:', protocolId);
-    
-    const possibleUrls = generatePossibleUrls(protocolId);
-    console.log('🔍 Generated', possibleUrls.length, 'possible URLs');
-    
-    const validImages: Array<{url: string, filename: string}> = [];
-    
-    // ✅ Testujeme prvých 20 URL paralelne
-    const testBatch = possibleUrls.slice(0, 20);
-    const testPromises = testBatch.map(async (imageInfo) => {
-      const isValid = await testImageUrl(imageInfo.url);
-      return isValid ? imageInfo : null;
-    });
-    
-    const results = await Promise.all(testPromises);
-    const foundImages = results.filter(Boolean) as Array<{url: string, filename: string}>;
-    
-    if (foundImages.length > 0) {
-      console.log('✅ Found', foundImages.length, 'valid images');
-      return foundImages;
-    } else {
-      console.log('❌ No images found, trying more URLs...');
-      
-      // ✅ Skúsime ďalších 20 URL
-      const testBatch2 = possibleUrls.slice(20, 40);
-      const testPromises2 = testBatch2.map(async (imageInfo) => {
-        const isValid = await testImageUrl(imageInfo.url);
-        return isValid ? imageInfo : null;
-      });
-      
-      const results2 = await Promise.all(testPromises2);
-      const foundImages2 = results2.filter(Boolean) as Array<{url: string, filename: string}>;
-      
-      if (foundImages2.length > 0) {
-        console.log('✅ Found', foundImages2.length, 'more valid images');
-        return foundImages2;
-      }
-    }
-    
-    return [];
-  };
-
-  // Nová funkcia na načítanie médií priamo z API
-  const loadMediaFromAPI = async (protocolId: string, protocolType: 'handover' | 'return') => {
-    try {
-      console.log('📥 Loading media from API for protocol:', protocolId);
-      
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
-      const response = await fetch(`${apiBaseUrl}/protocols/media/${protocolId}?type=${protocolType}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to load media: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('📥 API media loaded:', data);
-      
-      return {
-        images: data.images || [],
-        videos: data.videos || []
-      };
-      
-    } catch (error) {
-      console.error('❌ Error loading media from API:', error);
-      return { images: [], videos: [] };
-    }
-  };
 
   const handleCloseGallery = () => {
     setGalleryOpen(false);

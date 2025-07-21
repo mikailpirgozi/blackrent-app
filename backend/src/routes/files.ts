@@ -498,4 +498,105 @@ router.get('/protocol/:protocolId/images', async (req, res) => {
   }
 });
 
+// 🚀 NOVÝ ENDPOINT: Upload fotky pre protokol (podľa navrhovanej metódy)
+router.post('/protocol-photo', upload.single('file'), async (req, res) => {
+  try {
+    console.log('🔄 Protocol photo upload request received:', {
+      hasFile: !!req.file,
+      fileSize: req.file?.size,
+      mimetype: req.file?.mimetype,
+      protocolId: req.body.protocolId,
+      protocolType: req.body.protocolType, // 'handover' alebo 'return'
+      mediaType: req.body.mediaType, // 'vehicle', 'document', 'damage'
+      label: req.body.label // voliteľný label pre fotku
+    });
+
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Žiadny súbor nebol nahraný' 
+      });
+    }
+
+    const { protocolId, protocolType, mediaType, label } = req.body;
+    
+    if (!protocolId || !protocolType || !mediaType) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba protocolId, protocolType alebo mediaType' 
+      });
+    }
+
+    // Validácia typu súboru - len obrázky
+    if (!req.file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Len obrázky sú povolené' 
+      });
+    }
+
+    // Validácia veľkosti súboru
+    if (!r2Storage.validateFileSize(req.file.size, 'image')) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Súbor je príliš veľký' 
+      });
+    }
+
+    // Generovanie file key podľa štruktúry
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const fileKey = `protocols/${protocolType}/${today}/${protocolId}/${req.file.originalname}`;
+
+    console.log('🔍 Generated file key:', fileKey);
+
+    // Upload do R2
+    const url = await r2Storage.uploadFile(
+      fileKey,
+      req.file.buffer,
+      req.file.mimetype,
+      {
+        original_name: req.file.originalname,
+        uploaded_at: new Date().toISOString(),
+        protocol_id: protocolId,
+        protocol_type: protocolType,
+        media_type: mediaType,
+        label: label || req.file.originalname
+      }
+    );
+
+    console.log('✅ Protocol photo uploaded to R2:', url);
+
+    // Vytvorenie objektu pre databázu
+    const photoObject = {
+      id: require('uuid').v4(), // Generovanie UUID pre fotku
+      url: url,
+      type: mediaType,
+      description: label || req.file.originalname,
+      timestamp: new Date(),
+      compressed: false,
+      originalSize: req.file.size,
+      compressedSize: req.file.size,
+      filename: req.file.originalname
+    };
+
+    res.json({
+      success: true,
+      photo: photoObject,
+      url: url,
+      key: fileKey,
+      filename: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    });
+
+  } catch (error) {
+    console.error('❌ Error uploading protocol photo:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Chyba pri nahrávaní fotky protokolu',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    });
+  }
+});
+
 export default router; 

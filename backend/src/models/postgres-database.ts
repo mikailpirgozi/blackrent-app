@@ -2629,6 +2629,90 @@ export class PostgresDatabase {
   async close() {
     await this.pool.end();
   }
+
+  // 🚀 NOVÁ METÓDA: Aktualizácia handover protokolu
+  async updateHandoverProtocol(id: string, updateData: any): Promise<any> {
+    const client = await this.pool.connect();
+    try {
+      console.log('🔄 Updating handover protocol:', id);
+      console.log('🔄 Update data:', JSON.stringify(updateData, null, 2));
+
+      // Dynamické vytvorenie SET klauzuly
+      const setFields: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+
+      // Mapovanie polí
+      const fieldMappings: { [key: string]: string } = {
+        vehicleImages: 'vehicle_images_urls',
+        vehicleVideos: 'vehicle_videos_urls',
+        documentImages: 'document_images_urls',
+        documentVideos: 'document_videos_urls',
+        damageImages: 'damage_images_urls',
+        damageVideos: 'damage_videos_urls',
+        damages: 'damages',
+        signatures: 'signatures',
+        rentalData: 'rental_data',
+        pdfUrl: 'pdf_url',
+        emailSent: 'email_sent',
+        notes: 'notes',
+        location: 'location',
+        status: 'status',
+        completedAt: 'completed_at'
+      };
+
+      for (const [key, value] of Object.entries(updateData)) {
+        if (fieldMappings[key]) {
+          setFields.push(`${fieldMappings[key]} = $${paramIndex}`);
+          
+          // Špeciálne spracovanie pre JSON polia
+          if (['vehicleImages', 'vehicleVideos', 'documentImages', 'documentVideos', 'damageImages', 'damageVideos', 'damages', 'signatures', 'rentalData'].includes(key)) {
+            values.push(JSON.stringify(value));
+                     } else if (key === 'completedAt' && value) {
+             values.push(new Date(value as string | number | Date));
+           } else {
+             values.push(value);
+           }
+          paramIndex++;
+        }
+      }
+
+      if (setFields.length === 0) {
+        throw new Error('Žiadne platné polia na aktualizáciu');
+      }
+
+      // Pridanie updated_at
+      setFields.push('updated_at = CURRENT_TIMESTAMP');
+
+      const query = `
+        UPDATE handover_protocols 
+        SET ${setFields.join(', ')}
+        WHERE id = $${paramIndex}::uuid
+        RETURNING *
+      `;
+      values.push(id);
+
+      console.log('🔄 Update query:', query);
+      console.log('🔄 Update values:', values);
+
+      const result = await client.query(query, values);
+
+      if (result.rows.length === 0) {
+        throw new Error('Protokol nebol nájdený');
+      }
+
+      const updatedProtocol = this.mapHandoverProtocolFromDB(result.rows[0]);
+      console.log('✅ Handover protocol updated successfully');
+      
+      return updatedProtocol;
+
+    } catch (error) {
+      console.error('❌ Error updating handover protocol:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 }
 
 export const postgresDatabase = new PostgresDatabase(); 

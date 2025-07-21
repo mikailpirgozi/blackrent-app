@@ -688,6 +688,10 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
             activePhotoCapture === 'document' ? ['document'] :
             ['damage']
           }
+          entityId={protocol.id}
+          autoUploadToR2={true}
+          protocolType="return"
+          mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage'}
         />
       )}
 
