@@ -1022,6 +1022,39 @@ export default function RentalList() {
         // Generovanie ID protokolu
         const protocolId = uuidv4();
         
+        // ✅ PRIDANÉ: Uloženie protokolu do databázy
+        const protocolToSave = {
+          ...protocolData,
+          id: protocolId,
+          rentalId: selectedRentalForProtocol.id,
+          status: 'completed',
+          completedAt: new Date(),
+          createdBy: 'admin'
+        };
+        
+        console.log('🔄 Saving handover protocol to database:', protocolToSave.id);
+        
+        const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+        const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+        
+        const protocolResponse = await fetch(`${apiBaseUrl}/protocols/handover`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` })
+          },
+          body: JSON.stringify(protocolToSave)
+        });
+        
+        if (!protocolResponse.ok) {
+          const errorText = await protocolResponse.text();
+          console.error('❌ Protocol save failed:', errorText);
+          throw new Error(`Nepodarilo sa uložiť protokol: ${protocolResponse.status} - ${errorText}`);
+        }
+        
+        const protocolResult = await protocolResponse.json();
+        console.log('✅ Protocol saved to database:', protocolResult);
+        
         // Aktualizácia prenájmu s ID protokolu
         const updatedRental = {
           ...selectedRentalForProtocol,
@@ -1036,6 +1069,40 @@ export default function RentalList() {
       } else if (protocolType === 'return' && selectedRentalForProtocol) {
         // Generovanie ID protokolu
         const protocolId = uuidv4();
+        
+        // ✅ PRIDANÉ: Uloženie protokolu do databázy
+        const protocolToSave = {
+          ...protocolData,
+          id: protocolId,
+          rentalId: selectedRentalForProtocol.id,
+          handoverProtocolId: selectedRentalForProtocol.handoverProtocolId,
+          status: 'completed',
+          completedAt: new Date(),
+          createdBy: 'admin'
+        };
+        
+        console.log('🔄 Saving return protocol to database:', protocolToSave.id);
+        
+        const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+        const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+        
+        const protocolResponse = await fetch(`${apiBaseUrl}/protocols/return`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` })
+          },
+          body: JSON.stringify(protocolToSave)
+        });
+        
+        if (!protocolResponse.ok) {
+          const errorText = await protocolResponse.text();
+          console.error('❌ Protocol save failed:', errorText);
+          throw new Error(`Nepodarilo sa uložiť protokol: ${protocolResponse.status} - ${errorText}`);
+        }
+        
+        const protocolResult = await protocolResponse.json();
+        console.log('✅ Protocol saved to database:', protocolResult);
         
         // Aktualizácia prenájmu s ID protokolu
         const updatedRental = {
