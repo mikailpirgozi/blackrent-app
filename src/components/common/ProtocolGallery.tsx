@@ -97,8 +97,14 @@ export default function ProtocolGallery({
   }, [open]);
 
   // Helper function to convert R2 URL to proxy URL
-  const getProxyUrl = (r2Url: string): string => {
+  const getProxyUrl = (r2Url: string | undefined): string => {
     try {
+      // Kontrola či URL existuje
+      if (!r2Url) {
+        console.warn('⚠️ getProxyUrl: URL is undefined or null');
+        return ''; // Vráť prázdny string pre undefined URL
+      }
+
       // Ak je to R2 URL, konvertuj na proxy
       if (r2Url.includes('r2.dev') || r2Url.includes('cloudflare.com')) {
         const urlParts = r2Url.split('/');
@@ -111,16 +117,25 @@ export default function ProtocolGallery({
       return r2Url; // Ak nie je R2 URL, vráť pôvodné
     } catch (error) {
       console.error('❌ Error converting to proxy URL:', error);
-      return r2Url;
+      return r2Url || ''; // Vráť pôvodné URL alebo prázdny string
     }
   };
 
   const handleDownload = async () => {
-    if (!currentMedia) return;
+    if (!currentMedia || !currentMedia.url) {
+      console.warn('⚠️ handleDownload: currentMedia or URL is missing');
+      alert('Nepodarilo sa stiahnuť súbor - chýba URL');
+      return;
+    }
     
     try {
       // Použi proxy URL pre download
       const downloadUrl = getProxyUrl(currentMedia.url);
+      if (!downloadUrl) {
+        alert('Nepodarilo sa stiahnuť súbor - neplatné URL');
+        return;
+      }
+      
       const response = await fetch(downloadUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -209,20 +224,38 @@ export default function ProtocolGallery({
                     }}
                     onClick={() => handleImageClick(index)}
                   >
-                    <img
-                      src={getProxyUrl(image.url)}
-                      alt={image.description || `Obrázok ${index + 1}`}
-                      style={{
-                        width: '100%',
-                        height: '200px',
-                        objectFit: 'cover',
-                        display: 'block'
-                      }}
-                      onError={(e) => {
-                        console.error('Chyba načítania obrázka:', image.url);
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
+                    {image.url ? (
+                      <img
+                        src={getProxyUrl(image.url)}
+                        alt={image.description || `Obrázok ${index + 1}`}
+                        style={{
+                          width: '100%',
+                          height: '200px',
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                        onError={(e) => {
+                          console.error('Chyba načítania obrázka:', image.url);
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: '200px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '2px dashed rgba(255, 255, 255, 0.3)'
+                        }}
+                      >
+                        <Typography variant="body2" color="rgba(255, 255, 255, 0.5)">
+                          Chýba URL
+                        </Typography>
+                      </Box>
+                    )}
                     
                     {/* Overlay s informáciami */}
                     <Box
@@ -270,19 +303,37 @@ export default function ProtocolGallery({
                     }}
                     onClick={() => handleImageClick(images.length + index)}
                   >
-                    <video
-                      src={getProxyUrl(video.url)}
-                      style={{
-                        width: '100%',
-                        height: '200px',
-                        objectFit: 'cover',
-                        display: 'block'
-                      }}
-                      onError={(e) => {
-                        console.error('Chyba načítania videa:', video.url);
-                        (e.target as HTMLVideoElement).style.display = 'none';
-                      }}
-                    />
+                                        {video.url ? (
+                      <video
+                        src={getProxyUrl(video.url)}
+                        style={{
+                          width: '100%',
+                          height: '200px',
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                        onError={(e) => {
+                          console.error('Chyba načítania videa:', video.url);
+                          (e.target as HTMLVideoElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: '200px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '2px dashed rgba(255, 255, 255, 0.3)'
+                        }}
+                      >
+                        <Typography variant="body2" color="rgba(255, 255, 255, 0.5)">
+                          Chýba URL
+                        </Typography>
+                      </Box>
+                    )}
                     
                     {/* Play ikona */}
                     <Box
@@ -438,34 +489,46 @@ export default function ProtocolGallery({
               <>
                 {selectedIndex < images.length ? (
                   // Image
-                  <img
-                    src={getProxyUrl(currentMedia.url)}
-                    alt={currentMedia.description || 'Obrázok'}
-                    style={{
-                      maxWidth: `${100 * zoom}%`,
-                      maxHeight: `${100 * zoom}%`,
-                      objectFit: 'contain',
-                      transition: 'transform 0.2s ease'
-                    }}
-                    onError={(e) => {
-                      console.error('Chyba načítania obrázka:', currentMedia.url);
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
+                  currentMedia.url ? (
+                    <img
+                      src={getProxyUrl(currentMedia.url)}
+                      alt={currentMedia.description || 'Obrázok'}
+                      style={{
+                        maxWidth: `${100 * zoom}%`,
+                        maxHeight: `${100 * zoom}%`,
+                        objectFit: 'contain',
+                        transition: 'transform 0.2s ease'
+                      }}
+                      onError={(e) => {
+                        console.error('Chyba načítania obrázka:', currentMedia.url);
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <Box sx={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
+                      <Typography variant="h6">Chýba URL obrázka</Typography>
+                    </Box>
+                  )
                 ) : (
                   // Video
-                  <video
-                    src={getProxyUrl(currentMedia.url)}
-                    controls
-                    style={{
-                      maxWidth: `${100 * zoom}%`,
-                      maxHeight: `${100 * zoom}%`
-                    }}
-                    onError={(e) => {
-                      console.error('Chyba načítania videa:', currentMedia.url);
-                      (e.target as HTMLVideoElement).style.display = 'none';
-                    }}
-                  />
+                  currentMedia.url ? (
+                    <video
+                      src={getProxyUrl(currentMedia.url)}
+                      controls
+                      style={{
+                        maxWidth: `${100 * zoom}%`,
+                        maxHeight: `${100 * zoom}%`
+                      }}
+                      onError={(e) => {
+                        console.error('Chyba načítania videa:', currentMedia.url);
+                        (e.target as HTMLVideoElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <Box sx={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
+                      <Typography variant="h6">Chýba URL videa</Typography>
+                    </Box>
+                  )
                 )}
               </>
             )}
