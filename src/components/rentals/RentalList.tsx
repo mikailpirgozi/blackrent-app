@@ -1947,7 +1947,9 @@ export default function RentalList() {
                     <TableCell sx={{ width: '100px', display: { xs: 'none', md: 'table-cell' } }}>Provízia (€)</TableCell>
                     <TableCell sx={{ width: { xs: '80px', md: '100px' }, display: { xs: 'none', sm: 'table-cell' } }}>Platba</TableCell>
                     <TableCell sx={{ width: '80px', display: { xs: 'none', lg: 'table-cell' } }}>Uhradené</TableCell>
-                    <TableCell sx={{ width: '100px', display: { xs: 'none', lg: 'table-cell' } }}>Stav</TableCell>
+                    <TableCell sx={{ width: '100px' }}>Stav</TableCell>
+                    <TableCell sx={{ width: '120px' }}>Preberací protokol</TableCell>
+                    <TableCell sx={{ width: '120px' }}>Vratný protokol</TableCell>
                     <TableCell sx={{ width: { xs: '120px', md: '150px' } }}>Akcie</TableCell>
                   </TableRow>
                 </TableHead>
@@ -1956,7 +1958,7 @@ export default function RentalList() {
                     groupBy ? (
                       <React.Fragment key={groupKey}>
                         <TableRow>
-                          <TableCell colSpan={12} sx={{ backgroundColor: 'background.paper', position: 'sticky', left: 0, zIndex: 1 }}>
+                          <TableCell colSpan={15} sx={{ backgroundColor: 'background.paper', position: 'sticky', left: 0, zIndex: 1 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <IconButton
@@ -2077,7 +2079,7 @@ export default function RentalList() {
                                 </MenuItem>
                               </Select>
                             </TableCell>
-                            <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                            <TableCell>
                               <Chip
                                 label={getRentalStatus(rental).label}
                                 color={getRentalStatus(rental).color as any}
@@ -2093,6 +2095,52 @@ export default function RentalList() {
                                 >
                                   Potvrdiť ukončenie
                                 </Button>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {rental.handoverProtocolId ? (
+                                <Chip
+                                  label="Vytvorený"
+                                  color="success"
+                                  size="small"
+                                  icon={<HandoverProtocolIcon />}
+                                  title="Preberací protokol je vytvorený"
+                                />
+                              ) : (
+                                <Chip
+                                  label="Chýba"
+                                  color="error"
+                                  size="small"
+                                  variant="outlined"
+                                  title="Preberací protokol nie je vytvorený"
+                                />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {rental.returnProtocolId ? (
+                                <Chip
+                                  label="Vytvorený"
+                                  color="success"
+                                  size="small"
+                                  icon={<ReturnProtocolIcon />}
+                                  title="Vratný protokol je vytvorený"
+                                />
+                              ) : rental.handoverProtocolId ? (
+                                <Chip
+                                  label="Chýba"
+                                  color="warning"
+                                  size="small"
+                                  variant="outlined"
+                                  title="Vratný protokol nie je vytvorený"
+                                />
+                              ) : (
+                                <Chip
+                                  label="Čaká na preberací"
+                                  color="default"
+                                  size="small"
+                                  variant="outlined"
+                                  title="Najprv treba vytvoriť preberací protokol"
+                                />
                               )}
                             </TableCell>
                             <TableCell>
@@ -2220,7 +2268,7 @@ export default function RentalList() {
                               </MenuItem>
                             </Select>
                           </TableCell>
-                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                          <TableCell>
                             <Chip
                               label={getRentalStatus(rental).label}
                               color={getRentalStatus(rental).color as any}
@@ -2236,6 +2284,52 @@ export default function RentalList() {
                               >
                                 Potvrdiť ukončenie
                               </Button>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {rental.handoverProtocolId ? (
+                              <Chip
+                                label="Vytvorený"
+                                color="success"
+                                size="small"
+                                icon={<HandoverProtocolIcon />}
+                                title="Preberací protokol je vytvorený"
+                              />
+                            ) : (
+                              <Chip
+                                label="Chýba"
+                                color="error"
+                                size="small"
+                                variant="outlined"
+                                title="Preberací protokol nie je vytvorený"
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {rental.returnProtocolId ? (
+                              <Chip
+                                label="Vytvorený"
+                                color="success"
+                                size="small"
+                                icon={<ReturnProtocolIcon />}
+                                title="Vratný protokol je vytvorený"
+                              />
+                            ) : rental.handoverProtocolId ? (
+                              <Chip
+                                label="Chýba"
+                                color="warning"
+                                size="small"
+                                variant="outlined"
+                                title="Vratný protokol nie je vytvorený"
+                              />
+                            ) : (
+                              <Chip
+                                label="Čaká na preberací"
+                                color="default"
+                                size="small"
+                                variant="outlined"
+                                title="Najprv treba vytvoriť preberací protokol"
+                              />
                             )}
                           </TableCell>
                           <TableCell>
@@ -2314,7 +2408,9 @@ export default function RentalList() {
                     </TableCell>
                     <TableCell />
                     <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }} />
-                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }} />
+                    <TableCell />
+                    <TableCell />
+                    <TableCell />
                     <TableCell />
                   </TableRow>
                 </TableFooter>
