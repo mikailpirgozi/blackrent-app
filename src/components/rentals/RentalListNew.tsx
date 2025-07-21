@@ -386,6 +386,12 @@ export default function RentalList() {
         return;
       }
       
+      console.log('🖼️ Setting gallery data:', { 
+        directMedia, 
+        protocolId: protocol.id, 
+        protocolType 
+      });
+      
       setSelectedProtocolDirectMedia(directMedia);
       setSelectedProtocolId(protocol.id);
       setSelectedProtocolType(protocolType);

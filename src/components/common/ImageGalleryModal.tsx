@@ -46,6 +46,15 @@ export default function ImageGalleryModal({
   protocolType,
   directMedia
 }: ImageGalleryModalProps) {
+  console.log('🖼️ ImageGalleryModal initialized:', { 
+    open, 
+    protocolId, 
+    protocolType, 
+    directMedia: directMedia ? {
+      imagesCount: directMedia.images.length,
+      videosCount: directMedia.videos.length
+    } : null
+  });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -169,11 +178,14 @@ export default function ImageGalleryModal({
   // ✅ Získanie všetkých médií (priorita: directMedia > apiMedia)
   const getAllMedia = () => {
     if (directMedia && (directMedia.images.length > 0 || directMedia.videos.length > 0)) {
-      return {
+      const result = {
         images: directMedia.images,
         videos: directMedia.videos
       };
+      console.log('🖼️ getAllMedia using directMedia:', result);
+      return result;
     }
+    console.log('🖼️ getAllMedia using apiMedia:', apiMedia);
     return apiMedia;
   };
 
