@@ -79,8 +79,8 @@ export default {
         },
       });
 
-      // Vytvorenie public URL
-      const publicUrl = `${env.R2_PUBLIC_URL}/${fileKey}`;
+      // Vytvorenie public URL (používame backend proxy kvôli R2 SSL problému)
+      const publicUrl = `https://blackrent-app-production-4d6f.up.railway.app/api/files/proxy/${encodeURIComponent(fileKey)}`;
 
       // Vytvorenie photo objektu
       const photoObject = {
