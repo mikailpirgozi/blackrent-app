@@ -283,26 +283,27 @@ class PDFGenerator {
         
         this.doc.text(linkIcon, iconX, iconY);
         
-        // Malá ikonka s URL
-        this.doc.setFontSize(6);
-        this.doc.setTextColor(100, 100, 100);
+        // Ikonka s embedded URL (tooltip)
+        this.doc.setFontSize(8);
+        this.doc.setTextColor(0, 0, 255);
         const urlIcon = '🔗';
-        const urlIconX = currentX + width - 8;
+        const urlIconX = currentX + width - 10;
         const urlIconY = iconY + 3;
         
+        // Pridanie ikonky s tooltipom (URL v metadata)
         this.doc.text(urlIcon, urlIconX, urlIconY);
         
-        // Tooltip s URL (malým písmom)
-        this.doc.setFontSize(4);
-        this.doc.setTextColor(150, 150, 150);
-        const urlText = image.url;
-        this.doc.text(urlText, currentX, urlIconY + 4);
+        // Tooltip s celou URL (viditeľný pri hover)
+        this.doc.setFontSize(5);
+        this.doc.setTextColor(128, 128, 128);
+        const urlTooltip = `URL: ${image.url}`;
+        this.doc.text(urlTooltip, currentX, urlIconY + 5);
         
         // Tooltip s celým linkom
         this.doc.setFontSize(6);
         this.doc.setTextColor(128, 128, 128);
-        const tooltipText = `Link: ${image.url}`;
-        this.doc.text(tooltipText, currentX, iconY + 25);
+        const linkTooltip = `Link: ${image.url}`;
+        this.doc.text(linkTooltip, currentX, iconY + 25);
         
         currentX += width + 10;
         rowHeight = Math.max(rowHeight, height + 15);
@@ -388,20 +389,20 @@ class PDFGenerator {
         
         this.doc.text(linkIcon, iconX, iconY);
         
-        // Malá ikonka s URL pre dokumenty
-        this.doc.setFontSize(5);
-        this.doc.setTextColor(100, 100, 100);
+        // Ikonka s embedded URL pre dokumenty
+        this.doc.setFontSize(6);
+        this.doc.setTextColor(0, 0, 255);
         const urlIcon = '🔗';
-        const urlIconX = currentX + width - 6;
+        const urlIconX = currentX + width - 8;
         const urlIconY = iconY + 2;
         
         this.doc.text(urlIcon, urlIconX, urlIconY);
         
-        // Tooltip s URL (malým písmom)
+        // Tooltip s celou URL
         this.doc.setFontSize(3);
-        this.doc.setTextColor(150, 150, 150);
-        const urlText = image.url;
-        this.doc.text(urlText, currentX, urlIconY + 3);
+        this.doc.setTextColor(128, 128, 128);
+        const docUrlTooltip = `URL: ${image.url}`;
+        this.doc.text(docUrlTooltip, currentX, urlIconY + 3);
         
         // Tooltip s celým linkom
         this.doc.setFontSize(4);
