@@ -383,23 +383,38 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
       setPdfProgress(30);
       setProgressMessage('Spracovávam obrázky...');
       
-      // 🚀 KROK 3: Batch upload obrázkov do R2
+      // 🚀 KROK 3: Batch upload obrázkov do R2 (len ak nie sú už v R2)
       const uploadImagesToR2Batch = async (images: ProtocolImage[], type: string) => {
-        const uploadedImages: ProtocolImage[] = [];
-        const imagesToUpload = images.filter(img => 
-          img.url.startsWith('data:image/') && 
-          !(img.url.startsWith('https://') && (img.url.includes('r2.dev') || img.url.includes('cloudflare.com')))
+        console.log(`🔍 Processing ${type} images:`, images.length);
+        
+        // ✅ KONTROLA: Ktoré obrázky sú už v R2
+        const r2Images = images.filter(img => 
+          img.url.startsWith('https://') && (img.url.includes('r2.dev') || img.url.includes('cloudflare.com'))
         );
         
-        if (imagesToUpload.length === 0) {
-          return images; // Všetky už sú v R2
+        const base64Images = images.filter(img => 
+          img.url.startsWith('data:image/')
+        );
+        
+        console.log(`📊 ${type} images breakdown:`, {
+          total: images.length,
+          alreadyInR2: r2Images.length,
+          needUpload: base64Images.length
+        });
+        
+        // Ak všetky sú už v R2, vráť ich priamo
+        if (base64Images.length === 0) {
+          console.log(`✅ All ${type} images already in R2, skipping upload`);
+          return images;
         }
         
-        setProgressMessage(`Uploadujem ${imagesToUpload.length} ${type} obrázkov...`);
+        setProgressMessage(`Uploadujem ${base64Images.length} ${type} obrázkov...`);
         
-        // Batch upload - všetky naraz
-        const uploadPromises = imagesToUpload.map(async (image, index) => {
+        // Batch upload len base64 obrázkov
+        const uploadPromises = base64Images.map(async (image, index) => {
           try {
+            console.log(`🔄 Uploading ${type} image ${index + 1}/${base64Images.length}:`, image.id);
+            
             const response = await fetch(image.url);
             const blob = await response.blob();
             const file = new File([blob], generateSmartFilename(protocol, 'image'), { type: 'image/jpeg' });
@@ -431,16 +446,21 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
           }
         });
         
-        const results = await Promise.all(uploadPromises);
+        const uploadedResults = await Promise.all(uploadPromises);
         
-        // Mapuj pôvodné obrázky s novými URL
-        return images.map(img => {
-          if (img.url.startsWith('https://') && (img.url.includes('r2.dev') || img.url.includes('cloudflare.com'))) {
-            return img; // Už je v R2
-          }
-          const uploaded = results.find(result => result.id === img.id);
-          return uploaded || img;
+        // ✅ KOMBINÁCIA: R2 obrázky + nové uploadované obrázky
+        const finalImages = [
+          ...r2Images, // Už v R2
+          ...uploadedResults // Nové uploadované
+        ];
+        
+        console.log(`✅ Final ${type} images:`, {
+          total: finalImages.length,
+          r2Urls: finalImages.filter(img => img.url.includes('r2.dev') || img.url.includes('cloudflare.com')).length,
+          base64: finalImages.filter(img => img.url.startsWith('data:')).length
         });
+        
+        return finalImages;
       };
       
       const vehicleImages = await uploadImagesToR2Batch(protocol.vehicleImages || [], 'vehicle');

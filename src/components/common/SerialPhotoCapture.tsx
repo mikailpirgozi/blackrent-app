@@ -471,11 +471,15 @@ export default function SerialPhotoCapture({
     const videos: ProtocolVideo[] = [];
 
     for (const media of capturedMedia) {
-      // Ak je preview už R2 URL, použij ho priamo
+      // ✅ PRIAMO R2 URL - žiadne base64 konverzie
       let url = media.preview;
       
-      // Ak nie je R2 URL, konvertuj na base64
-      if (!url.startsWith('https://') || (!url.includes('r2.dev') && !url.includes('cloudflare.com'))) {
+      // Ak je to už R2 URL, použij ho priamo
+      if (url.startsWith('https://') && (url.includes('r2.dev') || url.includes('cloudflare.com'))) {
+        console.log('✅ Using existing R2 URL:', url);
+      } else {
+        // Ak nie je R2 URL, konvertuj na base64 (len pre dočasné zobrazenie)
+        console.log('⚠️ Converting to base64 for temporary display:', media.file.name);
         url = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
