@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import QRCode from 'qrcode';
 
 export interface ProtocolData {
   id: string;
@@ -90,7 +91,8 @@ class PDFGenerator {
         await this.addSignatures(protocol.signatures, maxImageWidth, maxImageHeight, imageQuality);
       }
       
-      // ✅ Linky sú už priamo pod fotkami - odstránené duplicitné sekcie
+      // ✅ Pridanie vysvetlenia pre ikonky
+      this.addLinkExplanation();
       
       // Footer
       this.addFooter(protocol);
@@ -272,22 +274,38 @@ class PDFGenerator {
         this.doc.setTextColor(...this.secondaryColor);
         this.doc.text(`Fotka ${i + 1}`, currentX, this.currentY + height + 3);
         
-        // Link pod fotkou
-        this.doc.setFontSize(6);
+        // Ikonka linku s tooltipom
+        this.doc.setFontSize(8);
         this.doc.setTextColor(0, 0, 255);
-        const linkText = image.url;
-        const maxLinkWidth = width - 2;
         
-        // Skrátenie linku ak je príliš dlhý
-        let displayLink = linkText;
-        if (this.doc.getTextWidth(displayLink) > maxLinkWidth) {
-          while (this.doc.getTextWidth(displayLink + '...') > maxLinkWidth && displayLink.length > 20) {
-            displayLink = displayLink.slice(0, -1);
-          }
-          displayLink += '...';
+        // Ikonka 🔗 (link symbol)
+        const linkIcon = '🔗';
+        const iconX = currentX + width - 15;
+        const iconY = this.currentY + height + 6;
+        
+        this.doc.text(linkIcon, iconX, iconY);
+        
+        // QR kód pre mobilné zariadenia
+        try {
+          const qrDataUrl = await QRCode.toDataURL(image.url, {
+            width: 30,
+            margin: 1,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          });
+          
+          this.doc.addImage(qrDataUrl, 'PNG', currentX, iconY + 5, 15, 15);
+        } catch (error) {
+          console.warn('QR kód sa nepodarilo vygenerovať:', error);
         }
         
-        this.doc.text(displayLink, currentX, this.currentY + height + 6);
+        // Tooltip s celým linkom
+        this.doc.setFontSize(6);
+        this.doc.setTextColor(128, 128, 128);
+        const tooltipText = `Link: ${image.url}`;
+        this.doc.text(tooltipText, currentX, iconY + 25);
         
         currentX += width + 10;
         rowHeight = Math.max(rowHeight, height + 15);
@@ -362,22 +380,38 @@ class PDFGenerator {
         this.doc.setTextColor(...this.secondaryColor);
         this.doc.text(`Dokument ${i + 1}`, currentX, this.currentY + height + 2);
         
-        // Link pod dokumentom
-        this.doc.setFontSize(5);
+        // Ikonka linku s tooltipom pre dokument
+        this.doc.setFontSize(6);
         this.doc.setTextColor(0, 0, 255);
-        const linkText = image.url;
-        const maxLinkWidth = width - 2;
         
-        // Skrátenie linku ak je príliš dlhý
-        let displayLink = linkText;
-        if (this.doc.getTextWidth(displayLink) > maxLinkWidth) {
-          while (this.doc.getTextWidth(displayLink + '...') > maxLinkWidth && displayLink.length > 15) {
-            displayLink = displayLink.slice(0, -1);
-          }
-          displayLink += '...';
+        // Ikonka 🔗 (link symbol)
+        const linkIcon = '🔗';
+        const iconX = currentX + width - 12;
+        const iconY = this.currentY + height + 4;
+        
+        this.doc.text(linkIcon, iconX, iconY);
+        
+        // QR kód pre mobilné zariadenia (menší pre dokumenty)
+        try {
+          const qrDataUrl = await QRCode.toDataURL(image.url, {
+            width: 20,
+            margin: 1,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          });
+          
+          this.doc.addImage(qrDataUrl, 'PNG', currentX, iconY + 3, 10, 10);
+        } catch (error) {
+          console.warn('QR kód sa nepodarilo vygenerovať:', error);
         }
         
-        this.doc.text(displayLink, currentX, this.currentY + height + 4);
+        // Tooltip s celým linkom
+        this.doc.setFontSize(4);
+        this.doc.setTextColor(128, 128, 128);
+        const tooltipText = `Link: ${image.url}`;
+        this.doc.text(tooltipText, currentX, iconY + 15);
         
         currentX += width + 5;
         rowHeight = Math.max(rowHeight, height + 10);
@@ -604,6 +638,35 @@ class PDFGenerator {
       }
     });
 
+    this.currentY += 10;
+  }
+
+  /**
+   * Pridanie vysvetlenia pre ikonky linkov
+   */
+  private addLinkExplanation() {
+    this.addSectionTitle('VYSVETLENIE');
+    
+    this.doc.setFontSize(9);
+    this.doc.setTextColor(...this.secondaryColor);
+    
+    const explanations = [
+      '🔗 - Ikonka linku: Kliknite na ikonku pre otvorenie fotky v prehliadači',
+      '📱 - Pre mobilné zariadenia: Naskenujte QR kód alebo kliknite na ikonku',
+      '💾 - Download: Stiahnite si fotku do zariadenia',
+      '📄 - PDF: Tento dokument obsahuje všetky fotky s linkmi'
+    ];
+    
+    explanations.forEach((explanation, index) => {
+      if (this.currentY > this.pageHeight - 30) {
+        this.doc.addPage();
+        this.currentY = 20;
+      }
+      
+      this.doc.text(explanation, this.margin, this.currentY);
+      this.currentY += 6;
+    });
+    
     this.currentY += 10;
   }
 

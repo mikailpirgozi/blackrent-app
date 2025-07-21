@@ -27,6 +27,7 @@
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
     "papaparse": "^5.4.1",
+    "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.1",
@@ -64,6 +65,7 @@
   "devDependencies": {
     "@types/file-saver": "^2.0.7",
     "@types/papaparse": "^5.3.14",
+    "@types/qrcode": "^1.5.5",
     "@types/uuid": "^9.0.8"
   },
   "engines": {
