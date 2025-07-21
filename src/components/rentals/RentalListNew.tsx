@@ -27,7 +27,10 @@ import {
   Assignment as HandoverIcon,
   AssignmentReturn as ReturnIcon,
   PictureAsPdf as PDFIcon,
-  PhotoLibrary as GalleryIcon
+  PhotoLibrary as GalleryIcon,
+  Search as SearchIcon,
+  FilterList as FilterListIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -54,6 +57,10 @@ export default function RentalList() {
   const [selected, setSelected] = useState<string[]>([]);
   const [protocols, setProtocols] = useState<Record<string, { handover?: any; return?: any }>>({});
   const [loadingProtocols, setLoadingProtocols] = useState<string[]>([]);
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   
   // Protocol dialogs
   const [openHandoverDialog, setOpenHandoverDialog] = useState(false);
@@ -814,6 +821,20 @@ export default function RentalList() {
   ], [protocols, loadingProtocols]);
 
   const rentals = state.rentals || [];
+  
+  // Filter rentals based on search query
+  const filteredRentals = useMemo(() => {
+    if (!searchQuery.trim()) return rentals;
+    
+    const query = searchQuery.toLowerCase();
+    return rentals.filter(rental => 
+      rental.customerName?.toLowerCase().includes(query) ||
+      rental.vehicle?.brand?.toLowerCase().includes(query) ||
+      rental.vehicle?.model?.toLowerCase().includes(query) ||
+      rental.vehicle?.licensePlate?.toLowerCase().includes(query) ||
+      rental.vehicle?.company?.toLowerCase().includes(query)
+    );
+  }, [rentals, searchQuery]);
 
   return (
     <Box>
@@ -832,6 +853,74 @@ export default function RentalList() {
         </Button>
       </Box>
 
+      {/* Moderné vyhľadávanie a filtre */}
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
+          {/* Search Input */}
+          <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 250 }}>
+            <TextField
+              placeholder="Hľadať prenájmy..."
+              variant="outlined"
+              size="small"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              sx={{ 
+                flex: 1,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  backgroundColor: 'background.default',
+                  '&:hover': {
+                    backgroundColor: 'action.hover'
+                  }
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                    <SearchIcon fontSize="small" />
+                  </Box>
+                )
+              }}
+            />
+          </Box>
+          
+          {/* Filter Button */}
+          <Button
+            variant="outlined"
+            startIcon={<FilterListIcon />}
+            onClick={() => setShowFilters(!showFilters)}
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 500
+            }}
+          >
+            Filtre
+          </Button>
+          
+          {/* Reset Button */}
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => setSearchQuery('')}
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 500
+            }}
+          >
+            Reset
+          </Button>
+        </Box>
+        
+        {/* Search results info */}
+        {searchQuery && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Zobrazených: {filteredRentals.length} z {rentals.length} prenájmov
+          </Typography>
+        )}
+      </Box>
+
       {/* Workflow Instructions */}
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2">
@@ -841,7 +930,7 @@ export default function RentalList() {
 
       <ResponsiveTable
         columns={columns}
-        data={rentals}
+        data={filteredRentals}
         selectable={true}
         selected={selected}
         onSelectionChange={setSelected}
