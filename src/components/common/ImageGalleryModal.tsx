@@ -71,10 +71,19 @@ export default function ImageGalleryModal({
   const imageRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // ✅ Funkcia na opravu R2 URL
-  const fixR2Url = (url: string): string => {
-    if (url.includes('r2.dev')) {
-      return url.replace('r2.dev', 'cloudflare.com');
+  // ✅ Funkcia na konverziu R2 URL na backend proxy URL
+  const convertToProxyUrl = (url: string): string => {
+    if (url.includes('r2.dev') || url.includes('cloudflare.com')) {
+      // Extrahuj file key z R2 URL
+      const r2Url = url.replace('https://', '');
+      const parts = r2Url.split('/');
+      const domainIndex = parts.findIndex(part => part.includes('r2.dev') || part.includes('cloudflare.com'));
+      
+      if (domainIndex !== -1 && domainIndex + 1 < parts.length) {
+        const fileKey = parts.slice(domainIndex + 1).join('/');
+        const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+        return `${apiBaseUrl}/files/proxy/${encodeURIComponent(fileKey)}`;
+      }
     }
     return url;
   };
@@ -85,7 +94,7 @@ export default function ImageGalleryModal({
     setImageErrors(prev => new Set(prev).add(url));
     
     // Skús opraviť URL
-    const fixedUrl = fixR2Url(url);
+    const fixedUrl = convertToProxyUrl(url);
     if (fixedUrl !== url) {
       const retries = retryCount[url] || 0;
       if (retries < 2) {
@@ -106,9 +115,9 @@ export default function ImageGalleryModal({
   const getImageUrl = (media: ProtocolImage | ProtocolVideo): string => {
     const url = media.url;
     if (imageErrors.has(url)) {
-      return fixR2Url(url);
+      return convertToProxyUrl(url);
     }
-    return url;
+    return convertToProxyUrl(url);
   };
 
   // ✅ Načítanie médií z API (fallback)
