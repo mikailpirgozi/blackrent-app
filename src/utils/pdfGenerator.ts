@@ -579,7 +579,7 @@ class PDFGenerator {
    */
   private addSectionTitle(title: string) {
     this.doc.setFontSize(12);
-    this.doc.setFont('helvetica', 'bold');
+    this.doc.setFont('times', 'bold');
     this.doc.setTextColor(...this.primaryColor);
     this.doc.text(title, this.margin, this.currentY);
     this.currentY += 8;
