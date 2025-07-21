@@ -2430,23 +2430,33 @@ export class PostgresDatabase {
 
   // Mapping methods
   private mapHandoverProtocolFromDB(row: any): any {
-    // Safe JSON parsing function
+    // Safe JSON parsing function for JSONB fields
     const safeJsonParse = (value: any, fallback: any = []) => {
       if (!value || value === 'null' || value === 'undefined') {
         return fallback;
       }
-      try {
-        return JSON.parse(value);
-      } catch (error) {
-        console.log('⚠️ JSON parse error in mapHandoverProtocolFromDB:', error);
-        return fallback;
+      // JSONB sa automaticky parsuje PostgreSQL, takže ak je to už objekt, vráť ho
+      if (typeof value === 'object' && value !== null) {
+        return value;
       }
+      // Ak je to string, skús ho parsovať
+      if (typeof value === 'string') {
+        try {
+          return JSON.parse(value);
+        } catch (error) {
+          console.log('⚠️ JSON parse error in mapHandoverProtocolFromDB:', error);
+          return fallback;
+        }
+      }
+      return fallback;
     };
 
     console.log('🔄 [DB] Mapping handover protocol from DB row:', {
       id: row.id,
       pdf_url: row.pdf_url,
-      pdf_url_type: typeof row.pdf_url
+      pdf_url_type: typeof row.pdf_url,
+      vehicle_images_type: typeof row.vehicle_images_urls,
+      vehicle_images_length: Array.isArray(row.vehicle_images_urls) ? row.vehicle_images_urls.length : 'not array'
     });
 
     const mappedProtocol = {
@@ -2465,10 +2475,10 @@ export class PostgresDatabase {
         interiorCondition: row.interior_condition || 'Dobrý',
         notes: row.condition_notes || ''
       },
-      vehicleImages: safeJsonParse(row.vehicle_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
-      vehicleVideos: safeJsonParse(row.vehicle_videos_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
-      documentImages: safeJsonParse(row.document_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
-      damageImages: safeJsonParse(row.damage_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
+      vehicleImages: safeJsonParse(row.vehicle_images_urls, []), // ✅ JSONB - automaticky parsované
+      vehicleVideos: safeJsonParse(row.vehicle_videos_urls, []), // ✅ JSONB - automaticky parsované
+      documentImages: safeJsonParse(row.document_images_urls, []), // ✅ JSONB - automaticky parsované
+      damageImages: safeJsonParse(row.damage_images_urls, []), // ✅ JSONB - automaticky parsované
       damages: safeJsonParse(row.damages, []),
       signatures: safeJsonParse(row.signatures, []),
       rentalData: safeJsonParse(row.rental_data, {}),
@@ -2479,22 +2489,36 @@ export class PostgresDatabase {
       createdBy: row.created_by
     };
 
-    console.log('🔄 [DB] Mapped protocol pdfUrl:', mappedProtocol.pdfUrl);
+    console.log('🔄 [DB] Mapped protocol media:', {
+      vehicleImages: mappedProtocol.vehicleImages?.length || 0,
+      vehicleVideos: mappedProtocol.vehicleVideos?.length || 0,
+      documentImages: mappedProtocol.documentImages?.length || 0,
+      damageImages: mappedProtocol.damageImages?.length || 0
+    });
+    
     return mappedProtocol;
   }
 
   private mapReturnProtocolFromDB(row: any): any {
-    // Safe JSON parsing function
+    // Safe JSON parsing function for JSONB fields
     const safeJsonParse = (value: any, fallback: any = []) => {
       if (!value || value === 'null' || value === 'undefined') {
         return fallback;
       }
-      try {
-        return JSON.parse(value);
-      } catch (error) {
-        console.log('⚠️ JSON parse error in mapReturnProtocolFromDB:', error);
-        return fallback;
+      // JSONB sa automaticky parsuje PostgreSQL, takže ak je to už objekt, vráť ho
+      if (typeof value === 'object' && value !== null) {
+        return value;
       }
+      // Ak je to string, skús ho parsovať
+      if (typeof value === 'string') {
+        try {
+          return JSON.parse(value);
+        } catch (error) {
+          console.log('⚠️ JSON parse error in mapReturnProtocolFromDB:', error);
+          return fallback;
+        }
+      }
+      return fallback;
     };
 
     return {
