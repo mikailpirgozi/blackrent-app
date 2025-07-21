@@ -2449,6 +2449,24 @@ export class PostgresDatabase {
       
       // JSONB sa automaticky parsuje PostgreSQL, takže ak je to už objekt, vráť ho
       if (typeof value === 'object' && value !== null) {
+        // ✅ NOVÁ LOGIKA: Ak je to pole stringov, parsuj každý string
+        if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+          console.log('🔍 [DB] safeJsonParse: parsing array of JSON strings');
+          try {
+            const parsed = value.map(item => {
+              if (typeof item === 'string') {
+                return JSON.parse(item);
+              }
+              return item;
+            });
+            console.log('🔍 [DB] safeJsonParse: successfully parsed array of strings:', parsed);
+            return parsed;
+          } catch (error) {
+            console.log('⚠️ Error parsing array of JSON strings:', error);
+            return fallback;
+          }
+        }
+        
         console.log('🔍 [DB] safeJsonParse: value is already object, returning as is');
         return value;
       }
