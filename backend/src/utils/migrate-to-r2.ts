@@ -1,5 +1,5 @@
-import { postgresDatabase } from '../models/postgres-database.js';
-import { r2Storage } from './r2-storage.js';
+import { postgresDatabase } from '../models/postgres-database';
+import { r2Storage } from './r2-storage';
 
 interface MediaObject {
   id: string;

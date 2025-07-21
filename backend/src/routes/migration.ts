@@ -1,6 +1,6 @@
 import express from 'express';
-import { r2Migration } from '../utils/migrate-to-r2.js';
-import { r2Storage } from '../utils/r2-storage.js';
+import { r2Migration } from '../utils/migrate-to-r2';
+import { r2Storage } from '../utils/r2-storage';
 
 const router = express.Router();
 

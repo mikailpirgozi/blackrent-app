@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { r2Storage } from '../utils/r2-storage.js';
+import { r2Storage } from '../utils/r2-storage';
 
 const router = express.Router();
 
