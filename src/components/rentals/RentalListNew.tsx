@@ -389,69 +389,128 @@ export default function RentalList() {
     setSelectedPdf(null);
   };
 
-  // Image gallery handlers
-  const handleOpenGallery = (rental: Rental, protocolType: 'handover' | 'return') => {
-    const protocol = protocols[rental.id]?.[protocolType];
-    if (!protocol) {
-      alert('Protokol nebol nájdený!');
-      return;
-    }
+  // Image gallery handlers - NOVÉ RIEŠENIE
+  const handleOpenGallery = async (rental: Rental, protocolType: 'handover' | 'return') => {
+    try {
+      console.log('🔍 Opening gallery for protocol:', protocolType, 'rental:', rental.id);
+      
+      // Najprv skús načítať protokol ak nie je načítaný
+      if (!protocols[rental.id]?.[protocolType]) {
+        console.log('📥 Loading protocol for gallery...');
+        await loadProtocolsForRental(rental.id);
+      }
+      
+      const protocol = protocols[rental.id]?.[protocolType];
+      if (!protocol) {
+        alert('Protokol nebol nájdený!');
+        return;
+      }
 
-    console.log('🔍 Opening gallery for protocol:', protocol);
-    console.log('🔍 Protocol media:', {
-      vehicleImages: protocol.vehicleImages?.length || 0,
-      vehicleVideos: protocol.vehicleVideos?.length || 0,
-      documentImages: protocol.documentImages?.length || 0,
-      damageImages: protocol.damageImages?.length || 0
-    });
+      console.log('🔍 Protocol found:', protocol);
+      console.log('🔍 Protocol media:', {
+        vehicleImages: protocol.vehicleImages?.length || 0,
+        vehicleVideos: protocol.vehicleVideos?.length || 0,
+        documentImages: protocol.documentImages?.length || 0,
+        damageImages: protocol.damageImages?.length || 0
+      });
 
-    // Zber všetkých obrázkov z protokolu
-    const allImages: any[] = [];
-    const allVideos: any[] = [];
-    
-    // Vehicle images
-    if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
-      allImages.push(...protocol.vehicleImages.map((img: any) => ({
-        ...img,
-        type: 'vehicle'
-      })));
-    }
-    
-    // Vehicle videos
-    if (protocol.vehicleVideos && protocol.vehicleVideos.length > 0) {
-      allVideos.push(...protocol.vehicleVideos.map((video: any) => ({
-        ...video,
-        type: 'vehicle'
-      })));
-    }
-    
-    // Document images
-    if (protocol.documentImages && protocol.documentImages.length > 0) {
-      allImages.push(...protocol.documentImages.map((img: any) => ({
-        ...img,
-        type: 'document'
-      })));
-    }
-    
-    // Damage images
-    if (protocol.damageImages && protocol.damageImages.length > 0) {
-      allImages.push(...protocol.damageImages.map((img: any) => ({
-        ...img,
-        type: 'damage'
-      })));
-    }
+      // Zber všetkých obrázkov z protokolu
+      const allImages: any[] = [];
+      const allVideos: any[] = [];
+      
+      // Vehicle images
+      if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
+        allImages.push(...protocol.vehicleImages.map((img: any) => ({
+          ...img,
+          type: 'vehicle',
+          category: 'Vozidlo'
+        })));
+      }
+      
+      // Vehicle videos
+      if (protocol.vehicleVideos && protocol.vehicleVideos.length > 0) {
+        allVideos.push(...protocol.vehicleVideos.map((video: any) => ({
+          ...video,
+          type: 'vehicle',
+          category: 'Vozidlo'
+        })));
+      }
+      
+      // Document images
+      if (protocol.documentImages && protocol.documentImages.length > 0) {
+        allImages.push(...protocol.documentImages.map((img: any) => ({
+          ...img,
+          type: 'document',
+          category: 'Doklady'
+        })));
+      }
+      
+      // Damage images
+      if (protocol.damageImages && protocol.damageImages.length > 0) {
+        allImages.push(...protocol.damageImages.map((img: any) => ({
+          ...img,
+          type: 'damage',
+          category: 'Poškodenia'
+        })));
+      }
 
-    console.log('🔍 Collected media:', { allImages: allImages.length, allVideos: allVideos.length });
+      console.log('🔍 Collected media:', { allImages: allImages.length, allVideos: allVideos.length });
 
-    if (allImages.length === 0 && allVideos.length === 0) {
-      alert('Protokol neobsahuje žiadne médiá!');
-      return;
+      if (allImages.length === 0 && allVideos.length === 0) {
+        // Skús načítať fotky priamo z API ak protokol neobsahuje médiá
+        console.log('🔄 Trying to load media directly from API...');
+        const apiMedia = await loadMediaFromAPI(protocol.id, protocolType);
+        
+        if (apiMedia.images.length === 0 && apiMedia.videos.length === 0) {
+          alert('Protokol neobsahuje žiadne médiá!');
+          return;
+        }
+        
+        setSelectedProtocolImages(apiMedia.images);
+        setSelectedProtocolVideos(apiMedia.videos);
+      } else {
+        setSelectedProtocolImages(allImages);
+        setSelectedProtocolVideos(allVideos);
+      }
+      
+      setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} vozidla - ${rental.customerName}`);
+      setGalleryOpen(true);
+      
+    } catch (error) {
+      console.error('❌ Error opening gallery:', error);
+      alert('Chyba pri otváraní galérie: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
     }
+  };
 
-    setSelectedProtocolImages(allImages);
-    setSelectedProtocolVideos(allVideos);
-    setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} vozidla - ${rental.customerName}`);
-    setGalleryOpen(true);
+  // Nová funkcia na načítanie médií priamo z API
+  const loadMediaFromAPI = async (protocolId: string, protocolType: 'handover' | 'return') => {
+    try {
+      console.log('📥 Loading media from API for protocol:', protocolId);
+      
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      const response = await fetch(`${apiBaseUrl}/protocols/${protocolId}/media?type=${protocolType}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load media: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('📥 API media loaded:', data);
+      
+      return {
+        images: data.images || [],
+        videos: data.videos || []
+      };
+      
+    } catch (error) {
+      console.error('❌ Error loading media from API:', error);
+      return { images: [], videos: [] };
+    }
   };
 
   const handleCloseGallery = () => {
