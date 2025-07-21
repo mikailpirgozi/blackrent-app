@@ -96,11 +96,32 @@ export default function ProtocolGallery({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open]);
 
+  // Helper function to convert R2 URL to proxy URL
+  const getProxyUrl = (r2Url: string): string => {
+    try {
+      // Ak je to R2 URL, konvertuj na proxy
+      if (r2Url.includes('r2.dev') || r2Url.includes('cloudflare.com')) {
+        const urlParts = r2Url.split('/');
+        // Zober všetky časti po doméne ako key (preskoč https:// a doménu)
+        const key = urlParts.slice(3).join('/');
+        const proxyUrl = `${process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/files/proxy/${encodeURIComponent(key)}`;
+        console.log('🔄 Converting R2 URL to proxy:', r2Url, '→', proxyUrl);
+        return proxyUrl;
+      }
+      return r2Url; // Ak nie je R2 URL, vráť pôvodné
+    } catch (error) {
+      console.error('❌ Error converting to proxy URL:', error);
+      return r2Url;
+    }
+  };
+
   const handleDownload = async () => {
     if (!currentMedia) return;
     
     try {
-      const response = await fetch(currentMedia.url);
+      // Použi proxy URL pre download
+      const downloadUrl = getProxyUrl(currentMedia.url);
+      const response = await fetch(downloadUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -189,7 +210,7 @@ export default function ProtocolGallery({
                     onClick={() => handleImageClick(index)}
                   >
                     <img
-                      src={image.url}
+                      src={getProxyUrl(image.url)}
                       alt={image.description || `Obrázok ${index + 1}`}
                       style={{
                         width: '100%',
@@ -250,7 +271,7 @@ export default function ProtocolGallery({
                     onClick={() => handleImageClick(images.length + index)}
                   >
                     <video
-                      src={video.url}
+                      src={getProxyUrl(video.url)}
                       style={{
                         width: '100%',
                         height: '200px',
@@ -418,7 +439,7 @@ export default function ProtocolGallery({
                 {selectedIndex < images.length ? (
                   // Image
                   <img
-                    src={currentMedia.url}
+                    src={getProxyUrl(currentMedia.url)}
                     alt={currentMedia.description || 'Obrázok'}
                     style={{
                       maxWidth: `${100 * zoom}%`,
@@ -434,7 +455,7 @@ export default function ProtocolGallery({
                 ) : (
                   // Video
                   <video
-                    src={currentMedia.url}
+                    src={getProxyUrl(currentMedia.url)}
                     controls
                     style={{
                       maxWidth: `${100 * zoom}%`,
