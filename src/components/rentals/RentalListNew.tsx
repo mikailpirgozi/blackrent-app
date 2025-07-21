@@ -167,6 +167,12 @@ export default function RentalList() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [selectedProtocolImages, setSelectedProtocolImages] = useState<any[]>([]);
   const [selectedProtocolVideos, setSelectedProtocolVideos] = useState<any[]>([]);
+  const [selectedProtocolDirectMedia, setSelectedProtocolDirectMedia] = useState<{
+    images: any[];
+    videos: any[];
+  }>({ images: [], videos: [] });
+  const [selectedProtocolId, setSelectedProtocolId] = useState<string>('');
+  const [selectedProtocolType, setSelectedProtocolType] = useState<'handover' | 'return'>('handover');
   const [galleryTitle, setGalleryTitle] = useState('');
 
   // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
@@ -414,49 +420,26 @@ export default function RentalList() {
         damageImages: protocol.damageImages?.length || 0
       });
 
-      // Zber všetkých obrázkov z protokolu
-      const allImages: any[] = [];
-      const allVideos: any[] = [];
-      
-      // Vehicle images
-      if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
-        allImages.push(...protocol.vehicleImages.map((img: any) => ({
-          ...img,
-          type: 'vehicle',
-          category: 'Vozidlo'
-        })));
-      }
-      
-      // Vehicle videos
-      if (protocol.vehicleVideos && protocol.vehicleVideos.length > 0) {
-        allVideos.push(...protocol.vehicleVideos.map((video: any) => ({
-          ...video,
-          type: 'vehicle',
-          category: 'Vozidlo'
-        })));
-      }
-      
-      // Document images
-      if (protocol.documentImages && protocol.documentImages.length > 0) {
-        allImages.push(...protocol.documentImages.map((img: any) => ({
-          ...img,
-          type: 'document',
-          category: 'Doklady'
-        })));
-      }
-      
-      // Damage images
-      if (protocol.damageImages && protocol.damageImages.length > 0) {
-        allImages.push(...protocol.damageImages.map((img: any) => ({
-          ...img,
-          type: 'damage',
-          category: 'Poškodenia'
-        })));
-      }
+      // ✅ Zber všetkých médií z protokolu pre directMedia
+      const directMedia = {
+        images: [
+          ...(protocol.vehicleImages || []),
+          ...(protocol.documentImages || []),
+          ...(protocol.damageImages || [])
+        ],
+        videos: [
+          ...(protocol.vehicleVideos || []),
+          ...(protocol.documentVideos || []),
+          ...(protocol.damageVideos || [])
+        ]
+      };
 
-      console.log('🔍 Collected media:', { allImages: allImages.length, allVideos: allVideos.length });
+      console.log('🔍 Collected direct media:', { 
+        images: directMedia.images.length, 
+        videos: directMedia.videos.length 
+      });
 
-      if (allImages.length === 0 && allVideos.length === 0) {
+      if (directMedia.images.length === 0 && directMedia.videos.length === 0) {
         // Skús načítať fotky priamo z API ak protokol neobsahuje médiá
         console.log('🔄 Trying to load media directly from API...');
         const apiMedia = await loadMediaFromAPI(protocol.id, protocolType);
@@ -466,14 +449,16 @@ export default function RentalList() {
           return;
         }
         
-        setSelectedProtocolImages(apiMedia.images);
-        setSelectedProtocolVideos(apiMedia.videos);
+        // Nastav priame médiá z API
+        setSelectedProtocolDirectMedia(apiMedia);
       } else {
-        setSelectedProtocolImages(allImages);
-        setSelectedProtocolVideos(allVideos);
+        // Nastav priame médiá z protokolu
+        setSelectedProtocolDirectMedia(directMedia);
       }
       
       setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} vozidla - ${rental.customerName}`);
+      setSelectedProtocolId(protocol.id);
+      setSelectedProtocolType(protocolType);
       setGalleryOpen(true);
       
     } catch (error) {
@@ -517,6 +502,9 @@ export default function RentalList() {
     setGalleryOpen(false);
     setSelectedProtocolImages([]);
     setSelectedProtocolVideos([]);
+    setSelectedProtocolDirectMedia({ images: [], videos: [] });
+    setSelectedProtocolId('');
+    setSelectedProtocolType('handover');
     setGalleryTitle('');
   };
 
@@ -2419,9 +2407,9 @@ export default function RentalList() {
       <ImageGalleryModal
         open={galleryOpen}
         onClose={handleCloseGallery}
-        images={selectedProtocolImages}
-        videos={selectedProtocolVideos}
-        title={galleryTitle}
+        protocolId={selectedProtocolId}
+        protocolType={selectedProtocolType}
+        directMedia={selectedProtocolDirectMedia}
       />
     </Box>
   );
