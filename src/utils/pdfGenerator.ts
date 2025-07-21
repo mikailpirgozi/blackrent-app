@@ -45,8 +45,9 @@ class PDFGenerator {
     this.pageWidth = this.doc.internal.pageSize.getWidth();
     this.pageHeight = this.doc.internal.pageSize.getHeight();
     
-    // Nastavenie fontu pre diakritiku - použiť Arial pre lepšiu podporu
-    this.doc.setFont('arial');
+    // Nastavenie Unicode podpory pre diakritiku
+    this.doc.setFont('helvetica');
+    this.doc.setLanguage('sk');
   }
 
   /**
@@ -118,13 +119,13 @@ class PDFGenerator {
     this.doc.setFillColor(255, 255, 255);
     this.doc.circle(25, 17.5, 8, 'F');
     this.doc.setFontSize(12);
-    this.doc.setFont('arial', 'bold');
+    this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(255, 255, 255);
     this.doc.text('BR', 25, 21, { align: 'center' });
     
     // Názov protokolu
     this.doc.setFontSize(16);
-    this.doc.setFont('arial', 'bold');
+    this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(255, 255, 255);
     const title = protocol.type === 'handover' ? 'PROTOKOL O PREVZATÍ VOZIDLA' : 'PROTOKOL O VRÁTENÍ VOZIDLA';
     this.doc.text(title, this.pageWidth / 2, 22, { align: 'center' });
@@ -134,7 +135,7 @@ class PDFGenerator {
     
     // Informácie o protokole
     this.doc.setFontSize(10);
-    this.doc.setFont('arial', 'normal');
+    this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...this.secondaryColor);
     this.doc.text(`Číslo protokolu: ${protocol.id}`, this.margin, this.currentY);
     this.currentY += 6;
@@ -174,11 +175,11 @@ class PDFGenerator {
       const y = this.currentY + (row * 7);
       
       this.doc.setFontSize(10);
-      this.doc.setFont('arial', 'bold');
+      this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(...this.primaryColor);
       this.doc.text(label, x, y);
       
-      this.doc.setFont('arial', 'normal');
+      this.doc.setFont('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
       this.doc.text(value, x + 50, y);
     });
@@ -210,11 +211,11 @@ class PDFGenerator {
       const y = this.currentY + (row * 7);
       
       this.doc.setFontSize(10);
-      this.doc.setFont('arial', 'bold');
+      this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(...this.primaryColor);
       this.doc.text(label, x, y);
       
-      this.doc.setFont('arial', 'normal');
+      this.doc.setFont('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
       this.doc.text(value, x + 50, y);
     });
@@ -269,24 +270,27 @@ class PDFGenerator {
         
         // Popis obrázka
         this.doc.setFontSize(8);
-        this.doc.setFont('arial', 'bold');
+        this.doc.setFont('helvetica', 'bold');
         this.doc.setTextColor(...this.primaryColor);
         this.doc.text(`Fotka ${i + 1}`, currentX, this.currentY + height + 3);
         
-        // URL link pod obrázkom
+        // URL link pod obrázkom (kratší)
         if (image.url) {
           const urlText = image.url;
           const encodedUrl = urlText.replace(/\s/g, '%20');
           
           this.doc.setFontSize(4);
-          this.doc.setFont('arial', 'normal');
+          this.doc.setFont('helvetica', 'normal');
           this.doc.setTextColor(...this.accentColor);
           
-          if (this.doc.getTextWidth(encodedUrl) > width) {
+          // Skrátený URL pre zobrazenie pod fotkou
+          const shortUrl = encodedUrl.length > 50 ? encodedUrl.substring(0, 50) + '...' : encodedUrl;
+          
+          if (this.doc.getTextWidth(shortUrl) > width) {
             this.doc.setFontSize(3);
           }
           
-          this.doc.text(encodedUrl, currentX, this.currentY + height + 6);
+          this.doc.text(shortUrl, currentX, this.currentY + height + 6);
         }
         
         currentX += width + 15; // Zväčšený spacing medzi obrázkami
@@ -312,6 +316,11 @@ class PDFGenerator {
     }
 
     this.currentY += 10;
+    
+    // Pridanie URL na novú stranu
+    if (images.length > 0) {
+      this.addImageUrlsPage(images);
+    }
   }
 
   /**
@@ -358,7 +367,7 @@ class PDFGenerator {
         this.doc.addImage(imgData, 'JPEG', currentX, this.currentY, width, height);
         
         this.doc.setFontSize(8);
-        this.doc.setFont('arial', 'bold');
+        this.doc.setFont('helvetica', 'bold');
         this.doc.setTextColor(...this.primaryColor);
         this.doc.text(`Dokument ${i + 1}`, currentX, this.currentY + height + 3);
         
@@ -367,7 +376,7 @@ class PDFGenerator {
           const encodedUrl = urlText.replace(/\s/g, '%20');
           
           this.doc.setFontSize(4);
-          this.doc.setFont('arial', 'normal');
+          this.doc.setFont('helvetica', 'normal');
           this.doc.setTextColor(...this.accentColor);
           
           if (this.doc.getTextWidth(encodedUrl) > width) {
@@ -418,11 +427,11 @@ class PDFGenerator {
 
     damages.forEach((damage, index) => {
       this.doc.setFontSize(10);
-      this.doc.setFont('arial', 'bold');
+      this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(...this.warningColor);
       this.doc.text(`${index + 1}.`, this.margin, this.currentY);
       
-      this.doc.setFont('arial', 'normal');
+      this.doc.setFont('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
       this.doc.text(damage.description || 'N/A', this.margin + 15, this.currentY);
       
@@ -446,7 +455,7 @@ class PDFGenerator {
     this.addSectionTitle('POZNÁMKY');
     
     this.doc.setFontSize(10);
-    this.doc.setFont('arial', 'normal');
+    this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...this.secondaryColor);
     this.doc.text(notes, this.margin, this.currentY);
     
@@ -509,7 +518,7 @@ class PDFGenerator {
         this.doc.addImage(imgData, 'JPEG', currentX, this.currentY, width, height);
         
         this.doc.setFontSize(8);
-        this.doc.setFont('arial', 'bold');
+        this.doc.setFont('helvetica', 'bold');
         this.doc.setTextColor(...this.primaryColor);
         this.doc.text(`Podpis ${i + 1}`, currentX, this.currentY + height + 3);
         
@@ -518,7 +527,7 @@ class PDFGenerator {
           const encodedUrl = urlText.replace(/\s/g, '%20');
           
           this.doc.setFontSize(4);
-          this.doc.setFont('arial', 'normal');
+          this.doc.setFont('helvetica', 'normal');
           this.doc.setTextColor(...this.accentColor);
           
           if (this.doc.getTextWidth(encodedUrl) > width) {
@@ -565,7 +574,7 @@ class PDFGenerator {
     this.currentY += 5;
     
     this.doc.setFontSize(8);
-    this.doc.setFont('arial', 'normal');
+    this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...this.secondaryColor);
     this.doc.text(`Protokol vygenerovaný: ${new Date().toLocaleString('sk-SK')}`, this.margin, this.currentY);
     this.currentY += 4;
@@ -579,7 +588,7 @@ class PDFGenerator {
    */
   private addSectionTitle(title: string) {
     this.doc.setFontSize(12);
-    this.doc.setFont('arial', 'bold');
+    this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...this.primaryColor);
     this.doc.text(title, this.margin, this.currentY);
     this.currentY += 8;
@@ -743,6 +752,71 @@ class PDFGenerator {
       };
       
       img.src = imgData;
+    });
+  }
+
+  /**
+   * Pridanie URL na novú stranu
+   */
+  private addImageUrlsPage(images: any[]) {
+    this.doc.addPage();
+    this.currentY = 30;
+    
+    this.addSectionTitle('LINKY NA FOTKY');
+    
+    this.doc.setFontSize(10);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.setTextColor(...this.secondaryColor);
+    
+    images.forEach((image, index) => {
+      if (image.url) {
+        const urlText = image.url;
+        const encodedUrl = urlText.replace(/\s/g, '%20');
+        
+        // Číslo fotky
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setTextColor(...this.primaryColor);
+        this.doc.text(`${index + 1}.`, this.margin, this.currentY);
+        
+        // URL
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setTextColor(...this.accentColor);
+        this.doc.setFontSize(8);
+        
+        // Kontrola či sa zmestí na stránku
+        if (this.currentY > this.pageHeight - 30) {
+          this.doc.addPage();
+          this.currentY = 30;
+        }
+        
+        // Rozdelenie dlhého URL na viac riadkov
+        const maxWidth = this.pageWidth - this.margin * 2 - 20; // 20mm pre číslo
+        const words = encodedUrl.split('/');
+        let currentLine = '';
+        let lineY = this.currentY;
+        
+        for (const word of words) {
+          const testLine = currentLine + (currentLine ? '/' : '') + word;
+          if (this.doc.getTextWidth(testLine) > maxWidth) {
+            if (currentLine) {
+              this.doc.text(currentLine, this.margin + 20, lineY);
+              lineY += 4;
+              currentLine = word;
+            } else {
+              this.doc.text(word, this.margin + 20, lineY);
+              lineY += 4;
+            }
+          } else {
+            currentLine = testLine;
+          }
+        }
+        
+        if (currentLine) {
+          this.doc.text(currentLine, this.margin + 20, lineY);
+        }
+        
+        this.currentY = lineY + 8;
+      }
     });
   }
 }
