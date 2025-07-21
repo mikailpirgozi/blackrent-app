@@ -46,7 +46,13 @@ export default function ProtocolGallery({
     imagesCount: images?.length,
     videosCount: videos?.length,
     title,
-    images: images?.map(img => ({ id: img.id, url: img.url, type: img.type }))
+    images: images?.map(img => ({ 
+      id: img.id, 
+      url: img.url, 
+      type: img.type,
+      hasUrl: !!img.url,
+      urlType: typeof img.url
+    }))
   });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
