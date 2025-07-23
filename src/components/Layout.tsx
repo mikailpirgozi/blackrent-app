@@ -520,6 +520,7 @@ export default function Layout({ children }: LayoutProps) {
         {isMobile && <Toolbar />}
         
         <Box 
+          className="custom-font-app protocol-custom-font"
           sx={{ 
             p: { xs: 2, md: 3 },
             maxWidth: '1400px',
