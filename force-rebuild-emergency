@@ -1,0 +1,7 @@
+EMERGENCY FORCE REBUILD - Railway používa starý kód bez Enhanced PDF generátora!
+
+Timestamp: 2025-07-23T11:35:00Z
+Problém: Legacy PDF generátor sa stále používa namiesto Enhanced jsPDF
+Debug logy chýbajú v Railway console
+
+Potrebné: Úplný rebuild aplikácie s novým kódom 
