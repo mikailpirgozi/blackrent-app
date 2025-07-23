@@ -1,18 +1,11 @@
-import PDFDocument from 'pdfkit';
 import { HandoverProtocol, ReturnProtocol } from '../types';
-export declare class ProtocolPDFGenerator {
-    private doc;
-    constructor();
-    private loadImageBuffer;
-    generateHandoverProtocol(protocol: HandoverProtocol): Promise<InstanceType<typeof PDFDocument>>;
-    generateReturnProtocol(protocol: ReturnProtocol): Promise<InstanceType<typeof PDFDocument>>;
-    private setupHeader;
-    private addSection;
-    private addInfoRow;
-    private getStatusText;
-    private addFooter;
-    getBuffer(): Promise<Buffer>;
-}
-export declare const generateHandoverPDF: (protocol: HandoverProtocol) => Promise<Buffer>;
-export declare const generateReturnPDF: (protocol: ReturnProtocol) => Promise<Buffer>;
+/**
+ * 🎯 HLAVNÁ FUNKCIA - Generovanie handover PDF
+ * Automaticky vyberie najlepší dostupný generátor
+ */
+export declare const generateHandoverPDF: (protocolData: HandoverProtocol) => Promise<Buffer>;
+/**
+ * 🎯 HLAVNÁ FUNKCIA - Generovanie return PDF
+ */
+export declare const generateReturnPDF: (protocolData: ReturnProtocol) => Promise<Buffer>;
 //# sourceMappingURL=pdf-generator.d.ts.map
