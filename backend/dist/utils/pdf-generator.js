@@ -10,7 +10,9 @@ const enhanced_pdf_generator_backend_1 = require("./enhanced-pdf-generator-backe
 // 'legacy' = starý pdfkit generator
 // 'jspdf' = enhanced jsPDF generator (ODPORÚČANÝ)
 // 'puppeteer' = nový Puppeteer generator (najlepší) - PRIPRAVUJEM
+// EXPLICITNÉ NASTAVENIE - Enhanced jsPDF ako default
 const PDF_GENERATOR_TYPE = process.env.PDF_GENERATOR_TYPE || 'jspdf';
+console.log(`🎯 PDF Generator inicializovaný: ${PDF_GENERATOR_TYPE.toUpperCase()}`);
 // Puppeteer generátor - runtime require (obchází TypeScript check)
 const getPuppeteerGenerator = async () => {
     try {
@@ -391,6 +393,8 @@ exports.ProtocolPDFGenerator = ProtocolPDFGenerator;
 const generateHandoverPDF = async (protocol) => {
     const generatorType = PDF_GENERATOR_TYPE;
     console.log(`🔄 PDF Generator: Používam ${generatorType.toUpperCase()}`);
+    console.log(`📊 Environment PDF_GENERATOR_TYPE: ${process.env.PDF_GENERATOR_TYPE || 'UNDEFINED'}`);
+    console.log(`🎯 Finálny typ generátora: ${generatorType}`);
     switch (generatorType) {
         case 'puppeteer':
             // Nový Puppeteer generator (najlepší) - PRIPRAVUJEM
@@ -412,6 +416,8 @@ exports.generateHandoverPDF = generateHandoverPDF;
 const generateReturnPDF = async (protocol) => {
     const generatorType = PDF_GENERATOR_TYPE;
     console.log(`🔄 PDF Generator: Používam ${generatorType.toUpperCase()}`);
+    console.log(`📊 Environment PDF_GENERATOR_TYPE: ${process.env.PDF_GENERATOR_TYPE || 'UNDEFINED'}`);
+    console.log(`🎯 Finálny typ generátora: ${generatorType}`);
     switch (generatorType) {
         case 'puppeteer':
             // Nový Puppeteer generator (najlepší) - PRIPRAVUJEM

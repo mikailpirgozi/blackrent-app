@@ -24,6 +24,8 @@ export class EnhancedPDFGeneratorBackend {
    * Generovanie handover protokolu s enhanced PDF
    */
   async generateHandoverProtocol(protocol: HandoverProtocol): Promise<Buffer> {
+    console.log('🎨 ENHANCED jsPDF GENERÁTOR SPUSTENÝ - Handover protokol');
+    console.log('📋 Protokol ID:', protocol.id);
     // Reset pozície
     this.currentY = 20;
     
