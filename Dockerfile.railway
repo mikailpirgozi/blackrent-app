@@ -60,11 +60,17 @@ COPY backend/package*.json ./
 # Clear npm cache and install dependencies explicitly
 RUN npm cache clean --force
 RUN npm install --only=production
-RUN npm list @sentry/node || echo "Sentry not found, installing explicitly..."
+
+# Install Puppeteer explicitly and skip Chromium download (we installed Chrome)
+RUN npm install puppeteer@^23.9.0
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+# Install Sentry
 RUN npm install @sentry/node@^7.88.0 @sentry/tracing@^7.88.0 || true
 
 # Verify critical dependencies are installed
 RUN node -e "require('@sentry/node'); console.log('✅ @sentry/node loaded successfully');" || echo "❌ Sentry still not available"
+RUN node -e "require('puppeteer'); console.log('✅ Puppeteer loaded successfully');" || echo "❌ Puppeteer not available"
 
 # Copy backend source
 COPY backend/src/ ./src/
