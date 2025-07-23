@@ -232,7 +232,7 @@ class PuppeteerPDFGeneratorV2 {
 </head>
 <body>
     <div class="container">
-        <div class="protocol-id">ID: ${protocol.id.slice(-8).toUpperCase()}</div>
+        <div class="protocol-id">ID: ${protocol.id ? protocol.id.slice(-8).toUpperCase() : 'TEST-' + Date.now().toString().slice(-6)}</div>
         
         <div class="header">
             <h1>🚗 PROTOKOL PREVZATIA VOZIDLA</h1>
@@ -380,7 +380,7 @@ class PuppeteerPDFGeneratorV2 {
         <div class="footer">
             <div>Protokol vygenerovaný automaticky systémom BlackRent</div>
             <div style="margin-top: 5px;">
-                ${new Date().toLocaleString('sk-SK')} | ID: ${protocol.id}
+                ${new Date().toLocaleString('sk-SK')} | ID: ${protocol.id || 'TEST-PROTOCOL'}
             </div>
         </div>
     </div>
@@ -392,7 +392,7 @@ class PuppeteerPDFGeneratorV2 {
      */
     async generateHandoverProtocol(protocol) {
         console.log('🎭 PUPPETEER V2: Spúšťam generovanie handover protokolu');
-        console.log('📋 Protokol ID:', protocol.id);
+        console.log('📋 Protokol ID:', protocol.id || 'NONE');
         let browser;
         try {
             // Spustenie Puppeteer s optimalizovanými nastaveniami

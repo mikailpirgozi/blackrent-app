@@ -741,5 +741,22 @@ router.post('/handover/generate-pdf', async (req, res) => {
         res.status(500).json({ error: 'Failed to generate test PDF', details: error instanceof Error ? error.message : 'Unknown error' });
     }
 });
+// DEBUG: Endpoint pre overenie Puppeteer konfigurácie
+router.get('/debug/pdf-config', (req, res) => {
+    const config = {
+        puppeteerEnabled: process.env.PDF_GENERATOR_TYPE === 'puppeteer',
+        generatorType: process.env.PDF_GENERATOR_TYPE || 'enhanced',
+        chromiumPath: process.env.PUPPETEER_EXECUTABLE_PATH || 'not set',
+        skipDownload: process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD === 'true',
+        nodeEnv: process.env.NODE_ENV,
+        timestamp: new Date().toISOString(),
+        version: '2.0'
+    };
+    console.log('🔍 PDF Config Debug:', config);
+    res.json({
+        success: true,
+        config
+    });
+});
 exports.default = router;
 //# sourceMappingURL=protocols.js.map
