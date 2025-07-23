@@ -44,11 +44,8 @@ RUN apt-get update && apt-get install -y \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Google Chrome
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable \
+# Install Chromium (lighter alternative to Chrome)
+RUN apt-get update && apt-get install -y chromium \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory for backend
@@ -94,9 +91,9 @@ EXPOSE 8080
 # Health check - removed as it was using wrong endpoint
 # Railway will use healthcheckPath from railway.json instead
 
-# Set Puppeteer environment variables
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+# Set Puppeteer environment variables for Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Start the application
 CMD ["npm", "start"] 
