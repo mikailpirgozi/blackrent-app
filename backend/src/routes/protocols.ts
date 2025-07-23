@@ -3,6 +3,7 @@ import multer from 'multer';
 import { HandoverProtocol, ReturnProtocol } from '../types';
 import { postgresDatabase } from '../models/postgres-database';
 import { generateHandoverPDF, generateReturnPDF } from '../utils/pdf-generator';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -148,7 +149,7 @@ router.get('/media/:protocolId', async (req, res) => {
 });
 
 // Create handover protocol
-router.post('/handover', async (req, res) => {
+router.post('/handover', authenticateToken, async (req, res) => {
   try {
     console.log('📝 Received handover protocol request');
     console.log('📝 Request body (raw):', req.body);
