@@ -10,7 +10,7 @@ dotenv.config();
 import { initSentry, reportError } from './utils/sentry';
 
 const app = express();
-const port = process.env.PORT || 5001;
+const port = Number(process.env.PORT) || 3001;
 
 // Sentry setup - vylepšená verzia
 const sentry = initSentry(app);
