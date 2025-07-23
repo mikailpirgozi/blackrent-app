@@ -83,22 +83,33 @@ app.use('/api/settlements', settlements_1.default);
 app.use('/api/migration', migration_1.default);
 // Debug endpoint pre diagnostiku PDF generátora
 app.get('/api/debug/pdf-generator', (req, res) => {
-    const puppeteerAvailable = !!process.env.PDF_GENERATOR_TYPE;
-    const generatorType = process.env.PDF_GENERATOR_TYPE || 'enhanced';
+    const puppeteerEnabled = process.env.PDF_GENERATOR_TYPE === 'puppeteer';
     res.json({
         success: true,
-        message: 'PDF Generator Debug Info',
         data: {
-            currentGenerator: generatorType,
-            puppeteerEnabled: generatorType === 'puppeteer',
-            environmentVariable: puppeteerAvailable,
-            availableGenerators: ['enhanced', 'puppeteer', 'legacy'],
+            puppeteerEnabled,
+            generatorType: process.env.PDF_GENERATOR_TYPE || 'enhanced',
+            nodeEnv: process.env.NODE_ENV,
             timestamp: new Date().toISOString(),
-            nodeVersion: process.version,
-            platform: process.platform,
-            puppeteerPath: process.env.PUPPETEER_EXECUTABLE_PATH || 'default',
-            chromeSkipDownload: process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD || 'false'
+            version: '1.0'
         }
+    });
+});
+// 🎭 PUPPETEER Configuration Debug Endpoint
+app.get('/api/debug/puppeteer-config', (req, res) => {
+    const config = {
+        puppeteerEnabled: process.env.PDF_GENERATOR_TYPE === 'puppeteer',
+        generatorType: process.env.PDF_GENERATOR_TYPE || 'enhanced',
+        chromiumPath: process.env.PUPPETEER_EXECUTABLE_PATH || 'not set',
+        skipDownload: process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD === 'true',
+        nodeEnv: process.env.NODE_ENV,
+        timestamp: new Date().toISOString(),
+        version: '2.0'
+    };
+    console.log('🔍 Railway Puppeteer Config Debug:', config);
+    res.json({
+        success: true,
+        config
     });
 });
 // API Health endpoint for frontend compatibility
