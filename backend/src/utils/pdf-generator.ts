@@ -1,17 +1,18 @@
 import PDFDocument from 'pdfkit';
 import { HandoverProtocol, ReturnProtocol } from '../types';
 import { EnhancedPDFGeneratorBackend } from './enhanced-pdf-generator-backend';
+import { PuppeteerPDFGeneratorV2 } from './puppeteer-pdf-generator-v2';
 
 // 🔄 PREPÍNAČ PDF GENERÁTORA:
 // 'legacy' = starý pdfkit generator
 // 'jspdf' = enhanced jsPDF generator (ODPORÚČANÝ)
-// 'puppeteer' = nový Puppeteer generator (najlepší) - PRIPRAVUJEM
+// 'puppeteer' = nový Puppeteer generator (najlepší) - PRIPRAVENÝ!
 
-// EMERGENCY FIX - HARDCODED Enhanced jsPDF
-const PDF_GENERATOR_TYPE: 'jspdf' | 'legacy' | 'puppeteer' = 'jspdf'; // FORCE Enhanced jsPDF
+// Environment variable alebo fallback na Enhanced jsPDF
+const PDF_GENERATOR_TYPE: 'jspdf' | 'legacy' | 'puppeteer' = 
+  (process.env.PDF_GENERATOR_TYPE as 'jspdf' | 'legacy' | 'puppeteer') || 'jspdf';
 
 console.log(`🎯 PDF Generator inicializovaný: ${PDF_GENERATOR_TYPE.toUpperCase()}`);
-console.log('🚨 EMERGENCY: Hardcoded Enhanced jsPDF generator');
 
 // Puppeteer generátor - runtime require (obchází TypeScript check)
 const getPuppeteerGenerator = async () => {
@@ -444,19 +445,81 @@ export class ProtocolPDFGenerator {
 
 // Export funkcie pre jednoduché použitie s prepínačom
 export const generateHandoverPDF = async (protocol: HandoverProtocol): Promise<Buffer> => {
-  console.log('🚨 EMERGENCY: Používam HARDCODED Enhanced jsPDF generátor');
-  console.log('🎨 Enhanced jsPDF generátor s diakritikoy');
+  console.log(`🎯 Generujem handover PDF s ${PDF_GENERATOR_TYPE.toUpperCase()} generátorom`);
   
-  // EMERGENCY FIX - Priamo Enhanced jsPDF generátor
-  const enhancedGenerator = new EnhancedPDFGeneratorBackend();
-  return await enhancedGenerator.generateHandoverProtocol(protocol);
+  try {
+    // Puppeteer generátor - najlepšia kvalita
+    if (PDF_GENERATOR_TYPE === 'puppeteer') {
+      console.log('🎭 Používam Puppeteer generátor');
+      const puppeteerGenerator = new PuppeteerPDFGeneratorV2();
+      return await puppeteerGenerator.generateHandoverProtocol(protocol);
+    }
+    
+    // Enhanced jsPDF generátor - dobrá kvalita s diakritikoy
+    if (PDF_GENERATOR_TYPE === 'jspdf') {
+      console.log('🎨 Používam Enhanced jsPDF generátor');
+      const enhancedGenerator = new EnhancedPDFGeneratorBackend();
+      return await enhancedGenerator.generateHandoverProtocol(protocol);
+    }
+    
+    // Legacy PDFKit generátor - fallback
+    console.log('📄 Používam Legacy PDFKit generátor');
+    const generator = new ProtocolPDFGenerator();
+    const doc = await generator.generateHandoverProtocol(protocol);
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      doc.on('data', chunks.push.bind(chunks));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+      doc.end();
+    });
+    
+  } catch (error) {
+    console.error(`❌ Chyba v ${PDF_GENERATOR_TYPE} generátore:`, error);
+    console.log('🔄 Fallback na Enhanced jsPDF generátor');
+    
+    // Fallback na Enhanced jsPDF
+    const enhancedGenerator = new EnhancedPDFGeneratorBackend();
+    return await enhancedGenerator.generateHandoverProtocol(protocol);
+  }
 };
 
 export const generateReturnPDF = async (protocol: ReturnProtocol): Promise<Buffer> => {
-  console.log('🚨 EMERGENCY: Používam HARDCODED Enhanced jsPDF generátor');
-  console.log('🎨 Enhanced jsPDF generátor s diakritikoy');
+  console.log(`🎯 Generujem return PDF s ${PDF_GENERATOR_TYPE.toUpperCase()} generátorom`);
   
-  // EMERGENCY FIX - Priamo Enhanced jsPDF generátor
-  const enhancedGenerator = new EnhancedPDFGeneratorBackend();
-  return await enhancedGenerator.generateReturnProtocol(protocol);
+  try {
+    // Puppeteer generátor - najlepšia kvalita
+    if (PDF_GENERATOR_TYPE === 'puppeteer') {
+      console.log('🎭 Používam Puppeteer generátor');
+      const puppeteerGenerator = new PuppeteerPDFGeneratorV2();
+      return await puppeteerGenerator.generateReturnProtocol(protocol);
+    }
+    
+    // Enhanced jsPDF generátor - dobrá kvalita s diakritikoy
+    if (PDF_GENERATOR_TYPE === 'jspdf') {
+      console.log('🎨 Používam Enhanced jsPDF generátor');
+      const enhancedGenerator = new EnhancedPDFGeneratorBackend();
+      return await enhancedGenerator.generateReturnProtocol(protocol);
+    }
+    
+    // Legacy PDFKit generátor - fallback
+    console.log('📄 Používam Legacy PDFKit generátor');
+    const generator = new ProtocolPDFGenerator();
+    const doc = await generator.generateReturnProtocol(protocol);
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      doc.on('data', chunks.push.bind(chunks));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+      doc.end();
+    });
+    
+  } catch (error) {
+    console.error(`❌ Chyba v ${PDF_GENERATOR_TYPE} generátore:`, error);
+    console.log('🔄 Fallback na Enhanced jsPDF generátor');
+    
+    // Fallback na Enhanced jsPDF
+    const enhancedGenerator = new EnhancedPDFGeneratorBackend();
+    return await enhancedGenerator.generateReturnProtocol(protocol);
+  }
 }; 
