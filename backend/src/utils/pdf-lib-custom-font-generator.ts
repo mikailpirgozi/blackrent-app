@@ -357,7 +357,7 @@ export class PDFLibCustomFontGenerator {
       y: this.currentY - 31,
       size: 20,
       font: this.boldFont,
-      color: rgb(0, 0, 0, 0.3), // Priehľadný tieň
+      color: rgb(0.7, 0.7, 0.7), // Sivý tieň
     });
     
     // Hlavný titulok
