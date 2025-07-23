@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Lokálny backend endpoint
-const LOCAL_API = 'http://localhost:3001';
+const LOCAL_API = 'http://localhost:5001';
 
 // Test data
 const testHandoverData = {

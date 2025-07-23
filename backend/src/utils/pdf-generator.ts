@@ -5,25 +5,32 @@ import { PuppeteerPDFGeneratorV2 } from './puppeteer-pdf-generator-v2';
 
 // 🔄 PREPÍNAČ PDF GENERÁTORA:
 // 'legacy' = starý pdfkit generator
-// 'jspdf' = enhanced jsPDF generator (ODPORÚČANÝ)
+// 'jspdf' = enhanced jsPDF generator 
 // 'puppeteer' = nový Puppeteer generator (najlepší) - PRIPRAVENÝ!
 
-// Environment variable alebo fallback na Enhanced jsPDF
+// Environment variable alebo fallback na Puppeteer (najlepší)
 const PDF_GENERATOR_TYPE: 'jspdf' | 'legacy' | 'puppeteer' = 
-  (process.env.PDF_GENERATOR_TYPE as 'jspdf' | 'legacy' | 'puppeteer') || 'jspdf';
+  (process.env.PDF_GENERATOR_TYPE as 'jspdf' | 'legacy' | 'puppeteer') || 'puppeteer';
 
 console.log(`🎯 PDF Generator inicializovaný: ${PDF_GENERATOR_TYPE.toUpperCase()}`);
 
-// Puppeteer generátor - runtime require (obchází TypeScript check)
+// Puppeteer generátor - runtime require s fallback
 const getPuppeteerGenerator = async () => {
   try {
-    // Runtime require pre obídenie TypeScript chyby
-    const puppeteerModule = require('./puppeteer-pdf-generator');
-    console.log('✅ Puppeteer generátor úspešne načítaný');
-    return puppeteerModule;
+    // Skúsim načítať Puppeteer V2 generátor
+    const { PuppeteerPDFGeneratorV2 } = await import('./puppeteer-pdf-generator-v2');
+    console.log('✅ Puppeteer V2 generátor úspešne načítaný');
+    return new PuppeteerPDFGeneratorV2();
   } catch (error) {
     console.error('❌ Chyba pri načítaní Puppeteer generátora:', error);
-    throw new Error('Puppeteer generátor nie je dostupný. Použite PDF_GENERATOR_TYPE=legacy alebo jspdf');
+    console.log('🔄 Fallback na Enhanced jsPDF generátor');
+    
+    // Fallback na Enhanced jsPDF ak Puppeteer zlyhá
+    const enhancedGenerator = new EnhancedPDFGeneratorBackend();
+    return {
+      generateHandoverProtocol: enhancedGenerator.generateHandoverProtocol.bind(enhancedGenerator),
+      generateReturnProtocol: enhancedGenerator.generateReturnProtocol.bind(enhancedGenerator)
+    };
   }
 };
 
@@ -464,7 +471,7 @@ export const generateHandoverPDF = async (protocol: HandoverProtocol): Promise<B
     
     // Legacy PDFKit generátor - fallback
     console.log('📄 Používam Legacy PDFKit generátor');
-    const generator = new ProtocolPDFGenerator();
+  const generator = new ProtocolPDFGenerator();
     const doc = await generator.generateHandoverProtocol(protocol);
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
@@ -504,7 +511,7 @@ export const generateReturnPDF = async (protocol: ReturnProtocol): Promise<Buffe
     
     // Legacy PDFKit generátor - fallback
     console.log('📄 Používam Legacy PDFKit generátor');
-    const generator = new ProtocolPDFGenerator();
+  const generator = new ProtocolPDFGenerator();
     const doc = await generator.generateReturnProtocol(protocol);
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];

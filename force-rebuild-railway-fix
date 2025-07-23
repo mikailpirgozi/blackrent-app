@@ -1,0 +1,9 @@
+force-rebuild-railway-host-fix-$(date +%s)
+
+✅ Railway fix:
+- Host binding na 0.0.0.0 
+- TypeScript port fix
+- Puppeteer pripravený
+- PDF protokoly fungujú
+
+Timestamp: $(date) 

@@ -134,7 +134,7 @@ app.use((err: any, req: any, res: any, next: any) => {
 });
 
 // Start server
-app.listen(port, () => {
+app.listen(Number(port), '0.0.0.0', () => {
   console.log(`🚀 BlackRent server beží na porte ${port}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  Database: PostgreSQL`);
