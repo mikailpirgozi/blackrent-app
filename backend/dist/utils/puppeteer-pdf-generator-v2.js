@@ -417,11 +417,43 @@ class PuppeteerPDFGeneratorV2 {
                     '--disable-plugins',
                     '--disable-background-networking',
                     '--disable-default-apps',
-                    '--disable-sync'
+                    '--disable-sync',
+                    '--disable-web-security',
+                    '--disable-features=VizDisplayCompositor',
+                    '--run-all-compositor-stages-before-draw',
+                    '--disable-component-extensions-with-background-pages',
+                    '--disable-software-rasterizer',
+                    '--disable-component-update',
+                    '--disable-client-side-phishing-detection',
+                    '--disable-crash-reporter',
+                    '--disable-hang-monitor',
+                    '--disable-prompt-on-repost',
+                    '--disable-domain-reliability',
+                    '--disable-background-mode',
+                    '--disable-translate',
+                    '--disable-logging',
+                    '--disable-permissions-api',
+                    '--disable-notifications',
+                    '--disable-speech-api',
+                    '--disable-file-system',
+                    '--disable-presentation-api',
+                    '--disable-sensors-api',
+                    '--disable-wake-on-wifi',
+                    '--disable-breakpad',
+                    // Railway container specific
+                    '--homedir=/tmp',
+                    '--user-data-dir=/tmp/chrome-user-data',
+                    '--data-path=/tmp/chrome-data',
+                    '--disk-cache-dir=/tmp/chrome-cache',
+                    '--no-pings',
+                    '--no-session-id',
+                    '--remote-debugging-port=0'
                 ],
                 // Railway kontajner nastavenia
-                userDataDir: '/tmp/puppeteer-data',
-                timeout: 60000 // 60 sekúnd timeout
+                userDataDir: '/tmp/puppeteer-user-data',
+                timeout: 60000, // 60 sekúnd timeout
+                dumpio: false, // Disable stdio
+                pipe: true // Use pipes instead of websockets
             });
             const page = await browser.newPage();
             // Nastavenie viewport pre A4 formát
