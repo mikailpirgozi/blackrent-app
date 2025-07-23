@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -111,6 +144,74 @@ app.get('/api/debug/puppeteer-config', (req, res) => {
         success: true,
         config
     });
+});
+// 🧪 PUPPETEER PDF Test Endpoint
+app.post('/api/debug/test-puppeteer-pdf', async (req, res) => {
+    try {
+        console.log('🧪 Testing Puppeteer PDF generation on Railway...');
+        // Import Puppeteer PDF generátora
+        const { PuppeteerPDFGeneratorV2 } = await Promise.resolve().then(() => __importStar(require('./utils/puppeteer-pdf-generator-v2')));
+        const generator = new PuppeteerPDFGeneratorV2();
+        // Dummy test data
+        const testProtocol = {
+            id: 'test-' + Date.now(),
+            rentalId: 'rental-test',
+            type: 'handover',
+            location: 'Railway Test Location',
+            vehicleCondition: { fuel: 100, kilometers: 0, damages: [] },
+            signatures: [],
+            vehicleImages: [],
+            vehicleVideos: [],
+            documentImages: [],
+            documentVideos: [],
+            damageImages: [],
+            damageVideos: [],
+            damages: [],
+            rentalData: {
+                orderNumber: 'TEST-' + Date.now(),
+                vehicle: {
+                    brand: 'Test',
+                    model: 'Vehicle',
+                    licensePlate: 'TEST-123',
+                    company: 'Test Company'
+                },
+                customer: {
+                    name: 'Test Customer',
+                    email: 'test@test.com',
+                    phone: '+421900000000'
+                },
+                startDate: new Date(),
+                endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                totalPrice: 100,
+                deposit: 50,
+                currency: 'EUR'
+            },
+            createdAt: new Date(),
+            status: 'completed',
+            createdBy: 'test-user'
+        };
+        // Generate PDF
+        const pdfBuffer = await generator.generateHandoverPDF(testProtocol);
+        console.log('✅ Puppeteer PDF generated successfully on Railway!');
+        console.log(`📊 PDF Size: ${pdfBuffer.length} bytes`);
+        res.json({
+            success: true,
+            message: 'Puppeteer PDF generated successfully on Railway',
+            size: pdfBuffer.length,
+            sizeKB: Math.round(pdfBuffer.length / 1024),
+            generator: 'PuppeteerPDFGeneratorV2',
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error('❌ Puppeteer PDF test failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Puppeteer PDF generation failed',
+            message: error?.message || 'Unknown error',
+            stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+        });
+    }
 });
 // API Health endpoint for frontend compatibility
 app.get('/api/health', (req, res) => {
