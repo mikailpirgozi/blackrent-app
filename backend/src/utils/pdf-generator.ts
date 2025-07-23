@@ -8,8 +8,9 @@ import { PuppeteerPDFGeneratorV2 } from './puppeteer-pdf-generator-v2';
 // 'jspdf' = enhanced jsPDF generator 
 // 'puppeteer' = nový Puppeteer generator (najlepší) - PRIPRAVENÝ!
 
-// 🎯 DOČASNE: Enhanced jsPDF ako default (Railway fix)
-const PDF_GENERATOR_TYPE = process.env.PDF_GENERATOR_TYPE || 'enhanced';
+// 🎯 Puppeteer ako default, s fallback na Enhanced jsPDF
+const PDF_GENERATOR_TYPE: 'jspdf' | 'legacy' | 'puppeteer' = 
+  (process.env.PDF_GENERATOR_TYPE as 'jspdf' | 'legacy' | 'puppeteer') || 'puppeteer';
 
 console.log(`🎯 PDF Generator inicializovaný: ${PDF_GENERATOR_TYPE.toUpperCase()}`);
 
