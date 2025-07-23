@@ -131,8 +131,8 @@ router.post('/handover', authenticateToken, async (req, res) => {
       protocol: {
         ...protocol,
         pdfUrl,
-        // 🎯 FRONTEND proxy URL namiesto priameho R2 URL
-        pdfProxyUrl: pdfUrl ? `/api/protocols/pdf/${protocol.id}` : null
+        // 🎯 FRONTEND proxy URL namiesto priameho R2 URL (bez /api prefix)
+        pdfProxyUrl: pdfUrl ? `/protocols/pdf/${protocol.id}` : null
       }
     });
   } catch (error) {
