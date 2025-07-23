@@ -4,14 +4,21 @@ import { EnhancedPDFGeneratorBackend } from './enhanced-pdf-generator-backend';
 
 // 🔄 PREPÍNAČ PDF GENERÁTORA:
 // 'legacy' = starý pdfkit generator
-// 'jspdf' = enhanced jsPDF generator  
+// 'jspdf' = enhanced jsPDF generator (ODPORÚČANÝ)
 // 'puppeteer' = nový Puppeteer generator (najlepší) - PRIPRAVUJEM
-const PDF_GENERATOR_TYPE = process.env.PDF_GENERATOR_TYPE || 'legacy';
+const PDF_GENERATOR_TYPE = process.env.PDF_GENERATOR_TYPE || 'jspdf';
 
-// Lazy import pre Puppeteer (aby sa nenačítal ak sa nepoužíva)
-// DOČASNE DEAKTIVOVANÉ - bude aktivované po testovaní
+// Puppeteer generátor - runtime require (obchází TypeScript check)
 const getPuppeteerGenerator = async () => {
-  throw new Error('Puppeteer generátor nie je ešte aktivovaný. Použite PDF_GENERATOR_TYPE=legacy alebo jspdf');
+  try {
+    // Runtime require pre obídenie TypeScript chyby
+    const puppeteerModule = require('./puppeteer-pdf-generator');
+    console.log('✅ Puppeteer generátor úspešne načítaný');
+    return puppeteerModule;
+  } catch (error) {
+    console.error('❌ Chyba pri načítaní Puppeteer generátora:', error);
+    throw new Error('Puppeteer generátor nie je dostupný. Použite PDF_GENERATOR_TYPE=legacy alebo jspdf');
+  }
 };
 
 export class ProtocolPDFGenerator {

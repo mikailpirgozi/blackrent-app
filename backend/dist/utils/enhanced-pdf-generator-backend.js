@@ -152,10 +152,10 @@ class EnhancedPDFGeneratorBackend {
             const yPos = this.currentY + 15 + (index * 12);
             // Label (tučné)
             this.doc.setFont('helvetica', 'bold');
-            this.doc.text(label, this.margin + 10, yPos);
+            this.doc.text(String(label || ''), this.margin + 10, yPos);
             // Value (normálne)
             this.doc.setFont('helvetica', 'normal');
-            this.doc.text(value, this.margin + 80, yPos);
+            this.doc.text(String(value || ''), this.margin + 80, yPos);
         });
         this.currentY += data.length * 12 + 20;
     }
