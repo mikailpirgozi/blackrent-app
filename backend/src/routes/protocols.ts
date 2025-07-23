@@ -163,6 +163,28 @@ router.get('/handover/:id', async (req, res) => {
   }
 });
 
+// Delete handover protocol
+router.delete('/handover/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('🗑️ Deleting handover protocol:', id);
+    
+    const deleted = await postgresDatabase.deleteHandoverProtocol(id);
+    
+    if (!deleted) {
+      return res.status(404).json({ error: 'Handover protocol not found' });
+    }
+    
+    res.json({ 
+      message: 'Handover protocol deleted successfully',
+      id 
+    });
+  } catch (error) {
+    console.error('❌ Error deleting handover protocol:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Create return protocol
 router.post('/return', async (req, res) => {
   try {
