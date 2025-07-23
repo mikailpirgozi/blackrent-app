@@ -46,7 +46,7 @@ const path_1 = __importDefault(require("path"));
  * Plná podpora slovenskej diakritiky s custom fontom
  */
 class PDFLibCustomFontGenerator {
-    constructor(fontName = 'aeonik') {
+    constructor(fontName = 'sf-pro') {
         this.currentY = 750;
         this.pageWidth = 595;
         this.pageHeight = 842;
@@ -71,7 +71,17 @@ class PDFLibCustomFontGenerator {
             `${fontName}${weight}`,
             weight === 'regular' ? fontName : `${fontName}-${weight}`
         ];
-        // Špecifické mapovanie pre Aeonik font
+        // Špecifické mapovanie pre SF-Pro font
+        if (fontName.toLowerCase().includes('sf-pro') || fontName.toLowerCase().includes('sfpro')) {
+            const sfProDir = path_1.default.join(fontDir, 'SF-Pro-Expanded-Font-main');
+            const sfProFile = path_1.default.join(sfProDir, 'SF-Pro.ttf');
+            // SF-Pro.ttf obsahuje všetky váhy, použijeme ho pre regular aj bold
+            if (fs_1.default.existsSync(sfProFile)) {
+                console.log(`🔍 SF-Pro font nájdený: ${sfProFile}`);
+                return sfProFile;
+            }
+        }
+        // Špecifické mapovanie pre Aeonik font (legacy podpora)
         if (fontName.toLowerCase().includes('aeonik')) {
             const aeonikDir = path_1.default.join(fontDir, 'Aeonik Essentials Website');
             if (weight === 'regular') {
@@ -161,17 +171,21 @@ class PDFLibCustomFontGenerator {
         if (protocol.damages && protocol.damages.length > 0) {
             this.addDamagesSection(protocol.damages);
         }
-        // 8. Súhrn médií
-        this.addMediaSummary(protocol);
-        // 9. Podpisy
+        // 8. Obrázky vozidla 🖼️
+        await this.addImagesSection('🚗 FOTKY VOZIDLA', protocol.vehicleImages || []);
+        // 9. Obrázky dokumentov 🖼️
+        await this.addImagesSection('📄 FOTKY DOKUMENTOV', protocol.documentImages || []);
+        // 10. Obrázky poškodení 🖼️  
+        await this.addImagesSection('⚠️ FOTKY POŠKODENÍ', protocol.damageImages || []);
+        // 11. Podpisy
         if (protocol.signatures && protocol.signatures.length > 0) {
             this.addSignaturesSection(protocol.signatures);
         }
-        // 10. Poznámky
+        // 12. Poznámky
         if (protocol.notes) {
             this.addNotesSection('Dodatočné poznámky', protocol.notes);
         }
-        // 11. Footer s vlastným fontom
+        // 13. Footer s vlastným fontom
         this.addCustomFontFooter();
         const pdfBytes = await this.doc.save();
         return Buffer.from(pdfBytes);
@@ -277,79 +291,89 @@ class PDFLibCustomFontGenerator {
         }
     }
     /**
-     * Header s vlastným fontom
+     * ✏️ JEDNODUCHÁ MINIMALISTICKÁ HLAVIČKA
      */
     addCustomFontHeader(title) {
-        this.currentPage.drawRectangle({
-            x: this.margin,
-            y: this.currentY - 40,
-            width: this.pageWidth - 2 * this.margin,
-            height: 40,
-            color: this.primaryColor,
-        });
-        // Vlastný font v hlavičke
+        // Jednoduchý titulok - centrovaný
+        const titleWidth = this.boldFont.widthOfTextAtSize(title, 18);
+        const centerX = this.pageWidth / 2 - titleWidth / 2;
         this.currentPage.drawText(title, {
-            x: this.pageWidth / 2 - 120,
+            x: centerX,
             y: this.currentY - 25,
             size: 18,
             font: this.boldFont,
-            color: (0, pdf_lib_1.rgb)(1, 1, 1),
+            color: (0, pdf_lib_1.rgb)(0, 0, 0),
         });
+        // BlackRent vľavo
         this.currentPage.drawText('BlackRent', {
-            x: this.pageWidth - this.margin - 60,
+            x: this.margin,
             y: this.currentY - 25,
             size: 12,
-            font: this.boldFont,
-            color: (0, pdf_lib_1.rgb)(1, 1, 1),
+            font: this.font,
+            color: (0, pdf_lib_1.rgb)(0.4, 0.4, 0.4),
         });
-        this.currentY -= 60;
-    }
-    /**
-     * Informačná sekcia s vlastným fontom
-     */
-    addInfoSection(title, data) {
-        this.checkPageBreak(80);
+        // Dátum vpravo
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('sk-SK');
+        this.currentPage.drawText(dateStr, {
+            x: this.pageWidth - this.margin - 60,
+            y: this.currentY - 25,
+            size: 10,
+            font: this.font,
+            color: (0, pdf_lib_1.rgb)(0.4, 0.4, 0.4),
+        });
+        // Jednoduchá linka pod hlavičkou
         this.currentPage.drawRectangle({
             x: this.margin,
-            y: this.currentY - 20,
+            y: this.currentY - 35,
             width: this.pageWidth - 2 * this.margin,
-            height: 20,
-            color: this.lightGray,
+            height: 0.5,
+            color: (0, pdf_lib_1.rgb)(0.8, 0.8, 0.8),
         });
-        // Vlastný font v nadpisoch
+        this.currentY -= 50;
+    }
+    /**
+     * 📋 JEDNODUCHÁ INFORMAČNÁ SEKCIA
+     */
+    addInfoSection(title, data) {
+        this.checkPageBreak(data.length * 16 + 30);
+        // Jednoduchý titulok sekcie
         this.currentPage.drawText(title, {
-            x: this.margin + 10,
+            x: this.margin,
             y: this.currentY - 15,
             size: 12,
             font: this.boldFont,
-            color: this.secondaryColor,
+            color: (0, pdf_lib_1.rgb)(0, 0, 0),
         });
-        this.currentY -= 30;
-        const boxHeight = data.length * 20 + 20;
+        this.currentY -= 25;
+        // Jednoduchý box s obsahom
+        const boxHeight = data.length * 16 + 10;
         this.currentPage.drawRectangle({
             x: this.margin,
             y: this.currentY - boxHeight,
             width: this.pageWidth - 2 * this.margin,
             height: boxHeight,
             borderColor: (0, pdf_lib_1.rgb)(0.8, 0.8, 0.8),
-            borderWidth: 1,
+            borderWidth: 0.5,
         });
+        // Jednoduchý obsah
         data.forEach(([label, value], index) => {
-            const yPos = this.currentY - 15 - (index * 20);
-            // Vlastný font v texte - plná diakritika!
+            const yPos = this.currentY - 12 - (index * 16);
+            // Label
             this.currentPage.drawText(String(label || ''), {
-                x: this.margin + 15,
+                x: this.margin + 10,
                 y: yPos,
-                size: 10,
+                size: 9,
                 font: this.boldFont,
                 color: (0, pdf_lib_1.rgb)(0, 0, 0),
             });
+            // Hodnota
             this.currentPage.drawText(String(value || ''), {
-                x: this.margin + 150,
+                x: this.margin + 180,
                 y: yPos,
-                size: 10,
+                size: 9,
                 font: this.font,
-                color: (0, pdf_lib_1.rgb)(0, 0, 0),
+                color: (0, pdf_lib_1.rgb)(0.2, 0.2, 0.2),
             });
         });
         this.currentY -= boxHeight + 15;
@@ -509,6 +533,231 @@ class PDFLibCustomFontGenerator {
             'cancelled': 'Zrušený'
         };
         return statusMap[status] || status;
+    }
+    /**
+     * 🖼️ Stiahnutie obrázka z R2 URL
+     */
+    async downloadImageFromR2(imageUrl) {
+        try {
+            console.log('📥 Downloading image from R2:', imageUrl);
+            const response = await fetch(imageUrl);
+            if (!response.ok) {
+                console.error('❌ Failed to download image:', response.status, response.statusText);
+                return null;
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            console.log(`✅ Image downloaded: ${uint8Array.length} bytes`);
+            return uint8Array;
+        }
+        catch (error) {
+            console.error('❌ Error downloading image:', error);
+            return null;
+        }
+    }
+    /**
+     * 🖼️ Pridanie obrázkov do PDF pomocou pdf-lib - MODERNÝ DESIGN
+     */
+    async addImagesSection(title, images) {
+        if (!images || images.length === 0) {
+            // Jednoduchá sekcia pre prázdne obrázky
+            this.currentPage.drawText(title, {
+                x: this.margin,
+                y: this.currentY - 15,
+                size: 12,
+                font: this.boldFont,
+                color: (0, pdf_lib_1.rgb)(0, 0, 0),
+            });
+            this.currentPage.drawText('Žiadne obrázky', {
+                x: this.margin + 10,
+                y: this.currentY - 30,
+                size: 9,
+                font: this.font,
+                color: (0, pdf_lib_1.rgb)(0.5, 0.5, 0.5),
+            });
+            this.currentY -= 40;
+            return;
+        }
+        console.log(`🖼️ Adding ${images.length} images for section: ${title}`);
+        // Jednoduchý header sekcie
+        this.checkPageBreak(30);
+        this.currentPage.drawText(title, {
+            x: this.margin,
+            y: this.currentY - 15,
+            size: 12,
+            font: this.boldFont,
+            color: (0, pdf_lib_1.rgb)(0, 0, 0),
+        });
+        this.currentY -= 25;
+        // 🖼️ USPORIADANIE OBRÁZKOV 4 V RADE - KOMPAKTNE
+        const imagesPerRow = 4;
+        const imageSpacing = 8; // Veľmi malý spacing - blízko seba
+        const maxImageWidth = 120; // Menšie obrázky pre 4 v rade
+        const maxImageHeight = 90; // Menšie obrázky pre úsporu miesta
+        const availableWidth = this.pageWidth - 2 * this.margin;
+        const imageAreaWidth = (availableWidth - imageSpacing) / imagesPerRow;
+        const actualMaxWidth = Math.min(maxImageWidth, imageAreaWidth - 10);
+        let currentRow = 0;
+        let currentCol = 0;
+        let rowHeight = 0;
+        for (let i = 0; i < images.length; i++) {
+            const image = images[i];
+            try {
+                // Stiahnuť obrázok z R2  
+                const imageBytes = await this.downloadImageFromR2(image.url);
+                if (!imageBytes) {
+                    // Placeholder pre chybný obrázok
+                    await this.addImagePlaceholderInGrid(i + 1, 'Obrázok sa nepodarilo načítať', currentCol, actualMaxWidth, 100);
+                    this.moveToNextGridPosition();
+                    continue;
+                }
+                // Embed obrázok do PDF
+                let pdfImage;
+                try {
+                    pdfImage = await this.doc.embedJpg(imageBytes);
+                }
+                catch (jpgError) {
+                    try {
+                        pdfImage = await this.doc.embedPng(imageBytes);
+                    }
+                    catch (pngError) {
+                        console.error('❌ Failed to embed image:', pngError);
+                        await this.addImagePlaceholderInGrid(i + 1, 'Nepodporovaný formát obrázka', currentCol, actualMaxWidth, 100);
+                        this.moveToNextGridPosition();
+                        continue;
+                    }
+                }
+                // 🎯 VÝPOČET ROZMEROV - VÄČŠIE OBRÁZKY
+                const { width: originalWidth, height: originalHeight } = pdfImage.scale(1);
+                let width = originalWidth;
+                let height = originalHeight;
+                // Proporcionálne zmenšenie ak je potrebné
+                if (width > actualMaxWidth || height > maxImageHeight) {
+                    const widthRatio = actualMaxWidth / width;
+                    const heightRatio = maxImageHeight / height;
+                    const ratio = Math.min(widthRatio, heightRatio);
+                    width = width * ratio;
+                    height = height * ratio;
+                }
+                // Výpočet pozície v gridu
+                const xPos = this.margin + currentCol * (imageAreaWidth + imageSpacing) + (imageAreaWidth - width) / 2;
+                // Kontrola či sa zmestí riadok na stránku
+                const totalRowHeight = height + 20; // obrázok + malý popis + spacing
+                if (currentCol === 0) { // Začiatok nového riadku
+                    this.checkPageBreak(totalRowHeight);
+                    rowHeight = totalRowHeight;
+                }
+                // Jednoduché vykreslenie obrázka
+                this.currentPage.drawImage(pdfImage, {
+                    x: xPos,
+                    y: this.currentY - height,
+                    width: width,
+                    height: height,
+                });
+                // Jednoduchý border
+                this.currentPage.drawRectangle({
+                    x: xPos,
+                    y: this.currentY - height,
+                    width: width,
+                    height: height,
+                    borderColor: (0, pdf_lib_1.rgb)(0.7, 0.7, 0.7),
+                    borderWidth: 0.5,
+                });
+                // Jednoduchý popis
+                const descriptionY = this.currentY - height - 12;
+                this.currentPage.drawText(`${i + 1}`, {
+                    x: xPos + 2,
+                    y: descriptionY,
+                    size: 8,
+                    font: this.font,
+                    color: (0, pdf_lib_1.rgb)(0.4, 0.4, 0.4),
+                });
+                console.log(`✅ Image ${i + 1} added to PDF grid: ${width.toFixed(0)}x${height.toFixed(0)}px at col ${currentCol}`);
+                // Posun na ďalšiu pozíciu v gride
+                currentCol++;
+                if (currentCol >= imagesPerRow) {
+                    // Nový riadok
+                    this.currentY -= rowHeight;
+                    currentCol = 0;
+                    rowHeight = 0;
+                }
+            }
+            catch (error) {
+                console.error(`❌ Error processing image ${i + 1}:`, error);
+                await this.addImagePlaceholderInGrid(i + 1, 'Chyba pri spracovaní obrázka', currentCol, actualMaxWidth, 100);
+                this.moveToNextGridPosition();
+            }
+        }
+        // Dokončenie posledného riadku ak nie je úplný
+        if (currentCol > 0) {
+            this.currentY -= rowHeight;
+        }
+        // Malý spacing po sekcii obrázkov
+        this.currentY -= 10;
+    }
+    /**
+     * 🖼️ Helper pre jednoduchý grid placeholder
+     */
+    async addImagePlaceholderInGrid(imageNumber, errorMessage, col, width, height) {
+        const imageSpacing = 8;
+        const availableWidth = this.pageWidth - 2 * this.margin;
+        const imageAreaWidth = (availableWidth - imageSpacing) / 4;
+        const xPos = this.margin + col * (imageAreaWidth + imageSpacing) + (imageAreaWidth - width) / 2;
+        // Jednoduchý placeholder box
+        this.currentPage.drawRectangle({
+            x: xPos,
+            y: this.currentY - height,
+            width: width,
+            height: height,
+            color: (0, pdf_lib_1.rgb)(0.95, 0.95, 0.95),
+            borderColor: (0, pdf_lib_1.rgb)(0.7, 0.7, 0.7),
+            borderWidth: 0.5,
+        });
+        this.currentPage.drawText(`${imageNumber}`, {
+            x: xPos + 2,
+            y: this.currentY - height - 12,
+            size: 8,
+            font: this.font,
+            color: (0, pdf_lib_1.rgb)(0.4, 0.4, 0.4),
+        });
+    }
+    /**
+     * Helper pre posun v gride
+     */
+    moveToNextGridPosition() {
+        // Táto metóda sa volá v main loop, posun sa spracuje tam
+    }
+    /**
+     * 🖼️ Placeholder pre chybný obrázok
+     */
+    addImagePlaceholder(imageNumber, errorMessage) {
+        this.checkPageBreak(80);
+        const width = 200;
+        const height = 60;
+        // Sivý box ako placeholder
+        this.currentPage.drawRectangle({
+            x: this.margin,
+            y: this.currentY - height,
+            width: width,
+            height: height,
+            color: this.lightGray,
+        });
+        // Error text
+        this.currentPage.drawText(`Obrázok ${imageNumber}`, {
+            x: this.margin + 10,
+            y: this.currentY - 25,
+            size: 12,
+            font: this.boldFont,
+            color: this.secondaryColor,
+        });
+        this.currentPage.drawText(errorMessage, {
+            x: this.margin + 10,
+            y: this.currentY - 45,
+            size: 9,
+            font: this.font,
+            color: this.secondaryColor,
+        });
+        this.currentY -= (height + 20);
     }
 }
 exports.PDFLibCustomFontGenerator = PDFLibCustomFontGenerator;

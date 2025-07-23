@@ -50,6 +50,8 @@ import {
   AssignmentTurnedIn as ProtocolCompleteIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
+  FileDownload as FileDownloadIcon,
+  FileUpload as FileUploadIcon,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { Rental, PaymentMethod, Vehicle } from '../../types';
@@ -1517,9 +1519,21 @@ export default function RentalList() {
               <Button variant="outlined" color="primary" onClick={handleShowOnlyActive}>Len aktívne</Button>
               <Button variant="outlined" color="warning" onClick={handleShowOnlyToday}>Len dnešné</Button>
               <Button variant="outlined" color="success" onClick={handleConfirmAllTodayReturns}>Potvrdiť dnešné</Button>
-                              <Button variant="outlined" color="primary" onClick={() => exportRentalsToCSV(getFilteredRentals())}>Export prenájmov</Button>
-              <Button variant="outlined" color="primary" component="label">
-                Import prenájmov
+                              <Button 
+                variant="outlined" 
+                color="info" 
+                startIcon={<FileDownloadIcon />}
+                onClick={() => exportRentalsToCSV(getFilteredRentals())}
+              >
+                Export CSV
+              </Button>
+              <Button 
+                variant="outlined" 
+                color="secondary" 
+                startIcon={<FileUploadIcon />}
+                component="label"
+              >
+                Import CSV
                 <input type="file" accept=".csv" hidden onChange={handleImportCSV} ref={fileInputRef} />
               </Button>
               <Button variant="outlined" color="error" onClick={handleDeleteSelected} disabled={selected.length === 0}>
@@ -2786,6 +2800,8 @@ export default function RentalList() {
           )}
         </DialogContent>
       </Dialog>
+
+
     </Box>
   );
 } 

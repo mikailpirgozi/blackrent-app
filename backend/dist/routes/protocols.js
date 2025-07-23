@@ -139,6 +139,25 @@ router.get('/handover/:id', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+// Delete handover protocol
+router.delete('/handover/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log('🗑️ Deleting handover protocol:', id);
+        const deleted = await postgres_database_1.postgresDatabase.deleteHandoverProtocol(id);
+        if (!deleted) {
+            return res.status(404).json({ error: 'Handover protocol not found' });
+        }
+        res.json({
+            message: 'Handover protocol deleted successfully',
+            id
+        });
+    }
+    catch (error) {
+        console.error('❌ Error deleting handover protocol:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 // Create return protocol
 router.post('/return', async (req, res) => {
     try {
@@ -160,6 +179,8 @@ router.get('/debug/pdf-config', (req, res) => {
     const config = {
         puppeteerEnabled: process.env.PDF_GENERATOR_TYPE === 'puppeteer',
         generatorType: process.env.PDF_GENERATOR_TYPE || 'enhanced',
+        customFontName: process.env.CUSTOM_FONT_NAME || 'not_set',
+        customFontEnabled: process.env.PDF_GENERATOR_TYPE === 'custom-font',
         chromiumPath: process.env.PUPPETEER_EXECUTABLE_PATH || 'not set',
         skipDownload: process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD === 'true',
         nodeEnv: process.env.NODE_ENV,
@@ -171,6 +192,94 @@ router.get('/debug/pdf-config', (req, res) => {
         success: true,
         config
     });
+});
+// 🧪 TEST: Endpoint pre testovanie PDF generátora bez autentifikácie
+router.get('/debug/test-pdf', async (req, res) => {
+    try {
+        console.log('🧪 Test PDF generovanie začína...');
+        // Test data pre handover protokol s Aeonik fontom (as any aby sme obišli TypeScript chyby)
+        const testData = {
+            id: 'test-debug-' + Date.now(),
+            rentalId: 'test-rental-debug',
+            type: 'handover',
+            status: 'completed',
+            createdAt: new Date(),
+            completedAt: new Date(),
+            customerName: 'Ján Testovací Čáčo',
+            customerEmail: 'test@aeonik.sk',
+            customerPhone: '+421 901 123 456',
+            customerLicenseNumber: 'SK987654321',
+            customerAddress: 'Testovacia 123, 010 01 Žilina',
+            vehicleBrand: 'Škoda',
+            vehicleModel: 'Octavia',
+            vehicleYear: 2023,
+            vehicleLicensePlate: 'ZA 999 XY',
+            vehicleVin: 'TEST1234567890123',
+            vehicleCondition: {
+                odometer: 15000,
+                fuelLevel: 80,
+                fuelType: 'gasoline',
+                exteriorCondition: 'Výborný stav bez škrabancov a poškodení',
+                interiorCondition: 'Čistý, voňavý interiér bez opotrebovania'
+            },
+            vehicleColor: 'Červená metalíza',
+            rentalStartDate: new Date().toISOString(),
+            rentalEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            rentalTotalPrice: 300.00,
+            rentalDeposit: 400.00,
+            rentalDailyRate: 45.00,
+            rentalNotes: 'Test prenájom pre Aeonik font - obsahuje slovenské diakritiky: čšťžýáíéúňôľ',
+            companyName: 'AutoRent Test s.r.o.',
+            companyAddress: 'Hlavná 999, 811 01 Bratislava',
+            companyPhone: '+421 2 999 888 777',
+            companyEmail: 'test@autorent.sk',
+            companyIco: '99999999',
+            exteriorCondition: 'Výborný stav bez škrabancov a poškodení',
+            interiorCondition: 'Čistý, voňavý interiér bez opotrebovania',
+            documentsComplete: true,
+            keysCount: 2,
+            fuelCardIncluded: true,
+            additionalEquipment: ['GPS navigácia', 'Zimné pneumatiky', 'Detská autosedačka'],
+            location: 'Bratislava - testovacie centrum',
+            vehicleImages: [],
+            vehicleVideos: [],
+            documentImages: [],
+            documentVideos: [],
+            damageImages: [],
+            damageVideos: [],
+            signatures: [],
+            createdBy: 'test-system',
+            damages: [
+                {
+                    id: 'damage-1',
+                    description: 'Test škrabance na pravom boku',
+                    severity: 'low',
+                    location: 'Pravý bok vozidla',
+                    images: [],
+                    timestamp: new Date()
+                }
+            ]
+        };
+        console.log('🎨 Generujem PDF s Aeonik fontom...');
+        // Vygeneruj PDF
+        const pdfBuffer = await (0, pdf_generator_1.generateHandoverPDF)(testData);
+        console.log(`✅ PDF vygenerované! Veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)} KB`);
+        // Nastavenie správnych headers
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="aeonik-test-' + Date.now() + '.pdf"');
+        res.setHeader('Content-Length', pdfBuffer.length);
+        // Pošli PDF
+        res.send(pdfBuffer);
+    }
+    catch (error) {
+        console.error('❌ Chyba pri test PDF generovaní:', error);
+        res.status(500).json({
+            error: 'Test PDF generation failed',
+            details: error instanceof Error ? error.message : 'Unknown error',
+            generatorType: process.env.PDF_GENERATOR_TYPE,
+            customFontName: process.env.CUSTOM_FONT_NAME
+        });
+    }
 });
 exports.default = router;
 //# sourceMappingURL=protocols.js.map

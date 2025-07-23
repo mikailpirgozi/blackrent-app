@@ -40,11 +40,11 @@ export declare class PDFLibCustomFontGenerator {
      */
     private loadRobotoFallback;
     /**
-     * Header s vlastným fontom
+     * ✏️ JEDNODUCHÁ MINIMALISTICKÁ HLAVIČKA
      */
     private addCustomFontHeader;
     /**
-     * Informačná sekcia s vlastným fontom
+     * 📋 JEDNODUCHÁ INFORMAČNÁ SEKCIA
      */
     private addInfoSection;
     /**
@@ -80,5 +80,25 @@ export declare class PDFLibCustomFontGenerator {
      * Status text s vlastným fontom
      */
     private getStatusText;
+    /**
+     * 🖼️ Stiahnutie obrázka z R2 URL
+     */
+    private downloadImageFromR2;
+    /**
+     * 🖼️ Pridanie obrázkov do PDF pomocou pdf-lib - MODERNÝ DESIGN
+     */
+    private addImagesSection;
+    /**
+     * 🖼️ Helper pre jednoduchý grid placeholder
+     */
+    private addImagePlaceholderInGrid;
+    /**
+     * Helper pre posun v gride
+     */
+    private moveToNextGridPosition;
+    /**
+     * 🖼️ Placeholder pre chybný obrázok
+     */
+    private addImagePlaceholder;
 }
 //# sourceMappingURL=pdf-lib-custom-font-generator.d.ts.map
