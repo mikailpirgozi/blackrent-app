@@ -387,16 +387,18 @@ export class PuppeteerPDFGeneratorV2 {
   }
   
   /**
-   * 🎭 Generuje handover protokol pomocou Puppeteer
+   * 🎭 Generuje handover protokol cez Puppeteer
    */
   async generateHandoverProtocol(protocol: HandoverProtocol): Promise<Buffer> {
-    console.log('🎭 PUPPETEER V2: Spúšťam generovanie handover protokolu');
-    console.log('📋 Protokol ID:', protocol.id || 'NONE');
+    console.log('🎭 PUPPETEER V2: Generujem handover protokol');
     
-    let browser;
+    let browser = null;
+    
     try {
-      // Spustenie Puppeteer s optimalizovanými nastaveniami
+      console.log('🚀 Spúšťam Puppeteer browser s produkčnými nastaveniami...');
+      
       browser = await puppeteer.launch({
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
         headless: true,
         args: [
           '--no-sandbox',
@@ -405,8 +407,23 @@ export class PuppeteerPDFGeneratorV2 {
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
-          '--disable-gpu'
-        ]
+          '--disable-gpu',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-features=TranslateUI',
+          '--disable-ipc-flooding-protection',
+          '--single-process', // Dôležité pre Railway kontajner
+          '--no-default-browser-check',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-background-networking',
+          '--disable-default-apps',
+          '--disable-sync'
+        ],
+        // Railway kontajner nastavenia
+        userDataDir: '/tmp/puppeteer-data',
+        timeout: 60000 // 60 sekúnd timeout
       });
       
       const page = await browser.newPage();
@@ -446,7 +463,7 @@ export class PuppeteerPDFGeneratorV2 {
       console.log('✅ PUPPETEER V2: PDF úspešne vygenerované');
       console.log('📊 Veľkosť PDF:', pdfBuffer.length, 'bytes');
       
-             return Buffer.from(pdfBuffer);
+      return Buffer.from(pdfBuffer);
       
     } catch (error) {
       console.error('❌ PUPPETEER V2: Chyba pri generovaní PDF:', error);

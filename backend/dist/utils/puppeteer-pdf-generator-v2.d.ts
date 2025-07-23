@@ -15,7 +15,7 @@ export declare class PuppeteerPDFGeneratorV2 {
      */
     private generateHandoverHTML;
     /**
-     * 🎭 Generuje handover protokol pomocou Puppeteer
+     * 🎭 Generuje handover protokol cez Puppeteer
      */
     generateHandoverProtocol(protocol: HandoverProtocol): Promise<Buffer>;
     /**

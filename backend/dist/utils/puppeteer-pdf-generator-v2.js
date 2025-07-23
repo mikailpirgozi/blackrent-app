@@ -388,15 +388,15 @@ class PuppeteerPDFGeneratorV2 {
 </html>`;
     }
     /**
-     * 🎭 Generuje handover protokol pomocou Puppeteer
+     * 🎭 Generuje handover protokol cez Puppeteer
      */
     async generateHandoverProtocol(protocol) {
-        console.log('🎭 PUPPETEER V2: Spúšťam generovanie handover protokolu');
-        console.log('📋 Protokol ID:', protocol.id || 'NONE');
-        let browser;
+        console.log('🎭 PUPPETEER V2: Generujem handover protokol');
+        let browser = null;
         try {
-            // Spustenie Puppeteer s optimalizovanými nastaveniami
+            console.log('🚀 Spúšťam Puppeteer browser s produkčnými nastaveniami...');
             browser = await puppeteer_1.default.launch({
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
                 headless: true,
                 args: [
                     '--no-sandbox',
@@ -405,8 +405,23 @@ class PuppeteerPDFGeneratorV2 {
                     '--disable-accelerated-2d-canvas',
                     '--no-first-run',
                     '--no-zygote',
-                    '--disable-gpu'
-                ]
+                    '--disable-gpu',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-renderer-backgrounding',
+                    '--disable-features=TranslateUI',
+                    '--disable-ipc-flooding-protection',
+                    '--single-process', // Dôležité pre Railway kontajner
+                    '--no-default-browser-check',
+                    '--disable-extensions',
+                    '--disable-plugins',
+                    '--disable-background-networking',
+                    '--disable-default-apps',
+                    '--disable-sync'
+                ],
+                // Railway kontajner nastavenia
+                userDataDir: '/tmp/puppeteer-data',
+                timeout: 60000 // 60 sekúnd timeout
             });
             const page = await browser.newPage();
             // Nastavenie viewport pre A4 formát
