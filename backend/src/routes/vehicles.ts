@@ -52,7 +52,7 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
 // POST /api/vehicles - Vytvorenie nového vozidla
 router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { brand, model, licensePlate, company, pricing, commission, status } = req.body;
+    const { brand, model, licensePlate, company, pricing, commission, status, year } = req.body;
 
     if (!brand || !model || !company) {
       return res.status(400).json({
@@ -64,6 +64,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
     const createdVehicle = await postgresDatabase.createVehicle({
       brand,
       model,
+      year: year || 2024,
       licensePlate: licensePlate || '',
       company,
       pricing: pricing || [],

@@ -794,6 +794,7 @@ export class PostgresDatabase {
     pricing: any[];
     commission: any;
     status: string;
+    year?: number;
   }): Promise<Vehicle> {
     const client = await this.pool.connect();
     try {
@@ -825,10 +826,11 @@ export class PostgresDatabase {
       }
 
       const result = await client.query(
-        'INSERT INTO vehicles (brand, model, license_plate, company, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, brand, model, license_plate, company, pricing, commission, status, created_at',
+        'INSERT INTO vehicles (brand, model, year, license_plate, company, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, brand, model, year, license_plate, company, pricing, commission, status, created_at',
         [
           vehicleData.brand, 
           vehicleData.model, 
+          vehicleData.year || 2024, // Default rok ak nie je zadaný
           vehicleData.licensePlate, 
           vehicleData.company, 
           JSON.stringify(vehicleData.pricing),
@@ -842,6 +844,7 @@ export class PostgresDatabase {
         id: row.id.toString(),
         brand: row.brand,
         model: row.model,
+        year: row.year,
         licensePlate: row.license_plate,
         company: row.company,
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing,

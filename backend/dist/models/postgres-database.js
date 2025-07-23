@@ -720,18 +720,13 @@ class PostgresDatabase {
         try {
             // Kontrola duplicít - skontroluj či už existuje vozidlo s touto ŠPZ
             if (vehicleData.licensePlate && vehicleData.licensePlate.trim()) {
-                const existingVehicle = await client.query(
-                    'SELECT id, brand, model FROM vehicles WHERE LOWER(license_plate) = LOWER($1)',
-                    [vehicleData.licensePlate.trim()]
-                );
-                
+                const existingVehicle = await client.query('SELECT id, brand, model FROM vehicles WHERE LOWER(license_plate) = LOWER($1)', [vehicleData.licensePlate.trim()]);
                 if (existingVehicle.rows.length > 0) {
                     const existing = existingVehicle.rows[0];
                     console.log(`⚠️ Vozidlo s ŠPZ ${vehicleData.licensePlate} už existuje: ${existing.brand} ${existing.model}`);
                     throw new Error(`Vozidlo s ŠPZ ${vehicleData.licensePlate} už existuje v databáze`);
                 }
             }
-
             // Automaticky vytvoriť company záznam ak neexistuje - bez ON CONFLICT
             if (vehicleData.company && vehicleData.company.trim()) {
                 try {
@@ -745,9 +740,10 @@ class PostgresDatabase {
                     console.log('⚠️ Company už existuje:', companyError.message);
                 }
             }
-            const result = await client.query('INSERT INTO vehicles (brand, model, license_plate, company, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, brand, model, license_plate, company, pricing, commission, status, created_at', [
+            const result = await client.query('INSERT INTO vehicles (brand, model, year, license_plate, company, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, brand, model, year, license_plate, company, pricing, commission, status, created_at', [
                 vehicleData.brand,
                 vehicleData.model,
+                vehicleData.year || 2024, // Default rok ak nie je zadaný
                 vehicleData.licensePlate,
                 vehicleData.company,
                 JSON.stringify(vehicleData.pricing),
@@ -759,6 +755,7 @@ class PostgresDatabase {
                 id: row.id.toString(),
                 brand: row.brand,
                 model: row.model,
+                year: row.year,
                 licensePlate: row.license_plate,
                 company: row.company,
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing,

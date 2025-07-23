@@ -28,6 +28,7 @@ export declare class PostgresDatabase {
         pricing: any[];
         commission: any;
         status: string;
+        year?: number;
     }): Promise<Vehicle>;
     updateVehicle(vehicle: Vehicle): Promise<void>;
     deleteVehicle(id: string): Promise<void>;
