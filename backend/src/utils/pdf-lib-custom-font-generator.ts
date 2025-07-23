@@ -145,20 +145,26 @@ export class PDFLibCustomFontGenerator {
       this.addDamagesSection(protocol.damages);
     }
     
-    // 8. Súhrn médií
-    this.addMediaSummary(protocol);
+    // 8. Obrázky vozidla 🖼️
+    await this.addImagesSection('🚗 FOTKY VOZIDLA', protocol.vehicleImages || []);
     
-    // 9. Podpisy
+    // 9. Obrázky dokumentov 🖼️
+    await this.addImagesSection('📄 FOTKY DOKUMENTOV', protocol.documentImages || []);
+    
+    // 10. Obrázky poškodení 🖼️  
+    await this.addImagesSection('⚠️ FOTKY POŠKODENÍ', protocol.damageImages || []);
+    
+    // 11. Podpisy
     if (protocol.signatures && protocol.signatures.length > 0) {
       this.addSignaturesSection(protocol.signatures);
     }
     
-    // 10. Poznámky
+    // 12. Poznámky
     if (protocol.notes) {
       this.addNotesSection('Dodatočné poznámky', protocol.notes);
     }
     
-    // 11. Footer s vlastným fontom
+    // 13. Footer s vlastným fontom
     this.addCustomFontFooter();
     
     const pdfBytes = await this.doc.save();
@@ -558,5 +564,192 @@ export class PDFLibCustomFontGenerator {
       'cancelled': 'Zrušený'
     };
     return statusMap[status] || status;
+  }
+
+  /**
+   * 🖼️ Stiahnutie obrázka z R2 URL
+   */
+  private async downloadImageFromR2(imageUrl: string): Promise<Uint8Array | null> {
+    try {
+      console.log('📥 Downloading image from R2:', imageUrl);
+      const response = await fetch(imageUrl);
+      
+      if (!response.ok) {
+        console.error('❌ Failed to download image:', response.status, response.statusText);
+        return null;
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      console.log(`✅ Image downloaded: ${uint8Array.length} bytes`);
+      return uint8Array;
+      
+    } catch (error) {
+      console.error('❌ Error downloading image:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 🖼️ Pridanie obrázkov do PDF pomocou pdf-lib
+   */
+  private async addImagesSection(title: string, images: any[]): Promise<void> {
+    if (!images || images.length === 0) {
+      // Pridaj informáciu že obrázky chýbajú
+      this.addInfoSection(title, [['Počet obrázkov:', '0 (žiadne obrázky)']]);
+      return;
+    }
+
+    console.log(`🖼️ Adding ${images.length} images for section: ${title}`);
+    
+    // Pridaj header sekcie
+    this.checkPageBreak(40);
+    
+    this.currentPage.drawRectangle({
+      x: this.margin,
+      y: this.currentY - 25,
+      width: this.pageWidth - 2 * this.margin,
+      height: 25,
+      color: this.primaryColor,
+    });
+    
+    this.currentPage.drawText(title, {
+      x: this.margin + 10,
+      y: this.currentY - 18,
+      size: 14,
+      font: this.boldFont,
+      color: rgb(1, 1, 1), // biela farba pre primary pozadie
+    });
+    
+    this.currentY -= 35;
+
+    // Spracuj každý obrázok
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      
+      try {
+        // Stiahnuť obrázok z R2
+        const imageBytes = await this.downloadImageFromR2(image.url);
+        
+        if (!imageBytes) {
+          // Pridaj placeholder pre chybný obrázok
+          this.addImagePlaceholder(i + 1, image.description || 'Obrázok sa nepodarilo načítať');
+          continue;
+        }
+
+        // Embed obrázok do PDF
+        let pdfImage;
+        try {
+          // Skús najprv JPEG
+          pdfImage = await this.doc.embedJpg(imageBytes);
+        } catch (jpgError) {
+          try {
+            // Ak JPEG zlyhá, skús PNG
+            pdfImage = await this.doc.embedPng(imageBytes);
+          } catch (pngError) {
+            console.error('❌ Failed to embed image as JPEG or PNG:', pngError);
+            this.addImagePlaceholder(i + 1, 'Nepodporovaný formát obrázka');
+            continue;
+          }
+        }
+
+        // Výpočet rozmerov (max 200x150)
+        const maxWidth = 200;
+        const maxHeight = 150;
+        const { width: originalWidth, height: originalHeight } = pdfImage.scale(1);
+        
+        let width = originalWidth;
+        let height = originalHeight;
+        
+        // Proporcionálne zmenšenie ak je potrebné
+        if (width > maxWidth || height > maxHeight) {
+          const widthRatio = maxWidth / width;
+          const heightRatio = maxHeight / height;
+          const ratio = Math.min(widthRatio, heightRatio);
+          
+          width = width * ratio;
+          height = height * ratio;
+        }
+
+        // Kontrola či sa zmestí na stránku
+        this.checkPageBreak(height + 50);
+
+        // Vykreslenie obrázka
+        this.currentPage.drawImage(pdfImage, {
+          x: this.margin,
+          y: this.currentY - height,
+          width: width,
+          height: height,
+        });
+
+        // Pridaj popis obrázka
+        this.currentPage.drawText(`Obrázok ${i + 1}: ${image.description || 'Bez popisu'}`, {
+          x: this.margin,
+          y: this.currentY - height - 15,
+          size: 9,
+          font: this.font,
+          color: this.secondaryColor,
+        });
+
+        // Pridaj timestamp
+        if (image.timestamp) {
+          const timestamp = new Date(image.timestamp).toLocaleString('sk-SK');
+          this.currentPage.drawText(`Čas: ${timestamp}`, {
+            x: this.margin,
+            y: this.currentY - height - 30,
+            size: 8,
+            font: this.font,
+            color: this.secondaryColor,
+          });
+        }
+
+        this.currentY -= (height + 50);
+
+        console.log(`✅ Image ${i + 1} added to PDF: ${width}x${height}px`);
+
+      } catch (error) {
+        console.error(`❌ Error processing image ${i + 1}:`, error);
+        this.addImagePlaceholder(i + 1, 'Chyba pri spracovaní obrázka');
+      }
+    }
+  }
+
+  /**
+   * 🖼️ Placeholder pre chybný obrázok
+   */
+  private addImagePlaceholder(imageNumber: number, errorMessage: string): void {
+    this.checkPageBreak(80);
+    
+    const width = 200;
+    const height = 60;
+    
+    // Sivý box ako placeholder
+    this.currentPage.drawRectangle({
+      x: this.margin,
+      y: this.currentY - height,
+      width: width,
+      height: height,
+      color: this.lightGray,
+    });
+    
+    // Error text
+    this.currentPage.drawText(`Obrázok ${imageNumber}`, {
+      x: this.margin + 10,
+      y: this.currentY - 25,
+      size: 12,
+      font: this.boldFont,
+      color: this.secondaryColor,
+    });
+    
+    this.currentPage.drawText(errorMessage, {
+      x: this.margin + 10,
+      y: this.currentY - 45,
+      size: 9,
+      font: this.font,
+      color: this.secondaryColor,
+    });
+    
+    this.currentY -= (height + 20);
   }
 } 
