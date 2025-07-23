@@ -186,6 +186,8 @@ router.get('/debug/pdf-config', (req: Request, res: Response) => {
   const config = {
     puppeteerEnabled: process.env.PDF_GENERATOR_TYPE === 'puppeteer',
     generatorType: process.env.PDF_GENERATOR_TYPE || 'enhanced',
+    customFontName: process.env.CUSTOM_FONT_NAME || 'not_set',
+    customFontEnabled: process.env.PDF_GENERATOR_TYPE === 'custom-font',
     chromiumPath: process.env.PUPPETEER_EXECUTABLE_PATH || 'not set',
     skipDownload: process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD === 'true',
     nodeEnv: process.env.NODE_ENV,
