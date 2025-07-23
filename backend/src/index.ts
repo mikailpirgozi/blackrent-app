@@ -91,6 +91,28 @@ app.use('/api/files', fileRoutes);
 app.use('/api/settlements', settlementRoutes);
 app.use('/api/migration', migrationRoutes);
 
+// Debug endpoint pre diagnostiku PDF generátora
+app.get('/api/debug/pdf-generator', (req, res) => {
+  const puppeteerAvailable = !!process.env.PDF_GENERATOR_TYPE;
+  const generatorType = process.env.PDF_GENERATOR_TYPE || 'enhanced';
+  
+  res.json({
+    success: true,
+    message: 'PDF Generator Debug Info',
+    data: {
+      currentGenerator: generatorType,
+      puppeteerEnabled: generatorType === 'puppeteer',
+      environmentVariable: puppeteerAvailable,
+      availableGenerators: ['enhanced', 'puppeteer', 'legacy'],
+      timestamp: new Date().toISOString(),
+      nodeVersion: process.version,
+      platform: process.platform,
+      puppeteerPath: process.env.PUPPETEER_EXECUTABLE_PATH || 'default',
+      chromeSkipDownload: process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD || 'false'
+    }
+  });
+});
+
 // API Health endpoint for frontend compatibility
 app.get('/api/health', (req, res) => {
   res.json({ 
