@@ -1,9 +1,5 @@
 import PDFDocument from 'pdfkit';
 import { HandoverProtocol, ReturnProtocol } from '../types';
-import { EnhancedPDFGeneratorBackend } from './enhanced-pdf-generator-backend';
-
-// 🔄 PREPÍNAČ: true = nový enhanced generator, false = starý pdfkit generator
-const USE_ENHANCED_PDF = process.env.USE_ENHANCED_PDF === 'true' || false;
 
 export class ProtocolPDFGenerator {
   private doc: InstanceType<typeof PDFDocument>;
@@ -421,33 +417,15 @@ export class ProtocolPDFGenerator {
   }
 }
 
-// Export funkcie pre jednoduché použitie s prepínačom
+// Export funkcie pre jednoduché použitie
 export const generateHandoverPDF = async (protocol: HandoverProtocol): Promise<Buffer> => {
-  console.log(`🔄 PDF Generator: Používam ${USE_ENHANCED_PDF ? 'ENHANCED (jsPDF)' : 'LEGACY (pdfkit)'}`);
-  
-  if (USE_ENHANCED_PDF) {
-    // Nový enhanced generator
-    const enhancedGenerator = new EnhancedPDFGeneratorBackend();
-    return await enhancedGenerator.generateHandoverProtocol(protocol);
-  } else {
-    // Starý pdfkit generator
-    const generator = new ProtocolPDFGenerator();
-    await generator.generateHandoverProtocol(protocol);
-    return generator.getBuffer();
-  }
+  const generator = new ProtocolPDFGenerator();
+  await generator.generateHandoverProtocol(protocol);
+  return generator.getBuffer();
 };
 
 export const generateReturnPDF = async (protocol: ReturnProtocol): Promise<Buffer> => {
-  console.log(`🔄 PDF Generator: Používam ${USE_ENHANCED_PDF ? 'ENHANCED (jsPDF)' : 'LEGACY (pdfkit)'}`);
-  
-  if (USE_ENHANCED_PDF) {
-    // Nový enhanced generator
-    const enhancedGenerator = new EnhancedPDFGeneratorBackend();
-    return await enhancedGenerator.generateReturnProtocol(protocol);
-  } else {
-    // Starý pdfkit generator
-    const generator = new ProtocolPDFGenerator();
-    await generator.generateReturnProtocol(protocol);
-    return generator.getBuffer();
-  }
+  const generator = new ProtocolPDFGenerator();
+  await generator.generateReturnProtocol(protocol);
+  return generator.getBuffer();
 }; 

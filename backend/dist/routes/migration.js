@@ -4,13 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const migrate_to_r2_js_1 = require("../utils/migrate-to-r2.js");
-const r2_storage_js_1 = require("../utils/r2-storage.js");
+const migrate_to_r2_1 = require("../utils/migrate-to-r2");
+const r2_storage_1 = require("../utils/r2-storage");
 const router = express_1.default.Router();
 // Kontrola R2 konfigurácie
 router.get('/r2-status', async (req, res) => {
     try {
-        const isConfigured = r2_storage_js_1.r2Storage.isConfigured();
+        const isConfigured = r2_storage_1.r2Storage.isConfigured();
         res.json({
             success: true,
             configured: isConfigured,
@@ -37,7 +37,7 @@ router.post('/migrate-to-r2', async (req, res) => {
     try {
         console.log('🚀 Spúšťam migráciu do R2...');
         // Kontrola či je R2 nakonfigurované
-        if (!r2_storage_js_1.r2Storage.isConfigured()) {
+        if (!r2_storage_1.r2Storage.isConfigured()) {
             return res.status(400).json({
                 success: false,
                 error: 'R2 Storage nie je nakonfigurované',
@@ -45,7 +45,7 @@ router.post('/migrate-to-r2', async (req, res) => {
             });
         }
         // Spustenie migrácie asynchrónne
-        migrate_to_r2_js_1.r2Migration.migrateAllProtocols().catch(error => {
+        migrate_to_r2_1.r2Migration.migrateAllProtocols().catch(error => {
             console.error('❌ Chyba pri migrácii:', error);
         });
         res.json({
@@ -65,7 +65,7 @@ router.post('/migrate-to-r2', async (req, res) => {
 // Kontrola stavu migrácie
 router.get('/migration-status', async (req, res) => {
     try {
-        await migrate_to_r2_js_1.r2Migration.checkMigrationStatus();
+        await migrate_to_r2_1.r2Migration.checkMigrationStatus();
         res.json({
             success: true,
             message: 'Stav migrácie bol skontrolovaný. Pozrite si server logy.'

@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const multer_1 = __importDefault(require("multer"));
-const r2_storage_js_1 = require("../utils/r2-storage.js");
+const r2_storage_1 = require("../utils/r2-storage");
 const router = express_1.default.Router();
 // Multer konfigurácia pre upload súborov
 const upload = (0, multer_1.default)({
@@ -14,7 +14,7 @@ const upload = (0, multer_1.default)({
         fileSize: 50 * 1024 * 1024, // 50MB max
     },
     fileFilter: (req, file, cb) => {
-        if (r2_storage_js_1.r2Storage.validateFileType(file.mimetype)) {
+        if (r2_storage_1.r2Storage.validateFileType(file.mimetype)) {
             cb(null, true);
         }
         else {
@@ -47,7 +47,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         }
         console.log('🔍 Validating file...');
         // Validácia typu súboru
-        if (!r2_storage_js_1.r2Storage.validateFileType(req.file.mimetype)) {
+        if (!r2_storage_1.r2Storage.validateFileType(req.file.mimetype)) {
             console.log('❌ Invalid file type:', req.file.mimetype);
             return res.status(400).json({
                 success: false,
@@ -56,7 +56,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         }
         // Validácia veľkosti súboru
         const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'document';
-        if (!r2_storage_js_1.r2Storage.validateFileSize(req.file.size, fileType)) {
+        if (!r2_storage_1.r2Storage.validateFileSize(req.file.size, fileType)) {
             console.log('❌ File too large:', req.file.size);
             return res.status(400).json({
                 success: false,
@@ -65,10 +65,10 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         }
         console.log('🔍 Generating file key...');
         // Generovanie file key
-        const fileKey = r2_storage_js_1.r2Storage.generateFileKey(type, entityId, req.file.originalname);
+        const fileKey = r2_storage_1.r2Storage.generateFileKey(type, entityId, req.file.originalname);
         console.log('🔍 File key generated:', fileKey);
         // Kontrola R2 konfigurácie
-        if (!r2_storage_js_1.r2Storage.isConfigured()) {
+        if (!r2_storage_1.r2Storage.isConfigured()) {
             console.log('❌ R2 not configured');
             return res.status(500).json({
                 success: false,
@@ -77,7 +77,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         }
         console.log('🔍 Uploading to R2...');
         // Upload do R2
-        const url = await r2_storage_js_1.r2Storage.uploadFile(fileKey, req.file.buffer, req.file.mimetype, {
+        const url = await r2_storage_1.r2Storage.uploadFile(fileKey, req.file.buffer, req.file.mimetype, {
             original_name: req.file.originalname,
             uploaded_at: new Date().toISOString(),
             entity_id: entityId,
@@ -121,22 +121,22 @@ router.post('/presigned-url', async (req, res) => {
             });
         }
         // Validácia typu súboru
-        if (!r2_storage_js_1.r2Storage.validateFileType(contentType)) {
+        if (!r2_storage_1.r2Storage.validateFileType(contentType)) {
             return res.status(400).json({
                 success: false,
                 error: 'Nepodporovaný typ súboru'
             });
         }
         // Generovanie file key
-        const fileKey = r2_storage_js_1.r2Storage.generateFileKey(type, entityId, filename);
+        const fileKey = r2_storage_1.r2Storage.generateFileKey(type, entityId, filename);
         // Vytvorenie presigned URL
-        const presignedUrl = await r2_storage_js_1.r2Storage.createPresignedUploadUrl(fileKey, contentType, 3600 // 1 hodina
+        const presignedUrl = await r2_storage_1.r2Storage.createPresignedUploadUrl(fileKey, contentType, 3600 // 1 hodina
         );
         res.json({
             success: true,
             presignedUrl: presignedUrl,
             key: fileKey,
-            publicUrl: r2_storage_js_1.r2Storage.getPublicUrl(fileKey)
+            publicUrl: r2_storage_1.r2Storage.getPublicUrl(fileKey)
         });
     }
     catch (error) {
@@ -157,7 +157,7 @@ router.delete('/:key', async (req, res) => {
                 error: 'Chýba file key'
             });
         }
-        await r2_storage_js_1.r2Storage.deleteFile(key);
+        await r2_storage_1.r2Storage.deleteFile(key);
         console.log('✅ File deleted from R2:', key);
         res.json({
             success: true,
@@ -184,7 +184,7 @@ router.get('/proxy/:key', async (req, res) => {
         }
         console.log('🔄 Loading image from R2 via proxy:', key);
         // Načítanie súboru z R2
-        const fileBuffer = await r2_storage_js_1.r2Storage.getFile(key);
+        const fileBuffer = await r2_storage_1.r2Storage.getFile(key);
         if (!fileBuffer) {
             return res.status(404).json({
                 success: false,
@@ -192,7 +192,7 @@ router.get('/proxy/:key', async (req, res) => {
             });
         }
         // Zistenie MIME typu z file key
-        const mimeType = r2_storage_js_1.r2Storage.getMimeTypeFromKey(key);
+        const mimeType = r2_storage_1.r2Storage.getMimeTypeFromKey(key);
         // Nastavenie headers pre obrázok
         res.setHeader('Content-Type', mimeType);
         res.setHeader('Content-Length', fileBuffer.length);
@@ -220,7 +220,7 @@ router.get('/:key/url', async (req, res) => {
                 error: 'Chýba file key'
             });
         }
-        const publicUrl = r2_storage_js_1.r2Storage.getPublicUrl(key);
+        const publicUrl = r2_storage_1.r2Storage.getPublicUrl(key);
         res.json({
             success: true,
             url: publicUrl,
@@ -238,7 +238,7 @@ router.get('/:key/url', async (req, res) => {
 // Kontrola R2 konfigurácie
 router.get('/status', async (req, res) => {
     try {
-        const isConfigured = r2_storage_js_1.r2Storage.isConfigured();
+        const isConfigured = r2_storage_1.r2Storage.isConfigured();
         res.json({
             success: true,
             configured: isConfigured,
@@ -277,14 +277,14 @@ router.post('/protocol-upload', upload.single('file'), async (req, res) => {
             });
         }
         // Validácia typu súboru
-        if (!r2_storage_js_1.r2Storage.validateFileType(req.file.mimetype)) {
+        if (!r2_storage_1.r2Storage.validateFileType(req.file.mimetype)) {
             return res.status(400).json({
                 success: false,
                 error: 'Nepodporovaný typ súboru'
             });
         }
         // Validácia veľkosti súboru
-        if (!r2_storage_js_1.r2Storage.validateFileSize(req.file.size, 'image')) {
+        if (!r2_storage_1.r2Storage.validateFileSize(req.file.size, 'image')) {
             return res.status(400).json({
                 success: false,
                 error: 'Súbor je príliš veľký'
@@ -305,7 +305,7 @@ router.post('/protocol-upload', upload.single('file'), async (req, res) => {
             });
         }
         // Upload do R2
-        const url = await r2_storage_js_1.r2Storage.uploadFile(fileKey, req.file.buffer, req.file.mimetype, {
+        const url = await r2_storage_1.r2Storage.uploadFile(fileKey, req.file.buffer, req.file.mimetype, {
             original_name: req.file.originalname,
             uploaded_at: new Date().toISOString(),
             protocol_id: protocolId,
@@ -362,7 +362,7 @@ router.post('/protocol-pdf', upload.single('file'), async (req, res) => {
         // Generovanie file key pre PDF
         const fileKey = `protocols/${protocolId}/customer-protocol.pdf`;
         // Upload do R2
-        const url = await r2_storage_js_1.r2Storage.uploadFile(fileKey, req.file.buffer, req.file.mimetype, {
+        const url = await r2_storage_1.r2Storage.uploadFile(fileKey, req.file.buffer, req.file.mimetype, {
             original_name: 'customer-protocol.pdf',
             uploaded_at: new Date().toISOString(),
             protocol_id: protocolId,
@@ -409,6 +409,140 @@ router.get('/protocol/:protocolId/images', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Chyba pri načítaní obrázkov protokolu'
+        });
+    }
+});
+// 🚀 NOVÝ ENDPOINT: Upload fotky pre protokol (podľa navrhovanej metódy)
+router.post('/protocol-photo', upload.single('file'), async (req, res) => {
+    try {
+        console.log('🔄 Protocol photo upload request received:', {
+            hasFile: !!req.file,
+            fileSize: req.file?.size,
+            mimetype: req.file?.mimetype,
+            protocolId: req.body.protocolId,
+            protocolType: req.body.protocolType, // 'handover' alebo 'return'
+            mediaType: req.body.mediaType, // 'vehicle', 'document', 'damage'
+            label: req.body.label // voliteľný label pre fotku
+        });
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'Žiadny súbor nebol nahraný'
+            });
+        }
+        const { protocolId, protocolType, mediaType, label } = req.body;
+        if (!protocolId || !protocolType || !mediaType) {
+            return res.status(400).json({
+                success: false,
+                error: 'Chýba protocolId, protocolType alebo mediaType'
+            });
+        }
+        // Validácia typu súboru - len obrázky
+        if (!req.file.mimetype.startsWith('image/')) {
+            return res.status(400).json({
+                success: false,
+                error: 'Len obrázky sú povolené'
+            });
+        }
+        // Validácia veľkosti súboru
+        if (!r2_storage_1.r2Storage.validateFileSize(req.file.size, 'image')) {
+            return res.status(400).json({
+                success: false,
+                error: 'Súbor je príliš veľký'
+            });
+        }
+        // Generovanie file key podľa štruktúry
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const fileKey = `protocols/${protocolType}/${today}/${protocolId}/${req.file.originalname}`;
+        console.log('🔍 Generated file key:', fileKey);
+        // Upload do R2
+        const url = await r2_storage_1.r2Storage.uploadFile(fileKey, req.file.buffer, req.file.mimetype, {
+            original_name: req.file.originalname,
+            uploaded_at: new Date().toISOString(),
+            protocol_id: protocolId,
+            protocol_type: protocolType,
+            media_type: mediaType,
+            label: label || req.file.originalname
+        });
+        console.log('✅ Protocol photo uploaded to R2:', url);
+        // Vytvorenie objektu pre databázu
+        const photoObject = {
+            id: require('uuid').v4(), // Generovanie UUID pre fotku
+            url: url,
+            type: mediaType,
+            description: label || req.file.originalname,
+            timestamp: new Date(),
+            compressed: false,
+            originalSize: req.file.size,
+            compressedSize: req.file.size,
+            filename: req.file.originalname
+        };
+        res.json({
+            success: true,
+            photo: photoObject,
+            url: url,
+            key: fileKey,
+            filename: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype
+        });
+    }
+    catch (error) {
+        console.error('❌ Error uploading protocol photo:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri nahrávaní fotky protokolu',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+// 🚀 NOVÝ ENDPOINT: Generovanie signed URL pre direct upload
+router.post('/presigned-upload', async (req, res) => {
+    try {
+        const { protocolId, protocolType, mediaType, filename, contentType } = req.body;
+        console.log('🔄 Generating presigned URL for:', {
+            protocolId,
+            protocolType,
+            mediaType,
+            filename,
+            contentType
+        });
+        if (!protocolId || !protocolType || !mediaType || !filename || !contentType) {
+            return res.status(400).json({
+                success: false,
+                error: 'Chýbajú povinné parametre'
+            });
+        }
+        // Validácia typu súboru
+        if (!contentType.startsWith('image/')) {
+            return res.status(400).json({
+                success: false,
+                error: 'Len obrázky sú povolené'
+            });
+        }
+        // Generovanie file key
+        const today = new Date().toISOString().split('T')[0];
+        const fileKey = `protocols/${protocolType}/${today}/${protocolId}/${filename}`;
+        // Vytvorenie presigned URL (platná 5 minút)
+        const presignedUrl = await r2_storage_1.r2Storage.createPresignedUploadUrl(fileKey, contentType, 300 // 5 minút
+        );
+        // Public URL pre neskoršie použitie
+        const publicUrl = r2_storage_1.r2Storage.getPublicUrl(fileKey);
+        console.log('✅ Presigned URL generated:', fileKey);
+        res.json({
+            success: true,
+            presignedUrl: presignedUrl,
+            publicUrl: publicUrl,
+            fileKey: fileKey,
+            expiresIn: 300
+        });
+    }
+    catch (error) {
+        console.error('❌ Error generating presigned URL:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri generovaní signed URL',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });

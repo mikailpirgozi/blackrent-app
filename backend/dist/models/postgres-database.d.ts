@@ -142,6 +142,7 @@ export declare class PostgresDatabase {
     deleteReturnProtocol(id: string): Promise<boolean>;
     getClient(): Promise<PoolClient>;
     close(): Promise<void>;
+    updateHandoverProtocol(id: string, updateData: any): Promise<any>;
 }
 export declare const postgresDatabase: PostgresDatabase;
 //# sourceMappingURL=postgres-database.d.ts.map

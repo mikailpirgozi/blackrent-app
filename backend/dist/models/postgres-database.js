@@ -1980,10 +1980,10 @@ class PostgresDatabase {
                 protocolData.vehicleCondition?.exteriorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.interiorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.notes || '',
-                protocolData.vehicleImages || [], // ✅ PRIAMO - bez extractMediaData
-                protocolData.vehicleVideos || [], // ✅ PRIAMO - bez extractMediaData
-                protocolData.documentImages || [], // ✅ PRIAMO - bez extractMediaData
-                protocolData.damageImages || [], // ✅ PRIAMO - bez extractMediaData
+                JSON.stringify(protocolData.vehicleImages || []),
+                JSON.stringify(protocolData.vehicleVideos || []),
+                JSON.stringify(protocolData.documentImages || []),
+                JSON.stringify(protocolData.damageImages || []),
                 JSON.stringify(protocolData.damages || []),
                 JSON.stringify(protocolData.signatures || []),
                 JSON.stringify(protocolData.rentalData || {}),
@@ -2201,23 +2201,65 @@ class PostgresDatabase {
     }
     // Mapping methods
     mapHandoverProtocolFromDB(row) {
-        // Safe JSON parsing function
+        // Safe JSON parsing function for JSONB fields
         const safeJsonParse = (value, fallback = []) => {
+            console.log('🔍 [DB] safeJsonParse input:', {
+                value: value,
+                type: typeof value,
+                isArray: Array.isArray(value),
+                isNull: value === null,
+                isUndefined: value === undefined,
+                stringLength: typeof value === 'string' ? value.length : 'N/A'
+            });
             if (!value || value === 'null' || value === 'undefined') {
+                console.log('🔍 [DB] safeJsonParse: returning fallback (null/undefined)');
                 return fallback;
             }
-            try {
-                return JSON.parse(value);
+            // JSONB sa automaticky parsuje PostgreSQL, takže ak je to už objekt, vráť ho
+            if (typeof value === 'object' && value !== null) {
+                // ✅ NOVÁ LOGIKA: Ak je to pole stringov, parsuj každý string
+                if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+                    console.log('🔍 [DB] safeJsonParse: parsing array of JSON strings');
+                    try {
+                        const parsed = value.map(item => {
+                            if (typeof item === 'string') {
+                                return JSON.parse(item);
+                            }
+                            return item;
+                        });
+                        console.log('🔍 [DB] safeJsonParse: successfully parsed array of strings:', parsed);
+                        return parsed;
+                    }
+                    catch (error) {
+                        console.log('⚠️ Error parsing array of JSON strings:', error);
+                        return fallback;
+                    }
+                }
+                console.log('🔍 [DB] safeJsonParse: value is already object, returning as is');
+                return value;
             }
-            catch (error) {
-                console.log('⚠️ JSON parse error in mapHandoverProtocolFromDB:', error);
-                return fallback;
+            // Ak je to string, skús ho parsovať
+            if (typeof value === 'string') {
+                try {
+                    const parsed = JSON.parse(value);
+                    console.log('🔍 [DB] safeJsonParse: successfully parsed string to:', parsed);
+                    return parsed;
+                }
+                catch (error) {
+                    console.log('⚠️ JSON parse error in mapHandoverProtocolFromDB:', error);
+                    return fallback;
+                }
             }
+            console.log('🔍 [DB] safeJsonParse: returning fallback (unknown type)');
+            return fallback;
         };
         console.log('🔄 [DB] Mapping handover protocol from DB row:', {
             id: row.id,
             pdf_url: row.pdf_url,
-            pdf_url_type: typeof row.pdf_url
+            pdf_url_type: typeof row.pdf_url,
+            vehicle_images_type: typeof row.vehicle_images_urls,
+            vehicle_images_length: Array.isArray(row.vehicle_images_urls) ? row.vehicle_images_urls.length : 'not array',
+            vehicle_images_raw: row.vehicle_images_urls
         });
         const mappedProtocol = {
             id: row.id,
@@ -2235,10 +2277,10 @@ class PostgresDatabase {
                 interiorCondition: row.interior_condition || 'Dobrý',
                 notes: row.condition_notes || ''
             },
-            vehicleImages: safeJsonParse(row.vehicle_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
-            vehicleVideos: safeJsonParse(row.vehicle_videos_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
-            documentImages: safeJsonParse(row.document_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
-            damageImages: safeJsonParse(row.damage_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
+            vehicleImages: safeJsonParse(row.vehicle_images_urls, []), // ✅ JSONB - automaticky parsované
+            vehicleVideos: safeJsonParse(row.vehicle_videos_urls, []), // ✅ JSONB - automaticky parsované
+            documentImages: safeJsonParse(row.document_images_urls, []), // ✅ JSONB - automaticky parsované
+            damageImages: safeJsonParse(row.damage_images_urls, []), // ✅ JSONB - automaticky parsované
             damages: safeJsonParse(row.damages, []),
             signatures: safeJsonParse(row.signatures, []),
             rentalData: safeJsonParse(row.rental_data, {}),
@@ -2248,22 +2290,36 @@ class PostgresDatabase {
             notes: row.notes,
             createdBy: row.created_by
         };
-        console.log('🔄 [DB] Mapped protocol pdfUrl:', mappedProtocol.pdfUrl);
+        console.log('🔄 [DB] Mapped protocol media:', {
+            vehicleImages: mappedProtocol.vehicleImages?.length || 0,
+            vehicleVideos: mappedProtocol.vehicleVideos?.length || 0,
+            documentImages: mappedProtocol.documentImages?.length || 0,
+            damageImages: mappedProtocol.damageImages?.length || 0,
+            vehicleImagesSample: mappedProtocol.vehicleImages?.slice(0, 2) || []
+        });
         return mappedProtocol;
     }
     mapReturnProtocolFromDB(row) {
-        // Safe JSON parsing function
+        // Safe JSON parsing function for JSONB fields
         const safeJsonParse = (value, fallback = []) => {
             if (!value || value === 'null' || value === 'undefined') {
                 return fallback;
             }
-            try {
-                return JSON.parse(value);
+            // JSONB sa automaticky parsuje PostgreSQL, takže ak je to už objekt, vráť ho
+            if (typeof value === 'object' && value !== null) {
+                return value;
             }
-            catch (error) {
-                console.log('⚠️ JSON parse error in mapReturnProtocolFromDB:', error);
-                return fallback;
+            // Ak je to string, skús ho parsovať
+            if (typeof value === 'string') {
+                try {
+                    return JSON.parse(value);
+                }
+                catch (error) {
+                    console.log('⚠️ JSON parse error in mapReturnProtocolFromDB:', error);
+                    return fallback;
+                }
             }
+            return fallback;
         };
         return {
             id: row.id,
@@ -2388,6 +2444,80 @@ class PostgresDatabase {
     }
     async close() {
         await this.pool.end();
+    }
+    // 🚀 NOVÁ METÓDA: Aktualizácia handover protokolu
+    async updateHandoverProtocol(id, updateData) {
+        const client = await this.pool.connect();
+        try {
+            console.log('🔄 Updating handover protocol:', id);
+            console.log('🔄 Update data:', JSON.stringify(updateData, null, 2));
+            // Dynamické vytvorenie SET klauzuly
+            const setFields = [];
+            const values = [];
+            let paramIndex = 1;
+            // Mapovanie polí
+            const fieldMappings = {
+                vehicleImages: 'vehicle_images_urls',
+                vehicleVideos: 'vehicle_videos_urls',
+                documentImages: 'document_images_urls',
+                documentVideos: 'document_videos_urls',
+                damageImages: 'damage_images_urls',
+                damageVideos: 'damage_videos_urls',
+                damages: 'damages',
+                signatures: 'signatures',
+                rentalData: 'rental_data',
+                pdfUrl: 'pdf_url',
+                emailSent: 'email_sent',
+                notes: 'notes',
+                location: 'location',
+                status: 'status',
+                completedAt: 'completed_at'
+            };
+            for (const [key, value] of Object.entries(updateData)) {
+                if (fieldMappings[key]) {
+                    setFields.push(`${fieldMappings[key]} = $${paramIndex}`);
+                    // Špeciálne spracovanie pre JSON polia
+                    if (['vehicleImages', 'vehicleVideos', 'documentImages', 'documentVideos', 'damageImages', 'damageVideos', 'damages', 'signatures', 'rentalData'].includes(key)) {
+                        values.push(JSON.stringify(value));
+                    }
+                    else if (key === 'completedAt' && value) {
+                        values.push(new Date(value));
+                    }
+                    else {
+                        values.push(value);
+                    }
+                    paramIndex++;
+                }
+            }
+            if (setFields.length === 0) {
+                throw new Error('Žiadne platné polia na aktualizáciu');
+            }
+            // Pridanie updated_at
+            setFields.push('updated_at = CURRENT_TIMESTAMP');
+            const query = `
+        UPDATE handover_protocols 
+        SET ${setFields.join(', ')}
+        WHERE id = $${paramIndex}::uuid
+        RETURNING *
+      `;
+            values.push(id);
+            console.log('🔄 Update query:', query);
+            console.log('🔄 Update values:', values);
+            const result = await client.query(query, values);
+            if (result.rows.length === 0) {
+                throw new Error('Protokol nebol nájdený');
+            }
+            const updatedProtocol = this.mapHandoverProtocolFromDB(result.rows[0]);
+            console.log('✅ Handover protocol updated successfully');
+            return updatedProtocol;
+        }
+        catch (error) {
+            console.error('❌ Error updating handover protocol:', error);
+            throw error;
+        }
+        finally {
+            client.release();
+        }
     }
 }
 exports.PostgresDatabase = PostgresDatabase;

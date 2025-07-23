@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.r2Migration = void 0;
-const postgres_database_js_1 = require("../models/postgres-database.js");
-const r2_storage_js_1 = require("./r2-storage.js");
+const postgres_database_1 = require("../models/postgres-database");
+const r2_storage_1 = require("./r2-storage");
 class R2Migration {
     constructor() {
         this.migratedCount = 0;
@@ -13,7 +13,7 @@ class R2Migration {
      */
     async migrateAllProtocols() {
         console.log('🚀 Začínam migráciu protokolov do R2 storage...');
-        if (!r2_storage_js_1.r2Storage.isConfigured()) {
+        if (!r2_storage_1.r2Storage.isConfigured()) {
             console.error('❌ R2 Storage nie je nakonfigurované!');
             console.log('📋 Nastavte environment variables:');
             console.log('  R2_ENDPOINT');
@@ -43,7 +43,7 @@ class R2Migration {
         // Použijeme getHandoverProtocolsByRental ak existuje, inak priamy prístup
         try {
             // Získaj všetky handover protokoly
-            const protocols = await postgres_database_js_1.postgresDatabase.getHandoverProtocolsByRental('all');
+            const protocols = await postgres_database_1.postgresDatabase.getHandoverProtocolsByRental('all');
             for (const protocol of protocols) {
                 await this.migrateProtocolMedia(protocol, 'handover');
             }
@@ -59,7 +59,7 @@ class R2Migration {
         console.log('📋 Migrujem return protokoly...');
         try {
             // Získaj všetky return protokoly
-            const protocols = await postgres_database_js_1.postgresDatabase.getReturnProtocolsByRental('all');
+            const protocols = await postgres_database_1.postgresDatabase.getReturnProtocolsByRental('all');
             for (const protocol of protocols) {
                 await this.migrateProtocolMedia(protocol, 'return');
             }
@@ -145,8 +145,8 @@ class R2Migration {
             // Generuj filename
             const filename = `${mediaType}_${protocolType}_${protocolId.slice(-8)}_${index}_${Date.now()}.${this.getExtensionFromContentType(contentType)}`;
             // Upload do R2
-            const fileKey = r2_storage_js_1.r2Storage.generateFileKey('protocol', protocolId, filename);
-            const r2Url = await r2_storage_js_1.r2Storage.uploadFile(fileKey, buffer, contentType, {
+            const fileKey = r2_storage_1.r2Storage.generateFileKey('protocol', protocolId, filename);
+            const r2Url = await r2_storage_1.r2Storage.uploadFile(fileKey, buffer, contentType, {
                 original_name: filename,
                 migrated_from_base64: 'true',
                 original_id: media.id,
@@ -174,7 +174,7 @@ class R2Migration {
         try {
             // Použijeme updateReturnProtocol ak existuje
             if (type === 'return') {
-                await postgres_database_js_1.postgresDatabase.updateReturnProtocol(protocolId, {
+                await postgres_database_1.postgresDatabase.updateReturnProtocol(protocolId, {
                     vehicleImages: mediaData.vehicle_images_urls,
                     vehicleVideos: mediaData.vehicle_videos_urls,
                     documentImages: mediaData.document_images_urls,
@@ -219,7 +219,7 @@ class R2Migration {
         console.log('🔍 Kontrolujem stav migrácie...');
         try {
             // Kontrola R2 konfigurácie
-            const r2Configured = r2_storage_js_1.r2Storage.isConfigured();
+            const r2Configured = r2_storage_1.r2Storage.isConfigured();
             console.log(`☁️ R2 Storage: ${r2Configured ? '✅ Nakonfigurované' : '❌ Nenakonfigurované'}`);
             if (!r2Configured) {
                 console.log('📋 Nastavte environment variables:');
