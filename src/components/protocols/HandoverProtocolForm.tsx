@@ -52,6 +52,8 @@ import {
   PhotoLibrary,
 } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import { Rental, HandoverProtocol, VehicleCondition, ProtocolDamage, ProtocolSignature, ProtocolImage, ProtocolVideo } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -59,8 +61,7 @@ import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
 import R2FileUpload from '../common/R2FileUpload';
-import MobileFileUpload from '../common/MobileFileUpload';
-import PDFGenerator from '../../utils/pdfGenerator';
+import { compressImage } from '../../utils/imageCompression';
 import ProtocolGallery from '../common/ProtocolGallery';
 
 interface HandoverProtocolFormProps {
@@ -206,40 +207,89 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     }
   };
 
-  // Zjednotená funkcia pre generovanie PDF
+  // 🎭 PUPPETEER: Generovanie PDF cez backend API namiesto lokálneho generátora
   const generateProtocolPDF = async (): Promise<Blob> => {
-    console.log('🔄 Generating PDF with unified data...');
+    console.log('🎭 Generating PDF via backend Puppeteer API...');
     
-    // Zjednotené dáta pre PDF
-    const pdfData = {
+    // Zjednotené dáta pre backend Puppeteer API
+    const protocolData = {
       id: protocol.id || protocolId,
-      type: 'handover' as const,
-      rental: rental, // ✅ Vždy použij prop z komponentu pre konzistenciu
-      location: protocol.location || '',
+      rentalId: rental.id,
+      type: 'handover',
+      location: protocol.location || '',  
       vehicleCondition: protocol.vehicleCondition || {},
       vehicleImages: protocol.vehicleImages || [],
+      vehicleVideos: protocol.vehicleVideos || [],
       documentImages: protocol.documentImages || [],
+      documentVideos: protocol.documentVideos || [],
       damageImages: protocol.damageImages || [],
+      damageVideos: protocol.damageVideos || [],
       damages: protocol.damages || [],
       signatures: protocol.signatures || [],
+      rentalData: {
+        orderNumber: rental.orderNumber || '',
+        vehicle: rental.vehicle || {} as any,
+        customer: rental.customer || {} as any,
+        startDate: rental.startDate,
+        endDate: rental.endDate,
+        totalPrice: rental.totalPrice,
+        deposit: rental.deposit || 0,
+        currency: 'EUR',
+        allowedKilometers: rental.allowedKilometers || 0,
+        extraKilometerRate: rental.extraKilometerRate || 0.50,
+      },
       notes: protocol.notes || '',
-      createdAt: protocol.createdAt || new Date(),
-      completedAt: protocol.completedAt || new Date(),
+      createdBy: state.user?.username || 'admin',
+      status: 'completed',
+      completedAt: new Date().toISOString(),
     };
 
-    console.log('📋 PDF data:', pdfData);
+    console.log('📋 Sending protocol data to backend Puppeteer:', protocolData);
     
-    const pdfGenerator = new PDFGenerator();
-    const pdfBlob = await pdfGenerator.generateProtocolPDF(pdfData, {
-      includeImages: true,
-      includeSignatures: true,
-      imageQuality: 0.8,
-      maxImageWidth: 80,
-      maxImageHeight: 60
-    });
+    try {
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      const authToken = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+      
+      console.log('🔄 Calling backend Puppeteer API...');
+      
+      const response = await fetch(`${apiBaseUrl}/protocols/handover`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(protocolData),
+      });
 
-    console.log('✅ PDF generated successfully');
-    return pdfBlob;
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Backend API error: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Backend Puppeteer response:', result);
+
+      if (result.protocol?.pdfUrl) {
+        console.log('🎭 Downloading Puppeteer PDF from:', result.protocol.pdfUrl);
+        
+        // Stiahni PDF z R2 URL
+        const pdfResponse = await fetch(result.protocol.pdfUrl);
+        if (!pdfResponse.ok) {
+          throw new Error(`Failed to download PDF: ${pdfResponse.status}`);
+        }
+        
+        const pdfBlob = await pdfResponse.blob();
+        console.log('✅ Puppeteer PDF downloaded, size:', pdfBlob.size, 'bytes');
+        
+        return pdfBlob;
+      } else {
+        throw new Error('Backend response missing PDF URL');
+      }
+      
+    } catch (error) {
+      console.error('❌ Backend Puppeteer API failed:', error);
+      throw error;
+    }
   };
 
   // Funkcia na sťahovanie vygenerovaného PDF
@@ -1081,19 +1131,20 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
               <Box sx={{ mb: 2 }}>
                 <div>
                   <Button
-                    variant="contained"
-                    onClick={handleNext}
-                    sx={{ mt: 1, mr: 1 }}
-                    disabled={activeStep === steps.length - 1}
+                    variant="outlined"
+                    onClick={handleGeneratePDF}
+                    startIcon={<PdfIcon />}
+                    disabled={!protocol.location || !protocol.vehicleCondition?.odometer}
                   >
-                    {activeStep === steps.length - 1 ? 'Dokončiť' : 'Pokračovať'}
+                    Generovať PDF
                   </Button>
                   <Button
-                    disabled={activeStep === 0}
-                    onClick={handleBack}
-                    sx={{ mt: 1, mr: 1 }}
+                    onClick={handleSave}
+                    startIcon={<SaveIcon />}
+                    variant="contained"
+                    disabled={!pdfGenerated}
                   >
-                    Späť
+                    Uložiť protokol
                   </Button>
                 </div>
               </Box>
