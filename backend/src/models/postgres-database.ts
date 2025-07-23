@@ -2181,15 +2181,14 @@ export class PostgresDatabase {
 
       const result = await client.query(`
         INSERT INTO handover_protocols (
-          id, rental_id, location, odometer, fuel_level, fuel_type,
+          rental_id, location, odometer, fuel_level, fuel_type,
           exterior_condition, interior_condition, condition_notes,
           vehicle_images_urls, vehicle_videos_urls, document_images_urls, damage_images_urls,
           damages, signatures, rental_data, pdf_url, email_sent, notes, created_by
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
         ) RETURNING *
       `, [
-        protocolData.id, // ✅ Pridané: ID protokolu
         protocolData.rentalId,
         protocolData.location || '',
         protocolData.vehicleCondition?.odometer || 0,
