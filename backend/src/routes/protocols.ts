@@ -210,6 +210,10 @@ router.get('/debug/test-pdf', async (req: Request, res: Response) => {
     const testData: any = {
       id: 'test-debug-' + Date.now(),
       rentalId: 'test-rental-debug',
+      type: 'handover',
+      status: 'completed',
+      createdAt: new Date(),
+      completedAt: new Date(),
       customerName: 'Ján Testovací Čáčo',
       customerEmail: 'test@aeonik.sk',
       customerPhone: '+421 901 123 456',
@@ -220,8 +224,13 @@ router.get('/debug/test-pdf', async (req: Request, res: Response) => {
       vehicleYear: 2023,
       vehicleLicensePlate: 'ZA 999 XY',
       vehicleVin: 'TEST1234567890123',
-      vehicleMileage: 15000,
-      vehicleFuelLevel: 80,
+      vehicleCondition: {
+        odometer: 15000,
+        fuelLevel: 80,
+        fuelType: 'gasoline' as const,
+        exteriorCondition: 'Výborný stav bez škrabancov a poškodení',
+        interiorCondition: 'Čistý, voňavý interiér bez opotrebovania'
+      },
       vehicleColor: 'Červená metalíza',
       rentalStartDate: new Date().toISOString(),
       rentalEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -241,15 +250,24 @@ router.get('/debug/test-pdf', async (req: Request, res: Response) => {
       fuelCardIncluded: true,
       additionalEquipment: ['GPS navigácia', 'Zimné pneumatiky', 'Detská autosedačka'],
       location: 'Bratislava - testovacie centrum',
-      createdAt: new Date().toISOString(),
-      damages: JSON.stringify([
+      vehicleImages: [],
+      vehicleVideos: [],
+      documentImages: [],
+      documentVideos: [],
+      damageImages: [],
+      damageVideos: [],
+      signatures: [],
+      createdBy: 'test-system',
+      damages: [
         {
+          id: 'damage-1',
           description: 'Test škrabance na pravom boku',
-          severity: 'Minimálne',
+          severity: 'low' as const,
           location: 'Pravý bok vozidla',
-          estimatedCost: 50.00
+          images: [],
+          timestamp: new Date()
         }
-      ])
+      ]
     };
     
     console.log('🎨 Generujem PDF s Aeonik fontom...');
