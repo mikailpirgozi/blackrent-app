@@ -390,10 +390,22 @@ export default function VehicleList() {
               console.log(`Vytváram vozidlo ${i + 1}/${imported.length}: ${vehicle.licensePlate} - ${vehicle.brand} ${vehicle.model}`);
               await createVehicle(vehicle);
               successCount++;
+              console.log(`✅ Vozidlo úspešne vytvorené: ${vehicle.licensePlate}`);
             } catch (error: any) {
               console.error(`Chyba pri vytváraní vozidla ${vehicle.licensePlate}:`, error);
               errorCount++;
-              errors.push(`${vehicle.licensePlate}: ${error.message || 'Neznáma chyba'}`);
+              const errorMessage = error.message || 'Neznáma chyba';
+              errors.push(`${vehicle.licensePlate}: ${errorMessage}`);
+              
+              // Ak je chyba kvôli duplicite, pokračujeme
+              if (errorMessage.includes('už existuje')) {
+                console.log(`🔄 Preskakujem duplicitné vozidlo: ${vehicle.licensePlate}`);
+              }
+            }
+            
+            // Pridáme malé oneskorenie medzi requestmi aby sa nepreťažil server
+            if (i < imported.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 100));
             }
           }
           

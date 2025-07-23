@@ -797,6 +797,20 @@ export class PostgresDatabase {
   }): Promise<Vehicle> {
     const client = await this.pool.connect();
     try {
+      // Kontrola duplicít - skontroluj či už existuje vozidlo s touto ŠPZ
+      if (vehicleData.licensePlate && vehicleData.licensePlate.trim()) {
+        const existingVehicle = await client.query(
+          'SELECT id, brand, model FROM vehicles WHERE LOWER(license_plate) = LOWER($1)',
+          [vehicleData.licensePlate.trim()]
+        );
+        
+        if (existingVehicle.rows.length > 0) {
+          const existing = existingVehicle.rows[0];
+          console.log(`⚠️ Vozidlo s ŠPZ ${vehicleData.licensePlate} už existuje: ${existing.brand} ${existing.model}`);
+          throw new Error(`Vozidlo s ŠPZ ${vehicleData.licensePlate} už existuje v databáze`);
+        }
+      }
+
       // Automaticky vytvoriť company záznam ak neexistuje - bez ON CONFLICT
       if (vehicleData.company && vehicleData.company.trim()) {
         try {

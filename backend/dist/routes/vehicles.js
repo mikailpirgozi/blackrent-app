@@ -72,9 +72,10 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
     }
     catch (error) {
         console.error('Create vehicle error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Chyba pri vytváraní vozidla';
         res.status(500).json({
             success: false,
-            error: 'Chyba pri vytváraní vozidla'
+            error: errorMessage
         });
     }
 });
