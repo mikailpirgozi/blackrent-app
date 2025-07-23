@@ -288,95 +288,260 @@ export class PDFLibCustomFontGenerator {
   }
 
   /**
-   * Header s vlastným fontom
+   * 🎨 MODERNÁ HLAVIČKA s vlastným fontom
    */
   private addCustomFontHeader(title: string): void {
+    // 🎨 GRADIENT EFEKT HLAVIČKY
+    
+    // Svetlá báza pre gradient efekt
     this.currentPage.drawRectangle({
       x: this.margin,
-      y: this.currentY - 40,
+      y: this.currentY - 65,
       width: this.pageWidth - 2 * this.margin,
-      height: 40,
-      color: this.primaryColor,
+      height: 65,
+      color: rgb(0.96, 0.96, 0.98), // Veľmi svetlá sivá
     });
     
-    // Vlastný font v hlavičke
+    // Hlavný gradient - tmavšia modrá
+    this.currentPage.drawRectangle({
+      x: this.margin,
+      y: this.currentY - 55,
+      width: this.pageWidth - 2 * this.margin,
+      height: 55,
+      color: rgb(0.15, 0.35, 0.75), // Tmavšia elegantná modrá
+    });
+    
+    // Svetlejší gradient overlay
+    this.currentPage.drawRectangle({
+      x: this.margin,
+      y: this.currentY - 45,
+      width: this.pageWidth - 2 * this.margin,
+      height: 35,
+      color: rgb(0.26, 0.46, 0.95), // Moderná modrá primárna
+    });
+
+    // 🏢 LOGO AREA - Left side
+    this.currentPage.drawRectangle({
+      x: this.margin + 10,
+      y: this.currentY - 40,
+      width: 120,
+      height: 25,
+      color: rgb(1, 1, 1), // Biely box pre logo
+      borderColor: rgb(0.9, 0.9, 0.9),
+      borderWidth: 1,
+    });
+    
+    this.currentPage.drawText('🚗 BlackRent', {
+      x: this.margin + 20,
+      y: this.currentY - 32,
+      size: 14,
+      font: this.boldFont,
+      color: rgb(0.15, 0.35, 0.75),
+    });
+    
+    this.currentPage.drawText('Premium Rental', {
+      x: this.margin + 25,
+      y: this.currentY - 47,
+      size: 8,
+      font: this.font,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+
+    // 📄 HLAVNÝ TITULOK - Center
+    const titleWidth = this.font.widthOfTextAtSize(title, 20);
+    const centerX = this.pageWidth / 2 - titleWidth / 2;
+    
+    // Tieň pre titulok
     this.currentPage.drawText(title, {
-      x: this.pageWidth / 2 - 120,
-      y: this.currentY - 25,
-      size: 18,
+      x: centerX + 1,
+      y: this.currentY - 31,
+      size: 20,
+      font: this.boldFont,
+      color: rgb(0, 0, 0, 0.3), // Priehľadný tieň
+    });
+    
+    // Hlavný titulok
+    this.currentPage.drawText(title, {
+      x: centerX,
+      y: this.currentY - 30,
+      size: 20,
       font: this.boldFont,
       color: rgb(1, 1, 1),
     });
+
+    // 📅 DÁTUM A ČAS - Right side
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('sk-SK');
+    const timeStr = now.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
     
-    this.currentPage.drawText('BlackRent', {
-      x: this.pageWidth - this.margin - 60,
+    this.currentPage.drawText('📅 ' + dateStr, {
+      x: this.pageWidth - this.margin - 85,
       y: this.currentY - 25,
-      size: 12,
-      font: this.boldFont,
+      size: 10,
+      font: this.font,
       color: rgb(1, 1, 1),
     });
     
-    this.currentY -= 60;
+    this.currentPage.drawText('🕐 ' + timeStr, {
+      x: this.pageWidth - this.margin - 85,
+      y: this.currentY - 40,
+      size: 10,
+      font: this.font,
+      color: rgb(1, 1, 1),
+    });
+
+    // 📏 DEKORAČNÁ LINKA POD HLAVIČKOU
+    this.currentPage.drawRectangle({
+      x: this.margin,
+      y: this.currentY - 70,
+      width: this.pageWidth - 2 * this.margin,
+      height: 3,
+      color: rgb(0.26, 0.46, 0.95),
+    });
+    
+    this.currentY -= 85;
   }
 
   /**
-   * Informačná sekcia s vlastným fontom
+   * 🎨 MODERNÁ INFORMAČNÁ SEKCIA s vlastným fontom
    */
   private addInfoSection(title: string, data: [string, string][]): void {
-    this.checkPageBreak(80);
+    this.checkPageBreak(data.length * 22 + 60);
+    
+    // 🎨 MODERNÝ HEADER SEKCIE
+    // Svetlý gradient pre header
+    this.currentPage.drawRectangle({
+      x: this.margin,
+      y: this.currentY - 35,
+      width: this.pageWidth - 2 * this.margin,
+      height: 35,
+      color: rgb(0.98, 0.98, 0.99), // Svetlá báza
+    });
     
     this.currentPage.drawRectangle({
       x: this.margin,
-      y: this.currentY - 20,
+      y: this.currentY - 30,
       width: this.pageWidth - 2 * this.margin,
-      height: 20,
-      color: this.lightGray,
+      height: 30,
+      color: rgb(0.94, 0.94, 0.96), // Svetlo-sivá moderná
     });
     
-    // Vlastný font v nadpisoch
-    this.currentPage.drawText(title, {
-      x: this.margin + 10,
-      y: this.currentY - 15,
-      size: 12,
+    // Farebná linka na ľavej strane
+    this.currentPage.drawRectangle({
+      x: this.margin,
+      y: this.currentY - 30,
+      width: 4,
+      height: 30,
+      color: rgb(0.26, 0.46, 0.95), // Modrá accent
+    });
+    
+    // Titulok sekcie s ikonou
+    const titleIcon = this.getTitleIcon(title);
+    this.currentPage.drawText(`${titleIcon} ${title}`, {
+      x: this.margin + 15,
+      y: this.currentY - 21,
+      size: 13,
       font: this.boldFont,
-      color: this.secondaryColor,
+      color: rgb(0.15, 0.15, 0.15),
     });
     
-    this.currentY -= 30;
+    this.currentY -= 40;
     
-    const boxHeight = data.length * 20 + 20;
+    // 🎨 MODERNÝ OBSAH SEKCIE
+    const boxHeight = data.length * 22 + 25;
+    
+    // Hlavný box s tieňom
+    this.currentPage.drawRectangle({
+      x: this.margin + 2,
+      y: this.currentY - boxHeight - 2,
+      width: this.pageWidth - 2 * this.margin,
+      height: boxHeight,
+      color: rgb(0.95, 0.95, 0.95), // Tieň
+    });
     
     this.currentPage.drawRectangle({
       x: this.margin,
       y: this.currentY - boxHeight,
       width: this.pageWidth - 2 * this.margin,
       height: boxHeight,
-      borderColor: rgb(0.8, 0.8, 0.8),
+      color: rgb(1, 1, 1), // Biely background
+      borderColor: rgb(0.9, 0.9, 0.9),
       borderWidth: 1,
     });
     
+    // Obsah v modernom štýle
     data.forEach(([label, value], index) => {
-      const yPos = this.currentY - 15 - (index * 20);
+      const yPos = this.currentY - 20 - (index * 22);
+      const isEven = index % 2 === 0;
+      
+      // Striedavé pozadie pre lepšiu čitateľnosť
+      if (isEven) {
+        this.currentPage.drawRectangle({
+          x: this.margin + 1,
+          y: yPos - 15,
+          width: this.pageWidth - 2 * this.margin - 2,
+          height: 20,
+          color: rgb(0.99, 0.99, 0.995), // Jemne odlíšené pozadie
+        });
+      }
+      
+      // Label s bodkou
+      this.currentPage.drawText('•', {
+        x: this.margin + 15,
+        y: yPos,
+        size: 8,
+        font: this.boldFont,
+        color: rgb(0.26, 0.46, 0.95), // Modrá bodka
+      });
       
       // Vlastný font v texte - plná diakritika!
       this.currentPage.drawText(String(label || ''), {
-        x: this.margin + 15,
+        x: this.margin + 25,
         y: yPos,
         size: 10,
         font: this.boldFont,
-        color: rgb(0, 0, 0),
+        color: rgb(0.1, 0.1, 0.1),
       });
       
-      this.currentPage.drawText(String(value || ''), {
-        x: this.margin + 150,
+      // Hodnota s lepším kontrastom
+      const valueText = String(value || '');
+      const isImportant = valueText.includes('EUR') || valueText.includes('km') || valueText.includes('%');
+      
+      this.currentPage.drawText(valueText, {
+        x: this.margin + 220,
         y: yPos,
         size: 10,
-        font: this.font,
-        color: rgb(0, 0, 0),
+        font: isImportant ? this.boldFont : this.font,
+        color: isImportant ? rgb(0.15, 0.35, 0.75) : rgb(0.3, 0.3, 0.3),
       });
+      
+      // Dekoračná tenkučká linka pod každým riadkom
+      if (index < data.length - 1) {
+        this.currentPage.drawRectangle({
+          x: this.margin + 20,
+          y: yPos - 12,
+          width: this.pageWidth - 2 * this.margin - 40,
+          height: 0.5,
+          color: rgb(0.95, 0.95, 0.95),
+        });
+      }
     });
     
-    this.currentY -= boxHeight + 15;
+    this.currentY -= boxHeight + 25;
+  }
+
+  /**
+   * Helper pre ikony titulov
+   */
+  private getTitleIcon(title: string): string {
+    if (title.includes('Základné') || title.includes('informácie')) return '📋';
+    if (title.includes('prenájme') || title.includes('Prenájom')) return '🏢';
+    if (title.includes('vozidle') || title.includes('Vozidlo')) return '🚗';
+    if (title.includes('stav') || title.includes('Stav')) return '⚙️';
+    if (title.includes('poškoden') || title.includes('Poškoden')) return '⚠️';
+    if (title.includes('podpis') || title.includes('Podpis')) return '✍️';
+    if (title.includes('poznámk') || title.includes('Poznámk')) return '📝';
+    return '📄';
   }
 
   /**
@@ -592,127 +757,304 @@ export class PDFLibCustomFontGenerator {
   }
 
   /**
-   * 🖼️ Pridanie obrázkov do PDF pomocou pdf-lib
+   * 🖼️ Pridanie obrázkov do PDF pomocou pdf-lib - MODERNÝ DESIGN
    */
   private async addImagesSection(title: string, images: any[]): Promise<void> {
     if (!images || images.length === 0) {
-      // Pridaj informáciu že obrázky chýbajú
-      this.addInfoSection(title, [['Počet obrázkov:', '0 (žiadne obrázky)']]);
+      // Modernizovaná sekcia pre prázdne obrázky
+      this.checkPageBreak(60);
+      
+      // Gradient-like header s modernou farbou
+      this.currentPage.drawRectangle({
+        x: this.margin,
+        y: this.currentY - 30,
+        width: this.pageWidth - 2 * this.margin,
+        height: 30,
+        color: rgb(0.95, 0.95, 0.97), // Svetlo-sivá moderná
+      });
+      
+      this.currentPage.drawRectangle({
+        x: this.margin,
+        y: this.currentY - 25,
+        width: this.pageWidth - 2 * this.margin,
+        height: 25,
+        color: rgb(0.26, 0.46, 0.95), // Moderná modrá
+      });
+      
+      this.currentPage.drawText(title, {
+        x: this.margin + 15,
+        y: this.currentY - 18,
+        size: 13,
+        font: this.boldFont,
+        color: rgb(1, 1, 1),
+      });
+      
+      this.currentPage.drawText('Žiadne obrázky nie sú k dispozícii', {
+        x: this.margin + 15,
+        y: this.currentY - 50,
+        size: 10,
+        font: this.font,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+      
+      this.currentY -= 80;
       return;
     }
 
     console.log(`🖼️ Adding ${images.length} images for section: ${title}`);
     
-    // Pridaj header sekcie
-    this.checkPageBreak(40);
+    // 🎨 MODERNÝ HEADER SEKCIE
+    this.checkPageBreak(50);
+    
+    // Gradient-style header
+    this.currentPage.drawRectangle({
+      x: this.margin,
+      y: this.currentY - 35,
+      width: this.pageWidth - 2 * this.margin,
+      height: 35,
+      color: rgb(0.95, 0.95, 0.97), // Svetlá báza 
+    });
     
     this.currentPage.drawRectangle({
       x: this.margin,
-      y: this.currentY - 25,
+      y: this.currentY - 30,
       width: this.pageWidth - 2 * this.margin,
-      height: 25,
-      color: this.primaryColor,
+      height: 30,
+      color: rgb(0.26, 0.46, 0.95), // Moderná modrá primárna
     });
     
     this.currentPage.drawText(title, {
-      x: this.margin + 10,
-      y: this.currentY - 18,
+      x: this.margin + 15,
+      y: this.currentY - 21,
       size: 14,
       font: this.boldFont,
-      color: rgb(1, 1, 1), // biela farba pre primary pozadie
+      color: rgb(1, 1, 1),
     });
     
-    this.currentY -= 35;
+    // Počet obrázkov
+    this.currentPage.drawText(`${images.length} ${images.length === 1 ? 'obrázok' : images.length <= 4 ? 'obrázky' : 'obrázkov'}`, {
+      x: this.pageWidth - this.margin - 80,
+      y: this.currentY - 21,
+      size: 11,
+      font: this.font,
+      color: rgb(1, 1, 1),
+    });
+    
+    this.currentY -= 50;
 
-    // Spracuj každý obrázok
+    // 🖼️ USPORIADANIE OBRÁZKOV 2 V RADE
+    const imagesPerRow = 2;
+    const imageSpacing = 15; // Menší spacing medzi obrázkami
+    const maxImageWidth = 260; // Väčšie obrázky!
+    const maxImageHeight = 190; // Väčšie obrázky!
+    
+    const availableWidth = this.pageWidth - 2 * this.margin;
+    const imageAreaWidth = (availableWidth - imageSpacing) / imagesPerRow;
+    const actualMaxWidth = Math.min(maxImageWidth, imageAreaWidth - 10);
+
+    let currentRow = 0;
+    let currentCol = 0;
+    let rowHeight = 0;
+
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
       
       try {
-        // Stiahnuť obrázok z R2
+        // Stiahnuť obrázok z R2  
         const imageBytes = await this.downloadImageFromR2(image.url);
         
         if (!imageBytes) {
-          // Pridaj placeholder pre chybný obrázok
-          this.addImagePlaceholder(i + 1, image.description || 'Obrázok sa nepodarilo načítať');
+          // Placeholder pre chybný obrázok
+          await this.addImagePlaceholderInGrid(i + 1, 'Obrázok sa nepodarilo načítať', currentCol, actualMaxWidth, 100);
+          this.moveToNextGridPosition();
           continue;
         }
 
         // Embed obrázok do PDF
         let pdfImage;
         try {
-          // Skús najprv JPEG
           pdfImage = await this.doc.embedJpg(imageBytes);
         } catch (jpgError) {
           try {
-            // Ak JPEG zlyhá, skús PNG
             pdfImage = await this.doc.embedPng(imageBytes);
           } catch (pngError) {
-            console.error('❌ Failed to embed image as JPEG or PNG:', pngError);
-            this.addImagePlaceholder(i + 1, 'Nepodporovaný formát obrázka');
+            console.error('❌ Failed to embed image:', pngError);
+            await this.addImagePlaceholderInGrid(i + 1, 'Nepodporovaný formát obrázka', currentCol, actualMaxWidth, 100);
+            this.moveToNextGridPosition();
             continue;
           }
         }
 
-        // Výpočet rozmerov (max 200x150)
-        const maxWidth = 200;
-        const maxHeight = 150;
+        // 🎯 VÝPOČET ROZMEROV - VÄČŠIE OBRÁZKY
         const { width: originalWidth, height: originalHeight } = pdfImage.scale(1);
         
         let width = originalWidth;
         let height = originalHeight;
         
         // Proporcionálne zmenšenie ak je potrebné
-        if (width > maxWidth || height > maxHeight) {
-          const widthRatio = maxWidth / width;
-          const heightRatio = maxHeight / height;
+        if (width > actualMaxWidth || height > maxImageHeight) {
+          const widthRatio = actualMaxWidth / width;
+          const heightRatio = maxImageHeight / height;
           const ratio = Math.min(widthRatio, heightRatio);
           
           width = width * ratio;
           height = height * ratio;
         }
 
-        // Kontrola či sa zmestí na stránku
-        this.checkPageBreak(height + 50);
+        // Výpočet pozície v gridu
+        const xPos = this.margin + currentCol * (imageAreaWidth + imageSpacing) + (imageAreaWidth - width) / 2;
+        
+        // Kontrola či sa zmestí riadok na stránku
+        const totalRowHeight = height + 45; // obrázok + popis + spacing
+        if (currentCol === 0) { // Začiatok nového riadku
+          this.checkPageBreak(totalRowHeight);
+          rowHeight = totalRowHeight;
+        }
+
+        // 🎨 MODERNÝ OBRÁZOK S TIEŇOM
+        // Tieň obrázka
+        this.currentPage.drawRectangle({
+          x: xPos + 2,
+          y: this.currentY - height - 2,
+          width: width,
+          height: height,
+          color: rgb(0.9, 0.9, 0.9),
+        });
 
         // Vykreslenie obrázka
         this.currentPage.drawImage(pdfImage, {
-          x: this.margin,
+          x: xPos,
           y: this.currentY - height,
           width: width,
           height: height,
         });
 
-        // Pridaj popis obrázka
-        this.currentPage.drawText(`Obrázok ${i + 1}: ${image.description || 'Bez popisu'}`, {
-          x: this.margin,
-          y: this.currentY - height - 15,
-          size: 9,
-          font: this.font,
-          color: this.secondaryColor,
+        // Moderný border okolo obrázka
+        this.currentPage.drawRectangle({
+          x: xPos - 1,
+          y: this.currentY - height - 1,
+          width: width + 2,
+          height: height + 2,
+          borderColor: rgb(0.85, 0.85, 0.85),
+          borderWidth: 1,
         });
 
-        // Pridaj timestamp
+        // 📝 MODERNÝ POPIS OBRÁZKA
+        const descriptionY = this.currentY - height - 18;
+        
+        // Popis obrázka
+        this.currentPage.drawText(`${i + 1}.`, {
+          x: xPos,
+          y: descriptionY,
+          size: 10,
+          font: this.boldFont,
+          color: rgb(0.26, 0.46, 0.95), // Modrá farba čísla
+        });
+        
+        const description = image.description || 'Bez popisu';
+        const maxDescLength = 35;
+        const shortDesc = description.length > maxDescLength ? 
+          description.substring(0, maxDescLength) + '...' : description;
+          
+        this.currentPage.drawText(shortDesc, {
+          x: xPos + 20,
+          y: descriptionY,
+          size: 9,
+          font: this.font,
+          color: rgb(0.2, 0.2, 0.2),
+        });
+
+        // Timestamp
         if (image.timestamp) {
-          const timestamp = new Date(image.timestamp).toLocaleString('sk-SK');
-          this.currentPage.drawText(`Čas: ${timestamp}`, {
-            x: this.margin,
-            y: this.currentY - height - 30,
+          const timestamp = new Date(image.timestamp).toLocaleDateString('sk-SK');
+          this.currentPage.drawText(`📅 ${timestamp}`, {
+            x: xPos,
+            y: descriptionY - 15,
             size: 8,
             font: this.font,
-            color: this.secondaryColor,
+            color: rgb(0.5, 0.5, 0.5),
           });
         }
 
-        this.currentY -= (height + 50);
+        console.log(`✅ Image ${i + 1} added to PDF grid: ${width.toFixed(0)}x${height.toFixed(0)}px at col ${currentCol}`);
 
-        console.log(`✅ Image ${i + 1} added to PDF: ${width}x${height}px`);
+        // Posun na ďalšiu pozíciu v gride
+        currentCol++;
+        if (currentCol >= imagesPerRow) {
+          // Nový riadok
+          this.currentY -= rowHeight;
+          currentCol = 0;
+          rowHeight = 0;
+        }
 
       } catch (error) {
         console.error(`❌ Error processing image ${i + 1}:`, error);
-        this.addImagePlaceholder(i + 1, 'Chyba pri spracovaní obrázka');
+        await this.addImagePlaceholderInGrid(i + 1, 'Chyba pri spracovaní obrázka', currentCol, actualMaxWidth, 100);
+        this.moveToNextGridPosition();
       }
     }
+
+    // Dokončenie posledného riadku ak nie je úplný
+    if (currentCol > 0) {
+      this.currentY -= rowHeight;
+    }
+
+    // Extra spacing po sekcii obrázkov
+    this.currentY -= 20;
+  }
+
+  /**
+   * 🖼️ Helper metóda pre grid placeholder
+   */
+  private async addImagePlaceholderInGrid(imageNumber: number, errorMessage: string, col: number, width: number, height: number): Promise<void> {
+    const imageSpacing = 15;
+    const availableWidth = this.pageWidth - 2 * this.margin;
+    const imageAreaWidth = (availableWidth - imageSpacing) / 2;
+    
+    const xPos = this.margin + col * (imageAreaWidth + imageSpacing) + (imageAreaWidth - width) / 2;
+    
+    // Sivý placeholder box
+    this.currentPage.drawRectangle({
+      x: xPos,
+      y: this.currentY - height,
+      width: width,
+      height: height,
+      color: rgb(0.95, 0.95, 0.95),
+      borderColor: rgb(0.8, 0.8, 0.8),
+      borderWidth: 1,
+    });
+    
+    // Error ikona a text
+    this.currentPage.drawText('📷', {
+      x: xPos + width/2 - 10,
+      y: this.currentY - height/2 + 5,
+      size: 16,
+      font: this.font,
+      color: rgb(0.6, 0.6, 0.6),
+    });
+    
+    this.currentPage.drawText(`Obrázok ${imageNumber}`, {
+      x: xPos + 5,
+      y: this.currentY - height - 15,
+      size: 9,
+      font: this.boldFont,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    
+    this.currentPage.drawText(errorMessage, {
+      x: xPos + 5,
+      y: this.currentY - height - 28,
+      size: 8,
+      font: this.font,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+  }
+
+  /**
+   * Helper pre posun v gride
+   */
+  private moveToNextGridPosition(): void {
+    // Táto metóda sa volá v main loop, posun sa spracuje tam
   }
 
   /**
