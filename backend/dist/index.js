@@ -191,7 +191,7 @@ app.post('/api/debug/test-puppeteer-pdf', async (req, res) => {
             createdBy: 'test-user'
         };
         // Generate PDF
-        const pdfBuffer = await generator.generateHandoverPDF(testProtocol);
+        const pdfBuffer = await generator.generateHandoverProtocol(testProtocol);
         console.log('✅ Puppeteer PDF generated successfully on Railway!');
         console.log(`📊 PDF Size: ${pdfBuffer.length} bytes`);
         res.json({
