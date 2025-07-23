@@ -274,6 +274,11 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       setCalculatedPrice(rentalData.totalPrice);
     }
 
+    // Nastavenie depozitu ak bol parsovaný
+    if (rentalData.deposit) {
+      setDeposit(rentalData.deposit);
+    }
+
     // Nastavenie miesta odovzdania ak bolo parsované
     if (rentalData.handoverPlace) {
       setHandoverPlace(rentalData.handoverPlace);
