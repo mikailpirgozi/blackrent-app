@@ -49,6 +49,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [calculatedCommission, setCalculatedCommission] = useState(0);
   const [extraKmCharge, setExtraKmCharge] = useState<number>(0);
+  const [deposit, setDeposit] = useState<number>(0);
   const [paid, setPaid] = useState(false);
   const [handoverPlace, setHandoverPlace] = useState('');
   const [addingPlace, setAddingPlace] = useState(false);
@@ -94,6 +95,9 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       setCalculatedCommission(rental.commission);
       if (rental.extraKmCharge) {
         setExtraKmCharge(rental.extraKmCharge);
+      }
+      if (rental.deposit) {
+        setDeposit(rental.deposit);
       }
       if (typeof rental.paid === 'boolean') setPaid(rental.paid);
       if (rental.handoverPlace) setHandoverPlace(rental.handoverPlace);
@@ -444,6 +448,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       discount: formData.discount?.value && formData.discount.value > 0 ? formData.discount : undefined,
       customCommission: formData.customCommission?.value && formData.customCommission.value > 0 ? formData.customCommission : undefined,
       extraKmCharge: extraKmCharge > 0 ? extraKmCharge : undefined,
+      deposit: deposit > 0 ? deposit : undefined,
       paid,
       status: rental?.status || 'pending',
       handoverPlace: handoverPlace.trim() || undefined,
@@ -751,6 +756,19 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
             </Box>
           )}
         </FormControl>
+
+        {/* Výška depozitu */}
+        <TextField
+          fullWidth
+          label="Výška depozitu (€)"
+          type="number"
+          value={deposit}
+          onChange={(e) => setDeposit(Number(e.target.value) || 0)}
+          InputProps={{
+            startAdornment: <span style={{ marginRight: 8 }}>€</span>,
+          }}
+          placeholder="0"
+        />
 
         {/* Uhradené */}
         <FormControl fullWidth>
