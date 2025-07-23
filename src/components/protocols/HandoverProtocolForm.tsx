@@ -711,16 +711,20 @@ const HandoverProtocolForm: React.FC<HandoverProtocolFormProps> = ({ open, renta
     const customer = protocol.rentalData?.customerName || rental?.customerName || 'unknown';
     const vehicle = protocol.rentalData?.vehicle?.licensePlate || rental?.vehicle?.licensePlate || 'unknown';
     
+    // 🔧 OPRAVA: Safe filename bez diakritiky pre URL
+    const safeCustomer = customer.replace(/[^a-zA-Z0-9]/g, '_');
+    const safeVehicle = vehicle.replace(/[^a-zA-Z0-9]/g, '_');
+    
     // ✅ LEPŠIE NÁZVY SÚBOROV
     switch (type) {
       case 'pdf':
-        return `handover-protocol-${customer}-${vehicle}-${date}.pdf`;
+        return `handover-protocol-${safeCustomer}-${safeVehicle}-${date}.pdf`;
       case 'image':
         const mediaTypeLabel = mediaType === 'vehicle' ? 'vehicle' : 
                              mediaType === 'document' ? 'document' : 
                              mediaType === 'damage' ? 'damage' : 'image';
         const indexLabel = index !== undefined ? `-${index + 1}` : '';
-        return `${mediaTypeLabel}-${customer}-${vehicle}-${date}${indexLabel}.jpg`;
+        return `${mediaTypeLabel}-${safeCustomer}-${safeVehicle}-${date}${indexLabel}.jpg`;
       default:
         return `file-${Date.now()}.jpg`;
     }
