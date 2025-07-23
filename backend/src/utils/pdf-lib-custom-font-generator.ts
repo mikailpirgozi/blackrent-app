@@ -300,261 +300,110 @@ export class PDFLibCustomFontGenerator {
   }
 
   /**
-   * 🎨 MODERNÁ HLAVIČKA s vlastným fontom
+   * ✏️ JEDNODUCHÁ MINIMALISTICKÁ HLAVIČKA
    */
   private addCustomFontHeader(title: string): void {
-    // 🎨 GRADIENT EFEKT HLAVIČKY
-    
-    // Svetlá báza pre gradient efekt
-    this.currentPage.drawRectangle({
-      x: this.margin,
-      y: this.currentY - 65,
-      width: this.pageWidth - 2 * this.margin,
-      height: 65,
-      color: rgb(0.96, 0.96, 0.98), // Veľmi svetlá sivá
-    });
-    
-    // Hlavný gradient - tmavšia modrá
-    this.currentPage.drawRectangle({
-      x: this.margin,
-      y: this.currentY - 55,
-      width: this.pageWidth - 2 * this.margin,
-      height: 55,
-      color: rgb(0.15, 0.35, 0.75), // Tmavšia elegantná modrá
-    });
-    
-    // Svetlejší gradient overlay
-    this.currentPage.drawRectangle({
-      x: this.margin,
-      y: this.currentY - 45,
-      width: this.pageWidth - 2 * this.margin,
-      height: 35,
-      color: rgb(0.26, 0.46, 0.95), // Moderná modrá primárna
-    });
-
-    // 🏢 LOGO AREA - Left side
-    this.currentPage.drawRectangle({
-      x: this.margin + 10,
-      y: this.currentY - 40,
-      width: 120,
-      height: 25,
-      color: rgb(1, 1, 1), // Biely box pre logo
-      borderColor: rgb(0.9, 0.9, 0.9),
-      borderWidth: 1,
-    });
-    
-    this.currentPage.drawText('🚗 BlackRent', {
-      x: this.margin + 20,
-      y: this.currentY - 32,
-      size: 14,
-      font: this.boldFont,
-      color: rgb(0.15, 0.35, 0.75),
-    });
-    
-    this.currentPage.drawText('Premium Rental', {
-      x: this.margin + 25,
-      y: this.currentY - 47,
-      size: 8,
-      font: this.font,
-      color: rgb(0.5, 0.5, 0.5),
-    });
-
-    // 📄 HLAVNÝ TITULOK - Center
-    const titleWidth = this.font.widthOfTextAtSize(title, 20);
+    // Jednoduchý titulok - centrovaný
+    const titleWidth = this.boldFont.widthOfTextAtSize(title, 18);
     const centerX = this.pageWidth / 2 - titleWidth / 2;
     
-    // Tieň pre titulok
-    this.currentPage.drawText(title, {
-      x: centerX + 1,
-      y: this.currentY - 31,
-      size: 20,
-      font: this.boldFont,
-      color: rgb(0.7, 0.7, 0.7), // Sivý tieň
-    });
-    
-    // Hlavný titulok
     this.currentPage.drawText(title, {
       x: centerX,
-      y: this.currentY - 30,
-      size: 20,
+      y: this.currentY - 25,
+      size: 18,
       font: this.boldFont,
-      color: rgb(1, 1, 1),
+      color: rgb(0, 0, 0),
     });
 
-    // 📅 DÁTUM A ČAS - Right side
+    // BlackRent vľavo
+    this.currentPage.drawText('BlackRent', {
+      x: this.margin,
+      y: this.currentY - 25,
+      size: 12,
+      font: this.font,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+
+    // Dátum vpravo
     const now = new Date();
     const dateStr = now.toLocaleDateString('sk-SK');
-    const timeStr = now.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
     
-    this.currentPage.drawText('📅 ' + dateStr, {
-      x: this.pageWidth - this.margin - 85,
+    this.currentPage.drawText(dateStr, {
+      x: this.pageWidth - this.margin - 60,
       y: this.currentY - 25,
       size: 10,
       font: this.font,
-      color: rgb(1, 1, 1),
-    });
-    
-    this.currentPage.drawText('🕐 ' + timeStr, {
-      x: this.pageWidth - this.margin - 85,
-      y: this.currentY - 40,
-      size: 10,
-      font: this.font,
-      color: rgb(1, 1, 1),
+      color: rgb(0.4, 0.4, 0.4),
     });
 
-    // 📏 DEKORAČNÁ LINKA POD HLAVIČKOU
-    this.currentPage.drawRectangle({
-      x: this.margin,
-      y: this.currentY - 70,
-      width: this.pageWidth - 2 * this.margin,
-      height: 3,
-      color: rgb(0.26, 0.46, 0.95),
-    });
-    
-    this.currentY -= 85;
-  }
-
-  /**
-   * 🎨 MODERNÁ INFORMAČNÁ SEKCIA s vlastným fontom
-   */
-  private addInfoSection(title: string, data: [string, string][]): void {
-    this.checkPageBreak(data.length * 22 + 60);
-    
-    // 🎨 MODERNÝ HEADER SEKCIE
-    // Svetlý gradient pre header
+    // Jednoduchá linka pod hlavičkou
     this.currentPage.drawRectangle({
       x: this.margin,
       y: this.currentY - 35,
       width: this.pageWidth - 2 * this.margin,
-      height: 35,
-      color: rgb(0.98, 0.98, 0.99), // Svetlá báza
+      height: 0.5,
+      color: rgb(0.8, 0.8, 0.8),
     });
     
-    this.currentPage.drawRectangle({
+    this.currentY -= 50;
+  }
+
+  /**
+   * 📋 JEDNODUCHÁ INFORMAČNÁ SEKCIA
+   */
+  private addInfoSection(title: string, data: [string, string][]): void {
+    this.checkPageBreak(data.length * 16 + 30);
+    
+    // Jednoduchý titulok sekcie
+    this.currentPage.drawText(title, {
       x: this.margin,
-      y: this.currentY - 30,
-      width: this.pageWidth - 2 * this.margin,
-      height: 30,
-      color: rgb(0.94, 0.94, 0.96), // Svetlo-sivá moderná
-    });
-    
-    // Farebná linka na ľavej strane
-    this.currentPage.drawRectangle({
-      x: this.margin,
-      y: this.currentY - 30,
-      width: 4,
-      height: 30,
-      color: rgb(0.26, 0.46, 0.95), // Modrá accent
-    });
-    
-    // Titulok sekcie s ikonou
-    const titleIcon = this.getTitleIcon(title);
-    this.currentPage.drawText(`${titleIcon} ${title}`, {
-      x: this.margin + 15,
-      y: this.currentY - 21,
-      size: 13,
+      y: this.currentY - 15,
+      size: 12,
       font: this.boldFont,
-      color: rgb(0.15, 0.15, 0.15),
+      color: rgb(0, 0, 0),
     });
     
-    this.currentY -= 40;
+    this.currentY -= 25;
     
-    // 🎨 MODERNÝ OBSAH SEKCIE
-    const boxHeight = data.length * 22 + 25;
-    
-    // Hlavný box s tieňom
-    this.currentPage.drawRectangle({
-      x: this.margin + 2,
-      y: this.currentY - boxHeight - 2,
-      width: this.pageWidth - 2 * this.margin,
-      height: boxHeight,
-      color: rgb(0.95, 0.95, 0.95), // Tieň
-    });
+    // Jednoduchý box s obsahom
+    const boxHeight = data.length * 16 + 10;
     
     this.currentPage.drawRectangle({
       x: this.margin,
       y: this.currentY - boxHeight,
       width: this.pageWidth - 2 * this.margin,
       height: boxHeight,
-      color: rgb(1, 1, 1), // Biely background
-      borderColor: rgb(0.9, 0.9, 0.9),
-      borderWidth: 1,
+      borderColor: rgb(0.8, 0.8, 0.8),
+      borderWidth: 0.5,
     });
     
-    // Obsah v modernom štýle
+    // Jednoduchý obsah
     data.forEach(([label, value], index) => {
-      const yPos = this.currentY - 20 - (index * 22);
-      const isEven = index % 2 === 0;
+      const yPos = this.currentY - 12 - (index * 16);
       
-      // Striedavé pozadie pre lepšiu čitateľnosť
-      if (isEven) {
-        this.currentPage.drawRectangle({
-          x: this.margin + 1,
-          y: yPos - 15,
-          width: this.pageWidth - 2 * this.margin - 2,
-          height: 20,
-          color: rgb(0.99, 0.99, 0.995), // Jemne odlíšené pozadie
-        });
-      }
-      
-      // Label s bodkou
-      this.currentPage.drawText('•', {
-        x: this.margin + 15,
-        y: yPos,
-        size: 8,
-        font: this.boldFont,
-        color: rgb(0.26, 0.46, 0.95), // Modrá bodka
-      });
-      
-      // Vlastný font v texte - plná diakritika!
+      // Label
       this.currentPage.drawText(String(label || ''), {
-        x: this.margin + 25,
+        x: this.margin + 10,
         y: yPos,
-        size: 10,
+        size: 9,
         font: this.boldFont,
-        color: rgb(0.1, 0.1, 0.1),
+        color: rgb(0, 0, 0),
       });
       
-      // Hodnota s lepším kontrastom
-      const valueText = String(value || '');
-      const isImportant = valueText.includes('EUR') || valueText.includes('km') || valueText.includes('%');
-      
-      this.currentPage.drawText(valueText, {
-        x: this.margin + 220,
+      // Hodnota
+      this.currentPage.drawText(String(value || ''), {
+        x: this.margin + 180,
         y: yPos,
-        size: 10,
-        font: isImportant ? this.boldFont : this.font,
-        color: isImportant ? rgb(0.15, 0.35, 0.75) : rgb(0.3, 0.3, 0.3),
+        size: 9,
+        font: this.font,
+        color: rgb(0.2, 0.2, 0.2),
       });
-      
-      // Dekoračná tenkučká linka pod každým riadkom
-      if (index < data.length - 1) {
-        this.currentPage.drawRectangle({
-          x: this.margin + 20,
-          y: yPos - 12,
-          width: this.pageWidth - 2 * this.margin - 40,
-          height: 0.5,
-          color: rgb(0.95, 0.95, 0.95),
-        });
-      }
     });
     
-    this.currentY -= boxHeight + 25;
+    this.currentY -= boxHeight + 15;
   }
 
-  /**
-   * Helper pre ikony titulov
-   */
-  private getTitleIcon(title: string): string {
-    if (title.includes('Základné') || title.includes('informácie')) return '📋';
-    if (title.includes('prenájme') || title.includes('Prenájom')) return '🏢';
-    if (title.includes('vozidle') || title.includes('Vozidlo')) return '🚗';
-    if (title.includes('stav') || title.includes('Stav')) return '⚙️';
-    if (title.includes('poškoden') || title.includes('Poškoden')) return '⚠️';
-    if (title.includes('podpis') || title.includes('Podpis')) return '✍️';
-    if (title.includes('poznámk') || title.includes('Poznámk')) return '📝';
-    return '📄';
-  }
+
 
   /**
    * Sekcia pre poškodenia s vlastným fontom
@@ -773,92 +622,47 @@ export class PDFLibCustomFontGenerator {
    */
   private async addImagesSection(title: string, images: any[]): Promise<void> {
     if (!images || images.length === 0) {
-      // Modernizovaná sekcia pre prázdne obrázky
-      this.checkPageBreak(60);
-      
-      // Gradient-like header s modernou farbou
-      this.currentPage.drawRectangle({
-        x: this.margin,
-        y: this.currentY - 30,
-        width: this.pageWidth - 2 * this.margin,
-        height: 30,
-        color: rgb(0.95, 0.95, 0.97), // Svetlo-sivá moderná
-      });
-      
-      this.currentPage.drawRectangle({
-        x: this.margin,
-        y: this.currentY - 25,
-        width: this.pageWidth - 2 * this.margin,
-        height: 25,
-        color: rgb(0.26, 0.46, 0.95), // Moderná modrá
-      });
-      
+      // Jednoduchá sekcia pre prázdne obrázky
       this.currentPage.drawText(title, {
-        x: this.margin + 15,
-        y: this.currentY - 18,
-        size: 13,
+        x: this.margin,
+        y: this.currentY - 15,
+        size: 12,
         font: this.boldFont,
-        color: rgb(1, 1, 1),
+        color: rgb(0, 0, 0),
       });
       
-      this.currentPage.drawText('Žiadne obrázky nie sú k dispozícii', {
-        x: this.margin + 15,
-        y: this.currentY - 50,
-        size: 10,
+      this.currentPage.drawText('Žiadne obrázky', {
+        x: this.margin + 10,
+        y: this.currentY - 30,
+        size: 9,
         font: this.font,
         color: rgb(0.5, 0.5, 0.5),
       });
       
-      this.currentY -= 80;
+      this.currentY -= 40;
       return;
     }
 
     console.log(`🖼️ Adding ${images.length} images for section: ${title}`);
     
-    // 🎨 MODERNÝ HEADER SEKCIE
-    this.checkPageBreak(50);
-    
-    // Gradient-style header
-    this.currentPage.drawRectangle({
-      x: this.margin,
-      y: this.currentY - 35,
-      width: this.pageWidth - 2 * this.margin,
-      height: 35,
-      color: rgb(0.95, 0.95, 0.97), // Svetlá báza 
-    });
-    
-    this.currentPage.drawRectangle({
-      x: this.margin,
-      y: this.currentY - 30,
-      width: this.pageWidth - 2 * this.margin,
-      height: 30,
-      color: rgb(0.26, 0.46, 0.95), // Moderná modrá primárna
-    });
+    // Jednoduchý header sekcie
+    this.checkPageBreak(30);
     
     this.currentPage.drawText(title, {
-      x: this.margin + 15,
-      y: this.currentY - 21,
-      size: 14,
+      x: this.margin,
+      y: this.currentY - 15,
+      size: 12,
       font: this.boldFont,
-      color: rgb(1, 1, 1),
+      color: rgb(0, 0, 0),
     });
     
-    // Počet obrázkov
-    this.currentPage.drawText(`${images.length} ${images.length === 1 ? 'obrázok' : images.length <= 4 ? 'obrázky' : 'obrázkov'}`, {
-      x: this.pageWidth - this.margin - 80,
-      y: this.currentY - 21,
-      size: 11,
-      font: this.font,
-      color: rgb(1, 1, 1),
-    });
-    
-    this.currentY -= 50;
+    this.currentY -= 25;
 
-    // 🖼️ USPORIADANIE OBRÁZKOV 2 V RADE
-    const imagesPerRow = 2;
-    const imageSpacing = 15; // Menší spacing medzi obrázkami
-    const maxImageWidth = 260; // Väčšie obrázky!
-    const maxImageHeight = 190; // Väčšie obrázky!
+    // 🖼️ USPORIADANIE OBRÁZKOV 4 V RADE - KOMPAKTNE
+    const imagesPerRow = 4;
+    const imageSpacing = 8; // Veľmi malý spacing - blízko seba
+    const maxImageWidth = 120; // Menšie obrázky pre 4 v rade
+    const maxImageHeight = 90; // Menšie obrázky pre úsporu miesta
     
     const availableWidth = this.pageWidth - 2 * this.margin;
     const imageAreaWidth = (availableWidth - imageSpacing) / imagesPerRow;
@@ -917,23 +721,13 @@ export class PDFLibCustomFontGenerator {
         const xPos = this.margin + currentCol * (imageAreaWidth + imageSpacing) + (imageAreaWidth - width) / 2;
         
         // Kontrola či sa zmestí riadok na stránku
-        const totalRowHeight = height + 45; // obrázok + popis + spacing
+        const totalRowHeight = height + 20; // obrázok + malý popis + spacing
         if (currentCol === 0) { // Začiatok nového riadku
           this.checkPageBreak(totalRowHeight);
           rowHeight = totalRowHeight;
         }
 
-        // 🎨 MODERNÝ OBRÁZOK S TIEŇOM
-        // Tieň obrázka
-        this.currentPage.drawRectangle({
-          x: xPos + 2,
-          y: this.currentY - height - 2,
-          width: width,
-          height: height,
-          color: rgb(0.9, 0.9, 0.9),
-        });
-
-        // Vykreslenie obrázka
+        // Jednoduché vykreslenie obrázka
         this.currentPage.drawImage(pdfImage, {
           x: xPos,
           y: this.currentY - height,
@@ -941,52 +735,25 @@ export class PDFLibCustomFontGenerator {
           height: height,
         });
 
-        // Moderný border okolo obrázka
+        // Jednoduchý border
         this.currentPage.drawRectangle({
-          x: xPos - 1,
-          y: this.currentY - height - 1,
-          width: width + 2,
-          height: height + 2,
-          borderColor: rgb(0.85, 0.85, 0.85),
-          borderWidth: 1,
-        });
-
-        // 📝 MODERNÝ POPIS OBRÁZKA
-        const descriptionY = this.currentY - height - 18;
-        
-        // Popis obrázka
-        this.currentPage.drawText(`${i + 1}.`, {
           x: xPos,
-          y: descriptionY,
-          size: 10,
-          font: this.boldFont,
-          color: rgb(0.26, 0.46, 0.95), // Modrá farba čísla
-        });
-        
-        const description = image.description || 'Bez popisu';
-        const maxDescLength = 35;
-        const shortDesc = description.length > maxDescLength ? 
-          description.substring(0, maxDescLength) + '...' : description;
-          
-        this.currentPage.drawText(shortDesc, {
-          x: xPos + 20,
-          y: descriptionY,
-          size: 9,
-          font: this.font,
-          color: rgb(0.2, 0.2, 0.2),
+          y: this.currentY - height,
+          width: width,
+          height: height,
+          borderColor: rgb(0.7, 0.7, 0.7),
+          borderWidth: 0.5,
         });
 
-        // Timestamp
-        if (image.timestamp) {
-          const timestamp = new Date(image.timestamp).toLocaleDateString('sk-SK');
-          this.currentPage.drawText(`📅 ${timestamp}`, {
-            x: xPos,
-            y: descriptionY - 15,
-            size: 8,
-            font: this.font,
-            color: rgb(0.5, 0.5, 0.5),
-          });
-        }
+        // Jednoduchý popis
+        const descriptionY = this.currentY - height - 12;
+        this.currentPage.drawText(`${i + 1}`, {
+          x: xPos + 2,
+          y: descriptionY,
+          size: 8,
+          font: this.font,
+          color: rgb(0.4, 0.4, 0.4),
+        });
 
         console.log(`✅ Image ${i + 1} added to PDF grid: ${width.toFixed(0)}x${height.toFixed(0)}px at col ${currentCol}`);
 
@@ -1011,54 +778,37 @@ export class PDFLibCustomFontGenerator {
       this.currentY -= rowHeight;
     }
 
-    // Extra spacing po sekcii obrázkov
-    this.currentY -= 20;
+    // Malý spacing po sekcii obrázkov
+    this.currentY -= 10;
   }
 
   /**
-   * 🖼️ Helper metóda pre grid placeholder
+   * 🖼️ Helper pre jednoduchý grid placeholder
    */
   private async addImagePlaceholderInGrid(imageNumber: number, errorMessage: string, col: number, width: number, height: number): Promise<void> {
-    const imageSpacing = 15;
+    const imageSpacing = 8;
     const availableWidth = this.pageWidth - 2 * this.margin;
-    const imageAreaWidth = (availableWidth - imageSpacing) / 2;
+    const imageAreaWidth = (availableWidth - imageSpacing) / 4;
     
     const xPos = this.margin + col * (imageAreaWidth + imageSpacing) + (imageAreaWidth - width) / 2;
     
-    // Sivý placeholder box
+    // Jednoduchý placeholder box
     this.currentPage.drawRectangle({
       x: xPos,
       y: this.currentY - height,
       width: width,
       height: height,
       color: rgb(0.95, 0.95, 0.95),
-      borderColor: rgb(0.8, 0.8, 0.8),
-      borderWidth: 1,
+      borderColor: rgb(0.7, 0.7, 0.7),
+      borderWidth: 0.5,
     });
     
-    // Error ikona a text
-    this.currentPage.drawText('📷', {
-      x: xPos + width/2 - 10,
-      y: this.currentY - height/2 + 5,
-      size: 16,
-      font: this.font,
-      color: rgb(0.6, 0.6, 0.6),
-    });
-    
-    this.currentPage.drawText(`Obrázok ${imageNumber}`, {
-      x: xPos + 5,
-      y: this.currentY - height - 15,
-      size: 9,
-      font: this.boldFont,
-      color: rgb(0.4, 0.4, 0.4),
-    });
-    
-    this.currentPage.drawText(errorMessage, {
-      x: xPos + 5,
-      y: this.currentY - height - 28,
+    this.currentPage.drawText(`${imageNumber}`, {
+      x: xPos + 2,
+      y: this.currentY - height - 12,
       size: 8,
       font: this.font,
-      color: rgb(0.5, 0.5, 0.5),
+      color: rgb(0.4, 0.4, 0.4),
     });
   }
 
