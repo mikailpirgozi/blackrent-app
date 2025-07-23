@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -9,22 +42,28 @@ const enhanced_pdf_generator_backend_1 = require("./enhanced-pdf-generator-backe
 const puppeteer_pdf_generator_v2_1 = require("./puppeteer-pdf-generator-v2");
 // 🔄 PREPÍNAČ PDF GENERÁTORA:
 // 'legacy' = starý pdfkit generator
-// 'jspdf' = enhanced jsPDF generator (ODPORÚČANÝ)
+// 'jspdf' = enhanced jsPDF generator 
 // 'puppeteer' = nový Puppeteer generator (najlepší) - PRIPRAVENÝ!
-// Environment variable alebo fallback na Enhanced jsPDF
-const PDF_GENERATOR_TYPE = process.env.PDF_GENERATOR_TYPE || 'jspdf';
+// 🎯 Puppeteer ako default, s fallback na Enhanced jsPDF
+const PDF_GENERATOR_TYPE = process.env.PDF_GENERATOR_TYPE || 'puppeteer';
 console.log(`🎯 PDF Generator inicializovaný: ${PDF_GENERATOR_TYPE.toUpperCase()}`);
-// Puppeteer generátor - runtime require (obchází TypeScript check)
+// Puppeteer generátor - runtime require s fallback
 const getPuppeteerGenerator = async () => {
     try {
-        // Runtime require pre obídenie TypeScript chyby
-        const puppeteerModule = require('./puppeteer-pdf-generator');
-        console.log('✅ Puppeteer generátor úspešne načítaný');
-        return puppeteerModule;
+        // Skúsim načítať Puppeteer V2 generátor
+        const { PuppeteerPDFGeneratorV2 } = await Promise.resolve().then(() => __importStar(require('./puppeteer-pdf-generator-v2')));
+        console.log('✅ Puppeteer V2 generátor úspešne načítaný');
+        return new PuppeteerPDFGeneratorV2();
     }
     catch (error) {
         console.error('❌ Chyba pri načítaní Puppeteer generátora:', error);
-        throw new Error('Puppeteer generátor nie je dostupný. Použite PDF_GENERATOR_TYPE=legacy alebo jspdf');
+        console.log('🔄 Fallback na Enhanced jsPDF generátor');
+        // Fallback na Enhanced jsPDF ak Puppeteer zlyhá
+        const enhancedGenerator = new enhanced_pdf_generator_backend_1.EnhancedPDFGeneratorBackend();
+        return {
+            generateHandoverProtocol: enhancedGenerator.generateHandoverProtocol.bind(enhancedGenerator),
+            generateReturnProtocol: enhancedGenerator.generateReturnProtocol.bind(enhancedGenerator)
+        };
     }
 };
 class ProtocolPDFGenerator {

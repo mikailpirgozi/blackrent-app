@@ -11,7 +11,7 @@ dotenv_1.default.config();
 // Sentry backend error tracking
 const sentry_1 = require("./utils/sentry");
 const app = (0, express_1.default)();
-const port = process.env.PORT || 5001;
+const port = Number(process.env.PORT) || 3001;
 // Sentry setup - vylepšená verzia
 const sentry = (0, sentry_1.initSentry)(app);
 if (sentry) {
@@ -118,7 +118,7 @@ app.use((err, req, res, next) => {
     });
 });
 // Start server
-app.listen(port, () => {
+app.listen(Number(port), '0.0.0.0', () => {
     console.log(`🚀 BlackRent server beží na porte ${port}`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🗄️  Database: PostgreSQL`);
