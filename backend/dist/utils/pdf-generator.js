@@ -6,8 +6,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateReturnPDF = exports.generateHandoverPDF = exports.ProtocolPDFGenerator = void 0;
 const pdfkit_1 = __importDefault(require("pdfkit"));
 const enhanced_pdf_generator_backend_1 = require("./enhanced-pdf-generator-backend");
-// 🔄 PREPÍNAČ: true = nový enhanced generator, false = starý pdfkit generator
-const USE_ENHANCED_PDF = process.env.USE_ENHANCED_PDF === 'true' || false;
+// 🔄 PREPÍNAČ PDF GENERÁTORA:
+// 'legacy' = starý pdfkit generator
+// 'jspdf' = enhanced jsPDF generator  
+// 'puppeteer' = nový Puppeteer generator (najlepší) - PRIPRAVUJEM
+const PDF_GENERATOR_TYPE = process.env.PDF_GENERATOR_TYPE || 'legacy';
+// Lazy import pre Puppeteer (aby sa nenačítal ak sa nepoužíva)
+// DOČASNE DEAKTIVOVANÉ - bude aktivované po testovaní
+const getPuppeteerGenerator = async () => {
+    throw new Error('Puppeteer generátor nie je ešte aktivovaný. Použite PDF_GENERATOR_TYPE=legacy alebo jspdf');
+};
 class ProtocolPDFGenerator {
     constructor() {
         this.doc = new pdfkit_1.default({
@@ -373,32 +381,44 @@ class ProtocolPDFGenerator {
 exports.ProtocolPDFGenerator = ProtocolPDFGenerator;
 // Export funkcie pre jednoduché použitie s prepínačom
 const generateHandoverPDF = async (protocol) => {
-    console.log(`🔄 PDF Generator: Používam ${USE_ENHANCED_PDF ? 'ENHANCED (jsPDF)' : 'LEGACY (pdfkit)'}`);
-    if (USE_ENHANCED_PDF) {
-        // Nový enhanced generator
-        const enhancedGenerator = new enhanced_pdf_generator_backend_1.EnhancedPDFGeneratorBackend();
-        return await enhancedGenerator.generateHandoverProtocol(protocol);
-    }
-    else {
-        // Starý pdfkit generator
-        const generator = new ProtocolPDFGenerator();
-        await generator.generateHandoverProtocol(protocol);
-        return generator.getBuffer();
+    const generatorType = PDF_GENERATOR_TYPE;
+    console.log(`🔄 PDF Generator: Používam ${generatorType.toUpperCase()}`);
+    switch (generatorType) {
+        case 'puppeteer':
+            // Nový Puppeteer generator (najlepší) - PRIPRAVUJEM
+            const puppeteer = await getPuppeteerGenerator();
+            return await puppeteer.generateHandoverPDFWithPuppeteer(protocol);
+        case 'jspdf':
+            // Enhanced jsPDF generator
+            const enhancedGenerator = new enhanced_pdf_generator_backend_1.EnhancedPDFGeneratorBackend();
+            return await enhancedGenerator.generateHandoverProtocol(protocol);
+        case 'legacy':
+        default:
+            // Starý pdfkit generator
+            const generator = new ProtocolPDFGenerator();
+            await generator.generateHandoverProtocol(protocol);
+            return generator.getBuffer();
     }
 };
 exports.generateHandoverPDF = generateHandoverPDF;
 const generateReturnPDF = async (protocol) => {
-    console.log(`🔄 PDF Generator: Používam ${USE_ENHANCED_PDF ? 'ENHANCED (jsPDF)' : 'LEGACY (pdfkit)'}`);
-    if (USE_ENHANCED_PDF) {
-        // Nový enhanced generator
-        const enhancedGenerator = new enhanced_pdf_generator_backend_1.EnhancedPDFGeneratorBackend();
-        return await enhancedGenerator.generateReturnProtocol(protocol);
-    }
-    else {
-        // Starý pdfkit generator
-        const generator = new ProtocolPDFGenerator();
-        await generator.generateReturnProtocol(protocol);
-        return generator.getBuffer();
+    const generatorType = PDF_GENERATOR_TYPE;
+    console.log(`🔄 PDF Generator: Používam ${generatorType.toUpperCase()}`);
+    switch (generatorType) {
+        case 'puppeteer':
+            // Nový Puppeteer generator (najlepší) - PRIPRAVUJEM
+            const puppeteer = await getPuppeteerGenerator();
+            return await puppeteer.generateReturnPDFWithPuppeteer(protocol);
+        case 'jspdf':
+            // Enhanced jsPDF generator
+            const enhancedGenerator = new enhanced_pdf_generator_backend_1.EnhancedPDFGeneratorBackend();
+            return await enhancedGenerator.generateReturnProtocol(protocol);
+        case 'legacy':
+        default:
+            // Starý pdfkit generator
+            const generator = new ProtocolPDFGenerator();
+            await generator.generateReturnProtocol(protocol);
+            return generator.getBuffer();
     }
 };
 exports.generateReturnPDF = generateReturnPDF;
