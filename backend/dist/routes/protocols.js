@@ -8,6 +8,7 @@ const multer_1 = __importDefault(require("multer"));
 const postgres_database_1 = require("../models/postgres-database");
 const pdf_generator_1 = require("../utils/pdf-generator");
 const auth_1 = require("../middleware/auth");
+const r2_storage_1 = require("../utils/r2-storage");
 const router = express_1.default.Router();
 // UUID validation function
 const isValidUUID = (uuid) => {
@@ -152,11 +153,33 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
             console.error('❌ Invalid rental ID format:', protocolData.rentalId);
             return res.status(400).json({ error: 'Invalid rental ID format. Must be valid UUID.' });
         }
+        // 1. Uloženie protokolu do databázy
         const protocol = await postgres_database_1.postgresDatabase.createHandoverProtocol(protocolData);
+        console.log('✅ Handover protocol created in DB:', protocol.id);
+        // 2. 🎭 PUPPETEER: Generovanie PDF súčasne s uložením
+        let pdfUrl = null;
+        try {
+            console.log('🎭 Generating PDF via Puppeteer for protocol:', protocol.id);
+            const pdfBuffer = await (0, pdf_generator_1.generateHandoverPDF)(protocolData);
+            // 3. Uloženie PDF do R2 storage
+            const filename = `protocols/handover/${protocol.id}_${Date.now()}.pdf`;
+            pdfUrl = await r2_storage_1.r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
+            console.log('✅ PDF generated and uploaded to R2:', pdfUrl);
+            // 4. Aktualizácia protokolu s PDF URL
+            await postgres_database_1.postgresDatabase.updateHandoverProtocol(protocol.id, { pdfUrl });
+        }
+        catch (pdfError) {
+            console.error('❌ Error generating PDF, but protocol saved:', pdfError);
+            // Protokol je uložený, ale PDF sa nepodarilo vytvoriť
+            // Nevracáme error, len upozornenie
+        }
         console.log('✅ Handover protocol created successfully:', protocol.id);
         res.status(201).json({
             message: 'Handover protocol created successfully',
-            protocol
+            protocol: {
+                ...protocol,
+                pdfUrl // 🎯 Toto očakáva frontend!
+            }
         });
     }
     catch (error) {
