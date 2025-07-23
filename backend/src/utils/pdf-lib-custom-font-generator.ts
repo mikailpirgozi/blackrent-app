@@ -26,7 +26,7 @@ export class PDFLibCustomFontGenerator {
   private customBoldFontPath: string;
   private fontName: string;
 
-  constructor(fontName: string = 'aeonik') {
+  constructor(fontName: string = 'sf-pro') {
     this.fontName = fontName;
     // Podpora pre rôzne formáty fontov (TTF, WOFF, WOFF2)
     this.customFontPath = this.findFontFile(fontName, 'regular');
@@ -46,7 +46,19 @@ export class PDFLibCustomFontGenerator {
       weight === 'regular' ? fontName : `${fontName}-${weight}`
     ];
     
-    // Špecifické mapovanie pre Aeonik font
+    // Špecifické mapovanie pre SF-Pro font
+    if (fontName.toLowerCase().includes('sf-pro') || fontName.toLowerCase().includes('sfpro')) {
+      const sfProDir = path.join(fontDir, 'SF-Pro-Expanded-Font-main');
+      const sfProFile = path.join(sfProDir, 'SF-Pro.ttf');
+      
+      // SF-Pro.ttf obsahuje všetky váhy, použijeme ho pre regular aj bold
+      if (fs.existsSync(sfProFile)) {
+        console.log(`🔍 SF-Pro font nájdený: ${sfProFile}`);
+        return sfProFile;
+      }
+    }
+    
+    // Špecifické mapovanie pre Aeonik font (legacy podpora)
     if (fontName.toLowerCase().includes('aeonik')) {
       const aeonikDir = path.join(fontDir, 'Aeonik Essentials Website');
       if (weight === 'regular') {

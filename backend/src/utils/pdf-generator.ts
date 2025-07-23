@@ -18,7 +18,7 @@ const PDF_GENERATOR_TYPE: 'custom-font' | 'pdf-lib' | 'puppeteer' | 'enhanced' =
 console.log(`🎯 PDF Generator inicializovaný: ${PDF_GENERATOR_TYPE.toUpperCase()}`);
 
 // Custom font PDF-lib generátor (najlepší pre vlastný font)
-const getCustomFontGenerator = (fontName: string = 'vas-font') => {
+const getCustomFontGenerator = (fontName: string = 'sf-pro') => {
   try {
     console.log(`✅ Custom Font PDF generátor načítaný (${fontName})`);
     return new PDFLibCustomFontGenerator(fontName);
@@ -78,7 +78,7 @@ export const generateHandoverPDF = async (protocolData: HandoverProtocol): Promi
     if (PDF_GENERATOR_TYPE === 'custom-font') {
       // 🎨 CUSTOM FONT - najlepšie pre vlastný font s plnou diakritiku
       try {
-        const fontName = process.env.CUSTOM_FONT_NAME || 'aeonik';
+        const fontName = process.env.CUSTOM_FONT_NAME || 'sf-pro';
         const generator = getCustomFontGenerator(fontName);
         const pdfBuffer = await generator.generateHandoverProtocol(protocolData);
         console.log(`✅ Custom Font PDF vygenerované (${fontName}), veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
@@ -157,7 +157,7 @@ export const generateReturnPDF = async (protocolData: ReturnProtocol): Promise<B
     if (PDF_GENERATOR_TYPE === 'custom-font') {
       // 🎨 CUSTOM FONT - najlepšie pre vlastný font s plnou diakritiku
       try {
-        const fontName = process.env.CUSTOM_FONT_NAME || 'aeonik';
+        const fontName = process.env.CUSTOM_FONT_NAME || 'sf-pro';
         const generator = getCustomFontGenerator(fontName);
         const pdfBuffer = await generator.generateReturnProtocol(protocolData);
         console.log(`✅ Custom Font return PDF vygenerované (${fontName}), veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
