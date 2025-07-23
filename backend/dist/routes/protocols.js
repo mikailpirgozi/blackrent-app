@@ -361,10 +361,17 @@ router.post('/upload-pdf', upload.single('pdf'), async (req, res) => {
 router.get('/handover/:id/pdf', async (req, res) => {
     try {
         const { id } = req.params;
+        const { generator } = req.query; // Query parameter pre výber generátora
         console.log('📄 Generating PDF for handover protocol:', id);
+        console.log('🎭 Generator type from query:', generator);
         const protocol = await postgres_database_1.postgresDatabase.getHandoverProtocolById(id);
         if (!protocol) {
             return res.status(404).json({ error: 'Handover protocol not found' });
+        }
+        // Dočasne nastavenie PDF_GENERATOR_TYPE pre tento request
+        if (generator && ['puppeteer', 'jspdf', 'legacy'].includes(generator)) {
+            console.log(`🔄 Switching to ${generator} generator for this request`);
+            process.env.PDF_GENERATOR_TYPE = generator;
         }
         // Generovanie PDF
         const pdfBuffer = await (0, pdf_generator_1.generateHandoverPDF)(protocol);
@@ -705,6 +712,33 @@ router.post('/:protocolId/save-uploaded-photo', async (req, res) => {
             error: 'Chyba pri ukladaní metadát',
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
+    }
+});
+// 🎭 TESTOVACÍ ENDPOINT: Generate PDF with test data
+router.post('/handover/generate-pdf', async (req, res) => {
+    try {
+        const { generator } = req.query; // Query parameter pre výber generátora
+        const testData = req.body; // Test data z request body
+        console.log('🎭 Test PDF generation with data:', JSON.stringify(testData, null, 2));
+        console.log('🎭 Generator type from query:', generator);
+        // Dočasne nastavenie PDF_GENERATOR_TYPE pre tento request
+        if (generator && ['puppeteer', 'jspdf', 'legacy'].includes(generator)) {
+            console.log(`🔄 Switching to ${generator} generator for this request`);
+            process.env.PDF_GENERATOR_TYPE = generator;
+        }
+        // Generovanie PDF s test dátami
+        const pdfBuffer = await (0, pdf_generator_1.generateHandoverPDF)(testData);
+        // Nastavenie headers pre PDF
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="test_handover_protocol_${Date.now()}.pdf"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        // Odoslanie PDF
+        res.send(pdfBuffer);
+        console.log('✅ Test PDF generated and sent');
+    }
+    catch (error) {
+        console.error('❌ Error generating test PDF:', error);
+        res.status(500).json({ error: 'Failed to generate test PDF', details: error instanceof Error ? error.message : 'Unknown error' });
     }
 });
 exports.default = router;
