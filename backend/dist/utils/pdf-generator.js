@@ -2,16 +2,28 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateReturnPDF = exports.generateHandoverPDF = void 0;
 const enhanced_pdf_generator_backend_1 = require("./enhanced-pdf-generator-backend");
+const puppeteer_pdf_generator_v2_1 = require("./puppeteer-pdf-generator-v2");
 // 🔄 PREPÍNAČ PDF GENERÁTORA:
-// 'legacy' = starý pdfkit generator
-// 'enhanced' = enhanced jsPDF generator (najlepší dostupný)
-// 🎯 Enhanced ako default (269KB+ kvalitné PDFs)
-const PDF_GENERATOR_TYPE = process.env.PDF_GENERATOR_TYPE || 'enhanced';
+// 'puppeteer' = Puppeteer Chrome PDF generátor (najlepší)
+// 'enhanced' = enhanced jsPDF generator (fallback)
+// 🎯 Puppeteer ako default - najlepšia kvalita
+const PDF_GENERATOR_TYPE = process.env.PDF_GENERATOR_TYPE || 'puppeteer';
 console.log(`🎯 PDF Generator inicializovaný: ${PDF_GENERATOR_TYPE.toUpperCase()}`);
-// Enhanced PDF generátor
+// Puppeteer PDF generátor
+const getPuppeteerGenerator = () => {
+    try {
+        console.log('✅ Puppeteer PDF generátor načítaný');
+        return new puppeteer_pdf_generator_v2_1.PuppeteerPDFGeneratorV2();
+    }
+    catch (error) {
+        console.error('❌ Chyba pri načítaní Puppeteer generátora:', error);
+        throw error;
+    }
+};
+// Enhanced PDF generátor (fallback)
 const getEnhancedGenerator = () => {
     try {
-        console.log('✅ Enhanced PDF generátor načítaný');
+        console.log('✅ Enhanced PDF generátor načítaný (fallback)');
         return new enhanced_pdf_generator_backend_1.EnhancedPDFGeneratorBackend();
     }
     catch (error) {
@@ -32,17 +44,28 @@ const generateHandoverPDF = async (protocolData) => {
         damages: protocolData.damages?.length || 0
     });
     try {
-        if (PDF_GENERATOR_TYPE === 'enhanced') {
+        if (PDF_GENERATOR_TYPE === 'puppeteer') {
+            // 🎭 PUPPETEER - najlepšia kvalita
+            try {
+                const generator = getPuppeteerGenerator();
+                const pdfBuffer = await generator.generateHandoverProtocol(protocolData);
+                console.log(`✅ Puppeteer PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
+                return pdfBuffer;
+            }
+            catch (puppeteerError) {
+                console.error('❌ Puppeteer zlyhal, fallback na Enhanced:', puppeteerError);
+                // Fallback na Enhanced
+                const enhancedGenerator = getEnhancedGenerator();
+                const pdfBuffer = await enhancedGenerator.generateHandoverProtocol(protocolData);
+                console.log(`✅ Fallback Enhanced PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
+                return pdfBuffer;
+            }
+        }
+        else {
+            // Enhanced generátor
             const generator = getEnhancedGenerator();
             const pdfBuffer = await generator.generateHandoverProtocol(protocolData);
             console.log(`✅ Enhanced PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
-            return pdfBuffer;
-        }
-        else {
-            // Legacy fallback - použije Enhanced ako fallback
-            const generator = getEnhancedGenerator();
-            const pdfBuffer = await generator.generateHandoverProtocol(protocolData);
-            console.log(`✅ Fallback Enhanced PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
             return pdfBuffer;
         }
     }
@@ -63,17 +86,28 @@ const generateReturnPDF = async (protocolData) => {
         finalRefund: protocolData.finalRefund
     });
     try {
-        if (PDF_GENERATOR_TYPE === 'enhanced') {
+        if (PDF_GENERATOR_TYPE === 'puppeteer') {
+            // 🎭 PUPPETEER - najlepšia kvalita
+            try {
+                const generator = getPuppeteerGenerator();
+                const pdfBuffer = await generator.generateReturnProtocol(protocolData);
+                console.log(`✅ Puppeteer return PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
+                return pdfBuffer;
+            }
+            catch (puppeteerError) {
+                console.error('❌ Puppeteer zlyhal, fallback na Enhanced:', puppeteerError);
+                // Fallback na Enhanced
+                const enhancedGenerator = getEnhancedGenerator();
+                const pdfBuffer = await enhancedGenerator.generateReturnProtocol(protocolData);
+                console.log(`✅ Fallback Enhanced return PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
+                return pdfBuffer;
+            }
+        }
+        else {
+            // Enhanced generátor
             const generator = getEnhancedGenerator();
             const pdfBuffer = await generator.generateReturnProtocol(protocolData);
             console.log(`✅ Enhanced return PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
-            return pdfBuffer;
-        }
-        else {
-            // Legacy fallback - použije Enhanced ako fallback
-            const generator = getEnhancedGenerator();
-            const pdfBuffer = await generator.generateReturnProtocol(protocolData);
-            console.log(`✅ Fallback Enhanced return PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
             return pdfBuffer;
         }
     }

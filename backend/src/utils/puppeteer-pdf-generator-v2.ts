@@ -1,206 +1,232 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.PuppeteerPDFGeneratorV2 = void 0;
-const puppeteer_1 = __importDefault(require("puppeteer"));
-class PuppeteerPDFGeneratorV2 {
-    constructor() {
-        this.browser = null;
-        console.log('🎭 PuppeteerPDFGeneratorV2 initialized');
+import puppeteer, { Browser, Page } from 'puppeteer';
+import { HandoverProtocol, ReturnProtocol } from '../types';
+
+export class PuppeteerPDFGeneratorV2 {
+  private browser: Browser | null = null;
+
+  constructor() {
+    console.log('🎭 PuppeteerPDFGeneratorV2 initialized');
+  }
+
+  private async getBrowser(): Promise<Browser> {
+    if (!this.browser) {
+      console.log('🚀 Launching Puppeteer browser...');
+      
+      const isProduction = process.env.NODE_ENV === 'production';
+      const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
+      
+      // 🎯 RAILWAY-OPTIMIZED LAUNCH OPTIONS
+      const launchOptions = {
+        executablePath: isProduction ? executablePath : undefined,
+        headless: true,
+        args: [
+          // Basic security and sandbox
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-software-rasterizer',
+          
+          // Memory and performance
+          '--memory-pressure-off',
+          '--max_old_space_size=4096',
+          '--single-process',
+          '--no-zygote',
+          
+          // File system restrictions - FIX pre Railway
+          '--homedir=/tmp',
+          '--user-data-dir=/tmp/chrome-user-data',
+          '--data-path=/tmp/chrome-data',
+          '--disk-cache-dir=/tmp/chrome-cache',
+          '--crash-dumps-dir=/tmp/chrome-crashes',
+          '--temp-dir=/tmp',
+          
+          // Disable problematic features
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-default-apps',
+          '--disable-background-networking',
+          '--disable-sync',
+          '--disable-translate',
+          '--disable-ipc-flooding-protection',
+          
+          // Security restrictions for Railway
+          '--disable-web-security',
+          '--disable-features=TranslateUI',
+          '--disable-component-extensions-with-background-pages',
+          '--disable-blink-features=AutomationControlled',
+          
+          // Prevent file access issues
+          '--no-first-run',
+          '--no-default-browser-check',
+          '--disable-default-apps',
+          '--disable-popup-blocking',
+          '--disable-prompt-on-repost',
+          '--disable-hang-monitor',
+          '--disable-client-side-phishing-detection',
+          
+          // Railway container specific
+          '--virtual-time-budget=25000',
+          '--run-all-compositor-stages-before-draw',
+          '--disable-partial-raster',
+          '--disable-skia-runtime-opts',
+          '--disable-system-font-check',
+          '--disable-font-subpixel-positioning',
+        ],
+        timeout: 30000,
+        ignoreDefaultArgs: ['--enable-automation'],
+        ignoreHTTPSErrors: true,
+      };
+
+      console.log('🔧 Puppeteer launch options:', {
+        executablePath: launchOptions.executablePath,
+        argsCount: launchOptions.args?.length,
+        isProduction,
+        userDataDir: '/tmp/chrome-user-data'
+      });
+
+      try {
+        this.browser = await puppeteer.launch(launchOptions);
+        console.log('✅ Puppeteer browser launched successfully');
+        
+        // Test connection
+        const version = await this.browser.version();
+        console.log('🔍 Chrome version:', version);
+        
+      } catch (error) {
+        console.error('❌ Puppeteer launch failed:', error);
+        throw new Error(`Puppeteer launch failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
-    async getBrowser() {
-        if (!this.browser) {
-            console.log('🚀 Launching Puppeteer browser...');
-            const isProduction = process.env.NODE_ENV === 'production';
-            const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
-            // 🎯 RAILWAY-OPTIMIZED LAUNCH OPTIONS
-            const launchOptions = {
-                executablePath: isProduction ? executablePath : undefined,
-                headless: true,
-                args: [
-                    // Basic security and sandbox
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--disable-software-rasterizer',
-                    // Memory and performance
-                    '--memory-pressure-off',
-                    '--max_old_space_size=4096',
-                    '--single-process',
-                    '--no-zygote',
-                    // File system restrictions - FIX pre Railway
-                    '--homedir=/tmp',
-                    '--user-data-dir=/tmp/chrome-user-data',
-                    '--data-path=/tmp/chrome-data',
-                    '--disk-cache-dir=/tmp/chrome-cache',
-                    '--crash-dumps-dir=/tmp/chrome-crashes',
-                    '--temp-dir=/tmp',
-                    // Disable problematic features
-                    '--disable-background-timer-throttling',
-                    '--disable-backgrounding-occluded-windows',
-                    '--disable-renderer-backgrounding',
-                    '--disable-extensions',
-                    '--disable-plugins',
-                    '--disable-default-apps',
-                    '--disable-background-networking',
-                    '--disable-sync',
-                    '--disable-translate',
-                    '--disable-ipc-flooding-protection',
-                    // Security restrictions for Railway
-                    '--disable-web-security',
-                    '--disable-features=TranslateUI',
-                    '--disable-component-extensions-with-background-pages',
-                    '--disable-blink-features=AutomationControlled',
-                    // Prevent file access issues
-                    '--no-first-run',
-                    '--no-default-browser-check',
-                    '--disable-default-apps',
-                    '--disable-popup-blocking',
-                    '--disable-prompt-on-repost',
-                    '--disable-hang-monitor',
-                    '--disable-client-side-phishing-detection',
-                    // Railway container specific
-                    '--virtual-time-budget=25000',
-                    '--run-all-compositor-stages-before-draw',
-                    '--disable-partial-raster',
-                    '--disable-skia-runtime-opts',
-                    '--disable-system-font-check',
-                    '--disable-font-subpixel-positioning',
-                ],
-                timeout: 30000,
-                ignoreDefaultArgs: ['--enable-automation'],
-                ignoreHTTPSErrors: true,
-            };
-            console.log('🔧 Puppeteer launch options:', {
-                executablePath: launchOptions.executablePath,
-                argsCount: launchOptions.args?.length,
-                isProduction,
-                userDataDir: '/tmp/chrome-user-data'
-            });
-            try {
-                this.browser = await puppeteer_1.default.launch(launchOptions);
-                console.log('✅ Puppeteer browser launched successfully');
-                // Test connection
-                const version = await this.browser.version();
-                console.log('🔍 Chrome version:', version);
-            }
-            catch (error) {
-                console.error('❌ Puppeteer launch failed:', error);
-                throw new Error(`Puppeteer launch failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            }
-        }
-        return this.browser;
+    
+    return this.browser;
+  }
+
+  private async closeBrowser(): Promise<void> {
+    if (this.browser) {
+      await this.browser.close();
+      this.browser = null;
+      console.log('🔒 Puppeteer browser closed');
     }
-    async closeBrowser() {
-        if (this.browser) {
-            await this.browser.close();
-            this.browser = null;
-            console.log('🔒 Puppeteer browser closed');
-        }
-    }
-    // Generate handover protocol PDF
-    async generateHandoverProtocol(protocol) {
-        console.log('🎭 Generating handover protocol PDF with Puppeteer...');
-        console.log('📋 Protocol ID:', protocol.id);
-        let page = null;
-        try {
-            const browser = await this.getBrowser();
-            page = await browser.newPage();
-            // Set viewport and emulate media
-            await page.setViewport({ width: 1200, height: 1600 });
-            await page.emulateMediaType('print');
-            // Generate HTML content
-            const htmlContent = this.generateHandoverHTML(protocol);
-            // Set content and wait for load
-            await page.setContent(htmlContent, {
-                waitUntil: 'networkidle0',
-                timeout: 30000
-            });
-            // Generate PDF
-            const pdfBuffer = await page.pdf({
-                format: 'A4',
-                printBackground: true,
-                margin: {
-                    top: '1cm',
-                    bottom: '1cm',
-                    left: '1cm',
-                    right: '1cm'
-                },
-                displayHeaderFooter: true,
-                headerTemplate: '<span></span>',
-                footerTemplate: `
+  }
+
+  // Generate handover protocol PDF
+  async generateHandoverProtocol(protocol: HandoverProtocol): Promise<Buffer> {
+    console.log('🎭 Generating handover protocol PDF with Puppeteer...');
+    console.log('📋 Protocol ID:', protocol.id);
+    
+    let page: Page | null = null;
+    
+    try {
+      const browser = await this.getBrowser();
+      page = await browser.newPage();
+      
+      // Set viewport and emulate media
+      await page.setViewport({ width: 1200, height: 1600 });
+      await page.emulateMediaType('print');
+      
+      // Generate HTML content
+      const htmlContent = this.generateHandoverHTML(protocol);
+      
+      // Set content and wait for load
+      await page.setContent(htmlContent, { 
+        waitUntil: 'networkidle0',
+        timeout: 30000 
+      });
+      
+      // Generate PDF
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '1cm',
+          bottom: '1cm',
+          left: '1cm',
+          right: '1cm'
+        },
+        displayHeaderFooter: true,
+        headerTemplate: '<span></span>',
+        footerTemplate: `
           <div style="font-size: 10px; text-align: center; width: 100%; color: #666;">
             <span>BlackRent - Protokol prevzatia | ${new Date().toLocaleDateString('sk-SK')}</span>
           </div>
         `,
-            });
-            console.log(`✅ Puppeteer handover PDF generated: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
-            return Buffer.from(pdfBuffer);
-        }
-        catch (error) {
-            console.error('❌ Puppeteer handover PDF generation failed:', error);
-            throw error;
-        }
-        finally {
-            if (page) {
-                await page.close();
-            }
-        }
+      });
+      
+      console.log(`✅ Puppeteer handover PDF generated: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
+      return Buffer.from(pdfBuffer);
+      
+    } catch (error) {
+      console.error('❌ Puppeteer handover PDF generation failed:', error);
+      throw error;
+    } finally {
+      if (page) {
+        await page.close();
+      }
     }
-    // Generate return protocol PDF
-    async generateReturnProtocol(protocol) {
-        console.log('🎭 Generating return protocol PDF with Puppeteer...');
-        console.log('📋 Protocol ID:', protocol.id);
-        let page = null;
-        try {
-            const browser = await this.getBrowser();
-            page = await browser.newPage();
-            // Set viewport and emulate media
-            await page.setViewport({ width: 1200, height: 1600 });
-            await page.emulateMediaType('print');
-            // Generate HTML content
-            const htmlContent = this.generateReturnHTML(protocol);
-            // Set content and wait for load
-            await page.setContent(htmlContent, {
-                waitUntil: 'networkidle0',
-                timeout: 30000
-            });
-            // Generate PDF
-            const pdfBuffer = await page.pdf({
-                format: 'A4',
-                printBackground: true,
-                margin: {
-                    top: '1cm',
-                    bottom: '1cm',
-                    left: '1cm',
-                    right: '1cm'
-                },
-                displayHeaderFooter: true,
-                headerTemplate: '<span></span>',
-                footerTemplate: `
+  }
+
+  // Generate return protocol PDF
+  async generateReturnProtocol(protocol: ReturnProtocol): Promise<Buffer> {
+    console.log('🎭 Generating return protocol PDF with Puppeteer...');
+    console.log('📋 Protocol ID:', protocol.id);
+    
+    let page: Page | null = null;
+    
+    try {
+      const browser = await this.getBrowser();
+      page = await browser.newPage();
+      
+      // Set viewport and emulate media
+      await page.setViewport({ width: 1200, height: 1600 });
+      await page.emulateMediaType('print');
+      
+      // Generate HTML content
+      const htmlContent = this.generateReturnHTML(protocol);
+      
+      // Set content and wait for load
+      await page.setContent(htmlContent, { 
+        waitUntil: 'networkidle0',
+        timeout: 30000 
+      });
+      
+      // Generate PDF
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '1cm',
+          bottom: '1cm',
+          left: '1cm',
+          right: '1cm'
+        },
+        displayHeaderFooter: true,
+        headerTemplate: '<span></span>',
+        footerTemplate: `
           <div style="font-size: 10px; text-align: center; width: 100%; color: #666;">
             <span>BlackRent - Protokol vrátenia | ${new Date().toLocaleDateString('sk-SK')}</span>
           </div>
         `,
-            });
-            console.log(`✅ Puppeteer return PDF generated: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
-            return Buffer.from(pdfBuffer);
-        }
-        catch (error) {
-            console.error('❌ Puppeteer return PDF generation failed:', error);
-            throw error;
-        }
-        finally {
-            if (page) {
-                await page.close();
-            }
-        }
+      });
+      
+      console.log(`✅ Puppeteer return PDF generated: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
+      return Buffer.from(pdfBuffer);
+      
+    } catch (error) {
+      console.error('❌ Puppeteer return PDF generation failed:', error);
+      throw error;
+    } finally {
+      if (page) {
+        await page.close();
+      }
     }
-    generateHandoverHTML(protocol) {
-        return `
+  }
+
+  private generateHandoverHTML(protocol: HandoverProtocol): string {
+    return `
 <!DOCTYPE html>
 <html lang="sk">
 <head>
@@ -519,10 +545,11 @@ class PuppeteerPDFGeneratorV2 {
 </body>
 </html>
     `;
-    }
-    generateReturnHTML(protocol) {
-        // Similar structure for return protocol
-        return `
+  }
+
+  private generateReturnHTML(protocol: ReturnProtocol): string {
+    // Similar structure for return protocol
+    return `
 <!DOCTYPE html>
 <html lang="sk">
 <head>
@@ -543,19 +570,19 @@ class PuppeteerPDFGeneratorV2 {
 </body>
 </html>
     `;
+  }
+
+  private getStatusText(status: string): string {
+    switch (status) {
+      case 'draft': return 'Koncept';
+      case 'completed': return 'Dokončený';
+      case 'cancelled': return 'Zrušený';
+      default: return status;
     }
-    getStatusText(status) {
-        switch (status) {
-            case 'draft': return 'Koncept';
-            case 'completed': return 'Dokončený';
-            case 'cancelled': return 'Zrušený';
-            default: return status;
-        }
-    }
-    // Cleanup method
-    async cleanup() {
-        await this.closeBrowser();
-    }
-}
-exports.PuppeteerPDFGeneratorV2 = PuppeteerPDFGeneratorV2;
-//# sourceMappingURL=puppeteer-pdf-generator-v2.js.map
+  }
+
+  // Cleanup method
+  async cleanup(): Promise<void> {
+    await this.closeBrowser();
+  }
+} 
