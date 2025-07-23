@@ -12,6 +12,9 @@
   "variables": {
     "NODE_ENV": "production",
     "PORT": "3001",
-    "DATABASE_URL": "${{DATABASE_URL}}"
+    "DATABASE_URL": "${{DATABASE_URL}}",
+    "PDF_GENERATOR_TYPE": "puppeteer",
+    "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true",
+    "PUPPETEER_EXECUTABLE_PATH": "/usr/bin/google-chrome-stable"
   }
 } 
