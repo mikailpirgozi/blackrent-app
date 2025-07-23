@@ -135,25 +135,77 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
 
     // Parsovanie vozidla z položiek objednávky
     const vehicleMatch = text.match(/Položky objednávky\s*\n\s*Názov\s+Kód\s+Cena\s+Spolu\s*\n([^\n]+)/);
-    if (vehicleMatch) {
+    if (!vehicleMatch) {
+      // Skús alternatívny pattern bez diakritiky
+      const vehicleMatchAlt = text.match(/Položky objednávky\s*\n\s*Názov\s+Kód\s+Cena\s+Spolu\s*\n([^\n]+)/);
+      if (vehicleMatchAlt) {
+        const vehicleLine = vehicleMatchAlt[1].trim();
+        console.log('🔍 Parsing vehicle line:', vehicleLine);
+        
+        // Rozdeliť riadok podľa tabuliek alebo viacerých medzier
+        const parts = vehicleLine.split(/\s+/).filter(part => part.trim());
+        console.log('🔍 Vehicle parts:', parts);
+        
+        // Nájdi ŠPZ (6-7 znakov, len písmená a čísla)
+        const spzIndex = parts.findIndex(part => /^[A-Z0-9]{6,7}$/.test(part.trim()));
+        console.log('🔍 SPZ index:', spzIndex, 'SPZ:', spzIndex >= 0 ? parts[spzIndex] : 'not found');
+        
+        if (spzIndex > 0) {
+          // Názov auta je všetko pred ŠPZ
+          data.vehicleName = parts.slice(0, spzIndex).join(' ');
+          data.vehicleCode = parts[spzIndex];
+          
+          // Cena a suma sú za ŠPZ
+          if (parts.length > spzIndex + 2) {
+            const priceStr = parts[spzIndex + 1].replace(',', '.').replace('€', '').trim();
+            data.vehiclePrice = parseFloat(priceStr);
+          }
+          
+          console.log('✅ Parsed vehicle:', {
+            name: data.vehicleName,
+            code: data.vehicleCode,
+            price: data.vehiclePrice
+          });
+        } else {
+          console.log('❌ Could not find SPZ in vehicle line');
+        }
+      }
+    } else {
       const vehicleLine = vehicleMatch[1].trim();
-      const parts = vehicleLine.split(/\s+/);
-      // Nájdi index, kde je prvý výskyt slova s 6-7 znakmi (ŠPZ)
-      const spzIndex = parts.findIndex(part => /^[A-Z0-9]{6,7}$/.test(part));
+      console.log('🔍 Parsing vehicle line:', vehicleLine);
+      
+      // Rozdeliť riadok podľa tabuliek alebo viacerých medzier
+      const parts = vehicleLine.split(/\s+/).filter(part => part.trim());
+      console.log('🔍 Vehicle parts:', parts);
+      
+      // Nájdi ŠPZ (6-7 znakov, len písmená a čísla)
+      const spzIndex = parts.findIndex(part => /^[A-Z0-9]{6,7}$/.test(part.trim()));
+      console.log('🔍 SPZ index:', spzIndex, 'SPZ:', spzIndex >= 0 ? parts[spzIndex] : 'not found');
+      
       if (spzIndex > 0) {
         // Názov auta je všetko pred ŠPZ
         data.vehicleName = parts.slice(0, spzIndex).join(' ');
         data.vehicleCode = parts[spzIndex];
+        
         // Cena a suma sú za ŠPZ
         if (parts.length > spzIndex + 2) {
-          const priceStr = parts[spzIndex + 1].replace(',', '.');
+          const priceStr = parts[spzIndex + 1].replace(',', '.').replace('€', '').trim();
           data.vehiclePrice = parseFloat(priceStr);
         }
+        
+        console.log('✅ Parsed vehicle:', {
+          name: data.vehicleName,
+          code: data.vehicleCode,
+          price: data.vehiclePrice
+        });
+      } else {
+        console.log('❌ Could not find SPZ in vehicle line');
       }
     }
 
     // Parsovanie povolených kilometrov
-    const allowedKmMatch = text.match(/Povolené\s+km[:\s]+(\d+)/i) || 
+    const allowedKmMatch = text.match(/Počet povolených km\s+(\d+)\s*km/i) ||
+                          text.match(/Povolené\s+km[:\s]+(\d+)/i) || 
                           text.match(/Kilometrov[:\s]+(\d+)/i) ||
                           text.match(/Limit\s+km[:\s]+(\d+)/i);
     if (allowedKmMatch) {
