@@ -163,3 +163,4 @@ npm run build
 ## Podpora
 
 Pre otázky a problémy vytvorte issue v GitHub repozitári.
+# Force Railway redeploy
