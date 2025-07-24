@@ -92,24 +92,24 @@ export class PDFLibGenerator {
       this.addDamagesSection(protocol.damages);
     }
     
-    // 8. Súhrn médií
+    // 8. NOVÉ: Pridanie obrázkov do PDF
+    await this.addImagesSection(protocol);
+    
+    // 9. Súhrn médií
     this.addMediaSummary(protocol);
     
-    // 9. Podpisy
+    // 10. Podpisy
     if (protocol.signatures && protocol.signatures.length > 0) {
       this.addSignaturesSection(protocol.signatures);
     }
     
-    // 10. Dodatočné poznámky
-    if (protocol.notes) {
-      this.addNotesSection('Dodatočné poznámky', protocol.notes);
-    }
-    
-    // 11. Moderná pätka
+    // 11. Footer
     this.addModernFooter();
     
-    // Serialize PDF do Buffera
+    // Konverzia do Buffer
     const pdfBytes = await this.doc.save();
+    console.log(`✅ PDF-lib Handover protokol dokončený! Veľkosť: ${(pdfBytes.length / 1024).toFixed(1)} KB`);
+    
     return Buffer.from(pdfBytes);
   }
 
@@ -474,5 +474,154 @@ export class PDFLibGenerator {
     };
 
     return text.replace(/[^\u0000-\u007F]/g, (char) => diacriticsMap[char] || char);
+  }
+
+  /**
+   * NOVÉ: Sekcia pre zobrazenie obrázkov v PDF protokole
+   */
+  private async addImagesSection(protocol: HandoverProtocol): Promise<void> {
+    console.log('🖼️ Pridávam obrázky do PDF protokolu...');
+    
+    try {
+      // Zoznam všetkých obrázkov
+      const allImages = [
+        ...(protocol.vehicleImages || []),
+        ...(protocol.documentImages || []),
+        ...(protocol.damageImages || [])
+      ];
+      
+      if (allImages.length === 0) {
+        console.log('⚠️ Žiadne obrázky na pridanie do PDF');
+        return;
+      }
+      
+      // Nadpis sekcie
+      this.checkPageBreak(100);
+      this.currentPage.drawRectangle({
+        x: this.margin,
+        y: this.currentY - 20,
+        width: this.pageWidth - 2 * this.margin,
+        height: 20,
+        color: this.lightGray,
+      });
+      
+      this.currentPage.drawText(this.toAsciiText('FOTODOKUMENTACIA'), {
+        x: this.margin + 10,
+        y: this.currentY - 15,
+        size: 12,
+        font: this.boldFont,
+        color: this.secondaryColor,
+      });
+      
+      this.currentY -= 30;
+      
+      let processedImages = 0;
+      const maxImagesPerPage = 6; // Maximum 6 obrázkov na stránku
+      
+      for (const image of allImages) {
+        if (!image.url || typeof image.url !== 'string') {
+          console.log('⚠️ Preskačujem obrázok bez URL');
+          continue;
+        }
+        
+        try {
+          // Spracovanie base64 obrázkov
+          let imageData: Uint8Array;
+          
+          if (image.url.startsWith('data:image/')) {
+            // Base64 obrázok
+            const base64Data = image.url.split(',')[1];
+            if (!base64Data) {
+              console.log('⚠️ Nevalidný base64 obrázok');
+              continue;
+            }
+            imageData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+          } else {
+            // HTTP URL obrázok (ak by bolo potrebné v budúcnosti)
+            console.log('⚠️ Preskačujem HTTP URL obrázok - nie je podporovaný');
+            continue;
+          }
+          
+          // Embed obrázka do PDF
+          let embeddedImage;
+          if (image.url.includes('image/jpeg') || image.url.includes('image/jpg')) {
+            embeddedImage = await this.doc.embedJpg(imageData);
+          } else if (image.url.includes('image/png')) {
+            embeddedImage = await this.doc.embedPng(imageData);
+          } else {
+            console.log('⚠️ Nepodarený formát obrázka, skúšam ako JPEG');
+            embeddedImage = await this.doc.embedJpg(imageData);
+          }
+          
+          // Výpočet veľkosti obrázka (max šírka 120px, max výška 120px)
+          const maxImageSize = 120;
+          const imageWidth = Math.min(embeddedImage.width, maxImageSize);
+          const imageHeight = Math.min(embeddedImage.height, maxImageSize);
+          
+          // Pozícia obrázka (2 obrázky na riadok)
+          const imagesPerRow = 2;
+          const rowIndex = Math.floor(processedImages / imagesPerRow);
+          const colIndex = processedImages % imagesPerRow;
+          
+          const imageX = this.margin + (colIndex * (imageWidth + 20));
+          const imageY = this.currentY - (rowIndex * (imageHeight + 40)) - imageHeight;
+          
+          // Kontrola stránky
+          if (imageY < 100) {
+            this.currentPage = this.doc.addPage(PageSizes.A4);
+            this.currentY = this.pageHeight - 50;
+          }
+          
+          // Pridanie obrázka do PDF
+          this.currentPage.drawImage(embeddedImage, {
+            x: imageX,
+            y: imageY,
+            width: imageWidth,
+            height: imageHeight,
+          });
+          
+          // Popis obrázka
+          const description = image.description || image.type || `Obrázok ${processedImages + 1}`;
+          this.currentPage.drawText(this.toAsciiText(description.substring(0, 15)), {
+            x: imageX,
+            y: imageY - 15,
+            size: 8,
+            font: this.font,
+            color: this.secondaryColor,
+          });
+          
+          processedImages++;
+          
+          // Limit pre performance (max 10 obrázkov)
+          if (processedImages >= 10) {
+            console.log('⚠️ Dosiahnutý limit 10 obrázkov v PDF');
+            break;
+          }
+          
+        } catch (imageError) {
+          console.error('❌ Chyba pri spracovaní obrázka:', imageError);
+          continue; // Pokračuj s ďalším obrázkom
+        }
+      }
+      
+      if (processedImages > 0) {
+        // Posun Y pozíciu pod obrázky
+        const rowsUsed = Math.ceil(processedImages / 2);
+        this.currentY -= (rowsUsed * 160) + 20;
+        console.log(`✅ Pridaných ${processedImages} obrázkov do PDF`);
+      } else {
+        console.log('⚠️ Žiadne obrázky sa nepodarilo spracovať');
+      }
+      
+    } catch (error) {
+      console.error('❌ Chyba pri pridávaní obrázkov do PDF:', error);
+      // Pridaj aspoň informáciu o obrábkach ako text
+      this.addInfoSection('Fotodokumentácia', [
+        ['Status:', 'Obrázky nebolo možné načítať do PDF'],
+        ['Počet fotiek:', `${(protocol.vehicleImages?.length || 0)} vozidlo`],
+        ['Počet dokument fotiek:', `${(protocol.documentImages?.length || 0)} dokumenty`],
+        ['Počet fotiek poškodení:', `${(protocol.damageImages?.length || 0)} poškodenia`]
+      ]);
+    }
   }
 } 
