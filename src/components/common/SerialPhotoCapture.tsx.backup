@@ -31,11 +31,11 @@ import {
   Compress,
 } from '@mui/icons-material';
 import { compressImage, compressMultipleImages, CompressionResult } from '../../utils/imageCompression';
+import NativeCamera from './NativeCamera';
 import { compressVideo, generateVideoThumbnail, VideoCompressionResult } from '../../utils/videoCompression';
 import { ProtocolImage, ProtocolVideo } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import Alert from '@mui/material/Alert';
-import NativeCamera from './NativeCamera';
 
 interface SerialPhotoCaptureProps {
   open: boolean;
@@ -53,7 +53,6 @@ interface SerialPhotoCaptureProps {
   protocolType?: 'handover' | 'return';
   mediaType?: 'vehicle' | 'document' | 'damage' | 'fuel' | 'odometer';
 }
-
 interface CapturedMedia {
   id: string;
   file: File;
@@ -369,6 +368,22 @@ export default function SerialPhotoCapture({
     }
   }, [capturedMedia, maxImages, maxVideos, allowedTypes, compressImages, compressVideos, autoUploadToR2, entityId, rapidMode]);
 
+  const handleMediaTypeChange = (id: string, type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer') => {
+    setCapturedMedia(prev => 
+      prev.map(media => 
+        media.id === id ? { ...media, mediaType: type } : media
+      )
+    );
+  };
+
+  const handleDescriptionChange = (id: string, description: string) => {
+    setCapturedMedia(prev => 
+      prev.map(media => 
+        media.id === id ? { ...media, description } : media
+      )
+    );
+  };
+
   // Handler pre natívnu kameru
   const handleNativeCapture = useCallback((imageBlob: Blob) => {
     // Konvertuj Blob na File
@@ -396,16 +411,6 @@ export default function SerialPhotoCapture({
     setCapturedMedia(prev => [...prev, media]);
     console.log('✅ Fotka z natívnej kamery pridaná', media);
   }, [allowedTypes]);
-
-  const handleMediaTypeChange = (id: string, type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer') => {
-    setCapturedMedia(prev => 
-      prev.map(media => 
-        media.id === id ? { ...media, mediaType: type } : media
-      )
-    );
-  };
-
-  const handleDescriptionChange = (id: string, description: string) => {
     setCapturedMedia(prev => 
       prev.map(media => 
         media.id === id ? { ...media, description } : media
@@ -598,8 +603,7 @@ export default function SerialPhotoCapture({
               color="secondary"
             >
               📱 Natívna kamera
-            </Button>
-            
+            </Button>            
             {(compressImages || compressVideos) && (
               <Button
                 variant="outlined"
@@ -713,7 +717,17 @@ export default function SerialPhotoCapture({
                     color="success" 
                   />
                 )}
-              </>
+                {/* Native Camera Component */}
+      <NativeCamera
+        open={nativeCameraOpen}
+        onClose={() => setNativeCameraOpen(false)}
+        onCapture={handleNativeCapture}
+        title="📸 Rapid fotografovanie"
+        maxPhotos={maxImages}
+        currentPhotoCount={capturedMedia.filter(m => m.type === 'image').length}
+      />
+    </>
+  );
             )}
           </Box>
 
@@ -811,7 +825,17 @@ export default function SerialPhotoCapture({
                         <span style={{ color: 'success.main' }}>
                           ({media.compressionRatio!.toFixed(1)}% komprimované)
                         </span>
-                      </>
+                        {/* Native Camera Component */}
+      <NativeCamera
+        open={nativeCameraOpen}
+        onClose={() => setNativeCameraOpen(false)}
+        onCapture={handleNativeCapture}
+        title="📸 Rapid fotografovanie"
+        maxPhotos={maxImages}
+        currentPhotoCount={capturedMedia.filter(m => m.type === 'image').length}
+      />
+    </>
+  );
                     ) : (
                       `${(media.file.size / 1024 / 1024).toFixed(2)} MB`
                     )}
@@ -867,7 +891,6 @@ export default function SerialPhotoCapture({
           <Button onClick={() => setPreviewMedia(null)}>Zatvoriť</Button>
         </DialogActions>
       </Dialog>
-
       {/* Native Camera Component */}
       <NativeCamera
         open={nativeCameraOpen}
@@ -879,4 +902,4 @@ export default function SerialPhotoCapture({
       />
     </>
   );
-} 
+}
