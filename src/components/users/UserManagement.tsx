@@ -82,10 +82,6 @@ export default function UserManagement() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
   const fetchUsers = async () => {
     try {
       const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
@@ -105,6 +101,10 @@ export default function UserManagement() {
       setError('Chyba pri načítavaní používateľov');
     }
   };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleOpenDialog = (user?: User) => {
     if (user) {
