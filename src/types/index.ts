@@ -177,6 +177,7 @@ export interface User {
   role: UserRole;
   companyId?: string; // For company users - restrict to specific company
   permissions: Permission[];
+  signatureTemplate?: string; // Base64 signature template for employees
   createdAt: Date;
 }
 

@@ -27,9 +27,10 @@ import {
   DirectionsCar,
   Receipt,
 } from '@mui/icons-material';
-import { HandoverProtocol, Rental, ProtocolImage, ProtocolVideo } from '../../types';
+import { HandoverProtocol, Rental, ProtocolImage, ProtocolVideo, ProtocolSignature } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
+import SignaturePad from '../common/SignaturePad';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -41,6 +42,8 @@ interface HandoverProtocolFormProps {
 export default function HandoverProtocolForm({ open, onClose, rental, onSave }: HandoverProtocolFormProps) {
   const [loading, setLoading] = useState(false);
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const [currentSigner, setCurrentSigner] = useState<{name: string, role: 'customer' | 'employee'} | null>(null);
   
   // Zjednodušený state - iba základné polia
   const [formData, setFormData] = useState({
@@ -59,6 +62,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
     damageVideos: [] as ProtocolVideo[],
     odometerVideos: [] as ProtocolVideo[],
     fuelVideos: [] as ProtocolVideo[],
+    signatures: [] as ProtocolSignature[],
   });
 
   if (!open) return null;
@@ -74,6 +78,27 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
       [`${mediaType}Videos`]: videos,
     }));
     setActivePhotoCapture(null);
+  };
+
+  const handleAddSignature = (signerName: string, signerRole: 'customer' | 'employee') => {
+    setCurrentSigner({ name: signerName, role: signerRole });
+    setShowSignaturePad(true);
+  };
+
+  const handleSignatureSave = (signatureData: ProtocolSignature) => {
+    setFormData(prev => ({
+      ...prev,
+      signatures: [...prev.signatures, signatureData]
+    }));
+    setShowSignaturePad(false);
+    setCurrentSigner(null);
+  };
+
+  const handleRemoveSignature = (signatureId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      signatures: prev.signatures.filter(sig => sig.id !== signatureId)
+    }));
   };
 
   // Pomocné funkcie pre formátovanie dát
@@ -120,7 +145,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
         damageImages: formData.damageImages,
         damageVideos: formData.damageVideos,
         damages: [],
-        signatures: [],
+        signatures: formData.signatures,
         rentalData: {
           orderNumber: rental.orderNumber || '',
           vehicle: rental.vehicle || {} as any,
@@ -588,6 +613,80 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
         </CardContent>
       </Card>
 
+      {/* ✍️ ELEKTRONICKÉ PODPISY */}
+      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <CardContent>
+          <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+            ✍️ Elektronické podpisy s časovou pečiatkou
+          </Typography>
+          
+          {/* Existujúce podpisy */}
+          {formData.signatures.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              {formData.signatures.map((signature, index) => (
+                <Card key={signature.id} variant="outlined" sx={{ mb: 1, p: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box 
+                        component="img" 
+                        src={signature.signature} 
+                        alt={`Podpis ${signature.signerName}`}
+                        sx={{ 
+                          width: 120, 
+                          height: 60, 
+                          border: '1px solid #ddd',
+                          borderRadius: 1,
+                          objectFit: 'contain'
+                        }} 
+                      />
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          {signature.signerName}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {signature.signerRole === 'customer' ? 'Zákazník' : 'Zamestnanec'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          📅 {new Date(signature.timestamp).toLocaleString('sk-SK')}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          📍 {signature.location}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <IconButton 
+                      onClick={() => handleRemoveSignature(signature.id)}
+                      color="error"
+                      size="small"
+                    >
+                      <Close />
+                    </IconButton>
+                  </Box>
+                </Card>
+              ))}
+            </Box>
+          )}
+          
+          {/* Tlačidlá pre pridanie podpisov */}
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              onClick={() => handleAddSignature(rental.customer?.name || 'Zákazník', 'customer')}
+              startIcon={<Person />}
+            >
+              Podpis zákazníka
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => handleAddSignature('Zamestnanec', 'employee')}
+              startIcon={<Person />}
+            >
+              Podpis zamestnanca
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+
       {/* Tlačidlá */}
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3, mb: 2 }}>
         <Button
@@ -619,6 +718,44 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
           protocolType="handover"
           mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel'}
         />
+      )}
+
+      {/* SignaturePad modal */}
+      {showSignaturePad && currentSigner && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            p: 2
+          }}
+        >
+          <Box
+            sx={{
+              backgroundColor: 'white',
+              borderRadius: 2,
+              maxWidth: 600,
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto'
+            }}
+          >
+            <SignaturePad
+              onSave={handleSignatureSave}
+              onCancel={() => setShowSignaturePad(false)}
+              signerName={currentSigner.name}
+              signerRole={currentSigner.role}
+              location={formData.location}
+            />
+          </Box>
+        </Box>
       )}
     </Box>
   );

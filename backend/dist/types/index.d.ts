@@ -141,6 +141,7 @@ export interface User {
     email: string;
     password: string;
     role: UserRole;
+    signatureTemplate?: string;
     createdAt: Date;
 }
 export type UserWithoutPassword = Omit<User, 'password'>;

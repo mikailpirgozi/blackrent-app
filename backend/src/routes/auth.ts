@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { postgresDatabase } from '../models/postgres-database';
-import { LoginCredentials, AuthResponse, User, ApiResponse } from '../types';
+import { LoginCredentials, AuthResponse, User, ApiResponse, AuthRequest } from '../types';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -1674,6 +1674,53 @@ router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>
     return res.status(500).json({
       success: false,
       error: 'Step-by-step error: ' + error.message
+    });
+  }
+});
+
+// PUT /api/auth/signature-template - Update user signature template
+router.put('/signature-template', authenticateToken, async (req: AuthRequest, res: Response<ApiResponse>) => {
+  try {
+    console.log('🖊️ Updating signature template for user:', req.user?.username);
+    
+    const { signatureTemplate } = req.body;
+    
+    if (!signatureTemplate || typeof signatureTemplate !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Signature template je povinný'
+      });
+    }
+    
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'User ID not found'
+      });
+    }
+    
+    // Update signature template in database
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      await client.query(
+        'UPDATE users SET signature_template = $1 WHERE id = $2',
+        [signatureTemplate, req.user.id]
+      );
+      
+      console.log('✅ Signature template updated successfully');
+      
+      res.json({
+        success: true,
+        message: 'Signature template úspešne uložený'
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    console.error('❌ Error updating signature template:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Chyba pri ukladaní signature template'
     });
   }
 });

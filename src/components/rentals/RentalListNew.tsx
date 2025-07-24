@@ -636,7 +636,23 @@ export default function RentalList() {
   };
 
   // Handover Protocol handlers
-  const handleCreateHandover = (rental: Rental) => {
+  const handleCreateHandover = async (rental: Rental) => {
+    console.log('📝 Creating handover protocol for rental:', rental.id);
+    
+    // Explicitne načítaj protokoly pre tento rental
+    await loadProtocolsForRental(rental.id);
+    
+    const rentalProtocols = protocols[rental.id];
+    console.log('📝 Loaded protocols:', rentalProtocols);
+    
+    // ✅ PREVENCIA DUPLIKÁTOV - Kontrola či už existuje handover protokol
+    if (rentalProtocols?.handover) {
+      alert('⚠️ UPOZORNENIE: Pre toto vozidlo už existuje odovzdávací protokol!\n\nNemôžete vytvoriť ďalší odovzdávací protokol pre to isté vozidlo. Ak potrebujete upraviť protokol, kontaktujte administrátora.');
+      console.warn('❌ Handover protocol already exists for rental:', rental.id);
+      return;
+    }
+    
+    console.log('✅ No existing handover protocol, proceeding...');
     setSelectedRentalForProtocol(rental);
     setOpenHandoverDialog(true);
   };
@@ -676,12 +692,19 @@ export default function RentalList() {
     console.log('📝 Loaded protocols:', rentalProtocols);
     
     if (!rentalProtocols?.handover) {
-      alert('Najprv musíte vytvoriť odovzdávací protokol!');
+      alert('⚠️ UPOZORNENIE: Najprv musíte vytvoriť odovzdávací protokol!\n\nPreberací protokol nemožno vytvoriť bez existujúceho odovzdávacieho protokolu.');
       console.error('❌ No handover protocol found for rental:', rental.id);
       return;
     }
     
-    console.log('✅ Handover protocol found:', rentalProtocols.handover.id);
+    // ✅ PREVENCIA DUPLIKÁTOV - Kontrola či už existuje return protokol
+    if (rentalProtocols?.return) {
+      alert('⚠️ UPOZORNENIE: Pre toto vozidlo už existuje preberací protokol!\n\nNemôžete vytvoriť ďalší preberací protokol pre to isté vozidlo. Ak potrebujete upraviť protokol, kontaktujte administrátora.');
+      console.warn('❌ Return protocol already exists for rental:', rental.id);
+      return;
+    }
+    
+    console.log('✅ Handover protocol found, no return protocol exists. Proceeding...');
     setSelectedRentalForProtocol(rental);
     setOpenReturnDialog(true);
   };
@@ -912,7 +935,13 @@ export default function RentalList() {
       id: 'protocols',
       label: 'Protokoly',
       width: { xs: '120px', md: '150px' },
-      render: (value, rental: Rental) => (
+      render: (value, rental: Rental) => {
+        // Definuj hasHandover a hasReturn pre tento rental
+        const rentalProtocols = protocols[rental.id];
+        const hasHandover = !!rentalProtocols?.handover;
+        const hasReturn = !!rentalProtocols?.return;
+        
+        return (
         <Box>
           {/* Hlavné tlačidlá pre vytvorenie protokolov */}
           <Box sx={{ display: 'flex', gap: 0.5, mb: 1, justifyContent: 'center' }}>
@@ -1250,7 +1279,8 @@ export default function RentalList() {
             </Box>
           )}
         </Box>
-      )
+        );
+      }
     },
     {
       id: 'actions',

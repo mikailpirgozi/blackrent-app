@@ -1516,5 +1516,44 @@ router.get('/step-by-step-data', async (req, res) => {
         });
     }
 });
+// PUT /api/auth/signature-template - Update user signature template
+router.put('/signature-template', auth_1.authenticateToken, async (req, res) => {
+    try {
+        console.log('🖊️ Updating signature template for user:', req.user?.username);
+        const { signatureTemplate } = req.body;
+        if (!signatureTemplate || typeof signatureTemplate !== 'string') {
+            return res.status(400).json({
+                success: false,
+                error: 'Signature template je povinný'
+            });
+        }
+        if (!req.user?.id) {
+            return res.status(401).json({
+                success: false,
+                error: 'User ID not found'
+            });
+        }
+        // Update signature template in database
+        const client = await postgres_database_1.postgresDatabase.pool.connect();
+        try {
+            await client.query('UPDATE users SET signature_template = $1 WHERE id = $2', [signatureTemplate, req.user.id]);
+            console.log('✅ Signature template updated successfully');
+            res.json({
+                success: true,
+                message: 'Signature template úspešne uložený'
+            });
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (error) {
+        console.error('❌ Error updating signature template:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri ukladaní signature template'
+        });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=auth.js.map

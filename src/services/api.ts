@@ -369,6 +369,16 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Signature template management
+  async updateSignatureTemplate(signatureTemplate: string): Promise<any> {
+    console.log('🖊️ API updateSignatureTemplate - saving signature template');
+    
+    return this.request<any>('/auth/signature-template', {
+      method: 'PUT',
+      body: JSON.stringify({ signatureTemplate }),
+    });
+  }
 }
 
 export const apiService = new ApiService();

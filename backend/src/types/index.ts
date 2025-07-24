@@ -165,6 +165,7 @@ export interface User {
   email: string;
   password: string;
   role: UserRole;
+  signatureTemplate?: string; // Base64 signature template for employees
   createdAt: Date;
 }
 

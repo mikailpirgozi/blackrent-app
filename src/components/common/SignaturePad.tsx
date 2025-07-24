@@ -4,22 +4,37 @@ import {
   Button,
   Typography,
   Paper,
+  TextField,
 } from '@mui/material';
 import {
   Clear as ClearIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
+import { useAuth } from '../../context/AuthContext';
+import { apiService } from '../../services/api';
 
 interface SignaturePadProps {
-  onSave: (signature: string, signerName: string) => void;
+  onSave: (signature: {
+    id: string;
+    signature: string;
+    signerName: string;
+    signerRole: 'customer' | 'employee';
+    timestamp: Date;
+    location: string;
+    ipAddress?: string;
+  }) => void;
   onCancel: () => void;
   signerName: string;
+  signerRole: 'customer' | 'employee';
+  location: string;
 }
 
-export default function SignaturePad({ onSave, onCancel, signerName }: SignaturePadProps) {
+export default function SignaturePad({ onSave, onCancel, signerName, signerRole, location }: SignaturePadProps) {
+  const { state } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
+  const [editableSignerName, setEditableSignerName] = useState(signerName);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -103,19 +118,76 @@ export default function SignaturePad({ onSave, onCancel, signerName }: Signature
     setHasSignature(false);
   };
 
+  const loadSignatureTemplate = () => {
+    if (signerRole !== 'employee' || !state.user?.signatureTemplate) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const img = new Image();
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      setHasSignature(true);
+    };
+    img.src = state.user.signatureTemplate;
+  };
+
   const handleSave = () => {
     const canvas = canvasRef.current;
     if (!canvas || !hasSignature) return;
 
     const dataUrl = canvas.toDataURL('image/png');
-    onSave(dataUrl, signerName);
+    
+    // Vytvor kompletný signature objekt s timestampom
+    const signatureData = {
+      id: `sig_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      signature: dataUrl,
+      signerName: editableSignerName,
+      signerRole,
+      timestamp: new Date(),
+      location,
+      ipAddress: undefined // Môžeme pridať neskôr ak potrebujeme
+    };
+    
+    onSave(signatureData);
+  };
+
+  const handleSaveAsTemplate = async () => {
+    if (signerRole !== 'employee' || !hasSignature) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const dataUrl = canvas.toDataURL('image/png');
+    
+    try {
+      await apiService.updateSignatureTemplate(dataUrl);
+      alert('✅ Váš podpis bol úspešne uložený ako template pre budúce protokoly!');
+    } catch (error) {
+      console.error('Error saving signature template:', error);
+      alert('❌ Chyba pri ukladaní signature template. Skúste to znovu.');
+    }
   };
 
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h6" gutterBottom>
-        Podpíšte sa nižšie
+        Elektronický podpis s časovou pečiatkou
       </Typography>
+      
+      {/* Editable signer name */}
+      <TextField
+        label="Meno podpisujúceho"
+        value={editableSignerName}
+        onChange={(e) => setEditableSignerName(e.target.value)}
+        fullWidth
+        sx={{ mb: 2 }}
+        helperText={signerRole === 'customer' ? 'Meno zákazníka (môžete upraviť)' : 'Meno zamestnanca'}
+      />
       
       <Paper 
         elevation={3} 
@@ -146,7 +218,30 @@ export default function SignaturePad({ onSave, onCancel, signerName }: Signature
         />
       </Paper>
 
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {/* Template buttons for employees */}
+        {signerRole === 'employee' && (
+          <>
+            {state.user?.signatureTemplate && (
+              <Button
+                variant="outlined"
+                onClick={loadSignatureTemplate}
+                color="secondary"
+              >
+                Načítať môj podpis
+              </Button>
+            )}
+            <Button
+              variant="outlined"
+              onClick={handleSaveAsTemplate}
+              disabled={!hasSignature}
+              color="info"
+            >
+              Uložiť ako môj podpis
+            </Button>
+          </>
+        )}
+        
         <Button
           variant="outlined"
           startIcon={<ClearIcon />}
@@ -165,9 +260,9 @@ export default function SignaturePad({ onSave, onCancel, signerName }: Signature
           variant="contained"
           startIcon={<SaveIcon />}
           onClick={handleSave}
-          disabled={!hasSignature}
+          disabled={!hasSignature || !editableSignerName.trim()}
         >
-          Uložiť podpis
+          Uložiť podpis s pečiatkou
         </Button>
       </Box>
     </Box>

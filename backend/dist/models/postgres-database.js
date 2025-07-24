@@ -543,7 +543,7 @@ class PostgresDatabase {
         const client = await this.pool.connect();
         try {
             // Skúsme najskôr users tabuľku (hlavná)
-            const result = await client.query('SELECT id, username, email, password_hash as password, role, created_at FROM users WHERE username = $1', [username]);
+            const result = await client.query('SELECT id, username, email, password_hash as password, role, signature_template, created_at FROM users WHERE username = $1', [username]);
             if (result.rows.length > 0) {
                 const row = result.rows[0];
                 return {
@@ -552,12 +552,13 @@ class PostgresDatabase {
                     email: row.email,
                     password: row.password, // users má password
                     role: row.role,
+                    signatureTemplate: row.signature_template,
                     createdAt: new Date(row.created_at)
                 };
             }
             // Ak nie je v users, skúsme users_new tabuľku (ak existuje)
             try {
-                const resultNew = await client.query('SELECT id, username, email, password, role, created_at FROM users_new WHERE username = $1', [username]);
+                const resultNew = await client.query('SELECT id, username, email, password, role, signature_template, created_at FROM users_new WHERE username = $1', [username]);
                 if (resultNew.rows.length > 0) {
                     const row = resultNew.rows[0];
                     return {
@@ -566,6 +567,7 @@ class PostgresDatabase {
                         email: row.email,
                         password: row.password, // users_new má priamo password
                         role: row.role,
+                        signatureTemplate: row.signature_template,
                         createdAt: new Date(row.created_at)
                     };
                 }
@@ -584,7 +586,7 @@ class PostgresDatabase {
         const client = await this.pool.connect();
         try {
             // Skúsme najskôr users tabuľku (hlavná)
-            const result = await client.query('SELECT id, username, email, password_hash as password, role, created_at FROM users WHERE id = $1', [id]);
+            const result = await client.query('SELECT id, username, email, password_hash as password, role, signature_template, created_at FROM users WHERE id = $1', [id]);
             if (result.rows.length > 0) {
                 const row = result.rows[0];
                 return {
@@ -593,6 +595,7 @@ class PostgresDatabase {
                     email: row.email,
                     password: row.password,
                     role: row.role,
+                    signatureTemplate: row.signature_template,
                     createdAt: new Date(row.created_at)
                 };
             }
