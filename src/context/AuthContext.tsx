@@ -290,8 +290,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🔍 Auth state after login:', {
         isAuthenticated: true,
         token: !!result.token,
-        user: result.user.username
+        user: result.user.username,
+        isLoading: false
       });
+      
+      // 🔍 Extra debug - wait a moment and check final state
+      setTimeout(() => {
+        console.log('🔍 Auth state after dispatch (delayed check):', {
+          isAuthenticated: true,
+          isLoading: false,
+          hasToken: !!result.token,
+          hasUser: !!result.user
+        });
+      }, 50);
+      
       return true;
     } catch (error) {
       console.error('❌ Login error:', error);

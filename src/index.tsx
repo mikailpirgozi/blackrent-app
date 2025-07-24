@@ -12,9 +12,10 @@ const root = ReactDOM.createRoot(
 );
 
 root.render(
-  <React.StrictMode>
+  // 🚀 DOČASNE VYPNUTÝ StrictMode pre auth debugging
+  // <React.StrictMode>
     <App />
-  </React.StrictMode>
+  // </React.StrictMode>
 );
 
 // Performance monitoring disabled - reportWebVitals removed
