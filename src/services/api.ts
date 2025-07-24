@@ -31,39 +31,63 @@ class ApiService {
       ...options,
     };
 
-    try {
-      const response = await fetch(url, config);
-      
-      if (response.status === 401 || response.status === 403) {
-        console.warn('🚨 Auth error:', response.status, 'Token validation failed');
-        console.warn('🔍 Token debug:', {
-          hasToken: !!token,
-          tokenPreview: token ? token.substring(0, 20) + '...' : 'NO TOKEN',
-          url: url
-        });
+    // Retry logic for temporary backend issues
+    const maxRetries = 3;
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(url, config);
         
-        // TEMPORARY FIX: Don't redirect, just throw error
-        // This prevents the auto-logout loop
-        console.warn('⚠️ TEMPORARY: Not redirecting to login, just throwing error');
-        throw new Error(`Auth failed: ${response.status} - Token validation error`);
-      }
+        if (response.status === 401 || response.status === 403) {
+          console.warn('🚨 Auth error:', response.status, 'Token validation failed');
+          console.warn('🔍 Token debug:', {
+            hasToken: !!token,
+            tokenPreview: token ? token.substring(0, 20) + '...' : 'NO TOKEN',
+            url: url,
+            attempt: attempt
+          });
+          
+          // TEMPORARY FIX: Don't redirect, just throw error
+          // This prevents the auto-logout loop
+          console.warn('⚠️ TEMPORARY: Not redirecting to login, just throwing error');
+          
+          if (attempt === maxRetries) {
+            throw new Error(`Auth failed: ${response.status} - Token validation error`);
+          }
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          continue;
+        }
 
-      if (!response.ok) {
-        throw new Error(`API chyba: ${response.status}`);
-      }
+        if (!response.ok) {
+          throw new Error(`API chyba: ${response.status}`);
+        }
 
-      const data = await response.json();
-      
-      // Ak je to API response objekt s success/data, vráť len data
-      if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
-        return data.data;
+        const data = await response.json();
+        
+        // Ak je to API response objekt s success/data, vráť len data
+        if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
+          return data.data;
+        }
+        
+        return data;
+      } catch (error) {
+        lastError = error;
+        console.warn(`⚠️ API attempt ${attempt} failed:`, error);
+        
+        if (attempt === maxRetries) {
+          console.error('❌ API chyba:', error);
+          throw error;
+        }
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
-      
-      return data;
-    } catch (error) {
-      console.error('❌ API chyba:', error);
-      throw error;
     }
+    
+    throw lastError;
   }
 
   async login(username: string, password: string): Promise<{ user: any; token: string }> {
