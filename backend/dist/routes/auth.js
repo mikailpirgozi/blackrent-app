@@ -1555,5 +1555,89 @@ router.put('/signature-template', auth_1.authenticateToken, async (req, res) => 
         });
     }
 });
+// DEBUG endpoint na testovanie JWT tokenov
+router.get('/debug-token', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const token = authHeader && authHeader.split(' ')[1];
+        console.log('🐛 DEBUG TOKEN - Auth header:', authHeader ? 'exists' : 'missing');
+        console.log('🐛 DEBUG TOKEN - Token extracted:', token ? 'yes' : 'no');
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                error: 'No token provided',
+                debug: { authHeader: !!authHeader }
+            });
+        }
+        // Manual JWT verification with detailed logging
+        console.log('🐛 DEBUG TOKEN - JWT_SECRET:', JWT_SECRET.substring(0, 10) + '...');
+        console.log('🐛 DEBUG TOKEN - Token preview:', token.substring(0, 20) + '...');
+        try {
+            const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
+            console.log('🐛 DEBUG TOKEN - JWT decoded successfully:', {
+                userId: decoded.userId,
+                username: decoded.username,
+                role: decoded.role,
+                iat: decoded.iat,
+                exp: decoded.exp
+            });
+            // Check token expiry
+            const now = Math.floor(Date.now() / 1000);
+            const isExpired = decoded.exp < now;
+            console.log('🐛 DEBUG TOKEN - Expiry check:', {
+                now,
+                exp: decoded.exp,
+                isExpired
+            });
+            if (isExpired) {
+                return res.status(401).json({
+                    success: false,
+                    error: 'Token expired',
+                    debug: { now, exp: decoded.exp, isExpired }
+                });
+            }
+            // Try to get user from database
+            console.log('🐛 DEBUG TOKEN - Getting user from database...');
+            const user = await postgres_database_1.postgresDatabase.getUserById(decoded.userId);
+            console.log('🐛 DEBUG TOKEN - User found:', !!user);
+            return res.json({
+                success: true,
+                message: 'Token is valid',
+                debug: {
+                    decoded: {
+                        userId: decoded.userId,
+                        username: decoded.username,
+                        role: decoded.role
+                    },
+                    userFound: !!user,
+                    userDetails: user ? {
+                        id: user.id,
+                        username: user.username,
+                        role: user.role
+                    } : null
+                }
+            });
+        }
+        catch (jwtError) {
+            console.log('🐛 DEBUG TOKEN - JWT verification failed:', jwtError.message);
+            return res.status(401).json({
+                success: false,
+                error: 'JWT verification failed',
+                debug: {
+                    jwtError: jwtError.message,
+                    tokenPreview: token.substring(0, 20) + '...'
+                }
+            });
+        }
+    }
+    catch (error) {
+        console.error('🐛 DEBUG TOKEN - Unexpected error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Debug endpoint error',
+            debug: { error: error.message }
+        });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=auth.js.map
