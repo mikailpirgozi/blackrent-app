@@ -504,12 +504,68 @@ export default function SerialPhotoCapture({
       if (url.startsWith('https://') && (url.includes('r2.dev') || url.includes('cloudflare.com'))) {
         console.log('✅ Using existing R2 URL:', url);
       } else {
-        // Ak nie je R2 URL, konvertuj na base64 (len pre dočasné zobrazenie)
-        console.log('⚠️ Converting to base64 for temporary display:', media.file.name);
+        // 🎯 KOMPRESOVAŤ obrázky pre PDF (max 800x600, qualita 0.7)
+        console.log('⚠️ Converting to base64 for PDF - compressing:', media.file.name);
+        
+        let processedFile = media.file;
+        
+        // Ak je obrázok veľký, kompresuj ho
+        if (media.type === 'image' && media.file.size > 100000) { // > 100KB
+          console.log(`🗜️ Komprimujem veľký obrázok: ${(media.file.size / 1024).toFixed(1)}KB`);
+          
+          try {
+            // Vytvoriť canvas pre resize
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            processedFile = await new Promise<File>((resolve, reject) => {
+              img.onload = () => {
+                // Resize na max 800x600 pre PDF
+                const maxWidth = 800;
+                const maxHeight = 600;
+                
+                let { width, height } = img;
+                
+                if (width > maxWidth || height > maxHeight) {
+                  const ratio = Math.min(maxWidth / width, maxHeight / height);
+                  width *= ratio;
+                  height *= ratio;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw resized image
+                ctx?.drawImage(img, 0, 0, width, height);
+                
+                // Convert to blob with compression
+                canvas.toBlob((blob) => {
+                  if (blob) {
+                    const compressedFile = new File([blob], media.file.name, { 
+                      type: 'image/jpeg',
+                      lastModified: Date.now()
+                    });
+                    console.log(`✅ Komprimované: ${(blob.size / 1024).toFixed(1)}KB`);
+                    resolve(compressedFile);
+                  } else {
+                    reject(new Error('Canvas toBlob failed'));
+                  }
+                }, 'image/jpeg', 0.7); // 70% kvalita
+              };
+              img.onerror = reject;
+              img.src = URL.createObjectURL(media.file);
+            });
+          } catch (compressionError) {
+            console.error('⚠️ Compression failed, using original:', compressionError);
+          }
+        }
+        
+        // Convert to base64
         url = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(media.file);
+          reader.readAsDataURL(processedFile);
         });
       }
 
@@ -556,6 +612,8 @@ export default function SerialPhotoCapture({
   const totalSize = capturedMedia.reduce((sum, media) => sum + media.file.size, 0);
   const compressedSize = capturedMedia.reduce((sum, media) => sum + (media.compressedSize || media.file.size), 0);
   const compressionRatio = totalSize > 0 ? ((totalSize - compressedSize) / totalSize) * 100 : 0;
+
+
 
   return (
     <>
