@@ -388,7 +388,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'UPDATE_USER', payload: userData });
     
     // Aktualizuj aj localStorage
-    if (state.user) {
+    if (state.user && state.token) {
       const updatedUser = { ...state.user, ...userData };
       StorageManager.setAuthData(
         state.token,
