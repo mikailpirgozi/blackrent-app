@@ -53,7 +53,10 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     const success = await login(credentials, rememberMe);
     if (success) {
       onLoginSuccess?.();
-      navigate('/');
+      // 🚀 DELAY pre auth state update pred navigation
+      setTimeout(() => {
+        navigate('/');
+      }, 100);
     } else {
       setError('Nesprávne používateľské meno alebo heslo');
     }
@@ -71,7 +74,10 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       const success = await login({ username, password: account.password }, rememberMe);
       if (success) {
         onLoginSuccess?.();
-        navigate('/');
+        // 🚀 DELAY pre auth state update pred navigation
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
       }
     }
   };

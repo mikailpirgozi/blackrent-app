@@ -287,6 +287,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'LOGIN_SUCCESS', payload: result });
       
       console.log('🎉 Login process completed successfully!');
+      console.log('🔍 Auth state after login:', {
+        isAuthenticated: true,
+        token: !!result.token,
+        user: result.user.username
+      });
       return true;
     } catch (error) {
       console.error('❌ Login error:', error);

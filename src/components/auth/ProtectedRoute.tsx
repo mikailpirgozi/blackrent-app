@@ -19,6 +19,14 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { state, hasPermission } = useAuth();
 
+  // 🔍 DEBUG logging pre auth state
+  console.log('🛡️ ProtectedRoute check:', {
+    isLoading: state.isLoading,
+    isAuthenticated: state.isAuthenticated,
+    hasToken: !!state.token,
+    hasUser: !!state.user
+  });
+
   // NAJPRV: Ak je loading (session restore prebieha), zobraz loading
   if (state.isLoading) {
     return (
