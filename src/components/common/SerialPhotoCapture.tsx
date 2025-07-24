@@ -17,6 +17,8 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { Grid } from '@mui/material';
 import {
@@ -32,6 +34,7 @@ import { compressImage, compressMultipleImages, CompressionResult } from '../../
 import { compressVideo, generateVideoThumbnail, VideoCompressionResult } from '../../utils/videoCompression';
 import { ProtocolImage, ProtocolVideo } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
+import Alert from '@mui/material/Alert';
 
 interface SerialPhotoCaptureProps {
   open: boolean;
@@ -85,6 +88,7 @@ export default function SerialPhotoCapture({
   const [previewMedia, setPreviewMedia] = useState<CapturedMedia | null>(null);
   const [uploadingToR2, setUploadingToR2] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [rapidMode, setRapidMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -104,22 +108,7 @@ export default function SerialPhotoCapture({
       throw new Error('EntityId is required for R2 upload');
     }
 
-    // ✅ NOVÉ: Default na Worker namiesto signed URL
-    const useWorkerProxy = process.env.REACT_APP_USE_WORKER !== 'false';
-    
-    if (useWorkerProxy) {
-      console.log('🔄 Using Cloudflare Worker proxy...');
-      return await workerUpload(file);
-    }
-
-    // ✅ Fallback na signed URL ak Worker nie je dostupný
-    const useSignedUrl = process.env.REACT_APP_USE_SIGNED_URL === 'true';
-    
-    if (!useSignedUrl) {
-      console.log('🔄 Signed URL disabled, using direct upload...');
-      return await directUpload(file);
-    }
-
+    // ✅ NOVÝ SYSTÉM: Signed URL upload
     try {
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
       
@@ -267,6 +256,13 @@ export default function SerialPhotoCapture({
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
+    // V rapid mode resetuj input hneď pre okamžité ďalšie fotenie
+    if (rapidMode && event.target) {
+      setTimeout(() => {
+        event.target.value = '';
+      }, 100); // Krátky delay pre správne fungovanie
+    }
+
     // Kontrola limitov
     const currentImages = capturedMedia.filter(m => m.type === 'image').length;
     const currentVideos = capturedMedia.filter(m => m.type === 'video').length;
@@ -364,12 +360,12 @@ export default function SerialPhotoCapture({
       setProgress(0);
       setUploadingToR2(false);
       setUploadProgress(0);
-      // Reset file input
-      if (event.target) {
+      // Reset file input iba ak nie je rapid mode (v rapid mode už resetovaný)
+      if (!rapidMode && event.target) {
         event.target.value = '';
       }
     }
-  }, [capturedMedia, maxImages, maxVideos, allowedTypes, compressImages, compressVideos, autoUploadToR2, entityId]);
+  }, [capturedMedia, maxImages, maxVideos, allowedTypes, compressImages, compressVideos, autoUploadToR2, entityId, rapidMode]);
 
   const handleMediaTypeChange = (id: string, type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer') => {
     setCapturedMedia(prev => 
@@ -545,7 +541,7 @@ export default function SerialPhotoCapture({
         
         <DialogContent>
           {/* Action buttons */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', alignItems: 'center' }}>
             <Button
               variant="contained"
               startIcon={<PhotoCamera />}
@@ -574,7 +570,44 @@ export default function SerialPhotoCapture({
                 Komprimovať
               </Button>
             )}
+
+            {/* Rapid Mode Toggle */}
+            <FormControlLabel
+              control={
+                <Switch 
+                  checked={rapidMode} 
+                  onChange={(e) => setRapidMode(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2">
+                    Rapid Mode
+                  </Typography>
+                  {rapidMode && (
+                    <Chip 
+                      label="AKTIVNY" 
+                      size="small" 
+                      color="success" 
+                      variant="filled"
+                    />
+                  )}
+                </Box>
+              }
+              sx={{ ml: 2 }}
+            />
           </Box>
+
+          {/* Rapid Mode Info */}
+          {rapidMode && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="body2">
+                🚀 <strong>Rapid Mode aktívny!</strong> Po výbere fotky sa môžete okamžite odfotiť ďalšiu. 
+                Ideálne pre sériové fotografovanie vozidla.
+              </Typography>
+            </Alert>
+          )}
 
           {/* File inputs */}
           <input
