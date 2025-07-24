@@ -174,6 +174,8 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  firstName?: string; // Meno zamestnanca
+  lastName?: string; // Priezvisko zamestnanca
   role: UserRole;
   companyId?: string; // For company users - restrict to specific company
   permissions: Permission[];

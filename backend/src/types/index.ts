@@ -163,6 +163,8 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  firstName?: string; // Meno zamestnanca
+  lastName?: string; // Priezvisko zamestnanca
   password: string;
   role: UserRole;
   signatureTemplate?: string; // Base64 signature template for employees

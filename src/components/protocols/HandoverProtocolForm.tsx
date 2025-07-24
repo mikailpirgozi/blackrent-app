@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   Box,
   Button,
@@ -31,6 +31,7 @@ import { HandoverProtocol, Rental, ProtocolImage, ProtocolVideo, ProtocolSignatu
 import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
+import { useAuth } from '../../context/AuthContext';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -40,6 +41,7 @@ interface HandoverProtocolFormProps {
 }
 
 export default function HandoverProtocolForm({ open, onClose, rental, onSave }: HandoverProtocolFormProps) {
+  const { state } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
@@ -678,7 +680,10 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
             </Button>
             <Button
               variant="outlined"
-              onClick={() => handleAddSignature('Zamestnanec', 'employee')}
+              onClick={() => handleAddSignature(
+                `${state.user?.firstName || ''} ${state.user?.lastName || ''}`.trim() || 'Zamestnanec', 
+                'employee'
+              )}
               startIcon={<Person />}
             >
               Podpis zamestnanca

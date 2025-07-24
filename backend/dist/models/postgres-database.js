@@ -280,14 +280,16 @@ class PostgresDatabase {
             catch (error) {
                 console.log('⚠️ Migrácia 4 chyba:', error.message);
             }
-            // Migrácia 5: Pridanie signature_template stĺpca do users tabuľky
+            // Migrácia 5: Pridanie signature_template a user info stĺpcov do users tabuľky
             try {
-                console.log('📋 Migrácia 5: Pridávanie signature_template stĺpca do users...');
+                console.log('📋 Migrácia 5: Pridávanie signature_template a user info stĺpcov do users...');
                 await client.query(`
           ALTER TABLE users 
-          ADD COLUMN IF NOT EXISTS signature_template TEXT;
+          ADD COLUMN IF NOT EXISTS signature_template TEXT,
+          ADD COLUMN IF NOT EXISTS first_name VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
         `);
-                console.log('✅ Migrácia 5: signature_template stĺpec pridaný do users');
+                console.log('✅ Migrácia 5: signature_template, first_name, last_name stĺpce pridané do users');
             }
             catch (error) {
                 console.log('⚠️ Migrácia 5 chyba:', error.message);
@@ -554,7 +556,7 @@ class PostgresDatabase {
     async getUserByUsername(username) {
         try {
             // Najprv skús v hlavnej users tabuľke
-            const result = await this.pool.query('SELECT id, username, email, password_hash as password, role, created_at FROM users WHERE username = $1', [username]);
+            const result = await this.pool.query('SELECT id, username, email, password_hash as password, role, first_name, last_name, signature_template, created_at FROM users WHERE username = $1', [username]);
             if (result.rows.length > 0) {
                 const row = result.rows[0];
                 return {
@@ -562,7 +564,10 @@ class PostgresDatabase {
                     username: row.username,
                     email: row.email,
                     password: row.password,
+                    firstName: row.first_name,
+                    lastName: row.last_name,
                     role: row.role,
+                    signatureTemplate: row.signature_template,
                     createdAt: row.created_at
                 };
             }
@@ -588,7 +593,7 @@ class PostgresDatabase {
     }
     async getUserById(id) {
         try {
-            const result = await this.pool.query('SELECT id, username, email, password_hash as password, role, created_at FROM users WHERE id = $1', [id]);
+            const result = await this.pool.query('SELECT id, username, email, password_hash as password, role, first_name, last_name, signature_template, created_at FROM users WHERE id = $1', [id]);
             if (result.rows.length > 0) {
                 const row = result.rows[0];
                 return {
@@ -596,7 +601,10 @@ class PostgresDatabase {
                     username: row.username,
                     email: row.email,
                     password: row.password,
+                    firstName: row.first_name,
+                    lastName: row.last_name,
                     role: row.role,
+                    signatureTemplate: row.signature_template,
                     createdAt: row.created_at
                 };
             }

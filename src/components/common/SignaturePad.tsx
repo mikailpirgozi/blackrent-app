@@ -136,6 +136,13 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
     img.src = state.user.signatureTemplate;
   };
 
+  // Automatické načítanie signature template pre zamestnancov
+  useEffect(() => {
+    if (signerRole === 'employee' && state.user?.signatureTemplate && !hasSignature) {
+      loadSignatureTemplate();
+    }
+  }, [signerRole, state.user?.signatureTemplate, hasSignature]);
+
   const handleSave = () => {
     const canvas = canvasRef.current;
     if (!canvas || !hasSignature) return;

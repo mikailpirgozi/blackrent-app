@@ -1725,6 +1725,46 @@ router.put('/signature-template', authenticateToken, async (req: AuthRequest, re
   }
 });
 
+// PUT /api/auth/profile - Update user profile (firstName, lastName)
+router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response<ApiResponse>) => {
+  try {
+    console.log('👤 Updating profile for user:', req.user?.username);
+    
+    const { firstName, lastName } = req.body;
+    
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'User ID not found'
+      });
+    }
+    
+    // Update user profile in database
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      await client.query(
+        'UPDATE users SET first_name = $1, last_name = $2 WHERE id = $3',
+        [firstName || null, lastName || null, req.user.id]
+      );
+      
+      console.log('✅ User profile updated successfully');
+      
+      res.json({
+        success: true,
+        message: 'Profil úspešne aktualizovaný'
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    console.error('❌ Error updating user profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Chyba pri aktualizácii profilu'
+    });
+  }
+});
+
 // DEBUG endpoint na testovanie JWT tokenov
 router.get('/debug-token', async (req: Request, res: Response<any>) => {
   try {

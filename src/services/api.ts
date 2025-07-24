@@ -428,6 +428,16 @@ class ApiService {
       body: JSON.stringify({ signatureTemplate }),
     });
   }
+
+  // User profile management
+  async updateUserProfile(firstName: string, lastName: string): Promise<any> {
+    console.log('👤 API updateUserProfile - updating user profile');
+    
+    return this.request<any>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ firstName, lastName }),
+    });
+  }
 }
 
 export const apiService = new ApiService();
