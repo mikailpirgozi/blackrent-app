@@ -146,6 +146,45 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
         createdBy: 'admin',
       };
 
+      // Vyčisti media objekty pred odoslaním - odstráni problematické properties
+      const cleanedProtocol = {
+        ...protocol,
+        vehicleImages: (protocol.vehicleImages || []).map((img: any) => ({
+          id: img.id,
+          url: img.url,
+          type: img.type,
+          mediaType: img.mediaType,
+          description: img.description || '',
+          timestamp: img.timestamp
+        })),
+        vehicleVideos: (protocol.vehicleVideos || []).map((vid: any) => ({
+          id: vid.id,
+          url: vid.url,
+          type: vid.type,
+          mediaType: vid.mediaType,
+          description: vid.description || '',
+          timestamp: vid.timestamp
+        })),
+        documentImages: (protocol.documentImages || []).map((img: any) => ({
+          id: img.id,
+          url: img.url,
+          type: img.type,
+          mediaType: img.mediaType,
+          description: img.description || '',
+          timestamp: img.timestamp
+        })),
+        damageImages: (protocol.damageImages || []).map((img: any) => ({
+          id: img.id,
+          url: img.url,
+          type: img.type,
+          mediaType: img.mediaType,
+          description: img.description || '',
+          timestamp: img.timestamp
+        }))
+      };
+
+      console.log('🧹 Cleaned handover protocol for DB:', cleanedProtocol);
+
       // API call
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
@@ -156,7 +195,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
         },
-        body: JSON.stringify(protocol)
+        body: JSON.stringify(cleanedProtocol)
       });
       
       if (!response.ok) {
