@@ -64,11 +64,26 @@ export default function NativeCamera({
 
   // Inicializácia kamery
   const initCamera = useCallback(async (facingMode: 'environment' | 'user' = 'environment') => {
+    console.log('🚀 Starting camera initialization...');
     setCameraState(prev => ({ ...prev, isInitializing: true, error: null }));
+
+    // Kontrola podpory MediaDevices API
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const errorMsg = 'MediaDevices API nie je podporované v tomto prehliadači.';
+      console.error('❌', errorMsg);
+      setCameraState(prev => ({
+        ...prev,
+        isInitializing: false,
+        error: errorMsg,
+        stream: null,
+      }));
+      return;
+    }
 
     try {
       // Zastavenie existujúceho streamu
       if (cameraState.stream) {
+        console.log('🛑 Stopping existing stream...');
         cameraState.stream.getTracks().forEach(track => track.stop());
       }
 
@@ -82,17 +97,36 @@ export default function NativeCamera({
         audio: false,
       };
 
+      console.log('📱 Requesting camera with constraints:', constraints);
+
       // Získanie stream z kamery
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
+      console.log('✅ Stream získaný:', stream);
+      console.log('📹 Video tracks:', stream.getVideoTracks());
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // Počkaj na loadedmetadata event
+        videoRef.current.onloadedmetadata = () => {
+          console.log('✅ Video metadata loaded');
+          if (videoRef.current) {
+            videoRef.current.play().catch(err => {
+              console.error('❌ Video play error:', err);
+            });
+          }
+        };
+      } else {
+        console.error('❌ Video ref is null!');
       }
 
       // Kontrola flash podpory
       const videoTrack = stream.getVideoTracks()[0];
       const capabilities = videoTrack.getCapabilities?.();
       const flashSupported = capabilities && (capabilities as any).torch === true;
+
+      console.log('🔦 Flash supported:', flashSupported);
 
       setCameraState(prev => ({
         ...prev,
@@ -104,16 +138,21 @@ export default function NativeCamera({
       }));
 
     } catch (error) {
-      console.error('Chyba pri inicializácii kamery:', error);
+      console.error('❌ Chyba pri inicializácii kamery:', error);
       let errorMessage = 'Nepodarilo sa spustiť kameru';
       
       if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        
         if (error.name === 'NotAllowedError') {
           errorMessage = 'Prístup ku kamere bol zamietnutý. Povoľte prístup ku kamere v nastaveniach prehliadača.';
         } else if (error.name === 'NotFoundError') {
-          errorMessage = 'Kamera nebola nájdená na tomto zariadení.';
+          errorMessage = 'Kamera nebyla nájdená na tomto zariadení.';
         } else if (error.name === 'NotSupportedError') {
           errorMessage = 'Kamera nie je podporovaná v tomto prehliadači.';
+        } else if (error.name === 'OverconstrainedError') {
+          errorMessage = 'Požadované nastavenia kamery nie sú podporované.';
         }
       }
 
@@ -129,18 +168,24 @@ export default function NativeCamera({
   // Spustenie kamery pri otvorení dialógu
   useEffect(() => {
     if (open) {
+      console.log('🎬 NativeCamera opening, initializing...');
       setPhotosInSession(0);
       initCamera();
     } else {
+      console.log('🚪 NativeCamera closing, cleaning up...');
       // Zastavenie kamery pri zatvorení
       if (cameraState.stream) {
-        cameraState.stream.getTracks().forEach(track => track.stop());
+        cameraState.stream.getTracks().forEach(track => {
+          console.log('🛑 Stopping track:', track.kind);
+          track.stop();
+        });
         setCameraState(prev => ({ ...prev, stream: null }));
       }
     }
 
     return () => {
       if (cameraState.stream) {
+        console.log('🧹 Cleanup: stopping all tracks');
         cameraState.stream.getTracks().forEach(track => track.stop());
       }
     };
@@ -318,11 +363,12 @@ export default function NativeCamera({
                 autoPlay
                 playsInline
                 muted
+                onCanPlay={() => console.log('✅ Video can play')}
+                onError={(e) => console.error('❌ Video error:', e)}
                 style={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  display: cameraState.stream ? 'block' : 'none',
                 }}
               />
 
