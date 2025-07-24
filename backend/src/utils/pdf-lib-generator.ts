@@ -137,19 +137,77 @@ export class PDFLibGenerator {
       ['Stav protokolu:', this.getStatusText(protocol.status)]
     ]);
     
-    // Return-specific informácie
+    // 3. Informácie o prenájme (rovnaké ako handover)
+    if (protocol.rentalData) {
+      this.addInfoSection('Informácie o prenájme', [
+        ['Číslo objednávky:', protocol.rentalData.orderNumber || 'N/A'],
+        ['Zákazník:', protocol.rentalData.customer?.name || 'N/A'],
+        ['Dátum od:', new Date(protocol.rentalData.startDate).toLocaleDateString('sk-SK')],
+        ['Dátum do:', new Date(protocol.rentalData.endDate).toLocaleDateString('sk-SK')],
+        ['Celková cena:', `${protocol.rentalData.totalPrice} ${protocol.rentalData.currency || 'EUR'}`],
+        ['Záloha:', `${protocol.rentalData.deposit || 0} ${protocol.rentalData.currency || 'EUR'}`]
+      ]);
+    }
+    
+    // 4. Informácie o vozidle (rovnaké ako handover)
+    if (protocol.rentalData?.vehicle) {
+      this.addInfoSection('Informácie o vozidle', [
+        ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
+        ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
+        ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
+        ['Spoločnosť:', protocol.rentalData.vehicle.company || 'N/A']
+      ]);
+    }
+    
+    // 5. Stav vozidla pri vrátení (rozšírené)
+    this.addInfoSection('Stav vozidla pri vrátení', [
+      ['Stav tachometra:', `${protocol.vehicleCondition.odometer} km`],
+      ['Úroveň paliva:', `${protocol.vehicleCondition.fuelLevel}%`],
+      ['Typ paliva:', protocol.vehicleCondition.fuelType],
+      ['Exteriér:', protocol.vehicleCondition.exteriorCondition],
+      ['Interiér:', protocol.vehicleCondition.interiorCondition]
+    ]);
+    
+    // 6. Return-specific informácie o použití
     if (protocol.kilometersUsed !== undefined) {
       this.addInfoSection('Informácie o použití', [
         ['Použité kilometre:', `${protocol.kilometersUsed} km`],
         ['Prekročenie limitu:', protocol.kilometerOverage ? `${protocol.kilometerOverage} km` : 'Nie'],
         ['Poplatok za km:', protocol.kilometerFee ? `${protocol.kilometerFee} EUR` : '0 EUR'],
-        ['Dodatočné poplatky:', `${protocol.totalExtraFees || 0} EUR`]
+        ['Poplatok za palivo:', protocol.fuelFee ? `${protocol.fuelFee} EUR` : '0 EUR'],
+        ['Dodatočné poplatky:', `${protocol.totalExtraFees || 0} EUR`],
+        ['Vrátenie zálohy:', `${protocol.depositRefund || 0} EUR`],
+        ['Konečné vrátenie:', `${protocol.finalRefund || 0} EUR`]
       ]);
     }
     
-    // ✅ PRIDANÉ: Fotodokumentácia v Return protokole
+    // 7. Poznámky k stavu vozidla
+    if (protocol.vehicleCondition.notes) {
+      this.addNotesSection('Poznámky k stavu vozidla', protocol.vehicleCondition.notes);
+    }
+    
+    // 8. Poškodenia (ak sú)
+    if (protocol.damages && protocol.damages.length > 0) {
+      this.addDamagesSection(protocol.damages);
+    }
+    
+    // 9. Nové poškodenia (špecifické pre return)
+    if (protocol.newDamages && protocol.newDamages.length > 0) {
+      this.addDamagesSection(protocol.newDamages, 'Nové poškodenia zistené pri vrátení');
+    }
+    
+    // 10. ✅ PRIDANÉ: Fotodokumentácia v Return protokole
     await this.addImagesSection(protocol);
     
+    // 11. Súhrn médií
+    this.addMediaSummary(protocol);
+    
+    // 12. Podpisy (ak sú)
+    if (protocol.signatures && protocol.signatures.length > 0) {
+      this.addSignaturesSection(protocol.signatures);
+    }
+    
+    // 13. Footer
     this.addModernFooter();
     
     const pdfBytes = await this.doc.save();
@@ -256,8 +314,8 @@ export class PDFLibGenerator {
   /**
    * Sekcia pre poškodenia
    */
-  private addDamagesSection(damages: any[]): void {
-    this.addInfoSection('Zaznamenané poškodenia', 
+  private addDamagesSection(damages: any[], title: string = 'Zaznamenané poškodenia'): void {
+    this.addInfoSection(title, 
       damages.map((damage, index) => [
         `Poškodenie ${index + 1}:`,
         `${damage.description} (${damage.severity})`
@@ -268,7 +326,7 @@ export class PDFLibGenerator {
   /**
    * Súhrn médií
    */
-  private addMediaSummary(protocol: HandoverProtocol): void {
+  private addMediaSummary(protocol: HandoverProtocol | ReturnProtocol): void {
     const totalImages = (protocol.vehicleImages?.length || 0) + 
                        (protocol.documentImages?.length || 0) + 
                        (protocol.damageImages?.length || 0);

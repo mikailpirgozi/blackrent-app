@@ -49,6 +49,7 @@ export default function NativeCamera({
 }: NativeCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   
   const [cameraState, setCameraState] = useState<CameraState>({
     stream: null,
@@ -82,61 +83,107 @@ export default function NativeCamera({
 
     try {
       // Zastavenie existujúceho streamu
-      if (cameraState.stream) {
+      if (streamRef.current) {
         console.log('🛑 Stopping existing stream...');
-        cameraState.stream.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
 
       // Nastavenie constraints pre kameru
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: facingMode,
-          width: { ideal: 1920, max: 1920 },
-          height: { ideal: 1080, max: 1080 },
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
         },
         audio: false,
       };
 
       console.log('📱 Requesting camera with constraints:', constraints);
 
-      // Získanie stream z kamery
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      
-      console.log('✅ Stream získaný:', stream);
-      console.log('📹 Video tracks:', stream.getVideoTracks());
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      // Timeout pre loading state (5 sekúnd)
+      const timeoutId = setTimeout(() => {
+        console.error('⏰ Camera initialization timeout');
+        setCameraState(prev => ({
+          ...prev,
+          isInitializing: false,
+          error: 'Časový limit pre spustenie kamery vypršal. Skúste to znovu.',
+          stream: null,
+        }));
+      }, 5000);
+
+      try {
+        // Získanie stream z kamery
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         
-        // Počkaj na loadedmetadata event
-        videoRef.current.onloadedmetadata = () => {
-          console.log('✅ Video metadata loaded');
+        // Zastaviť timeout ak sa stream podarilo získať
+        clearTimeout(timeoutId);
+
+        console.log('✅ Stream získaný:', stream);
+        console.log('📹 Video tracks:', stream.getVideoTracks());
+        
+        // Počkaj na video element (môže trvať chvíľu kým sa vytvorí)
+        let retries = 0;
+        const maxRetries = 10;
+        
+        const setupVideo = () => {
           if (videoRef.current) {
-            videoRef.current.play().catch(err => {
-              console.error('❌ Video play error:', err);
-            });
+            console.log('✅ Video ref found, setting up stream');
+            videoRef.current.srcObject = stream;
+            
+            // Počkaj na loadedmetadata event
+            videoRef.current.onloadedmetadata = () => {
+              console.log('✅ Video metadata loaded');
+              if (videoRef.current) {
+                videoRef.current.play().catch(err => {
+                  console.error('❌ Video play error:', err);
+                });
+              }
+            };
+          } else {
+            console.warn(`⚠️ Video ref is null, retry ${retries + 1}/${maxRetries}`);
+            retries++;
+            if (retries < maxRetries) {
+              setTimeout(setupVideo, 100);
+            } else {
+              console.error('❌ Video ref never became available');
+              setCameraState(prev => ({
+                ...prev,
+                error: 'Nepodarilo sa pripojiť video element. Skúste obnoviť stránku.',
+                isInitializing: false,
+              }));
+              return;
+            }
           }
         };
-      } else {
-        console.error('❌ Video ref is null!');
+        
+        setupVideo();
+
+        // Kontrola flash podpory
+        const videoTrack = stream.getVideoTracks()[0];
+        const capabilities = videoTrack.getCapabilities?.();
+        const flashSupported = capabilities && (capabilities as any).torch === true;
+
+        console.log('🔦 Flash supported:', flashSupported);
+
+        setCameraState(prev => ({
+          ...prev,
+          stream,
+          isInitializing: false,
+          facingMode,
+          flashSupported,
+          error: null,
+        }));
+
+        // Uložiť stream do ref pre cleanup
+        streamRef.current = stream;
+
+      } catch (error) {
+        // Zastaviť timeout pri chybe
+        clearTimeout(timeoutId);
+        
+        throw error; // Re-throw pre vonkajší catch
       }
-
-      // Kontrola flash podpory
-      const videoTrack = stream.getVideoTracks()[0];
-      const capabilities = videoTrack.getCapabilities?.();
-      const flashSupported = capabilities && (capabilities as any).torch === true;
-
-      console.log('🔦 Flash supported:', flashSupported);
-
-      setCameraState(prev => ({
-        ...prev,
-        stream,
-        isInitializing: false,
-        facingMode,
-        flashSupported,
-        error: null,
-      }));
-
     } catch (error) {
       console.error('❌ Chyba pri inicializácii kamery:', error);
       let errorMessage = 'Nepodarilo sa spustiť kameru';
@@ -146,13 +193,13 @@ export default function NativeCamera({
         console.error('Error message:', error.message);
         
         if (error.name === 'NotAllowedError') {
-          errorMessage = 'Prístup ku kamere bol zamietnutý. Povoľte prístup ku kamere v nastaveniach prehliadača.';
+          errorMessage = 'Prístup ku kamere bol zamietnutý.\n\nPovoľte prístup ku kamere:\n1. Kliknite na ikonu 🔒 v adresnom riadku\n2. Povoľte kameru pre túto stránku\n3. Obnovte stránku';
         } else if (error.name === 'NotFoundError') {
-          errorMessage = 'Kamera nebyla nájdená na tomto zariadení.';
+          errorMessage = 'Kamera nebola nájdená na tomto zariadení.\n\nSkontrolujte či:\n• Máte kameru pripojenu\n• Kamera nie je používaná inou aplikáciou';
         } else if (error.name === 'NotSupportedError') {
-          errorMessage = 'Kamera nie je podporovaná v tomto prehliadači.';
+          errorMessage = 'Kamera nie je podporovaná v tomto prehliadači.\n\nSkúste:\n• Chrome, Safari alebo Firefox\n• HTTPS pripojenie';
         } else if (error.name === 'OverconstrainedError') {
-          errorMessage = 'Požadované nastavenia kamery nie sú podporované.';
+          errorMessage = 'Požadované nastavenia kamery nie sú podporované.\n\nSkúste reštartovať kameru.';
         }
       }
 
@@ -163,7 +210,7 @@ export default function NativeCamera({
         stream: null,
       }));
     }
-  }, [cameraState.stream]);
+  }, []); // Prázdne dependencies!
 
   // Spustenie kamery pri otvorení dialógu
   useEffect(() => {
@@ -174,22 +221,24 @@ export default function NativeCamera({
     } else {
       console.log('🚪 NativeCamera closing, cleaning up...');
       // Zastavenie kamery pri zatvorení
-      if (cameraState.stream) {
-        cameraState.stream.getTracks().forEach(track => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => {
           console.log('🛑 Stopping track:', track.kind);
           track.stop();
         });
+        streamRef.current = null;
         setCameraState(prev => ({ ...prev, stream: null }));
       }
     }
 
     return () => {
-      if (cameraState.stream) {
+      if (streamRef.current) {
         console.log('🧹 Cleanup: stopping all tracks');
-        cameraState.stream.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
     };
-  }, [open, initCamera]);
+  }, [open]); // Len open dependency!
 
   // Prepnutie kamery (predná/zadná)
   const switchCamera = async () => {
@@ -199,10 +248,10 @@ export default function NativeCamera({
 
   // Zapnutie/vypnutie flash
   const toggleFlash = async () => {
-    if (!cameraState.stream || !cameraState.flashSupported) return;
+    if (!streamRef.current || !cameraState.flashSupported) return;
 
     try {
-      const videoTrack = cameraState.stream.getVideoTracks()[0];
+      const videoTrack = streamRef.current.getVideoTracks()[0];
       await videoTrack.applyConstraints({
         advanced: [{ torch: !cameraState.flashEnabled } as any],
       });
@@ -310,6 +359,8 @@ export default function NativeCamera({
         bgcolor: 'rgba(0,0,0,0.8)',
         color: 'white',
         py: 1,
+        position: 'relative',
+        zIndex: 10,
       }}>
         <Typography variant="h6" sx={{ color: 'white' }}>
           {title}
@@ -322,7 +373,17 @@ export default function NativeCamera({
             sx={{ color: 'white', borderColor: 'white' }}
             variant="outlined"
           />
-          <IconButton onClick={onClose} sx={{ color: 'white' }}>
+          <IconButton 
+            onClick={onClose} 
+            sx={{ 
+              color: 'white',
+              bgcolor: 'rgba(255,255,255,0.1)',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.2)',
+              },
+              ml: 1,
+            }}
+          >
             <Close />
           </IconButton>
         </Box>
@@ -338,17 +399,26 @@ export default function NativeCamera({
               Skúsiť znovu
             </Button>
           </Box>
+        ) : cameraState.isInitializing ? (
+          <Box sx={{ 
+            p: 3, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            height: '100%',
+            minHeight: '300px'
+          }}>
+            <Typography variant="body1" sx={{ color: 'white', mb: 2, textAlign: 'center' }}>
+              Spúšťam kameru...
+            </Typography>
+            <LinearProgress sx={{ width: '100%', maxWidth: '300px' }} />
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', mt: 2, textAlign: 'center' }}>
+              Povoľte prístup ku kamere v prehliadači
+            </Typography>
+          </Box>
         ) : (
           <>
-            {cameraState.isInitializing && (
-              <Box sx={{ p: 3 }}>
-                <Typography variant="body1" sx={{ color: 'white', mb: 2 }}>
-                  Spúšťam kameru...
-                </Typography>
-                <LinearProgress />
-              </Box>
-            )}
-
             {/* Video preview - LIVE CAMERA FEED */}
             <Box sx={{ 
               position: 'relative', 
@@ -357,6 +427,7 @@ export default function NativeCamera({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              minHeight: '400px',
             }}>
               <video
                 ref={videoRef}
@@ -484,6 +555,7 @@ export default function NativeCamera({
         color: 'white',
         justifyContent: 'center',
         py: 1,
+        display: photosInSession > 0 ? 'flex' : 'none', // Skryť ak nie sú žiadne fotky
       }}>
         <Button onClick={onClose} sx={{ color: 'white' }}>
           Hotovo ({photosInSession} fotiek)

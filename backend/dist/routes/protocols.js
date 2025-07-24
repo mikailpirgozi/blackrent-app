@@ -39,34 +39,47 @@ router.get('/rental/:rentalId', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
-// 🎯 PDF PROXY ENDPOINT - Obídenie CORS problému
-router.get('/pdf/:protocolId', async (req, res) => {
+// PDF Proxy endpoint
+router.get('/pdf/:protocolId', auth_1.authenticateToken, async (req, res) => {
     try {
         const { protocolId } = req.params;
         console.log('📄 PDF proxy request for protocol:', protocolId);
-        // Načítanie protokolu z databázy
-        const protocol = await postgres_database_1.postgresDatabase.getHandoverProtocolById(protocolId);
-        if (!protocol || !protocol.pdfUrl) {
-            return res.status(404).json({ error: 'PDF not found' });
+        // Pokús sa najskôr nájsť handover protokol
+        let protocol = await postgres_database_1.postgresDatabase.getHandoverProtocolById(protocolId);
+        let protocolType = 'handover';
+        // Ak nie je handover, skús return
+        if (!protocol) {
+            protocol = await postgres_database_1.postgresDatabase.getReturnProtocolById(protocolId);
+            protocolType = 'return';
         }
-        // 🔄 Stiahnutie PDF z R2 a forward do frontendu
-        const response = await fetch(protocol.pdfUrl);
-        if (!response.ok) {
-            throw new Error(`R2 fetch failed: ${response.status}`);
+        if (!protocol) {
+            console.error('❌ Protocol not found:', protocolId);
+            return res.status(404).json({ error: 'Protocol not found' });
         }
-        const pdfBuffer = await response.arrayBuffer();
-        // Nastavenie headers pre PDF
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="protocol_${protocolId}.pdf"`);
-        res.setHeader('Access-Control-Allow-Origin', '*'); // 🎯 CORS fix
-        res.setHeader('Content-Length', pdfBuffer.byteLength);
-        // Odoslanie PDF
+        if (!protocol.pdfUrl) {
+            console.error('❌ No PDF URL found for protocol:', protocolId);
+            return res.status(404).json({ error: 'PDF not available for this protocol' });
+        }
+        console.log('📄 Fetching PDF from R2:', protocol.pdfUrl);
+        // Fetch PDF z R2
+        const pdfResponse = await fetch(protocol.pdfUrl);
+        if (!pdfResponse.ok) {
+            console.error('❌ Failed to fetch PDF from R2:', pdfResponse.status);
+            return res.status(404).json({ error: 'PDF file not found in storage' });
+        }
+        // Stream PDF do response
+        const pdfBuffer = await pdfResponse.arrayBuffer();
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${protocolType}-protocol-${protocolId}.pdf"`,
+            'Content-Length': pdfBuffer.byteLength.toString()
+        });
         res.send(Buffer.from(pdfBuffer));
-        console.log('✅ PDF proxy successful:', protocolId);
+        console.log('✅ PDF successfully served via proxy');
     }
     catch (error) {
         console.error('❌ PDF proxy error:', error);
-        res.status(500).json({ error: 'Failed to fetch PDF' });
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 // Create handover protocol
@@ -160,20 +173,58 @@ router.delete('/handover/:id', async (req, res) => {
     }
 });
 // Create return protocol
-router.post('/return', async (req, res) => {
+router.post('/return', auth_1.authenticateToken, async (req, res) => {
     try {
+        console.log('📝 Received return protocol request');
         const protocolData = req.body;
-        console.log('📝 Creating return protocol:', protocolData.id);
+        console.log('📝 Creating return protocol with data:', JSON.stringify(protocolData, null, 2));
+        // Validácia povinných polí
+        if (!protocolData.rentalId) {
+            console.error('❌ Missing rental ID');
+            return res.status(400).json({ error: 'Rental ID is required' });
+        }
+        // UUID validácia pre rental ID
+        if (!isValidUUID(protocolData.rentalId)) {
+            console.error('❌ Invalid rental ID format:', protocolData.rentalId);
+            return res.status(400).json({ error: 'Invalid rental ID format. Must be valid UUID.' });
+        }
+        // 1. Uloženie protokolu do databázy
         const protocol = await postgres_database_1.postgresDatabase.createReturnProtocol(protocolData);
+        console.log('✅ Return protocol created in DB:', protocol.id);
+        // 2. 🎭 PDF generovanie + upload do R2
+        let pdfUrl = null;
+        try {
+            console.log('🎭 Generating Return PDF for protocol:', protocol.id);
+            const pdfBuffer = await (0, pdf_generator_1.generateReturnPDF)(protocolData);
+            // 3. Uloženie PDF do R2 storage
+            const filename = `protocols/return/${protocol.id}_${Date.now()}.pdf`;
+            pdfUrl = await r2_storage_1.r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
+            console.log('✅ Return PDF generated and uploaded to R2:', pdfUrl);
+            // 4. Aktualizácia protokolu s PDF URL
+            await postgres_database_1.postgresDatabase.updateReturnProtocol(protocol.id, { pdfUrl });
+        }
+        catch (pdfError) {
+            console.error('❌ Error generating Return PDF, but protocol saved:', pdfError);
+            // Protokol je uložený, ale PDF sa nepodarilo vytvoriť
+        }
+        console.log('✅ Return protocol created successfully:', protocol.id);
         res.status(201).json({
             success: true,
             message: 'Preberací protokol úspešne vytvorený',
-            protocol: protocol
+            protocol: {
+                ...protocol,
+                pdfUrl,
+                // 🎯 FRONTEND proxy URL namiesto priameho R2 URL
+                pdfProxyUrl: pdfUrl ? `/protocols/pdf/${protocol.id}` : null
+            }
         });
     }
     catch (error) {
         console.error('❌ Error creating return protocol:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({
+            error: 'Internal server error',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
     }
 });
 // DEBUG: Endpoint pre overenie Puppeteer konfigurácie

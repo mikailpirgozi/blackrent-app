@@ -118,7 +118,8 @@ class R2Storage {
      */
     generateProtocolPDFKey(protocolId, protocolType) {
         const timestamp = new Date().toISOString().split('T')[0];
-        return `protocols/pdf/${timestamp}/${protocolId}/${protocolType}-protocol.pdf`;
+        const protocolTypeName = protocolType === 'handover' ? 'prevzatie' : 'vratenie';
+        return `PDF protokoly/${timestamp}/${protocolId}/${protocolTypeName}-protokol.pdf`;
     }
     /**
      * Generovanie kľúča pre médiá protokolu
@@ -126,28 +127,62 @@ class R2Storage {
     generateProtocolMediaKey(protocolId, mediaType, filename) {
         const timestamp = new Date().toISOString().split('T')[0];
         const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-        return `protocols/${mediaType}/${timestamp}/${protocolId}/${sanitizedFilename}`;
+        // Slovenské názvy pre lepšiu organizáciu
+        const folderMap = {
+            'vehicle-images': 'Fotky protokoly/vozidlo',
+            'document-images': 'Fotky protokoly/dokumenty',
+            'damage-images': 'Fotky protokoly/poskodenia',
+            'vehicle-videos': 'Fotky protokoly/videa-vozidlo'
+        };
+        const folderName = folderMap[mediaType];
+        return `${folderName}/${timestamp}/${protocolId}/${sanitizedFilename}`;
     }
     /**
      * Mazanie všetkých súborov protokolu
      */
     async deleteProtocolFiles(protocolId) {
         try {
-            console.log(`🗑️ Deleting all files for protocol: ${protocolId}`);
-            // Získanie zoznamu všetkých súborov protokolu
-            const filesToDelete = await this.listProtocolFiles(protocolId);
-            if (filesToDelete.length === 0) {
-                console.log(`ℹ️ No files found for protocol: ${protocolId}`);
-                return;
-            }
-            console.log(`🗑️ Found ${filesToDelete.length} files to delete`);
-            // Mazanie súborov v batch
-            const deletePromises = filesToDelete.map(key => this.deleteFile(key));
+            // Zmené cesty pre slovenské názvy priečinkov
+            const prefixesToDelete = [
+                `PDF protokoly/*/${protocolId}/*`,
+                `Fotky protokoly/vozidlo/*/${protocolId}/*`,
+                `Fotky protokoly/dokumenty/*/${protocolId}/*`,
+                `Fotky protokoly/poskodenia/*/${protocolId}/*`,
+                `Fotky protokoly/videa-vozidlo/*/${protocolId}/*`
+            ];
+            const deletePromises = prefixesToDelete.map(async (prefix) => {
+                try {
+                    console.log(`🗑️ Mazanie súborov s prefixom: ${prefix}`);
+                    const listCommand = new client_s3_1.ListObjectsV2Command({
+                        Bucket: this.config.bucketName,
+                        Prefix: prefix.replace(/\/\*\//g, '/').replace(/\/\*/g, '')
+                    });
+                    const objects = await this.client.send(listCommand);
+                    if (objects.Contents && objects.Contents.length > 0) {
+                        // AWS SDK v3 vyžaduje individuálne mazanie súborov
+                        const deleteFilePromises = objects.Contents.map((obj) => {
+                            if (obj.Key) {
+                                const deleteCommand = new client_s3_1.DeleteObjectCommand({
+                                    Bucket: this.config.bucketName,
+                                    Key: obj.Key
+                                });
+                                return this.client.send(deleteCommand);
+                            }
+                            return Promise.resolve();
+                        });
+                        await Promise.all(deleteFilePromises);
+                        console.log(`✅ Vymazané ${objects.Contents.length} súborov pre prefix: ${prefix}`);
+                    }
+                }
+                catch (error) {
+                    console.error(`❌ Chyba pri mazaní súborov pre ${prefix}:`, error);
+                }
+            });
             await Promise.all(deletePromises);
-            console.log(`✅ Successfully deleted ${filesToDelete.length} files for protocol: ${protocolId}`);
+            console.log(`✅ Všetky súbory protokolu ${protocolId} vymazané`);
         }
         catch (error) {
-            console.error(`❌ Error deleting protocol files: ${error}`);
+            console.error('❌ Chyba pri mazaní súborov protokolu:', error);
             throw error;
         }
     }

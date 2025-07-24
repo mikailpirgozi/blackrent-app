@@ -1991,10 +1991,10 @@ class PostgresDatabase {
                 protocolData.vehicleCondition?.exteriorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.interiorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.notes || '',
-                JSON.stringify(protocolData.vehicleImages || []),
-                JSON.stringify(protocolData.vehicleVideos || []),
-                JSON.stringify(protocolData.documentImages || []),
-                JSON.stringify(protocolData.damageImages || []),
+                JSON.stringify(protocolData.vehicleImages || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
+                JSON.stringify(protocolData.vehicleVideos || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
+                JSON.stringify(protocolData.documentImages || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
+                JSON.stringify(protocolData.damageImages || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
                 JSON.stringify(protocolData.damages || []),
                 JSON.stringify(protocolData.signatures || []),
                 JSON.stringify(protocolData.rentalData || {}),
@@ -2103,10 +2103,10 @@ class PostgresDatabase {
                 protocolData.vehicleCondition?.exteriorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.interiorCondition || 'Dobrý',
                 protocolData.vehicleCondition?.notes || '',
-                protocolData.vehicleImages || [], // ✅ PRIAMO - bez extractMediaData
-                protocolData.vehicleVideos || [], // ✅ PRIAMO - bez extractMediaData
-                protocolData.documentImages || [], // ✅ PRIAMO - bez extractMediaData
-                protocolData.damageImages || [], // ✅ PRIAMO - bez extractMediaData
+                JSON.stringify(protocolData.vehicleImages || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
+                JSON.stringify(protocolData.vehicleVideos || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
+                JSON.stringify(protocolData.documentImages || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
+                JSON.stringify(protocolData.damageImages || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
                 JSON.stringify(protocolData.damages || []),
                 JSON.stringify(protocolData.newDamages || []),
                 JSON.stringify(protocolData.signatures || []),

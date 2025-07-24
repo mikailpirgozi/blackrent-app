@@ -68,5 +68,9 @@ export declare class PDFLibGenerator {
      * Konvertuje slovenský text na ASCII (fallback pre PDF-lib font compatibility)
      */
     private toAsciiText;
+    /**
+     * NOVÉ: Sekcia pre zobrazenie obrázkov v PDF protokole
+     */
+    private addImagesSection;
 }
 //# sourceMappingURL=pdf-lib-generator.d.ts.map
