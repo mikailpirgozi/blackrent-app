@@ -47,6 +47,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAuth } from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
 import ChangePasswordForm from './auth/ChangePasswordForm';
+import UserProfile from './users/UserProfile';
 
 const drawerWidth = 280;
 
@@ -70,6 +71,7 @@ export default function Layout({ children }: LayoutProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [bottomNavValue, setBottomNavValue] = useState(0);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { state, logout, hasPermission } = useAuth();
@@ -95,6 +97,11 @@ export default function Layout({ children }: LayoutProps) {
 
   const handlePasswordChange = () => {
     setPasswordDialogOpen(true);
+    handleMenuClose();
+  };
+
+  const handleProfileOpen = () => {
+    setProfileDialogOpen(true);
     handleMenuClose();
   };
 
@@ -383,10 +390,18 @@ export default function Layout({ children }: LayoutProps) {
                   },
                 }}
               >
-                <MenuItem onClick={handlePasswordChange}>
-                  <LockIcon sx={{ mr: 1, fontSize: 18 }} />
-                  Zmeniť heslo
+                <MenuItem onClick={handleProfileOpen}>
+                  <AccountCircle sx={{ mr: 1, fontSize: 18 }} />
+                  Môj profil
                 </MenuItem>
+                              <MenuItem onClick={handleProfileOpen}>
+                <AccountCircle sx={{ mr: 1, fontSize: 18 }} />
+                Môj profil
+              </MenuItem>
+              <MenuItem onClick={handlePasswordChange}>
+                <LockIcon sx={{ mr: 1, fontSize: 18 }} />
+                Zmeniť heslo
+              </MenuItem>
                 <Divider />
                 <MenuItem onClick={handleLogout}>
                   <Logout sx={{ mr: 1, fontSize: 18 }} />
@@ -582,6 +597,12 @@ export default function Layout({ children }: LayoutProps) {
       <ChangePasswordForm
         open={passwordDialogOpen}
         onClose={() => setPasswordDialogOpen(false)}
+      />
+
+      {/* User Profile Dialog */}
+      <UserProfile
+        open={profileDialogOpen}
+        onClose={() => setProfileDialogOpen(false)}
       />
     </Box>
   );

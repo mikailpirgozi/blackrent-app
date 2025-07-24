@@ -28,6 +28,7 @@ import { ReturnProtocol, Rental, HandoverProtocol, ProtocolImage, ProtocolVideo,
 import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
+import { useAuth } from '../../context/AuthContext';
 
 interface ReturnProtocolFormProps {
   open: boolean;
@@ -38,6 +39,7 @@ interface ReturnProtocolFormProps {
 }
 
 export default function ReturnProtocolForm({ open, onClose, rental, handoverProtocol, onSave }: ReturnProtocolFormProps) {
+  const { state } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
@@ -632,7 +634,10 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
             </Button>
             <Button
               variant="outlined"
-              onClick={() => handleAddSignature('Zamestnanec', 'employee')}
+              onClick={() => handleAddSignature(
+                `${state.user?.firstName || ''} ${state.user?.lastName || ''}`.trim() || 'Zamestnanec', 
+                'employee'
+              )}
               startIcon={<Person />}
             >
               Podpis zamestnanca
