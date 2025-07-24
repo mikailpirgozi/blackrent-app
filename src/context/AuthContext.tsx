@@ -390,11 +390,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Aktualizuj aj localStorage
     if (state.user) {
       const updatedUser = { ...state.user, ...userData };
-      StorageManager.setAuthData({
-        token: state.token,
-        user: updatedUser,
-        rememberMe: true
-      });
+      StorageManager.setAuthData(
+        state.token,
+        updatedUser,
+        true
+      );
     }
   };
 
