@@ -540,88 +540,59 @@ class PostgresDatabase {
     }
     // Metódy pre používateľov
     async getUserByUsername(username) {
-        const client = await this.pool.connect();
         try {
-            // Skúsme najskôr users tabuľku (hlavná)
-            const result = await client.query('SELECT id, username, email, password_hash as password, role, signature_template, created_at FROM users WHERE username = $1', [username]);
+            // Najprv skús v hlavnej users tabuľke
+            const result = await this.pool.query('SELECT id, username, email, password_hash as password, role, created_at FROM users WHERE username = $1', [username]);
             if (result.rows.length > 0) {
                 const row = result.rows[0];
                 return {
-                    id: row.id?.toString(),
-                    username: row.username,
-                    email: row.email,
-                    password: row.password, // users má password
-                    role: row.role,
-                    signatureTemplate: row.signature_template,
-                    createdAt: new Date(row.created_at)
-                };
-            }
-            // Ak nie je v users, skúsme users_new tabuľku (ak existuje)
-            try {
-                const resultNew = await client.query('SELECT id, username, email, password, role, signature_template, created_at FROM users_new WHERE username = $1', [username]);
-                if (resultNew.rows.length > 0) {
-                    const row = resultNew.rows[0];
-                    return {
-                        id: row.id?.toString(),
-                        username: row.username,
-                        email: row.email,
-                        password: row.password, // users_new má priamo password
-                        role: row.role,
-                        signatureTemplate: row.signature_template,
-                        createdAt: new Date(row.created_at)
-                    };
-                }
-            }
-            catch (error) {
-                // users_new tabuľka neexistuje, ignorujeme
-                console.log('ℹ️ users_new table does not exist, using only users table');
-            }
-            return null;
-        }
-        finally {
-            client.release();
-        }
-    }
-    async getUserById(id) {
-        const client = await this.pool.connect();
-        try {
-            // Skúsme najskôr users tabuľku (hlavná)
-            const result = await client.query('SELECT id, username, email, password_hash as password, role, signature_template, created_at FROM users WHERE id = $1', [id]);
-            if (result.rows.length > 0) {
-                const row = result.rows[0];
-                return {
-                    id: row.id?.toString(),
+                    id: row.id,
                     username: row.username,
                     email: row.email,
                     password: row.password,
                     role: row.role,
-                    signatureTemplate: row.signature_template,
-                    createdAt: new Date(row.created_at)
+                    createdAt: row.created_at
                 };
             }
-            // Ak nie je v users, skúsme users_new tabuľku (ak existuje)
-            try {
-                const resultNew = await client.query('SELECT id, username, email, password, role, created_at FROM users_new WHERE id = $1', [id]);
-                if (resultNew.rows.length > 0) {
-                    const row = resultNew.rows[0];
-                    return {
-                        id: row.id?.toString(),
-                        username: row.username,
-                        email: row.email,
-                        password: row.password,
-                        role: row.role,
-                        createdAt: new Date(row.created_at)
-                    };
-                }
-            }
-            catch (error) {
-                // users_new tabuľka neexistuje, ignorujeme
-                console.log('ℹ️ users_new table does not exist, using only users table');
+            // Ak sa nenájde, skús v users_new tabuľke
+            const resultNew = await this.pool.query('SELECT id, username, email, password, role, created_at FROM users_new WHERE username = $1', [username]);
+            if (resultNew.rows.length > 0) {
+                const row = resultNew.rows[0];
+                return {
+                    id: row.id,
+                    username: row.username,
+                    email: row.email,
+                    password: row.password,
+                    role: row.role,
+                    createdAt: row.created_at
+                };
             }
             return null;
         }
-        finally {
-            client.release();
+        catch (error) {
+            console.error('❌ Chyba pri získavaní používateľa podľa username:', error);
+            return null;
+        }
+    }
+    async getUserById(id) {
+        try {
+            const result = await this.pool.query('SELECT id, username, email, password_hash as password, role, created_at FROM users WHERE id = $1', [id]);
+            if (result.rows.length > 0) {
+                const row = result.rows[0];
+                return {
+                    id: row.id,
+                    username: row.username,
+                    email: row.email,
+                    password: row.password,
+                    role: row.role,
+                    createdAt: row.created_at
+                };
+            }
+            return null;
+        }
+        catch (error) {
+            console.error('❌ Chyba pri získavaní používateľa podľa ID:', error);
+            return null;
         }
     }
     async createUser(userData) {
