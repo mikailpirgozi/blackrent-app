@@ -423,20 +423,26 @@ class ApiService {
   async updateSignatureTemplate(signatureTemplate: string): Promise<any> {
     console.log('🖊️ API updateSignatureTemplate - saving signature template');
     
-    return this.request<any>('/auth/signature-template', {
+    const response = await this.request<any>('/auth/signature-template', {
       method: 'PUT',
       body: JSON.stringify({ signatureTemplate }),
     });
+    
+    console.log('🖊️ API updateSignatureTemplate - response:', response);
+    return response;
   }
 
   // User profile management
   async updateUserProfile(firstName: string, lastName: string): Promise<any> {
     console.log('👤 API updateUserProfile - updating user profile');
     
-    return this.request<any>('/auth/profile', {
+    const response = await this.request<any>('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify({ firstName, lastName }),
     });
+    
+    console.log('👤 API updateUserProfile - response:', response);
+    return response;
   }
 }
 

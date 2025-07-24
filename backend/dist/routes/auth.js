@@ -1537,10 +1537,14 @@ router.put('/signature-template', auth_1.authenticateToken, async (req, res) => 
         const client = await postgres_database_1.postgresDatabase.pool.connect();
         try {
             await client.query('UPDATE users SET signature_template = $1 WHERE id = $2', [signatureTemplate, req.user.id]);
+            // Načítaj aktualizovaný user objekt
+            const updatedUser = await postgres_database_1.postgresDatabase.getUserById(req.user.id);
             console.log('✅ Signature template updated successfully');
+            console.log('🖊️ Updated signature template for user:', updatedUser?.username);
             res.json({
                 success: true,
-                message: 'Signature template úspešne uložený'
+                message: 'Signature template úspešne uložený',
+                user: updatedUser
             });
         }
         finally {
@@ -1570,10 +1574,19 @@ router.put('/profile', auth_1.authenticateToken, async (req, res) => {
         const client = await postgres_database_1.postgresDatabase.pool.connect();
         try {
             await client.query('UPDATE users SET first_name = $1, last_name = $2 WHERE id = $3', [firstName || null, lastName || null, req.user.id]);
+            // Načítaj aktualizovaný user objekt
+            const updatedUser = await postgres_database_1.postgresDatabase.getUserById(req.user.id);
             console.log('✅ User profile updated successfully');
+            console.log('👤 Updated user data:', {
+                id: updatedUser?.id,
+                username: updatedUser?.username,
+                firstName: updatedUser?.firstName,
+                lastName: updatedUser?.lastName
+            });
             res.json({
                 success: true,
-                message: 'Profil úspešne aktualizovaný'
+                message: 'Profil úspešne aktualizovaný',
+                user: updatedUser
             });
         }
         finally {

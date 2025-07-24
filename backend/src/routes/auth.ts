@@ -1707,11 +1707,16 @@ router.put('/signature-template', authenticateToken, async (req: AuthRequest, re
         [signatureTemplate, req.user.id]
       );
       
+      // Načítaj aktualizovaný user objekt
+      const updatedUser = await postgresDatabase.getUserById(req.user.id);
+      
       console.log('✅ Signature template updated successfully');
+      console.log('🖊️ Updated signature template for user:', updatedUser?.username);
       
       res.json({
         success: true,
-        message: 'Signature template úspešne uložený'
+        message: 'Signature template úspešne uložený',
+        user: updatedUser
       });
     } finally {
       client.release();
@@ -1747,11 +1752,21 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
         [firstName || null, lastName || null, req.user.id]
       );
       
+      // Načítaj aktualizovaný user objekt
+      const updatedUser = await postgresDatabase.getUserById(req.user.id);
+      
       console.log('✅ User profile updated successfully');
+      console.log('👤 Updated user data:', {
+        id: updatedUser?.id,
+        username: updatedUser?.username,
+        firstName: updatedUser?.firstName,
+        lastName: updatedUser?.lastName
+      });
       
       res.json({
         success: true,
-        message: 'Profil úspešne aktualizovaný'
+        message: 'Profil úspešne aktualizovaný',
+        user: updatedUser
       });
     } finally {
       client.release();

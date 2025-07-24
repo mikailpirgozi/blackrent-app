@@ -44,13 +44,24 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     setMessage(null);
     
     try {
-      await apiService.updateUserProfile(formData.firstName, formData.lastName);
+      const response = await apiService.updateUserProfile(formData.firstName, formData.lastName);
+      console.log('👤 Profile update response:', response);
       
-      // Aktualizuj user state správne cez AuthContext
-      updateUser({
-        firstName: formData.firstName,
-        lastName: formData.lastName
-      });
+      // Aktualizuj user state s dátami z backendu
+      if (response.user) {
+        updateUser({
+          firstName: response.user.firstName,
+          lastName: response.user.lastName
+        });
+        console.log('✅ User state updated with backend data');
+      } else {
+        // Fallback na frontend data
+        updateUser({
+          firstName: formData.firstName,
+          lastName: formData.lastName
+        });
+        console.log('⚠️ Using frontend data as fallback');
+      }
       
       setMessage({ type: 'success', text: '✅ Profil úspešne aktualizovaný!' });
     } catch (error) {
@@ -66,12 +77,22 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     setMessage(null);
     
     try {
-      await apiService.updateSignatureTemplate(signatureData.signature);
+      const response = await apiService.updateSignatureTemplate(signatureData.signature);
+      console.log('🖊️ Signature update response:', response);
       
-      // Aktualizuj user state správne cez AuthContext
-      updateUser({
-        signatureTemplate: signatureData.signature
-      });
+      // Aktualizuj user state s dátami z backendu
+      if (response.user) {
+        updateUser({
+          signatureTemplate: response.user.signatureTemplate
+        });
+        console.log('✅ User state updated with backend signature data');
+      } else {
+        // Fallback na frontend data
+        updateUser({
+          signatureTemplate: signatureData.signature
+        });
+        console.log('⚠️ Using frontend signature data as fallback');
+      }
       
       setMessage({ type: 'success', text: '✅ Podpis úspešne uložený ako template!' });
       setShowSignaturePad(false);
