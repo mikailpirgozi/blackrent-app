@@ -831,12 +831,17 @@ export default function RentalList() {
       
       console.log(`Protokol ${type} pre prenájom ${rentalId} bol vymazaný`);
       
-      // ✅ VYČISTI CACHE A ZNOVU NAČÍTAJ PROTOKOLY
-      setProtocols(prev => {
-        const newProtocols = { ...prev };
-        delete newProtocols[rentalId];
-        return newProtocols;
-      });
+      // ✅ VYMAŽ LEN KONKRÉTNY TYP PROTOKOLU
+      setProtocols(prev => ({
+        ...prev,
+        [rentalId]: {
+          ...prev[rentalId],
+          [type]: undefined
+        }
+      }));
+      
+      // 🔄 FORCE RELOAD protocols pre tento rental
+      setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
       await loadProtocolsForRental(rentalId);
     } catch (error) {
       console.error('Chyba pri mazaní protokolu:', error);

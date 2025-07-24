@@ -553,18 +553,28 @@ export class PDFLibGenerator {
             embeddedImage = await this.doc.embedJpg(imageData);
           }
           
-          // Výpočet veľkosti obrázka (max šírka 120px, max výška 120px)
-          const maxImageSize = 120;
-          const imageWidth = Math.min(embeddedImage.width, maxImageSize);
-          const imageHeight = Math.min(embeddedImage.height, maxImageSize);
+          // Výpočet veľkosti obrázka (max šírka 200px, max výška 150px pre landscape)
+          const maxImageWidth = 200;
+          const maxImageHeight = 150;
           
-          // Pozícia obrázka (2 obrázky na riadok)
+          // Zachovaj aspect ratio ale urob obrázky širšie
+          let imageWidth = embeddedImage.width;
+          let imageHeight = embeddedImage.height;
+          
+          if (imageWidth > maxImageWidth || imageHeight > maxImageHeight) {
+            const ratio = Math.min(maxImageWidth / imageWidth, maxImageHeight / imageHeight);
+            imageWidth *= ratio;
+            imageHeight *= ratio;
+          }
+          
+          // Pozícia obrázka (2 obrázky na riadok s väčším spacing)
           const imagesPerRow = 2;
           const rowIndex = Math.floor(processedImages / imagesPerRow);
           const colIndex = processedImages % imagesPerRow;
           
-          const imageX = this.margin + (colIndex * (imageWidth + 20));
-          const imageY = this.currentY - (rowIndex * (imageHeight + 40)) - imageHeight;
+          // Širší spacing pre väčšie obrázky
+          const imageX = this.margin + (colIndex * (maxImageWidth + 30));
+          const imageY = this.currentY - (rowIndex * (maxImageHeight + 50)) - imageHeight;
           
           // Kontrola stránky
           if (imageY < 100) {
@@ -605,9 +615,9 @@ export class PDFLibGenerator {
       }
       
       if (processedImages > 0) {
-        // Posun Y pozíciu pod obrázky
+        // Posun Y pozíciu pod obrázky (adjustované pre väčšie obrázky)
         const rowsUsed = Math.ceil(processedImages / 2);
-        this.currentY -= (rowsUsed * 160) + 20;
+        this.currentY -= (rowsUsed * 200) + 30; // Väčší spacing pre 200px vysoké obrázky
         console.log(`✅ Pridaných ${processedImages} obrázkov do PDF`);
       } else {
         console.log('⚠️ Žiadne obrázky sa nepodarilo spracovať');
