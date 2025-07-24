@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { postgresDatabase } from '../models/postgres-database';
-import { generateHandoverPDF } from '../utils/pdf-generator';
+import { generateHandoverPDF, generateReturnPDF } from '../utils/pdf-generator';
 import { authenticateToken } from '../middleware/auth';
 import { r2Storage } from '../utils/r2-storage';
 import { HandoverProtocol, ReturnProtocol } from '../types';
@@ -221,13 +221,40 @@ router.post('/return', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Invalid rental ID format. Must be valid UUID.' });
     }
     
+    // 1. Uloženie protokolu do databázy
     const protocol = await postgresDatabase.createReturnProtocol(protocolData);
     console.log('✅ Return protocol created in DB:', protocol.id);
     
+    // 2. 🎭 PDF generovanie + upload do R2
+    let pdfUrl = null;
+    try {
+      console.log('🎭 Generating Return PDF for protocol:', protocol.id);
+      const pdfBuffer = await generateReturnPDF(protocolData);
+      
+      // 3. Uloženie PDF do R2 storage
+      const filename = `protocols/return/${protocol.id}_${Date.now()}.pdf`;
+      pdfUrl = await r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
+      
+      console.log('✅ Return PDF generated and uploaded to R2:', pdfUrl);
+      
+      // 4. Aktualizácia protokolu s PDF URL
+      await postgresDatabase.updateReturnProtocol(protocol.id, { pdfUrl });
+      
+    } catch (pdfError) {
+      console.error('❌ Error generating Return PDF, but protocol saved:', pdfError);
+      // Protokol je uložený, ale PDF sa nepodarilo vytvoriť
+    }
+    
+    console.log('✅ Return protocol created successfully:', protocol.id);
     res.status(201).json({ 
       success: true, 
       message: 'Preberací protokol úspešne vytvorený',
-      protocol: protocol 
+      protocol: {
+        ...protocol,
+        pdfUrl,
+        // 🎯 FRONTEND proxy URL namiesto priameho R2 URL
+        pdfProxyUrl: pdfUrl ? `/protocols/pdf/${protocol.id}` : null
+      }
     });
   } catch (error) {
     console.error('❌ Error creating return protocol:', error);
