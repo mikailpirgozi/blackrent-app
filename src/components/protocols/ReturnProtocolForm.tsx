@@ -123,6 +123,21 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
   };
 
   if (!open) return null;
+  
+  // Validácia handoverProtocol
+  if (!handoverProtocol) {
+    console.error('❌ ReturnProtocolForm: handoverProtocol is undefined');
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          Chyba: Odovzdávací protokol nebol nájdený. Prosím, zatvorte a skúste to znovu.
+        </Alert>
+        <Button onClick={onClose} sx={{ mt: 2 }}>
+          Zatvoriť
+        </Button>
+      </Box>
+    );
+  }
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -378,9 +393,11 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       )}
 
       {/* Info o preberacom protokole */}
-      <Alert severity="info" sx={{ mb: 3 }}>
-        Navzäuje na odovzdávací protokol #{handoverProtocol.id.slice(-8)} z {new Date(handoverProtocol.createdAt).toLocaleString('sk-SK')}
-      </Alert>
+      {handoverProtocol && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Navzäuje na odovzdávací protokol #{handoverProtocol.id?.slice(-8) || 'N/A'} z {handoverProtocol.createdAt ? new Date(handoverProtocol.createdAt).toLocaleString('sk-SK') : 'N/A'}
+        </Alert>
+      )}
 
       {/* Základné informácie */}
       <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
@@ -418,9 +435,11 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
             Stav vozidla pri vrátení
           </Typography>
           
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Pri preberaní: {handoverProtocol.vehicleCondition.odometer} km, {handoverProtocol.vehicleCondition.fuelLevel}% paliva
-          </Alert>
+          {handoverProtocol?.vehicleCondition && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Pri preberaní: {handoverProtocol.vehicleCondition.odometer || 'N/A'} km, {handoverProtocol.vehicleCondition.fuelLevel || 'N/A'}% paliva
+            </Alert>
+          )}
           
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
             <TextField
