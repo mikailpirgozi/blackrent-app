@@ -116,8 +116,39 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
   };
 
   const handleSave = async () => {
-    if (!formData.location) {
-      alert('Zadajte miesto prevzatia');
+    // Validácia povinných polí
+    const errors: string[] = [];
+    
+    if (!formData.location || formData.location.trim() === '') {
+      errors.push('Zadajte miesto prevzatia');
+    }
+    
+    if (formData.odometer === undefined || formData.odometer === null || formData.odometer < 0) {
+      errors.push('Zadajte stav tachometra');
+    }
+    
+    if (formData.fuelLevel === undefined || formData.fuelLevel === null || formData.fuelLevel < 0 || formData.fuelLevel > 100) {
+      errors.push('Zadajte stav paliva (0-100%)');
+    }
+    
+    // Kontrola podpisov
+    const customerSignature = formData.signatures.find(sig => sig.signerRole === 'customer');
+    const employeeSignature = formData.signatures.find(sig => sig.signerRole === 'employee');
+    
+    if (!customerSignature) {
+      errors.push('Povinný je podpis zákazníka');
+    }
+    
+    if (!employeeSignature) {
+      errors.push('Povinný je podpis zamestnanca');
+    }
+    
+    if (!formData.depositPaymentMethod) {
+      errors.push('Vyberte spôsob úhrady depozitu');
+    }
+    
+    if (errors.length > 0) {
+      alert(`❌ Prosím vyplňte všetky povinné polia:\n\n${errors.join('\n')}`);
       return;
     }
 
@@ -531,28 +562,30 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
           
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
             <TextField
-              label="Stav tachometra (km)"
+              label="Stav tachometra (km) *"
               type="number"
               value={formData.odometer}
               onChange={(e) => handleInputChange('odometer', parseInt(e.target.value) || 0)}
               fullWidth
+              required
               helperText="Aktuálny stav kilometrov na vozidle"
             />
             <TextField
-              label="Úroveň paliva (%)"
+              label="Úroveň paliva (%) *"
               type="number"
               value={formData.fuelLevel}
               onChange={(e) => handleInputChange('fuelLevel', parseInt(e.target.value) || 100)}
               inputProps={{ min: 0, max: 100 }}
               fullWidth
+              required
               helperText="Percentuálna úroveň paliva v nádrži"
             />
-            <FormControl fullWidth>
-              <InputLabel>Spôsob úhrady depozitu</InputLabel>
+            <FormControl fullWidth required>
+              <InputLabel>Spôsob úhrady depozitu *</InputLabel>
               <Select
                 value={formData.depositPaymentMethod}
                 onChange={(e) => handleInputChange('depositPaymentMethod', e.target.value)}
-                label="Spôsob úhrady depozitu"
+                label="Spôsob úhrady depozitu *"
               >
                 <MenuItem value="cash">Hotovosť</MenuItem>
                 <MenuItem value="bank_transfer">Bankový prevod</MenuItem>
@@ -679,8 +712,9 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
                 'customer'
               )}
               startIcon={<Person />}
+              color={formData.signatures.find(sig => sig.signerRole === 'customer') ? 'success' : 'primary'}
             >
-              Podpis zákazníka
+              Podpis zákazníka *
             </Button>
             <Button
               variant="outlined"
@@ -689,9 +723,17 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
                 'employee'
               )}
               startIcon={<Person />}
+              color={formData.signatures.find(sig => sig.signerRole === 'employee') ? 'success' : 'primary'}
             >
-              Podpis zamestnanca
+              Podpis zamestnanca *
             </Button>
+          </Box>
+          
+          {/* Indikátor povinných podpisov */}
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              * Povinné polia - musia byť vyplnené pred uložením protokolu
+            </Typography>
           </Box>
         </CardContent>
       </Card>
