@@ -187,12 +187,27 @@ router.delete('/handover/:id', async (req, res) => {
 });
 
 // Create return protocol
-router.post('/return', async (req, res) => {
+router.post('/return', authenticateToken, async (req, res) => {
   try {
+    console.log('📝 Received return protocol request');
+    
     const protocolData: ReturnProtocol = req.body;
-    console.log('📝 Creating return protocol:', protocolData.id);
+    console.log('📝 Creating return protocol with data:', JSON.stringify(protocolData, null, 2));
+    
+    // Validácia povinných polí
+    if (!protocolData.rentalId) {
+      console.error('❌ Missing rental ID');
+      return res.status(400).json({ error: 'Rental ID is required' });
+    }
+    
+    // UUID validácia pre rental ID
+    if (!isValidUUID(protocolData.rentalId)) {
+      console.error('❌ Invalid rental ID format:', protocolData.rentalId);
+      return res.status(400).json({ error: 'Invalid rental ID format. Must be valid UUID.' });
+    }
     
     const protocol = await postgresDatabase.createReturnProtocol(protocolData);
+    console.log('✅ Return protocol created in DB:', protocol.id);
     
     res.status(201).json({ 
       success: true, 
@@ -201,7 +216,10 @@ router.post('/return', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error creating return protocol:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
