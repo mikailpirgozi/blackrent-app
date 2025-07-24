@@ -45,6 +45,22 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     
     try {
       await apiService.updateUserProfile(formData.firstName, formData.lastName);
+      
+      // Aktualizuj user state s novými údajmi
+      if (state.user) {
+        const updatedUser = {
+          ...state.user,
+          firstName: formData.firstName,
+          lastName: formData.lastName
+        };
+        
+        // Ulož do localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Force re-render
+        window.location.reload();
+      }
+      
       setMessage({ type: 'success', text: '✅ Profil úspešne aktualizovaný!' });
     } catch (error) {
       console.error('Error updating profile:', error);
