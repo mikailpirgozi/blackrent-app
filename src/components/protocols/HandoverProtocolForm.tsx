@@ -13,6 +13,9 @@ import {
   LinearProgress,
   IconButton,
   Alert,
+  Chip,
+  Grid,
+  Divider,
 } from '@mui/material';
 import {
   Save,
@@ -20,6 +23,10 @@ import {
   PhotoCamera,
   LocationOn,
   SpeedOutlined,
+  Person,
+  DirectionsCar,
+  Business,
+  Receipt,
 } from '@mui/icons-material';
 import { HandoverProtocol, Rental, ProtocolImage, ProtocolVideo } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -39,8 +46,8 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
   // Zjednodušený state - iba základné polia
   const [formData, setFormData] = useState({
     location: '',
-    odometer: 0,
-    fuelLevel: 100,
+    odometer: rental.odometer || 0,
+    fuelLevel: rental.fuelLevel || 100,
     fuelType: 'gasoline' as const,
     exteriorCondition: 'Dobrý',
     interiorCondition: 'Dobrý',
@@ -66,6 +73,17 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
       [`${mediaType}Videos`]: videos,
     }));
     setActivePhotoCapture(null);
+  };
+
+  // Pomocné funkcie pre formátovanie dát
+  const formatDate = (date: Date | string) => {
+    if (!date) return 'Neuvedené';
+    const d = new Date(date);
+    return d.toLocaleDateString('sk-SK') + ' ' + d.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return amount ? `${amount.toFixed(2)} €` : '0,00 €';
   };
 
   const handleSave = async () => {
@@ -113,6 +131,9 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
           currency: 'EUR',
           allowedKilometers: rental.allowedKilometers || 0,
           extraKilometerRate: rental.extraKilometerRate || 0.5,
+          pickupLocation: rental.pickupLocation || rental.handoverPlace,
+          returnLocation: rental.returnLocation,
+          returnConditions: rental.returnConditions,
         },
         pdfUrl: '',
         emailSent: false,
@@ -201,12 +222,210 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
         </Box>
       )}
 
-      {/* Základné informácie */}
+      {/* Informácie o objednávke */}
+      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <CardContent>
+          <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+            <Receipt sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Informácie o objednávke
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Číslo objednávky
+              </Typography>
+              <Chip 
+                label={rental.orderNumber || 'Neuvedené'} 
+                color="primary" 
+                variant="outlined"
+                sx={{ fontWeight: 'bold' }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Dátum začiatku
+              </Typography>
+              <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'medium' }}>
+                {formatDate(rental.startDate)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Dátum konca
+              </Typography>
+              <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'medium' }}>
+                {formatDate(rental.endDate)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Celková cena
+              </Typography>
+              <Typography variant="body1" color="success.main" sx={{ fontWeight: 'bold' }}>
+                {formatCurrency(rental.totalPrice)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Depozit
+              </Typography>
+              <Typography variant="body1" color="warning.main" sx={{ fontWeight: 'medium' }}>
+                {formatCurrency(rental.deposit || 0)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Povolené kilometry
+              </Typography>
+              <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'medium' }}>
+                {rental.allowedKilometers ? `${rental.allowedKilometers} km` : 'Neobmedzené'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Cena za extra km
+              </Typography>
+              <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'medium' }}>
+                {formatCurrency(rental.extraKilometerRate || 0.5)} / km
+              </Typography>
+            </Grid>
+            {(rental.pickupLocation || rental.handoverPlace) && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Miesto prevzatia
+                </Typography>
+                <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'medium' }}>
+                  {rental.pickupLocation || rental.handoverPlace}
+                </Typography>
+              </Grid>
+            )}
+            {rental.returnLocation && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Miesto vrátenia
+                </Typography>
+                <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'medium' }}>
+                  {rental.returnLocation}
+                </Typography>
+              </Grid>
+            )}
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Informácie o zákazníkovi */}
+      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <CardContent>
+          <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+            <Person sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Informácie o zákazníkovi
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={4}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Meno
+              </Typography>
+              <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'bold' }}>
+                {rental.customer?.name || rental.customerName || 'Neuvedené'}
+              </Typography>
+            </Grid>
+            {(rental.customer?.email || rental.customerEmail) && (
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Email
+                </Typography>
+                <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'medium' }}>
+                  {rental.customer?.email || rental.customerEmail}
+                </Typography>
+              </Grid>
+            )}
+            {(rental.customer?.phone || rental.customerPhone) && (
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Telefón
+                </Typography>
+                <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'medium' }}>
+                  {rental.customer?.phone || rental.customerPhone}
+                </Typography>
+              </Grid>
+            )}
+            {rental.customerAddress && (
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Adresa
+                </Typography>
+                <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'medium' }}>
+                  {rental.customerAddress}
+                </Typography>
+              </Grid>
+            )}
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Informácie o vozidle a majiteľovi */}
+      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <CardContent>
+          <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+            <DirectionsCar sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Informácie o vozidle
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Značka a model
+              </Typography>
+              <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'bold' }}>
+                {rental.vehicle?.brand} {rental.vehicle?.model}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                ŠPZ
+              </Typography>
+              <Chip 
+                label={rental.vehicle?.licensePlate || rental.vehicleCode || 'Neuvedené'} 
+                color="secondary" 
+                variant="outlined"
+                sx={{ fontWeight: 'bold' }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Majiteľ vozidla
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Business sx={{ color: 'primary.main', fontSize: 20 }} />
+                <Typography variant="body1" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                  {rental.vehicle?.company || 'Neuvedené'}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Stav vozidla
+              </Typography>
+              <Chip 
+                label={rental.vehicle?.status || 'available'} 
+                color={rental.vehicle?.status === 'available' ? 'success' : 'warning'}
+                variant="outlined"
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      <Divider sx={{ my: 3 }} />
+
+      {/* Základné informácie protokolu */}
       <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
         <CardContent>
           <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
             <LocationOn sx={{ mr: 1, verticalAlign: 'middle' }} />
-            Základné informácie
+            Údaje protokolu
           </Typography>
           
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 2 }}>
@@ -216,14 +435,16 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
               onChange={(e) => handleInputChange('location', e.target.value)}
               fullWidth
               required
+              placeholder="Zadajte presné miesto prevzatia vozidla"
             />
             <TextField
-              label="Poznámky"
+              label="Poznámky k protokolu"
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               fullWidth
               multiline
               rows={2}
+              placeholder="Dodatočné poznámky k odovzdávaniu vozidla"
             />
           </Box>
         </CardContent>
@@ -234,7 +455,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
         <CardContent>
           <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
             <SpeedOutlined sx={{ mr: 1, verticalAlign: 'middle' }} />
-            Stav vozidla
+            Stav vozidla pri odovzdaní
           </Typography>
           
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
@@ -244,6 +465,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
               value={formData.odometer}
               onChange={(e) => handleInputChange('odometer', parseInt(e.target.value) || 0)}
               fullWidth
+              helperText="Aktuálny stav kilometrov na vozidle"
             />
             <TextField
               label="Úroveň paliva (%)"
@@ -252,6 +474,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
               onChange={(e) => handleInputChange('fuelLevel', parseInt(e.target.value) || 100)}
               inputProps={{ min: 0, max: 100 }}
               fullWidth
+              helperText="Percentuálna úroveň paliva v nádrži"
             />
             <FormControl fullWidth>
               <InputLabel>Typ paliva</InputLabel>
@@ -271,12 +494,14 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
               value={formData.exteriorCondition}
               onChange={(e) => handleInputChange('exteriorCondition', e.target.value)}
               fullWidth
+              placeholder="Opíšte stav vonkajška vozidla"
             />
             <TextField
               label="Stav interiéru"
               value={formData.interiorCondition}
               onChange={(e) => handleInputChange('interiorCondition', e.target.value)}
               fullWidth
+              placeholder="Opíšte stav vnútra vozidla"
             />
           </Box>
         </CardContent>
@@ -320,7 +545,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
       </Card>
 
       {/* Tlačidlá */}
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
+      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3, mb: 2 }}>
         <Button
           variant="outlined"
           onClick={onClose}

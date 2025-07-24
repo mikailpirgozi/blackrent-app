@@ -49,6 +49,8 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [calculatedCommission, setCalculatedCommission] = useState(0);
   const [extraKmCharge, setExtraKmCharge] = useState<number>(0);
+  const [allowedKilometers, setAllowedKilometers] = useState<number>(0);
+  const [extraKilometerRate, setExtraKilometerRate] = useState<number>(0.5);
   const [deposit, setDeposit] = useState<number>(0);
   const [paid, setPaid] = useState(false);
   const [handoverPlace, setHandoverPlace] = useState('');
@@ -95,6 +97,12 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       setCalculatedCommission(rental.commission);
       if (rental.extraKmCharge) {
         setExtraKmCharge(rental.extraKmCharge);
+      }
+      if (rental.allowedKilometers) {
+        setAllowedKilometers(rental.allowedKilometers);
+      }
+      if (rental.extraKilometerRate) {
+        setExtraKilometerRate(rental.extraKilometerRate);
       }
       if (rental.deposit) {
         setDeposit(rental.deposit);
@@ -279,6 +287,14 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       setDeposit(rentalData.deposit);
     }
 
+    // Nastavenie kilometrov a ceny za extra km z parsovaných dát
+    if (rentalData.allowedKilometers) {
+      setAllowedKilometers(rentalData.allowedKilometers);
+    }
+    if (rentalData.extraKilometerRate) {
+      setExtraKilometerRate(rentalData.extraKilometerRate);
+    }
+
     // Nastavenie miesta odovzdania ak bolo parsované
     if (rentalData.handoverPlace) {
       setHandoverPlace(rentalData.handoverPlace);
@@ -453,6 +469,8 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       discount: formData.discount?.value && formData.discount.value > 0 ? formData.discount : undefined,
       customCommission: formData.customCommission?.value && formData.customCommission.value > 0 ? formData.customCommission : undefined,
       extraKmCharge: extraKmCharge > 0 ? extraKmCharge : undefined,
+      allowedKilometers: allowedKilometers > 0 ? allowedKilometers : undefined,
+      extraKilometerRate: extraKilometerRate > 0 ? extraKilometerRate : undefined,
       deposit: deposit > 0 ? deposit : undefined,
       paid,
       status: rental?.status || 'pending',
@@ -761,6 +779,36 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
             </Box>
           )}
         </FormControl>
+
+        {/* Povolené kilometry */}
+        <TextField
+          fullWidth
+          label="Povolené kilometry"
+          type="number"
+          value={allowedKilometers}
+          onChange={(e) => setAllowedKilometers(Number(e.target.value) || 0)}
+          InputProps={{
+            endAdornment: <span style={{ marginLeft: 8 }}>km</span>,
+          }}
+          placeholder="0 = neobmedzené"
+          helperText="0 znamená neobmedzené kilometry"
+        />
+
+        {/* Cena za extra km */}
+        <TextField
+          fullWidth
+          label="Cena za extra km (€)"
+          type="number"
+          value={extraKilometerRate}
+          onChange={(e) => setExtraKilometerRate(Number(e.target.value) || 0.5)}
+          InputProps={{
+            startAdornment: <span style={{ marginRight: 8 }}>€</span>,
+            endAdornment: <span style={{ marginLeft: 8 }}>/ km</span>,
+          }}
+          step="0.1"
+          placeholder="0.5"
+          helperText="Cena za každý kilometer nad povolený limit"
+        />
 
         {/* Výška depozitu */}
         <TextField
