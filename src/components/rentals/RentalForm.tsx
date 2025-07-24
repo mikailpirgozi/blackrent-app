@@ -804,8 +804,8 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
           InputProps={{
             startAdornment: <span style={{ marginRight: 8 }}>€</span>,
             endAdornment: <span style={{ marginLeft: 8 }}>/ km</span>,
+            inputProps: { step: 0.1 }
           }}
-          step="0.1"
           placeholder="0.5"
           helperText="Cena za každý kilometer nad povolený limit"
         />
