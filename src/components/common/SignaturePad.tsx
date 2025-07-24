@@ -204,7 +204,16 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
         onChange={(e) => setEditableSignerName(e.target.value)}
         fullWidth
         sx={{ mb: 2 }}
-        helperText={signerRole === 'customer' ? 'Meno zákazníka (môžete upraviť)' : 'Meno zamestnanca'}
+        helperText={
+          signerRole === 'customer' 
+            ? 'Meno zákazníka z prenájmu (môžete upraviť ak je potrebné)' 
+            : 'Meno zamestnanca'
+        }
+        placeholder={
+          signerRole === 'customer' 
+            ? 'Zadajte meno zákazníka...' 
+            : 'Zadajte meno zamestnanca...'
+        }
       />
       
       <Paper 

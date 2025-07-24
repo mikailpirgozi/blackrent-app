@@ -138,6 +138,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
   };
 
   const handleAddSignature = (signerName: string, signerRole: 'customer' | 'employee') => {
+    console.log('🖊️ Adding signature:', { signerName, signerRole, rentalCustomer: rental.customer?.name, rentalCustomerName: rental.customerName });
     setCurrentSigner({ name: signerName, role: signerRole });
     setShowSignaturePad(true);
   };
@@ -627,7 +628,10 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
-              onClick={() => handleAddSignature(rental.customer?.name || 'Zákazník', 'customer')}
+              onClick={() => handleAddSignature(
+                rental.customer?.name || rental.customerName || 'Zákazník', 
+                'customer'
+              )}
               startIcon={<Person />}
             >
               Podpis zákazníka
