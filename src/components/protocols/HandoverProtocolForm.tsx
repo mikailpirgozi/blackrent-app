@@ -50,7 +50,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
   // Zjednodušený state - iba základné polia
   const [formData, setFormData] = useState({
     location: rental.pickupLocation || rental.handoverPlace || '',
-    odometer: rental.odometer || 0,
+    odometer: rental.odometer || undefined,
     fuelLevel: rental.fuelLevel || 100,
     depositPaymentMethod: 'cash' as 'cash' | 'bank_transfer' | 'card',
     notes: '',
@@ -166,7 +166,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
         completedAt: new Date(),
         location: formData.location,
         vehicleCondition: {
-          odometer: formData.odometer,
+          odometer: formData.odometer || 0,
           fuelLevel: formData.fuelLevel,
           fuelType: 'gasoline',
           exteriorCondition: 'Dobrý',
@@ -564,8 +564,8 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
             <TextField
               label="Stav tachometra (km) *"
               type="number"
-              value={formData.odometer}
-              onChange={(e) => handleInputChange('odometer', parseInt(e.target.value) || 0)}
+              value={formData.odometer || ''}
+              onChange={(e) => handleInputChange('odometer', e.target.value ? parseInt(e.target.value) : undefined)}
               fullWidth
               required
               helperText="Aktuálny stav kilometrov na vozidle"
