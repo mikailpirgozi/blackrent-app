@@ -138,7 +138,15 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
 
   // Automatické načítanie signature template pre zamestnancov
   useEffect(() => {
+    console.log('🔍 SignaturePad useEffect:', {
+      signerRole,
+      hasSignatureTemplate: !!state.user?.signatureTemplate,
+      hasSignature,
+      userSignatureTemplate: state.user?.signatureTemplate?.substring(0, 50) + '...'
+    });
+    
     if (signerRole === 'employee' && state.user?.signatureTemplate && !hasSignature) {
+      console.log('✅ Automaticky načítavam signature template');
       loadSignatureTemplate();
     }
   }, [signerRole, state.user?.signatureTemplate, hasSignature]);

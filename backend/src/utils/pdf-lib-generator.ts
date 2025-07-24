@@ -100,7 +100,7 @@ export class PDFLibGenerator {
     
     // 10. Podpisy
     if (protocol.signatures && protocol.signatures.length > 0) {
-      this.addSignaturesSection(protocol.signatures);
+      await this.addSignaturesSection(protocol.signatures);
     }
     
     // 11. Footer
@@ -204,7 +204,7 @@ export class PDFLibGenerator {
     
     // 12. Podpisy (ak sú)
     if (protocol.signatures && protocol.signatures.length > 0) {
-      this.addSignaturesSection(protocol.signatures);
+      await this.addSignaturesSection(protocol.signatures);
     }
     
     // 13. Footer
@@ -342,20 +342,95 @@ export class PDFLibGenerator {
   }
 
   /**
-   * Sekcia pre podpisy
+   * Sekcia pre podpisy s obrázkami
    */
-  private addSignaturesSection(signatures: any[]): void {
-    const signatureData: [string, string][] = [];
+  private async addSignaturesSection(signatures: any[]): Promise<void> {
+    if (!signatures || signatures.length === 0) {
+      console.log('⚠️ Žiadne podpisy na vloženie do PDF');
+      return;
+    }
+
+    console.log('🖊️ Pridávam podpisy do PDF:', signatures.length);
     
-    signatures.forEach((signature, index) => {
-      signatureData.push(
-        [`Podpis ${index + 1}:`, `${signature.signerName} (${signature.signerRole})`],
-        [`Čas podpisu:`, new Date(signature.timestamp).toLocaleString('sk-SK')],
-        [`Miesto:`, signature.location || 'N/A']
-      );
+    this.checkPageBreak(200); // Priestor pre podpisy
+    
+    // Nadpis sekcie
+    this.currentPage.drawRectangle({
+      x: this.margin,
+      y: this.currentY - 20,
+      width: this.pageWidth - 2 * this.margin,
+      height: 20,
+      color: this.lightGray,
     });
     
-    this.addInfoSection('Podpisy', signatureData);
+    this.currentPage.drawText(this.toAsciiText('Elektronické podpisy'), {
+      x: this.margin + 10,
+      y: this.currentY - 15,
+      size: 12,
+      font: this.boldFont,
+      color: this.secondaryColor,
+    });
+    
+    this.currentY -= 40;
+    
+    // Pridanie každého podpisu
+    for (let i = 0; i < signatures.length; i++) {
+      const signature = signatures[i];
+      
+      try {
+        // Vloženie obrázka podpisu
+        if (signature.signature && signature.signature.startsWith('data:image')) {
+          const imageBytes = this.base64ToUint8Array(signature.signature);
+          const image = await this.doc.embedPng(imageBytes);
+          
+          // Výpočet veľkosti obrázka (max 200x100)
+          const maxWidth = 200;
+          const maxHeight = 100;
+          const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
+          const scaledWidth = image.width * scale;
+          const scaledHeight = image.height * scale;
+          
+          // Vloženie obrázka
+          this.currentPage.drawImage(image, {
+            x: this.margin + 10,
+            y: this.currentY - scaledHeight,
+            width: scaledWidth,
+            height: scaledHeight,
+          });
+          
+          // Informácie o podpise
+          const infoText = `${signature.signerName} (${signature.signerRole}) - ${new Date(signature.timestamp).toLocaleString('sk-SK')}`;
+          this.currentPage.drawText(this.toAsciiText(infoText), {
+            x: this.margin + scaledWidth + 20,
+            y: this.currentY - 15,
+            size: 10,
+            font: this.font,
+            color: this.secondaryColor,
+          });
+          
+          this.currentY -= scaledHeight + 30;
+          
+          console.log(`✅ Podpis ${i + 1} vložený: ${signature.signerName}`);
+        } else {
+          console.log(`⚠️ Podpis ${i + 1} nemá validný obrázok:`, signature.signerName);
+        }
+      } catch (error) {
+        console.error(`❌ Chyba pri vkladaní podpisu ${i + 1}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Konverzia base64 na Uint8Array pre PDF-lib
+   */
+  private base64ToUint8Array(base64String: string): Uint8Array {
+    const base64Data = base64String.replace(/^data:image\/[a-z]+;base64,/, '');
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
   }
 
   /**

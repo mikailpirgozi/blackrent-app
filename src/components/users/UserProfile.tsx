@@ -60,6 +60,21 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     
     try {
       await apiService.updateSignatureTemplate(signatureData.signature);
+      
+      // Aktualizuj user state s novým signature template
+      if (state.user) {
+        const updatedUser = {
+          ...state.user,
+          signatureTemplate: signatureData.signature
+        };
+        
+        // Ulož do localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Force re-render
+        window.location.reload();
+      }
+      
       setMessage({ type: 'success', text: '✅ Podpis úspešne uložený ako template!' });
       setShowSignaturePad(false);
     } catch (error) {

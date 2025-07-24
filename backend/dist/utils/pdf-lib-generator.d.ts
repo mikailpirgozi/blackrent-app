@@ -41,9 +41,13 @@ export declare class PDFLibGenerator {
      */
     private addMediaSummary;
     /**
-     * Sekcia pre podpisy
+     * Sekcia pre podpisy s obrázkami
      */
     private addSignaturesSection;
+    /**
+     * Konverzia base64 na Uint8Array pre PDF-lib
+     */
+    private base64ToUint8Array;
     /**
      * Sekcia pre poznámky s lepším text wrappingom
      */

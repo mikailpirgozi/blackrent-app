@@ -394,10 +394,6 @@ export default function Layout({ children }: LayoutProps) {
                   <AccountCircle sx={{ mr: 1, fontSize: 18 }} />
                   Môj profil
                 </MenuItem>
-                              <MenuItem onClick={handleProfileOpen}>
-                <AccountCircle sx={{ mr: 1, fontSize: 18 }} />
-                Môj profil
-              </MenuItem>
               <MenuItem onClick={handlePasswordChange}>
                 <LockIcon sx={{ mr: 1, fontSize: 18 }} />
                 Zmeniť heslo
