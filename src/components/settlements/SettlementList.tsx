@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
-  Grid,
   InputLabel,
   MenuItem,
   Paper,
@@ -24,7 +23,6 @@ import {
   Typography,
   IconButton,
   useMediaQuery,
-  Fab,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -91,7 +89,7 @@ export default function SettlementList() {
       });
 
       // Počítame podľa spôsobov platby
-      const rentalsByPaymentMethod = {
+      const _rentalsByPaymentMethod = {
         cash: filteredRentals.filter(r => r.paymentMethod === 'cash'),
         bank_transfer: filteredRentals.filter(r => r.paymentMethod === 'bank_transfer'),
         vrp: filteredRentals.filter(r => r.paymentMethod === 'vrp'),

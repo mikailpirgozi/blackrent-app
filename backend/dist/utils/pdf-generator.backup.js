@@ -13,7 +13,7 @@ class ProtocolPDFGenerator {
             info: {
                 Title: 'BlackRent - Protokol',
                 Author: 'BlackRent System',
-                Subject: 'Protokol prevzatia/vrátenia vozidla',
+                Subject: 'Odovzdávací/Preberací protokol',
                 Keywords: 'protokol, vozidlo, prenájom',
                 CreationDate: new Date(),
             }
@@ -47,7 +47,7 @@ class ProtocolPDFGenerator {
     }
     // Generovanie handover protokolu
     async generateHandoverProtocol(protocol) {
-        this.setupHeader('PROTOKOL PREVZATIA VOZIDLA');
+        this.setupHeader('ODOVZDÁVACÍ PROTOKOL');
         // Základné informácie
         this.addSection('Základné informácie');
         this.addInfoRow('Číslo protokolu:', protocol.id.slice(-8).toUpperCase());
@@ -176,7 +176,7 @@ class ProtocolPDFGenerator {
     }
     // Generovanie return protokolu
     async generateReturnProtocol(protocol) {
-        this.setupHeader('PROTOKOL VRÁTENIA VOZIDLA');
+        this.setupHeader('PREBERACÍ PROTOKOL');
         // Základné informácie
         this.addSection('Základné informácie');
         this.addInfoRow('Číslo protokolu:', protocol.id.slice(-8).toUpperCase());

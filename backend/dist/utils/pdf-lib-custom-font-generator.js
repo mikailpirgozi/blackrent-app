@@ -127,7 +127,7 @@ class PDFLibCustomFontGenerator {
         await this.loadCustomFont();
         this.currentY = this.pageHeight - 50;
         // 1. Záhlavie s vlastným fontom
-        this.addCustomFontHeader('PROTOKOL PREVZATIA VOZIDLA');
+        this.addCustomFontHeader('ODOVZDÁVACÍ PROTOKOL');
         // 2. Základné informácie
         this.addInfoSection('Základné informácie', [
             ['Číslo protokolu:', protocol.id.slice(-8).toUpperCase()],
@@ -200,7 +200,7 @@ class PDFLibCustomFontGenerator {
         this.currentPage = this.doc.addPage(pdf_lib_1.PageSizes.A4);
         await this.loadCustomFont();
         this.currentY = this.pageHeight - 50;
-        this.addCustomFontHeader('PROTOKOL VRÁTENIA VOZIDLA');
+        this.addCustomFontHeader('PREBERACÍ PROTOKOL');
         this.addInfoSection('Základné informácie', [
             ['Číslo protokolu:', protocol.id.slice(-8).toUpperCase()],
             ['Dátum vrátenia:', new Date(protocol.completedAt || protocol.createdAt).toLocaleDateString('sk-SK')],

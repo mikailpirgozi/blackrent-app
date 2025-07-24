@@ -4,7 +4,6 @@ import {
   Button,
   FormControl,
   FormControlLabel,
-  Grid,
   InputLabel,
   MenuItem,
   Radio,
@@ -12,12 +11,10 @@ import {
   Select,
   TextField,
   Typography,
-  IconButton,
   Card,
   CardContent,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { Vehicle, VehicleStatus, PricingTier, Commission } from '../../types';
+import { Vehicle, PricingTier } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -28,7 +25,7 @@ interface VehicleFormProps {
 }
 
 export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormProps) {
-  const { state, dispatch, createCompany } = useApp();
+  const { state, createCompany } = useApp();
   const defaultPricing = [
     { id: '1', minDays: 0, maxDays: 1, pricePerDay: 0 },
     { id: '2', minDays: 2, maxDays: 3, pricePerDay: 0 },
@@ -66,7 +63,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
     setFormData(prev => ({ ...prev, pricing: newPricing }));
   };
 
-  const addPricingTier = () => {
+  const _addPricingTier = () => {
     const newPricing = [...(formData.pricing || [])];
     const lastTier = newPricing[newPricing.length - 1];
     newPricing.push({
@@ -78,7 +75,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
     setFormData(prev => ({ ...prev, pricing: newPricing }));
   };
 
-  const removePricingTier = (index: number) => {
+  const _removePricingTier = (index: number) => {
     const newPricing = [...(formData.pricing || [])];
     newPricing.splice(index, 1);
     setFormData(prev => ({ ...prev, pricing: newPricing }));

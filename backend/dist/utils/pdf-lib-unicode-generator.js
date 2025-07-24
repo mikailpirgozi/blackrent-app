@@ -68,7 +68,7 @@ class PDFLibUnicodeGenerator {
         await this.loadUnicodeFonts();
         this.currentY = this.pageHeight - 50;
         // 1. Záhlavie s diakritiku
-        this.addUnicodeHeader('PROTOKOL PREVZATIA VOZIDLA');
+        this.addUnicodeHeader('ODOVZDÁVACÍ PROTOKOL');
         // 2. Základné informácie
         this.addInfoSection('Základné informácie', [
             ['Číslo protokolu:', protocol.id.slice(-8).toUpperCase()],
@@ -137,7 +137,7 @@ class PDFLibUnicodeGenerator {
         this.currentPage = this.doc.addPage(pdf_lib_1.PageSizes.A4);
         await this.loadUnicodeFonts();
         this.currentY = this.pageHeight - 50;
-        this.addUnicodeHeader('PROTOKOL VRÁTENIA VOZIDLA');
+        this.addUnicodeHeader('PREBERACÍ PROTOKOL');
         this.addInfoSection('Základné informácie', [
             ['Číslo protokolu:', protocol.id.slice(-8).toUpperCase()],
             ['Dátum vrátenia:', new Date(protocol.completedAt || protocol.createdAt).toLocaleDateString('sk-SK')],

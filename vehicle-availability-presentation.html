@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlackRent - Prehľady Dostupnosti Vozidiel</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .presentation {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .slide {
+            padding: 60px;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .slide:nth-child(even) {
+            background: #f8fafc;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .slide-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        
+        .feature-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(59,130,246,0.15);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .feature-title {
+            font-weight: 600;
+            color: #1e3a8a;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .mockup {
+            background: #f8fafc;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .mockup-title {
+            font-weight: 600;
+            color: #1e3a8a;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .calendar-view {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 0 10px 10px 0;
+        }
+        
+        .list-view {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 0 10px 10px 0;
+        }
+        
+        .highlight {
+            background: linear-gradient(120deg, #a8edea 0%, #fed6e3 100%);
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+        
+        .footer {
+            background: #1e3a8a;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .workflow-step {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 15px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .workflow-step:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(59,130,246,0.1);
+        }
+        
+        .step-number {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: 700;
+            margin-right: 15px;
+        }
+        
+        .step-title {
+            font-weight: 600;
+            color: #1e3a8a;
+            margin-bottom: 10px;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .presentation {
+                box-shadow: none;
+                border-radius: 0;
+            }
+            
+            .slide {
+                page-break-after: always;
+                min-height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Title -->
+        <div class="header">
+            <h1>🚗 BlackRent</h1>
+            <p>Prehľady Dostupnosti Vozidiel</p>
+            <p style="margin-top: 20px; font-size: 1rem; opacity: 0.8;">
+                Inteligentné zobrazenie dostupnosti pre interné použitie
+            </p>
+        </div>
+
+        <!-- Slide 2: Prehľad Funkcií -->
+        <div class="slide">
+            <h2 class="slide-title">📊 Prehľad Funkcií</h2>
+            <div class="content">
+                <p style="font-size: 1.3rem; text-align: center; margin-bottom: 30px;">
+                    <span class="highlight">Komplexné prehľady</span> dostupnosti vozidiel pre zamestnancov
+                </p>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📅</div>
+                        <div class="feature-title">Kalendárny Prehľad</div>
+                        <p>Vizuálne zobrazenie dostupnosti všetkých vozidiel v kalendári s možnosťou filtrovania podľa dátumu</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">🔍</div>
+                        <div class="feature-title">Vyhľadávanie podľa Dátumu</div>
+                        <p>Zadajte dátum od-do a zobrazia sa všetky dostupné vozidlá v danom období</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">🚙</div>
+                        <div class="feature-title">Detail Vozidla</div>
+                        <p>Kliknutím na konkrétne vozidlo zobrazíte jeho kompletný harmonogram rezervácií</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">📋</div>
+                        <div class="feature-title">Tabuľkový Prehľad</div>
+                        <p>Prehľadná tabuľka so stavom všetkých vozidiel a možnosťou rýchleho filtrovania</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Kalendárny Prehľad -->
+        <div class="slide">
+            <h2 class="slide-title">📅 Kalendárny Prehľad</h2>
+            <div class="content">
+                <div class="mockup">
+                    <div class="mockup-title">🗓️ Kalendár Dostupnosti Vozidiel</div>
+                    <pre>
+┌─────────────────────────────────────────────────────────┐
+│  Júl 2024                    [Filtre] [Export] [<] [>]  │
+├─────────────────────────────────────────────────────────┤
+│ Ne  Po  Út  St  Št  Pi  So                              │
+│ 30   1   2   3   4   5   6                              │
+│  7   8   9  10  11  12  13                              │
+│ 14 [15] 16  17  18  19  20                              │
+│ 21  22  23  24  25  26  27                              │
+│ 28  29  30  31                                          │
+│                                                         │
+│ 🚗 BMW X5 (ABC-123)                                     │
+│ 🟢 1-5, 8-12, 15-19, 22-26, 29-31                      │
+│ 🟡 6-7, 13-14, 20-21, 27-28                            │
+│                                                         │
+│ 🚙 Audi A4 (DEF-456)                                    │
+│ 🟢 1-3, 6-10, 13-17, 20-24, 27-31                      │
+│ 🔴 4-5, 11-12, 18-19, 25-26                            │
+│                                                         │
+│ 🚐 Mercedes C (GHI-789)                                 │
+│ 🟢 2-6, 9-13, 16-20, 23-27, 30-31                      │
+│ ⚫ 1, 7-8, 14-15, 21-22, 28-29                          │
+└─────────────────────────────────────────────────────────┘
+                    </pre>
+                </div>
+                
+                <div class="calendar-view">
+                    <h3>🎯 Funkcie Kalendára</h3>
+                    <ul style="margin-left: 20px;">
+                        <li><strong>Farebne označené stavy:</strong> 🟢 Dostupné, 🟡 Rezervované, 🔴 Prenajaté, ⚫ Údržba</li>
+                        <li><strong>Filtrovanie:</strong> Podľa značky, typu, dostupnosti</li>
+                        <li><strong>Export:</strong> PDF, Excel, CSV prehľady</li>
+                        <li><strong>Kliknutie:</strong> Zobrazenie detailu vozidla</li>
+                        <li><strong>Navigácia:</strong> Mesiac, týždeň, deň zobrazenie</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Vyhľadávanie podľa Dátumu -->
+        <div class="slide">
+            <h2 class="slide-title">🔍 Vyhľadávanie podľa Dátumu</h2>
+            <div class="content">
+                <div class="mockup">
+                    <div class="mockup-title">📅 Vyhľadávanie Dostupných Vozidiel</div>
+                    <pre>
+┌─────────────────────────────────────────────────────────┐
+│  🔍 Vyhľadávanie Dostupných Vozidiel                   │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ Dátum od: [📅 15.7.2024] [🕐 09:00]                    │
+│ Dátum do: [📅 17.7.2024] [🕐 17:00]                    │
+│                                                         │
+│ Filtre:                                                 │
+│ [ ] Len dostupné vozidlá                                │
+│ [ ] Len automaty                                        │
+│ [ ] Len manuály                                         │
+│ [ ] Len SUV                                             │
+│ [ ] Len osobné autá                                     │
+│                                                         │
+│ [🔍 Vyhľadať] [❌ Zrušiť]                              │
+│                                                         │
+│ Výsledky (3 vozidlá):                                  │
+│                                                         │
+│ ✅ BMW X5 (ABC-123) - 150€/deň                         │
+│ ✅ Audi A4 (DEF-456) - 120€/deň                        │
+│ ✅ Mercedes C (GHI-789) - 180€/deň                     │
+└─────────────────────────────────────────────────────────┘
+                    </pre>
+                </div>
+                
+                <div class="list-view">
+                    <h3>⚡ Výhody Vyhľadávania</h3>
+                    <ul style="margin-left: 20px;">
+                        <li><strong>Rýchle vyhľadávanie:</strong> Okamžité výsledky</li>
+                        <li><strong>Flexibilné filtre:</strong> Typ, značka, cena, dostupnosť</li>
+                        <li><strong>Presné dátumy:</strong> Hodina presnosti</li>
+                        <li><strong>Prehľadné výsledky:</strong> Cena, dostupnosť, obrázok</li>
+                        <li><strong>Rýchla rezervácia:</strong> Priame prepojenie na rezerváciu</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Detail Vozidla -->
+        <div class="slide">
+            <h2 class="slide-title">🚙 Detail Vozidla</h2>
+            <div class="content">
+                <div class="mockup">
+                    <div class="mockup-title">📋 Detail Vozidla - BMW X5 (ABC-123)</div>
+                    <pre>
+┌─────────────────────────────────────────────────────────┐
+│  🚗 BMW X5 (ABC-123) - Detail                          │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ Základné informácie:                                   │
+│ • Značka: BMW X5 xDrive30d                             │
+│ • Rok: 2022                                            │
+│ • Palivo: Diesel                                       │
+│ • Prevodovka: Automatická                              │
+│ • Cena: 150€/deň                                      │
+│                                                         │
+│ Dostupnosť v Júli 2024:                                │
+│                                                         │
+│ 1-5:   🟢 Dostupné                                     │
+│ 6-7:   🟡 Rezervované (J. Novák)                      │
+│ 8-12:  🟢 Dostupné                                     │
+│ 13-14: 🟡 Rezervované (M. Kováč)                      │
+│ 15-19: 🟢 Dostupné                                     │
+│ 20-21: 🟡 Rezervované (A. Svoboda)                     │
+│ 22-26: 🟢 Dostupné                                     │
+│ 27-28: 🟡 Rezervované (P. Horváth)                     │
+│ 29-31: 🟢 Dostupné                                     │
+│                                                         │
+│ [📅 Rezervovať] [📊 Štatistiky] [📝 História]         │
+└─────────────────────────────────────────────────────────┘
+                    </pre>
+                </div>
+                
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0; border-radius: 0 10px 10px 0;">
+                    <h3>🎯 Funkcie Detailu</h3>
+                    <ul style="margin-left: 20px;">
+                        <li><strong>Kompletné informácie:</strong> Technické údaje, cena, stav</li>
+                        <li><strong>Harmonogram:</strong> Mesačný prehľad dostupnosti</li>
+                        <li><strong>Rezervácie:</strong> Zobrazenie existujúcich rezervácií</li>
+                        <li><strong>Rýchle akcie:</strong> Rezervácia, úprava, vymazanie</li>
+                        <li><strong>História:</strong> Všetky predchádzajúce prenájmy</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Tabuľkový Prehľad -->
+        <div class="slide">
+            <h2 class="slide-title">📋 Tabuľkový Prehľad</h2>
+            <div class="content">
+                <div class="mockup">
+                    <div class="mockup-title">📊 Tabuľka Všetkých Vozidiel</div>
+                    <pre>
+┌─────────────────────────────────────────────────────────┐
+│  📋 Prehľad Všetkých Vozidiel                          │
+├─────────────────────────────────────────────────────────┤
+│ [🔍 Vyhľadávanie] [📅 Dnes] [📊 Štatistiky] [📤 Export]│
+├─────────────────────────────────────────────────────────┤
+│ SPZ      │ Značka    │ Stav     │ Dnes │ Zajtra │ Akcie │
+├─────────────────────────────────────────────────────────┤
+│ ABC-123  │ BMW X5    │ 🟢 Voľné │ ✅   │ ✅     │ [👁️]  │
+│ DEF-456  │ Audi A4   │ 🔴 Obsad │ ❌   │ ✅     │ [👁️]  │
+│ GHI-789  │ Mercedes  │ ⚫ Údržba │ ❌   │ ❌     │ [👁️]  │
+│ JKL-012  │ VW Golf   │ 🟢 Voľné │ ✅   │ ✅     │ [👁️]  │
+│ MNO-345  │ Škoda Oct │ 🟡 Rezerv│ ⚠️   │ ❌     │ [👁️]  │
+│ PQR-678  │ BMW 3     │ 🟢 Voľné │ ✅   │ ✅     │ [👁️]  │
+│ STU-901  │ Audi Q5   │ 🔴 Obsad │ ❌   │ ❌     │ [👁️]  │
+│ VWX-234  │ Mercedes  │ 🟢 Voľné │ ✅   │ ✅     │ [👁️]  │
+└─────────────────────────────────────────────────────────┘
+                    </pre>
+                </div>
+                
+                <div class="calendar-view">
+                    <h3>🎛️ Funkcie Tabuľky</h3>
+                    <ul style="margin-left: 20px;">
+                        <li><strong>Rýchle filtrovanie:</strong> Podľa SPZ, značky, stavu</li>
+                        <li><strong>Stavové indikátory:</strong> 🟢 Voľné, 🟡 Rezervované, 🔴 Obsadené, ⚫ Údržba</li>
+                        <li><strong>Dostupnosť:</strong> Dnes a zajtra na prvý pohľad</li>
+                        <li><strong>Rýchle akcie:</strong> Zobrazenie detailu, rezervácia</li>
+                        <li><strong>Export:</strong> Excel, CSV, PDF prehľady</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Workflow Použitia -->
+        <div class="slide">
+            <h2 class="slide-title">🔄 Workflow Použitia</h2>
+            <div class="content">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Otvorenie Prehľadu</div>
+                    <p>Zamestnanec otvorí sekciu "Dostupnosť vozidiel" v hlavnom menu</p>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Výber Zobrazenia</div>
+                    <p>Vyberie si medzi kalendárom, tabuľkou alebo vyhľadávaním podľa dátumu</p>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Filtrovanie</div>
+                    <p>Aplikuje potrebné filtre (dátum, typ vozidla, dostupnosť)</p>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Výber Vozidla</div>
+                    <p>Klikne na konkrétne vozidlo pre zobrazenie detailu</p>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">5</div>
+                    <div class="step-title">Akcia</div>
+                    <p>Vykoná potrebnú akciu (rezervácia, úprava, vymazanie)</p>
+                </div>
+                
+                <div style="background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 20px; margin: 20px 0; border-radius: 0 10px 10px 0;">
+                    <h3>⚡ Výhody Pre Zamestnancov</h3>
+                    <ul style="margin-left: 20px;">
+                        <li><strong>Rýchle rozhodovanie:</strong> Okamžitý prehľad dostupnosti</li>
+                        <li><strong>Presnosť:</strong> Real-time dáta o stave vozidiel</li>
+                        <li><strong>Úspora času:</strong> Žiadne manuálne hľadanie</li>
+                        <li><strong>Prehľadnosť:</strong> Intuitívne rozhranie</li>
+                        <li><strong>Flexibilita:</strong> Rôzne spôsoby zobrazenia</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Technická Implementácia -->
+        <div class="slide">
+            <h2 class="slide-title">🔧 Technická Implementácia</h2>
+            <div class="content">
+                <div class="mockup">
+                    <div class="mockup-title">📋 Databázové Dotazy</div>
+                    <pre>
+┌─────────────────────────────────────────────────────────┐
+│  🔍 SQL Dotazy pre Dostupnosť                          │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ 1. Všetky vozidlá s dostupnosťou:                      │
+│ SELECT v.*,                                             │
+│   CASE WHEN r.id IS NULL THEN 'available'              │
+│        ELSE 'occupied' END as status                   │
+│ FROM vehicles v                                         │
+│ LEFT JOIN rentals r ON v.id = r.vehicle_id             │
+│   AND CURRENT_DATE BETWEEN r.start_date AND r.end_date │
+│                                                         │
+│ 2. Dostupné vozidlá v období:                          │
+│ SELECT v.* FROM vehicles v                             │
+│ WHERE v.id NOT IN (                                     │
+│   SELECT DISTINCT vehicle_id FROM rentals              │
+│   WHERE (start_date, end_date) OVERLAPS                │
+│     ('2024-07-15', '2024-07-17')                       │
+│ )                                                       │
+│                                                         │
+│ 3. Harmonogram vozidla:                                │
+│ SELECT r.start_date, r.end_date,                       │
+│   c.name as customer_name                              │
+│ FROM rentals r                                          │
+│ JOIN customers c ON r.customer_id = c.id               │
+│ WHERE r.vehicle_id = ?                                 │
+│ ORDER BY r.start_date                                   │
+└─────────────────────────────────────────────────────────┘
+                    </pre>
+                </div>
+                
+                <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 20px; margin: 20px 0; border-radius: 0 10px 10px 0;">
+                    <h3>🛠️ Komponenty Systému</h3>
+                    <ul style="margin-left: 20px;">
+                        <li><strong>Frontend:</strong> React + Material-UI + FullCalendar</li>
+                        <li><strong>Backend:</strong> Node.js + Express + PostgreSQL</li>
+                        <li><strong>Kalendár:</strong> FullCalendar.js s custom rendererom</li>
+                        <li><strong>Filtrovanie:</strong> Debounced search + React Query</li>
+                        <li><strong>Real-time:</strong> WebSocket pre live updates</li>
+                        <li><strong>Export:</strong> jsPDF + xlsx pre PDF/Excel</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Implementačný Plán -->
+        <div class="slide">
+            <h2 class="slide-title">📅 Implementačný Plán</h2>
+            <div class="content">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Fáza 1 - Základné Prehľady (1 týždeň)</div>
+                    <p>• Tabuľkový prehľad všetkých vozidiel<br>
+                    • Základné filtrovanie podľa stavu<br>
+                    • API endpointy pre dostupnosť</p>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Fáza 2 - Kalendár (1 týždeň)</div>
+                    <p>• Integrácia FullCalendar.js<br>
+                    • Vizuálne zobrazenie dostupnosti<br>
+                    • Kliknutie na vozidlo</p>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Fáza 3 - Vyhľadávanie (3 dni)</div>
+                    <p>• Vyhľadávanie podľa dátumu<br>
+                    • Pokročilé filtre<br>
+                    • Rýchle výsledky</p>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Fáza 4 - Optimalizácia (3 dni)</div>
+                    <p>• Performance optimalizácia<br>
+                    • Real-time updates<br>
+                    • Export funkcionalita</p>
+                </div>
+                
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0; border-radius: 0 10px 10px 0;">
+                    <h3>⏱️ Celkový Čas: 3-4 týždne</h3>
+                    <p><strong>Rozpočet:</strong> 60-80 hodín vývoja</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <h3>🚀 BlackRent Prehľady Dostupnosti</h3>
+            <p>Inteligentné zobrazenie dostupnosti pre interné použitie</p>
+            <p style="margin-top: 15px; opacity: 0.8;">
+                Kontakt: info@blackrent.sk | Tel: +421 905 123 456
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

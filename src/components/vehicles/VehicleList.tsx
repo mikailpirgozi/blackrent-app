@@ -6,7 +6,6 @@ import {
   CardContent,
   Chip,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
@@ -16,8 +15,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Checkbox,
-  FormControlLabel,
   Collapse,
   Fab,
 } from '@mui/material';
@@ -27,7 +24,6 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   History as HistoryIcon,
-  FilterList as FilterListIcon,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { Vehicle, VehicleStatus } from '../../types';
@@ -105,7 +101,7 @@ function exportVehiclesToCSV(vehicles: Vehicle[]) {
 }
 
 export default function VehicleList() {
-  const { state, dispatch, createVehicle, updateVehicle, deleteVehicle, getFilteredVehicles } = useApp();
+  const { state, createVehicle, updateVehicle, deleteVehicle, getFilteredVehicles } = useApp();
   const [openDialog, setOpenDialog] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [filterBrand, setFilterBrand] = useState('');
@@ -156,17 +152,14 @@ export default function VehicleList() {
   // 🚀 PERFORMANCE OPTIMIZATION: Pagination
   const {
     currentData: paginatedVehicles,
-    currentPage,
-    totalPages,
     hasNextPage,
     hasPrevPage,
-    goToPage,
     nextPage,
     prevPage,
     pageInfo
   } = usePagination(filteredVehicles, 20);
 
-  const handleSelectAll = (checked: boolean) => {
+  const _handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelected(filteredVehicles.map(v => v.id));
     } else {
@@ -174,7 +167,7 @@ export default function VehicleList() {
     }
   };
 
-  const handleSelectOne = (id: string, checked: boolean) => {
+  const _handleSelectOne = (id: string, checked: boolean) => {
     setSelected(prev => checked ? [...prev, id] : prev.filter(i => i !== id));
   };
 
@@ -642,8 +635,8 @@ export default function VehicleList() {
         emptyMessage="Žiadne vozidlá"
       />
 
-      {/* 🚀 OPTIMIZED: Pagination controls */}
-      {totalPages > 1 && (
+              {/* 🚀 OPTIMIZED: Pagination controls */}
+        {hasNextPage && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 1 }}>
           <Button
             variant="outlined"

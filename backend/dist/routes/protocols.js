@@ -106,7 +106,8 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
         }
         console.log('✅ Handover protocol created successfully:', protocol.id);
         res.status(201).json({
-            message: 'Handover protocol created successfully',
+            success: true,
+            message: 'Odovzdávací protokol úspešne vytvorený',
             protocol: {
                 ...protocol,
                 pdfUrl,
@@ -149,8 +150,8 @@ router.delete('/handover/:id', async (req, res) => {
             return res.status(404).json({ error: 'Handover protocol not found' });
         }
         res.json({
-            message: 'Handover protocol deleted successfully',
-            id
+            success: true,
+            message: 'Protokol úspešne vymazaný'
         });
     }
     catch (error) {
@@ -165,8 +166,9 @@ router.post('/return', async (req, res) => {
         console.log('📝 Creating return protocol:', protocolData.id);
         const protocol = await postgres_database_1.postgresDatabase.createReturnProtocol(protocolData);
         res.status(201).json({
-            message: 'Return protocol created successfully',
-            protocol
+            success: true,
+            message: 'Preberací protokol úspešne vytvorený',
+            protocol: protocol
         });
     }
     catch (error) {

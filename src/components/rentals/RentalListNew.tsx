@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -6,7 +6,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   TextField,
   IconButton,
   Tooltip,
@@ -26,7 +25,6 @@ import {
   FormControlLabel,
   Grid,
   Divider,
-  Switch,
   FormGroup
 } from '@mui/material';
 import {
@@ -45,21 +43,11 @@ import {
   FilterList as FilterListIcon,
   Refresh as RefreshIcon,
   ViewList as ViewListIcon,
-  ViewModule as ViewModuleIcon,
-  ViewComfy as ViewComfyIcon,
   CalendarToday as CalendarIcon,
   Business as BusinessIcon,
   Person as PersonIcon,
   DirectionsCar as CarIcon,
-  Payment as PaymentIcon,
-  CheckCircleOutline as CheckIcon,
-  Cancel as CancelIcon,
-  Euro as EuroIcon,
   Schedule as ScheduleIcon,
-  LocationOn as LocationIcon,
-  AccessTime as TimeIcon,
-  Star as StarIcon,
-  TrendingUp as TrendingUpIcon,
   FileDownload as FileDownloadIcon,
   FileUpload as FileUploadIcon
 } from '@mui/icons-material';
@@ -92,7 +80,7 @@ export default function RentalList() {
   const [selected, setSelected] = useState<string[]>([]);
   const [protocols, setProtocols] = useState<Record<string, { handover?: any; return?: any }>>({});
   const [loadingProtocols, setLoadingProtocols] = useState<string[]>([]);
-  const [importError, setImportError] = useState<string>('');
+  const [, setImportError] = useState<string>('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   // Search and filter state
@@ -217,7 +205,7 @@ export default function RentalList() {
     } finally {
       setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
     }
-  }, [protocols, loadingProtocols]);
+  }, [loadingProtocols]);
 
   // Funkcia pre zobrazenie protokolov na požiadanie
   const handleViewProtocols = async (rental: Rental) => {
@@ -1526,7 +1514,7 @@ export default function RentalList() {
     }
     
     return filtered;
-      }, [state.rentals, searchQuery, advancedFilters, protocols]);
+      }, [state.rentals, searchQuery, advancedFilters, protocols, handleCreateReturn, handleDelete, handleDeleteProtocol, handleOpenGallery, handleViewProtocols]);
   
   // Get unique values for filters (already declared above)
   
@@ -1949,7 +1937,7 @@ export default function RentalList() {
         </CardContent>
       </Card>
     );
-  }, [handleEdit, handleCreateHandover, handleCreateReturn, handleDelete, protocols]);
+  }, [handleEdit, handleCreateHandover, handleCreateReturn, handleDelete, protocols, handleOpenGallery, handleViewProtocols, loadingProtocols]);
 
   return (
     <Box>

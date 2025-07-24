@@ -32,7 +32,7 @@ class PDFLibGenerator {
         // Reset pozície (PDF súradnice začínajú zdola)
         this.currentY = this.pageHeight - 50;
         // 1. Záhlavie s moderným dizajnom
-        this.addModernHeader('PROTOKOL PREVZATIA VOZIDLA');
+        this.addModernHeader('ODOVZDÁVACÍ PROTOKOL');
         // 2. Základné informácie
         this.addInfoSection('Základné informácie', [
             ['Číslo protokolu:', protocol.id.slice(-8).toUpperCase()],
@@ -102,7 +102,7 @@ class PDFLibGenerator {
         this.font = await this.doc.embedFont(pdf_lib_1.StandardFonts.Helvetica);
         this.boldFont = await this.doc.embedFont(pdf_lib_1.StandardFonts.HelveticaBold);
         this.currentY = this.pageHeight - 50;
-        this.addModernHeader('PROTOKOL VRÁTENIA VOZIDLA');
+        this.addModernHeader('PREBERACÍ PROTOKOL');
         // Základné informácie
         this.addInfoSection('Základné informácie', [
             ['Číslo protokolu:', protocol.id.slice(-8).toUpperCase()],
