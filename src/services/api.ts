@@ -35,14 +35,17 @@ class ApiService {
       const response = await fetch(url, config);
       
       if (response.status === 401 || response.status === 403) {
-        console.warn('🚨 Auth error:', response.status, 'Clearing storage and redirecting to login');
-        localStorage.removeItem('blackrent_token');
-        localStorage.removeItem('blackrent_user');
-        localStorage.removeItem('blackrent_remember_me');
-        sessionStorage.removeItem('blackrent_token');
-        sessionStorage.removeItem('blackrent_user');
-        window.location.href = '/login';
-        throw new Error('Neplatný token - presmerovanie na prihlásenie');
+        console.warn('🚨 Auth error:', response.status, 'Token validation failed');
+        console.warn('🔍 Token debug:', {
+          hasToken: !!token,
+          tokenPreview: token ? token.substring(0, 20) + '...' : 'NO TOKEN',
+          url: url
+        });
+        
+        // TEMPORARY FIX: Don't redirect, just throw error
+        // This prevents the auto-logout loop
+        console.warn('⚠️ TEMPORARY: Not redirecting to login, just throwing error');
+        throw new Error(`Auth failed: ${response.status} - Token validation error`);
       }
 
       if (!response.ok) {
@@ -300,14 +303,17 @@ class ApiService {
       const response = await fetch(url, config);
       
       if (response.status === 401 || response.status === 403) {
-        console.warn('🚨 Auth error:', response.status, 'Clearing storage and redirecting to login');
-        localStorage.removeItem('blackrent_token');
-        localStorage.removeItem('blackrent_user');
-        localStorage.removeItem('blackrent_remember_me');
-        sessionStorage.removeItem('blackrent_token');
-        sessionStorage.removeItem('blackrent_user');
-        window.location.href = '/login';
-        throw new Error('Neplatný token - presmerovanie na prihlásenie');
+        console.warn('🚨 Auth error:', response.status, 'Token validation failed');
+        console.warn('🔍 Token debug:', {
+          hasToken: !!token,
+          tokenPreview: token ? token.substring(0, 20) + '...' : 'NO TOKEN',
+          url: url
+        });
+        
+        // TEMPORARY FIX: Don't redirect, just throw error
+        // This prevents the auto-logout loop
+        console.warn('⚠️ TEMPORARY: Not redirecting to login, just throwing error');
+        throw new Error(`Auth failed: ${response.status} - Token validation error`);
       }
 
       if (!response.ok) {
