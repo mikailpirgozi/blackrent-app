@@ -293,9 +293,21 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 4 chyba:', error.message);
       }
       
-      // Migrácia 5: Pridanie rozšírených polí do rentals tabuľky
+      // Migrácia 5: Pridanie signature_template stĺpca do users tabuľky
       try {
-        console.log('📋 Migrácia 5: Pridávanie rozšírených polí do rentals...');
+        console.log('📋 Migrácia 5: Pridávanie signature_template stĺpca do users...');
+        await client.query(`
+          ALTER TABLE users 
+          ADD COLUMN IF NOT EXISTS signature_template TEXT;
+        `);
+        console.log('✅ Migrácia 5: signature_template stĺpec pridaný do users');
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 5 chyba:', error.message);
+      }
+      
+      // Migrácia 6: Pridanie rozšírených polí do rentals tabuľky
+      try {
+        console.log('📋 Migrácia 6: Pridávanie rozšírených polí do rentals...');
         await client.query(`
           ALTER TABLE rentals 
           ADD COLUMN IF NOT EXISTS deposit DECIMAL(10,2),

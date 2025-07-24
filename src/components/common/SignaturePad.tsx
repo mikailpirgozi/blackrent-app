@@ -162,10 +162,13 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const dataUrl = canvas.toDataURL('image/png');
+    // TypeScript fix: explicit null check
+    const dataUrl = canvas?.toDataURL('image/png');
+    if (!dataUrl) return;
     
     try {
-      await apiService.updateSignatureTemplate(dataUrl);
+      // TypeScript fix: explicit type assertion
+      await apiService.updateSignatureTemplate(dataUrl as string);
       alert('✅ Váš podpis bol úspešne uložený ako template pre budúce protokoly!');
     } catch (error) {
       console.error('Error saving signature template:', error);
