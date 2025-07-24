@@ -47,7 +47,7 @@ interface SerialPhotoCaptureProps {
   autoUploadToR2?: boolean;
   // ✅ NOVÉ PROPS pre nový systém
   protocolType?: 'handover' | 'return';
-  mediaType?: 'vehicle' | 'document' | 'damage';
+  mediaType?: 'vehicle' | 'document' | 'damage' | 'fuel' | 'odometer';
 }
 
 interface CapturedMedia {

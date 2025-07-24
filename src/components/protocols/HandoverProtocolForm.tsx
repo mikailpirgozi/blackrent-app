@@ -52,9 +52,13 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
     vehicleImages: [] as ProtocolImage[],
     documentImages: [] as ProtocolImage[],
     damageImages: [] as ProtocolImage[],
+    odometerImages: [] as ProtocolImage[],
+    fuelImages: [] as ProtocolImage[],
     vehicleVideos: [] as ProtocolVideo[],
     documentVideos: [] as ProtocolVideo[],
     damageVideos: [] as ProtocolVideo[],
+    odometerVideos: [] as ProtocolVideo[],
+    fuelVideos: [] as ProtocolVideo[],
   });
 
   if (!open) return null;
@@ -515,6 +519,22 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
             >
               Poškodenia ({formData.damageImages.length})
             </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PhotoCamera />}
+              onClick={() => setActivePhotoCapture('odometer')}
+              size="large"
+            >
+              Fotka km ({formData.odometerImages.length})
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PhotoCamera />}
+              onClick={() => setActivePhotoCapture('fuel')}
+              size="large"
+            >
+              Fotka paliva ({formData.fuelImages.length})
+            </Button>
           </Box>
         </CardContent>
       </Card>
@@ -545,10 +565,10 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
           onClose={() => setActivePhotoCapture(null)}
           onSave={(images, videos) => handlePhotoCaptureSuccess(activePhotoCapture, images, videos)}
           title={`Fotky - ${activePhotoCapture}`}
-          allowedTypes={['vehicle', 'document', 'damage']}
+          allowedTypes={['vehicle', 'document', 'damage', 'odometer', 'fuel']}
           entityId={uuidv4()}
           protocolType="handover"
-          mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage'}
+          mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel'}
         />
       )}
     </Box>
