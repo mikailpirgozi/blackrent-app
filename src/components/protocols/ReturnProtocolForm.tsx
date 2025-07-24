@@ -39,12 +39,12 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
   const [loading, setLoading] = useState(false);
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
   
-  // Zjednodušený state
+  // Zjednodušený state s bezpečným prístupom k handoverProtocol
   const [formData, setFormData] = useState({
     location: '',
-    odometer: handoverProtocol.vehicleCondition.odometer,
+    odometer: handoverProtocol?.vehicleCondition?.odometer || 0,
     fuelLevel: 100,
-    fuelType: handoverProtocol.vehicleCondition.fuelType,
+    fuelType: handoverProtocol?.vehicleCondition?.fuelType || 'gasoline',
     exteriorCondition: 'Dobrý',
     interiorCondition: 'Dobrý',
     notes: '',
@@ -76,7 +76,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
 
   const calculateFees = () => {
     const currentOdometer = formData.odometer;
-    const startingOdometer = handoverProtocol.vehicleCondition.odometer;
+    const startingOdometer = handoverProtocol?.vehicleCondition?.odometer || 0;
     const allowedKm = rental.allowedKilometers || 0;
     const extraKmRate = rental.extraKilometerRate || 0.50;
     const depositAmount = rental.deposit || 0;
@@ -89,7 +89,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
     const kilometerFee = kilometerOverage * extraKmRate;
     
     // Výpočet spotreby paliva
-    const startingFuel = handoverProtocol.vehicleCondition.fuelLevel;
+    const startingFuel = handoverProtocol?.vehicleCondition?.fuelLevel || 100;
     const currentFuel = formData.fuelLevel;
     const fuelUsed = Math.max(0, startingFuel - currentFuel);
     const fuelFee = fuelUsed * 0.02; // 2 centy za %
@@ -147,6 +147,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       setLoading(true);
       
       console.log('📝 Creating return protocol with handoverProtocol:', handoverProtocol.id);
+      console.log('📝 Current formData:', JSON.stringify(formData, null, 2));
       
       // Vytvorenie protokolu s pôvodnou štruktúrou
       const protocol: ReturnProtocol = {

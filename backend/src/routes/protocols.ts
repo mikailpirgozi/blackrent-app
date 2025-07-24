@@ -42,42 +42,57 @@ router.get('/rental/:rentalId', async (req, res) => {
   }
 });
 
-// 🎯 PDF PROXY ENDPOINT - Obídenie CORS problému
-router.get('/pdf/:protocolId', async (req, res) => {
+// PDF Proxy endpoint
+router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
   try {
     const { protocolId } = req.params;
     console.log('📄 PDF proxy request for protocol:', protocolId);
     
-    // Načítanie protokolu z databázy
-    const protocol = await postgresDatabase.getHandoverProtocolById(protocolId);
+    // Pokús sa najskôr nájsť handover protokol
+    let protocol = await postgresDatabase.getHandoverProtocolById(protocolId);
+    let protocolType = 'handover';
     
-    if (!protocol || !protocol.pdfUrl) {
-      return res.status(404).json({ error: 'PDF not found' });
+    // Ak nie je handover, skús return
+    if (!protocol) {
+      protocol = await postgresDatabase.getReturnProtocolById(protocolId);
+      protocolType = 'return';
     }
-
-    // 🔄 Stiahnutie PDF z R2 a forward do frontendu
-    const response = await fetch(protocol.pdfUrl);
     
-    if (!response.ok) {
-      throw new Error(`R2 fetch failed: ${response.status}`);
+    if (!protocol) {
+      console.error('❌ Protocol not found:', protocolId);
+      return res.status(404).json({ error: 'Protocol not found' });
     }
-
-    const pdfBuffer = await response.arrayBuffer();
     
-    // Nastavenie headers pre PDF
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="protocol_${protocolId}.pdf"`);
-    res.setHeader('Access-Control-Allow-Origin', '*'); // 🎯 CORS fix
-    res.setHeader('Content-Length', pdfBuffer.byteLength);
+    if (!protocol.pdfUrl) {
+      console.error('❌ No PDF URL found for protocol:', protocolId);
+      return res.status(404).json({ error: 'PDF not available for this protocol' });
+    }
     
-    // Odoslanie PDF
+    console.log('📄 Fetching PDF from R2:', protocol.pdfUrl);
+    
+    // Fetch PDF z R2
+    const pdfResponse = await fetch(protocol.pdfUrl);
+    
+    if (!pdfResponse.ok) {
+      console.error('❌ Failed to fetch PDF from R2:', pdfResponse.status);
+      return res.status(404).json({ error: 'PDF file not found in storage' });
+    }
+    
+    // Stream PDF do response
+    const pdfBuffer = await pdfResponse.arrayBuffer();
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${protocolType}-protocol-${protocolId}.pdf"`,
+      'Content-Length': pdfBuffer.byteLength.toString()
+    });
+    
     res.send(Buffer.from(pdfBuffer));
-    
-    console.log('✅ PDF proxy successful:', protocolId);
+    console.log('✅ PDF successfully served via proxy');
     
   } catch (error) {
     console.error('❌ PDF proxy error:', error);
-    res.status(500).json({ error: 'Failed to fetch PDF' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
