@@ -48,7 +48,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
   // Zjednodušený state s bezpečným prístupom k handoverProtocol
   const [formData, setFormData] = useState({
     location: '',
-    odometer: handoverProtocol?.vehicleCondition?.odometer || 0,
+    odometer: handoverProtocol?.vehicleCondition?.odometer || undefined,
     fuelLevel: 100,
     fuelType: handoverProtocol?.vehicleCondition?.fuelType || 'gasoline',
     exteriorCondition: 'Dobrý',
@@ -82,7 +82,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
   }, [formData.odometer, formData.fuelLevel]);
 
   const calculateFees = () => {
-    const currentOdometer = formData.odometer;
+    const currentOdometer = formData.odometer || 0;
     const startingOdometer = handoverProtocol?.vehicleCondition?.odometer || 0;
     const allowedKm = rental.allowedKilometers || 0;
     const extraKmRate = rental.extraKilometerRate || 0.50;
@@ -206,7 +206,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
         completedAt: new Date(),
         location: formData.location,
         vehicleCondition: {
-          odometer: formData.odometer,
+          odometer: formData.odometer || 0,
           fuelLevel: formData.fuelLevel,
           fuelType: formData.fuelType,
           exteriorCondition: formData.exteriorCondition,
@@ -445,8 +445,8 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
             <TextField
               label="Aktuálny stav tachometra (km)"
               type="number"
-              value={formData.odometer}
-              onChange={(e) => handleInputChange('odometer', parseInt(e.target.value) || 0)}
+              value={formData.odometer || ''}
+              onChange={(e) => handleInputChange('odometer', e.target.value ? parseInt(e.target.value) : undefined)}
               fullWidth
             />
             <TextField
