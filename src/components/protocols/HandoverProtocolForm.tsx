@@ -25,7 +25,6 @@ import {
   SpeedOutlined,
   Person,
   DirectionsCar,
-  Business,
   Receipt,
 } from '@mui/icons-material';
 import { HandoverProtocol, Rental, ProtocolImage, ProtocolVideo } from '../../types';
@@ -45,12 +44,10 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
   
   // Zjednodušený state - iba základné polia
   const [formData, setFormData] = useState({
-    location: '',
+    location: rental.pickupLocation || rental.handoverPlace || '',
     odometer: rental.odometer || 0,
     fuelLevel: rental.fuelLevel || 100,
-    fuelType: 'gasoline' as const,
-    exteriorCondition: 'Dobrý',
-    interiorCondition: 'Dobrý',
+    depositPaymentMethod: 'cash' as 'cash' | 'bank_transfer' | 'card',
     notes: '',
     vehicleImages: [] as ProtocolImage[],
     documentImages: [] as ProtocolImage[],
@@ -108,9 +105,9 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
         vehicleCondition: {
           odometer: formData.odometer,
           fuelLevel: formData.fuelLevel,
-          fuelType: formData.fuelType,
-          exteriorCondition: formData.exteriorCondition,
-          interiorCondition: formData.interiorCondition,
+          fuelType: 'gasoline',
+          exteriorCondition: 'Dobrý',
+          interiorCondition: 'Dobrý',
         },
         vehicleImages: formData.vehicleImages,
         vehicleVideos: formData.vehicleVideos,
@@ -137,7 +134,11 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
         },
         pdfUrl: '',
         emailSent: false,
-        notes: formData.notes,
+        notes: `${formData.notes}${formData.notes ? '\n' : ''}Spôsob úhrady depozitu: ${
+          formData.depositPaymentMethod === 'cash' ? 'Hotovosť' :
+          formData.depositPaymentMethod === 'bank_transfer' ? 'Bankový prevod' :
+          'Kartová zábezpeka'
+        }`,
         createdBy: 'admin',
       };
 
@@ -374,7 +375,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
           </Typography>
           
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
+                        <Grid item xs={12} sm={6} md={6}>
               <Typography variant="subtitle2" color="text.secondary">
                 Značka a model
               </Typography>
@@ -382,7 +383,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
                 {rental.vehicle?.brand} {rental.vehicle?.model}
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={6}>
               <Typography variant="subtitle2" color="text.secondary">
                 ŠPZ
               </Typography>
@@ -393,18 +394,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
                 sx={{ fontWeight: 'bold' }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Majiteľ vozidla
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Business sx={{ color: 'primary.main', fontSize: 20 }} />
-                <Typography variant="body1" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                  {rental.vehicle?.company || 'Neuvedené'}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={6}>
               <Typography variant="subtitle2" color="text.secondary">
                 Stav vozidla
               </Typography>
@@ -477,32 +467,17 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
               helperText="Percentuálna úroveň paliva v nádrži"
             />
             <FormControl fullWidth>
-              <InputLabel>Typ paliva</InputLabel>
+              <InputLabel>Spôsob úhrady depozitu</InputLabel>
               <Select
-                value={formData.fuelType}
-                onChange={(e) => handleInputChange('fuelType', e.target.value)}
-                label="Typ paliva"
+                value={formData.depositPaymentMethod}
+                onChange={(e) => handleInputChange('depositPaymentMethod', e.target.value)}
+                label="Spôsob úhrady depozitu"
               >
-                <MenuItem value="gasoline">Benzín</MenuItem>
-                <MenuItem value="diesel">Diesel</MenuItem>
-                <MenuItem value="hybrid">Hybrid</MenuItem>
-                <MenuItem value="electric">Elektrické</MenuItem>
+                <MenuItem value="cash">Hotovosť</MenuItem>
+                <MenuItem value="bank_transfer">Bankový prevod</MenuItem>
+                <MenuItem value="card">Kartová zábezpeka</MenuItem>
               </Select>
             </FormControl>
-            <TextField
-              label="Stav exteriéru"
-              value={formData.exteriorCondition}
-              onChange={(e) => handleInputChange('exteriorCondition', e.target.value)}
-              fullWidth
-              placeholder="Opíšte stav vonkajška vozidla"
-            />
-            <TextField
-              label="Stav interiéru"
-              value={formData.interiorCondition}
-              onChange={(e) => handleInputChange('interiorCondition', e.target.value)}
-              fullWidth
-              placeholder="Opíšte stav vnútra vozidla"
-            />
           </Box>
         </CardContent>
       </Card>
