@@ -686,10 +686,10 @@ export default function RentalList() {
     setOpenReturnDialog(true);
   };
 
-  const handleSaveReturn = async (protocolData: any) => {
+    const handleSaveReturn = async (protocolData: any) => {
     try {
-      const data = await apiService.createReturnProtocol(protocolData);
-      console.log('Return protocol created:', data);
+      // ✅ OPRAVENÉ: Protokol je už uložený v ReturnProtocolForm, iba aktualizujeme UI
+      console.log('Return protocol already saved, updating UI:', protocolData);
       
       // ✅ VYČISTI CACHE A ZNOVU NAČÍTAJ PROTOKOLY
       setProtocols(prev => {
@@ -699,12 +699,12 @@ export default function RentalList() {
       });
       await loadProtocolsForRental(protocolData.rentalId);
       
-              alert('Preberací protokol úspešne dokončený!');
+      alert('Preberací protokol úspešne dokončený!');
       setOpenReturnDialog(false);
       setSelectedRentalForProtocol(null);
     } catch (error) {
-      console.error('Chyba pri ukladaní return protokolu:', error);
-      alert('Chyba pri ukladaní protokolu. Skúste to znovu.');
+      console.error('Chyba pri aktualizácii UI po uložení return protokolu:', error);
+      alert('Protokol bol uložený, ale UI sa nepodarilo aktualizovať. Obnovte stránku.');
     }
   };
 
