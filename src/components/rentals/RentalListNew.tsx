@@ -666,13 +666,22 @@ export default function RentalList() {
   };
 
   // Return Protocol handlers
-  const handleCreateReturn = (rental: Rental) => {
+  const handleCreateReturn = async (rental: Rental) => {
+    console.log('📝 Creating return protocol for rental:', rental.id);
+    
+    // Explicitne načítaj protokoly pre tento rental
+    await loadProtocolsForRental(rental.id);
+    
     const rentalProtocols = protocols[rental.id];
+    console.log('📝 Loaded protocols:', rentalProtocols);
+    
     if (!rentalProtocols?.handover) {
-              alert('Najprv musíte vytvoriť odovzdávací protokol!');
+      alert('Najprv musíte vytvoriť odovzdávací protokol!');
+      console.error('❌ No handover protocol found for rental:', rental.id);
       return;
     }
     
+    console.log('✅ Handover protocol found:', rentalProtocols.handover.id);
     setSelectedRentalForProtocol(rental);
     setOpenReturnDialog(true);
   };

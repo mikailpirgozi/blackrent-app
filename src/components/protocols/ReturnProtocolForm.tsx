@@ -136,8 +136,17 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       return;
     }
 
+    // Kontrola handoverProtocol
+    if (!handoverProtocol) {
+      alert('Chyba: Odovzdávací protokol nie je k dispozícii. Najprv vytvorte odovzdávací protokol.');
+      console.error('❌ handoverProtocol is undefined');
+      return;
+    }
+
     try {
       setLoading(true);
+      
+      console.log('📝 Creating return protocol with handoverProtocol:', handoverProtocol.id);
       
       // Vytvorenie protokolu s pôvodnou štruktúrou
       const protocol: ReturnProtocol = {
@@ -157,13 +166,14 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           fuelType: formData.fuelType,
           exteriorCondition: formData.exteriorCondition,
           interiorCondition: formData.interiorCondition,
+          notes: formData.notes || ''
         },
-        vehicleImages: formData.vehicleImages,
-        vehicleVideos: formData.vehicleVideos,
-        documentImages: formData.documentImages,
-        documentVideos: formData.documentVideos,
-        damageImages: formData.damageImages,
-        damageVideos: formData.damageVideos,
+        vehicleImages: formData.vehicleImages || [],
+        vehicleVideos: formData.vehicleVideos || [],
+        documentImages: formData.documentImages || [],
+        documentVideos: formData.documentVideos || [],
+        damageImages: formData.damageImages || [],
+        damageVideos: formData.damageVideos || [],
         damages: [],
         newDamages: [],
         signatures: [],
@@ -194,9 +204,13 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
         createdBy: 'admin',
       };
 
+      console.log('📝 Protocol object created:', protocol);
+
       // API call
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+      
+      console.log('🚀 Sending return protocol to API...');
       
       const response = await fetch(`${apiBaseUrl}/protocols/return`, {
         method: 'POST',
@@ -208,16 +222,19 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       });
       
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ API Response Error:', response.status, errorText);
+        throw new Error(`API error: ${response.status} - ${errorText}`);
       }
       
       const result = await response.json();
+      console.log('✅ Return protocol saved successfully:', result);
       
       onSave(result.protocol);
       onClose();
       
     } catch (error) {
-      console.error('Error saving protocol:', error);
+      console.error('❌ Error saving return protocol:', error);
       alert('Chyba pri ukladaní protokolu: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
     } finally {
       setLoading(false);
