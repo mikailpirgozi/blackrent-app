@@ -131,26 +131,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('🚀 Optimistic session restore - obnovujem okamžite');
         dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
         
-        // ASYNC VALIDÁCIA - validuj token na pozadí
-        console.log('🔍 Background token validation...');
-        validateToken(token).then((isValid) => {
-          if (isValid) {
-            console.log('✅ Background validation: Token is valid');
-            // Session už je obnovená, nič ďalšie nerobiť
-          } else {
-            console.log('❌ Background validation: Token is invalid, clearing auth data');
-            clearAuthData();
-            dispatch({ type: 'LOGOUT' });
-            // Optional: presmeruj na login len ak nie je už na login stránke
-            if (!window.location.pathname.includes('/login')) {
-              window.location.href = '/login';
-            }
-          }
-        }).catch((error) => {
-          console.warn('⚠️ Background validation error:', error);
-          // V prípade chyby validation, nech session zostane aktívna
-          // (lepšie false positive ako false negative)
-        });
+        // SKIPPED ASYNC VALIDÁCIA - môže spôsobovať auto-logout
+        console.log('⚠️ SKIPPING background token validation to prevent auto-logout');
+        console.log('🔧 Token validation disabled temporarily for debugging');
+        
+        // ORIGINAL VALIDATION CODE (DISABLED):
+        // validateToken(token).then((isValid) => {
+        //   if (isValid) {
+        //     console.log('✅ Background validation: Token is valid');
+        //   } else {
+        //     console.log('❌ Background validation: Token is invalid, clearing auth data');
+        //     clearAuthData();
+        //     dispatch({ type: 'LOGOUT' });
+        //     if (!window.location.pathname.includes('/login')) {
+        //       window.location.href = '/login';
+        //     }
+        //   }
+        // }).catch((error) => {
+        //   console.warn('⚠️ Background validation error:', error);
+        // });
       } else {
         console.log('❌ No auth data found');
         console.log('🔍 Storage debug:', {
