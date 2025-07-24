@@ -64,6 +64,9 @@ class ApiService {
   }
 
   async login(username: string, password: string): Promise<{ user: any; token: string }> {
+    console.log('🔗 API Service - Making login request to:', `${API_BASE_URL}/auth/login`);
+    console.log('🔗 API Service - Request body:', { username, password: '***' });
+    
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
@@ -72,11 +75,27 @@ class ApiService {
       body: JSON.stringify({ username, password }),
     });
 
+    console.log('🔗 API Service - Response status:', response.status);
+    console.log('🔗 API Service - Response ok:', response.ok);
+    console.log('🔗 API Service - Response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
-      throw new Error('Neplatné prihlasovacie údaje');
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('🔗 API Service - Login failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
+      throw new Error(`Login failed: ${response.status} - ${errorData.error || response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('🔗 API Service - Login successful, data:', {
+      success: data.success,
+      hasUser: !!data.user,
+      hasToken: !!data.token,
+      userRole: data.user?.role
+    });
     return data;
   }
 

@@ -263,12 +263,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('👤 Username:', credentials.username);
       console.log('💾 Remember me:', rememberMe);
       console.log('🌐 Location:', window.location.href);
+      console.log('🔗 API Base URL:', API_BASE_URL);
       
+      console.log('📡 Making login request to apiService.login...');
       const result = await apiService.login(credentials.username, credentials.password);
       
       console.log('✅ Login API successful!');
       console.log('👤 User:', result.user.username);
       console.log('🔑 Token received:', !!result.token);
+      console.log('🔑 Token preview:', result.token ? result.token.substring(0, 20) + '...' : 'NO TOKEN');
       
       // VŽDY nastav remember me na true pre perzistentné prihlásenie
       const persistentRememberMe = true;
@@ -304,8 +307,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }, 50);
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Login error:', error);
+      console.error('❌ Error type:', error?.constructor?.name || 'Unknown');
+      console.error('❌ Error message:', error?.message || 'No message');
+      console.error('❌ Error stack:', error?.stack || 'No stack');
       console.error('🌐 Network debug:', {
         online: navigator.onLine,
         userAgent: navigator.userAgent,
