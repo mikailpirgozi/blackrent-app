@@ -30,7 +30,7 @@ export class EnhancedPDFGeneratorBackend {
     this.currentY = 20;
     
     // 1. Záhlavie s logom a názvom
-    this.addEnhancedHeader('PROTOKOL PREVZATIA VOZIDLA');
+    this.addEnhancedHeader('ODOVZDÁVACÍ PROTOKOL');
     
     // 2. Základné informácie v boxe
     this.addInfoBox('Základné informácie', [
@@ -107,7 +107,7 @@ export class EnhancedPDFGeneratorBackend {
   async generateReturnProtocol(protocol: ReturnProtocol): Promise<Buffer> {
     this.currentY = 20;
     
-    this.addEnhancedHeader('PROTOKOL VRÁTENIA VOZIDLA');
+    this.addEnhancedHeader('PREBERACÍ PROTOKOL');
     
     // Podobná štruktúra ako handover, ale s return-specific dátami
     this.addInfoBox('Základné informácie', [

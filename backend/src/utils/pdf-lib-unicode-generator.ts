@@ -43,7 +43,7 @@ export class PDFLibUnicodeGenerator {
     this.currentY = this.pageHeight - 50;
     
     // 1. Záhlavie s diakritiku
-    this.addUnicodeHeader('PROTOKOL PREVZATIA VOZIDLA');
+    this.addUnicodeHeader('ODOVZDÁVACÍ PROTOKOL');
     
     // 2. Základné informácie
     this.addInfoSection('Základné informácie', [
@@ -128,7 +128,7 @@ export class PDFLibUnicodeGenerator {
     
     this.currentY = this.pageHeight - 50;
     
-    this.addUnicodeHeader('PROTOKOL VRÁTENIA VOZIDLA');
+    this.addUnicodeHeader('PREBERACÍ PROTOKOL');
     
     this.addInfoSection('Základné informácie', [
       ['Číslo protokolu:', protocol.id.slice(-8).toUpperCase()],

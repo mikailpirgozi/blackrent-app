@@ -668,7 +668,7 @@ export default function RentalList() {
       });
       await loadProtocolsForRental(protocolData.rentalId);
       
-      alert('Prevzatie vozidla úspešne dokončené!');
+              alert('Odovzdávací protokol úspešne dokončený!');
       setOpenHandoverDialog(false);
       setSelectedRentalForProtocol(null);
     } catch (error) {
@@ -681,7 +681,7 @@ export default function RentalList() {
   const handleCreateReturn = (rental: Rental) => {
     const rentalProtocols = protocols[rental.id];
     if (!rentalProtocols?.handover) {
-      alert('Najprv musíte vytvoriť protokol prevzatia vozidla!');
+              alert('Najprv musíte vytvoriť odovzdávací protokol!');
       return;
     }
     
@@ -702,7 +702,7 @@ export default function RentalList() {
       });
       await loadProtocolsForRental(protocolData.rentalId);
       
-      alert('Vrátenie vozidla úspešne dokončené!');
+              alert('Preberací protokol úspešne dokončený!');
       setOpenReturnDialog(false);
       setSelectedRentalForProtocol(null);
     } catch (error) {
@@ -914,7 +914,7 @@ export default function RentalList() {
         <Box>
           {/* Hlavné tlačidlá pre vytvorenie protokolov */}
           <Box sx={{ display: 'flex', gap: 0.5, mb: 1, justifyContent: 'center' }}>
-            <Tooltip title="Prevzatie vozidla">
+                          <Tooltip title="Odovzdávací protokol">
               <IconButton
                 size="small"
                 onClick={(e) => { 
@@ -933,7 +933,7 @@ export default function RentalList() {
                 <HandoverIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Vrátenie vozidla">
+                          <Tooltip title="Preberací protokol">
               <IconButton
                 size="small"
                 onClick={(e) => { 
@@ -2646,7 +2646,7 @@ export default function RentalList() {
       {/* Workflow Instructions */}
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2">
-          <strong>Workflow protokolov:</strong> Najprv vytvorte protokol prevzatia vozidla (🔄), potom protokol vrátenia (↩️). Kliknite "Zobraziť protokoly" pre zobrazenie existujúcich protokolov.
+          <strong>Workflow protokolov:</strong> Najprv vytvorte odovzdávací protokol (🔄), potom preberací protokol (↩️). Kliknite "Zobraziť protokoly" pre zobrazenie existujúcich protokolov.
         </Typography>
       </Alert>
 
@@ -2703,7 +2703,7 @@ export default function RentalList() {
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>Protokol prevzatia vozidla</DialogTitle>
+        <DialogTitle>Odovzdávací protokol</DialogTitle>
         <DialogContent>
           {selectedRentalForProtocol && (
             <HandoverProtocolForm
@@ -2723,7 +2723,7 @@ export default function RentalList() {
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>Protokol vrátenia vozidla</DialogTitle>
+        <DialogTitle>Preberací protokol</DialogTitle>
         <DialogContent>
           {selectedRentalForProtocol && (
             <ReturnProtocolForm

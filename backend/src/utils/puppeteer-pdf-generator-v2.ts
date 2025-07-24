@@ -151,7 +151,7 @@ export class PuppeteerPDFGeneratorV2 {
         headerTemplate: '<span></span>',
         footerTemplate: `
           <div style="font-size: 10px; text-align: center; width: 100%; color: #666;">
-            <span>BlackRent - Protokol prevzatia | ${new Date().toLocaleDateString('sk-SK')}</span>
+            <span>BlackRent - Odovzdávací protokol | ${new Date().toLocaleDateString('sk-SK')}</span>
           </div>
         `,
       });
@@ -207,7 +207,7 @@ export class PuppeteerPDFGeneratorV2 {
         headerTemplate: '<span></span>',
         footerTemplate: `
           <div style="font-size: 10px; text-align: center; width: 100%; color: #666;">
-            <span>BlackRent - Protokol vrátenia | ${new Date().toLocaleDateString('sk-SK')}</span>
+            <span>BlackRent - Preberací protokol | ${new Date().toLocaleDateString('sk-SK')}</span>
           </div>
         `,
       });
@@ -232,7 +232,7 @@ export class PuppeteerPDFGeneratorV2 {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Protokol prevzatia - ${protocol.id}</title>
+    <title>Odovzdávací protokol - ${protocol.id}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
@@ -392,7 +392,7 @@ export class PuppeteerPDFGeneratorV2 {
 <body>
     <div class="header">
         <h1>BLACKRENT</h1>
-        <h2>PROTOKOL PREVZATIA VOZIDLA</h2>
+        <h2>ODOVZDÁVACÍ PROTOKOL</h2>
     </div>
 
     <div class="section">
@@ -554,13 +554,13 @@ export class PuppeteerPDFGeneratorV2 {
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
-    <title>Protokol vrátenia - ${protocol.id}</title>
+    <title>Preberací protokol - ${protocol.id}</title>
     <!-- Same CSS as handover -->
 </head>
 <body>
     <div class="header">
         <h1>BLACKRENT</h1>
-        <h2>PROTOKOL VRÁTENIA VOZIDLA</h2>
+        <h2>PREBERACÍ PROTOKOL</h2>
     </div>
     <!-- Return-specific content here -->
     <div class="footer">

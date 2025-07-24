@@ -148,7 +148,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
             const url = URL.createObjectURL(pdfBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `protokol_prevzatie_${rental.vehicle?.licensePlate || 'vozidlo'}_${new Date().toISOString().split('T')[0]}.pdf`;
+            link.download = `odovzdavaci_protokol_${rental.vehicle?.licensePlate || 'vozidlo'}_${new Date().toISOString().split('T')[0]}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -185,7 +185,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" color="text.primary">
-          Protokol prevzatia - {rental.vehicle?.licensePlate || 'Vozidlo'}
+          Odovzdávací protokol - {rental.vehicle?.licensePlate || 'Vozidlo'}
         </Typography>
         <IconButton onClick={onClose} size="large">
           <Close />

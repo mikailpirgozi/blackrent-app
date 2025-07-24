@@ -275,7 +275,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                 startIcon={<PDFIcon />}
                 onClick={(e) => { 
                   e.stopPropagation(); 
-                  onViewPDF(hasReturn.id, 'return', 'Protokol vrátenia'); 
+                  onViewPDF(hasReturn.id, 'return', 'Preberací protokol'); 
                 }}
                 sx={{ minWidth: 'fit-content' }}
               >
@@ -303,7 +303,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
               {hasReturn && (
                 <Box sx={{ mt: 0.5, p: 0.5, bgcolor: 'success.light', borderRadius: 1 }}>
                   <Typography variant="caption" sx={{ fontWeight: 500, color: 'success.dark', fontSize: '0.6rem' }}>
-                    ✅ Protokol vrátenia
+                    ✅ Preberací protokol
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.55rem' }}>
                     {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
@@ -572,7 +572,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                   startIcon={<PDFIcon />}
                   onClick={(e) => { 
                     e.stopPropagation(); 
-                    onViewPDF(hasReturn.id, 'return', 'Protokol vrátenia'); 
+                    onViewPDF(hasReturn.id, 'return', 'Preberací protokol'); 
                   }}
                   sx={{ flex: 1 }}
                 >
@@ -615,7 +615,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
               {hasReturn && (
                 <Box sx={{ mb: 1, p: 1, bgcolor: 'success.light', borderRadius: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 500, color: 'success.dark' }}>
-                    ✅ Protokol vrátenia
+                    ✅ Preberací protokol
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Vytvorený: {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
@@ -644,7 +644,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
               {hasReturn && (
                 <Box sx={{ mb: 1, p: 0.5, bgcolor: 'success.light', borderRadius: 1 }}>
                   <Typography variant="caption" sx={{ fontWeight: 500, color: 'success.dark' }}>
-                    ✅ Protokol vrátenia
+                    ✅ Preberací protokol
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
                     {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}

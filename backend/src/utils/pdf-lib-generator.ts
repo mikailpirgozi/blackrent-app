@@ -41,7 +41,7 @@ export class PDFLibGenerator {
     this.currentY = this.pageHeight - 50;
     
     // 1. Záhlavie s moderným dizajnom
-    this.addModernHeader('PROTOKOL PREVZATIA VOZIDLA');
+    this.addModernHeader('ODOVZDÁVACÍ PROTOKOL');
     
     // 2. Základné informácie
     this.addInfoSection('Základné informácie', [
@@ -127,7 +127,7 @@ export class PDFLibGenerator {
     
     this.currentY = this.pageHeight - 50;
     
-    this.addModernHeader('PROTOKOL VRÁTENIA VOZIDLA');
+    this.addModernHeader('PREBERACÍ PROTOKOL');
     
     // Základné informácie
     this.addInfoSection('Základné informácie', [

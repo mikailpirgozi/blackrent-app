@@ -239,7 +239,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" color="text.primary">
-          Protokol vrátenia - {rental.vehicle?.licensePlate || 'Vozidlo'}
+          Preberací protokol - {rental.vehicle?.licensePlate || 'Vozidlo'}
         </Typography>
         <IconButton onClick={onClose} size="large">
           <Close />
@@ -257,7 +257,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
 
       {/* Info o preberacom protokole */}
       <Alert severity="info" sx={{ mb: 3 }}>
-        Navzäuje na preberací protokol #{handoverProtocol.id.slice(-8)} z {new Date(handoverProtocol.createdAt).toLocaleString('sk-SK')}
+        Navzäuje na odovzdávací protokol #{handoverProtocol.id.slice(-8)} z {new Date(handoverProtocol.createdAt).toLocaleString('sk-SK')}
       </Alert>
 
       {/* Základné informácie */}
