@@ -7,6 +7,7 @@ interface AuthContextType {
   state: AuthState;
   login: (credentials: LoginCredentials, rememberMe?: boolean) => Promise<boolean>;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
   hasPermission: (resource: string, action: string) => boolean;
   canAccessCompanyData: (companyId: string) => boolean;
   isAdmin: () => boolean;
@@ -19,7 +20,8 @@ type AuthAction =
   | { type: 'LOGIN_SUCCESS'; payload: { user: User; token: string } }
   | { type: 'LOGIN_FAILURE' }
   | { type: 'LOGOUT' }
-  | { type: 'RESTORE_SESSION'; payload: { user: User; token: string } };
+  | { type: 'RESTORE_SESSION'; payload: { user: User; token: string } }
+  | { type: 'UPDATE_USER'; payload: Partial<User> };
 
 // Počiatočný stav
 const initialState: AuthState = {
@@ -61,6 +63,11 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         token: action.payload.token,
         isAuthenticated: true,
         isLoading: false,
+      };
+    case 'UPDATE_USER':
+      return {
+        ...state,
+        user: state.user ? { ...state.user, ...action.payload } : null,
       };
     default:
       return state;
@@ -377,12 +384,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return state.user?.role === 'company';
   };
 
+  const updateUser = (userData: Partial<User>) => {
+    dispatch({ type: 'UPDATE_USER', payload: userData });
+    
+    // Aktualizuj aj localStorage
+    if (state.user) {
+      const updatedUser = { ...state.user, ...userData };
+      StorageManager.setAuthData({
+        token: state.token,
+        user: updatedUser,
+        rememberMe: true
+      });
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
         state,
         login,
         logout,
+        updateUser,
         hasPermission,
         canAccessCompanyData,
         isAdmin,

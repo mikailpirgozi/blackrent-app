@@ -25,11 +25,11 @@ interface UserProfileProps {
 }
 
 export default function UserProfile({ open, onClose }: UserProfileProps) {
-  const { state } = useAuth();
+  const { state, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  
+
   const [formData, setFormData] = useState({
     firstName: state.user?.firstName || '',
     lastName: state.user?.lastName || '',
@@ -46,20 +46,11 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     try {
       await apiService.updateUserProfile(formData.firstName, formData.lastName);
       
-      // Aktualizuj user state s novými údajmi
-      if (state.user) {
-        const updatedUser = {
-          ...state.user,
-          firstName: formData.firstName,
-          lastName: formData.lastName
-        };
-        
-        // Ulož do localStorage
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        
-        // Force re-render
-        window.location.reload();
-      }
+      // Aktualizuj user state správne cez AuthContext
+      updateUser({
+        firstName: formData.firstName,
+        lastName: formData.lastName
+      });
       
       setMessage({ type: 'success', text: '✅ Profil úspešne aktualizovaný!' });
     } catch (error) {
@@ -77,19 +68,10 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     try {
       await apiService.updateSignatureTemplate(signatureData.signature);
       
-      // Aktualizuj user state s novým signature template
-      if (state.user) {
-        const updatedUser = {
-          ...state.user,
-          signatureTemplate: signatureData.signature
-        };
-        
-        // Ulož do localStorage
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        
-        // Force re-render
-        window.location.reload();
-      }
+      // Aktualizuj user state správne cez AuthContext
+      updateUser({
+        signatureTemplate: signatureData.signature
+      });
       
       setMessage({ type: 'success', text: '✅ Podpis úspešne uložený ako template!' });
       setShowSignaturePad(false);
