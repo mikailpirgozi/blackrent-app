@@ -149,6 +149,16 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
       // Vyčisti media objekty pred odoslaním - odstráni problematické properties
       const cleanedProtocol = {
         ...protocol,
+        // Vyčisti nested rental objekt - odstráni problematické properties
+        rental: protocol.rental ? {
+          ...protocol.rental,
+          // Ak rental obsahuje media properties, vyčisti ich
+          vehicleImages: undefined,
+          vehicleVideos: undefined,
+          documentImages: undefined,
+          damageImages: undefined,
+        } : undefined,
+        // Vyčisti main protocol media arrays
         vehicleImages: (protocol.vehicleImages || []).map((img: any) => ({
           id: img.id,
           url: img.url,

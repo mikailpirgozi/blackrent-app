@@ -210,6 +210,39 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       // Vyčisti media objekty pred odoslaním - odstráni problematické properties
       const cleanedProtocol = {
         ...protocol,
+        // Vyčisti nested rental objekt - odstráni problematické properties
+        rental: protocol.rental ? {
+          ...protocol.rental,
+          // Ak rental obsahuje media properties, vyčisti ich
+          vehicleImages: undefined,
+          vehicleVideos: undefined,
+          documentImages: undefined,
+          damageImages: undefined,
+        } : undefined,
+        // Vyčisti nested handoverProtocol objekt
+        handoverProtocol: protocol.handoverProtocol ? {
+          id: protocol.handoverProtocol.id,
+          rentalId: protocol.handoverProtocol.rentalId,
+          type: protocol.handoverProtocol.type,
+          status: protocol.handoverProtocol.status,
+          location: protocol.handoverProtocol.location,
+          createdAt: protocol.handoverProtocol.createdAt,
+          completedAt: protocol.handoverProtocol.completedAt,
+          vehicleCondition: protocol.handoverProtocol.vehicleCondition,
+          // Vyčisti media arrays z handoverProtocol
+          vehicleImages: undefined,
+          vehicleVideos: undefined,
+          documentImages: undefined,
+          damageImages: undefined,
+          damages: protocol.handoverProtocol.damages || [],
+          signatures: protocol.handoverProtocol.signatures || [],
+          rentalData: protocol.handoverProtocol.rentalData,
+          pdfUrl: protocol.handoverProtocol.pdfUrl,
+          emailSent: protocol.handoverProtocol.emailSent,
+          notes: protocol.handoverProtocol.notes,
+          createdBy: protocol.handoverProtocol.createdBy
+        } : undefined,
+        // Vyčisti main protocol media arrays
         vehicleImages: (protocol.vehicleImages || []).map((img: any) => ({
           id: img.id,
           url: img.url,
