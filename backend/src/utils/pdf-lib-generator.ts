@@ -147,6 +147,9 @@ export class PDFLibGenerator {
       ]);
     }
     
+    // ✅ PRIDANÉ: Fotodokumentácia v Return protokole
+    await this.addImagesSection(protocol);
+    
     this.addModernFooter();
     
     const pdfBytes = await this.doc.save();
@@ -479,7 +482,7 @@ export class PDFLibGenerator {
   /**
    * NOVÉ: Sekcia pre zobrazenie obrázkov v PDF protokole
    */
-  private async addImagesSection(protocol: HandoverProtocol): Promise<void> {
+  private async addImagesSection(protocol: HandoverProtocol | ReturnProtocol): Promise<void> {
     console.log('🖼️ Pridávam obrázky do PDF protokolu...');
     
     try {
