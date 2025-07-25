@@ -27,6 +27,10 @@ import {
   Tabs,
   Tab,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 // Using HTML5 date inputs instead of MUI date pickers for simplicity
 import {
@@ -43,10 +47,21 @@ import {
   Clear as ClearIcon,
   ExpandLess as CollapseIcon,
   ExpandMore as ExpandIcon,
+  Close as CloseIcon,
+  Person as CustomerIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  Euro as PriceIcon,
+  CalendarMonth as DateIcon,
+  LocationOn as LocationIcon,
+  Receipt as OrderIcon,
+  AccountBalance as DepositIcon,
+  Speed as KilometersIcon,
 } from '@mui/icons-material';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { API_BASE_URL } from '../../services/api';
+import { Rental } from '../../types';
 
 interface VehicleAvailability {
   vehicleId: string;
@@ -69,6 +84,11 @@ const AvailabilityCalendar: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   
+  // Rental details popup state
+  const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
+  const [rentalDetailsOpen, setRentalDetailsOpen] = useState(false);
+  const [loadingRentalDetails, setLoadingRentalDetails] = useState(false);
+  
   // View mode: 'navigation' (prev/next months) or 'range' (custom date range)
   const [viewMode, setViewMode] = useState<'navigation' | 'range'>('navigation');
   const [fromDate, setFromDate] = useState<Date | null>(new Date());
@@ -80,6 +100,47 @@ const AvailabilityCalendar: React.FC = () => {
   const [brandFilter, setBrandFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Function to fetch rental details
+  const fetchRentalDetails = async (rentalId: string) => {
+    try {
+      setLoadingRentalDetails(true);
+      
+      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+      const response = await fetch(`${API_BASE_URL}/rentals/${rentalId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setSelectedRental(data.data);
+        setRentalDetailsOpen(true);
+      } else {
+        console.error('Error fetching rental details:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching rental details:', error);
+    } finally {
+      setLoadingRentalDetails(false);
+    }
+  };
+
+  // Handle click on rental status chip
+  const handleRentalClick = (vehicleStatus: VehicleAvailability) => {
+    if (vehicleStatus.status === 'rented' && vehicleStatus.rentalId) {
+      fetchRentalDetails(vehicleStatus.rentalId);
+    }
+  };
+
+  // Close rental details dialog
+  const handleCloseRentalDetails = () => {
+    setRentalDetailsOpen(false);
+    setSelectedRental(null);
+  };
 
   const fetchCalendarData = async (forceMonth = false) => {
     try {
@@ -321,6 +382,7 @@ const AvailabilityCalendar: React.FC = () => {
   }
 
   return (
+    <>
     <Card>
       <CardContent>
         <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} gap={2} mb={2}>
@@ -700,9 +762,11 @@ const AvailabilityCalendar: React.FC = () => {
                                   color={getStatusColor(vehicleStatus.status) as any}
                                   size="small"
                                   variant="outlined"
+                                  onClick={() => handleRentalClick(vehicleStatus)}
                                   sx={{ 
                                     fontSize: { xs: '0.6rem', md: '0.7rem' }, 
                                     height: { xs: 20, md: 24 },
+                                    cursor: vehicleStatus.status === 'rented' ? 'pointer' : 'default',
                                     '& .MuiChip-icon': {
                                       fontSize: { xs: '0.75rem', md: '1rem' }
                                     }
@@ -745,6 +809,172 @@ const AvailabilityCalendar: React.FC = () => {
         </Box>
       </CardContent>
     </Card>
+
+    {/* Rental Details Dialog */}
+    <Dialog open={rentalDetailsOpen} onClose={handleCloseRentalDetails} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        <Box display="flex" alignItems="center" gap={1}>
+          <OrderIcon />
+          Detaily nájmu
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers>
+        {loadingRentalDetails ? (
+          <Box display="flex" justifyContent="center" p={4}>
+            <CircularProgress />
+            <Typography variant="body2" sx={{ ml: 2 }}>
+              Načítavam detaily nájmu...
+            </Typography>
+          </Box>
+        ) : selectedRental && selectedRental.id ? (
+          <Grid container spacing={2}>
+            {/* Order Information */}
+            <Grid item xs={12}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
+                    <OrderIcon />
+                    {selectedRental.orderNumber ? `Objednávka #${selectedRental.orderNumber}` : `Prenájom #${selectedRental.id.slice(0, 8)}`}
+                  </Typography>
+                  <Divider sx={{ my: 1 }} />
+                  
+                  <Box display="flex" alignItems="center" gap={1} mb={1}>
+                    <DateIcon />
+                    <Typography variant="subtitle2">Dátumy nájmu:</Typography>
+                  </Box>
+                  <Typography variant="body2">
+                    Od: {format(new Date(selectedRental.startDate), 'dd.MM.yyyy', { locale: sk })}
+                  </Typography>
+                  <Typography variant="body2">
+                    Do: {format(new Date(selectedRental.endDate), 'dd.MM.yyyy', { locale: sk })}
+                  </Typography>
+                  
+                  {selectedRental.handoverPlace && (
+                    <>
+                      <Box display="flex" alignItems="center" gap={1} mt={2} mb={1}>
+                        <LocationIcon />
+                        <Typography variant="subtitle2">Miesto odovzdania:</Typography>
+                      </Box>
+                      <Typography variant="body2">
+                        {selectedRental.handoverPlace}
+                      </Typography>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Customer Information */}
+            <Grid item xs={12}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
+                    <CustomerIcon />
+                    Zákazník
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {selectedRental.customerName}
+                  </Typography>
+                  {selectedRental.customerPhone && (
+                    <Typography variant="body2" display="flex" alignItems="center" gap={0.5} mb={0.5}>
+                      <PhoneIcon fontSize="small" />
+                      {selectedRental.customerPhone}
+                    </Typography>
+                  )}
+                  {selectedRental.customerEmail && (
+                    <Typography variant="body2" display="flex" alignItems="center" gap={0.5}>
+                      <EmailIcon fontSize="small" />
+                      {selectedRental.customerEmail}
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Price Information */}
+            <Grid item xs={12} md={6}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
+                    <PriceIcon />
+                    Cena
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Celková cena: {selectedRental.totalPrice} €</strong>
+                  </Typography>
+                  {selectedRental.commission > 0 && (
+                    <Typography variant="body2">
+                      Provízia: {selectedRental.commission} €
+                    </Typography>
+                  )}
+                  <Typography variant="body2">
+                    Platba: {selectedRental.paymentMethod === 'cash' ? 'Hotovosť' : 
+                            selectedRental.paymentMethod === 'bank_transfer' ? 'Prevod' : 
+                            selectedRental.paymentMethod}
+                  </Typography>
+                  <Typography variant="body2">
+                    Stav: {selectedRental.paid ? '✅ Zaplatené' : '❌ Nezaplatené'}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Additional Information */}
+            {(selectedRental.deposit || selectedRental.allowedKilometers) && (
+              <Grid item xs={12} md={6}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
+                      <DepositIcon />
+                      Dodatočné info
+                    </Typography>
+                    {selectedRental.deposit && (
+                      <Typography variant="body2">
+                        Depozit: {selectedRental.deposit} €
+                      </Typography>
+                    )}
+                    {selectedRental.allowedKilometers && (
+                      <Typography variant="body2" display="flex" alignItems="center" gap={0.5}>
+                        <KilometersIcon fontSize="small" />
+                        Povolené km: {selectedRental.allowedKilometers}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {/* Notes */}
+            {selectedRental.notes && (
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Poznámky
+                    </Typography>
+                    <Typography variant="body2">
+                      {selectedRental.notes}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+          </Grid>
+        ) : (
+          <Box display="flex" justifyContent="center" p={4}>
+            <Typography variant="body2" color="textSecondary">
+              Žiadne detaily nájmu pre tento vozidlo.
+            </Typography>
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleCloseRentalDetails} color="primary">
+          Zavrieť
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 };
 
