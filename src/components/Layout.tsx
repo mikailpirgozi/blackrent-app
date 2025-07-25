@@ -41,6 +41,7 @@ import {
   AdminPanelSettingsOutlined,
   LightMode,
   DarkMode,
+  CalendarToday,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -55,6 +56,7 @@ const allMenuItems = [
   { text: 'Prenájmy', icon: <ReceiptLongOutlined />, path: '/rentals', resource: 'rentals' },
   { text: 'Databáza vozidiel', icon: <CarRental />, path: '/vehicles', resource: 'vehicles' },
   { text: 'Zákazníci', icon: <GroupOutlined />, path: '/customers', resource: 'customers' },
+  { text: 'Dostupnosť áut', icon: <CalendarToday />, path: '/availability', resource: 'availability' },
   { text: 'Náklady', icon: <AttachMoney />, path: '/expenses', resource: 'expenses' },
   { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'settlements' },
   { text: 'Poistky', icon: <SecurityOutlined />, path: '/insurances', resource: 'insurances' },

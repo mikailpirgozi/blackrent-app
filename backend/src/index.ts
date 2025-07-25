@@ -76,6 +76,7 @@ import protocolRoutes from './routes/protocols';
 import fileRoutes from './routes/files';
 import settlementRoutes from './routes/settlements';
 import migrationRoutes from './routes/migration';
+import availabilityRoutes from './routes/availability';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -90,6 +91,13 @@ app.use('/api/protocols', protocolRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/settlements', settlementRoutes);
 app.use('/api/migration', migrationRoutes);
+app.use('/api/availability', availabilityRoutes);
+
+// SIMPLE TEST ENDPOINT - bez middleware
+app.get('/api/test-simple', (req, res) => {
+  console.log('🧪 Simple test endpoint called');
+  res.json({ success: true, message: 'Backend funguje!', timestamp: new Date().toISOString() });
+});
 
 // Debug endpoint pre diagnostiku PDF generátora
 app.get('/api/debug/pdf-generator', (req, res) => {

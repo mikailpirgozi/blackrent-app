@@ -26,6 +26,7 @@ const InsuranceList = lazy(() => import('./components/insurances/InsuranceList')
 const Statistics = lazy(() => import('./components/Statistics'));
 const UserManagement = lazy(() => import('./components/users/UserManagement'));
 const SettlementList = lazy(() => import('./components/settlements/SettlementList'));
+const AvailabilityPage = lazy(() => import('./pages/AvailabilityPage'));
 
 // Loading component pre lazy loaded routes
 const PageLoader = () => (
@@ -158,6 +159,18 @@ const AppContent: React.FC = () => {
                           <ErrorBoundary>
                             <Suspense fallback={<PageLoader />}>
                               <UserManagement />
+                            </Suspense>
+                          </ErrorBoundary>
+                        </Layout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/availability" element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <ErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                              <AvailabilityPage />
                             </Suspense>
                           </ErrorBoundary>
                         </Layout>
