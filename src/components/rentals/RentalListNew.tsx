@@ -165,6 +165,11 @@ export default function RentalList() {
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [galleryVideos, setGalleryVideos] = useState<any[]>([]);
   const [galleryTitle, setGalleryTitle] = useState('');
+  
+  // Protocol menu state
+  const [protocolMenuOpen, setProtocolMenuOpen] = useState(false);
+  const [selectedProtocolRental, setSelectedProtocolRental] = useState<Rental | null>(null);
+  const [selectedProtocolType, setSelectedProtocolType] = useState<'handover' | 'return' | null>(null);
 
   // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
   const loadProtocolsForRental = useCallback(async (rentalId: string) => {
@@ -857,6 +862,36 @@ export default function RentalList() {
     setGalleryImages([]);
     setGalleryVideos([]);
     setGalleryTitle('');
+  };
+
+  // Protocol menu handlers
+  const handleOpenProtocolMenu = (rental: Rental, protocolType: 'handover' | 'return') => {
+    setSelectedProtocolRental(rental);
+    setSelectedProtocolType(protocolType);
+    setProtocolMenuOpen(true);
+  };
+
+  const handleCloseProtocolMenu = () => {
+    setProtocolMenuOpen(false);
+    setSelectedProtocolRental(null);
+    setSelectedProtocolType(null);
+  };
+
+  const handleDownloadPDF = () => {
+    if (selectedProtocolRental && selectedProtocolType) {
+      const protocol = protocols[selectedProtocolRental.id]?.[selectedProtocolType];
+      if (protocol?.pdfUrl) {
+        window.open(protocol.pdfUrl, '_blank');
+      }
+    }
+    handleCloseProtocolMenu();
+  };
+
+  const handleViewGallery = () => {
+    if (selectedProtocolRental && selectedProtocolType) {
+      handleOpenGallery(selectedProtocolRental, selectedProtocolType);
+    }
+    handleCloseProtocolMenu();
   };
 
   const handleDeleteProtocol = async (rentalId: string, type: 'handover' | 'return') => {
@@ -2912,6 +2947,15 @@ export default function RentalList() {
                           size="small"
                           label={hasHandover ? '🚗→' : '⏳'}
                           title={hasHandover ? 'Auto odovzdané zákazníkovi' : 'Čaká na odovzdanie auta'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (hasHandover) {
+                              // Open handover protocol menu
+                              handleOpenProtocolMenu(rental, 'handover');
+                            } else {
+                              handleCreateHandover(rental);
+                            }
+                          }}
                           sx={{
                             height: { xs: 16, sm: 20 },
                             fontSize: { xs: '0.55rem', sm: '0.65rem' },
@@ -2919,13 +2963,27 @@ export default function RentalList() {
                             color: 'white',
                             fontWeight: 600,
                             minWidth: { xs: 22, sm: 28 },
-                            maxWidth: { xs: 30, sm: 40 }
+                            maxWidth: { xs: 30, sm: 40 },
+                            cursor: 'pointer',
+                            '&:hover': {
+                              bgcolor: hasHandover ? '#388e3c' : '#999',
+                              transform: 'scale(1.05)'
+                            }
                           }}
                         />
                         <Chip
                           size="small"
                           label={hasReturn ? '←🚗' : '⏳'}
                           title={hasReturn ? 'Auto vrátené od zákazníka' : 'Čaká na vrátenie auta'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (hasReturn) {
+                              // Open return protocol menu
+                              handleOpenProtocolMenu(rental, 'return');
+                            } else {
+                              handleCreateReturn(rental);
+                            }
+                          }}
                           sx={{
                             height: { xs: 16, sm: 20 },
                             fontSize: { xs: '0.55rem', sm: '0.65rem' },
@@ -2933,7 +2991,12 @@ export default function RentalList() {
                             color: 'white',
                             fontWeight: 600,
                             minWidth: { xs: 22, sm: 28 },
-                            maxWidth: { xs: 30, sm: 40 }
+                            maxWidth: { xs: 30, sm: 40 },
+                            cursor: 'pointer',
+                            '&:hover': {
+                              bgcolor: hasReturn ? '#388e3c' : '#999',
+                              transform: 'scale(1.05)'
+                            }
                           }}
                         />
                         <Chip
@@ -3251,7 +3314,15 @@ export default function RentalList() {
                         <Chip
                           size="small"
                           label="🚗→"
-                          title="Odovzdanie auta zákazníkovi"
+                          title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Kliknite pre vytvorenie protokolu'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (hasHandover) {
+                              handleOpenProtocolMenu(rental, 'handover');
+                            } else {
+                              handleCreateHandover(rental);
+                            }
+                          }}
                           sx={{
                             height: 28,
                             width: 42,
@@ -3259,9 +3330,11 @@ export default function RentalList() {
                             bgcolor: hasHandover ? '#4caf50' : '#ccc',
                             color: 'white',
                             fontWeight: 700,
+                            cursor: 'pointer',
                             '&:hover': {
                               bgcolor: hasHandover ? '#388e3c' : '#999',
-                              transform: 'scale(1.05)'
+                              transform: 'scale(1.1)',
+                              boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
                             },
                             transition: 'all 0.2s ease'
                           }}
@@ -3269,7 +3342,15 @@ export default function RentalList() {
                         <Chip
                           size="small"
                           label="←🚗"
-                          title="Vrátenie auta od zákazníka"
+                          title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Kliknite pre vytvorenie protokolu'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (hasReturn) {
+                              handleOpenProtocolMenu(rental, 'return');
+                            } else {
+                              handleCreateReturn(rental);
+                            }
+                          }}
                           sx={{
                             height: 28,
                             width: 42,
@@ -3277,9 +3358,11 @@ export default function RentalList() {
                             bgcolor: hasReturn ? '#4caf50' : '#ccc',
                             color: 'white',
                             fontWeight: 700,
+                            cursor: 'pointer',
                             '&:hover': {
                               bgcolor: hasReturn ? '#388e3c' : '#999',
-                              transform: 'scale(1.05)'
+                              transform: 'scale(1.1)',
+                              boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
                             },
                             transition: 'all 0.2s ease'
                           }}
@@ -3474,6 +3557,65 @@ export default function RentalList() {
         videos={galleryVideos}
         title={galleryTitle}
       />
+
+      {/* Protocol Menu Dialog */}
+      <Dialog
+        open={protocolMenuOpen}
+        onClose={handleCloseProtocolMenu}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          bgcolor: 'primary.main', 
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          {selectedProtocolType === 'handover' ? '🚗→' : '←🚗'}
+          {selectedProtocolType === 'handover' ? 'Odovzdávací protokol' : 'Preberací protokol'}
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<PDFIcon />}
+              onClick={handleDownloadPDF}
+              sx={{ 
+                bgcolor: '#f44336',
+                '&:hover': { bgcolor: '#d32f2f' },
+                py: 1.5
+              }}
+            >
+              📄 Stiahnuť PDF protokol
+            </Button>
+            
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<GalleryIcon />}
+              onClick={handleViewGallery}
+              sx={{ 
+                bgcolor: '#2196f3',
+                '&:hover': { bgcolor: '#1976d2' },
+                py: 1.5
+              }}
+            >
+              🖼️ Zobraziť fotky
+            </Button>
+            
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={handleCloseProtocolMenu}
+              sx={{ py: 1.5 }}
+            >
+              Zavrieť
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 } 
