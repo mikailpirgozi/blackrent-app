@@ -61,10 +61,9 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Engineering as ServiceIcon,
-  Handyman as RepairIcon,
-  CleaningServices as CleaningIcon,
-  FactCheck as InspectionIcon,
+
+
+
   PriorityHigh as PriorityIcon,
 } from '@mui/icons-material';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
@@ -567,11 +566,11 @@ interface MaintenanceFormData {
       case 'available': return <AvailableIcon fontSize="small" />;
       case 'rented': return <RentedIcon fontSize="small" />;
       case 'maintenance': return <MaintenanceIcon fontSize="small" />;
-      case 'service': return <ServiceIcon fontSize="small" />;
-      case 'repair': return <RepairIcon fontSize="small" />;
+      case 'service': return <MaintenanceIcon fontSize="small" />;
+      case 'repair': return <MaintenanceIcon fontSize="small" />;
       case 'blocked': return <RentedIcon fontSize="small" />;
-      case 'cleaning': return <CleaningIcon fontSize="small" />;
-      case 'inspection': return <InspectionIcon fontSize="small" />;
+      case 'cleaning': return <RefreshIcon fontSize="small" />;
+      case 'inspection': return <AvailableIcon fontSize="small" />;
       default: return <CarIcon fontSize="small" />;
     }
   };
