@@ -899,11 +899,12 @@ export class PostgresDatabase {
     try {
       console.log('🔍 Spúšťam getRentals() query...');
       
-      // SAFE: Adding one field at a time
+      // SAFE: Adding fields step by step  
       const result = await client.query(`
         SELECT id, customer_id, vehicle_id, start_date, end_date, 
                total_price, commission, payment_method, paid, status, 
-               customer_name, created_at, order_number
+               customer_name, created_at, order_number, deposit, 
+               allowed_kilometers, handover_place
         FROM rentals 
         ORDER BY created_at DESC
       `);
@@ -947,7 +948,10 @@ export class PostgresDatabase {
             paid: Boolean(row.paid),
             status: row.status || 'active',
             createdAt: row.created_at ? new Date(row.created_at) : new Date(),
-            orderNumber: row.order_number || undefined
+            orderNumber: row.order_number || undefined,
+            deposit: row.deposit ? parseFloat(row.deposit) : undefined,
+            allowedKilometers: row.allowed_kilometers || undefined,
+            handoverPlace: row.handover_place || undefined
           };
           
           return rental;
