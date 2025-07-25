@@ -70,7 +70,7 @@ import {
 
   PriorityHigh as PriorityIcon,
 } from '@mui/icons-material';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { API_BASE_URL } from '../../services/api';
 import { Rental, VehicleUnavailability } from '../../types';
@@ -1292,154 +1292,284 @@ const AvailabilityCalendar: React.FC = () => {
           </Card>
         </Collapse>
 
-        <TableContainer 
-          component={Paper} 
-          sx={{ 
-            overflowX: 'auto',
-            '&::-webkit-scrollbar': {
-              height: 8,
-            },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: '#f1f1f1',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: '#888',
-              borderRadius: 4,
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-              backgroundColor: '#555',
-            }
-          }}
-        >
-          <Table size="small" sx={{ minWidth: { xs: 600, md: 'auto' } }}>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ 
-                  minWidth: { xs: 100, md: 120 },
+        {/* BOOKING.COM STYLE PROFESSIONAL CALENDAR */}
+        <Card sx={{ 
+          overflow: 'hidden',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          borderRadius: 2
+        }}>
+          <CardContent sx={{ p: 0 }}>
+            {filteredVehicles.length === 0 ? (
+              <Box display="flex" flexDirection="column" alignItems="center" gap={2} p={6}>
+                <SearchIcon color="disabled" sx={{ fontSize: 64 }} />
+                <Typography variant="h5" color="textSecondary" textAlign="center">
+                  Žiadne vozidlá nevyhovujú filtrom
+                </Typography>
+                <Typography variant="body1" color="textSecondary" textAlign="center">
+                  Skúste upraviť filtre alebo vyčistiť vyhľadávanie
+                </Typography>
+                <Button variant="contained" onClick={handleResetFilters} sx={{ mt: 1 }}>
+                  Vyčistiť všetky filtre
+                </Button>
+              </Box>
+            ) : (
+              <>
+                {/* HEADER S DÁTUMAMI - HORIZONTÁLNE */}
+                <Box sx={{ 
+                  display: 'flex',
+                  borderBottom: '2px solid #e0e0e0',
+                  backgroundColor: '#f8f9fa',
                   position: 'sticky',
-                  left: 0,
-                  backgroundColor: 'background.paper',
-                  zIndex: 1,
-                  borderRight: '1px solid rgba(224, 224, 224, 1)'
+                  top: 0,
+                  zIndex: 100
                 }}>
-                  <strong>Dátum</strong>
-                </TableCell>
-                {filteredVehicles.length > 0 ? (
-                  filteredVehicles.map(vehicle => (
-                    <TableCell key={vehicle.id} align="center" sx={{ minWidth: { xs: 90, md: 110 } }}>
-                      <Tooltip title={`${vehicle.brand} ${vehicle.model} - ${vehicle.licensePlate}`}>
-                        <Box sx={{ minWidth: { xs: 80, md: 100 } }}>
-                          <Typography variant="caption" display="block" sx={{ 
-                            fontSize: { xs: '0.65rem', md: '0.75rem' },
-                            lineHeight: 1.2
-                          }}>
-                            <strong>{vehicle.brand}</strong>
+                  {/* Vozidlá header */}
+                  <Box sx={{ 
+                    minWidth: 280,
+                    maxWidth: 280,
+                    p: 2.5,
+                    borderRight: '2px solid #e0e0e0',
+                    fontWeight: 'bold',
+                    backgroundColor: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    boxShadow: '2px 0 4px rgba(0,0,0,0.1)'
+                  }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
+                      🚗 Vozidlá ({filteredVehicles.length})
+                    </Typography>
+                  </Box>
+                  
+                  {/* Dátumy header - horizontálne scroll */}
+                  <Box sx={{ 
+                    display: 'flex',
+                    flex: 1,
+                    overflowX: 'auto',
+                    '&::-webkit-scrollbar': { height: 8 },
+                    '&::-webkit-scrollbar-thumb': { 
+                      backgroundColor: '#1976d2', 
+                      borderRadius: 4,
+                      '&:hover': { backgroundColor: '#1565c0' }
+                    },
+                    '&::-webkit-scrollbar-track': { backgroundColor: '#f5f5f5' }
+                  }}>
+                    {statusFilteredCalendarData.map((day, index) => (
+                      <Box 
+                        key={day.date}
+                        sx={{ 
+                          minWidth: 80,
+                          maxWidth: 80,
+                          p: 1.5,
+                          borderRight: index < statusFilteredCalendarData.length - 1 ? '1px solid #e0e0e0' : 'none',
+                          textAlign: 'center',
+                          backgroundColor: isToday(new Date(day.date)) ? '#e3f2fd' : '#f8f9fa',
+                          transition: 'background-color 0.2s',
+                          '&:hover': { backgroundColor: '#e1f5fe' }
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 700, 
+                          fontSize: '0.95rem',
+                          color: isToday(new Date(day.date)) ? '#1976d2' : '#333'
+                        }}>
+                          {format(new Date(day.date), 'd')}
                         </Typography>
-                          <Typography variant="caption" display="block" sx={{ 
-                            fontSize: { xs: '0.6rem', md: '0.7rem' },
-                            lineHeight: 1.1
-                          }}>
-                            {vehicle.model}
-                          </Typography>
-                          <Typography variant="caption" color="textSecondary" sx={{ 
-                            fontSize: { xs: '0.55rem', md: '0.65rem' },
-                            lineHeight: 1
-                          }}>
-                          {vehicle.licensePlate}
+                        <Typography variant="caption" sx={{ 
+                          color: isToday(new Date(day.date)) ? '#1976d2' : '#666', 
+                          fontSize: '0.75rem',
+                          fontWeight: 500
+                        }}>
+                          {format(new Date(day.date), 'EEE', { locale: sk })}
                         </Typography>
                       </Box>
-                    </Tooltip>
-                  </TableCell>
-                  ))
-                ) : (
-                  <TableCell align="center">
-                    <Typography variant="body2" color="textSecondary">
-                      Žiadne vozidlá nevyhovujú filtrom
-                    </Typography>
-                  </TableCell>
-                )}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredVehicles.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
-                    <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
-                      <SearchIcon color="disabled" sx={{ fontSize: 48 }} />
-                      <Typography variant="h6" color="textSecondary">
-                        Žiadne vozidlá nevyhovujú filtrom
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        Skúste upraviť filtre alebo vyčistiť vyhľadávanie
-                      </Typography>
-                      <Button size="small" onClick={handleResetFilters} sx={{ mt: 1 }}>
-                        Vyčistiť všetky filtre
-                      </Button>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                statusFilteredCalendarData.map(dayData => {
-                const day = new Date(dayData.date);
-                return (
-                  <TableRow key={dayData.date}>
-                      <TableCell sx={{ 
-                        minWidth: { xs: 100, md: 120 },
+                    ))}
+                  </Box>
+                </Box>
+
+                {/* VOZIDLÁ ROWS - BOOKING.COM STYLE */}
+                <Box>
+                  {filteredVehicles.map((vehicle, vehicleIndex) => (
+                    <Box 
+                      key={vehicle.id}
+                      sx={{ 
+                        display: 'flex',
+                        borderBottom: vehicleIndex < filteredVehicles.length - 1 ? '1px solid #e0e0e0' : 'none',
+                        '&:hover': { backgroundColor: '#f8f9fa' },
+                        minHeight: 70,
+                        transition: 'background-color 0.2s'
+                      }}
+                    >
+                      {/* VOZIDLO INFO - STICKY LEFT */}
+                      <Box sx={{ 
+                        minWidth: 280,
+                        maxWidth: 280,
+                        p: 2,
+                        borderRight: '2px solid #e0e0e0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        backgroundColor: '#ffffff',
                         position: 'sticky',
                         left: 0,
-                        backgroundColor: 'background.paper',
-                        zIndex: 1,
-                        borderRight: '1px solid rgba(224, 224, 224, 1)'
+                        zIndex: 10,
+                        boxShadow: '2px 0 4px rgba(0,0,0,0.05)'
                       }}>
-                        <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
-                          <strong>{format(day, 'dd.MM', { locale: sk })}</strong>
-                      </Typography>
-                        <Typography variant="caption" color="textSecondary" sx={{ 
-                          fontSize: { xs: '0.65rem', md: '0.75rem' },
-                          display: { xs: 'none', sm: 'block' }
+                        <Typography variant="h6" sx={{ 
+                          fontWeight: 600, 
+                          mb: 0.5,
+                          fontSize: '1.1rem',
+                          color: '#1976d2'
                         }}>
-                          {format(day, 'EEE', { locale: sk })}
-                      </Typography>
-                    </TableCell>
-                      {filteredVehicles.map(vehicle => {
-                      const vehicleStatus = dayData.vehicles.find(v => v.vehicleId === vehicle.id);
-                      return (
-                          <TableCell key={vehicle.id} align="center" sx={{ 
-                            minWidth: { xs: 90, md: 110 },
-                            px: { xs: 0.5, md: 1 }
-                          }}>
-                          {vehicleStatus && (
-                            <Tooltip title={
-                              `${vehicleStatus.vehicleName} - ${getStatusText(vehicleStatus.status)}${vehicleStatus.customerName ? ` (${vehicleStatus.customerName})` : ''}`
-                            }>
-                              <Chip
-                                icon={getStatusIcon(vehicleStatus.status)}
-                                label={getStatusText(vehicleStatus.status)}
-                                color={getStatusColor(vehicleStatus.status) as any}
-                                size="small"
-                                variant="outlined"
-                                  onClick={() => handleStatusClick(vehicleStatus, dayData.date)}
-                                  sx={{ 
-                                    fontSize: { xs: '0.6rem', md: '0.7rem' }, 
-                                    height: { xs: 20, md: 24 },
-                                    cursor: (vehicleStatus.status === 'rented' || vehicleStatus.status === 'available' || ['maintenance', 'service', 'repair', 'blocked', 'cleaning', 'inspection'].includes(vehicleStatus.status)) ? 'pointer' : 'default',
-                                    '& .MuiChip-icon': {
-                                      fontSize: { xs: '0.75rem', md: '1rem' }
-                                    }
-                                  }}
-                              />
-                            </Tooltip>
-                          )}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                          {vehicle.brand} {vehicle.model}
+                        </Typography>
+                        <Typography variant="body2" sx={{ 
+                          color: '#666',
+                          fontWeight: 500,
+                          mb: 0.25
+                        }}>
+                          📋 {vehicle.licensePlate}
+                        </Typography>
+                        <Typography variant="caption" sx={{ 
+                          color: '#888',
+                          fontSize: '0.75rem'
+                        }}>
+                          🏢 {vehicle.company}
+                        </Typography>
+                      </Box>
+                      
+                      {/* KALENDÁR GRID PRE VOZIDLO */}
+                      <Box sx={{ 
+                        display: 'flex',
+                        flex: 1,
+                        overflowX: 'auto'
+                      }}>
+                        {statusFilteredCalendarData.map((day, dayIndex) => {
+                          const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
+                          
+                          return (
+                            <Box 
+                              key={day.date}
+                              sx={{ 
+                                minWidth: 80,
+                                maxWidth: 80,
+                                borderRight: dayIndex < statusFilteredCalendarData.length - 1 ? '1px solid #e0e0e0' : 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                position: 'relative',
+                                backgroundColor: 
+                                  vehicleStatus?.status === 'rented' ? '#ffebee' :
+                                  vehicleStatus?.unavailabilityReason ? '#fff3e0' : 
+                                  vehicleStatus?.status === 'available' ? '#e8f5e8' : '#ffffff',
+                                transition: 'all 0.2s ease',
+                                '&:hover': { 
+                                  backgroundColor: 
+                                    vehicleStatus?.status === 'rented' ? '#ffcdd2' :
+                                    vehicleStatus?.unavailabilityReason ? '#ffe0b2' :
+                                    vehicleStatus?.status === 'available' ? '#c8e6c9' : '#f0f0f0',
+                                  transform: 'scale(1.02)'
+                                }
+                              }}
+                              onClick={() => vehicleStatus && handleStatusClick(vehicleStatus, day.date)}
+                            >
+                              {/* PRENÁJOM BLOCK */}
+                              {vehicleStatus?.status === 'rented' && (
+                                <Box sx={{ 
+                                  position: 'absolute',
+                                  top: 6,
+                                  left: 6,
+                                  right: 6,
+                                  bottom: 6,
+                                  backgroundColor: '#f44336',
+                                  borderRadius: 1.5,
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'white',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                  textAlign: 'center',
+                                  boxShadow: '0 2px 8px rgba(244,67,54,0.3)',
+                                  overflow: 'hidden'
+                                }}>
+                                  <Box>PRENÁJOM</Box>
+                                  {vehicleStatus.customerName && (
+                                    <Box sx={{ 
+                                      fontSize: '0.55rem',
+                                      mt: 0.25,
+                                      opacity: 0.9,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                      maxWidth: '100%'
+                                    }}>
+                                      {vehicleStatus.customerName}
+                                    </Box>
+                                  )}
+                                </Box>
+                              )}
+                              
+                              {/* NEDOSTUPNOSŤ BLOCK */}
+                              {vehicleStatus?.unavailabilityReason && (
+                                <Box sx={{ 
+                                  position: 'absolute',
+                                  top: 6,
+                                  left: 6,
+                                  right: 6,
+                                  bottom: 6,
+                                  backgroundColor: '#ff9800',
+                                  borderRadius: 1.5,
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'white',
+                                  fontSize: '0.6rem',
+                                  fontWeight: 700,
+                                  textAlign: 'center',
+                                  boxShadow: '0 2px 8px rgba(255,152,0,0.3)',
+                                  overflow: 'hidden'
+                                }}>
+                                  <Box>{vehicleStatus.unavailabilityType?.toUpperCase() || 'NEDOSTUPNÉ'}</Box>
+                                  <Box sx={{ 
+                                    fontSize: '0.5rem',
+                                    mt: 0.25,
+                                    opacity: 0.9,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: '100%'
+                                  }}>
+                                    {vehicleStatus.unavailabilityReason}
+                                  </Box>
+                                </Box>
+                              )}
+                              
+                              {/* DOSTUPNÉ INDICATOR */}
+                              {vehicleStatus?.status === 'available' && !vehicleStatus?.unavailabilityReason && (
+                                <Box sx={{ 
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: '50%',
+                                  backgroundColor: '#4caf50',
+                                  boxShadow: '0 2px 4px rgba(76,175,80,0.3)',
+                                  transition: 'transform 0.2s',
+                                  '&:hover': { transform: 'scale(1.2)' }
+                                }} />
+                              )}
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         <Box mt={2} display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} gap={2}>
           <Box display="flex" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }} gap={2} flexWrap="wrap">
