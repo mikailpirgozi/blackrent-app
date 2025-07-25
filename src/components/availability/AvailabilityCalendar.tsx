@@ -24,7 +24,11 @@ import {
   MenuItem,
   Button,
   Collapse,
+  Tabs,
+  Tab,
+  Divider,
 } from '@mui/material';
+// Using HTML5 date inputs instead of MUI date pickers for simplicity
 import {
   CalendarToday as CalendarIcon,
   DirectionsCar as CarIcon,
@@ -65,6 +69,11 @@ const AvailabilityCalendar: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   
+  // View mode: 'navigation' (prev/next months) or 'range' (custom date range)
+  const [viewMode, setViewMode] = useState<'navigation' | 'range'>('navigation');
+  const [fromDate, setFromDate] = useState<Date | null>(new Date());
+  const [toDate, setToDate] = useState<Date | null>(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // +30 days
+  
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'rented' | 'maintenance'>('all');
@@ -80,14 +89,29 @@ const AvailabilityCalendar: React.FC = () => {
       // Dočasne používame production API aj v development mode kým nevyriešime lokálny backend
       let apiUrl = `${API_BASE_URL}/availability/calendar`;
       
-      if (forceMonth || currentDate.getTime() !== new Date().getTime()) {
-        // Len ak navigujeme do konkrétneho mesiaca alebo nie je dnes
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth() + 1;
-        apiUrl += `?year=${year}&month=${month}`;
-        console.log('🗓️ Fetching calendar data for month:', { year, month });
+      if (viewMode === 'range' && fromDate && toDate) {
+        // Custom date range mode
+        const startDate = format(fromDate, 'yyyy-MM-dd');
+        const endDate = format(toDate, 'yyyy-MM-dd');
+        apiUrl += `?startDate=${startDate}&endDate=${endDate}`;
+        console.log('🗓️ Fetching calendar data for range:', { startDate, endDate });
       } else {
-        console.log('🗓️ Fetching default calendar data (today + 30 days)');
+        // Navigation mode
+        const today = new Date();
+        const isToday = 
+          currentDate.getFullYear() === today.getFullYear() && 
+          currentDate.getMonth() === today.getMonth() && 
+          currentDate.getDate() === today.getDate();
+        
+        if (forceMonth || !isToday) {
+          // Len ak navigujeme do konkrétneho mesiaca alebo nie je dnes
+          const year = currentDate.getFullYear();
+          const month = currentDate.getMonth() + 1;
+          apiUrl += `?year=${year}&month=${month}`;
+          console.log('🗓️ Fetching calendar data for month:', { year, month });
+        } else {
+          console.log('🗓️ Fetching default calendar data (today + 30 days)');
+        }
       }
       
       // Custom fetch pre availability API s timeout
@@ -149,12 +173,17 @@ const AvailabilityCalendar: React.FC = () => {
   };
 
   useEffect(() => {
-    const isCurrentMonth = 
-      currentDate.getFullYear() === new Date().getFullYear() && 
-      currentDate.getMonth() === new Date().getMonth();
-    
-    fetchCalendarData(!isCurrentMonth);
-  }, [currentDate]);
+    if (viewMode === 'navigation') {
+      const isCurrentMonth = 
+        currentDate.getFullYear() === new Date().getFullYear() && 
+        currentDate.getMonth() === new Date().getMonth();
+      
+      fetchCalendarData(!isCurrentMonth);
+    } else {
+      // Range mode - fetch when dates change
+      fetchCalendarData();
+    }
+  }, [currentDate, viewMode, fromDate, toDate]);
 
   const handlePrevMonth = () => {
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -169,11 +198,25 @@ const AvailabilityCalendar: React.FC = () => {
   };
 
   const handleRefresh = () => {
-    const isCurrentMonth = 
-      currentDate.getFullYear() === new Date().getFullYear() && 
-      currentDate.getMonth() === new Date().getMonth();
-    
-    fetchCalendarData(!isCurrentMonth);
+    if (viewMode === 'navigation') {
+      const isCurrentMonth = 
+        currentDate.getFullYear() === new Date().getFullYear() && 
+        currentDate.getMonth() === new Date().getMonth();
+      
+      fetchCalendarData(!isCurrentMonth);
+    } else {
+      fetchCalendarData();
+    }
+  };
+
+  const handleViewModeChange = (event: React.SyntheticEvent, newValue: 'navigation' | 'range') => {
+    setViewMode(newValue);
+  };
+
+  const handleQuickRange = (days: number) => {
+    const today = new Date();
+    setFromDate(today);
+    setToDate(new Date(today.getTime() + days * 24 * 60 * 60 * 1000));
   };
 
   // Filter functions
@@ -286,7 +329,22 @@ const AvailabilityCalendar: React.FC = () => {
             Prehľad Dostupnosti
           </Typography>
           
-          <Box display="flex" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-end' }} gap={1} flexWrap="wrap">
+          <IconButton onClick={handleRefresh} size="small">
+            <RefreshIcon />
+          </IconButton>
+        </Box>
+
+        {/* View Mode Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+          <Tabs value={viewMode} onChange={handleViewModeChange} centered>
+            <Tab label="📅 Navigácia mesiacov" value="navigation" />
+            <Tab label="📊 Vlastný rozsah" value="range" />
+          </Tabs>
+        </Box>
+
+        {/* Navigation Mode Controls */}
+        {viewMode === 'navigation' && (
+          <Box display="flex" alignItems="center" justifyContent="center" gap={1} mb={2}>
             <IconButton onClick={handlePrevMonth} size="small">
               <PrevIcon />
             </IconButton>
@@ -311,12 +369,69 @@ const AvailabilityCalendar: React.FC = () => {
             <IconButton onClick={handleNextMonth} size="small">
               <NextIcon />
             </IconButton>
-            
-            <IconButton onClick={handleRefresh} size="small">
-              <RefreshIcon />
-            </IconButton>
           </Box>
-        </Box>
+        )}
+
+        {/* Date Range Mode Controls */}
+        {viewMode === 'range' && (
+          <Card sx={{ mb: 2, bgcolor: 'background.default' }}>
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                📊 Vlastný dátumový rozsah
+              </Typography>
+              
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Od dátumu"
+                    type="date"
+                    value={fromDate ? format(fromDate, 'yyyy-MM-dd') : ''}
+                    onChange={(e) => {
+                      const newDate = e.target.value ? new Date(e.target.value) : null;
+                      setFromDate(newDate);
+                    }}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Do dátumu"
+                    type="date"
+                    value={toDate ? format(toDate, 'yyyy-MM-dd') : ''}
+                    onChange={(e) => {
+                      const newDate = e.target.value ? new Date(e.target.value) : null;
+                      setToDate(newDate);
+                    }}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} md={6}>
+                  <Box display="flex" gap={1} flexWrap="wrap" justifyContent={{ xs: 'center', md: 'flex-start' }}>
+                    <Button size="small" variant="outlined" onClick={() => handleQuickRange(7)}>
+                      Dnes + 7 dní
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => handleQuickRange(14)}>
+                      Dnes + 14 dní
+                    </Button>  
+                    <Button size="small" variant="outlined" onClick={() => handleQuickRange(30)}>
+                      Dnes + 30 dní
+                    </Button>
+                  </Box>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        )}
 
         {error && (
           <Alert severity="warning" sx={{ mb: 2 }}>

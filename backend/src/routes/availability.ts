@@ -9,24 +9,31 @@ const router = Router();
 // GET /api/availability/calendar - Kalendárne dáta pre mesiac
 router.get('/calendar', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { year, month } = req.query;
+    const { year, month, startDate: customStartDate, endDate: customEndDate } = req.query;
     
-    console.log('🗓️ Availability calendar request:', { year, month });
+    console.log('🗓️ Availability calendar request:', { year, month, customStartDate, customEndDate });
     
     let startDate: Date;
     let endDate: Date;
     
-    if (year && month) {
+    if (customStartDate && customEndDate) {
+      // Custom date range (od-do)
+      startDate = startOfDay(new Date(customStartDate as string));
+      endDate = startOfDay(new Date(customEndDate as string));
+      console.log('📅 Using custom date range:', { startDate, endDate });
+    } else if (year && month) {
       // Ak sú zadané rok a mesiac, zobraziť celý mesiac (pre navigáciu)
       const targetYear = Number(year);
       const targetMonth = Number(month) - 1;
       startDate = startOfMonth(new Date(targetYear, targetMonth));
       endDate = endOfMonth(startDate);
+      console.log('📅 Using month navigation:', { startDate, endDate });
     } else {
       // Default: od dnešného dňa + 30 dní dopredu
       const today = startOfDay(new Date());
       startDate = today;
       endDate = addDays(today, 30);
+      console.log('📅 Using default range (today + 30 days):', { startDate, endDate });
     }
     
     console.log('📅 Date range:', { startDate, endDate });
