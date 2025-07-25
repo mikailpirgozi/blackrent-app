@@ -7,16 +7,8 @@ import {
   Grid,
   Chip,
   IconButton,
-  Tooltip,
   CircularProgress,
   Alert,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   FormControl,
   InputLabel,
@@ -65,6 +57,7 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Today as TodayIcon,
 
 
 
@@ -1075,7 +1068,230 @@ const AvailabilityCalendar: React.FC = () => {
     <>
     {/* Mobilný vs Desktop view */}
     {isMobile ? (
-      <MobileCalendarView />
+      /* MOBILNÝ BOOKING.COM STYLE KALENDÁR */
+      <Box sx={{ p: 0 }}>
+        {/* Mobilný header */}
+        <Box sx={{ mb: 2, px: 1 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+              📅 Dostupnosť
+            </Typography>
+            <Stack direction="row" spacing={0.5}>
+              <IconButton onClick={handleToday} size="small" sx={{ bgcolor: 'primary.light' }}>
+                <TodayIcon fontSize="small" />
+              </IconButton>
+              <IconButton onClick={handleRefresh} size="small" sx={{ bgcolor: 'primary.light' }}>
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+              <Button 
+                size="small" 
+                variant="contained" 
+                startIcon={<AddIcon />}
+                onClick={() => setMaintenanceDialogOpen(true)}
+                sx={{ fontSize: '0.75rem' }}
+              >
+                Pridať
+              </Button>
+            </Stack>
+          </Stack>
+          <TextField
+            fullWidth
+            size="small"
+            label="🔍 Hľadať vozidlo"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{ '& .MuiInputBase-input': { fontSize: '16px' } }}
+          />
+        </Box>
+
+        {/* Mobilný horizontálny kalendár */}
+        <Card sx={{ overflow: 'hidden', mx: 1, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+          <CardContent sx={{ p: 0 }}>
+            {/* Sticky header s dátumami */}
+            <Box sx={{ 
+              display: 'flex',
+              borderBottom: '2px solid #e0e0e0',
+              backgroundColor: '#f8f9fa',
+              position: 'sticky',
+              top: 0,
+              zIndex: 1000
+            }}>
+              <Box sx={{ 
+                minWidth: 120,
+                p: 1,
+                borderRight: '2px solid #e0e0e0',
+                backgroundColor: '#ffffff',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1976d2', fontSize: '0.75rem' }}>
+                  🚗 Vozidlá
+                </Typography>
+              </Box>
+              <Box 
+                id="mobile-header-scroll"
+                sx={{ 
+                  display: 'flex',
+                  flex: 1,
+                  overflowX: 'auto',
+                  '&::-webkit-scrollbar': { height: 4 }
+                }}
+                onScroll={(e) => {
+                  const scrollLeft = e.currentTarget.scrollLeft;
+                  document.querySelectorAll('.mobile-row').forEach((row) => {
+                    row.scrollLeft = scrollLeft;
+                  });
+                }}
+              >
+                {statusFilteredCalendarData.map((day, index) => (
+                  <Box 
+                    key={day.date}
+                    sx={{ 
+                      minWidth: 50,
+                      p: 0.75,
+                      borderRight: index < statusFilteredCalendarData.length - 1 ? '1px solid #e0e0e0' : 'none',
+                      textAlign: 'center',
+                      backgroundColor: isToday(new Date(day.date)) ? '#e3f2fd' : '#f8f9fa'
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ 
+                      fontWeight: 700, 
+                      fontSize: '0.65rem',
+                      color: isToday(new Date(day.date)) ? '#1976d2' : '#333',
+                      display: 'block'
+                    }}>
+                      {format(new Date(day.date), 'd')}
+                    </Typography>
+                    <Typography variant="caption" sx={{ 
+                      color: isToday(new Date(day.date)) ? '#1976d2' : '#666', 
+                      fontSize: '0.6rem'
+                    }}>
+                      {format(new Date(day.date), 'EEE', { locale: sk })}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+
+            {/* Vozidlá rows */}
+            <Box>
+              {filteredVehicles.map((vehicle, vehicleIndex) => (
+                <Box 
+                  key={vehicle.id}
+                  sx={{ 
+                    display: 'flex',
+                    borderBottom: vehicleIndex < filteredVehicles.length - 1 ? '1px solid #e0e0e0' : 'none',
+                    minHeight: 50
+                  }}
+                >
+                  <Box sx={{ 
+                    minWidth: 120,
+                    p: 1,
+                    borderRight: '2px solid #e0e0e0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    backgroundColor: '#ffffff',
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 10
+                  }}>
+                    <Typography variant="subtitle2" sx={{ 
+                      fontWeight: 600, 
+                      fontSize: '0.75rem',
+                      color: '#1976d2',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {vehicle.brand} {vehicle.model}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#666', fontSize: '0.65rem' }}>
+                      {vehicle.licensePlate}
+                    </Typography>
+                  </Box>
+                  
+                  <Box 
+                    className="mobile-row"
+                    sx={{ display: 'flex', flex: 1, overflowX: 'auto' }}
+                    onScroll={(e) => {
+                      const scrollLeft = e.currentTarget.scrollLeft;
+                      const headerScroll = document.getElementById('mobile-header-scroll');
+                      if (headerScroll) headerScroll.scrollLeft = scrollLeft;
+                      document.querySelectorAll('.mobile-row').forEach((row) => {
+                        if (row !== e.currentTarget) row.scrollLeft = scrollLeft;
+                      });
+                    }}
+                  >
+                    {statusFilteredCalendarData.map((day, dayIndex) => {
+                      const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
+                      return (
+                        <Box 
+                          key={day.date}
+                          sx={{ 
+                            minWidth: 50,
+                            borderRight: dayIndex < statusFilteredCalendarData.length - 1 ? '1px solid #e0e0e0' : 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            position: 'relative',
+                            backgroundColor: 
+                              vehicleStatus?.status === 'rented' ? '#ffebee' :
+                              vehicleStatus?.unavailabilityReason ? '#fff3e0' : 
+                              vehicleStatus?.status === 'available' ? '#e8f5e8' : '#ffffff'
+                          }}
+                          onClick={() => vehicleStatus && handleStatusClick(vehicleStatus, day.date)}
+                        >
+                          {vehicleStatus?.status === 'rented' && (
+                            <Box sx={{ 
+                              position: 'absolute',
+                              top: 2, left: 2, right: 2, bottom: 2,
+                              backgroundColor: '#f44336',
+                              borderRadius: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'white',
+                              fontSize: '0.5rem',
+                              fontWeight: 700
+                            }}>
+                              PRENÁJOM
+                            </Box>
+                          )}
+                          {vehicleStatus?.unavailabilityReason && (
+                            <Box sx={{ 
+                              position: 'absolute',
+                              top: 2, left: 2, right: 2, bottom: 2,
+                              backgroundColor: '#ff9800',
+                              borderRadius: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'white',
+                              fontSize: '0.45rem',
+                              fontWeight: 700
+                            }}>
+                              {vehicleStatus.unavailabilityType?.toUpperCase() || 'NEDOSTUPNÉ'}
+                            </Box>
+                          )}
+                          {vehicleStatus?.status === 'available' && !vehicleStatus?.unavailabilityReason && (
+                            <Box sx={{ 
+                              width: 6, height: 6,
+                              borderRadius: '50%',
+                              backgroundColor: '#4caf50'
+                            }} />
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
     ) : (
     <Card>
       <CardContent>
@@ -1419,7 +1635,7 @@ const AvailabilityCalendar: React.FC = () => {
                   backgroundColor: '#f8f9fa',
                   position: 'sticky',
                   top: 0,
-                  zIndex: 100
+                  zIndex: 1000
                 }}>
                   {/* Vozidlá header */}
                   <Box sx={{ 
