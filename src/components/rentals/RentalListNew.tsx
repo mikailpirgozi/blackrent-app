@@ -3465,6 +3465,28 @@ export default function RentalList() {
                       >
                         <ReturnIcon fontSize="small" />
                       </IconButton>
+                      <IconButton
+                        size="small"
+                        title="Zmazať prenájom"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(rental.id);
+                        }}
+                        sx={{ 
+                          bgcolor: '#f44336', 
+                          color: 'white',
+                          width: 36,
+                          height: 36,
+                          '&:hover': { 
+                            bgcolor: '#d32f2f',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(244,67,54,0.4)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
                     </Box>
                   </Box>
                 );

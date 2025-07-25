@@ -113,7 +113,9 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
         setAllowedKilometers(rental.allowedKilometers);
         // Ak editujeme existujúci prenájom, pokúsime sa odvodiť denné km
         if (rental.startDate && rental.endDate) {
-          const days = calculateRentalDays(rental.startDate, rental.endDate);
+          const startDate = rental.startDate instanceof Date ? rental.startDate : new Date(rental.startDate);
+          const endDate = rental.endDate instanceof Date ? rental.endDate : new Date(rental.endDate);
+          const days = calculateRentalDays(startDate, endDate);
           const possibleDailyKm = Math.round(rental.allowedKilometers / days);
           // Nastavíme denné km len ak je to rozumné číslo (napr. deliteľné)
           if (possibleDailyKm * days === rental.allowedKilometers) {
