@@ -45,12 +45,14 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     
     try {
       console.log('👤 Sending profile data:', { firstName: formData.firstName, lastName: formData.lastName });
+      console.log('👤 Current user state:', state.user);
       
       const response = await apiService.updateUserProfile(formData.firstName, formData.lastName);
       console.log('👤 Profile update response:', response);
       
       // Aktualizuj user state s dátami z backendu
       if (response && response.user) {
+        console.log('✅ Backend returned user data:', response.user);
         updateUser({
           firstName: response.user.firstName,
           lastName: response.user.lastName
@@ -58,6 +60,7 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
         console.log('✅ User state updated with backend data');
       } else if (response && response.success) {
         // Fallback ak response nemá user objekt ale má success
+        console.log('⚠️ Backend returned success but no user data');
         updateUser({
           firstName: formData.firstName,
           lastName: formData.lastName
@@ -65,6 +68,7 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
         console.log('⚠️ Using frontend data as fallback (success response)');
       } else {
         // Fallback na frontend data
+        console.log('⚠️ Backend returned no data');
         updateUser({
           firstName: formData.firstName,
           lastName: formData.lastName
@@ -75,6 +79,10 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
       setMessage({ type: 'success', text: '✅ Profil úspešne aktualizovaný!' });
     } catch (error) {
       console.error('❌ Error updating profile:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       
       // Fallback na frontend data aj pri chybe
       updateUser({
@@ -95,24 +103,28 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     
     try {
       console.log('🖊️ Sending signature data:', { signatureLength: signatureData.signature?.length || 0 });
+      console.log('🖊️ Current user state:', state.user);
       
       const response = await apiService.updateSignatureTemplate(signatureData.signature);
       console.log('🖊️ Signature update response:', response);
       
       // Aktualizuj user state s dátami z backendu
       if (response && response.user) {
+        console.log('✅ Backend returned user data:', response.user);
         updateUser({
           signatureTemplate: response.user.signatureTemplate
         });
         console.log('✅ User state updated with backend signature data');
       } else if (response && response.success) {
         // Fallback ak response nemá user objekt ale má success
+        console.log('⚠️ Backend returned success but no user data');
         updateUser({
           signatureTemplate: signatureData.signature
         });
         console.log('⚠️ Using frontend signature data as fallback (success response)');
       } else {
         // Fallback na frontend data
+        console.log('⚠️ Backend returned no data');
         updateUser({
           signatureTemplate: signatureData.signature
         });
@@ -123,6 +135,10 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
       setShowSignaturePad(false);
     } catch (error) {
       console.error('❌ Error saving signature template:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       
       // Fallback na frontend data aj pri chybe
       updateUser({
