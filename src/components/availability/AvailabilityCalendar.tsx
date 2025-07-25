@@ -1639,8 +1639,8 @@ const AvailabilityCalendar: React.FC = () => {
                 }}>
                   {/* Vozidlá header */}
                   <Box sx={{ 
-                    minWidth: 280,
-                    maxWidth: 280,
+                    minWidth: 360,
+                    maxWidth: 360,
                     p: 2.5,
                     borderRight: '2px solid #e0e0e0',
                     fontWeight: 'bold',
@@ -1726,8 +1726,8 @@ const AvailabilityCalendar: React.FC = () => {
                     >
                       {/* VOZIDLO INFO - STICKY LEFT */}
                       <Box sx={{ 
-                        minWidth: 280,
-                        maxWidth: 280,
+                        minWidth: 360,
+                        maxWidth: 360,
                         p: 2,
                         borderRight: '2px solid #e0e0e0',
                         display: 'flex',
