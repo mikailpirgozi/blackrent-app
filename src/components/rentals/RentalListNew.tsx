@@ -83,6 +83,11 @@ export default function RentalList() {
   const [, setImportError] = useState<string>('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
+  // Helper function to get vehicle data by vehicleId
+  const getVehicleByRental = useCallback((rental: Rental) => {
+    return rental.vehicleId ? state.vehicles.find(v => v.id === rental.vehicleId) : null;
+  }, [state.vehicles]);
+
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -831,7 +836,8 @@ export default function RentalList() {
       
       setGalleryImages(images);
       setGalleryVideos(videos);
-      setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} - ${rental.vehicle?.brand} ${rental.vehicle?.model}`);
+      const vehicle = getVehicleByRental(rental);
+      setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} - ${vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Neznáme vozidlo'}`);
       setGalleryOpen(true);
       
       console.log('️ Gallery state set, should open now');
@@ -894,16 +900,21 @@ export default function RentalList() {
       id: 'vehicle',
       label: 'Vozidlo',
       width: { xs: '120px', md: '150px' },
-      render: (value, rental: Rental) => (
-        <Box>
-          <Typography variant="body2" fontWeight="bold">
-            {rental.vehicle ? `${rental.vehicle.brand} ${rental.vehicle.model}` : 'Bez vozidla'}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {rental.vehicle?.licensePlate || 'N/A'}
-          </Typography>
-        </Box>
-      )
+      render: (value, rental: Rental) => {
+        // Nájdi vozidlo vo zozname všetkých vozidiel na základe vehicleId
+        const vehicle = rental.vehicleId ? state.vehicles.find(v => v.id === rental.vehicleId) : null;
+        
+        return (
+          <Box>
+            <Typography variant="body2" fontWeight="bold">
+              {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Bez vozidla'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {vehicle?.licensePlate || 'N/A'}
+            </Typography>
+          </Box>
+        );
+      }
     },
     {
       id: 'customerName',
@@ -1326,9 +1337,12 @@ export default function RentalList() {
 
   const uniqueCompanies = useMemo(() => {
     const rentals = state.rentals || [];
-    const companies = new Set(rentals.map(rental => rental.vehicle?.company).filter(Boolean));
+    const companies = new Set(rentals.map(rental => {
+      const vehicle = getVehicleByRental(rental);
+      return vehicle?.company;
+    }).filter(Boolean));
     return Array.from(companies).sort() as string[];
-  }, [state.rentals]);
+  }, [state.rentals, getVehicleByRental]);
 
   const uniquePaymentMethods = useMemo(() => {
     const rentals = state.rentals || [];
@@ -1338,9 +1352,12 @@ export default function RentalList() {
 
   const uniqueVehicleBrands = useMemo(() => {
     const rentals = state.rentals || [];
-    const brands = new Set(rentals.map(rental => rental.vehicle?.brand).filter(Boolean));
+    const brands = new Set(rentals.map(rental => {
+      const vehicle = getVehicleByRental(rental);
+      return vehicle?.brand;
+    }).filter(Boolean));
     return Array.from(brands).sort() as string[];
-  }, [state.rentals]);
+  }, [state.rentals, getVehicleByRental]);
 
   const uniqueInsuranceCompanies = useMemo(() => {
     return [] as string[];
@@ -1410,13 +1427,14 @@ export default function RentalList() {
     // Search query filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(rental => 
-        rental.customerName?.toLowerCase().includes(query) ||
-        rental.vehicle?.brand?.toLowerCase().includes(query) ||
-        rental.vehicle?.model?.toLowerCase().includes(query) ||
-        rental.vehicle?.licensePlate?.toLowerCase().includes(query) ||
-        rental.vehicle?.company?.toLowerCase().includes(query)
-      );
+      filtered = filtered.filter(rental => {
+        const vehicle = getVehicleByRental(rental);
+        return rental.customerName?.toLowerCase().includes(query) ||
+               vehicle?.brand?.toLowerCase().includes(query) ||
+               vehicle?.model?.toLowerCase().includes(query) ||
+               vehicle?.licensePlate?.toLowerCase().includes(query) ||
+               vehicle?.company?.toLowerCase().includes(query);
+      });
     }
     
     // Advanced filters
@@ -1434,7 +1452,10 @@ export default function RentalList() {
     
     // Company filter
     if (filters.company !== 'all') {
-      filtered = filtered.filter(rental => rental.vehicle?.company === filters.company);
+      filtered = filtered.filter(rental => {
+        const vehicle = getVehicleByRental(rental);
+        return vehicle?.company === filters.company;
+      });
     }
     
     // Date range filter
@@ -1487,21 +1508,26 @@ export default function RentalList() {
 
     // Vehicle brand filter
     if (filters.vehicleBrand !== 'all') {
-      filtered = filtered.filter(rental => rental.vehicle?.brand === filters.vehicleBrand);
+      filtered = filtered.filter(rental => {
+        const vehicle = getVehicleByRental(rental);
+        return vehicle?.brand === filters.vehicleBrand;
+      });
     }
 
     // Vehicle model filter
     if (filters.vehicleModel) {
-      filtered = filtered.filter(rental => 
-        rental.vehicle?.model?.toLowerCase().includes(filters.vehicleModel.toLowerCase())
-      );
+      filtered = filtered.filter(rental => {
+        const vehicle = getVehicleByRental(rental);
+        return vehicle?.model?.toLowerCase().includes(filters.vehicleModel.toLowerCase());
+      });
     }
 
     // License plate filter
     if (filters.licensePlate) {
-      filtered = filtered.filter(rental => 
-        rental.vehicle?.licensePlate?.toLowerCase().includes(filters.licensePlate.toLowerCase())
-      );
+      filtered = filtered.filter(rental => {
+        const vehicle = getVehicleByRental(rental);
+        return vehicle?.licensePlate?.toLowerCase().includes(filters.licensePlate.toLowerCase());
+      });
     }
 
     // Customer email filter
@@ -1565,7 +1591,7 @@ export default function RentalList() {
     }
     
     return filtered;
-      }, [state.rentals, searchQuery, advancedFilters, protocols, handleCreateReturn, handleDelete, handleDeleteProtocol, handleOpenGallery, handleViewProtocols]);
+      }, [state.rentals, searchQuery, advancedFilters, protocols, handleCreateReturn, handleDelete, handleDeleteProtocol, handleOpenGallery, handleViewProtocols, getVehicleByRental]);
   
   // Get unique values for filters (already declared above)
   
@@ -1617,11 +1643,17 @@ export default function RentalList() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <CarIcon color="primary" fontSize="small" />
               <Typography variant="h6" fontWeight="bold" color="primary">
-                {rental.vehicle ? `${rental.vehicle.brand} ${rental.vehicle.model}` : 'Bez vozidla'}
+                {(() => {
+                  const vehicle = getVehicleByRental(rental);
+                  return vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Bez vozidla';
+                })()}
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
-              {rental.vehicle?.licensePlate || 'N/A'}
+              {(() => {
+                const vehicle = getVehicleByRental(rental);
+                return vehicle?.licensePlate || 'N/A';
+              })()}
             </Typography>
           </Box>
           
@@ -1636,7 +1668,10 @@ export default function RentalList() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <BusinessIcon color="action" fontSize="small" />
               <Typography variant="body2" color="text.secondary">
-                {rental.vehicle?.company || 'N/A'}
+                {(() => {
+                  const vehicle = getVehicleByRental(rental);
+                  return vehicle?.company || 'N/A';
+                })()}
               </Typography>
             </Box>
           </Box>
