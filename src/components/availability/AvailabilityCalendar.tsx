@@ -155,6 +155,10 @@ interface MaintenanceFormData {
   const [brandFilter, setBrandFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // OPTIMALIZÁCIA: Cache pre availability data
+  const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
+  const [cacheKey, setCacheKey] = useState<string>('');
 
   // Function to fetch rental details
   const fetchRentalDetails = async (rentalId: string) => {
@@ -360,7 +364,20 @@ interface MaintenanceFormData {
       setLoading(true);
       setError(null);
       
-      // Dočasne používame production API aj v development mode kým nevyriešime lokálny backend
+      // OPTIMALIZÁCIA: Cache validation
+      const now = Date.now();
+      const currentCacheKey = `${viewMode}-${currentDate.getTime()}-${fromDate?.getTime()}-${toDate?.getTime()}`;
+      const cacheValid = lastFetchTime && cacheKey === currentCacheKey && (now - lastFetchTime) < 2 * 60 * 1000; // 2 min cache
+      
+      if (cacheValid) {
+        console.log('⚡ Používam cached availability data...');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('🚀 Fetching fresh availability data...');
+      
+      // Používame správny API URL podľa prostredia
       let apiUrl = `${API_BASE_URL}/availability/calendar`;
       
       if (viewMode === 'range' && fromDate && toDate) {
@@ -412,6 +429,10 @@ interface MaintenanceFormData {
         setCalendarData(data.data.calendar || []);
         setVehicles(data.data.vehicles || []);
         setUnavailabilities(data.data.unavailabilities || []);
+        
+        // OPTIMALIZÁCIA: Update cache
+        setLastFetchTime(now);
+        setCacheKey(currentCacheKey);
       } else {
         setError(data.error || 'Chyba pri načítaní dát');
       }

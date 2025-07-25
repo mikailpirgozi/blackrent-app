@@ -12,9 +12,11 @@ export class PostgresDatabase {
       this.pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-        max: 20,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
+        // OPTIMALIZÁCIA: Lepšie connection pooling pre availability API
+        max: 25, // Zvýšené z 20 na 25
+        idleTimeoutMillis: 60000, // Zvýšené z 30s na 60s
+        connectionTimeoutMillis: 5000, // Znížené z 10s na 5s
+        allowExitOnIdle: true, // Povolenie exit na idle
       });
     } else {
       // Local development or manual config
@@ -24,9 +26,11 @@ export class PostgresDatabase {
       database: process.env.DB_NAME || 'blackrent',
       password: process.env.DB_PASSWORD || 'password',
       port: parseInt(process.env.DB_PORT || '5432'),
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
+      // OPTIMALIZÁCIA: Lepšie connection pooling pre availability API
+      max: 25, // Zvýšené z 20 na 25
+      idleTimeoutMillis: 60000, // Zvýšené z 30s na 60s
+      connectionTimeoutMillis: 5000, // Znížené z 10s na 5s
+      allowExitOnIdle: true, // Povolenie exit na idle
     });
     }
 
@@ -923,9 +927,7 @@ export class PostgresDatabase {
   async getRentals(): Promise<Rental[]> {
     const client = await this.pool.connect();
     try {
-      console.log('🔍 Spúšťam getRentals() query...');
-      
-      // SAFE: Adding fields step by step  
+      // OPTIMALIZÁCIA: Odstránené debug logy pre lepší výkon
       const result = await client.query(`
         SELECT id, customer_id, vehicle_id, start_date, end_date, 
                total_price, commission, payment_method, paid, status, 
@@ -935,32 +937,13 @@ export class PostgresDatabase {
         ORDER BY created_at DESC
       `);
       
-      console.log('📊 getRentals() - Nájdené záznamy:', result.rows.length);
-      
       if (result.rows.length === 0) {
-        console.log('⚠️ getRentals() - Žiadne prenájmy v databáze');
         return [];
       }
       
-      // Bezpečné parsovanie JSON polí
-      const safeJsonParse = (value: any, fallback = undefined) => {
-        if (!value) return fallback;
-        if (typeof value === 'object') return value;
-        if (typeof value === 'string') {
-          try {
-            return JSON.parse(value);
-          } catch (e) {
-            console.warn('⚠️ JSON parse chyba:', e, 'value:', value);
-            return fallback;
-          }
-        }
-        return fallback;
-      };
-      
-      return result.rows.map((row, index) => {
+      // OPTIMALIZÁCIA: Rýchlejšie mapovanie bez debug logov
+      return result.rows.map((row) => {
         try {
-          console.log(`🔄 Spracovávam rental ${index + 1}/${result.rows.length}:`, row.id);
-          
           const rental: Rental = {
             id: row.id?.toString() || '',
             vehicleId: row.vehicle_id?.toString(),
@@ -982,7 +965,7 @@ export class PostgresDatabase {
           
           return rental;
         } catch (error) {
-          console.error('❌ Chyba pri spracovaní rental:', error, 'row:', row);
+          console.error('❌ Chyba pri spracovaní rental:', error);
           throw error;
         }
       });
