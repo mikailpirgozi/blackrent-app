@@ -901,8 +901,8 @@ export default function RentalList() {
       label: 'Vozidlo',
       width: { xs: '120px', md: '150px' },
       render: (value, rental: Rental) => {
-        // Nájdi vozidlo vo zozname všetkých vozidiel na základe vehicleId
-        const vehicle = rental.vehicleId ? state.vehicles.find(v => v.id === rental.vehicleId) : null;
+        // Použijem helper funkciu pre konzistenciu
+        const vehicle = getVehicleByRental(rental);
         
         return (
           <Box>
@@ -1326,7 +1326,7 @@ export default function RentalList() {
         </Box>
       )
     }
-  ], [protocols, loadingProtocols]);
+  ], [protocols, loadingProtocols, state.vehicles, getVehicleByRental]);
 
   // Get unique values for filter dropdowns
   const uniqueStatuses = useMemo(() => {
