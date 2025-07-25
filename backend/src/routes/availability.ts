@@ -67,10 +67,8 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
     let monthUnavailabilities: any[] = [];
     try {
       console.log('🔧 Fetching vehicle unavailabilities...');
-      const startDateStr = format(startDate, 'yyyy-MM-dd');
-      const endDateStr = format(endDate, 'yyyy-MM-dd');
       
-      const allUnavailabilities = await postgresDatabase.getUnavailabilitiesForDateRange(startDateStr, endDateStr);
+      const allUnavailabilities = await postgresDatabase.getUnavailabilitiesForDateRange(startDate, endDate);
       monthUnavailabilities = allUnavailabilities || [];
       
       console.log('🔧 Found unavailabilities in period:', monthUnavailabilities.length);
