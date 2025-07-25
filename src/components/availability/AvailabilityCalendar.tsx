@@ -695,42 +695,87 @@ const AvailabilityCalendar: React.FC = () => {
 
   // MOBILNÝ KALENDÁRNY VIEW KOMPONENT
   const MobileCalendarView = () => (
-    <Box sx={{ p: 1 }}>
-      {/* Mobilný header */}
-      <Box sx={{ mb: 2, textAlign: 'center' }}>
-        <Typography variant="h5" gutterBottom>
+    <Box sx={{ p: { xs: 0.5, sm: 1 } }}>
+      {/* Mobilný header - OPTIMALIZOVANÝ */}
+      <Box sx={{ mb: { xs: 1, sm: 2 }, textAlign: 'center' }}>
+        <Typography variant={isSmallMobile ? "h6" : "h5"} gutterBottom sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
           📅 Dostupnosť vozidiel
         </Typography>
         
-        {/* Mobilná navigácia */}
-        <Stack direction="row" spacing={1} justifyContent="center" alignItems="center" sx={{ mb: 2 }}>
-          <IconButton onClick={handlePrevMonth} size="small">
+        {/* Mobilná navigácia - KOMPAKTNEJŠIA */}
+        <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center" sx={{ mb: { xs: 1, sm: 2 } }}>
+          <IconButton onClick={handlePrevMonth} size={isSmallMobile ? "small" : "medium"}>
             <PrevIcon />
           </IconButton>
-          <Typography variant="h6" sx={{ minWidth: '200px', textAlign: 'center' }}>
+          <Typography 
+            variant={isSmallMobile ? "subtitle1" : "h6"} 
+            sx={{ 
+              minWidth: { xs: '150px', sm: '200px' }, 
+              textAlign: 'center',
+              fontSize: { xs: '0.9rem', sm: '1.25rem' }
+            }}
+          >
             {format(currentDate, 'MMMM yyyy')}
           </Typography>
-          <IconButton onClick={handleNextMonth} size="small">
+          <IconButton onClick={handleNextMonth} size={isSmallMobile ? "small" : "medium"}>
             <NextIcon />
           </IconButton>
         </Stack>
         
-        <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap">
-          <Button size="small" onClick={handleToday} variant="outlined">
+        <Stack 
+          direction="row" 
+          spacing={{ xs: 0.5, sm: 1 }} 
+          justifyContent="center" 
+          flexWrap="wrap" 
+          sx={{ mb: { xs: 1, sm: 1.5 } }}
+        >
+          <Button 
+            size={isSmallMobile ? "small" : "medium"} 
+            onClick={handleToday} 
+            variant="outlined"
+            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}
+          >
             Dnes
           </Button>
-          <Button size="small" onClick={handleRefresh} variant="outlined">
-            <RefreshIcon />
+          <Button 
+            size={isSmallMobile ? "small" : "medium"} 
+            onClick={handleRefresh} 
+            variant="outlined"
+            sx={{ minWidth: 'auto', px: { xs: 1, sm: 2 } }}
+          >
+            <RefreshIcon fontSize={isSmallMobile ? "small" : "medium"} />
+          </Button>
+          <Button 
+            size={isSmallMobile ? "small" : "medium"}
+            onClick={() => {
+              setMaintenanceFormData({
+                vehicleId: '',
+                startDate: format(new Date(), 'yyyy-MM-dd'),
+                endDate: format(new Date(), 'yyyy-MM-dd'),
+                reason: '',
+                type: 'maintenance',
+                notes: '',
+                priority: 2,
+                recurring: false,
+              });
+              setEditingMaintenance(null);
+              setMaintenanceDialogOpen(true);
+            }}
+            variant="contained"
+            startIcon={<AddIcon fontSize={isSmallMobile ? "small" : "medium"} />}
+            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}
+          >
+            Pridať
           </Button>
         </Stack>
       </Box>
 
-      {/* Mobilný search - OPRAVENÝ FOCUS */}
+      {/* Mobilný search - OPTIMALIZOVANÝ */}
       <TextField
         fullWidth
-        size="small"
+        size={isSmallMobile ? "small" : "medium"}
         label="🔍 Hľadať vozidlo"
-        placeholder="BMW, X5, BA123AB..."
+        placeholder={isSmallMobile ? "BMW, BA123AB..." : "BMW, X5, BA123AB..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         autoComplete="off"
@@ -739,9 +784,13 @@ const AvailabilityCalendar: React.FC = () => {
           spellCheck: 'false'
         }}
         sx={{ 
-          mb: 2,
+          mb: { xs: 1.5, sm: 2 },
           '& .MuiInputBase-input': {
-            fontSize: '16px', // Prevents zoom on iOS
+            fontSize: { xs: '16px', sm: '14px' }, // Prevents zoom on iOS
+            padding: { xs: '8px 12px', sm: '12px 14px' }
+          },
+          '& .MuiInputLabel-root': {
+            fontSize: { xs: '0.875rem', sm: '1rem' }
           }
         }}
       />
@@ -753,18 +802,27 @@ const AvailabilityCalendar: React.FC = () => {
         </Box>
       ) : (
         <>
-          {/* Horizontálne scrollovanie dní */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" gutterBottom sx={{ px: 1 }}>
+          {/* Horizontálne scrollovanie dní - OPTIMALIZOVANÉ */}
+          <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+            <Typography 
+              variant={isSmallMobile ? "caption" : "subtitle2"} 
+              gutterBottom 
+              sx={{ 
+                px: { xs: 0.5, sm: 1 },
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                fontWeight: 500
+              }}
+            >
               📅 Vyberte dátum:
             </Typography>
             <Box 
               sx={{ 
                 display: 'flex', 
                 overflowX: 'auto', 
-                gap: 1, 
-                pb: 1,
-                '&::-webkit-scrollbar': { height: 4 },
+                gap: { xs: 0.5, sm: 1 }, 
+                pb: { xs: 0.5, sm: 1 },
+                px: { xs: 0.5, sm: 0 },
+                '&::-webkit-scrollbar': { height: { xs: 2, sm: 4 } },
                 '&::-webkit-scrollbar-thumb': { backgroundColor: 'primary.main', borderRadius: 2 }
               }}
             >
@@ -778,50 +836,52 @@ const AvailabilityCalendar: React.FC = () => {
                  const rentedCount = dayData.vehicles.filter(v => v.status === 'rented').length;
                  
                  return (
-                   <Button
-                     key={dayData.date}
-                     variant={selectedDate === dayData.date ? "contained" : "outlined"}
-                     size="small"
-                     onClick={() => setSelectedDate(dayData.date)}
-                     sx={{
-                       minWidth: 70,
-                       flexDirection: 'column',
-                       py: 1,
-                       border: isToday ? '2px solid' : '1px solid',
-                       borderColor: isToday ? 'primary.main' : 'grey.300',
-                       position: 'relative'
-                     }}
-                   >
-                     <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                       {format(day, 'EEE')}
-                     </Typography>
-                     <Typography variant="body2" fontWeight="bold">
-                       {format(day, 'dd')}
-                     </Typography>
-                     <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>
-                       {format(day, 'MMM')}
-                     </Typography>
+                                       <Button
+                      key={dayData.date}
+                      variant={selectedDate === dayData.date ? "contained" : "outlined"}
+                      size={isSmallMobile ? "small" : "medium"}
+                      onClick={() => setSelectedDate(dayData.date)}
+                      sx={{
+                        minWidth: { xs: 60, sm: 70 },
+                        flexDirection: 'column',
+                        py: { xs: 0.5, sm: 1 },
+                        px: { xs: 0.5, sm: 1 },
+                        border: isToday ? '2px solid' : '1px solid',
+                        borderColor: isToday ? 'primary.main' : 'grey.300',
+                        position: 'relative',
+                        height: { xs: 'auto', sm: 'auto' }
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, lineHeight: 1 }}>
+                        {format(day, 'EEE')}
+                      </Typography>
+                      <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, lineHeight: 1.2 }}>
+                        {format(day, 'dd')}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontSize: { xs: '0.55rem', sm: '0.65rem' }, lineHeight: 1 }}>
+                        {format(day, 'MMM')}
+                      </Typography>
                      
-                     {/* Indikátor obsadenosti */}
-                     <Box sx={{ 
-                       display: 'flex', 
-                       gap: 0.25, 
-                       mt: 0.5,
-                       justifyContent: 'center'
-                     }}>
-                       <Box sx={{ 
-                         width: 4, 
-                         height: 4, 
-                         borderRadius: '50%', 
-                         bgcolor: availableCount > 0 ? 'success.main' : 'grey.300' 
-                       }} />
-                       <Box sx={{ 
-                         width: 4, 
-                         height: 4, 
-                         borderRadius: '50%', 
-                         bgcolor: rentedCount > 0 ? 'error.main' : 'grey.300' 
-                       }} />
-                     </Box>
+                                           {/* Indikátor obsadenosti - OPTIMALIZOVANÝ */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        gap: { xs: 0.2, sm: 0.25 }, 
+                        mt: { xs: 0.25, sm: 0.5 },
+                        justifyContent: 'center'
+                      }}>
+                        <Box sx={{ 
+                          width: { xs: 3, sm: 4 }, 
+                          height: { xs: 3, sm: 4 }, 
+                          borderRadius: '50%', 
+                          bgcolor: availableCount > 0 ? 'success.main' : 'grey.300' 
+                        }} />
+                        <Box sx={{ 
+                          width: { xs: 3, sm: 4 }, 
+                          height: { xs: 3, sm: 4 }, 
+                          borderRadius: '50%', 
+                          bgcolor: rentedCount > 0 ? 'error.main' : 'grey.300' 
+                        }} />
+                      </Box>
                    </Button>
                  );
               })}
@@ -841,13 +901,13 @@ const AvailabilityCalendar: React.FC = () => {
              )}
            </Box>
 
-          {/* Mobilné vozidlá pre vybraný dátum */}
-          <Stack spacing={1}>
-                         {filteredVehicles.map(vehicle => {
-               const selectedDayData = statusFilteredCalendarData.find(day => 
-                 day.date === selectedDate
-               );
-               const vehicleStatus = selectedDayData?.vehicles.find(v => v.vehicleId === vehicle.id);
+                    {/* Mobilné vozidlá pre vybraný dátum - OPTIMALIZOVANÉ */}
+          <Stack spacing={{ xs: 0.75, sm: 1 }} sx={{ px: { xs: 0.5, sm: 0 } }}>
+            {filteredVehicles.map(vehicle => {
+              const selectedDayData = statusFilteredCalendarData.find(day => 
+                day.date === selectedDate
+              );
+              const vehicleStatus = selectedDayData?.vehicles.find(v => v.vehicleId === vehicle.id);
               
               return (
                 <Card 
@@ -856,33 +916,76 @@ const AvailabilityCalendar: React.FC = () => {
                     border: '1px solid',
                     borderColor: vehicleStatus ? getStatusColor(vehicleStatus.status) : 'grey.300',
                     backgroundColor: vehicleStatus?.status === 'available' ? 'success.light' : 
-                                   vehicleStatus?.status === 'rented' ? 'error.light' : 'grey.50'
+                                   vehicleStatus?.status === 'rented' ? 'error.light' : 'grey.50',
+                    borderRadius: { xs: 1, sm: 2 },
+                    boxShadow: { xs: 1, sm: 2 }
                   }}
                 >
-                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight="bold">
+                  <CardContent sx={{ 
+                    p: { xs: 1.5, sm: 2 }, 
+                    '&:last-child': { pb: { xs: 1.5, sm: 2 } } 
+                  }}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      gap: { xs: 1, sm: 2 }
+                    }}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography 
+                          variant={isSmallMobile ? "body1" : "subtitle1"} 
+                          fontWeight="bold"
+                          sx={{ 
+                            fontSize: { xs: '0.9rem', sm: '1rem' },
+                            lineHeight: 1.2,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
                           {vehicle.brand} {vehicle.model}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography 
+                          variant={isSmallMobile ? "caption" : "body2"} 
+                          color="text.secondary"
+                          sx={{ 
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                            lineHeight: 1.1
+                          }}
+                        >
                           {vehicle.licensePlate}
                         </Typography>
                         {vehicleStatus?.customerName && (
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography 
+                            variant="caption" 
+                            color="text.secondary"
+                            sx={{ 
+                              display: 'block',
+                              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                              lineHeight: 1.1,
+                              mt: 0.25,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
                             👤 {vehicleStatus.customerName}
                           </Typography>
                         )}
                       </Box>
                       <Chip
                         label={getStatusText(vehicleStatus?.status || 'available')}
-                        size="small"
+                        size={isSmallMobile ? "small" : "medium"}
                         sx={{
                           bgcolor: getStatusColor(vehicleStatus?.status || 'available'),
                           color: 'white',
-                          fontWeight: 'bold'
+                          fontWeight: 'bold',
+                          fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                          height: { xs: 24, sm: 32 },
+                          minWidth: { xs: 60, sm: 80 },
+                          flexShrink: 0
                         }}
-                                                 onClick={() => vehicleStatus && handleStatusClick(vehicleStatus, selectedDate)}
+                        onClick={() => vehicleStatus && handleStatusClick(vehicleStatus, selectedDate)}
                       />
                     </Box>
                   </CardContent>
@@ -893,27 +996,7 @@ const AvailabilityCalendar: React.FC = () => {
         </>
       )}
 
-      {/* Floating Action Button pre pridanie nedostupnosti */}
-      <Fab
-        color="primary"
-        sx={{ position: 'fixed', bottom: 16, right: 16 }}
-        onClick={() => {
-          setMaintenanceFormData({
-            vehicleId: '',
-            startDate: format(new Date(), 'yyyy-MM-dd'),
-            endDate: format(new Date(), 'yyyy-MM-dd'),
-            reason: '',
-            type: 'maintenance',
-            notes: '',
-            priority: 2,
-            recurring: false,
-          });
-          setEditingMaintenance(null);
-          setMaintenanceDialogOpen(true);
-        }}
-      >
-        <AddIcon />
-      </Fab>
+
     </Box>
   );
 
