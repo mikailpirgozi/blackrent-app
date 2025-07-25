@@ -899,13 +899,20 @@ export class PostgresDatabase {
     try {
       console.log('🔍 Spúšťam getRentals() query...');
       
-      // SIMPLIFIED: Basic query without JOIN to avoid crashes
+      // COMPLETE: Full query with JOIN to vehicles for protocol data
       const result = await client.query(`
-        SELECT id, customer_id, vehicle_id, start_date, end_date, 
-               total_price, commission, payment_method, paid, status, 
-               customer_name, created_at
-        FROM rentals 
-        ORDER BY created_at DESC
+        SELECT r.id, r.customer_id, r.vehicle_id, r.start_date, r.end_date, 
+               r.total_price, r.commission, r.payment_method, r.paid, r.status, 
+               r.customer_name, r.created_at, r.handover_place, r.confirmed,
+               r.order_number, r.deposit, r.allowed_kilometers, r.extra_kilometer_rate,
+               r.return_conditions, r.fuel_level, r.odometer, r.return_fuel_level,
+               r.return_odometer, r.actual_kilometers, r.fuel_refill_cost,
+               r.handover_protocol_id, r.return_protocol_id, r.pickup_location,
+               r.discount, r.custom_commission, r.extra_km_charge, r.payments, r.history,
+               v.brand, v.model, v.license_plate, v.company as vehicle_company
+        FROM rentals r 
+        LEFT JOIN vehicles v ON (r.vehicle_id IS NOT NULL AND r.vehicle_id ~ '^[0-9a-f-]{36}$' AND r.vehicle_id::uuid = v.id)
+        ORDER BY r.created_at DESC
       `);
       
       console.log('📊 getRentals() - Nájdené záznamy:', result.rows.length);
@@ -969,8 +976,19 @@ export class PostgresDatabase {
             // Protokoly
             handoverProtocolId: row.handover_protocol_id || undefined,
             returnProtocolId: row.return_protocol_id || undefined,
-            // Vehicle objekt sa načíta separátne vo frontend cez vehicleId
-            vehicle: undefined
+            // Vehicle objekt z JOIN
+            vehicle: row.brand ? {
+              id: row.vehicle_id,
+              brand: row.brand,
+              model: row.model,
+              licensePlate: row.license_plate,
+              company: row.vehicle_company || 'N/A',
+              pricing: [],
+              commission: { type: 'percentage', value: 0 },
+              status: 'available'
+            } : undefined,
+            // Dodatočné polia pre protokoly
+            pickupLocation: row.pickup_location || row.handover_place
           };
           
           return rental;
