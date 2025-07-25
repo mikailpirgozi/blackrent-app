@@ -1873,4 +1873,94 @@ router.get('/debug-token', async (req: Request, res: Response<any>) => {
   }
 });
 
+// DEBUG endpoint na kontrolu users tabuľky a migrácií
+router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
+  try {
+    console.log('🔍 DEBUG: Kontrolujem users tabuľku...');
+    
+    const client = await (postgresDatabase as any).pool.connect();
+    try {
+      // 1. Skontroluj či existuje users tabuľka
+      const tableExists = await client.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'users'
+        );
+      `);
+      
+      console.log('🔍 Users tabuľka existuje:', tableExists.rows[0].exists);
+      
+      if (!tableExists.rows[0].exists) {
+        return res.json({
+          success: false,
+          error: 'Users tabuľka neexistuje',
+          debug: { tableExists: false }
+        });
+      }
+      
+      // 2. Skontroluj stĺpce v users tabuľke
+      const columns = await client.query(`
+        SELECT column_name, data_type, is_nullable
+        FROM information_schema.columns 
+        WHERE table_name = 'users' 
+        ORDER BY ordinal_position;
+      `);
+      
+      console.log('🔍 Stĺpce v users tabuľke:', columns.rows);
+      
+      // 3. Skontroluj či existujú potrebné stĺpce
+      const hasFirstName = columns.rows.some(col => col.column_name === 'first_name');
+      const hasLastName = columns.rows.some(col => col.column_name === 'last_name');
+      const hasSignatureTemplate = columns.rows.some(col => col.column_name === 'signature_template');
+      
+      // 4. Ak chýbajú stĺpce, spusti migráciu
+      if (!hasFirstName || !hasLastName || !hasSignatureTemplate) {
+        console.log('🔧 Spúšťam migráciu pre chýbajúce stĺpce...');
+        
+        await client.query(`
+          ALTER TABLE users 
+          ADD COLUMN IF NOT EXISTS signature_template TEXT,
+          ADD COLUMN IF NOT EXISTS first_name VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
+        `);
+        
+        console.log('✅ Migrácia dokončená');
+      }
+      
+      // 5. Skontroluj admin používateľa
+      const adminUser = await client.query(`
+        SELECT id, username, email, role, first_name, last_name, signature_template
+        FROM users 
+        WHERE username = 'admin'
+        LIMIT 1;
+      `);
+      
+      console.log('🔍 Admin používateľ:', adminUser.rows[0] || 'Nenájdený');
+      
+      return res.json({
+        success: true,
+        message: 'Users tabuľka debug dokončený',
+        debug: {
+          tableExists: true,
+          columns: columns.rows,
+          hasFirstName,
+          hasLastName,
+          hasSignatureTemplate,
+          adminUser: adminUser.rows[0] || null
+        }
+      });
+      
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    console.error('❌ DEBUG chyba:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'DEBUG chyba: ' + error.message
+    });
+  }
+});
+
 export default router; 
