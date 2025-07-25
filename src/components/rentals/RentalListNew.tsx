@@ -35,8 +35,8 @@ import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Pending as PendingIcon,
-  Assignment as HandoverIcon,
-  AssignmentReturn as ReturnIcon,
+  KeyRounded as HandoverIcon,
+  AssignmentTurnedIn as ReturnIcon,
   PictureAsPdf as PDFIcon,
   PhotoLibrary as GalleryIcon,
   Search as SearchIcon,
@@ -2864,35 +2864,44 @@ export default function RentalList() {
                         </Typography>
                       </Box>
                       
-                      <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
+                      <Box sx={{ display: 'flex', gap: 0.5, mt: 1, justifyContent: 'flex-start' }}>
                         <Chip
                           size="small"
-                          label={hasHandover ? '🔄' : '⏳'}
+                          label={hasHandover ? '🔑' : '⏳'}
+                          title={hasHandover ? 'Odovzdávací protokol vytvorený' : 'Čaká na odovzdávací protokol'}
                           sx={{
-                            height: 18,
-                            fontSize: '0.6rem',
+                            height: 20,
+                            fontSize: '0.65rem',
                             bgcolor: hasHandover ? '#4caf50' : '#ccc',
-                            color: 'white'
+                            color: 'white',
+                            fontWeight: 600,
+                            minWidth: 28
                           }}
                         />
                         <Chip
                           size="small"
-                          label={hasReturn ? '↩️' : '⏳'}
+                          label={hasReturn ? '📋' : '⏳'}
+                          title={hasReturn ? 'Preberací protokol vytvorený' : 'Čaká na preberací protokol'}
                           sx={{
-                            height: 18,
-                            fontSize: '0.6rem',
+                            height: 20,
+                            fontSize: '0.65rem',
                             bgcolor: hasReturn ? '#4caf50' : '#ccc',
-                            color: 'white'
+                            color: 'white',
+                            fontWeight: 600,
+                            minWidth: 28
                           }}
                         />
                         <Chip
                           size="small"
-                          label={rental.paid ? '✅' : '❌'}
+                          label={rental.paid ? '💰' : '⏰'}
+                          title={rental.paid ? 'Uhradené' : 'Neuhradené'}
                           sx={{
-                            height: 18,
-                            fontSize: '0.6rem',
+                            height: 20,
+                            fontSize: '0.65rem',
                             bgcolor: rental.paid ? '#4caf50' : '#f44336',
-                            color: 'white'
+                            color: 'white',
+                            fontWeight: 600,
+                            minWidth: 28
                           }}
                         />
                       </Box>
@@ -3064,19 +3073,26 @@ export default function RentalList() {
                       borderRight: '1px solid #e0e0e0',
                       display: 'flex',
                       flexDirection: 'column',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      textAlign: 'left'
                     }}>
                       <Typography variant="subtitle1" sx={{ 
                         fontWeight: 600,
                         fontSize: '0.9rem',
                         color: '#333',
-                        mb: 0.5
+                        mb: 0.5,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
                       }}>
-                        {rental.customerName}
+                        👤 {rental.customerName}
                       </Typography>
                       <Typography variant="caption" sx={{ 
                         color: '#666',
-                        fontSize: '0.75rem'
+                        fontSize: '0.75rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
                       }}>
                         📧 {rental.customerEmail || 'N/A'}
                       </Typography>
@@ -3155,32 +3171,56 @@ export default function RentalList() {
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
-                      gap: 1
+                      gap: 1.5,
+                      flexDirection: 'column'
                     }}>
-                      <Chip
-                        size="small"
-                        label="🔄"
-                        sx={{
-                          height: 24,
-                          width: 32,
-                          fontSize: '0.8rem',
-                          bgcolor: hasHandover ? '#4caf50' : '#ccc',
-                          color: 'white',
-                          fontWeight: 700
-                        }}
-                      />
-                      <Chip
-                        size="small"
-                        label="↩️"
-                        sx={{
-                          height: 24,
-                          width: 32,
-                          fontSize: '0.8rem',
-                          bgcolor: hasReturn ? '#4caf50' : '#ccc',
-                          color: 'white',
-                          fontWeight: 700
-                        }}
-                      />
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <Chip
+                          size="small"
+                          label="🔑"
+                          title="Odovzdávací protokol"
+                          sx={{
+                            height: 28,
+                            width: 36,
+                            fontSize: '0.9rem',
+                            bgcolor: hasHandover ? '#4caf50' : '#ccc',
+                            color: 'white',
+                            fontWeight: 700,
+                            '&:hover': {
+                              bgcolor: hasHandover ? '#388e3c' : '#999',
+                              transform: 'scale(1.05)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label="📋"
+                          title="Preberací protokol"
+                          sx={{
+                            height: 28,
+                            width: 36,
+                            fontSize: '0.9rem',
+                            bgcolor: hasReturn ? '#4caf50' : '#ccc',
+                            color: 'white',
+                            fontWeight: 700,
+                            '&:hover': {
+                              bgcolor: hasReturn ? '#388e3c' : '#999',
+                              transform: 'scale(1.05)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        />
+                      </Box>
+                      <Typography variant="caption" sx={{ 
+                        color: '#666',
+                        fontSize: '0.7rem',
+                        textAlign: 'center'
+                      }}>
+                        {hasHandover && hasReturn ? '✅ Kompletné' : 
+                         hasHandover ? '🔑 Odovzdané' : 
+                         hasReturn ? '📋 Prebrané' : '⏳ Čaká'}
+                      </Typography>
                     </Box>
 
                     {/* Akcie */}
@@ -3190,35 +3230,72 @@ export default function RentalList() {
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
-                      gap: 1
+                      gap: 1.5,
+                      flexWrap: 'wrap'
                     }}>
                       <IconButton
                         size="small"
+                        title="Upraviť prenájom"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEdit(rental);
                         }}
-                        sx={{ bgcolor: '#2196f3', color: 'white', '&:hover': { bgcolor: '#1976d2' } }}
+                        sx={{ 
+                          bgcolor: '#2196f3', 
+                          color: 'white', 
+                          width: 36,
+                          height: 36,
+                          '&:hover': { 
+                            bgcolor: '#1976d2',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
                       <IconButton
                         size="small"
+                        title="Vytvoriť odovzdávací protokol"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCreateHandover(rental);
                         }}
-                        sx={{ bgcolor: '#ff9800', color: 'white', '&:hover': { bgcolor: '#f57c00' } }}
+                        sx={{ 
+                          bgcolor: '#ff9800', 
+                          color: 'white',
+                          width: 36,
+                          height: 36,
+                          '&:hover': { 
+                            bgcolor: '#f57c00',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(255,152,0,0.4)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
                       >
                         <HandoverIcon fontSize="small" />
                       </IconButton>
                       <IconButton
                         size="small"
+                        title="Vytvoriť preberací protokol"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCreateReturn(rental);
                         }}
-                        sx={{ bgcolor: '#4caf50', color: 'white', '&:hover': { bgcolor: '#388e3c' } }}
+                        sx={{ 
+                          bgcolor: '#4caf50', 
+                          color: 'white',
+                          width: 36,
+                          height: 36,
+                          '&:hover': { 
+                            bgcolor: '#388e3c',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
                       >
                         <ReturnIcon fontSize="small" />
                       </IconButton>
