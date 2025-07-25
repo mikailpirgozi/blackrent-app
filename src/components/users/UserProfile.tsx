@@ -44,29 +44,46 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     setMessage(null);
     
     try {
+      console.log('👤 Sending profile data:', { firstName: formData.firstName, lastName: formData.lastName });
+      
       const response = await apiService.updateUserProfile(formData.firstName, formData.lastName);
       console.log('👤 Profile update response:', response);
       
       // Aktualizuj user state s dátami z backendu
-      if (response.user) {
+      if (response && response.user) {
         updateUser({
           firstName: response.user.firstName,
           lastName: response.user.lastName
         });
         console.log('✅ User state updated with backend data');
+      } else if (response && response.success) {
+        // Fallback ak response nemá user objekt ale má success
+        updateUser({
+          firstName: formData.firstName,
+          lastName: formData.lastName
+        });
+        console.log('⚠️ Using frontend data as fallback (success response)');
       } else {
         // Fallback na frontend data
         updateUser({
           firstName: formData.firstName,
           lastName: formData.lastName
         });
-        console.log('⚠️ Using frontend data as fallback');
+        console.log('⚠️ Using frontend data as fallback (no response data)');
       }
       
       setMessage({ type: 'success', text: '✅ Profil úspešne aktualizovaný!' });
     } catch (error) {
-      console.error('Error updating profile:', error);
-      setMessage({ type: 'error', text: '❌ Chyba pri aktualizácii profilu' });
+      console.error('❌ Error updating profile:', error);
+      
+      // Fallback na frontend data aj pri chybe
+      updateUser({
+        firstName: formData.firstName,
+        lastName: formData.lastName
+      });
+      console.log('⚠️ Using frontend data as fallback (error occurred)');
+      
+      setMessage({ type: 'error', text: '❌ Chyba pri aktualizácii profilu - dáta uložené lokálne' });
     } finally {
       setLoading(false);
     }
@@ -77,28 +94,44 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     setMessage(null);
     
     try {
+      console.log('🖊️ Sending signature data:', { signatureLength: signatureData.signature?.length || 0 });
+      
       const response = await apiService.updateSignatureTemplate(signatureData.signature);
       console.log('🖊️ Signature update response:', response);
       
       // Aktualizuj user state s dátami z backendu
-      if (response.user) {
+      if (response && response.user) {
         updateUser({
           signatureTemplate: response.user.signatureTemplate
         });
         console.log('✅ User state updated with backend signature data');
+      } else if (response && response.success) {
+        // Fallback ak response nemá user objekt ale má success
+        updateUser({
+          signatureTemplate: signatureData.signature
+        });
+        console.log('⚠️ Using frontend signature data as fallback (success response)');
       } else {
         // Fallback na frontend data
         updateUser({
           signatureTemplate: signatureData.signature
         });
-        console.log('⚠️ Using frontend signature data as fallback');
+        console.log('⚠️ Using frontend signature data as fallback (no response data)');
       }
       
       setMessage({ type: 'success', text: '✅ Podpis úspešne uložený ako template!' });
       setShowSignaturePad(false);
     } catch (error) {
-      console.error('Error saving signature template:', error);
-      setMessage({ type: 'error', text: '❌ Chyba pri ukladaní podpisu' });
+      console.error('❌ Error saving signature template:', error);
+      
+      // Fallback na frontend data aj pri chybe
+      updateUser({
+        signatureTemplate: signatureData.signature
+      });
+      console.log('⚠️ Using frontend signature data as fallback (error occurred)');
+      
+      setMessage({ type: 'error', text: '❌ Chyba pri ukladaní podpisu - podpis uložený lokálne' });
+      setShowSignaturePad(false);
     } finally {
       setLoading(false);
     }

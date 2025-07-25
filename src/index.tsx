@@ -18,4 +18,12 @@ root.render(
   // </React.StrictMode>
 );
 
+// Error handling pre manifest.json
+window.addEventListener('error', (event) => {
+  if (event.filename && event.filename.includes('manifest.json')) {
+    console.log('⚠️ Ignoring manifest.json error - this is expected');
+    event.preventDefault();
+  }
+});
+
 // Performance monitoring disabled - reportWebVitals removed
