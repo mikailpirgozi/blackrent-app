@@ -312,17 +312,40 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       }
     }
 
-    // Kontrola, či sa našlo vozidlo
+    // Funkcia na normalizáciu ŠPZ - odstráni medzery a prevede na veľké písmená
+    const normalizeSpz = (spz: string): string => {
+      return spz?.trim().toUpperCase().replace(/\s+/g, '') || '';
+    };
+
+    // Kontrola, či sa našlo vozidlo - s normalizáciou
     let vehicleFound = false;
     if (parsedData.vehicleCode) {
-      vehicleFound = vehicles.some(v => v.licensePlate === parsedData.vehicleCode);
+      const normalizedCode = normalizeSpz(parsedData.vehicleCode);
+      vehicleFound = vehicles.some(v => normalizeSpz(v.licensePlate || '') === normalizedCode);
     }
 
     // Nájdenie vozidla - primárne podľa ŠPZ, potom podľa názvu
     let selectedVehicle: Vehicle | undefined;
+    
+    console.log('🚗 Vehicle search START:', {
+      hasVehicleCode: !!parsedData.vehicleCode,
+      vehicleCode: parsedData.vehicleCode,
+      vehiclesAvailable: vehicles.length,
+      vehiclesList: vehicles.map(v => ({ id: v.id, plate: v.licensePlate, brand: v.brand, model: v.model }))
+    });
+    
     if (parsedData.vehicleCode) {
-      // Najprv hľadám podľa ŠPZ (kódu)
-      selectedVehicle = vehicles.find(v => v.licensePlate === parsedData.vehicleCode);
+      // Najprv hľadám podľa ŠPZ (kódu) s normalizáciou
+      const normalizedCode = normalizeSpz(parsedData.vehicleCode);
+      selectedVehicle = vehicles.find(v => normalizeSpz(v.licensePlate || '') === normalizedCode);
+      
+      console.log('🔍 Vehicle search details:', {
+        searchingFor: parsedData.vehicleCode,
+        normalized: normalizedCode,
+        found: !!selectedVehicle,
+        foundVehicle: selectedVehicle ? { id: selectedVehicle.id, plate: selectedVehicle.licensePlate, brand: selectedVehicle.brand, model: selectedVehicle.model } : null,
+        vehicleCount: vehicles.length
+      });
     }
     
     // Ak sa nenájde podľa ŠPZ, skúsim podľa názvu
@@ -383,6 +406,14 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       vehicleCode: parsedData.vehicleCode || '',
       vehicleName: parsedData.vehicleName || '',
     };
+
+    console.log('📤 Sending rental data to form:', {
+      vehicleId: rentalData.vehicleId,
+      hasVehicleId: !!rentalData.vehicleId,
+      selectedVehicle: selectedVehicle ? { id: selectedVehicle.id, plate: selectedVehicle.licensePlate } : null,
+      vehicleCode: rentalData.vehicleCode,
+      vehicleName: rentalData.vehicleName
+    });
 
     onParseSuccess(rentalData, customer);
     

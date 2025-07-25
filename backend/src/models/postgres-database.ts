@@ -969,17 +969,8 @@ export class PostgresDatabase {
             // Protokoly
             handoverProtocolId: row.handover_protocol_id || undefined,
             returnProtocolId: row.return_protocol_id || undefined,
-            // Vehicle objekt z JOIN
-            vehicle: row.vehicle_id ? {
-              id: row.vehicle_id?.toString() || '',
-              brand: row.brand || 'Neznáma značka',
-              model: row.model || 'Neznámy model',
-              licensePlate: row.license_plate || 'N/A',
-              company: row.company_name || 'N/A',
-              pricing: [], // Nedostupné z tohto JOIN
-              commission: { type: 'percentage' as const, value: 20 }, // Default
-              status: 'available' as const // Default
-            } : undefined
+            // Vehicle objekt sa načíta separátne vo frontend cez vehicleId
+            vehicle: undefined
           };
           
           return rental;
