@@ -105,7 +105,7 @@ interface MaintenanceFormData {
   recurring: boolean;
 }
 
-  const AvailabilityCalendar: React.FC = () => {
+const AvailabilityCalendar: React.FC = () => {
   const { state } = useApp();
   
   // MOBILNÁ RESPONSIBILITA
@@ -119,7 +119,7 @@ interface MaintenanceFormData {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
-  
+
   // Rental details popup state
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
   const [rentalDetailsOpen, setRentalDetailsOpen] = useState(false);
@@ -168,6 +168,10 @@ interface MaintenanceFormData {
   // OPTIMALIZÁCIA: Cache pre availability data
   const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
   const [cacheKey, setCacheKey] = useState<string>('');
+  
+  // MOBILNÝ KALENDÁR - vybraný dátum a počet zobrazených dní
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [visibleDays, setVisibleDays] = useState(14);
 
   // Function to fetch rental details
   const fetchRentalDetails = async (rentalId: string) => {
@@ -405,8 +409,8 @@ interface MaintenanceFormData {
         
         if (forceMonth || !isToday) {
           // Len ak navigujeme do konkrétneho mesiaca alebo nie je dnes
-          const year = currentDate.getFullYear();
-          const month = currentDate.getMonth() + 1;
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth() + 1;
           apiUrl += `?year=${year}&month=${month}`;
           console.log('🗓️ Fetching calendar data for month:', { year, month });
         } else {
@@ -486,7 +490,7 @@ interface MaintenanceFormData {
       fetchCalendarData(!isCurrentMonth);
     } else {
       // Range mode - fetch when dates change
-      fetchCalendarData();
+    fetchCalendarData();
     }
   }, [fetchCalendarData]);
 
@@ -721,68 +725,172 @@ interface MaintenanceFormData {
         </Stack>
       </Box>
 
-      {/* Mobilný search */}
+      {/* Mobilný search - OPRAVENÝ FOCUS */}
       <TextField
         fullWidth
         size="small"
         label="🔍 Hľadať vozidlo"
         placeholder="BMW, X5, BA123AB..."
         value={searchQuery}
-        onChange={(e) => {
-          const value = e.target.value;
-          if (value !== searchQuery) {
-            setSearchQuery(value);
+        onChange={(e) => setSearchQuery(e.target.value)}
+        autoComplete="off"
+        inputProps={{
+          autoComplete: 'off',
+          spellCheck: 'false'
+        }}
+        sx={{ 
+          mb: 2,
+          '& .MuiInputBase-input': {
+            fontSize: '16px', // Prevents zoom on iOS
           }
         }}
-        sx={{ mb: 2 }}
       />
 
-      {/* Mobilné vozidlá - zoznam namiesto tabuľky */}
+            {/* Mobilný kalendár - horizontálne scrollovanie dní */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
         </Box>
       ) : (
-        <Stack spacing={1}>
-          {filteredVehicles.map(vehicle => {
-            const today = format(new Date(), 'yyyy-MM-dd');
-            const todayData = statusFilteredCalendarData.find(day => day.date === today);
-            const vehicleStatus = todayData?.vehicles.find(v => v.vehicleId === vehicle.id);
-            
-            return (
-              <Card 
-                key={vehicle.id} 
-                sx={{ 
-                  border: '1px solid',
-                  borderColor: vehicleStatus ? getStatusColor(vehicleStatus.status) : 'grey.300'
-                }}
-              >
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        {vehicle.brand} {vehicle.model}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {vehicle.licensePlate}
-                      </Typography>
+        <>
+          {/* Horizontálne scrollovanie dní */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ px: 1 }}>
+              📅 Vyberte dátum:
+            </Typography>
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                overflowX: 'auto', 
+                gap: 1, 
+                pb: 1,
+                '&::-webkit-scrollbar': { height: 4 },
+                '&::-webkit-scrollbar-thumb': { backgroundColor: 'primary.main', borderRadius: 2 }
+              }}
+            >
+                             {statusFilteredCalendarData.slice(0, visibleDays).map(dayData => {
+                 const day = new Date(dayData.date);
+                 const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                 
+                                  // Počítaj dostupnosť pre tento deň
+                 const totalVehicles = dayData.vehicles.length;
+                 const availableCount = dayData.vehicles.filter(v => v.status === 'available').length;
+                 const rentedCount = dayData.vehicles.filter(v => v.status === 'rented').length;
+                 
+                 return (
+                   <Button
+                     key={dayData.date}
+                     variant={selectedDate === dayData.date ? "contained" : "outlined"}
+                     size="small"
+                     onClick={() => setSelectedDate(dayData.date)}
+                     sx={{
+                       minWidth: 70,
+                       flexDirection: 'column',
+                       py: 1,
+                       border: isToday ? '2px solid' : '1px solid',
+                       borderColor: isToday ? 'primary.main' : 'grey.300',
+                       position: 'relative'
+                     }}
+                   >
+                     <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                       {format(day, 'EEE')}
+                     </Typography>
+                     <Typography variant="body2" fontWeight="bold">
+                       {format(day, 'dd')}
+                     </Typography>
+                     <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>
+                       {format(day, 'MMM')}
+                     </Typography>
+                     
+                     {/* Indikátor obsadenosti */}
+                     <Box sx={{ 
+                       display: 'flex', 
+                       gap: 0.25, 
+                       mt: 0.5,
+                       justifyContent: 'center'
+                     }}>
+                       <Box sx={{ 
+                         width: 4, 
+                         height: 4, 
+                         borderRadius: '50%', 
+                         bgcolor: availableCount > 0 ? 'success.main' : 'grey.300' 
+                       }} />
+                       <Box sx={{ 
+                         width: 4, 
+                         height: 4, 
+                         borderRadius: '50%', 
+                         bgcolor: rentedCount > 0 ? 'error.main' : 'grey.300' 
+                       }} />
+                     </Box>
+                   </Button>
+                 );
+              })}
+                         </Box>
+             
+             {/* Load More tlačidlo */}
+             {visibleDays < statusFilteredCalendarData.length && (
+               <Box sx={{ textAlign: 'center', mt: 1 }}>
+                 <Button
+                   size="small"
+                   variant="outlined"
+                   onClick={() => setVisibleDays(prev => Math.min(prev + 7, statusFilteredCalendarData.length))}
+                 >
+                   Zobraziť viac dní ({statusFilteredCalendarData.length - visibleDays} zostáva)
+                 </Button>
+               </Box>
+             )}
+           </Box>
+
+          {/* Mobilné vozidlá pre vybraný dátum */}
+          <Stack spacing={1}>
+                         {filteredVehicles.map(vehicle => {
+               const selectedDayData = statusFilteredCalendarData.find(day => 
+                 day.date === selectedDate
+               );
+               const vehicleStatus = selectedDayData?.vehicles.find(v => v.vehicleId === vehicle.id);
+              
+              return (
+                <Card 
+                  key={vehicle.id} 
+                  sx={{ 
+                    border: '1px solid',
+                    borderColor: vehicleStatus ? getStatusColor(vehicleStatus.status) : 'grey.300',
+                    backgroundColor: vehicleStatus?.status === 'available' ? 'success.light' : 
+                                   vehicleStatus?.status === 'rented' ? 'error.light' : 'grey.50'
+                  }}
+                >
+                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {vehicle.brand} {vehicle.model}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {vehicle.licensePlate}
+                        </Typography>
+                        {vehicleStatus?.customerName && (
+                          <Typography variant="caption" color="text.secondary">
+                            👤 {vehicleStatus.customerName}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Chip
+                        label={getStatusText(vehicleStatus?.status || 'available')}
+                        size="small"
+                        sx={{
+                          bgcolor: getStatusColor(vehicleStatus?.status || 'available'),
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }}
+                                                 onClick={() => vehicleStatus && handleStatusClick(vehicleStatus, selectedDate)}
+                      />
                     </Box>
-                    <Chip
-                      label={getStatusText(vehicleStatus?.status || 'available')}
-                      size="small"
-                      sx={{
-                        bgcolor: getStatusColor(vehicleStatus?.status || 'available'),
-                        color: 'white',
-                        fontWeight: 'bold'
-                      }}
-                      onClick={() => vehicleStatus && handleStatusClick(vehicleStatus, today)}
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </Stack>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Stack>
+        </>
       )}
 
       {/* Floating Action Button pre pridanie nedostupnosti */}
@@ -815,13 +923,13 @@ interface MaintenanceFormData {
     {isMobile ? (
       <MobileCalendarView />
     ) : (
-      <Card>
-        <CardContent>
+    <Card>
+      <CardContent>
           <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} gap={2} mb={2}>
             <Typography variant="h6" display="flex" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }}>
-              <CalendarIcon sx={{ mr: 1 }} />
+            <CalendarIcon sx={{ mr: 1 }} />
               Prehľad Dostupnosti
-            </Typography>
+          </Typography>
           
           <IconButton onClick={handleRefresh} size="small">
             <RefreshIcon />
@@ -1143,7 +1251,7 @@ interface MaintenanceFormData {
                             lineHeight: 1.2
                           }}>
                             <strong>{vehicle.brand}</strong>
-                          </Typography>
+                        </Typography>
                           <Typography variant="caption" display="block" sx={{ 
                             fontSize: { xs: '0.6rem', md: '0.7rem' },
                             lineHeight: 1.1
@@ -1154,11 +1262,11 @@ interface MaintenanceFormData {
                             fontSize: { xs: '0.55rem', md: '0.65rem' },
                             lineHeight: 1
                           }}>
-                            {vehicle.licensePlate}
-                          </Typography>
-                        </Box>
-                      </Tooltip>
-                    </TableCell>
+                          {vehicle.licensePlate}
+                        </Typography>
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
                   ))
                 ) : (
                   <TableCell align="center">
@@ -1189,9 +1297,9 @@ interface MaintenanceFormData {
                 </TableRow>
               ) : (
                 statusFilteredCalendarData.map(dayData => {
-                  const day = new Date(dayData.date);
-                  return (
-                    <TableRow key={dayData.date}>
+                const day = new Date(dayData.date);
+                return (
+                  <TableRow key={dayData.date}>
                       <TableCell sx={{ 
                         minWidth: { xs: 100, md: 120 },
                         position: 'sticky',
@@ -1202,31 +1310,31 @@ interface MaintenanceFormData {
                       }}>
                         <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
                           <strong>{format(day, 'dd.MM', { locale: sk })}</strong>
-                        </Typography>
+                      </Typography>
                         <Typography variant="caption" color="textSecondary" sx={{ 
                           fontSize: { xs: '0.65rem', md: '0.75rem' },
                           display: { xs: 'none', sm: 'block' }
                         }}>
                           {format(day, 'EEE', { locale: sk })}
-                        </Typography>
-                      </TableCell>
+                      </Typography>
+                    </TableCell>
                       {filteredVehicles.map(vehicle => {
-                        const vehicleStatus = dayData.vehicles.find(v => v.vehicleId === vehicle.id);
-                        return (
+                      const vehicleStatus = dayData.vehicles.find(v => v.vehicleId === vehicle.id);
+                      return (
                           <TableCell key={vehicle.id} align="center" sx={{ 
                             minWidth: { xs: 90, md: 110 },
                             px: { xs: 0.5, md: 1 }
                           }}>
-                            {vehicleStatus && (
-                              <Tooltip title={
-                                `${vehicleStatus.vehicleName} - ${getStatusText(vehicleStatus.status)}${vehicleStatus.customerName ? ` (${vehicleStatus.customerName})` : ''}`
-                              }>
-                                <Chip
-                                  icon={getStatusIcon(vehicleStatus.status)}
-                                  label={getStatusText(vehicleStatus.status)}
-                                  color={getStatusColor(vehicleStatus.status) as any}
-                                  size="small"
-                                  variant="outlined"
+                          {vehicleStatus && (
+                            <Tooltip title={
+                              `${vehicleStatus.vehicleName} - ${getStatusText(vehicleStatus.status)}${vehicleStatus.customerName ? ` (${vehicleStatus.customerName})` : ''}`
+                            }>
+                              <Chip
+                                icon={getStatusIcon(vehicleStatus.status)}
+                                label={getStatusText(vehicleStatus.status)}
+                                color={getStatusColor(vehicleStatus.status) as any}
+                                size="small"
+                                variant="outlined"
                                   onClick={() => handleStatusClick(vehicleStatus, dayData.date)}
                                   sx={{ 
                                     fontSize: { xs: '0.6rem', md: '0.7rem' }, 
@@ -1236,14 +1344,14 @@ interface MaintenanceFormData {
                                       fontSize: { xs: '0.75rem', md: '1rem' }
                                     }
                                   }}
-                                />
-                              </Tooltip>
-                            )}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
+                              />
+                            </Tooltip>
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
                 })
               )}
             </TableBody>
@@ -1255,7 +1363,7 @@ interface MaintenanceFormData {
             <Typography variant="caption" color="textSecondary" textAlign={{ xs: 'center', md: 'left' }}>
               Zobrazuje sa: <strong>{filteredVehicles.length}</strong> z {vehicles.length} vozidiel
             </Typography>
-            <Typography variant="caption" color="textSecondary">
+          <Typography variant="caption" color="textSecondary">
               •  {calendarData.length} dní
             </Typography>
             {(searchQuery || statusFilter !== 'all' || brandFilter !== 'all' || companyFilter !== 'all') && (
