@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -27,11 +27,12 @@ import {
   DirectionsCar,
   Receipt,
 } from '@mui/icons-material';
-import { HandoverProtocol, Rental, ProtocolImage, ProtocolVideo, ProtocolSignature } from '../../types';
+import { HandoverProtocol, Rental, ProtocolImage, ProtocolVideo, ProtocolSignature, Vehicle } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
 import { useAuth } from '../../context/AuthContext';
+import { useApp } from '../../context/AppContext';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -42,10 +43,27 @@ interface HandoverProtocolFormProps {
 
 export default function HandoverProtocolForm({ open, onClose, rental, onSave }: HandoverProtocolFormProps) {
   const { state } = useAuth();
+  const { state: appState } = useApp();
   const [loading, setLoading] = useState(false);
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [currentSigner, setCurrentSigner] = useState<{name: string, role: 'customer' | 'employee'} | null>(null);
+  const [vehicleData, setVehicleData] = useState<Vehicle | null>(null);
+  
+  // Load vehicle data if not available in rental
+  useEffect(() => {
+    if (rental?.vehicle) {
+      setVehicleData(rental.vehicle);
+    } else if (rental?.vehicleId && appState.vehicles.length > 0) {
+      const vehicle = appState.vehicles.find(v => v.id === rental.vehicleId);
+      if (vehicle) {
+        setVehicleData(vehicle);
+      }
+    }
+  }, [rental, appState.vehicles]);
+  
+  // Get the current vehicle (from rental or loaded separately)
+  const currentVehicle = rental?.vehicle || vehicleData;
   
   // Zjednodušený state - iba základné polia
   const [formData, setFormData] = useState({
@@ -282,7 +300,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
             const url = URL.createObjectURL(pdfBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `odovzdavaci_protokol_${rental.vehicle?.licensePlate || 'vozidlo'}_${new Date().toISOString().split('T')[0]}.pdf`;
+            link.download = `odovzdavaci_protokol_${currentVehicle?.licensePlate || 'vozidlo'}_${new Date().toISOString().split('T')[0]}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -319,7 +337,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" color="text.primary">
-          Odovzdávací protokol - {rental.vehicle?.licensePlate || 'Vozidlo'}
+                      Odovzdávací protokol - {currentVehicle?.licensePlate || 'Vozidlo'}
         </Typography>
         <IconButton onClick={onClose} size="large">
           <Close />
@@ -492,7 +510,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
                 Značka a model
               </Typography>
               <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'bold' }}>
-                {rental.vehicle?.brand} {rental.vehicle?.model}
+                {currentVehicle?.brand} {currentVehicle?.model}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={6}>
@@ -500,7 +518,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
                 ŠPZ
               </Typography>
               <Chip 
-                label={rental.vehicle?.licensePlate || rental.vehicleCode || 'Neuvedené'} 
+                label={currentVehicle?.licensePlate || rental.vehicleCode || 'Neuvedené'} 
                 color="secondary" 
                 variant="outlined"
                 sx={{ fontWeight: 'bold' }}
@@ -511,8 +529,8 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
                 Stav vozidla
               </Typography>
               <Chip 
-                label={rental.vehicle?.status || 'available'} 
-                color={rental.vehicle?.status === 'available' ? 'success' : 'warning'}
+                label={currentVehicle?.status || 'available'} 
+                color={currentVehicle?.status === 'available' ? 'success' : 'warning'}
                 variant="outlined"
               />
             </Grid>
