@@ -90,6 +90,7 @@ export interface Rental {
   // Rozšírené polia pre kompletnú funkcionalitu
   deposit?: number;
   allowedKilometers?: number;
+  dailyKilometers?: number; // NEW: Denné km pre automatický prepočet
   extraKilometerRate?: number; // Cena za nadlimitný km
   returnConditions?: string;
   fuelLevel?: number; // Úroveň paliva pri prevzatí (%)

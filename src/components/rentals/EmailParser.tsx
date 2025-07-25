@@ -40,6 +40,7 @@ interface ParsedData {
   vehiclePrice?: number;
   // Rozšírené polia
   allowedKilometers?: number;
+  dailyKilometers?: number; // NEW: Daily km
   extraKilometerRate?: number;
   fuelLevel?: number;
   returnConditions?: string;
@@ -203,13 +204,26 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       }
     }
 
-    // Parsovanie povolených kilometrov
-    const allowedKmMatch = text.match(/Počet povolených km\s+(\d+)\s*km/i) ||
-                          text.match(/Povolené\s+km[:\s]+(\d+)/i) || 
-                          text.match(/Kilometrov[:\s]+(\d+)/i) ||
-                          text.match(/Limit\s+km[:\s]+(\d+)/i);
-    if (allowedKmMatch) {
-      data.allowedKilometers = parseInt(allowedKmMatch[1]);
+    // Parsovanie povolených kilometrov - prioritne denné km
+    const dailyKmMatch = text.match(/(\d+)\s*km\s*\/\s*de[ňn]/i) ||
+                        text.match(/(\d+)\s*km\s*na\s*de[ňn]/i) ||
+                        text.match(/denný\s*limit[:\s]*(\d+)\s*km/i) ||
+                        text.match(/denne[:\s]*(\d+)\s*km/i) ||
+                        text.match(/(\d+)\s*km\s*daily/i);
+    
+    if (dailyKmMatch) {
+      data.dailyKilometers = parseInt(dailyKmMatch[1]);
+      console.log(`🚗 Parsed daily km: ${data.dailyKilometers} km/day`);
+    } else {
+      // Fallback na celkové km ak nie sú denné
+      const allowedKmMatch = text.match(/Počet povolených km\s+(\d+)\s*km/i) ||
+                            text.match(/Povolené\s+km[:\s]+(\d+)/i) || 
+                            text.match(/Kilometrov[:\s]+(\d+)/i) ||
+                            text.match(/Limit\s+km[:\s]+(\d+)/i);
+      if (allowedKmMatch) {
+        data.allowedKilometers = parseInt(allowedKmMatch[1]);
+        console.log(`📏 Parsed total km: ${data.allowedKilometers} km (total)`);
+      }
     }
 
     // Parsovanie ceny za extra km
