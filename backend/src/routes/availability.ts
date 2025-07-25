@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
-import { startOfMonth, endOfMonth, eachDayOfInterval, format } from 'date-fns';
+import { startOfMonth, endOfMonth, eachDayOfInterval, format, addDays, startOfDay } from 'date-fns';
 
 const router = Router();
 
@@ -13,13 +13,21 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
     
     console.log('🗓️ Availability calendar request:', { year, month });
     
-    // Ak nie sú zadané, použiť aktuálny mesiac
-    const currentDate = new Date();
-    const targetYear = year ? Number(year) : currentDate.getFullYear();
-    const targetMonth = month ? Number(month) - 1 : currentDate.getMonth();
+    let startDate: Date;
+    let endDate: Date;
     
-    const startDate = startOfMonth(new Date(targetYear, targetMonth));
-    const endDate = endOfMonth(startDate);
+    if (year && month) {
+      // Ak sú zadané rok a mesiac, zobraziť celý mesiac (pre navigáciu)
+      const targetYear = Number(year);
+      const targetMonth = Number(month) - 1;
+      startDate = startOfMonth(new Date(targetYear, targetMonth));
+      endDate = endOfMonth(startDate);
+    } else {
+      // Default: od dnešného dňa + 30 dní dopredu
+      const today = startOfDay(new Date());
+      startDate = today;
+      endDate = addDays(today, 30);
+    }
     
     console.log('📅 Date range:', { startDate, endDate });
     
@@ -85,8 +93,9 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
           period: {
             startDate: format(startDate, 'yyyy-MM-dd'),
             endDate: format(endDate, 'yyyy-MM-dd'),
-            year: targetYear,
-            month: targetMonth + 1
+            type: (year && month) ? 'month' : 'days',
+            year: year ? Number(year) : startDate.getFullYear(),
+            month: month ? Number(month) : startDate.getMonth() + 1
           }
         }
              });
