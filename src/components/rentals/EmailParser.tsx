@@ -331,7 +331,13 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       hasVehicleCode: !!parsedData.vehicleCode,
       vehicleCode: parsedData.vehicleCode,
       vehiclesAvailable: vehicles.length,
-      vehiclesList: vehicles.map(v => ({ id: v.id, plate: v.licensePlate, brand: v.brand, model: v.model }))
+      vehiclesList: vehicles.map(v => ({ 
+        id: v.id.substring(0, 8), 
+        plate: v.licensePlate, 
+        normalized: normalizeSpz(v.licensePlate || ''),
+        brand: v.brand, 
+        model: v.model 
+      }))
     });
     
     if (parsedData.vehicleCode) {
@@ -339,20 +345,41 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       const normalizedCode = normalizeSpz(parsedData.vehicleCode);
       selectedVehicle = vehicles.find(v => normalizeSpz(v.licensePlate || '') === normalizedCode);
       
+      // Debug: Nájdi vozidlá s podobnou ŠPZ
+      const similarPlates = vehicles
+        .filter(v => v.licensePlate && v.licensePlate.toLowerCase().includes('aa677ep'))
+        .map(v => ({ plate: v.licensePlate, normalized: normalizeSpz(v.licensePlate || ''), brand: v.brand, model: v.model }));
+        
       console.log('🔍 Vehicle search details:', {
         searchingFor: parsedData.vehicleCode,
         normalized: normalizedCode,
         found: !!selectedVehicle,
         foundVehicle: selectedVehicle ? { id: selectedVehicle.id, plate: selectedVehicle.licensePlate, brand: selectedVehicle.brand, model: selectedVehicle.model } : null,
-        vehicleCount: vehicles.length
+        vehicleCount: vehicles.length,
+        similarPlates: similarPlates
       });
     }
     
     // Ak sa nenájde podľa ŠPZ, skúsim podľa názvu
     if (!selectedVehicle && parsedData.vehicleName) {
+      console.log('🔍 Searching by name fallback:', {
+        vehicleName: parsedData.vehicleName,
+        searchTerm: parsedData.vehicleName.toLowerCase()
+      });
+      
       selectedVehicle = vehicles.find(v => 
         v.brand && v.model && `${v.brand} ${v.model}`.toLowerCase().includes(parsedData.vehicleName!.toLowerCase())
       );
+      
+      console.log('🔍 Name search result:', {
+        found: !!selectedVehicle,
+        foundVehicle: selectedVehicle ? { 
+          id: selectedVehicle.id.substring(0, 8), 
+          plate: selectedVehicle.licensePlate, 
+          brand: selectedVehicle.brand, 
+          model: selectedVehicle.model 
+        } : null
+      });
     }
 
     // Parsovanie dátumu rezervácie
