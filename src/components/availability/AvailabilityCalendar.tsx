@@ -57,19 +57,32 @@ import {
   Receipt as OrderIcon,
   AccountBalance as DepositIcon,
   Speed as KilometersIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Engineering as ServiceIcon,
+  Handyman as RepairIcon,
+  CleaningServices as CleaningIcon,
+  FactCheck as InspectionIcon,
+  PriorityHigh as PriorityIcon,
 } from '@mui/icons-material';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { API_BASE_URL } from '../../services/api';
-import { Rental } from '../../types';
+import { Rental, VehicleUnavailability } from '../../types';
+import { useApp } from '../../context/AppContext';
 
 interface VehicleAvailability {
   vehicleId: string;
   vehicleName: string;
   licensePlate: string;
-  status: 'available' | 'rented' | 'maintenance';
+  status: 'available' | 'rented' | 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection';
   rentalId?: string;
   customerName?: string;
+  unavailabilityId?: string;
+  unavailabilityReason?: string;
+  unavailabilityType?: string;
+  unavailabilityPriority?: number;
 }
 
 interface CalendarDay {
@@ -77,17 +90,49 @@ interface CalendarDay {
   vehicles: VehicleAvailability[];
 }
 
-const AvailabilityCalendar: React.FC = () => {
+interface MaintenanceFormData {
+  vehicleId: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection';
+  notes?: string;
+  priority: 1 | 2 | 3;
+  recurring: boolean;
+}
+
+  const AvailabilityCalendar: React.FC = () => {
+  const { state } = useApp();
   const [calendarData, setCalendarData] = useState<CalendarDay[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
+  const [unavailabilities, setUnavailabilities] = useState<VehicleUnavailability[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   
   // Rental details popup state
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
   const [rentalDetailsOpen, setRentalDetailsOpen] = useState(false);
   const [loadingRentalDetails, setLoadingRentalDetails] = useState(false);
+  
+  // Maintenance management state
+  const [maintenanceDialogOpen, setMaintenanceDialogOpen] = useState(false);
+  const [editingMaintenance, setEditingMaintenance] = useState<VehicleUnavailability | null>(null);
+  const [submittingMaintenance, setSubmittingMaintenance] = useState(false);
+  const [clickedDate, setClickedDate] = useState<string | null>(null);
+  const [clickedVehicleId, setClickedVehicleId] = useState<string | null>(null);
+  
+  const [maintenanceFormData, setMaintenanceFormData] = useState<MaintenanceFormData>({
+    vehicleId: '',
+    startDate: '',
+    endDate: '',
+    reason: '',
+    type: 'maintenance',
+    notes: '',
+    priority: 2,
+    recurring: false,
+  });
   
   // View mode: 'navigation' (prev/next months) or 'range' (custom date range)
   const [viewMode, setViewMode] = useState<'navigation' | 'range'>('navigation');
@@ -96,7 +141,7 @@ const AvailabilityCalendar: React.FC = () => {
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'rented' | 'maintenance'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'rented' | 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection'>('all');
   const [brandFilter, setBrandFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -129,10 +174,20 @@ const AvailabilityCalendar: React.FC = () => {
     }
   };
 
-  // Handle click on rental status chip
-  const handleRentalClick = (vehicleStatus: VehicleAvailability) => {
+  // Handle click on status chip - different actions based on status
+  const handleStatusClick = (vehicleStatus: VehicleAvailability, date: string) => {
     if (vehicleStatus.status === 'rented' && vehicleStatus.rentalId) {
+      // Show rental details
       fetchRentalDetails(vehicleStatus.rentalId);
+    } else if (vehicleStatus.status === 'available') {
+      // Add maintenance for available vehicles
+      handleCellClick(date, vehicleStatus.vehicleId, vehicleStatus.status);
+    } else if (vehicleStatus.unavailabilityId && ['maintenance', 'service', 'repair', 'blocked', 'cleaning', 'inspection'].includes(vehicleStatus.status)) {
+      // Edit existing maintenance
+      const maintenance = unavailabilities.find(u => u.id === vehicleStatus.unavailabilityId);
+      if (maintenance) {
+        handleMaintenanceEdit(maintenance);
+      }
     }
   };
 
@@ -140,6 +195,154 @@ const AvailabilityCalendar: React.FC = () => {
   const handleCloseRentalDetails = () => {
     setRentalDetailsOpen(false);
     setSelectedRental(null);
+  };
+
+  // Maintenance management functions
+  const fetchUnavailabilities = async () => {
+    try {
+      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+      const response = await fetch(`${API_BASE_URL}/vehicle-unavailability`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setUnavailabilities(data.data || []);
+      } else {
+        console.error('Error fetching unavailabilities:', data.error);
+      }
+    } catch (err) {
+      console.error('Error fetching unavailabilities:', err);
+    }
+  };
+
+  const handleCellClick = (date: string, vehicleId: string, currentStatus: string) => {
+    // Only allow adding maintenance to available vehicles
+    if (currentStatus === 'available') {
+      setClickedDate(date);
+      setClickedVehicleId(vehicleId);
+      setMaintenanceFormData({
+        vehicleId,
+        startDate: date,
+        endDate: date,
+        reason: '',
+        type: 'maintenance',
+        notes: '',
+        priority: 2,
+        recurring: false,
+      });
+      setEditingMaintenance(null);
+      setMaintenanceDialogOpen(true);
+    }
+  };
+
+  const handleMaintenanceEdit = (unavailability: VehicleUnavailability) => {
+    setEditingMaintenance(unavailability);
+    setMaintenanceFormData({
+      vehicleId: unavailability.vehicleId,
+      startDate: format(new Date(unavailability.startDate), 'yyyy-MM-dd'),
+      endDate: format(new Date(unavailability.endDate), 'yyyy-MM-dd'),
+      reason: unavailability.reason,
+      type: unavailability.type,
+      notes: unavailability.notes || '',
+      priority: unavailability.priority,
+      recurring: unavailability.recurring,
+    });
+    setMaintenanceDialogOpen(true);
+  };
+
+  const handleMaintenanceClose = () => {
+    setMaintenanceDialogOpen(false);
+    setEditingMaintenance(null);
+    setClickedDate(null);
+    setClickedVehicleId(null);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleMaintenanceSubmit = async () => {
+    try {
+      setSubmittingMaintenance(true);
+      setError(null);
+
+      // Validation
+      if (!maintenanceFormData.vehicleId || !maintenanceFormData.startDate || !maintenanceFormData.endDate || !maintenanceFormData.reason.trim()) {
+        setError('Všetky povinné polia musia byť vyplnené');
+        return;
+      }
+
+      if (new Date(maintenanceFormData.endDate) < new Date(maintenanceFormData.startDate)) {
+        setError('Dátum ukončenia nemôže byť skorší ako dátum začiatku');
+        return;
+      }
+
+      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+      const url = editingMaintenance 
+        ? `${API_BASE_URL}/vehicle-unavailability/${editingMaintenance.id}`
+        : `${API_BASE_URL}/vehicle-unavailability`;
+      
+      const method = editingMaintenance ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify(maintenanceFormData),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(editingMaintenance ? 'Nedostupnosť úspešne aktualizovaná' : 'Nedostupnosť úspešne vytvorená');
+        await fetchUnavailabilities();
+        await fetchCalendarData();
+        setTimeout(() => {
+          handleMaintenanceClose();
+        }, 1500);
+      } else {
+        setError(data.error || 'Chyba pri ukladaní nedostupnosti');
+      }
+    } catch (err) {
+      console.error('Error saving maintenance:', err);
+      setError('Chyba pri ukladaní nedostupnosti');
+    } finally {
+      setSubmittingMaintenance(false);
+    }
+  };
+
+  const handleMaintenanceDelete = async (id: string) => {
+    if (!window.confirm('Naozaj chcete zmazať túto nedostupnosť?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+      const response = await fetch(`${API_BASE_URL}/vehicle-unavailability/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess('Nedostupnosť úspešne zmazaná');
+        await fetchUnavailabilities();
+        await fetchCalendarData();
+      } else {
+        setError(data.error || 'Chyba pri mazaní nedostupnosti');
+      }
+    } catch (err) {
+      console.error('Error deleting maintenance:', err);
+      setError('Chyba pri mazaní nedostupnosti');
+    }
   };
 
   const fetchCalendarData = async (forceMonth = false) => {
@@ -246,6 +449,11 @@ const AvailabilityCalendar: React.FC = () => {
     }
   }, [currentDate, viewMode, fromDate, toDate]);
 
+  // Load unavailabilities on component mount
+  useEffect(() => {
+    fetchUnavailabilities();
+  }, []);
+
   const handlePrevMonth = () => {
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
@@ -343,6 +551,11 @@ const AvailabilityCalendar: React.FC = () => {
       case 'available': return 'success';
       case 'rented': return 'error';
       case 'maintenance': return 'warning';
+      case 'service': return 'primary';
+      case 'repair': return 'error';
+      case 'blocked': return 'secondary';
+      case 'cleaning': return 'info';
+      case 'inspection': return 'default';
       default: return 'default';
     }
   };
@@ -352,6 +565,11 @@ const AvailabilityCalendar: React.FC = () => {
       case 'available': return <AvailableIcon fontSize="small" />;
       case 'rented': return <RentedIcon fontSize="small" />;
       case 'maintenance': return <MaintenanceIcon fontSize="small" />;
+      case 'service': return <ServiceIcon fontSize="small" />;
+      case 'repair': return <RepairIcon fontSize="small" />;
+      case 'blocked': return <RentedIcon fontSize="small" />;
+      case 'cleaning': return <CleaningIcon fontSize="small" />;
+      case 'inspection': return <InspectionIcon fontSize="small" />;
       default: return <CarIcon fontSize="small" />;
     }
   };
@@ -361,7 +579,43 @@ const AvailabilityCalendar: React.FC = () => {
       case 'available': return 'Dostupné';
       case 'rented': return 'Obsadené';
       case 'maintenance': return 'Údržba';
+      case 'service': return 'Servis';
+      case 'repair': return 'Oprava';
+      case 'blocked': return 'Blokované';
+      case 'cleaning': return 'Čistenie';
+      case 'inspection': return 'Kontrola';
       default: return status;
+    }
+  };
+
+  // Helper functions for maintenance
+  const getMaintenanceTypeIcon = (type: string) => {
+    return getStatusIcon(type);
+  };
+
+  const getMaintenanceTypeLabel = (type: string) => {
+    return getStatusText(type);
+  };
+
+  const getMaintenanceTypeColor = (type: string) => {
+    return getStatusColor(type);
+  };
+
+  const getPriorityLabel = (priority: number) => {
+    switch (priority) {
+      case 1: return 'Kritická';
+      case 2: return 'Normálna';
+      case 3: return 'Nízka';
+      default: return 'Normálna';
+    }
+  };
+
+  const getPriorityColor = (priority: number) => {
+    switch (priority) {
+      case 1: return 'error';
+      case 2: return 'primary';
+      case 3: return 'success';
+      default: return 'primary';
     }
   };
 
@@ -590,6 +844,11 @@ const AvailabilityCalendar: React.FC = () => {
                       <MenuItem value="available">✅ Dostupné</MenuItem>
                       <MenuItem value="rented">🔴 Obsadené</MenuItem>
                       <MenuItem value="maintenance">🔧 Údržba</MenuItem>
+                      <MenuItem value="service">⚙️ Servis</MenuItem>
+                      <MenuItem value="repair">🔨 Oprava</MenuItem>
+                      <MenuItem value="blocked">🚫 Blokované</MenuItem>
+                      <MenuItem value="cleaning">🧽 Čistenie</MenuItem>
+                      <MenuItem value="inspection">✅ Kontrola</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -762,11 +1021,11 @@ const AvailabilityCalendar: React.FC = () => {
                                   color={getStatusColor(vehicleStatus.status) as any}
                                   size="small"
                                   variant="outlined"
-                                  onClick={() => handleRentalClick(vehicleStatus)}
+                                  onClick={() => handleStatusClick(vehicleStatus, dayData.date)}
                                   sx={{ 
                                     fontSize: { xs: '0.6rem', md: '0.7rem' }, 
                                     height: { xs: 20, md: 24 },
-                                    cursor: vehicleStatus.status === 'rented' ? 'pointer' : 'default',
+                                    cursor: (vehicleStatus.status === 'rented' || vehicleStatus.status === 'available' || ['maintenance', 'service', 'repair', 'blocked', 'cleaning', 'inspection'].includes(vehicleStatus.status)) ? 'pointer' : 'default',
                                     '& .MuiChip-icon': {
                                       fontSize: { xs: '0.75rem', md: '1rem' }
                                     }
@@ -972,6 +1231,140 @@ const AvailabilityCalendar: React.FC = () => {
         <Button onClick={handleCloseRentalDetails} color="primary">
           Zavrieť
         </Button>
+      </DialogActions>
+    </Dialog>
+
+    {/* Maintenance Management Dialog */}
+    <Dialog open={maintenanceDialogOpen} onClose={handleMaintenanceClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        {editingMaintenance ? 'Upraviť nedostupnosť' : 'Pridať nedostupnosť vozidla'}
+      </DialogTitle>
+      <DialogContent dividers>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {success}
+          </Alert>
+        )}
+
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12}>
+            <TextField
+              label="Vozidlo"
+              value={state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.brand + ' ' + state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.model + ' (' + state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.licensePlate + ')' || 'Neznáme vozidlo'}
+              fullWidth
+              disabled
+              variant="outlined"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              label="Dátum začiatku"
+              type="date"
+              value={maintenanceFormData.startDate}
+              onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, startDate: e.target.value }))}
+              fullWidth
+              required
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              label="Dátum ukončenia"
+              type="date"
+              value={maintenanceFormData.endDate}
+              onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, endDate: e.target.value }))}
+              fullWidth
+              required
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth required>
+              <InputLabel>Typ nedostupnosti</InputLabel>
+              <Select
+                value={maintenanceFormData.type}
+                label="Typ nedostupnosti"
+                onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, type: e.target.value as any }))}
+              >
+                <MenuItem value="maintenance">🔧 Údržba</MenuItem>
+                <MenuItem value="service">⚙️ Servis</MenuItem>
+                <MenuItem value="repair">🔨 Oprava</MenuItem>
+                <MenuItem value="blocked">🚫 Blokované</MenuItem>
+                <MenuItem value="cleaning">🧽 Čistenie</MenuItem>
+                <MenuItem value="inspection">✅ Kontrola</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Priorita</InputLabel>
+              <Select
+                value={maintenanceFormData.priority}
+                label="Priorita"
+                onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, priority: e.target.value as any }))}
+              >
+                <MenuItem value={1}>🔴 Kritická</MenuItem>
+                <MenuItem value={2}>🟡 Normálna</MenuItem>
+                <MenuItem value={3}>🟢 Nízka</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              label="Dôvod nedostupnosti"
+              value={maintenanceFormData.reason}
+              onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, reason: e.target.value }))}
+              fullWidth
+              required
+              placeholder="Napr. Pravidelný servis, Oprava brzd, Čistenie..."
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              label="Poznámky"
+              value={maintenanceFormData.notes}
+              onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, notes: e.target.value }))}
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="Dodatočné informácie..."
+            />
+          </Grid>
+        </Grid>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleMaintenanceClose}>
+          Zrušiť
+        </Button>
+        <Button 
+          onClick={handleMaintenanceSubmit} 
+          variant="contained" 
+          disabled={submittingMaintenance}
+          startIcon={submittingMaintenance ? <CircularProgress size={20} /> : null}
+        >
+          {submittingMaintenance ? 'Ukladám...' : (editingMaintenance ? 'Uložiť' : 'Pridať')}
+        </Button>
+        {editingMaintenance && (
+          <Button 
+            onClick={() => handleMaintenanceDelete(editingMaintenance.id)} 
+            color="error"
+            startIcon={<DeleteIcon />}
+          >
+            Zmazať
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
     </>
