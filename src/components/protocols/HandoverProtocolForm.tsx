@@ -33,6 +33,7 @@ import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
+import { apiService } from '../../services/api';
 
 interface HandoverProtocolFormProps {
   open: boolean;
