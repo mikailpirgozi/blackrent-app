@@ -77,7 +77,8 @@ const AvailabilityCalendar: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      let apiUrl = `${process.env.NODE_ENV === 'development' ? 'http://localhost:5001/api' : API_BASE_URL}/availability/calendar`;
+      // Dočasne používame production API aj v development mode kým nevyriešime lokálny backend
+      let apiUrl = `${API_BASE_URL}/availability/calendar`;
       
       if (forceMonth || currentDate.getTime() !== new Date().getTime()) {
         // Len ak navigujeme do konkrétneho mesiaca alebo nie je dnes
@@ -291,7 +292,7 @@ const AvailabilityCalendar: React.FC = () => {
             </IconButton>
             
             <Typography 
-              variant={{ xs: 'body1', md: 'h6' }}
+              variant="h6"
               sx={{ 
                 minWidth: { xs: 150, md: 200 }, 
                 textAlign: 'center',
