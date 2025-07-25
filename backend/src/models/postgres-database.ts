@@ -179,6 +179,32 @@ export class PostgresDatabase {
         )
       `);
 
+      // Tabuľka nedostupností vozidiel (servis, údržba, blokovanie)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS vehicle_unavailability (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          start_date DATE NOT NULL,
+          end_date DATE NOT NULL,
+          reason TEXT NOT NULL,
+          type VARCHAR(50) NOT NULL DEFAULT 'maintenance',
+          notes TEXT,
+          priority INTEGER DEFAULT 2,
+          recurring BOOLEAN DEFAULT FALSE,
+          recurring_config JSONB,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          created_by VARCHAR(100) DEFAULT 'system',
+          CONSTRAINT unique_vehicle_period UNIQUE (vehicle_id, start_date, end_date, type),
+          CONSTRAINT valid_date_range CHECK (end_date >= start_date)
+        )
+      `);
+      
+      // Indexy pre optimálny výkon vehicle_unavailability tabuľky
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_unavailability_vehicle_id ON vehicle_unavailability(vehicle_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_unavailability_dates ON vehicle_unavailability(start_date, end_date)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_unavailability_type ON vehicle_unavailability(type)`);
+
       // Vytvorenie admin používateľa ak neexistuje
       await this.createDefaultAdmin(client);
       
@@ -2745,6 +2771,302 @@ export class PostgresDatabase {
     } catch (error) {
       console.error('❌ Error updating handover protocol:', error);
       throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  // ========================================
+  // VEHICLE UNAVAILABILITY CRUD METHODS
+  // ========================================
+
+  async getVehicleUnavailabilities(vehicleId?: string, startDate?: Date, endDate?: Date): Promise<any[]> {
+    const client = await this.pool.connect();
+    try {
+      let query = `
+        SELECT vu.*, v.brand, v.model, v.license_plate 
+        FROM vehicle_unavailability vu
+        LEFT JOIN vehicles v ON vu.vehicle_id = v.id
+        WHERE 1=1
+      `;
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      // Filter by vehicle ID
+      if (vehicleId) {
+        query += ` AND vu.vehicle_id = $${paramIndex}`;
+        params.push(vehicleId);
+        paramIndex++;
+      }
+
+      // Filter by date range
+      if (startDate && endDate) {
+        query += ` AND vu.start_date <= $${paramIndex} AND vu.end_date >= $${paramIndex + 1}`;
+        params.push(endDate, startDate);
+        paramIndex += 2;
+      }
+
+      query += ` ORDER BY vu.start_date ASC, vu.priority ASC`;
+
+      const result = await client.query(query, params);
+      
+      return result.rows.map(row => ({
+        id: row.id,
+        vehicleId: row.vehicle_id,
+        vehicle: row.brand ? {
+          brand: row.brand,
+          model: row.model,
+          licensePlate: row.license_plate
+        } : undefined,
+        startDate: new Date(row.start_date),
+        endDate: new Date(row.end_date),
+        reason: row.reason,
+        type: row.type,
+        notes: row.notes,
+        priority: row.priority,
+        recurring: row.recurring,
+        recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+        createdBy: row.created_by
+      }));
+    } finally {
+      client.release();
+    }
+  }
+
+  async getVehicleUnavailability(id: string): Promise<any | null> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT vu.*, v.brand, v.model, v.license_plate 
+        FROM vehicle_unavailability vu
+        LEFT JOIN vehicles v ON vu.vehicle_id = v.id
+        WHERE vu.id = $1
+      `, [id]);
+      
+      if (result.rows.length === 0) return null;
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        vehicleId: row.vehicle_id,
+        vehicle: row.brand ? {
+          brand: row.brand,
+          model: row.model,
+          licensePlate: row.license_plate
+        } : undefined,
+        startDate: new Date(row.start_date),
+        endDate: new Date(row.end_date),
+        reason: row.reason,
+        type: row.type,
+        notes: row.notes,
+        priority: row.priority,
+        recurring: row.recurring,
+        recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+        createdBy: row.created_by
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async createVehicleUnavailability(data: {
+    vehicleId: string;
+    startDate: Date;
+    endDate: Date;
+    reason: string;
+    type?: string;
+    notes?: string;
+    priority?: number;
+    recurring?: boolean;
+    recurringConfig?: any;
+    createdBy?: string;
+  }): Promise<any> {
+    const client = await this.pool.connect();
+    try {
+      // Validate dates
+      if (data.endDate < data.startDate) {
+        throw new Error('Dátum ukončenia nemôže byť skorší ako dátum začiatku');
+      }
+
+      // Check for conflicts
+      const conflictCheck = await client.query(`
+        SELECT id, reason, type FROM vehicle_unavailability 
+        WHERE vehicle_id = $1 
+        AND start_date < $3 
+        AND end_date > $2
+      `, [data.vehicleId, data.startDate, data.endDate]);
+
+      if (conflictCheck.rows.length > 0) {
+        const conflict = conflictCheck.rows[0];
+        console.warn(`⚠️ Prekrývanie s existujúcou nedostupnosťou: ${conflict.reason} (${conflict.type})`);
+        // Len warning, nie error - môžu sa prekrývať
+      }
+
+      const result = await client.query(`
+        INSERT INTO vehicle_unavailability (
+          vehicle_id, start_date, end_date, reason, type, notes, 
+          priority, recurring, recurring_config, created_by
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+        RETURNING *
+      `, [
+        data.vehicleId,
+        data.startDate,
+        data.endDate,
+        data.reason,
+        data.type || 'maintenance',
+        data.notes,
+        data.priority || 2,
+        data.recurring || false,
+        data.recurringConfig ? JSON.stringify(data.recurringConfig) : null,
+        data.createdBy || 'system'
+      ]);
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        vehicleId: row.vehicle_id,
+        startDate: new Date(row.start_date),
+        endDate: new Date(row.end_date),
+        reason: row.reason,
+        type: row.type,
+        notes: row.notes,
+        priority: row.priority,
+        recurring: row.recurring,
+        recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+        createdBy: row.created_by
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async updateVehicleUnavailability(id: string, data: Partial<{
+    startDate: Date;
+    endDate: Date;
+    reason: string;
+    type: string;
+    notes: string;
+    priority: number;
+    recurring: boolean;
+    recurringConfig: any;
+  }>): Promise<any> {
+    const client = await this.pool.connect();
+    try {
+      // Build dynamic update query
+      const setFields: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined) {
+          const dbField = key === 'startDate' ? 'start_date' :
+                         key === 'endDate' ? 'end_date' :
+                         key === 'recurringConfig' ? 'recurring_config' : 
+                         key.replace(/([A-Z])/g, '_$1').toLowerCase();
+          
+          setFields.push(`${dbField} = $${paramIndex}`);
+          
+          if (key === 'recurringConfig') {
+            values.push(JSON.stringify(value));
+          } else {
+            values.push(value);
+          }
+          paramIndex++;
+        }
+      }
+
+      if (setFields.length === 0) {
+        throw new Error('Žiadne polia na aktualizáciu');
+      }
+
+      setFields.push('updated_at = CURRENT_TIMESTAMP');
+
+      const query = `
+        UPDATE vehicle_unavailability 
+        SET ${setFields.join(', ')}
+        WHERE id = $${paramIndex}
+        RETURNING *
+      `;
+
+      const result = await client.query(query, [...values, id]);
+      
+      if (result.rows.length === 0) {
+        throw new Error('Nedostupnosť vozidla nenájdená');
+      }
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        vehicleId: row.vehicle_id,
+        startDate: new Date(row.start_date),
+        endDate: new Date(row.end_date),
+        reason: row.reason,
+        type: row.type,
+        notes: row.notes,
+        priority: row.priority,
+        recurring: row.recurring,
+        recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+        createdBy: row.created_by
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async deleteVehicleUnavailability(id: string): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        'DELETE FROM vehicle_unavailability WHERE id = $1',
+        [id]
+      );
+      
+      return (result.rowCount || 0) > 0;
+    } finally {
+      client.release();
+    }
+  }
+
+  // Get unavailabilities for specific date range (for calendar)
+  async getUnavailabilitiesForDateRange(startDate: Date, endDate: Date): Promise<any[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT vu.*, v.brand, v.model, v.license_plate 
+        FROM vehicle_unavailability vu
+        LEFT JOIN vehicles v ON vu.vehicle_id = v.id
+        WHERE vu.start_date <= $2 AND vu.end_date >= $1
+        ORDER BY vu.start_date ASC, v.brand ASC, v.model ASC
+      `, [startDate, endDate]);
+      
+      return result.rows.map(row => ({
+        id: row.id,
+        vehicleId: row.vehicle_id,
+        vehicle: row.brand ? {
+          brand: row.brand,
+          model: row.model,
+          licensePlate: row.license_plate
+        } : undefined,
+        startDate: new Date(row.start_date),
+        endDate: new Date(row.end_date),
+        reason: row.reason,
+        type: row.type,
+        notes: row.notes,
+        priority: row.priority,
+        recurring: row.recurring,
+        recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+        createdBy: row.created_by
+      }));
     } finally {
       client.release();
     }

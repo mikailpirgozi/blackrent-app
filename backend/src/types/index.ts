@@ -149,6 +149,26 @@ export interface Settlement {
   vehicleId?: string;
 }
 
+export interface VehicleUnavailability {
+  id: string;
+  vehicleId: string;
+  vehicle?: Vehicle;
+  startDate: Date;
+  endDate: Date;
+  reason: string;
+  type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection';
+  notes?: string;
+  priority: 1 | 2 | 3; // 1=critical, 2=normal, 3=low
+  recurring: boolean;
+  recurringConfig?: {
+    interval: 'days' | 'weeks' | 'months' | 'years';
+    value: number;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;
+}
+
 export interface Company {
   id: string;
   name: string;
