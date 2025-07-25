@@ -2946,7 +2946,7 @@ export default function RentalList() {
                         <Chip
                           size="small"
                           label={hasHandover ? '🚗→' : '⏳'}
-                          title={hasHandover ? 'Auto odovzdané zákazníkovi' : 'Čaká na odovzdanie auta'}
+                          title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Kliknite pre vytvorenie protokolu'}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (hasHandover) {
@@ -2957,24 +2957,28 @@ export default function RentalList() {
                             }
                           }}
                           sx={{
-                            height: { xs: 16, sm: 20 },
-                            fontSize: { xs: '0.55rem', sm: '0.65rem' },
+                            height: { xs: 24, sm: 28 },
+                            fontSize: { xs: '0.7rem', sm: '0.75rem' },
                             bgcolor: hasHandover ? '#4caf50' : '#ccc',
                             color: 'white',
-                            fontWeight: 600,
-                            minWidth: { xs: 22, sm: 28 },
-                            maxWidth: { xs: 30, sm: 40 },
+                            fontWeight: 700,
+                            minWidth: { xs: 36, sm: 42 },
+                            maxWidth: { xs: 50, sm: 60 },
                             cursor: 'pointer',
+                            borderRadius: { xs: 2, sm: 2.5 },
+                            boxShadow: hasHandover ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
                             '&:hover': {
                               bgcolor: hasHandover ? '#388e3c' : '#999',
-                              transform: 'scale(1.05)'
-                            }
+                              transform: 'scale(1.1)',
+                              boxShadow: hasHandover ? '0 4px 12px rgba(76,175,80,0.4)' : '0 4px 8px rgba(0,0,0,0.2)'
+                            },
+                            transition: 'all 0.2s ease'
                           }}
                         />
                         <Chip
                           size="small"
                           label={hasReturn ? '←🚗' : '⏳'}
-                          title={hasReturn ? 'Auto vrátené od zákazníka' : 'Čaká na vrátenie auta'}
+                          title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Kliknite pre vytvorenie protokolu'}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (hasReturn) {
@@ -2985,18 +2989,22 @@ export default function RentalList() {
                             }
                           }}
                           sx={{
-                            height: { xs: 16, sm: 20 },
-                            fontSize: { xs: '0.55rem', sm: '0.65rem' },
+                            height: { xs: 24, sm: 28 },
+                            fontSize: { xs: '0.7rem', sm: '0.75rem' },
                             bgcolor: hasReturn ? '#4caf50' : '#ccc',
                             color: 'white',
-                            fontWeight: 600,
-                            minWidth: { xs: 22, sm: 28 },
-                            maxWidth: { xs: 30, sm: 40 },
+                            fontWeight: 700,
+                            minWidth: { xs: 36, sm: 42 },
+                            maxWidth: { xs: 50, sm: 60 },
                             cursor: 'pointer',
+                            borderRadius: { xs: 2, sm: 2.5 },
+                            boxShadow: hasReturn ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
                             '&:hover': {
                               bgcolor: hasReturn ? '#388e3c' : '#999',
-                              transform: 'scale(1.05)'
-                            }
+                              transform: 'scale(1.1)',
+                              boxShadow: hasReturn ? '0 4px 12px rgba(76,175,80,0.4)' : '0 4px 8px rgba(0,0,0,0.2)'
+                            },
+                            transition: 'all 0.2s ease'
                           }}
                         />
                         <Chip
@@ -3004,13 +3012,15 @@ export default function RentalList() {
                           label={rental.paid ? '💰' : '⏰'}
                           title={rental.paid ? 'Uhradené' : 'Neuhradené'}
                           sx={{
-                            height: { xs: 16, sm: 20 },
-                            fontSize: { xs: '0.55rem', sm: '0.65rem' },
+                            height: { xs: 24, sm: 28 },
+                            fontSize: { xs: '0.7rem', sm: '0.75rem' },
                             bgcolor: rental.paid ? '#4caf50' : '#f44336',
                             color: 'white',
-                            fontWeight: 600,
-                            minWidth: { xs: 22, sm: 28 },
-                            maxWidth: { xs: 30, sm: 40 }
+                            fontWeight: 700,
+                            minWidth: { xs: 36, sm: 42 },
+                            maxWidth: { xs: 50, sm: 60 },
+                            borderRadius: { xs: 2, sm: 2.5 },
+                            boxShadow: rental.paid ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 8px rgba(244,67,54,0.3)'
                           }}
                         />
                       </Box>
@@ -3575,8 +3585,8 @@ export default function RentalList() {
           {selectedProtocolType === 'handover' ? '🚗→' : '←🚗'}
           {selectedProtocolType === 'handover' ? 'Odovzdávací protokol' : 'Preberací protokol'}
         </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
             <Button
               fullWidth
               variant="contained"
@@ -3584,8 +3594,17 @@ export default function RentalList() {
               onClick={handleDownloadPDF}
               sx={{ 
                 bgcolor: '#f44336',
-                '&:hover': { bgcolor: '#d32f2f' },
-                py: 1.5
+                py: { xs: 2, sm: 1.5 },
+                fontSize: { xs: '1rem', sm: '0.875rem' },
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 4px 12px rgba(244,67,54,0.3)',
+                '&:hover': {
+                  bgcolor: '#d32f2f',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 16px rgba(244,67,54,0.4)'
+                },
+                transition: 'all 0.2s ease'
               }}
             >
               📄 Stiahnuť PDF protokol
@@ -3598,8 +3617,17 @@ export default function RentalList() {
               onClick={handleViewGallery}
               sx={{ 
                 bgcolor: '#2196f3',
-                '&:hover': { bgcolor: '#1976d2' },
-                py: 1.5
+                py: { xs: 2, sm: 1.5 },
+                fontSize: { xs: '1rem', sm: '0.875rem' },
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 4px 12px rgba(33,150,243,0.3)',
+                '&:hover': {
+                  bgcolor: '#1976d2',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 16px rgba(33,150,243,0.4)'
+                },
+                transition: 'all 0.2s ease'
               }}
             >
               🖼️ Zobraziť fotky
@@ -3609,7 +3637,17 @@ export default function RentalList() {
               fullWidth
               variant="outlined"
               onClick={handleCloseProtocolMenu}
-              sx={{ py: 1.5 }}
+              sx={{ 
+                py: { xs: 2, sm: 1.5 },
+                fontSize: { xs: '1rem', sm: '0.875rem' },
+                fontWeight: 500,
+                borderRadius: 2,
+                borderWidth: 2,
+                '&:hover': {
+                  borderWidth: 2,
+                  bgcolor: 'rgba(0,0,0,0.04)'
+                }
+              }}
             >
               Zavrieť
             </Button>
