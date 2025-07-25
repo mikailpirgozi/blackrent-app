@@ -141,6 +141,16 @@ interface MaintenanceFormData {
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  // Debounce search input for better performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'rented' | 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection'>('all');
   const [brandFilter, setBrandFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
@@ -254,14 +264,14 @@ interface MaintenanceFormData {
     setMaintenanceDialogOpen(true);
   };
 
-  const handleMaintenanceClose = () => {
+  const handleMaintenanceClose = useCallback(() => {
     setMaintenanceDialogOpen(false);
     setEditingMaintenance(null);
     setClickedDate(null);
     setClickedVehicleId(null);
     setError(null);
     setSuccess(null);
-  };
+  }, []);
 
   const handleMaintenanceSubmit = async () => {
     try {
@@ -512,12 +522,12 @@ interface MaintenanceFormData {
     [vehicles]
   );
 
-  // Filter vehicles based on current filters - memoized
+  // Filter vehicles based on current filters - memoized with debounced search
   const filteredVehicles = useMemo(() => {
     return vehicles.filter(vehicle => {
-      // Search filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
+      // Search filter with debounced query
+      if (debouncedSearchQuery.trim()) {
+        const query = debouncedSearchQuery.toLowerCase();
         const matches = [
           vehicle.brand?.toLowerCase(),
           vehicle.model?.toLowerCase(), 
@@ -540,7 +550,7 @@ interface MaintenanceFormData {
 
       return true;
     });
-  }, [vehicles, searchQuery, brandFilter, companyFilter]);
+  }, [vehicles, debouncedSearchQuery, brandFilter, companyFilter]);
 
   // Filter calendar data to show only filtered vehicles - memoized
   const filteredCalendarData = useMemo(() => {
@@ -780,7 +790,13 @@ interface MaintenanceFormData {
                   label="🔍 Vyhľadať vozidlo"
                   placeholder="Zadajte značku, model alebo ŠPZ (napr. BMW, X5, BA123AB...)"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Optimalizované - len ak sa hodnota skutočne zmenila
+                    if (value !== searchQuery) {
+                      setSearchQuery(value);
+                    }
+                  }}
                   InputProps={{
                     startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />
                   }}
@@ -1329,7 +1345,12 @@ interface MaintenanceFormData {
               label="Dátum začiatku"
               type="date"
               value={maintenanceFormData.startDate}
-              onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, startDate: e.target.value }))}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value !== maintenanceFormData.startDate) {
+                  setMaintenanceFormData(prev => ({ ...prev, startDate: value }));
+                }
+              }}
               fullWidth
               required
               InputLabelProps={{ shrink: true }}
@@ -1341,7 +1362,12 @@ interface MaintenanceFormData {
               label="Dátum ukončenia"
               type="date"
               value={maintenanceFormData.endDate}
-              onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, endDate: e.target.value }))}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value !== maintenanceFormData.endDate) {
+                  setMaintenanceFormData(prev => ({ ...prev, endDate: value }));
+                }
+              }}
               fullWidth
               required
               InputLabelProps={{ shrink: true }}
@@ -1354,7 +1380,12 @@ interface MaintenanceFormData {
               <Select
                 value={maintenanceFormData.type}
                 label="Typ nedostupnosti"
-                onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value !== maintenanceFormData.type) {
+                    setMaintenanceFormData(prev => ({ ...prev, type: value as any }));
+                  }
+                }}
               >
                 <MenuItem value="maintenance">🔧 Údržba</MenuItem>
                 <MenuItem value="service">⚙️ Servis</MenuItem>
@@ -1372,7 +1403,12 @@ interface MaintenanceFormData {
               <Select
                 value={maintenanceFormData.priority}
                 label="Priorita"
-                onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, priority: e.target.value as any }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value !== maintenanceFormData.priority) {
+                    setMaintenanceFormData(prev => ({ ...prev, priority: value as any }));
+                  }
+                }}
               >
                 <MenuItem value={1}>🔴 Kritická</MenuItem>
                 <MenuItem value={2}>🟡 Normálna</MenuItem>
@@ -1385,10 +1421,21 @@ interface MaintenanceFormData {
             <TextField
               label="Dôvod nedostupnosti"
               value={maintenanceFormData.reason}
-              onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, reason: e.target.value }))}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Optimalizované - len ak sa hodnota skutočne zmenila
+                if (value !== maintenanceFormData.reason) {
+                  setMaintenanceFormData(prev => ({ ...prev, reason: value }));
+                }
+              }}
               fullWidth
               required
               placeholder="Napr. Pravidelný servis, Oprava brzd, Čistenie..."
+              // Optimalizácia pre rýchle písanie
+              inputProps={{
+                autoComplete: 'off',
+                spellCheck: 'false'
+              }}
             />
           </Grid>
 
@@ -1396,8 +1443,19 @@ interface MaintenanceFormData {
             <TextField
               label="Poznámky"
               value={maintenanceFormData.notes}
-              onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, notes: e.target.value }))}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Optimalizované - len ak sa hodnota skutočne zmenila
+                if (value !== maintenanceFormData.notes) {
+                  setMaintenanceFormData(prev => ({ ...prev, notes: value }));
+                }
+              }}
               fullWidth
+              // Optimalizácia pre rýchle písanie
+              inputProps={{
+                autoComplete: 'off',
+                spellCheck: 'false'
+              }}
               multiline
               rows={3}
               placeholder="Dodatočné informácie..."
