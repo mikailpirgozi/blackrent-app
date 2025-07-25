@@ -27,23 +27,38 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
     const vehicles = await postgresDatabase.getVehicles();
     console.log('🚗 Found vehicles:', vehicles.length);
     
-    // SIMPLIFIED: Get only basic rental data for the month 
-    // For now, we'll show all vehicles as available since getRentals() crashes
-    // TODO: Fix getRentals() method to properly get rental data
-    const monthRentals: any[] = []; // Empty for now to avoid crash
-      console.log('📋 Found rentals in month:', monthRentals.length);
+    // Get rental data for the month range
+    let monthRentals: any[] = [];
+    try {
+      console.log('📋 Fetching rentals data...');
+      const allRentals = await postgresDatabase.getRentals();
+      
+      // Filter rentals that overlap with our month
+      monthRentals = allRentals.filter(rental => {
+        const rentalStart = new Date(rental.startDate);
+        const rentalEnd = new Date(rental.endDate);
+        
+        // Check if rental overlaps with our month range
+        return rentalStart <= endDate && rentalEnd >= startDate;
+      });
+      
+      console.log('📋 Found rentals in month:', monthRentals.length, 'out of', allRentals.length, 'total');
+    } catch (rentalError) {
+      console.error('⚠️ Error loading rentals, using empty array:', rentalError);
+      monthRentals = []; // Fallback to empty array
+    }
       
       // Generovať kalendárne dáta
       const calendarData = eachDayOfInterval({ start: startDate, end: endDate }).map(date => {
         const dayRentals = monthRentals.filter(rental => {
-          const rentalStart = new Date(rental.start_date);
-          const rentalEnd = new Date(rental.end_date);
+          const rentalStart = new Date(rental.startDate);
+          const rentalEnd = new Date(rental.endDate);
           return rentalStart <= date && rentalEnd >= date;
         });
 
         const vehicleAvailability = vehicles.map(vehicle => {
-          const isRented = dayRentals.some(rental => rental.vehicle_id === vehicle.id);
-          const rental = dayRentals.find(r => r.vehicle_id === vehicle.id);
+          const isRented = dayRentals.some(rental => rental.vehicleId === vehicle.id);
+          const rental = dayRentals.find(r => r.vehicleId === vehicle.id);
           
           return {
             vehicleId: vehicle.id,
@@ -51,7 +66,7 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
             licensePlate: vehicle.licensePlate,
             status: vehicle.status === 'maintenance' ? 'maintenance' : (isRented ? 'rented' : 'available'),
             rentalId: rental?.id || null,
-            customerName: rental?.customer_name || null
+            customerName: rental?.customerName || null
           };
         });
 
