@@ -345,10 +345,18 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       const normalizedCode = normalizeSpz(parsedData.vehicleCode);
       selectedVehicle = vehicles.find(v => normalizeSpz(v.licensePlate || '') === normalizedCode);
       
-      // Debug: Nájdi vozidlá s podobnou ŠPZ
-      const similarPlates = vehicles
-        .filter(v => v.licensePlate && v.licensePlate.toLowerCase().includes('aa677ep'))
-        .map(v => ({ plate: v.licensePlate, normalized: normalizeSpz(v.licensePlate || ''), brand: v.brand, model: v.model }));
+      // Debug: Nájdi vozidlá Lotus Emira alebo s podobnou ŠPZ
+      const lotusVehicles = vehicles
+        .filter(v => (v.brand === 'Lotus' && v.model === 'Emira') || 
+                     (v.licensePlate && v.licensePlate.toLowerCase().includes('677')))
+        .map(v => ({ 
+          plate: `"${v.licensePlate}"`, 
+          normalized: `"${normalizeSpz(v.licensePlate || '')}"`, 
+          brand: v.brand, 
+          model: v.model,
+          plateLength: v.licensePlate?.length || 0,
+          plateChars: v.licensePlate ? Array.from(v.licensePlate).map(c => c.charCodeAt(0)) : []
+        }));
         
       console.log('🔍 Vehicle search details:', {
         searchingFor: parsedData.vehicleCode,
@@ -356,7 +364,7 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
         found: !!selectedVehicle,
         foundVehicle: selectedVehicle ? { id: selectedVehicle.id, plate: selectedVehicle.licensePlate, brand: selectedVehicle.brand, model: selectedVehicle.model } : null,
         vehicleCount: vehicles.length,
-        similarPlates: similarPlates
+        lotusVehicles: lotusVehicles
       });
     }
     
