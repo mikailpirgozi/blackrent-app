@@ -28,21 +28,45 @@ const UserManagement = lazy(() => import('./components/users/UserManagement'));
 const SettlementList = lazy(() => import('./components/settlements/SettlementList'));
 const AvailabilityPage = lazy(() => import('./pages/AvailabilityPage'));
 
-// Loading component pre lazy loaded routes
+// OPTIMALIZOVANÝ Loading component pre lazy loaded routes
 const PageLoader = () => (
   <Box 
     sx={{ 
       display: 'flex', 
       justifyContent: 'center', 
       alignItems: 'center', 
-      minHeight: '200px',
+      minHeight: '300px',
       flexDirection: 'column',
-      gap: 2
+      gap: 2,
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+      borderRadius: 2,
+      m: 2
     }}
   >
-    <CircularProgress size={40} />
-    <Box sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
-      Načítava sa...
+    <CircularProgress 
+      size={50} 
+      thickness={4}
+      sx={{ 
+        color: 'primary.main',
+        '& .MuiCircularProgress-circle': {
+          strokeLinecap: 'round',
+        }
+      }}
+    />
+    <Box sx={{ 
+      color: 'text.secondary', 
+      fontSize: '1rem',
+      fontWeight: 500,
+      textAlign: 'center'
+    }}>
+      ⚡ Načítavam stránku...
+    </Box>
+    <Box sx={{ 
+      color: 'text.disabled', 
+      fontSize: '0.75rem',
+      textAlign: 'center'
+    }}>
+      Optimalizované načítanie
     </Box>
   </Box>
 );
