@@ -14,6 +14,18 @@ interface AppState {
   customers: Customer[];
   loading: boolean;
   error: string | null;
+  // OPTIMALIZÁCIA: Cache stav pre rýchlejšie načítanie
+  dataLoaded: {
+    vehicles: boolean;
+    rentals: boolean;
+    expenses: boolean;
+    insurances: boolean;
+    settlements: boolean;
+    companies: boolean;
+    insurers: boolean;
+    customers: boolean;
+  };
+  lastLoadTime: number | null;
 }
 
 type AppAction =
@@ -50,7 +62,9 @@ type AppAction =
   | { type: 'UPDATE_CUSTOMER'; payload: Customer }
   | { type: 'DELETE_CUSTOMER'; payload: string }
   | { type: 'CLEAR_ALL_DATA' }
-  | { type: 'LOAD_DATA'; payload: AppState };
+  | { type: 'LOAD_DATA'; payload: AppState }
+  | { type: 'SET_DATA_LOADED'; payload: { type: keyof AppState['dataLoaded']; loaded: boolean } }
+  | { type: 'SET_LAST_LOAD_TIME'; payload: number };
 
 const initialState: AppState = {
   vehicles: [],
@@ -63,6 +77,18 @@ const initialState: AppState = {
   customers: [],
   loading: false,
   error: null,
+  // OPTIMALIZÁCIA: Cache stav
+  dataLoaded: {
+    vehicles: false,
+    rentals: false,
+    expenses: false,
+    insurances: false,
+    settlements: false,
+    companies: false,
+    insurers: false,
+    customers: false,
+  },
+  lastLoadTime: null,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -172,6 +198,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     case 'LOAD_DATA':
       return action.payload;
+    case 'SET_DATA_LOADED':
+      return {
+        ...state,
+        dataLoaded: {
+          ...state.dataLoaded,
+          [action.payload.type]: action.payload.loaded,
+        },
+      };
+    case 'SET_LAST_LOAD_TIME':
+      return {
+        ...state,
+        lastLoadTime: action.payload,
+      };
     default:
       return state;
   }
@@ -239,27 +278,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return state.companies || [];
   };
 
-  // Funkcia na načítanie dát z API
+  // Funkcia na načítanie dát z API - OPTIMALIZOVANÁ
   const loadData = async (): Promise<void> => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
       
-      console.log('Načítavam dáta z API...');
+      console.log('🚀 Načítavam dáta z API (optimalizované)...');
       
-      // Load data from API
-      const [vehicles, rentals, expenses, insurances, customers, companies, insurers, settlements] = await Promise.all([
+      // OPTIMALIZÁCIA: Načítaj najdôležitejšie dáta PRVÉ
+      console.log('📦 1. Načítavam kľúčové dáta (vehicles, customers)...');
+      const [vehicles, customers] = await Promise.all([
         apiService.getVehicles(),
+        apiService.getCustomers()
+      ]);
+      
+      // OKAMŽITE dispatch kľúčových dát
+      dispatch({ type: 'SET_VEHICLES', payload: vehicles });
+      dispatch({ type: 'SET_CUSTOMERS', payload: customers });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'vehicles', loaded: true } });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'customers', loaded: true } });
+      
+      // OPTIMALIZÁCIA: Načítaj ostatné dáta PARALELNE
+      console.log('📦 2. Načítavam ostatné dáta paralelne...');
+      const [rentals, expenses, insurances, companies, insurers, settlements] = await Promise.all([
         apiService.getRentals(),
         apiService.getExpenses(),
         apiService.getInsurances(),
-        apiService.getCustomers(),
         apiService.getCompanies(),
         apiService.getInsurers(),
-        apiService.getSettlements() // FIXED: Robust implementation with graceful error handling
+        apiService.getSettlements()
       ]);
       
-      console.log('Dáta úspešne načítané:', { 
+      console.log('✅ Dáta úspešne načítané:', { 
         vehicles: vehicles.length, 
         rentals: rentals.length, 
         expenses: expenses.length,
@@ -267,17 +318,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
         customers: customers.length,
         companies: companies.length,
         insurers: insurers.length,
-        settlements: settlements.length // permanently fixed!
+        settlements: settlements.length
       });
       
-      dispatch({ type: 'SET_VEHICLES', payload: vehicles });
+      // Dispatch všetkých dát naraz
       dispatch({ type: 'SET_RENTALS', payload: rentals });
       dispatch({ type: 'SET_EXPENSES', payload: expenses });
       dispatch({ type: 'SET_INSURANCES', payload: insurances });
-      dispatch({ type: 'SET_CUSTOMERS', payload: customers });
       dispatch({ type: 'SET_COMPANIES', payload: companies });
       dispatch({ type: 'SET_INSURERS', payload: insurers });
       dispatch({ type: 'SET_SETTLEMENTS', payload: settlements });
+      
+      // Označ všetky dáta ako načítané
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'rentals', loaded: true } });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'expenses', loaded: true } });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insurances', loaded: true } });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'companies', loaded: true } });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insurers', loaded: true } });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'settlements', loaded: true } });
+      
+      // Nastav čas načítania pre cache
+      dispatch({ type: 'SET_LAST_LOAD_TIME', payload: Date.now() });
       
     } catch (error: any) {
       console.error('Chyba pri načítavaní dát:', error);
@@ -287,17 +348,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Načítaj dáta len keď je používateľ prihlásený a nie je loading
+  // OPTIMALIZÁCIA: Načítaj dáta len keď je používateľ prihlásený a nie je loading
   useEffect(() => {
     if (authState.isAuthenticated && !authState.isLoading && authState.token) {
-      console.log('Používateľ je prihlásený, načítavam dáta...');
-      loadData();
+      // OPTIMALIZÁCIA: Kontrola cache - načítaj len ak dáta nie sú aktuálne
+      const now = Date.now();
+      const cacheValid = state.lastLoadTime && (now - state.lastLoadTime) < 5 * 60 * 1000; // 5 minút cache
+      
+      if (!cacheValid) {
+        console.log('🚀 Používateľ je prihlásený, načítavam dáta (cache invalid)...');
+        loadData();
+      } else {
+        console.log('⚡ Používam cached dáta (cache valid)...');
+      }
     } else if (!authState.isAuthenticated && !authState.isLoading) {
       // Vymaž dáta ak sa používateľ odhlásil
       console.log('Používateľ nie je prihlásený, mažem dáta...');
       dispatch({ type: 'CLEAR_ALL_DATA' });
     }
-  }, [authState.isAuthenticated, authState.isLoading, authState.token]);
+  }, [authState.isAuthenticated, authState.isLoading, authState.token, state.lastLoadTime]);
 
   // API helper methods
   const createVehicle = async (vehicle: Vehicle): Promise<void> => {
