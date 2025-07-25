@@ -72,25 +72,31 @@ const AvailabilityCalendar: React.FC = () => {
   const [companyFilter, setCompanyFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
-  const fetchCalendarData = async () => {
+  const fetchCalendarData = async (forceMonth = false) => {
     try {
       setLoading(true);
       setError(null);
       
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth() + 1;
+      let apiUrl = `${process.env.NODE_ENV === 'development' ? 'http://localhost:5001/api' : API_BASE_URL}/availability/calendar`;
       
-      console.log('🗓️ Fetching calendar data for:', { year, month });
+      if (forceMonth || currentDate.getTime() !== new Date().getTime()) {
+        // Len ak navigujeme do konkrétneho mesiaca alebo nie je dnes
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth() + 1;
+        apiUrl += `?year=${year}&month=${month}`;
+        console.log('🗓️ Fetching calendar data for month:', { year, month });
+      } else {
+        console.log('🗓️ Fetching default calendar data (today + 30 days)');
+      }
       
-      // Custom fetch pre availability API - dočasne na port 5001 s timeout
+      // Custom fetch pre availability API s timeout
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      const apiUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:5001/api' : API_BASE_URL;
       
       // Vytvoríme AbortController pre timeout (3 sekundy)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
       
-      const response = await fetch(`${apiUrl}/availability/calendar?year=${year}&month=${month}`, {
+      const response = await fetch(apiUrl, {
         headers: {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` }),
@@ -142,7 +148,11 @@ const AvailabilityCalendar: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchCalendarData();
+    const isCurrentMonth = 
+      currentDate.getFullYear() === new Date().getFullYear() && 
+      currentDate.getMonth() === new Date().getMonth();
+    
+    fetchCalendarData(!isCurrentMonth);
   }, [currentDate]);
 
   const handlePrevMonth = () => {
@@ -155,6 +165,14 @@ const AvailabilityCalendar: React.FC = () => {
 
   const handleToday = () => {
     setCurrentDate(new Date());
+  };
+
+  const handleRefresh = () => {
+    const isCurrentMonth = 
+      currentDate.getFullYear() === new Date().getFullYear() && 
+      currentDate.getMonth() === new Date().getMonth();
+    
+    fetchCalendarData(!isCurrentMonth);
   };
 
   // Filter functions
@@ -261,27 +279,28 @@ const AvailabilityCalendar: React.FC = () => {
   return (
     <Card>
       <CardContent>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h6" display="flex" alignItems="center">
+        <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} gap={2} mb={2}>
+          <Typography variant="h6" display="flex" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }}>
             <CalendarIcon sx={{ mr: 1 }} />
             Prehľad Dostupnosti
           </Typography>
           
-          <Box display="flex" alignItems="center" gap={1}>
+          <Box display="flex" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-end' }} gap={1} flexWrap="wrap">
             <IconButton onClick={handlePrevMonth} size="small">
               <PrevIcon />
             </IconButton>
             
             <Typography 
-              variant="h6" 
+              variant={{ xs: 'body1', md: 'h6' }}
               sx={{ 
-                minWidth: 200, 
+                minWidth: { xs: 150, md: 200 }, 
                 textAlign: 'center',
                 cursor: 'pointer',
                 '&:hover': { bgcolor: 'action.hover' },
                 px: 1,
                 py: 0.5,
-                borderRadius: 1
+                borderRadius: 1,
+                fontSize: { xs: '0.9rem', md: '1.25rem' }
               }}
               onClick={handleToday}
             >
@@ -292,7 +311,7 @@ const AvailabilityCalendar: React.FC = () => {
               <NextIcon />
             </IconButton>
             
-            <IconButton onClick={fetchCalendarData} size="small">
+            <IconButton onClick={handleRefresh} size="small">
               <RefreshIcon />
             </IconButton>
           </Box>
@@ -304,79 +323,109 @@ const AvailabilityCalendar: React.FC = () => {
           </Alert>
         )}
 
-        {/* Filter Panel */}
+        {/* Search Bar - Always Visible */}
         <Card sx={{ mb: 2 }}>
-          <CardContent sx={{ pb: 1 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={showFilters ? 2 : 0}>
-              <Typography variant="subtitle1" display="flex" alignItems="center">
-                <FilterIcon sx={{ mr: 1 }} />
-                Filtre vozidiel
-              </Typography>
-              <Box display="flex" alignItems="center" gap={1}>
-                {(searchQuery || statusFilter !== 'all' || brandFilter !== 'all' || companyFilter !== 'all') && (
+          <CardContent sx={{ py: 2 }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="medium"
+                  label="🔍 Vyhľadať vozidlo"
+                  placeholder="Zadajte značku, model alebo ŠPZ (napr. BMW, X5, BA123AB...)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  InputProps={{
+                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      fontSize: '1.1rem'
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Box display="flex" justifyContent={{ xs: 'flex-start', md: 'flex-end' }} alignItems="center" gap={1} flexWrap="wrap">
+                  {searchQuery && (
+                    <Button
+                      size="small"
+                      startIcon={<ClearIcon />}
+                      onClick={() => setSearchQuery('')}
+                      color="secondary"
+                      variant="outlined"
+                    >
+                      Vyčistiť hľadanie
+                    </Button>
+                  )}
+                  <Button
+                    size="small"
+                    onClick={toggleFilters}
+                    startIcon={<FilterIcon />}
+                    endIcon={showFilters ? <CollapseIcon /> : <ExpandIcon />}
+                    variant={showFilters ? "contained" : "outlined"}
+                  >
+                    Rozšírené filtre
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Advanced Filters Panel - Collapsible */}
+        <Collapse in={showFilters}>
+          <Card sx={{ mb: 2 }}>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="subtitle1" display="flex" alignItems="center">
+                  <FilterIcon sx={{ mr: 1 }} />
+                  Rozšírené filtre
+                </Typography>
+                {(statusFilter !== 'all' || brandFilter !== 'all' || companyFilter !== 'all') && (
                   <Button
                     size="small"
                     startIcon={<ClearIcon />}
-                    onClick={handleResetFilters}
+                    onClick={() => {
+                      setStatusFilter('all');
+                      setBrandFilter('all');
+                      setCompanyFilter('all');
+                    }}
                     color="secondary"
                   >
-                    Vyčistiť
+                    Vyčistiť filtre
                   </Button>
                 )}
-                <Button
-                  size="small"
-                  onClick={toggleFilters}
-                  endIcon={showFilters ? <CollapseIcon /> : <ExpandIcon />}
-                >
-                  {showFilters ? 'Skryť' : 'Zobraziť'}
-                </Button>
               </Box>
-            </Box>
 
-            <Collapse in={showFilters}>
               <Grid container spacing={2}>
-                {/* Search */}
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Vyhľadať vozidlo"
-                    placeholder="BMW, X5, BA123AB..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    InputProps={{
-                      startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />
-                    }}
-                  />
-                </Grid>
-
                 {/* Status Filter */}
-                <Grid item xs={12} md={2}>
+                <Grid item xs={12} md={4}>
                   <FormControl fullWidth size="small">
-                    <InputLabel>Stav</InputLabel>
+                    <InputLabel>Stav vozidiel</InputLabel>
                     <Select
                       value={statusFilter}
-                      label="Stav"
+                      label="Stav vozidiel"
                       onChange={(e) => setStatusFilter(e.target.value as any)}
                     >
-                      <MenuItem value="all">Všetky</MenuItem>
-                      <MenuItem value="available">Dostupné</MenuItem>
-                      <MenuItem value="rented">Obsadené</MenuItem>
-                      <MenuItem value="maintenance">Údržba</MenuItem>
+                      <MenuItem value="all">📋 Všetky stavy</MenuItem>
+                      <MenuItem value="available">✅ Dostupné</MenuItem>
+                      <MenuItem value="rented">🔴 Obsadené</MenuItem>
+                      <MenuItem value="maintenance">🔧 Údržba</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
 
                 {/* Brand Filter */}
-                <Grid item xs={12} md={3}>
+                <Grid item xs={12} md={4}>
                   <FormControl fullWidth size="small">
-                    <InputLabel>Značka</InputLabel>
+                    <InputLabel>Značka vozidiel</InputLabel>
                     <Select
                       value={brandFilter}
-                      label="Značka"
+                      label="Značka vozidiel"
                       onChange={(e) => setBrandFilter(e.target.value)}
                     >
-                      <MenuItem value="all">Všetky značky</MenuItem>
+                      <MenuItem value="all">🚗 Všetky značky</MenuItem>
                       {uniqueBrands.map(brand => (
                         <MenuItem key={brand} value={brand}>
                           {brand}
@@ -387,7 +436,7 @@ const AvailabilityCalendar: React.FC = () => {
                 </Grid>
 
                 {/* Company Filter */}
-                <Grid item xs={12} md={3}>
+                <Grid item xs={12} md={4}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Firma</InputLabel>
                     <Select
@@ -395,7 +444,7 @@ const AvailabilityCalendar: React.FC = () => {
                       label="Firma"
                       onChange={(e) => setCompanyFilter(e.target.value)}
                     >
-                      <MenuItem value="all">Všetky firmy</MenuItem>
+                      <MenuItem value="all">🏢 Všetky firmy</MenuItem>
                       {uniqueCompanies.map(company => (
                         <MenuItem key={company} value={company}>
                           {company}
@@ -405,24 +454,63 @@ const AvailabilityCalendar: React.FC = () => {
                   </FormControl>
                 </Grid>
               </Grid>
-            </Collapse>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Collapse>
 
-        <TableContainer component={Paper}>
-          <Table size="small">
+        <TableContainer 
+          component={Paper} 
+          sx={{ 
+            overflowX: 'auto',
+            '&::-webkit-scrollbar': {
+              height: 8,
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: '#f1f1f1',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#888',
+              borderRadius: 4,
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              backgroundColor: '#555',
+            }
+          }}
+        >
+          <Table size="small" sx={{ minWidth: { xs: 600, md: 'auto' } }}>
             <TableHead>
               <TableRow>
-                <TableCell><strong>Dátum</strong></TableCell>
+                <TableCell sx={{ 
+                  minWidth: { xs: 100, md: 120 },
+                  position: 'sticky',
+                  left: 0,
+                  backgroundColor: 'background.paper',
+                  zIndex: 1,
+                  borderRight: '1px solid rgba(224, 224, 224, 1)'
+                }}>
+                  <strong>Dátum</strong>
+                </TableCell>
                 {filteredVehicles.length > 0 ? (
                   filteredVehicles.map(vehicle => (
-                    <TableCell key={vehicle.id} align="center">
-                      <Tooltip title={vehicle.licensePlate}>
-                        <Box sx={{ minWidth: 80 }}>
-                          <Typography variant="caption" display="block">
-                            <strong>{vehicle.brand} {vehicle.model}</strong>
+                    <TableCell key={vehicle.id} align="center" sx={{ minWidth: { xs: 90, md: 110 } }}>
+                      <Tooltip title={`${vehicle.brand} ${vehicle.model} - ${vehicle.licensePlate}`}>
+                        <Box sx={{ minWidth: { xs: 80, md: 100 } }}>
+                          <Typography variant="caption" display="block" sx={{ 
+                            fontSize: { xs: '0.65rem', md: '0.75rem' },
+                            lineHeight: 1.2
+                          }}>
+                            <strong>{vehicle.brand}</strong>
                           </Typography>
-                          <Typography variant="caption" color="textSecondary">
+                          <Typography variant="caption" display="block" sx={{ 
+                            fontSize: { xs: '0.6rem', md: '0.7rem' },
+                            lineHeight: 1.1
+                          }}>
+                            {vehicle.model}
+                          </Typography>
+                          <Typography variant="caption" color="textSecondary" sx={{ 
+                            fontSize: { xs: '0.55rem', md: '0.65rem' },
+                            lineHeight: 1
+                          }}>
                             {vehicle.licensePlate}
                           </Typography>
                         </Box>
@@ -461,18 +549,31 @@ const AvailabilityCalendar: React.FC = () => {
                   const day = new Date(dayData.date);
                   return (
                     <TableRow key={dayData.date}>
-                      <TableCell sx={{ minWidth: 120 }}>
-                        <Typography variant="body2">
-                          <strong>{format(day, 'dd.MM.yyyy', { locale: sk })}</strong>
+                      <TableCell sx={{ 
+                        minWidth: { xs: 100, md: 120 },
+                        position: 'sticky',
+                        left: 0,
+                        backgroundColor: 'background.paper',
+                        zIndex: 1,
+                        borderRight: '1px solid rgba(224, 224, 224, 1)'
+                      }}>
+                        <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
+                          <strong>{format(day, 'dd.MM', { locale: sk })}</strong>
                         </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          {format(day, 'EEEE', { locale: sk })}
+                        <Typography variant="caption" color="textSecondary" sx={{ 
+                          fontSize: { xs: '0.65rem', md: '0.75rem' },
+                          display: { xs: 'none', sm: 'block' }
+                        }}>
+                          {format(day, 'EEE', { locale: sk })}
                         </Typography>
                       </TableCell>
                       {filteredVehicles.map(vehicle => {
                         const vehicleStatus = dayData.vehicles.find(v => v.vehicleId === vehicle.id);
                         return (
-                          <TableCell key={vehicle.id} align="center" sx={{ minWidth: 100 }}>
+                          <TableCell key={vehicle.id} align="center" sx={{ 
+                            minWidth: { xs: 90, md: 110 },
+                            px: { xs: 0.5, md: 1 }
+                          }}>
                             {vehicleStatus && (
                               <Tooltip title={
                                 `${vehicleStatus.vehicleName} - ${getStatusText(vehicleStatus.status)}${vehicleStatus.customerName ? ` (${vehicleStatus.customerName})` : ''}`
@@ -483,7 +584,13 @@ const AvailabilityCalendar: React.FC = () => {
                                   color={getStatusColor(vehicleStatus.status) as any}
                                   size="small"
                                   variant="outlined"
-                                  sx={{ fontSize: '0.7rem', height: 24 }}
+                                  sx={{ 
+                                    fontSize: { xs: '0.6rem', md: '0.7rem' }, 
+                                    height: { xs: 20, md: 24 },
+                                    '& .MuiChip-icon': {
+                                      fontSize: { xs: '0.75rem', md: '1rem' }
+                                    }
+                                  }}
                                 />
                               </Tooltip>
                             )}
@@ -498,10 +605,10 @@ const AvailabilityCalendar: React.FC = () => {
           </Table>
         </TableContainer>
 
-        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-          <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
-            <Typography variant="caption" color="textSecondary">
-              Zobrazuje sa: {filteredVehicles.length} z {vehicles.length} vozidiel
+        <Box mt={2} display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} gap={2}>
+          <Box display="flex" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }} gap={2} flexWrap="wrap">
+            <Typography variant="caption" color="textSecondary" textAlign={{ xs: 'center', md: 'left' }}>
+              Zobrazuje sa: <strong>{filteredVehicles.length}</strong> z {vehicles.length} vozidiel
             </Typography>
             <Typography variant="caption" color="textSecondary">
               •  {calendarData.length} dní
@@ -516,7 +623,7 @@ const AvailabilityCalendar: React.FC = () => {
               />
             )}
           </Box>
-          <Typography variant="caption" color="textSecondary">
+          <Typography variant="caption" color="textSecondary" textAlign={{ xs: 'center', md: 'right' }} sx={{ display: { xs: 'none', sm: 'block' } }}>
             💡 Tip: Horizontálne scrollujte pre zobrazenie všetkých vozidiel
           </Typography>
         </Box>
