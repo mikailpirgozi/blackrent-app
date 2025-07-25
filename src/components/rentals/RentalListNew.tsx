@@ -2739,26 +2739,43 @@ export default function RentalList() {
               zIndex: 1000
             }}>
               <Box sx={{ 
-                minWidth: 140,
-                p: 1.5,
+                width: { xs: 120, sm: 140 },
+                maxWidth: { xs: 120, sm: 140 },
+                p: { xs: 1, sm: 1.5 },
                 borderRight: '2px solid #e0e0e0',
                 backgroundColor: '#ffffff',
                 display: 'flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                overflow: 'hidden'
               }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1976d2', fontSize: '0.75rem' }}>
+                <Typography variant="subtitle2" sx={{ 
+                  fontWeight: 700, 
+                  color: '#1976d2', 
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
                   🚗 Prenájmy
                 </Typography>
               </Box>
               <Box sx={{ 
                 flex: 1,
-                p: 1.5,
+                p: { xs: 1, sm: 1.5 },
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                overflow: 'hidden'
               }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#666', fontSize: '0.75rem' }}>
-                  📅 Dátumy & Detaily
+                <Typography variant="subtitle2" sx={{ 
+                  fontWeight: 700, 
+                  color: '#666', 
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  📅 Detaily & Status
                 </Typography>
               </Box>
             </Box>
@@ -2782,10 +2799,11 @@ export default function RentalList() {
                      }}
                      onClick={() => handleEdit(rental)}
                    >
-                    {/* Vozidlo info - sticky left */}
+                    {/* Vozidlo info - sticky left - RESPONSIVE */}
                     <Box sx={{ 
-                      minWidth: 140,
-                      p: 1.5,
+                      width: { xs: 120, sm: 140 },
+                      maxWidth: { xs: 120, sm: 140 },
+                      p: { xs: 1, sm: 1.5 },
                       borderRight: '2px solid #e0e0e0',
                       display: 'flex',
                       flexDirection: 'column',
@@ -2793,23 +2811,28 @@ export default function RentalList() {
                       backgroundColor: '#ffffff',
                       position: 'sticky',
                       left: 0,
-                      zIndex: 10
+                      zIndex: 10,
+                      overflow: 'hidden'
                     }}>
                       <Typography variant="subtitle2" sx={{ 
                         fontWeight: 600, 
-                        fontSize: '0.8rem',
+                        fontSize: { xs: '0.75rem', sm: '0.8rem' },
                         color: '#1976d2',
                         lineHeight: 1.2,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
+                        mb: { xs: 0.25, sm: 0.5 }
                       }}>
                         {vehicle?.brand} {vehicle?.model}
                       </Typography>
                       <Typography variant="caption" sx={{ 
                         color: '#666',
-                        fontSize: '0.65rem',
-                        mb: 0.5
+                        fontSize: { xs: '0.6rem', sm: '0.65rem' },
+                        mb: { xs: 0.25, sm: 0.5 },
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
                       }}>
                         {vehicle?.licensePlate}
                       </Typography>
@@ -2819,63 +2842,84 @@ export default function RentalList() {
                                rental.status === 'finished' ? 'DOKONČENÝ' : 
                                rental.status === 'pending' ? 'ČAKAJÚCI' : 'NOVÝ'}
                         sx={{
-                          height: 20,
-                          fontSize: '0.6rem',
+                          height: { xs: 18, sm: 20 },
+                          fontSize: { xs: '0.55rem', sm: '0.6rem' },
                           bgcolor: rental.status === 'active' ? '#4caf50' :
                                   rental.status === 'finished' ? '#2196f3' :
                                   rental.status === 'pending' ? '#ff9800' : '#666',
                           color: 'white',
-                          fontWeight: 700
+                          fontWeight: 700,
+                          minWidth: 'auto',
+                          maxWidth: '100%',
+                          overflow: 'hidden'
                         }}
                       />
                     </Box>
                     
-                    {/* Detaily prenájmu - scrollable right */}
+                    {/* Detaily prenájmu - scrollable right - RESPONSIVE */}
                     <Box sx={{ 
                       flex: 1,
-                      p: 1.5,
+                      p: { xs: 1, sm: 1.5 },
                       display: 'flex',
                       flexDirection: 'column',
-                      justifyContent: 'space-between'
+                      justifyContent: 'space-between',
+                      overflow: 'hidden',
+                      minWidth: 0 // Allow shrinking
                     }}>
-                      <Box>
+                      <Box sx={{ overflow: 'hidden' }}>
                         <Typography variant="subtitle2" sx={{ 
                           fontWeight: 600,
-                          fontSize: '0.8rem',
+                          fontSize: { xs: '0.75rem', sm: '0.8rem' },
                           color: '#333',
-                          mb: 0.5
+                          mb: { xs: 0.25, sm: 0.5 },
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
                         }}>
                           👤 {rental.customerName}
                         </Typography>
                         <Typography variant="caption" sx={{ 
                           color: '#666',
-                          fontSize: '0.65rem',
+                          fontSize: { xs: '0.6rem', sm: '0.65rem' },
                           display: 'block',
-                          mb: 0.5
+                          mb: { xs: 0.25, sm: 0.5 },
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
                         }}>
-                          📅 {format(new Date(rental.startDate), 'd.M.yyyy')} - {format(new Date(rental.endDate), 'd.M.yyyy')}
+                          📅 {format(new Date(rental.startDate), 'd.M.yy')} - {format(new Date(rental.endDate), 'd.M.yy')}
                         </Typography>
                         <Typography variant="caption" sx={{ 
                           color: '#4caf50',
-                          fontSize: '0.7rem',
-                          fontWeight: 600
+                          fontSize: { xs: '0.65rem', sm: '0.7rem' },
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
                         }}>
                           💰 {rental.totalPrice?.toFixed(2)}€
                         </Typography>
                       </Box>
                       
-                      <Box sx={{ display: 'flex', gap: 0.5, mt: 1, justifyContent: 'flex-start' }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        gap: { xs: 0.25, sm: 0.5 }, 
+                        mt: { xs: 0.5, sm: 1 }, 
+                        justifyContent: 'flex-start',
+                        flexWrap: 'wrap'
+                      }}>
                         <Chip
                           size="small"
                           label={hasHandover ? '🔑' : '⏳'}
                           title={hasHandover ? 'Odovzdávací protokol vytvorený' : 'Čaká na odovzdávací protokol'}
                           sx={{
-                            height: 20,
-                            fontSize: '0.65rem',
+                            height: { xs: 16, sm: 20 },
+                            fontSize: { xs: '0.55rem', sm: '0.65rem' },
                             bgcolor: hasHandover ? '#4caf50' : '#ccc',
                             color: 'white',
                             fontWeight: 600,
-                            minWidth: 28
+                            minWidth: { xs: 22, sm: 28 },
+                            maxWidth: { xs: 30, sm: 40 }
                           }}
                         />
                         <Chip
@@ -2883,12 +2927,13 @@ export default function RentalList() {
                           label={hasReturn ? '📋' : '⏳'}
                           title={hasReturn ? 'Preberací protokol vytvorený' : 'Čaká na preberací protokol'}
                           sx={{
-                            height: 20,
-                            fontSize: '0.65rem',
+                            height: { xs: 16, sm: 20 },
+                            fontSize: { xs: '0.55rem', sm: '0.65rem' },
                             bgcolor: hasReturn ? '#4caf50' : '#ccc',
                             color: 'white',
                             fontWeight: 600,
-                            minWidth: 28
+                            minWidth: { xs: 22, sm: 28 },
+                            maxWidth: { xs: 30, sm: 40 }
                           }}
                         />
                         <Chip
@@ -2896,12 +2941,13 @@ export default function RentalList() {
                           label={rental.paid ? '💰' : '⏰'}
                           title={rental.paid ? 'Uhradené' : 'Neuhradené'}
                           sx={{
-                            height: 20,
-                            fontSize: '0.65rem',
+                            height: { xs: 16, sm: 20 },
+                            fontSize: { xs: '0.55rem', sm: '0.65rem' },
                             bgcolor: rental.paid ? '#4caf50' : '#f44336',
                             color: 'white',
                             fontWeight: 600,
-                            minWidth: 28
+                            minWidth: { xs: 22, sm: 28 },
+                            maxWidth: { xs: 30, sm: 40 }
                           }}
                         />
                       </Box>
@@ -2927,57 +2973,67 @@ export default function RentalList() {
               zIndex: 1000
             }}>
               <Box sx={{ 
-                minWidth: 200,
+                width: 200,
+                maxWidth: 200,
                 p: 2,
                 borderRight: '2px solid #e0e0e0',
                 backgroundColor: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
-                boxShadow: '2px 0 4px rgba(0,0,0,0.1)'
+                boxShadow: '2px 0 4px rgba(0,0,0,0.1)',
+                overflow: 'hidden'
               }}>
                 <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2', fontSize: '1rem' }}>
                   🚗 Vozidlo & Status
                 </Typography>
               </Box>
               <Box sx={{ 
-                minWidth: 180,
+                width: 180,
+                maxWidth: 180,
                 p: 2,
                 borderRight: '1px solid #e0e0e0',
                 textAlign: 'center',
-                backgroundColor: '#f8f9fa'
+                backgroundColor: '#f8f9fa',
+                overflow: 'hidden'
               }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}>
                   👤 Zákazník
                 </Typography>
               </Box>
               <Box sx={{ 
-                minWidth: 160,
+                width: 160,
+                maxWidth: 160,
                 p: 2,
                 borderRight: '1px solid #e0e0e0',
                 textAlign: 'center',
-                backgroundColor: '#f8f9fa'
+                backgroundColor: '#f8f9fa',
+                overflow: 'hidden'
               }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}>
                   📅 Obdobie
                 </Typography>
               </Box>
               <Box sx={{ 
-                minWidth: 120,
+                width: 120,
+                maxWidth: 120,
                 p: 2,
                 borderRight: '1px solid #e0e0e0',
                 textAlign: 'center',
-                backgroundColor: '#f8f9fa'
+                backgroundColor: '#f8f9fa',
+                overflow: 'hidden'
               }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}>
                   💰 Cena
                 </Typography>
               </Box>
               <Box sx={{ 
-                minWidth: 140,
+                width: 140,
+                maxWidth: 140,
                 p: 2,
                 borderRight: '1px solid #e0e0e0',
                 textAlign: 'center',
-                backgroundColor: '#f8f9fa'
+                backgroundColor: '#f8f9fa',
+                overflow: 'hidden'
               }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}>
                   📋 Protokoly
@@ -3019,9 +3075,10 @@ export default function RentalList() {
                     }}
                     onClick={() => handleEdit(rental)}
                   >
-                    {/* Vozidlo & Status - sticky left */}
+                    {/* Vozidlo & Status - sticky left - FIXED WIDTH */}
                     <Box sx={{ 
-                      minWidth: 200,
+                      width: 200, // FIXED WIDTH instead of minWidth
+                      maxWidth: 200,
                       p: 2,
                       borderRight: '2px solid #e0e0e0',
                       display: 'flex',
@@ -3031,20 +3088,28 @@ export default function RentalList() {
                       position: 'sticky',
                       left: 0,
                       zIndex: 10,
-                      boxShadow: '2px 0 4px rgba(0,0,0,0.05)'
+                      boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+                      overflow: 'hidden' // Prevent overflow
                     }}>
                       <Typography variant="h6" sx={{ 
                         fontWeight: 700, 
                         fontSize: '1rem',
                         color: '#1976d2',
-                        mb: 0.5
+                        mb: 0.5,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        lineHeight: 1.2
                       }}>
                         {vehicle?.brand} {vehicle?.model}
                       </Typography>
                       <Typography variant="body2" sx={{ 
                         color: '#666',
                         fontSize: '0.8rem',
-                        mb: 1
+                        mb: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
                       }}>
                         📋 {vehicle?.licensePlate} • 🏢 {vehicle?.company}
                       </Typography>
@@ -3066,15 +3131,17 @@ export default function RentalList() {
                       />
                     </Box>
                     
-                    {/* Zákazník */}
+                    {/* Zákazník - FIXED WIDTH */}
                     <Box sx={{ 
-                      minWidth: 180,
+                      width: 180,
+                      maxWidth: 180,
                       p: 2,
                       borderRight: '1px solid #e0e0e0',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'center',
-                      textAlign: 'left'
+                      textAlign: 'left',
+                      overflow: 'hidden'
                     }}>
                       <Typography variant="subtitle1" sx={{ 
                         fontWeight: 600,
@@ -3098,15 +3165,17 @@ export default function RentalList() {
                       </Typography>
                     </Box>
 
-                    {/* Obdobie */}
+                    {/* Obdobie - FIXED WIDTH */}
                     <Box sx={{ 
-                      minWidth: 160,
+                      width: 160,
+                      maxWidth: 160,
                       p: 2,
                       borderRight: '1px solid #e0e0e0',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'center',
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      overflow: 'hidden'
                     }}>
                       <Typography variant="body2" sx={{ 
                         fontWeight: 600,
@@ -3132,15 +3201,17 @@ export default function RentalList() {
                       </Typography>
                     </Box>
 
-                    {/* Cena */}
+                    {/* Cena - FIXED WIDTH */}
                     <Box sx={{ 
-                      minWidth: 120,
+                      width: 120,
+                      maxWidth: 120,
                       p: 2,
                       borderRight: '1px solid #e0e0e0',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'center',
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      overflow: 'hidden'
                     }}>
                       <Typography variant="h6" sx={{ 
                         fontWeight: 700,
@@ -3163,16 +3234,18 @@ export default function RentalList() {
                       />
                     </Box>
 
-                    {/* Protokoly */}
+                    {/* Protokoly - FIXED WIDTH */}
                     <Box sx={{ 
-                      minWidth: 140,
+                      width: 140,
+                      maxWidth: 140,
                       p: 2,
                       borderRight: '1px solid #e0e0e0',
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
                       gap: 1.5,
-                      flexDirection: 'column'
+                      flexDirection: 'column',
+                      overflow: 'hidden'
                     }}>
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                         <Chip
