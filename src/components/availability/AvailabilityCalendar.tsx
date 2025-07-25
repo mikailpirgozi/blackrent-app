@@ -72,6 +72,9 @@ import {
 } from '@mui/icons-material';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import { API_BASE_URL } from '../../services/api';
+import { Rental, VehicleUnavailability } from '../../types';
+import { useApp } from '../../context/AppContext';
 
 // Custom isToday function to avoid hot reload issues
 const isToday = (date: Date): boolean => {
@@ -80,9 +83,6 @@ const isToday = (date: Date): boolean => {
          date.getMonth() === today.getMonth() &&
          date.getFullYear() === today.getFullYear();
 };
-import { API_BASE_URL } from '../../services/api';
-import { Rental, VehicleUnavailability } from '../../types';
-import { useApp } from '../../context/AppContext';
 
 interface VehicleAvailability {
   vehicleId: string;
@@ -172,6 +172,10 @@ const AvailabilityCalendar: React.FC = () => {
   const [brandFilter, setBrandFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Date range availability filter
+  const [availableFromDate, setAvailableFromDate] = useState<string>('');
+  const [availableToDate, setAvailableToDate] = useState<string>('');
   
   // OPTIMALIZÁCIA: Cache pre availability data
   const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
@@ -547,6 +551,8 @@ const AvailabilityCalendar: React.FC = () => {
     setStatusFilter('all');
     setBrandFilter('all');
     setCompanyFilter('all');
+    setAvailableFromDate('');
+    setAvailableToDate('');
   }, []);
 
   const toggleFilters = useCallback(() => {
@@ -590,9 +596,27 @@ const AvailabilityCalendar: React.FC = () => {
         return false;
       }
 
+      // Date range availability filter
+      if (availableFromDate && availableToDate) {
+        const fromDate = new Date(availableFromDate);
+        const toDate = new Date(availableToDate);
+        
+        // Check if vehicle is available for the entire period
+        const isAvailableInPeriod = calendarData.some(dayData => {
+          const dayDate = new Date(dayData.date);
+          if (dayDate >= fromDate && dayDate <= toDate) {
+            const vehicleStatus = dayData.vehicles.find(v => v.vehicleId === vehicle.id);
+            return vehicleStatus?.status === 'available';
+          }
+          return false;
+        });
+        
+        if (!isAvailableInPeriod) return false;
+      }
+
       return true;
     });
-  }, [vehicles, debouncedSearchQuery, brandFilter, companyFilter]);
+  }, [vehicles, debouncedSearchQuery, brandFilter, companyFilter, availableFromDate, availableToDate, calendarData]);
 
   // Filter calendar data to show only filtered vehicles - memoized
   const filteredCalendarData = useMemo(() => {
@@ -842,8 +866,8 @@ const AvailabilityCalendar: React.FC = () => {
                  const totalVehicles = dayData.vehicles.length;
                  const availableCount = dayData.vehicles.filter(v => v.status === 'available').length;
                  const rentedCount = dayData.vehicles.filter(v => v.status === 'rented').length;
-                 
-                 return (
+
+  return (
                                        <Button
                       key={dayData.date}
                       variant={selectedDate === dayData.date ? "contained" : "outlined"}
@@ -909,98 +933,137 @@ const AvailabilityCalendar: React.FC = () => {
              )}
            </Box>
 
-                    {/* Mobilné vozidlá pre vybraný dátum - OPTIMALIZOVANÉ */}
-          <Stack spacing={{ xs: 0.75, sm: 1 }} sx={{ px: { xs: 0.5, sm: 0 } }}>
-            {filteredVehicles.map(vehicle => {
-              const selectedDayData = statusFilteredCalendarData.find(day => 
-                day.date === selectedDate
-              );
-              const vehicleStatus = selectedDayData?.vehicles.find(v => v.vehicleId === vehicle.id);
-              
-              return (
-                <Card 
-                  key={vehicle.id} 
-                  sx={{ 
-                    border: '1px solid',
-                    borderColor: vehicleStatus ? getStatusColor(vehicleStatus.status) : 'grey.300',
-                    backgroundColor: vehicleStatus?.status === 'available' ? 'success.light' : 
-                                   vehicleStatus?.status === 'rented' ? 'error.light' : 'grey.50',
-                    borderRadius: { xs: 1, sm: 2 },
-                    boxShadow: { xs: 1, sm: 2 }
-                  }}
-                >
-                  <CardContent sx={{ 
-                    p: { xs: 1.5, sm: 2 }, 
-                    '&:last-child': { pb: { xs: 1.5, sm: 2 } } 
-                  }}>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      gap: { xs: 1, sm: 2 }
+                                        {/* Mobilné vozidlá pre vybraný dátum - VYLEPŠENÉ */}
+          <Box sx={{ px: { xs: 1, sm: 0 } }}>
+            <Typography 
+              variant="subtitle2" 
+              sx={{ 
+                mb: { xs: 1, sm: 1.5 },
+                fontWeight: 600,
+                color: 'text.secondary',
+                fontSize: { xs: '0.8rem', sm: '0.9rem' }
+              }}
+            >
+              📋 Vozidlá na {format(new Date(selectedDate), 'd. MMMM', { locale: sk })}:
+            </Typography>
+            
+            <Stack spacing={{ xs: 1, sm: 1.5 }}>
+              {filteredVehicles.map(vehicle => {
+                const selectedDayData = statusFilteredCalendarData.find(day => 
+                  day.date === selectedDate
+                );
+                const vehicleStatus = selectedDayData?.vehicles.find(v => v.vehicleId === vehicle.id);
+                
+                return (
+                  <Card 
+                    key={vehicle.id} 
+                    sx={{ 
+                      border: '2px solid',
+                      borderColor: vehicleStatus?.status === 'available' ? '#4caf50' :
+                                 vehicleStatus?.status === 'rented' ? '#f44336' : '#ff9800',
+                      backgroundColor: vehicleStatus?.status === 'available' ? '#e8f5e8' : 
+                                     vehicleStatus?.status === 'rented' ? '#ffebee' : '#fff3e0',
+                      borderRadius: 2,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      transition: 'all 0.2s ease',
+                      '&:active': { transform: 'scale(0.98)' }
+                    }}
+                  >
+                    <CardContent sx={{ 
+                      p: { xs: 2, sm: 2.5 }, 
+                      '&:last-child': { pb: { xs: 2, sm: 2.5 } }
                     }}>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography 
-                          variant={isSmallMobile ? "body1" : "subtitle1"} 
-                          fontWeight="bold"
-                          sx={{ 
-                            fontSize: { xs: '0.9rem', sm: '1rem' },
-                            lineHeight: 1.2,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {vehicle.brand} {vehicle.model}
-                        </Typography>
-                        <Typography 
-                          variant={isSmallMobile ? "caption" : "body2"} 
-                          color="text.secondary"
-                          sx={{ 
-                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                            lineHeight: 1.1
-                          }}
-                        >
-                          {vehicle.licensePlate}
-                        </Typography>
-                        {vehicleStatus?.customerName && (
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        gap: { xs: 1.5, sm: 2 }
+                      }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
                           <Typography 
-                            variant="caption" 
-                            color="text.secondary"
+                            variant="h6"
                             sx={{ 
-                              display: 'block',
-                              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                              lineHeight: 1.1,
-                              mt: 0.25,
+                              fontSize: { xs: '1rem', sm: '1.1rem' },
+                              fontWeight: 700,
+                              color: '#1976d2',
+                              mb: 0.5,
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap'
                             }}
                           >
-                            👤 {vehicleStatus.customerName}
+                            {vehicle.brand} {vehicle.model}
                           </Typography>
-                        )}
+                          <Typography 
+                            variant="body2"
+                            sx={{ 
+                              fontSize: { xs: '0.85rem', sm: '0.9rem' },
+                              fontWeight: 500,
+                              color: '#666',
+                              mb: 0.25
+                            }}
+                          >
+                            📋 {vehicle.licensePlate}
+                          </Typography>
+                          {vehicleStatus?.customerName && (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                display: 'block',
+                                fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                                color: '#888',
+                                fontWeight: 500,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              👤 {vehicleStatus.customerName}
+                            </Typography>
+                          )}
+                        </Box>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          alignItems: 'center',
+                          gap: 0.5
+                        }}>
+                          <Chip
+                            label={getStatusText(vehicleStatus?.status || 'available')}
+                            size="medium"
+                            sx={{
+                              bgcolor: vehicleStatus?.status === 'available' ? '#4caf50' :
+                                     vehicleStatus?.status === 'rented' ? '#f44336' : '#ff9800',
+                              color: 'white',
+                              fontWeight: 700,
+                              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                              height: { xs: 28, sm: 32 },
+                              minWidth: { xs: 70, sm: 85 },
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                              '&:hover': { transform: 'scale(1.05)' }
+                            }}
+                            onClick={() => vehicleStatus && handleStatusClick(vehicleStatus, selectedDate)}
+                          />
+                          {vehicleStatus?.status === 'available' && (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                fontSize: '0.65rem', 
+                                color: '#4caf50',
+                                fontWeight: 600
+                              }}
+                            >
+                              ✅ Voľné
+                            </Typography>
+                          )}
+                        </Box>
                       </Box>
-                      <Chip
-                        label={getStatusText(vehicleStatus?.status || 'available')}
-                        size={isSmallMobile ? "small" : "medium"}
-                        sx={{
-                          bgcolor: getStatusColor(vehicleStatus?.status || 'available'),
-                          color: 'white',
-                          fontWeight: 'bold',
-                          fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                          height: { xs: 24, sm: 32 },
-                          minWidth: { xs: 60, sm: 80 },
-                          flexShrink: 0
-                        }}
-                        onClick={() => vehicleStatus && handleStatusClick(vehicleStatus, selectedDate)}
-                      />
-                    </Box>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </Stack>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </Stack>
+          </Box>
         </>
       )}
 
@@ -1218,8 +1281,8 @@ const AvailabilityCalendar: React.FC = () => {
                 <Typography variant="subtitle1" display="flex" alignItems="center">
                   <FilterIcon sx={{ mr: 1 }} />
                   Rozšírené filtre
-                </Typography>
-                {(statusFilter !== 'all' || brandFilter !== 'all' || companyFilter !== 'all') && (
+                        </Typography>
+                {(statusFilter !== 'all' || brandFilter !== 'all' || companyFilter !== 'all' || availableFromDate || availableToDate) && (
                   <Button
                     size="small"
                     startIcon={<ClearIcon />}
@@ -1227,6 +1290,8 @@ const AvailabilityCalendar: React.FC = () => {
                       setStatusFilter('all');
                       setBrandFilter('all');
                       setCompanyFilter('all');
+                      setAvailableFromDate('');
+                      setAvailableToDate('');
                     }}
                     color="secondary"
                   >
@@ -1237,7 +1302,7 @@ const AvailabilityCalendar: React.FC = () => {
 
               <Grid container spacing={2}>
                 {/* Status Filter */}
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={3}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Stav vozidiel</InputLabel>
                     <Select
@@ -1259,7 +1324,7 @@ const AvailabilityCalendar: React.FC = () => {
                 </Grid>
 
                 {/* Brand Filter */}
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={3}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Značka vozidiel</InputLabel>
                     <Select
@@ -1278,7 +1343,7 @@ const AvailabilityCalendar: React.FC = () => {
                 </Grid>
 
                 {/* Company Filter */}
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={3}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Firma</InputLabel>
                     <Select
@@ -1293,6 +1358,31 @@ const AvailabilityCalendar: React.FC = () => {
                         </MenuItem>
                       ))}
                     </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* Date Range Availability Filter */}
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel shrink>Voľné od-do</InputLabel>
+                    <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
+                      <TextField
+                        size="small"
+                        type="date"
+                        value={availableFromDate}
+                        onChange={(e) => setAvailableFromDate(e.target.value)}
+                        sx={{ flex: 1 }}
+                        inputProps={{ style: { fontSize: '0.75rem' } }}
+                      />
+                      <TextField
+                        size="small"
+                        type="date"
+                        value={availableToDate}
+                        onChange={(e) => setAvailableToDate(e.target.value)}
+                        sx={{ flex: 1 }}
+                        inputProps={{ style: { fontSize: '0.75rem' } }}
+                      />
+                    </Box>
                   </FormControl>
                 </Grid>
               </Grid>
@@ -1312,14 +1402,14 @@ const AvailabilityCalendar: React.FC = () => {
                 <SearchIcon color="disabled" sx={{ fontSize: 64 }} />
                 <Typography variant="h5" color="textSecondary" textAlign="center">
                   Žiadne vozidlá nevyhovujú filtrom
-                </Typography>
+                        </Typography>
                 <Typography variant="body1" color="textSecondary" textAlign="center">
                   Skúste upraviť filtre alebo vyčistiť vyhľadávanie
                 </Typography>
                 <Button variant="contained" onClick={handleResetFilters} sx={{ mt: 1 }}>
                   Vyčistiť všetky filtre
                 </Button>
-              </Box>
+                      </Box>
             ) : (
               <>
                 {/* HEADER S DÁTUMAMI - HORIZONTÁLNE */}
@@ -1349,18 +1439,29 @@ const AvailabilityCalendar: React.FC = () => {
                   </Box>
                   
                   {/* Dátumy header - horizontálne scroll */}
-                  <Box sx={{ 
-                    display: 'flex',
-                    flex: 1,
-                    overflowX: 'auto',
-                    '&::-webkit-scrollbar': { height: 8 },
-                    '&::-webkit-scrollbar-thumb': { 
-                      backgroundColor: '#1976d2', 
-                      borderRadius: 4,
-                      '&:hover': { backgroundColor: '#1565c0' }
-                    },
-                    '&::-webkit-scrollbar-track': { backgroundColor: '#f5f5f5' }
-                  }}>
+                  <Box 
+                    id="calendar-header-scroll"
+                    sx={{ 
+                      display: 'flex',
+                      flex: 1,
+                      overflowX: 'auto',
+                      '&::-webkit-scrollbar': { height: 8 },
+                      '&::-webkit-scrollbar-thumb': { 
+                        backgroundColor: '#1976d2', 
+                        borderRadius: 4,
+                        '&:hover': { backgroundColor: '#1565c0' }
+                      },
+                      '&::-webkit-scrollbar-track': { backgroundColor: '#f5f5f5' }
+                    }}
+                    onScroll={(e) => {
+                      // Sync scroll with vehicle rows
+                      const scrollLeft = e.currentTarget.scrollLeft;
+                      const vehicleRows = document.querySelectorAll('.vehicle-calendar-row');
+                      vehicleRows.forEach((row) => {
+                        row.scrollLeft = scrollLeft;
+                      });
+                    }}
+                  >
                     {statusFilteredCalendarData.map((day, index) => (
                       <Box 
                         key={day.date}
@@ -1446,15 +1547,33 @@ const AvailabilityCalendar: React.FC = () => {
                       </Box>
                       
                       {/* KALENDÁR GRID PRE VOZIDLO */}
-                      <Box sx={{ 
-                        display: 'flex',
-                        flex: 1,
-                        overflowX: 'auto'
-                      }}>
+                      <Box 
+                        className="vehicle-calendar-row"
+                        sx={{ 
+                          display: 'flex',
+                          flex: 1,
+                          overflowX: 'auto'
+                        }}
+                        onScroll={(e) => {
+                          // Sync scroll with header
+                          const scrollLeft = e.currentTarget.scrollLeft;
+                          const headerScroll = document.getElementById('calendar-header-scroll');
+                          if (headerScroll) {
+                            headerScroll.scrollLeft = scrollLeft;
+                          }
+                          // Sync with other vehicle rows
+                          const otherRows = document.querySelectorAll('.vehicle-calendar-row');
+                          otherRows.forEach((row) => {
+                            if (row !== e.currentTarget) {
+                              row.scrollLeft = scrollLeft;
+                            }
+                          });
+                        }}
+                      >
                         {statusFilteredCalendarData.map((day, dayIndex) => {
                           const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
                           
-                          return (
+                return (
                             <Box 
                               key={day.date}
                               sx={{ 
@@ -1583,16 +1702,16 @@ const AvailabilityCalendar: React.FC = () => {
           <Box display="flex" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }} gap={2} flexWrap="wrap">
             <Typography variant="caption" color="textSecondary" textAlign={{ xs: 'center', md: 'left' }}>
               Zobrazuje sa: <strong>{filteredVehicles.length}</strong> z {vehicles.length} vozidiel
-            </Typography>
-          <Typography variant="caption" color="textSecondary">
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
               •  {calendarData.length} dní
-            </Typography>
+                      </Typography>
             {(searchQuery || statusFilter !== 'all' || brandFilter !== 'all' || companyFilter !== 'all') && (
-              <Chip 
+                              <Chip
                 label="Filtrované" 
-                size="small" 
+                                size="small"
                 color="primary" 
-                variant="outlined"
+                                variant="outlined"
                 icon={<FilterIcon />}
               />
             )}
@@ -1619,8 +1738,8 @@ const AvailabilityCalendar: React.FC = () => {
             <CircularProgress />
             <Typography variant="body2" sx={{ ml: 2 }}>
               Načítavam detaily nájmu...
-            </Typography>
-          </Box>
+          </Typography>
+        </Box>
         ) : selectedRental && selectedRental.id ? (
           <Grid container spacing={2}>
             {/* Order Information */}
@@ -1655,8 +1774,8 @@ const AvailabilityCalendar: React.FC = () => {
                       </Typography>
                     </>
                   )}
-                </CardContent>
-              </Card>
+      </CardContent>
+    </Card>
             </Grid>
 
             {/* Customer Information */}
