@@ -70,8 +70,16 @@ import {
 
   PriorityHigh as PriorityIcon,
 } from '@mui/icons-material';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { sk } from 'date-fns/locale';
+
+// Custom isToday function to avoid hot reload issues
+const isToday = (date: Date): boolean => {
+  const today = new Date();
+  return date.getDate() === today.getDate() &&
+         date.getMonth() === today.getMonth() &&
+         date.getFullYear() === today.getFullYear();
+};
 import { API_BASE_URL } from '../../services/api';
 import { Rental, VehicleUnavailability } from '../../types';
 import { useApp } from '../../context/AppContext';
