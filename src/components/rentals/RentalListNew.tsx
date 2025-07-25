@@ -2725,16 +2725,510 @@ export default function RentalList() {
       </Alert>
 
       {/* Content based on view mode */}
-      {viewMode === 'table' ? (
-        <ResponsiveTable
-          columns={columns}
-          data={filteredRentals}
-          selectable={true}
-          selected={selected}
-          onSelectionChange={setSelected}
-          emptyMessage="Žiadne prenájmy"
-          mobileCardRenderer={cardViewMode === 'compact' ? renderRentalCard : undefined}
-        />
+      {isMobile ? (
+        /* MOBILNÝ BOOKING.COM STYLE PRENÁJMY */
+        <Card sx={{ overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: 2 }}>
+          <CardContent sx={{ p: 0 }}>
+            {/* Mobilný sticky header */}
+            <Box sx={{ 
+              display: 'flex',
+              borderBottom: '2px solid #e0e0e0',
+              backgroundColor: '#f8f9fa',
+              position: 'sticky',
+              top: 0,
+              zIndex: 1000
+            }}>
+              <Box sx={{ 
+                minWidth: 140,
+                p: 1.5,
+                borderRight: '2px solid #e0e0e0',
+                backgroundColor: '#ffffff',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1976d2', fontSize: '0.75rem' }}>
+                  🚗 Prenájmy
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                flex: 1,
+                p: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#666', fontSize: '0.75rem' }}>
+                  📅 Dátumy & Detaily
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Mobilné prenájmy rows */}
+            <Box>
+              {filteredRentals.map((rental, index) => {
+                const vehicle = getVehicleByRental(rental);
+                const hasHandover = !!protocols[rental.id]?.handover;
+                const hasReturn = !!protocols[rental.id]?.return;
+                
+                return (
+                                     <Box 
+                     key={rental.id}
+                     sx={{ 
+                       display: 'flex',
+                       borderBottom: index < filteredRentals.length - 1 ? '1px solid #e0e0e0' : 'none',
+                       '&:hover': { backgroundColor: '#f8f9fa' },
+                       minHeight: 80,
+                       cursor: 'pointer'
+                     }}
+                     onClick={() => handleEdit(rental)}
+                   >
+                    {/* Vozidlo info - sticky left */}
+                    <Box sx={{ 
+                      minWidth: 140,
+                      p: 1.5,
+                      borderRight: '2px solid #e0e0e0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      backgroundColor: '#ffffff',
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 10
+                    }}>
+                      <Typography variant="subtitle2" sx={{ 
+                        fontWeight: 600, 
+                        fontSize: '0.8rem',
+                        color: '#1976d2',
+                        lineHeight: 1.2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {vehicle?.brand} {vehicle?.model}
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: '#666',
+                        fontSize: '0.65rem',
+                        mb: 0.5
+                      }}>
+                        {vehicle?.licensePlate}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={rental.status === 'active' ? 'AKTÍVNY' : 
+                               rental.status === 'finished' ? 'DOKONČENÝ' : 
+                               rental.status === 'pending' ? 'ČAKAJÚCI' : 'NOVÝ'}
+                        sx={{
+                          height: 20,
+                          fontSize: '0.6rem',
+                          bgcolor: rental.status === 'active' ? '#4caf50' :
+                                  rental.status === 'finished' ? '#2196f3' :
+                                  rental.status === 'pending' ? '#ff9800' : '#666',
+                          color: 'white',
+                          fontWeight: 700
+                        }}
+                      />
+                    </Box>
+                    
+                    {/* Detaily prenájmu - scrollable right */}
+                    <Box sx={{ 
+                      flex: 1,
+                      p: 1.5,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ 
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                          color: '#333',
+                          mb: 0.5
+                        }}>
+                          👤 {rental.customerName}
+                        </Typography>
+                        <Typography variant="caption" sx={{ 
+                          color: '#666',
+                          fontSize: '0.65rem',
+                          display: 'block',
+                          mb: 0.5
+                        }}>
+                          📅 {format(new Date(rental.startDate), 'd.M.yyyy')} - {format(new Date(rental.endDate), 'd.M.yyyy')}
+                        </Typography>
+                        <Typography variant="caption" sx={{ 
+                          color: '#4caf50',
+                          fontSize: '0.7rem',
+                          fontWeight: 600
+                        }}>
+                          💰 {rental.totalPrice?.toFixed(2)}€
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
+                        <Chip
+                          size="small"
+                          label={hasHandover ? '🔄' : '⏳'}
+                          sx={{
+                            height: 18,
+                            fontSize: '0.6rem',
+                            bgcolor: hasHandover ? '#4caf50' : '#ccc',
+                            color: 'white'
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={hasReturn ? '↩️' : '⏳'}
+                          sx={{
+                            height: 18,
+                            fontSize: '0.6rem',
+                            bgcolor: hasReturn ? '#4caf50' : '#ccc',
+                            color: 'white'
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={rental.paid ? '✅' : '❌'}
+                          sx={{
+                            height: 18,
+                            fontSize: '0.6rem',
+                            bgcolor: rental.paid ? '#4caf50' : '#f44336',
+                            color: 'white'
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          </CardContent>
+        </Card>
+      ) : viewMode === 'table' ? (
+        /* DESKTOP BOOKING.COM STYLE PRENÁJMY */
+        <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
+          <CardContent sx={{ p: 0 }}>
+            {/* Desktop sticky header */}
+            <Box sx={{ 
+              display: 'flex',
+              borderBottom: '3px solid #e0e0e0',
+              backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: '#f8f9fa',
+              position: 'sticky',
+              top: 0,
+              zIndex: 1000
+            }}>
+              <Box sx={{ 
+                minWidth: 200,
+                p: 2,
+                borderRight: '2px solid #e0e0e0',
+                backgroundColor: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.1)'
+              }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2', fontSize: '1rem' }}>
+                  🚗 Vozidlo & Status
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                minWidth: 180,
+                p: 2,
+                borderRight: '1px solid #e0e0e0',
+                textAlign: 'center',
+                backgroundColor: '#f8f9fa'
+              }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}>
+                  👤 Zákazník
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                minWidth: 160,
+                p: 2,
+                borderRight: '1px solid #e0e0e0',
+                textAlign: 'center',
+                backgroundColor: '#f8f9fa'
+              }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}>
+                  📅 Obdobie
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                minWidth: 120,
+                p: 2,
+                borderRight: '1px solid #e0e0e0',
+                textAlign: 'center',
+                backgroundColor: '#f8f9fa'
+              }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}>
+                  💰 Cena
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                minWidth: 140,
+                p: 2,
+                borderRight: '1px solid #e0e0e0',
+                textAlign: 'center',
+                backgroundColor: '#f8f9fa'
+              }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}>
+                  📋 Protokoly
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                flex: 1,
+                p: 2,
+                textAlign: 'center',
+                backgroundColor: '#f8f9fa'
+              }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}>
+                  ⚡ Akcie
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Desktop prenájmy rows */}
+            <Box>
+              {filteredRentals.map((rental, index) => {
+                const vehicle = getVehicleByRental(rental);
+                const hasHandover = !!protocols[rental.id]?.handover;
+                const hasReturn = !!protocols[rental.id]?.return;
+                
+                return (
+                  <Box 
+                    key={rental.id}
+                    sx={{ 
+                      display: 'flex',
+                      borderBottom: index < filteredRentals.length - 1 ? '1px solid #e0e0e0' : 'none',
+                      '&:hover': { 
+                        backgroundColor: '#f8f9fa',
+                        transform: 'scale(1.002)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      },
+                      minHeight: 80,
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => handleEdit(rental)}
+                  >
+                    {/* Vozidlo & Status - sticky left */}
+                    <Box sx={{ 
+                      minWidth: 200,
+                      p: 2,
+                      borderRight: '2px solid #e0e0e0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      backgroundColor: '#ffffff',
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 10,
+                      boxShadow: '2px 0 4px rgba(0,0,0,0.05)'
+                    }}>
+                      <Typography variant="h6" sx={{ 
+                        fontWeight: 700, 
+                        fontSize: '1rem',
+                        color: '#1976d2',
+                        mb: 0.5
+                      }}>
+                        {vehicle?.brand} {vehicle?.model}
+                      </Typography>
+                      <Typography variant="body2" sx={{ 
+                        color: '#666',
+                        fontSize: '0.8rem',
+                        mb: 1
+                      }}>
+                        📋 {vehicle?.licensePlate} • 🏢 {vehicle?.company}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={rental.status === 'active' ? 'AKTÍVNY' : 
+                               rental.status === 'finished' ? 'DOKONČENÝ' : 
+                               rental.status === 'pending' ? 'ČAKAJÚCI' : 'NOVÝ'}
+                        sx={{
+                          height: 24,
+                          fontSize: '0.7rem',
+                          bgcolor: rental.status === 'active' ? '#4caf50' :
+                                  rental.status === 'finished' ? '#2196f3' :
+                                  rental.status === 'pending' ? '#ff9800' : '#666',
+                          color: 'white',
+                          fontWeight: 700,
+                          alignSelf: 'flex-start'
+                        }}
+                      />
+                    </Box>
+                    
+                    {/* Zákazník */}
+                    <Box sx={{ 
+                      minWidth: 180,
+                      p: 2,
+                      borderRight: '1px solid #e0e0e0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center'
+                    }}>
+                      <Typography variant="subtitle1" sx={{ 
+                        fontWeight: 600,
+                        fontSize: '0.9rem',
+                        color: '#333',
+                        mb: 0.5
+                      }}>
+                        {rental.customerName}
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: '#666',
+                        fontSize: '0.75rem'
+                      }}>
+                        📧 {rental.customerEmail || 'N/A'}
+                      </Typography>
+                    </Box>
+
+                    {/* Obdobie */}
+                    <Box sx={{ 
+                      minWidth: 160,
+                      p: 2,
+                      borderRight: '1px solid #e0e0e0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      textAlign: 'center'
+                    }}>
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        color: '#333',
+                        mb: 0.5
+                      }}>
+                        📅 {format(new Date(rental.startDate), 'd.M.yyyy')}
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: '#666',
+                        fontSize: '0.7rem',
+                        mb: 0.5
+                      }}>
+                        ↓
+                      </Typography>
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        color: '#333'
+                      }}>
+                        📅 {format(new Date(rental.endDate), 'd.M.yyyy')}
+                      </Typography>
+                    </Box>
+
+                    {/* Cena */}
+                    <Box sx={{ 
+                      minWidth: 120,
+                      p: 2,
+                      borderRight: '1px solid #e0e0e0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      textAlign: 'center'
+                    }}>
+                      <Typography variant="h6" sx={{ 
+                        fontWeight: 700,
+                        fontSize: '1.1rem',
+                        color: '#4caf50',
+                        mb: 0.5
+                      }}>
+                        {rental.totalPrice?.toFixed(2)}€
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={rental.paid ? 'UHRADENÉ' : 'NEUHRADENÉ'}
+                        sx={{
+                          height: 20,
+                          fontSize: '0.6rem',
+                          bgcolor: rental.paid ? '#4caf50' : '#f44336',
+                          color: 'white',
+                          fontWeight: 700
+                        }}
+                      />
+                    </Box>
+
+                    {/* Protokoly */}
+                    <Box sx={{ 
+                      minWidth: 140,
+                      p: 2,
+                      borderRight: '1px solid #e0e0e0',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: 1
+                    }}>
+                      <Chip
+                        size="small"
+                        label="🔄"
+                        sx={{
+                          height: 24,
+                          width: 32,
+                          fontSize: '0.8rem',
+                          bgcolor: hasHandover ? '#4caf50' : '#ccc',
+                          color: 'white',
+                          fontWeight: 700
+                        }}
+                      />
+                      <Chip
+                        size="small"
+                        label="↩️"
+                        sx={{
+                          height: 24,
+                          width: 32,
+                          fontSize: '0.8rem',
+                          bgcolor: hasReturn ? '#4caf50' : '#ccc',
+                          color: 'white',
+                          fontWeight: 700
+                        }}
+                      />
+                    </Box>
+
+                    {/* Akcie */}
+                    <Box sx={{ 
+                      flex: 1,
+                      p: 2,
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: 1
+                    }}>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(rental);
+                        }}
+                        sx={{ bgcolor: '#2196f3', color: 'white', '&:hover': { bgcolor: '#1976d2' } }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCreateHandover(rental);
+                        }}
+                        sx={{ bgcolor: '#ff9800', color: 'white', '&:hover': { bgcolor: '#f57c00' } }}
+                      >
+                        <HandoverIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCreateReturn(rental);
+                        }}
+                        sx={{ bgcolor: '#4caf50', color: 'white', '&:hover': { bgcolor: '#388e3c' } }}
+                      >
+                        <ReturnIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          </CardContent>
+        </Card>
       ) : (
         <RentalCardView
           rentals={filteredRentals}
