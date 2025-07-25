@@ -1910,9 +1910,9 @@ router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
       console.log('🔍 Stĺpce v users tabuľke:', columns.rows);
       
       // 3. Skontroluj či existujú potrebné stĺpce
-      const hasFirstName = columns.rows.some(col => col.column_name === 'first_name');
-      const hasLastName = columns.rows.some(col => col.column_name === 'last_name');
-      const hasSignatureTemplate = columns.rows.some(col => col.column_name === 'signature_template');
+      const hasFirstName = columns.rows.some((col: any) => col.column_name === 'first_name');
+      const hasLastName = columns.rows.some((col: any) => col.column_name === 'last_name');
+      const hasSignatureTemplate = columns.rows.some((col: any) => col.column_name === 'signature_template');
       
       // 4. Ak chýbajú stĺpce, spusti migráciu
       if (!hasFirstName || !hasLastName || !hasSignatureTemplate) {
