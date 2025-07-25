@@ -62,6 +62,22 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
       console.error('⚠️ Error loading rentals, using empty array:', rentalError);
       monthRentals = []; // Fallback to empty array
     }
+
+    // Get vehicle unavailabilities for the date range
+    let monthUnavailabilities: any[] = [];
+    try {
+      console.log('🔧 Fetching vehicle unavailabilities...');
+      const startDateStr = format(startDate, 'yyyy-MM-dd');
+      const endDateStr = format(endDate, 'yyyy-MM-dd');
+      
+      const allUnavailabilities = await postgresDatabase.getUnavailabilitiesForDateRange(startDateStr, endDateStr);
+      monthUnavailabilities = allUnavailabilities || [];
+      
+      console.log('🔧 Found unavailabilities in period:', monthUnavailabilities.length);
+    } catch (unavailabilityError) {
+      console.error('⚠️ Error loading unavailabilities, using empty array:', unavailabilityError);
+      monthUnavailabilities = []; // Fallback to empty array
+    }
       
       // Generovať kalendárne dáta
       const calendarData = eachDayOfInterval({ start: startDate, end: endDate }).map(date => {
@@ -71,17 +87,47 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
           return rentalStart <= date && rentalEnd >= date;
         });
 
+        // Check unavailabilities for this date
+        const dayUnavailabilities = monthUnavailabilities.filter(unavailability => {
+          const unavailabilityStart = new Date(unavailability.startDate);
+          const unavailabilityEnd = new Date(unavailability.endDate);
+          return unavailabilityStart <= date && unavailabilityEnd >= date;
+        });
+
         const vehicleAvailability = vehicles.map(vehicle => {
           const isRented = dayRentals.some(rental => rental.vehicleId === vehicle.id);
           const rental = dayRentals.find(r => r.vehicleId === vehicle.id);
+          
+          // Check if vehicle has unavailability on this date
+          const unavailability = dayUnavailabilities.find(u => u.vehicleId === vehicle.id);
+          
+          let status = 'available';
+          let additionalData = {};
+          
+          if (isRented) {
+            status = 'rented';
+            additionalData = {
+              rentalId: rental?.id || null,
+              customerName: rental?.customerName || null
+            };
+          } else if (unavailability) {
+            status = unavailability.type; // maintenance, service, repair, blocked, cleaning, inspection
+            additionalData = {
+              unavailabilityId: unavailability.id,
+              unavailabilityReason: unavailability.reason,
+              unavailabilityType: unavailability.type,
+              unavailabilityPriority: unavailability.priority
+            };
+          } else if (vehicle.status === 'maintenance') {
+            status = 'maintenance'; // Fallback to vehicle's own status
+          }
           
           return {
             vehicleId: vehicle.id,
             vehicleName: `${vehicle.brand} ${vehicle.model}`,
             licensePlate: vehicle.licensePlate,
-            status: vehicle.status === 'maintenance' ? 'maintenance' : (isRented ? 'rented' : 'available'),
-            rentalId: rental?.id || null,
-            customerName: rental?.customerName || null
+            status: status,
+            ...additionalData
           };
         });
 
@@ -97,6 +143,7 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
           calendar: calendarData,
           vehicles: vehicles,
           rentals: monthRentals,
+          unavailabilities: monthUnavailabilities,
           period: {
             startDate: format(startDate, 'yyyy-MM-dd'),
             endDate: format(endDate, 'yyyy-MM-dd'),

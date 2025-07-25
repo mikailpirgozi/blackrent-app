@@ -31,6 +31,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Autocomplete,
 } from '@mui/material';
 // Using HTML5 date inputs instead of MUI date pickers for simplicity
 import {
@@ -401,6 +402,7 @@ interface MaintenanceFormData {
         console.log('✅ Calendar data received:', data.data);
         setCalendarData(data.data.calendar || []);
         setVehicles(data.data.vehicles || []);
+        setUnavailabilities(data.data.unavailabilities || []);
       } else {
         setError(data.error || 'Chyba pri načítaní dát');
       }
@@ -798,6 +800,28 @@ interface MaintenanceFormData {
                     variant={showFilters ? "contained" : "outlined"}
                   >
                     Rozšírené filtre
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setMaintenanceFormData({
+                        vehicleId: '',
+                        startDate: format(new Date(), 'yyyy-MM-dd'),
+                        endDate: format(new Date(), 'yyyy-MM-dd'),
+                        reason: '',
+                        type: 'maintenance',
+                        notes: '',
+                        priority: 2,
+                        recurring: false,
+                      });
+                      setEditingMaintenance(null);
+                      setMaintenanceDialogOpen(true);
+                    }}
+                    startIcon={<AddIcon />}
+                    variant="contained"
+                    color="primary"
+                  >
+                    Vytvoriť nedostupnosť
                   </Button>
                 </Box>
               </Grid>
@@ -1254,13 +1278,38 @@ interface MaintenanceFormData {
 
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12}>
-            <TextField
-              label="Vozidlo"
-              value={state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.brand + ' ' + state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.model + ' (' + state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.licensePlate + ')' || 'Neznáme vozidlo'}
-              fullWidth
-              disabled
-              variant="outlined"
-            />
+            {maintenanceFormData.vehicleId && clickedVehicleId ? (
+              <TextField
+                label="Vozidlo"
+                value={state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.brand + ' ' + state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.model + ' (' + state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.licensePlate + ')' || 'Neznáme vozidlo'}
+                fullWidth
+                disabled
+                variant="outlined"
+              />
+            ) : (
+              <Autocomplete
+                options={state.vehicles}
+                getOptionLabel={(vehicle) => `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
+                value={state.vehicles.find(v => v.id === maintenanceFormData.vehicleId) || null}
+                onChange={(event, newValue) => {
+                  setMaintenanceFormData(prev => ({
+                    ...prev,
+                    vehicleId: newValue?.id || ''
+                  }));
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Vyberte vozidlo *"
+                    variant="outlined"
+                    required
+                    error={!maintenanceFormData.vehicleId}
+                    helperText={!maintenanceFormData.vehicleId ? 'Vyberte vozidlo' : ''}
+                  />
+                )}
+                fullWidth
+              />
+            )}
           </Grid>
 
           <Grid item xs={12} md={6}>
