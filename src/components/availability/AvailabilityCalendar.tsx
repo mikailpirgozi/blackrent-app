@@ -28,6 +28,10 @@ import {
   Tab,
   Divider,
   Dialog,
+  useTheme,
+  useMediaQuery,
+  Stack,
+  Fab,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -103,6 +107,11 @@ interface MaintenanceFormData {
 
   const AvailabilityCalendar: React.FC = () => {
   const { state } = useApp();
+  
+  // MOBILNÁ RESPONSIBILITA
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [calendarData, setCalendarData] = useState<CalendarDay[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [unavailabilities, setUnavailabilities] = useState<VehicleUnavailability[]>([]);
@@ -680,15 +689,139 @@ interface MaintenanceFormData {
     );
   }
 
+  // MOBILNÝ KALENDÁRNY VIEW KOMPONENT
+  const MobileCalendarView = () => (
+    <Box sx={{ p: 1 }}>
+      {/* Mobilný header */}
+      <Box sx={{ mb: 2, textAlign: 'center' }}>
+        <Typography variant="h5" gutterBottom>
+          📅 Dostupnosť vozidiel
+        </Typography>
+        
+        {/* Mobilná navigácia */}
+        <Stack direction="row" spacing={1} justifyContent="center" alignItems="center" sx={{ mb: 2 }}>
+          <IconButton onClick={handlePrevMonth} size="small">
+            <PrevIcon />
+          </IconButton>
+          <Typography variant="h6" sx={{ minWidth: '200px', textAlign: 'center' }}>
+            {format(currentDate, 'MMMM yyyy')}
+          </Typography>
+          <IconButton onClick={handleNextMonth} size="small">
+            <NextIcon />
+          </IconButton>
+        </Stack>
+        
+        <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap">
+          <Button size="small" onClick={handleToday} variant="outlined">
+            Dnes
+          </Button>
+          <Button size="small" onClick={handleRefresh} variant="outlined">
+            <RefreshIcon />
+          </Button>
+        </Stack>
+      </Box>
+
+      {/* Mobilný search */}
+      <TextField
+        fullWidth
+        size="small"
+        label="🔍 Hľadať vozidlo"
+        placeholder="BMW, X5, BA123AB..."
+        value={searchQuery}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (value !== searchQuery) {
+            setSearchQuery(value);
+          }
+        }}
+        sx={{ mb: 2 }}
+      />
+
+      {/* Mobilné vozidlá - zoznam namiesto tabuľky */}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Stack spacing={1}>
+          {filteredVehicles.map(vehicle => {
+            const today = format(new Date(), 'yyyy-MM-dd');
+            const todayData = statusFilteredCalendarData.find(day => day.date === today);
+            const vehicleStatus = todayData?.vehicles.find(v => v.vehicleId === vehicle.id);
+            
+            return (
+              <Card 
+                key={vehicle.id} 
+                sx={{ 
+                  border: '1px solid',
+                  borderColor: vehicleStatus ? getStatusColor(vehicleStatus.status) : 'grey.300'
+                }}
+              >
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        {vehicle.brand} {vehicle.model}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {vehicle.licensePlate}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={getStatusText(vehicleStatus?.status || 'available')}
+                      size="small"
+                      sx={{
+                        bgcolor: getStatusColor(vehicleStatus?.status || 'available'),
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }}
+                      onClick={() => vehicleStatus && handleStatusClick(vehicleStatus, today)}
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Stack>
+      )}
+
+      {/* Floating Action Button pre pridanie nedostupnosti */}
+      <Fab
+        color="primary"
+        sx={{ position: 'fixed', bottom: 16, right: 16 }}
+        onClick={() => {
+          setMaintenanceFormData({
+            vehicleId: '',
+            startDate: format(new Date(), 'yyyy-MM-dd'),
+            endDate: format(new Date(), 'yyyy-MM-dd'),
+            reason: '',
+            type: 'maintenance',
+            notes: '',
+            priority: 2,
+            recurring: false,
+          });
+          setEditingMaintenance(null);
+          setMaintenanceDialogOpen(true);
+        }}
+      >
+        <AddIcon />
+      </Fab>
+    </Box>
+  );
+
   return (
     <>
-    <Card>
-      <CardContent>
-        <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} gap={2} mb={2}>
-          <Typography variant="h6" display="flex" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }}>
-            <CalendarIcon sx={{ mr: 1 }} />
-            Prehľad Dostupnosti
-          </Typography>
+    {/* Mobilný vs Desktop view */}
+    {isMobile ? (
+      <MobileCalendarView />
+    ) : (
+      <Card>
+        <CardContent>
+          <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} gap={2} mb={2}>
+            <Typography variant="h6" display="flex" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }}>
+              <CalendarIcon sx={{ mr: 1 }} />
+              Prehľad Dostupnosti
+            </Typography>
           
           <IconButton onClick={handleRefresh} size="small">
             <RefreshIcon />
@@ -1141,6 +1274,7 @@ interface MaintenanceFormData {
         </Box>
       </CardContent>
     </Card>
+    )}
 
     {/* Rental Details Dialog */}
     <Dialog open={rentalDetailsOpen} onClose={handleCloseRentalDetails} maxWidth="sm" fullWidth>
