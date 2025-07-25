@@ -899,18 +899,13 @@ export class PostgresDatabase {
     try {
       console.log('🔍 Spúšťam getRentals() query...');
       
+      // SIMPLIFIED: Basic query without JOIN to avoid crashes
       const result = await client.query(`
-        SELECT r.id, r.customer_id, r.vehicle_id, r.start_date, r.end_date, 
-               r.total_price, r.commission, r.payment_method, r.discount, 
-               r.custom_commission, r.extra_km_charge, r.paid, r.status, r.handover_place, 
-               r.confirmed, r.payments, r.history, r.order_number, r.customer_name, r.created_at,
-               r.deposit, r.allowed_kilometers, r.extra_kilometer_rate, r.return_conditions,
-               r.fuel_level, r.odometer, r.return_fuel_level, r.return_odometer,
-               r.actual_kilometers, r.fuel_refill_cost, r.handover_protocol_id, r.return_protocol_id,
-               v.brand, v.model, v.license_plate, v.company as company_name
-        FROM rentals r 
-        LEFT JOIN vehicles v ON r.vehicle_id = v.id
-        ORDER BY r.created_at DESC
+        SELECT id, customer_id, vehicle_id, start_date, end_date, 
+               total_price, commission, payment_method, paid, status, 
+               customer_name, created_at
+        FROM rentals 
+        ORDER BY created_at DESC
       `);
       
       console.log('📊 getRentals() - Nájdené záznamy:', result.rows.length);
