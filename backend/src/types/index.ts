@@ -100,6 +100,11 @@ export interface Rental {
   // Protokoly
   handoverProtocolId?: string;
   returnProtocolId?: string;
+  // Dáta z emailu a lokácie
+  pickupLocation?: string;
+  returnLocation?: string;
+  vehicleCode?: string;
+  vehicleName?: string;
 }
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';
