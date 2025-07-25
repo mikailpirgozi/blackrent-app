@@ -452,8 +452,8 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
 
     onParseSuccess(rentalData, customer);
     
-    // Upozornenie ak sa nenašlo vozidlo
-    if (parsedData.vehicleCode && !vehicleFound) {
+    // Upozornenie ak sa nenašlo vozidlo (ani podľa ŠPZ ani podľa názvu)
+    if (parsedData.vehicleCode && !selectedVehicle) {
       alert(`Upozornenie: Vozidlo so ŠPZ "${parsedData.vehicleCode}" sa nenašlo v databáze. Prosím vyberte vozidlo manuálne.`);
     }
     
