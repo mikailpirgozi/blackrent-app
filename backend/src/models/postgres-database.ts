@@ -899,16 +899,11 @@ export class PostgresDatabase {
     try {
       console.log('🔍 Spúšťam getRentals() query...');
       
-      // SAFE: Basic query first, then add vehicle data separately
+      // MINIMAL: Back to original working query
       const result = await client.query(`
         SELECT id, customer_id, vehicle_id, start_date, end_date, 
                total_price, commission, payment_method, paid, status, 
-               customer_name, created_at, handover_place, confirmed,
-               order_number, deposit, allowed_kilometers, extra_kilometer_rate,
-               return_conditions, fuel_level, odometer, return_fuel_level,
-               return_odometer, actual_kilometers, fuel_refill_cost,
-               handover_protocol_id, return_protocol_id, pickup_location,
-               discount, custom_commission, extra_km_charge, payments, history
+               customer_name, created_at
         FROM rentals 
         ORDER BY created_at DESC
       `);
@@ -949,35 +944,9 @@ export class PostgresDatabase {
             totalPrice: parseFloat(row.total_price) || 0,
             commission: parseFloat(row.commission) || 0,
             paymentMethod: row.payment_method || 'cash',
-            discount: safeJsonParse(row.discount),
-            customCommission: safeJsonParse(row.custom_commission),
-            extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
             paid: Boolean(row.paid),
             status: row.status || 'active',
-            handoverPlace: row.handover_place,
-            confirmed: Boolean(row.confirmed),
-            payments: safeJsonParse(row.payments),
-            history: safeJsonParse(row.history),
-            orderNumber: row.order_number,
-            createdAt: row.created_at ? new Date(row.created_at) : new Date(),
-            // Rozšírené polia
-            deposit: row.deposit ? parseFloat(row.deposit) : undefined,
-            allowedKilometers: row.allowed_kilometers || undefined,
-            extraKilometerRate: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
-            returnConditions: row.return_conditions || undefined,
-            fuelLevel: row.fuel_level || undefined,
-            odometer: row.odometer || undefined,
-            returnFuelLevel: row.return_fuel_level || undefined,
-            returnOdometer: row.return_odometer || undefined,
-            actualKilometers: row.actual_kilometers || undefined,
-            fuelRefillCost: row.fuel_refill_cost ? parseFloat(row.fuel_refill_cost) : undefined,
-            // Protokoly
-            handoverProtocolId: row.handover_protocol_id || undefined,
-            returnProtocolId: row.return_protocol_id || undefined,
-            // Vehicle objekt sa načíta separátne vo frontend cez vehicleId
-            vehicle: undefined,
-            // Dodatočné polia pre protokoly
-            pickupLocation: row.pickup_location || row.handover_place
+            createdAt: row.created_at ? new Date(row.created_at) : new Date()
           };
           
           return rental;
