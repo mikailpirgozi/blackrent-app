@@ -35,8 +35,8 @@ import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Pending as PendingIcon,
-  KeyRounded as HandoverIcon,
-  AssignmentTurnedIn as ReturnIcon,
+  DirectionsCar as HandoverIcon,
+  CarRental as ReturnIcon,
   PictureAsPdf as PDFIcon,
   PhotoLibrary as GalleryIcon,
   Search as SearchIcon,
@@ -2910,8 +2910,8 @@ export default function RentalList() {
                       }}>
                         <Chip
                           size="small"
-                          label={hasHandover ? '🔑' : '⏳'}
-                          title={hasHandover ? 'Odovzdávací protokol vytvorený' : 'Čaká na odovzdávací protokol'}
+                          label={hasHandover ? '🚗→' : '⏳'}
+                          title={hasHandover ? 'Auto odovzdané zákazníkovi' : 'Čaká na odovzdanie auta'}
                           sx={{
                             height: { xs: 16, sm: 20 },
                             fontSize: { xs: '0.55rem', sm: '0.65rem' },
@@ -2924,8 +2924,8 @@ export default function RentalList() {
                         />
                         <Chip
                           size="small"
-                          label={hasReturn ? '📋' : '⏳'}
-                          title={hasReturn ? 'Preberací protokol vytvorený' : 'Čaká na preberací protokol'}
+                          label={hasReturn ? '←🚗' : '⏳'}
+                          title={hasReturn ? 'Auto vrátené od zákazníka' : 'Čaká na vrátenie auta'}
                           sx={{
                             height: { xs: 16, sm: 20 },
                             fontSize: { xs: '0.55rem', sm: '0.65rem' },
@@ -3250,12 +3250,12 @@ export default function RentalList() {
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                         <Chip
                           size="small"
-                          label="🔑"
-                          title="Odovzdávací protokol"
+                          label="🚗→"
+                          title="Odovzdanie auta zákazníkovi"
                           sx={{
                             height: 28,
-                            width: 36,
-                            fontSize: '0.9rem',
+                            width: 42,
+                            fontSize: '0.8rem',
                             bgcolor: hasHandover ? '#4caf50' : '#ccc',
                             color: 'white',
                             fontWeight: 700,
@@ -3268,12 +3268,12 @@ export default function RentalList() {
                         />
                         <Chip
                           size="small"
-                          label="📋"
-                          title="Preberací protokol"
+                          label="←🚗"
+                          title="Vrátenie auta od zákazníka"
                           sx={{
                             height: 28,
-                            width: 36,
-                            fontSize: '0.9rem',
+                            width: 42,
+                            fontSize: '0.8rem',
                             bgcolor: hasReturn ? '#4caf50' : '#ccc',
                             color: 'white',
                             fontWeight: 700,
@@ -3291,8 +3291,8 @@ export default function RentalList() {
                         textAlign: 'center'
                       }}>
                         {hasHandover && hasReturn ? '✅ Kompletné' : 
-                         hasHandover ? '🔑 Odovzdané' : 
-                         hasReturn ? '📋 Prebrané' : '⏳ Čaká'}
+                         hasHandover ? '🚗→ Odovzdané' : 
+                         hasReturn ? '←🚗 Vrátené' : '⏳ Čaká'}
                       </Typography>
                     </Box>
 
