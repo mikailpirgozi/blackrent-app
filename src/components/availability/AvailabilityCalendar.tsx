@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -198,7 +198,7 @@ interface MaintenanceFormData {
   };
 
   // Maintenance management functions
-  const fetchUnavailabilities = async () => {
+  const fetchUnavailabilities = useCallback(async () => {
     try {
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       const response = await fetch(`${API_BASE_URL}/vehicle-unavailability`, {
@@ -217,9 +217,9 @@ interface MaintenanceFormData {
     } catch (err) {
       console.error('Error fetching unavailabilities:', err);
     }
-  };
+  }, []);
 
-  const handleCellClick = (date: string, vehicleId: string, currentStatus: string) => {
+  const handleCellClick = useCallback((date: string, vehicleId: string, currentStatus: string) => {
     // Only allow adding maintenance to available vehicles
     if (currentStatus === 'available') {
       setClickedDate(date);
@@ -237,7 +237,7 @@ interface MaintenanceFormData {
       setEditingMaintenance(null);
       setMaintenanceDialogOpen(true);
     }
-  };
+  }, []);
 
   const handleMaintenanceEdit = (unavailability: VehicleUnavailability) => {
     setEditingMaintenance(unavailability);
@@ -345,7 +345,7 @@ interface MaintenanceFormData {
     }
   };
 
-  const fetchCalendarData = async (forceMonth = false) => {
+  const fetchCalendarData = useCallback(async (forceMonth = false) => {
     try {
       setLoading(true);
       setError(null);
@@ -381,9 +381,9 @@ interface MaintenanceFormData {
       // Custom fetch pre availability API s timeout
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
-      // Vytvoríme AbortController pre timeout (3 sekundy)
+      // Vytvoríme AbortController pre timeout (5 sekúnd - zvýšené pre lepší výkon)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       
       const response = await fetch(apiUrl, {
         headers: {
@@ -435,7 +435,7 @@ interface MaintenanceFormData {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentDate, viewMode, fromDate, toDate]);
 
   useEffect(() => {
     if (viewMode === 'navigation') {
@@ -448,26 +448,26 @@ interface MaintenanceFormData {
       // Range mode - fetch when dates change
       fetchCalendarData();
     }
-  }, [currentDate, viewMode, fromDate, toDate]);
+  }, [fetchCalendarData]);
 
   // Load unavailabilities on component mount
   useEffect(() => {
     fetchUnavailabilities();
+  }, [fetchUnavailabilities]);
+
+  const handlePrevMonth = useCallback(() => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   }, []);
 
-  const handlePrevMonth = () => {
-    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  };
-
-  const handleNextMonth = () => {
+  const handleNextMonth = useCallback(() => {
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  };
+  }, []);
 
-  const handleToday = () => {
+  const handleToday = useCallback(() => {
     setCurrentDate(new Date());
-  };
+  }, []);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     if (viewMode === 'navigation') {
       const isCurrentMonth = 
         currentDate.getFullYear() === new Date().getFullYear() && 
@@ -477,75 +477,88 @@ interface MaintenanceFormData {
     } else {
       fetchCalendarData();
     }
-  };
+  }, [viewMode, currentDate, fetchCalendarData]);
 
-  const handleViewModeChange = (event: React.SyntheticEvent, newValue: 'navigation' | 'range') => {
+  const handleViewModeChange = useCallback((event: React.SyntheticEvent, newValue: 'navigation' | 'range') => {
     setViewMode(newValue);
-  };
+  }, []);
 
-  const handleQuickRange = (days: number) => {
+  const handleQuickRange = useCallback((days: number) => {
     const today = new Date();
     setFromDate(today);
     setToDate(new Date(today.getTime() + days * 24 * 60 * 60 * 1000));
-  };
+  }, []);
 
-  // Filter functions
-  const handleResetFilters = () => {
+  // Filter functions - memoized
+  const handleResetFilters = useCallback(() => {
     setSearchQuery('');
     setStatusFilter('all');
     setBrandFilter('all');
     setCompanyFilter('all');
-  };
+  }, []);
 
-  const toggleFilters = () => {
+  const toggleFilters = useCallback(() => {
     setShowFilters(!showFilters);
-  };
+  }, [showFilters]);
 
-  // Get unique values for filter dropdowns
-  const uniqueBrands = Array.from(new Set(vehicles.map(v => v.brand).filter(Boolean))).sort();
-  const uniqueCompanies = Array.from(new Set(vehicles.map(v => v.company).filter(Boolean))).sort();
+  // Get unique values for filter dropdowns - memoized
+  const uniqueBrands = useMemo(() => 
+    Array.from(new Set(vehicles.map(v => v.brand).filter(Boolean))).sort(), 
+    [vehicles]
+  );
+  
+  const uniqueCompanies = useMemo(() => 
+    Array.from(new Set(vehicles.map(v => v.company).filter(Boolean))).sort(), 
+    [vehicles]
+  );
 
-  // Filter vehicles based on current filters
-  const filteredVehicles = vehicles.filter(vehicle => {
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      const matches = [
-        vehicle.brand?.toLowerCase(),
-        vehicle.model?.toLowerCase(), 
-        vehicle.licensePlate?.toLowerCase(),
-        `${vehicle.brand} ${vehicle.model}`.toLowerCase()
-      ].some(field => field?.includes(query));
-      
-      if (!matches) return false;
-    }
+  // Filter vehicles based on current filters - memoized
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter(vehicle => {
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matches = [
+          vehicle.brand?.toLowerCase(),
+          vehicle.model?.toLowerCase(), 
+          vehicle.licensePlate?.toLowerCase(),
+          `${vehicle.brand} ${vehicle.model}`.toLowerCase()
+        ].some(field => field?.includes(query));
+        
+        if (!matches) return false;
+      }
 
-    // Brand filter
-    if (brandFilter !== 'all' && vehicle.brand !== brandFilter) {
-      return false;
-    }
+      // Brand filter
+      if (brandFilter !== 'all' && vehicle.brand !== brandFilter) {
+        return false;
+      }
 
-    // Company filter
-    if (companyFilter !== 'all' && vehicle.company !== companyFilter) {
-      return false;
-    }
+      // Company filter
+      if (companyFilter !== 'all' && vehicle.company !== companyFilter) {
+        return false;
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [vehicles, searchQuery, brandFilter, companyFilter]);
 
-  // Filter calendar data to show only filtered vehicles
-  const filteredCalendarData = calendarData.map(dayData => ({
-    ...dayData,
-    vehicles: dayData.vehicles.filter(v => filteredVehicles.some(fv => fv.id === v.vehicleId))
-  }));
+  // Filter calendar data to show only filtered vehicles - memoized
+  const filteredCalendarData = useMemo(() => {
+    return calendarData.map(dayData => ({
+      ...dayData,
+      vehicles: dayData.vehicles.filter(v => filteredVehicles.some(fv => fv.id === v.vehicleId))
+    }));
+  }, [calendarData, filteredVehicles]);
 
-  // Additional status filtering for the status filter
-  const statusFilteredCalendarData = statusFilter === 'all' 
-    ? filteredCalendarData
-    : filteredCalendarData.map(dayData => ({
-        ...dayData,
-        vehicles: dayData.vehicles.filter(v => v.status === statusFilter)
-      }));
+  // Additional status filtering for the status filter - memoized
+  const statusFilteredCalendarData = useMemo(() => {
+    return statusFilter === 'all' 
+      ? filteredCalendarData
+      : filteredCalendarData.map(dayData => ({
+          ...dayData,
+          vehicles: dayData.vehicles.filter(v => v.status === statusFilter)
+        }));
+  }, [filteredCalendarData, statusFilter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
