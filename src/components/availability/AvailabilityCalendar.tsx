@@ -17,6 +17,13 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+  Collapse,
 } from '@mui/material';
 import {
   CalendarToday as CalendarIcon,
@@ -27,6 +34,11 @@ import {
   Refresh as RefreshIcon,
   ChevronLeft as PrevIcon,
   ChevronRight as NextIcon,
+  Search as SearchIcon,
+  FilterList as FilterIcon,
+  Clear as ClearIcon,
+  ExpandLess as CollapseIcon,
+  ExpandMore as ExpandIcon,
 } from '@mui/icons-material';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -52,6 +64,13 @@ const AvailabilityCalendar: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'rented' | 'maintenance'>('all');
+  const [brandFilter, setBrandFilter] = useState('all');
+  const [companyFilter, setCompanyFilter] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
 
   const fetchCalendarData = async () => {
     try {
@@ -137,6 +156,64 @@ const AvailabilityCalendar: React.FC = () => {
   const handleToday = () => {
     setCurrentDate(new Date());
   };
+
+  // Filter functions
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setBrandFilter('all');
+    setCompanyFilter('all');
+  };
+
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
+  };
+
+  // Get unique values for filter dropdowns
+  const uniqueBrands = Array.from(new Set(vehicles.map(v => v.brand).filter(Boolean))).sort();
+  const uniqueCompanies = Array.from(new Set(vehicles.map(v => v.company).filter(Boolean))).sort();
+
+  // Filter vehicles based on current filters
+  const filteredVehicles = vehicles.filter(vehicle => {
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matches = [
+        vehicle.brand?.toLowerCase(),
+        vehicle.model?.toLowerCase(), 
+        vehicle.licensePlate?.toLowerCase(),
+        `${vehicle.brand} ${vehicle.model}`.toLowerCase()
+      ].some(field => field?.includes(query));
+      
+      if (!matches) return false;
+    }
+
+    // Brand filter
+    if (brandFilter !== 'all' && vehicle.brand !== brandFilter) {
+      return false;
+    }
+
+    // Company filter
+    if (companyFilter !== 'all' && vehicle.company !== companyFilter) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Filter calendar data to show only filtered vehicles
+  const filteredCalendarData = calendarData.map(dayData => ({
+    ...dayData,
+    vehicles: dayData.vehicles.filter(v => filteredVehicles.some(fv => fv.id === v.vehicleId))
+  }));
+
+  // Additional status filtering for the status filter
+  const statusFilteredCalendarData = statusFilter === 'all' 
+    ? filteredCalendarData
+    : filteredCalendarData.map(dayData => ({
+        ...dayData,
+        vehicles: dayData.vehicles.filter(v => v.status === statusFilter)
+      }));
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -227,72 +304,218 @@ const AvailabilityCalendar: React.FC = () => {
           </Alert>
         )}
 
+        {/* Filter Panel */}
+        <Card sx={{ mb: 2 }}>
+          <CardContent sx={{ pb: 1 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={showFilters ? 2 : 0}>
+              <Typography variant="subtitle1" display="flex" alignItems="center">
+                <FilterIcon sx={{ mr: 1 }} />
+                Filtre vozidiel
+              </Typography>
+              <Box display="flex" alignItems="center" gap={1}>
+                {(searchQuery || statusFilter !== 'all' || brandFilter !== 'all' || companyFilter !== 'all') && (
+                  <Button
+                    size="small"
+                    startIcon={<ClearIcon />}
+                    onClick={handleResetFilters}
+                    color="secondary"
+                  >
+                    Vyčistiť
+                  </Button>
+                )}
+                <Button
+                  size="small"
+                  onClick={toggleFilters}
+                  endIcon={showFilters ? <CollapseIcon /> : <ExpandIcon />}
+                >
+                  {showFilters ? 'Skryť' : 'Zobraziť'}
+                </Button>
+              </Box>
+            </Box>
+
+            <Collapse in={showFilters}>
+              <Grid container spacing={2}>
+                {/* Search */}
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Vyhľadať vozidlo"
+                    placeholder="BMW, X5, BA123AB..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    InputProps={{
+                      startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />
+                    }}
+                  />
+                </Grid>
+
+                {/* Status Filter */}
+                <Grid item xs={12} md={2}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Stav</InputLabel>
+                    <Select
+                      value={statusFilter}
+                      label="Stav"
+                      onChange={(e) => setStatusFilter(e.target.value as any)}
+                    >
+                      <MenuItem value="all">Všetky</MenuItem>
+                      <MenuItem value="available">Dostupné</MenuItem>
+                      <MenuItem value="rented">Obsadené</MenuItem>
+                      <MenuItem value="maintenance">Údržba</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* Brand Filter */}
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Značka</InputLabel>
+                    <Select
+                      value={brandFilter}
+                      label="Značka"
+                      onChange={(e) => setBrandFilter(e.target.value)}
+                    >
+                      <MenuItem value="all">Všetky značky</MenuItem>
+                      {uniqueBrands.map(brand => (
+                        <MenuItem key={brand} value={brand}>
+                          {brand}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* Company Filter */}
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Firma</InputLabel>
+                    <Select
+                      value={companyFilter}
+                      label="Firma"
+                      onChange={(e) => setCompanyFilter(e.target.value)}
+                    >
+                      <MenuItem value="all">Všetky firmy</MenuItem>
+                      {uniqueCompanies.map(company => (
+                        <MenuItem key={company} value={company}>
+                          {company}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </Collapse>
+          </CardContent>
+        </Card>
+
         <TableContainer component={Paper}>
           <Table size="small">
             <TableHead>
               <TableRow>
                 <TableCell><strong>Dátum</strong></TableCell>
-                {vehicles.map(vehicle => (
-                  <TableCell key={vehicle.id} align="center">
-                    <Tooltip title={vehicle.licensePlate}>
-                      <Box sx={{ minWidth: 80 }}>
-                        <Typography variant="caption" display="block">
-                          <strong>{vehicle.brand} {vehicle.model}</strong>
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          {vehicle.licensePlate}
-                        </Typography>
-                      </Box>
-                    </Tooltip>
+                {filteredVehicles.length > 0 ? (
+                  filteredVehicles.map(vehicle => (
+                    <TableCell key={vehicle.id} align="center">
+                      <Tooltip title={vehicle.licensePlate}>
+                        <Box sx={{ minWidth: 80 }}>
+                          <Typography variant="caption" display="block">
+                            <strong>{vehicle.brand} {vehicle.model}</strong>
+                          </Typography>
+                          <Typography variant="caption" color="textSecondary">
+                            {vehicle.licensePlate}
+                          </Typography>
+                        </Box>
+                      </Tooltip>
+                    </TableCell>
+                  ))
+                ) : (
+                  <TableCell align="center">
+                    <Typography variant="body2" color="textSecondary">
+                      Žiadne vozidlá nevyhovujú filtrom
+                    </Typography>
                   </TableCell>
-                ))}
+                )}
               </TableRow>
             </TableHead>
             <TableBody>
-              {calendarData.map(dayData => {
-                const day = new Date(dayData.date);
-                return (
-                  <TableRow key={dayData.date}>
-                    <TableCell sx={{ minWidth: 120 }}>
-                      <Typography variant="body2">
-                        <strong>{format(day, 'dd.MM.yyyy', { locale: sk })}</strong>
+              {filteredVehicles.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
+                    <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
+                      <SearchIcon color="disabled" sx={{ fontSize: 48 }} />
+                      <Typography variant="h6" color="textSecondary">
+                        Žiadne vozidlá nevyhovujú filtrom
                       </Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        {format(day, 'EEEE', { locale: sk })}
+                      <Typography variant="body2" color="textSecondary">
+                        Skúste upraviť filtre alebo vyčistiť vyhľadávanie
                       </Typography>
-                    </TableCell>
-                    {vehicles.map(vehicle => {
-                      const vehicleStatus = dayData.vehicles.find(v => v.vehicleId === vehicle.id);
-                      return (
-                        <TableCell key={vehicle.id} align="center" sx={{ minWidth: 100 }}>
-                          {vehicleStatus && (
-                            <Tooltip title={
-                              `${vehicleStatus.vehicleName} - ${getStatusText(vehicleStatus.status)}${vehicleStatus.customerName ? ` (${vehicleStatus.customerName})` : ''}`
-                            }>
-                              <Chip
-                                icon={getStatusIcon(vehicleStatus.status)}
-                                label={getStatusText(vehicleStatus.status)}
-                                color={getStatusColor(vehicleStatus.status) as any}
-                                size="small"
-                                variant="outlined"
-                                sx={{ fontSize: '0.7rem', height: 24 }}
-                              />
-                            </Tooltip>
-                          )}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-              })}
+                      <Button size="small" onClick={handleResetFilters} sx={{ mt: 1 }}>
+                        Vyčistiť všetky filtre
+                      </Button>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                statusFilteredCalendarData.map(dayData => {
+                  const day = new Date(dayData.date);
+                  return (
+                    <TableRow key={dayData.date}>
+                      <TableCell sx={{ minWidth: 120 }}>
+                        <Typography variant="body2">
+                          <strong>{format(day, 'dd.MM.yyyy', { locale: sk })}</strong>
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          {format(day, 'EEEE', { locale: sk })}
+                        </Typography>
+                      </TableCell>
+                      {filteredVehicles.map(vehicle => {
+                        const vehicleStatus = dayData.vehicles.find(v => v.vehicleId === vehicle.id);
+                        return (
+                          <TableCell key={vehicle.id} align="center" sx={{ minWidth: 100 }}>
+                            {vehicleStatus && (
+                              <Tooltip title={
+                                `${vehicleStatus.vehicleName} - ${getStatusText(vehicleStatus.status)}${vehicleStatus.customerName ? ` (${vehicleStatus.customerName})` : ''}`
+                              }>
+                                <Chip
+                                  icon={getStatusIcon(vehicleStatus.status)}
+                                  label={getStatusText(vehicleStatus.status)}
+                                  color={getStatusColor(vehicleStatus.status) as any}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ fontSize: '0.7rem', height: 24 }}
+                                />
+                              </Tooltip>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </TableContainer>
 
-        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="caption" color="textSecondary">
-            Celkovo: {vehicles.length} vozidiel, {calendarData.length} dní
-          </Typography>
+        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+          <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
+            <Typography variant="caption" color="textSecondary">
+              Zobrazuje sa: {filteredVehicles.length} z {vehicles.length} vozidiel
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              •  {calendarData.length} dní
+            </Typography>
+            {(searchQuery || statusFilter !== 'all' || brandFilter !== 'all' || companyFilter !== 'all') && (
+              <Chip 
+                label="Filtrované" 
+                size="small" 
+                color="primary" 
+                variant="outlined"
+                icon={<FilterIcon />}
+              />
+            )}
+          </Box>
           <Typography variant="caption" color="textSecondary">
             💡 Tip: Horizontálne scrollujte pre zobrazenie všetkých vozidiel
           </Typography>
