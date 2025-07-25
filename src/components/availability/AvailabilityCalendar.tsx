@@ -25,6 +25,8 @@ import {
   Cancel as RentedIcon,
   Build as MaintenanceIcon,
   Refresh as RefreshIcon,
+  ChevronLeft as PrevIcon,
+  ChevronRight as NextIcon,
 } from '@mui/icons-material';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -100,18 +102,18 @@ const AvailabilityCalendar: React.FC = () => {
       ];
       setVehicles(mockVehicles);
       
-      // Mock kalendárne dáta
+      // Mock kalendárne dáta pre celý mesiac
       const mockCalendar = eachDayOfInterval({
         start: startOfMonth(currentDate),
         end: endOfMonth(currentDate)
-      }).slice(0, 7).map(date => ({
+      }).map(date => ({
         date: format(date, 'yyyy-MM-dd'),
         vehicles: mockVehicles.map(vehicle => ({
           vehicleId: vehicle.id,
           vehicleName: `${vehicle.brand} ${vehicle.model}`,
           licensePlate: vehicle.licensePlate,
-          status: Math.random() > 0.5 ? 'available' : 'rented' as 'available' | 'rented',
-          customerName: Math.random() > 0.5 ? 'Test Zákazník' : undefined
+          status: Math.random() > 0.7 ? 'available' : (Math.random() > 0.5 ? 'rented' : 'maintenance') as 'available' | 'rented' | 'maintenance',
+          customerName: Math.random() > 0.6 ? `Zákazník ${Math.floor(Math.random() * 100)}` : undefined
         }))
       }));
       setCalendarData(mockCalendar);
@@ -123,6 +125,18 @@ const AvailabilityCalendar: React.FC = () => {
   useEffect(() => {
     fetchCalendarData();
   }, [currentDate]);
+
+  const handlePrevMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -173,11 +187,38 @@ const AvailabilityCalendar: React.FC = () => {
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h6" display="flex" alignItems="center">
             <CalendarIcon sx={{ mr: 1 }} />
-            Prehľad Dostupnosti - {format(currentDate, 'MMMM yyyy', { locale: sk })}
+            Prehľad Dostupnosti
           </Typography>
-          <IconButton onClick={fetchCalendarData}>
-            <RefreshIcon />
-          </IconButton>
+          
+          <Box display="flex" alignItems="center" gap={1}>
+            <IconButton onClick={handlePrevMonth} size="small">
+              <PrevIcon />
+            </IconButton>
+            
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                minWidth: 200, 
+                textAlign: 'center',
+                cursor: 'pointer',
+                '&:hover': { bgcolor: 'action.hover' },
+                px: 1,
+                py: 0.5,
+                borderRadius: 1
+              }}
+              onClick={handleToday}
+            >
+              {format(currentDate, 'MMMM yyyy', { locale: sk })}
+            </Typography>
+            
+            <IconButton onClick={handleNextMonth} size="small">
+              <NextIcon />
+            </IconButton>
+            
+            <IconButton onClick={fetchCalendarData} size="small">
+              <RefreshIcon />
+            </IconButton>
+          </Box>
         </Box>
 
         {error && (
@@ -191,10 +232,10 @@ const AvailabilityCalendar: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell><strong>Dátum</strong></TableCell>
-                {vehicles.slice(0, 5).map(vehicle => (
+                {vehicles.map(vehicle => (
                   <TableCell key={vehicle.id} align="center">
                     <Tooltip title={vehicle.licensePlate}>
-                      <Box>
+                      <Box sx={{ minWidth: 80 }}>
                         <Typography variant="caption" display="block">
                           <strong>{vehicle.brand} {vehicle.model}</strong>
                         </Typography>
@@ -208,11 +249,11 @@ const AvailabilityCalendar: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {calendarData.slice(0, 10).map(dayData => {
+              {calendarData.map(dayData => {
                 const day = new Date(dayData.date);
                 return (
                   <TableRow key={dayData.date}>
-                    <TableCell>
+                    <TableCell sx={{ minWidth: 120 }}>
                       <Typography variant="body2">
                         <strong>{format(day, 'dd.MM.yyyy', { locale: sk })}</strong>
                       </Typography>
@@ -220,10 +261,10 @@ const AvailabilityCalendar: React.FC = () => {
                         {format(day, 'EEEE', { locale: sk })}
                       </Typography>
                     </TableCell>
-                    {vehicles.slice(0, 5).map(vehicle => {
+                    {vehicles.map(vehicle => {
                       const vehicleStatus = dayData.vehicles.find(v => v.vehicleId === vehicle.id);
                       return (
-                        <TableCell key={vehicle.id} align="center">
+                        <TableCell key={vehicle.id} align="center" sx={{ minWidth: 100 }}>
                           {vehicleStatus && (
                             <Tooltip title={
                               `${vehicleStatus.vehicleName} - ${getStatusText(vehicleStatus.status)}${vehicleStatus.customerName ? ` (${vehicleStatus.customerName})` : ''}`
@@ -234,6 +275,7 @@ const AvailabilityCalendar: React.FC = () => {
                                 color={getStatusColor(vehicleStatus.status) as any}
                                 size="small"
                                 variant="outlined"
+                                sx={{ fontSize: '0.7rem', height: 24 }}
                               />
                             </Tooltip>
                           )}
@@ -247,9 +289,12 @@ const AvailabilityCalendar: React.FC = () => {
           </Table>
         </TableContainer>
 
-        <Box mt={2}>
+        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="caption" color="textSecondary">
-            Zobrazuje sa prvých 10 dní a 5 vozidiel. Celkovo: {vehicles.length} vozidiel, {calendarData.length} dní
+            Celkovo: {vehicles.length} vozidiel, {calendarData.length} dní
+          </Typography>
+          <Typography variant="caption" color="textSecondary">
+            💡 Tip: Horizontálne scrollujte pre zobrazenie všetkých vozidiel
           </Typography>
         </Box>
       </CardContent>
