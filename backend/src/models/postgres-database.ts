@@ -924,6 +924,55 @@ export class PostgresDatabase {
   }
 
   // Metódy pre prenájmy
+  // OPTIMALIZÁCIA: Nová metóda pre načítanie len prenájmov v danom období
+  async getRentalsForDateRange(startDate: Date, endDate: Date): Promise<Rental[]> {
+    const client = await this.pool.connect();
+    try {
+      // Načítaj len prenájmy ktoré sa prekrývajú s daným obdobím
+      const result = await client.query(`
+        SELECT id, customer_id, vehicle_id, start_date, end_date, 
+               total_price, commission, payment_method, paid, status, 
+               customer_name, created_at, order_number, deposit, 
+               allowed_kilometers, handover_place
+        FROM rentals 
+        WHERE (start_date <= $2 AND end_date >= $1)
+        ORDER BY start_date ASC
+      `, [startDate, endDate]);
+      
+      if (result.rows.length === 0) {
+        return [];
+      }
+      
+      return result.rows.map((row) => {
+        try {
+          return {
+            id: row.id?.toString() || '',
+            vehicleId: row.vehicle_id?.toString(),
+            customerId: row.customer_id?.toString(),
+            customerName: row.customer_name || 'Neznámy zákazník',
+            startDate: new Date(row.start_date),
+            endDate: new Date(row.end_date),
+            totalPrice: parseFloat(row.total_price) || 0,
+            commission: parseFloat(row.commission) || 0,
+            paymentMethod: row.payment_method || 'cash',
+            paid: Boolean(row.paid),
+            status: row.status || 'active',
+            createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+            orderNumber: row.order_number || undefined,
+            deposit: row.deposit ? parseFloat(row.deposit) : undefined,
+            allowedKilometers: row.allowed_kilometers || undefined,
+            handoverPlace: row.handover_place || undefined
+          };
+        } catch (error) {
+          console.error('❌ Chyba pri spracovaní rental:', error);
+          throw error;
+        }
+      });
+    } finally {
+      client.release();
+    }
+  }
+
   async getRentals(): Promise<Rental[]> {
     const client = await this.pool.connect();
     try {

@@ -41,9 +41,10 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
     // OPTIMALIZÁCIA: Paralelné načítanie všetkých dát
     console.log('🚀 Starting parallel data fetch...');
     
-    const [vehicles, allRentals, allUnavailabilities] = await Promise.all([
+    // OPTIMALIZÁCIA: Načítaj len potrebné dáta pre dané obdobie
+    const [vehicles, monthRentals, allUnavailabilities] = await Promise.all([
       postgresDatabase.getVehicles(),
-      postgresDatabase.getRentals().catch(err => {
+      postgresDatabase.getRentalsForDateRange(startDate, endDate).catch(err => {
         console.error('⚠️ Error loading rentals, using empty array:', err);
         return [];
       }),
@@ -53,20 +54,11 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
       })
     ]);
     
-    console.log('✅ Parallel data fetch completed:', {
+    console.log('✅ Optimized data fetch completed:', {
       vehicles: vehicles.length,
-      rentals: allRentals.length,
+      rentalsInPeriod: monthRentals.length,
       unavailabilities: allUnavailabilities.length
     });
-    
-    // Filter rentals that overlap with our month
-    const monthRentals = allRentals.filter(rental => {
-      const rentalStart = new Date(rental.startDate);
-      const rentalEnd = new Date(rental.endDate);
-      return rentalStart <= endDate && rentalEnd >= startDate;
-    });
-    
-    console.log('📋 Filtered rentals in month:', monthRentals.length, 'out of', allRentals.length, 'total');
     
     // monthUnavailabilities už obsahuje filtrované dáta
     const monthUnavailabilities = allUnavailabilities || [];
