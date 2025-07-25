@@ -510,14 +510,20 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
     const client = await (postgresDatabase as any).pool.connect();
     let user;
     
-    try {
-      const result = await client.query('SELECT * FROM users WHERE username = $1', [username]);
+    try {  
+      const result = await client.query(
+        'SELECT id, username, email, password_hash, role, first_name, last_name, signature_template, created_at FROM users WHERE username = $1', 
+        [username]
+      );
       user = result.rows[0];
       console.log('🔍 LOGIN DEBUG - Database query result:', {
         found: !!user,
         username: user?.username,
         hasPasswordHash: !!user?.password_hash,
-        passwordHashLength: user?.password_hash?.length
+        passwordHashLength: user?.password_hash?.length,
+        hasFirstName: !!user?.first_name,
+        hasLastName: !!user?.last_name,
+        hasSignatureTemplate: !!user?.signature_template
       });
     } finally {
       client.release();
@@ -565,6 +571,9 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
       username: user.username,
       email: user.email,
       role: user.role,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      signatureTemplate: user.signature_template,
       createdAt: user.created_at
     };
 
