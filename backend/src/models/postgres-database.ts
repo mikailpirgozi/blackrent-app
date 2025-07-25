@@ -106,6 +106,7 @@ export class PostgresDatabase {
           -- Rozšírené polia pre kompletný rental systém
           deposit DECIMAL(10,2),
           allowed_kilometers INTEGER,
+          daily_kilometers INTEGER, -- NEW: Denné km pre automatický prepočet
           extra_kilometer_rate DECIMAL(10,2),
           return_conditions TEXT,
           fuel_level INTEGER,
@@ -344,6 +345,7 @@ export class PostgresDatabase {
           ALTER TABLE rentals 
           ADD COLUMN IF NOT EXISTS deposit DECIMAL(10,2),
           ADD COLUMN IF NOT EXISTS allowed_kilometers INTEGER,
+          ADD COLUMN IF NOT EXISTS daily_kilometers INTEGER,
           ADD COLUMN IF NOT EXISTS extra_kilometer_rate DECIMAL(10,2),
           ADD COLUMN IF NOT EXISTS return_conditions TEXT,
           ADD COLUMN IF NOT EXISTS fuel_level INTEGER,
@@ -933,7 +935,7 @@ export class PostgresDatabase {
         SELECT id, customer_id, vehicle_id, start_date, end_date, 
                total_price, commission, payment_method, paid, status, 
                customer_name, created_at, order_number, deposit, 
-               allowed_kilometers, handover_place
+               allowed_kilometers, daily_kilometers, handover_place
         FROM rentals 
         WHERE (start_date <= $2 AND end_date >= $1)
         ORDER BY start_date ASC
@@ -961,6 +963,7 @@ export class PostgresDatabase {
             orderNumber: row.order_number || undefined,
             deposit: row.deposit ? parseFloat(row.deposit) : undefined,
             allowedKilometers: row.allowed_kilometers || undefined,
+            dailyKilometers: row.daily_kilometers || undefined,
             handoverPlace: row.handover_place || undefined
           };
         } catch (error) {
@@ -981,7 +984,7 @@ export class PostgresDatabase {
         SELECT id, customer_id, vehicle_id, start_date, end_date, 
                total_price, commission, payment_method, paid, status, 
                customer_name, created_at, order_number, deposit, 
-               allowed_kilometers, handover_place
+               allowed_kilometers, daily_kilometers, handover_place
         FROM rentals 
         ORDER BY created_at DESC
       `);
@@ -1009,6 +1012,7 @@ export class PostgresDatabase {
             orderNumber: row.order_number || undefined,
             deposit: row.deposit ? parseFloat(row.deposit) : undefined,
             allowedKilometers: row.allowed_kilometers || undefined,
+            dailyKilometers: row.daily_kilometers || undefined,
             handoverPlace: row.handover_place || undefined
           };
           
@@ -1062,6 +1066,7 @@ export class PostgresDatabase {
     orderNumber?: string;
     deposit?: number;
     allowedKilometers?: number;
+    dailyKilometers?: number;
     extraKilometerRate?: number;
     returnConditions?: string;
     fuelLevel?: number;
@@ -1080,13 +1085,13 @@ export class PostgresDatabase {
           vehicle_id, customer_id, customer_name, start_date, end_date, 
           total_price, commission, payment_method, discount, custom_commission, 
           extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
-          deposit, allowed_kilometers, extra_kilometer_rate, return_conditions, 
+          deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
           handover_protocol_id, return_protocol_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
         RETURNING id, vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
-          deposit, allowed_kilometers, extra_kilometer_rate, return_conditions, 
+          deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
           handover_protocol_id, return_protocol_id, created_at
       `, [
@@ -1110,6 +1115,7 @@ export class PostgresDatabase {
         rentalData.orderNumber || null,
         rentalData.deposit || null,
         rentalData.allowedKilometers || null,
+        rentalData.dailyKilometers || null,
         rentalData.extraKilometerRate || null,
         rentalData.returnConditions || null,
         rentalData.fuelLevel || null,
@@ -1145,6 +1151,7 @@ export class PostgresDatabase {
         orderNumber: row.order_number,
         deposit: row.deposit ? parseFloat(row.deposit) : undefined,
         allowedKilometers: row.allowed_kilometers || undefined,
+        dailyKilometers: row.daily_kilometers || undefined,
         extraKilometerRate: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
         returnConditions: row.return_conditions || undefined,
         fuelLevel: row.fuel_level || undefined,
@@ -1235,11 +1242,11 @@ export class PostgresDatabase {
           total_price = $6, commission = $7, payment_method = $8, discount = $9, custom_commission = $10,
           extra_km_charge = $11, paid = $12, status = $13, handover_place = $14, confirmed = $15,
           payments = $16, history = $17, order_number = $18,
-          deposit = $19, allowed_kilometers = $20, extra_kilometer_rate = $21, return_conditions = $22,
-          fuel_level = $23, odometer = $24, return_fuel_level = $25, return_odometer = $26,
-          actual_kilometers = $27, fuel_refill_cost = $28, handover_protocol_id = $29, 
-          return_protocol_id = $30, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $31
+          deposit = $19, allowed_kilometers = $20, daily_kilometers = $21, extra_kilometer_rate = $22, return_conditions = $23,
+          fuel_level = $24, odometer = $25, return_fuel_level = $26, return_odometer = $27,
+          actual_kilometers = $28, fuel_refill_cost = $29, handover_protocol_id = $30, 
+          return_protocol_id = $31, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $32
       `, [
         rental.vehicleId || null, // UUID as string, not parseInt
         rental.customerId || null, // UUID as string, not parseInt
@@ -1261,6 +1268,7 @@ export class PostgresDatabase {
         rental.orderNumber,
         rental.deposit || null,
         rental.allowedKilometers || null,
+        rental.dailyKilometers || null,
         rental.extraKilometerRate || null,
         rental.returnConditions || null,
         rental.fuelLevel || null,

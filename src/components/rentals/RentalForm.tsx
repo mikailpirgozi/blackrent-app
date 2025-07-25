@@ -34,6 +34,16 @@ interface RentalFormProps {
   isLoading?: boolean;
 }
 
+// Utility function to calculate rental days
+const calculateRentalDays = (startDate: Date, endDate: Date): number => {
+  // Calculate difference in days
+  const timeDiff = endDate.getTime() - startDate.getTime();
+  const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+  
+  // Minimum 1 day (same day rental = 1 day)
+  return Math.max(1, daysDiff);
+};
+
 export default function RentalForm({ rental, onSave, onCancel, isLoading = false }: RentalFormProps) {
   const { state, dispatch, createCustomer, updateCustomer } = useApp();
   const [formData, setFormData] = useState<Partial<Rental>>({
@@ -50,6 +60,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
   const [calculatedCommission, setCalculatedCommission] = useState(0);
   const [extraKmCharge, setExtraKmCharge] = useState<number>(0);
   const [allowedKilometers, setAllowedKilometers] = useState<number>(0);
+  const [dailyKilometers, setDailyKilometers] = useState<number>(0); // NEW: Daily km input
   const [extraKilometerRate, setExtraKilometerRate] = useState<number>(0.5);
   const [deposit, setDeposit] = useState<number>(0);
   const [paid, setPaid] = useState(false);
@@ -100,6 +111,16 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       }
       if (rental.allowedKilometers) {
         setAllowedKilometers(rental.allowedKilometers);
+        // Ak editujeme existujúci prenájom, pokúsime sa odvodiť denné km
+        if (rental.startDate && rental.endDate) {
+          const days = calculateRentalDays(rental.startDate, rental.endDate);
+          const possibleDailyKm = Math.round(rental.allowedKilometers / days);
+          // Nastavíme denné km len ak je to rozumné číslo (napr. deliteľné)
+          if (possibleDailyKm * days === rental.allowedKilometers) {
+            setDailyKilometers(possibleDailyKm);
+            console.log(`📊 Derived daily km from existing rental: ${possibleDailyKm} km/day`);
+          }
+        }
       }
       if (rental.extraKilometerRate) {
         setExtraKilometerRate(rental.extraKilometerRate);
@@ -288,8 +309,14 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
     }
 
     // Nastavenie kilometrov a ceny za extra km z parsovaných dát
-    if (rentalData.allowedKilometers) {
+    if (rentalData.dailyKilometers) {
+      // Prioritne nastavíme denné km (automaticky sa prepočítajú celkové)
+      setDailyKilometers(rentalData.dailyKilometers);
+      console.log(`🚗 Set daily km from email: ${rentalData.dailyKilometers} km/day`);
+    } else if (rentalData.allowedKilometers) {
+      // Fallback na celkové km ak nie sú denné
       setAllowedKilometers(rentalData.allowedKilometers);
+      console.log(`📏 Set total km from email: ${rentalData.allowedKilometers} km (total)`);
     }
     if (rentalData.extraKilometerRate) {
       setExtraKilometerRate(rentalData.extraKilometerRate);
@@ -305,6 +332,16 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
     alert('Dáta z emailu boli úspešne načítané do formulára!');
   };
+
+  // NEW: Auto-calculate total kilometers based on daily km and rental duration
+  useEffect(() => {
+    if (dailyKilometers > 0 && formData.startDate && formData.endDate) {
+      const rentalDays = calculateRentalDays(formData.startDate, formData.endDate);
+      const totalKm = dailyKilometers * rentalDays;
+      setAllowedKilometers(totalKm);
+      console.log(`🚗 Auto-calculated km: ${dailyKilometers} km/day × ${rentalDays} days = ${totalKm} km`);
+    }
+  }, [dailyKilometers, formData.startDate, formData.endDate]);
 
   useEffect(() => {
     if (!formData.vehicleId || !formData.startDate || !formData.endDate) {
@@ -780,18 +817,64 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
           )}
         </FormControl>
 
-        {/* Povolené kilometry */}
+        {/* Denné kilometry - NOVÉ POLE */}
         <TextField
           fullWidth
-          label="Povolené kilometry"
+          label="Denné kilometry"
+          type="number"
+          value={dailyKilometers}
+          onChange={(e) => {
+            const daily = Number(e.target.value) || 0;
+            setDailyKilometers(daily);
+            
+            // Ak sú zadané denné km, vyčisti manuálne celkové km
+            if (daily > 0) {
+              // Celkové km sa automaticky prepočítajú cez useEffect
+            } else {
+              // Ak sú denné km 0, umožni manuálne zadanie celkových km
+              setAllowedKilometers(0);
+            }
+          }}
+          InputProps={{
+            endAdornment: <span style={{ marginLeft: 8 }}>km/deň</span>,
+          }}
+          placeholder="250"
+          helperText="Automaticky sa prepočítajú na celkové km podľa dĺžky prenájmu"
+          sx={{ 
+            '& .MuiOutlinedInput-root': {
+              backgroundColor: dailyKilometers > 0 ? '#e8f5e8' : 'inherit'
+            }
+          }}
+        />
+
+        {/* Povolené kilometry - CELKOVÉ */}
+        <TextField
+          fullWidth
+          label={dailyKilometers > 0 ? "Celkové kilometry (automaticky)" : "Celkové kilometry"}
           type="number"
           value={allowedKilometers}
-          onChange={(e) => setAllowedKilometers(Number(e.target.value) || 0)}
+          onChange={(e) => {
+            // Ak sú zadané denné km, nepovoľ manuálnu zmenu celkových
+            if (dailyKilometers > 0) {
+              return; // Ignoruj zmenu
+            }
+            setAllowedKilometers(Number(e.target.value) || 0);
+          }}
           InputProps={{
             endAdornment: <span style={{ marginLeft: 8 }}>km</span>,
+            readOnly: dailyKilometers > 0, // Read-only ak sú zadané denné km
           }}
           placeholder="0 = neobmedzené"
-          helperText="0 znamená neobmedzené kilometry"
+          helperText={
+            dailyKilometers > 0 
+              ? `Automaticky: ${dailyKilometers} km/deň × ${formData.startDate && formData.endDate ? calculateRentalDays(formData.startDate, formData.endDate) : '?'} dní`
+              : "0 znamená neobmedzené kilometry"
+          }
+          sx={{ 
+            '& .MuiOutlinedInput-root': {
+              backgroundColor: dailyKilometers > 0 ? '#f5f5f5' : 'inherit'
+            }
+          }}
         />
 
         {/* Cena za extra km */}
