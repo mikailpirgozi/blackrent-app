@@ -2904,9 +2904,7 @@ export default function RentalList() {
                         fontSize: { xs: '0.75rem', sm: '0.8rem' },
                         color: '#1976d2',
                         lineHeight: 1.2,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        wordWrap: 'break-word',
                         mb: { xs: 0.25, sm: 0.5 }
                       }}>
                         {vehicle?.brand} {vehicle?.model}
@@ -3006,13 +3004,13 @@ export default function RentalList() {
                             // Do nothing if protocol doesn't exist
                           }}
                           sx={{
-                            height: { xs: 24, sm: 28 },
-                            fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                            height: { xs: 32, sm: 28 },
+                            fontSize: { xs: '0.8rem', sm: '0.75rem' },
                             bgcolor: hasHandover ? '#4caf50' : '#ccc',
                             color: 'white',
                             fontWeight: 700,
-                            minWidth: { xs: 36, sm: 42 },
-                            maxWidth: { xs: 50, sm: 60 },
+                            minWidth: { xs: 44, sm: 42 },
+                            maxWidth: { xs: 60, sm: 60 },
                             cursor: hasHandover ? 'pointer' : 'default',
                             borderRadius: { xs: 2, sm: 2.5 },
                             boxShadow: hasHandover ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
@@ -3037,13 +3035,13 @@ export default function RentalList() {
                             // Do nothing if protocol doesn't exist
                           }}
                           sx={{
-                            height: { xs: 24, sm: 28 },
-                            fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                            height: { xs: 32, sm: 28 },
+                            fontSize: { xs: '0.8rem', sm: '0.75rem' },
                             bgcolor: hasReturn ? '#4caf50' : '#ccc',
                             color: 'white',
                             fontWeight: 700,
-                            minWidth: { xs: 36, sm: 42 },
-                            maxWidth: { xs: 50, sm: 60 },
+                            minWidth: { xs: 44, sm: 42 },
+                            maxWidth: { xs: 60, sm: 60 },
                             cursor: hasReturn ? 'pointer' : 'default',
                             borderRadius: { xs: 2, sm: 2.5 },
                             boxShadow: hasReturn ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
@@ -3064,13 +3062,13 @@ export default function RentalList() {
                             handleCheckProtocols(rental);
                           }}
                           sx={{
-                            height: { xs: 24, sm: 28 },
-                            fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                            height: { xs: 32, sm: 28 },
+                            fontSize: { xs: '0.8rem', sm: '0.75rem' },
                             bgcolor: '#9c27b0',
                             color: 'white',
                             fontWeight: 700,
-                            minWidth: { xs: 36, sm: 42 },
-                            maxWidth: { xs: 50, sm: 60 },
+                            minWidth: { xs: 44, sm: 42 },
+                            maxWidth: { xs: 60, sm: 60 },
                             cursor: 'pointer',
                             borderRadius: { xs: 2, sm: 2.5 },
                             boxShadow: '0 2px 8px rgba(156,39,176,0.3)',
@@ -3087,13 +3085,13 @@ export default function RentalList() {
                           label={rental.paid ? '💰' : '⏰'}
                           title={rental.paid ? 'Uhradené' : 'Neuhradené'}
                           sx={{
-                            height: { xs: 24, sm: 28 },
-                            fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                            height: { xs: 32, sm: 28 },
+                            fontSize: { xs: '0.8rem', sm: '0.75rem' },
                             bgcolor: rental.paid ? '#4caf50' : '#f44336',
                             color: 'white',
                             fontWeight: 700,
-                            minWidth: { xs: 36, sm: 42 },
-                            maxWidth: { xs: 50, sm: 60 },
+                            minWidth: { xs: 44, sm: 42 },
+                            maxWidth: { xs: 60, sm: 60 },
                             borderRadius: { xs: 2, sm: 2.5 },
                             boxShadow: rental.paid ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 8px rgba(244,67,54,0.3)'
                           }}
