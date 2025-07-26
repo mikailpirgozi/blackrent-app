@@ -797,7 +797,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       <Box sx={{ mb: { xs: 1, sm: 2 }, textAlign: 'center' }}>
         <Typography variant={isSmallMobile ? "h6" : "h5"} gutterBottom sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
           📅 Dostupnosť vozidiel
-        </Typography>
+          </Typography>
         
         {/* Mobilná navigácia - KOMPAKTNEJŠIA */}
         <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center" sx={{ mb: { xs: 1, sm: 2 } }}>
@@ -865,7 +865,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
             Pridať
           </Button>
         </Stack>
-      </Box>
+        </Box>
 
       {/* Mobilný search - OPTIMALIZOVANÝ */}
       <TextField
@@ -896,7 +896,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
-        </Box>
+                      </Box>
       ) : (
         <>
           {/* Horizontálne scrollovanie dní - OPTIMALIZOVANÉ */}
@@ -924,7 +924,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               }}
             >
                              {statusFilteredCalendarData.slice(0, visibleDays).map(dayData => {
-                 const day = new Date(dayData.date);
+                const day = new Date(dayData.date);
                  const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
                  
                                   // Počítaj dostupnosť pre tento deň
@@ -932,7 +932,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                  const availableCount = dayData.vehicles.filter(v => v.status === 'available').length;
                  const rentedCount = dayData.vehicles.filter(v => v.status === 'rented').length;
 
-  return (
+                return (
                                        <Button
                       key={dayData.date}
                       variant={selectedDate === dayData.date ? "contained" : "outlined"}
@@ -988,8 +988,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
              {visibleDays < statusFilteredCalendarData.length && (
                <Box sx={{ textAlign: 'center', mt: 1 }}>
                  <Button
-                   size="small"
-                   variant="outlined"
+                                size="small"
+                                variant="outlined"
                    onClick={() => setVisibleDays(prev => Math.min(prev + 7, statusFilteredCalendarData.length))}
                  >
                    Zobraziť viac dní ({statusFilteredCalendarData.length - visibleDays} zostáva)
@@ -1125,8 +1125,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       </Box>
                     </CardContent>
                   </Card>
-                );
-              })}
+                      );
+                    })}
             </Stack>
           </Box>
         </>
@@ -1304,8 +1304,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                           mt: 0.25
                         }} />
                       </Box>
-                    );
-                  })}
+                );
+              })}
                 </Box>
 
                 {/* Akcie pre vozidlo */}
@@ -1370,7 +1370,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
             }}>
               <CalendarIcon sx={{ mr: 1 }} />
               Prehľad Dostupnosti
-            </Typography>
+          </Typography>
             
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Button
@@ -1394,9 +1394,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 <RefreshIcon />
               </IconButton>
             </Box>
-          </Box>
-        </CardContent>
-      </Card>
+        </Box>
+      </CardContent>
+    </Card>
 
       {/* Desktop kalendár - card layout pre vozidlá */}
       <Box sx={{ 
