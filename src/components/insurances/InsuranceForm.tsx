@@ -9,7 +9,7 @@ import {
   TextField,
 } from '@mui/material';
 import { useApp } from '../../context/AppContext';
-import { Insurance } from '../../types';
+import { Insurance, PaymentFrequency } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface InsuranceFormProps {
@@ -30,6 +30,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
     validTo: new Date(),
     price: 0,
     company: '',
+    paymentFrequency: 'yearly',
   });
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
       validTo: formData.validTo || new Date(),
       price: formData.price || 0,
       company: formData.company || '',
+      paymentFrequency: formData.paymentFrequency || 'yearly',
     };
     onSave(completeInsurance);
   };
@@ -194,6 +196,21 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
           InputLabelProps={{ shrink: true }}
           required
         />
+
+        <FormControl fullWidth>
+          <InputLabel>Frekvencia platenia</InputLabel>
+          <Select
+            value={formData.paymentFrequency || 'yearly'}
+            onChange={(e) => handleInputChange('paymentFrequency', e.target.value as PaymentFrequency)}
+            label="Frekvencia platenia"
+            required
+          >
+            <MenuItem value="monthly">Mesačne</MenuItem>
+            <MenuItem value="quarterly">Štvrťročne</MenuItem>
+            <MenuItem value="biannual">Polročne</MenuItem>
+            <MenuItem value="yearly">Ročne</MenuItem>
+          </Select>
+        </FormControl>
       </Box>
 
       <Box sx={{ gridColumn: '1 / -1', display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>

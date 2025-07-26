@@ -26,7 +26,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response<ApiRespons
 // POST /api/insurances - Vytvorenie novej poistky
 router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency } = req.body;
 
     if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
       return res.status(400).json({
@@ -42,7 +42,8 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       validFrom: new Date(validFrom),
       validTo: new Date(validTo),
       price,
-      company
+      company,
+      paymentFrequency
     });
 
     res.status(201).json({
@@ -56,6 +57,45 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
     res.status(500).json({
       success: false,
       error: 'Chyba pri vytváraní poistky'
+    });
+  }
+});
+
+// PUT /api/insurances/:id - Aktualizácia poistky
+router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    const { id } = req.params;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency } = req.body;
+
+    if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
+      return res.status(400).json({
+        success: false,
+        error: 'Všetky povinné polia musia byť vyplnené'
+      });
+    }
+
+    const updatedInsurance = await postgresDatabase.updateInsurance(id, {
+      vehicleId,
+      type,
+      policyNumber,
+      validFrom: new Date(validFrom),
+      validTo: new Date(validTo),
+      price,
+      company,
+      paymentFrequency
+    });
+
+    res.json({
+      success: true,
+      message: 'Poistka úspešne aktualizovaná',
+      data: updatedInsurance
+    });
+
+  } catch (error) {
+    console.error('Update insurance error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Chyba pri aktualizácii poistky'
     });
   }
 });

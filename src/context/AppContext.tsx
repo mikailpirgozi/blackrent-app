@@ -237,6 +237,7 @@ interface AppContextType {
   updateExpense: (expense: Expense) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   createInsurance: (insurance: Insurance) => Promise<void>;
+  updateInsurance: (insurance: Insurance) => Promise<void>;
   createSettlement: (settlement: Settlement) => Promise<void>;
   deleteSettlement: (id: string) => Promise<void>;
   createCustomer: (customer: Customer) => Promise<void>;
@@ -480,6 +481,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateInsurance = async (insurance: Insurance): Promise<void> => {
+    try {
+      await apiService.updateInsurance(insurance);
+      dispatch({ type: 'UPDATE_INSURANCE', payload: insurance });
+    } catch (error) {
+      console.error('Chyba pri aktualizácii poistky:', error);
+      throw error;
+    }
+  };
+
   const createSettlement = async (settlement: Settlement): Promise<void> => {
     try {
       await apiService.createSettlement(settlement);
@@ -591,6 +602,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateExpense,
         deleteExpense,
         createInsurance,
+        updateInsurance,
         createSettlement,
         deleteSettlement,
         createCustomer,

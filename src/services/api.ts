@@ -252,6 +252,13 @@ class ApiService {
     });
   }
 
+  async updateInsurance(insurance: Insurance): Promise<void> {
+    return this.request<void>(`/insurances/${insurance.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(insurance),
+    });
+  }
+
   // Firmy
   async getCompanies(): Promise<Company[]> {
     return this.request<Company[]>('/companies');
