@@ -205,33 +205,43 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
     }
 
     // Parsovanie kilometrov - VŠETKY sa považujú za denné km
+    console.log('🔍 DEBUG: Searching for kilometers in text...');
+    console.log('🔍 Text sample around km:', text.substring(text.indexOf('Počet povolených km') - 20, text.indexOf('Počet povolených km') + 50));
+    
     // NAJVYŠŠIA PRIORITA: Špecifické patterny pre "Počet povolených km"
     const specificKmMatch = text.match(/Počet povolených km\s+(\d+)\s*km/i);
+    console.log('🔍 DEBUG: specificKmMatch result:', specificKmMatch);
     
     if (specificKmMatch) {
       data.dailyKilometers = parseInt(specificKmMatch[1]);
       console.log(`🚗 Parsed "Počet povolených km": ${data.dailyKilometers} km/day (interpreted as daily)`);
     } else {
+      console.log('🔍 DEBUG: specificKmMatch failed, trying other patterns...');
       // Prioritne hľadáme explicitne denné km patterny
       const explicitDailyKmMatch = text.match(/(\d+)\s*km\s*\/\s*de[ňn]/i) ||
                                   text.match(/(\d+)\s*km\s*na\s*de[ňn]/i) ||
                                   text.match(/denný\s*limit[:\s]*(\d+)\s*km/i) ||
                                   text.match(/denne[:\s]*(\d+)\s*km/i) ||
                                   text.match(/(\d+)\s*km\s*daily/i);
+      console.log('🔍 DEBUG: explicitDailyKmMatch result:', explicitDailyKmMatch);
       
       if (explicitDailyKmMatch) {
         data.dailyKilometers = parseInt(explicitDailyKmMatch[1]);
         console.log(`🚗 Parsed explicit daily km: ${data.dailyKilometers} km/day`);
       } else {
+        console.log('🔍 DEBUG: explicitDailyKmMatch failed, trying general patterns...');
         // Ak nie sú explicitne denné, hľadáme ostatné všeobecné km patterny a považujeme ich za denné
         const generalKmMatch = text.match(/Povolené\s+km[:\s]+(\d+)/i) || 
                               text.match(/Kilometrov[:\s]+(\d+)/i) ||
                               text.match(/Limit\s+km[:\s]+(\d+)/i) ||
                               text.match(/(\d+)\s*km/i); // Všeobecný pattern pre číslo + km (najnižšia priorita)
+        console.log('🔍 DEBUG: generalKmMatch result:', generalKmMatch);
         
         if (generalKmMatch) {
           data.dailyKilometers = parseInt(generalKmMatch[1]);
           console.log(`🚗 Parsed general km as daily: ${data.dailyKilometers} km/day (interpreted as daily)`);
+        } else {
+          console.log('🔍 DEBUG: No kilometer patterns matched!');
         }
       }
     }
@@ -599,6 +609,9 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
                 )}
                 {parsedData.deposit && (
                   <div><strong>Depozit:</strong> {parsedData.deposit} €</div>
+                )}
+                {parsedData.dailyKilometers && (
+                  <div><strong>Denné km:</strong> {parsedData.dailyKilometers} km/deň</div>
                 )}
                 {parsedData.allowedKilometers && (
                   <div><strong>Povolené km:</strong> {parsedData.allowedKilometers} km</div>
