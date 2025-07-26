@@ -312,14 +312,11 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
     // Nastavenie kilometrov a ceny za extra km z parsovaných dát
     if (rentalData.dailyKilometers) {
-      // Prioritne nastavíme denné km (automaticky sa prepočítajú celkové)
+      // Všetky km z emailu sa nastavujú ako denné km (automaticky sa prepočítajú celkové)
       setDailyKilometers(rentalData.dailyKilometers);
       console.log(`🚗 Set daily km from email: ${rentalData.dailyKilometers} km/day`);
-    } else if (rentalData.allowedKilometers) {
-      // Fallback na celkové km ak nie sú denné
-      setAllowedKilometers(rentalData.allowedKilometers);
-      console.log(`📏 Set total km from email: ${rentalData.allowedKilometers} km (total)`);
     }
+    // Odstránená logika pre allowedKilometers - všetko sa teraz parsuje ako dailyKilometers
     if (rentalData.extraKilometerRate) {
       setExtraKilometerRate(rentalData.extraKilometerRate);
     }

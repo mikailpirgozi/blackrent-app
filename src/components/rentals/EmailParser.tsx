@@ -204,25 +204,28 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       }
     }
 
-    // Parsovanie povolených kilometrov - prioritne denné km
-    const dailyKmMatch = text.match(/(\d+)\s*km\s*\/\s*de[ňn]/i) ||
-                        text.match(/(\d+)\s*km\s*na\s*de[ňn]/i) ||
-                        text.match(/denný\s*limit[:\s]*(\d+)\s*km/i) ||
-                        text.match(/denne[:\s]*(\d+)\s*km/i) ||
-                        text.match(/(\d+)\s*km\s*daily/i);
+    // Parsovanie kilometrov - VŠETKY sa považujú za denné km
+    // Prioritne hľadáme explicitne denné km patterny
+    const explicitDailyKmMatch = text.match(/(\d+)\s*km\s*\/\s*de[ňn]/i) ||
+                                text.match(/(\d+)\s*km\s*na\s*de[ňn]/i) ||
+                                text.match(/denný\s*limit[:\s]*(\d+)\s*km/i) ||
+                                text.match(/denne[:\s]*(\d+)\s*km/i) ||
+                                text.match(/(\d+)\s*km\s*daily/i);
     
-    if (dailyKmMatch) {
-      data.dailyKilometers = parseInt(dailyKmMatch[1]);
-      console.log(`🚗 Parsed daily km: ${data.dailyKilometers} km/day`);
+    if (explicitDailyKmMatch) {
+      data.dailyKilometers = parseInt(explicitDailyKmMatch[1]);
+      console.log(`🚗 Parsed explicit daily km: ${data.dailyKilometers} km/day`);
     } else {
-      // Fallback na celkové km ak nie sú denné
-      const allowedKmMatch = text.match(/Počet povolených km\s+(\d+)\s*km/i) ||
+      // Ak nie sú explicitne denné, hľadáme všeobecné km patterny a považujeme ich za denné
+      const generalKmMatch = text.match(/Počet povolených km\s+(\d+)\s*km/i) ||
                             text.match(/Povolené\s+km[:\s]+(\d+)/i) || 
                             text.match(/Kilometrov[:\s]+(\d+)/i) ||
-                            text.match(/Limit\s+km[:\s]+(\d+)/i);
-      if (allowedKmMatch) {
-        data.allowedKilometers = parseInt(allowedKmMatch[1]);
-        console.log(`📏 Parsed total km: ${data.allowedKilometers} km (total)`);
+                            text.match(/Limit\s+km[:\s]+(\d+)/i) ||
+                            text.match(/(\d+)\s*km/i); // Všeobecný pattern pre číslo + km
+      
+      if (generalKmMatch) {
+        data.dailyKilometers = parseInt(generalKmMatch[1]);
+        console.log(`🚗 Parsed general km as daily: ${data.dailyKilometers} km/day (interpreted as daily)`);
       }
     }
 
