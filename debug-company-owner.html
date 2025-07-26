@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Company Owner Debug Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .login-form, .debug-section, .assign-section {
+            margin-bottom: 30px;
+        }
+        input, select, button {
+            padding: 8px 12px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .debug-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+        .vehicle-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .vehicle-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .vehicle-item.selected {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #388e3c;
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #007cba;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Company Owner Debug Tool</h1>
+        
+        <!-- Login Section -->
+        <div class="login-form">
+            <h2>🔑 Prihlásenie</h2>
+            <input type="text" id="username" placeholder="Username" value="admin">
+            <input type="password" id="password" placeholder="Password" value="admin123">
+            <button onclick="login()">Prihlásiť</button>
+            <div id="loginStatus"></div>
+        </div>
+
+        <!-- Debug Section -->
+        <div class="debug-section">
+            <h2>🔍 Debug Info</h2>
+            <button onclick="loadDebugInfo()">Načítať Debug Info</button>
+            <div id="debugInfo" class="debug-info"></div>
+        </div>
+
+        <!-- Vehicle Assignment Section -->
+        <div class="assign-section">
+            <h2>🚗 Priradenie vozidiel k firme</h2>
+            <div>
+                <label>Firma:</label>
+                <select id="companySelect">
+                    <option value="">-- Vyberte firmu --</option>
+                </select>
+            </div>
+            <div>
+                <label>Vozidlá (kliknite pre výber):</label>
+                <div id="vehicleList" class="vehicle-list"></div>
+            </div>
+            <button onclick="assignVehicles()">Priradiť vybraté vozidlá</button>
+            <div id="assignStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://blackrent-app-production-4d6f.up.railway.app/api';
+        let token = '';
+        let selectedVehicles = new Set();
+        let allVehicles = [];
+        let allCompanies = [];
+
+        // Login
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    token = data.token;
+                    document.getElementById('loginStatus').innerHTML = 
+                        `<div class="success">✅ Prihlásený ako: ${data.user.username} (${data.user.role})</div>`;
+                    loadDebugInfo();
+                } else {
+                    document.getElementById('loginStatus').innerHTML = 
+                        `<div class="error">❌ ${data.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('loginStatus').innerHTML = 
+                    `<div class="error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+
+        // Load debug info
+        async function loadDebugInfo() {
+            if (!token) {
+                alert('Najprv sa prihláste!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/debug-company-owner`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('debugInfo').textContent = 
+                        JSON.stringify(data.data, null, 2);
+                    
+                    // Populate companies and vehicles for assignment
+                    allVehicles = data.data.allVehicles;
+                    allCompanies = data.data.allCompanies;
+                    populateCompanySelect();
+                    populateVehicleList();
+                } else {
+                    document.getElementById('debugInfo').textContent = 
+                        `Error: ${data.error}`;
+                }
+            } catch (error) {
+                document.getElementById('debugInfo').textContent = 
+                    `Network error: ${error.message}`;
+            }
+        }
+
+        // Populate company select
+        function populateCompanySelect() {
+            const select = document.getElementById('companySelect');
+            select.innerHTML = '<option value="">-- Vyberte firmu --</option>';
+            
+            allCompanies.forEach(company => {
+                const option = document.createElement('option');
+                option.value = company.id;
+                option.textContent = company.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Populate vehicle list
+        function populateVehicleList() {
+            const container = document.getElementById('vehicleList');
+            container.innerHTML = '';
+            
+            allVehicles.forEach(vehicle => {
+                const div = document.createElement('div');
+                div.className = 'vehicle-item';
+                div.onclick = () => toggleVehicle(vehicle.id, div);
+                
+                const ownerInfo = vehicle.ownerCompanyId 
+                    ? `(Firma: ${allCompanies.find(c => c.id === vehicle.ownerCompanyId)?.name || 'Unknown'})`
+                    : '(Bez firmy)';
+                
+                div.innerHTML = `
+                    <strong>${vehicle.brand} ${vehicle.model}</strong><br>
+                    <small>ID: ${vehicle.id}</small><br>
+                    <small>${ownerInfo}</small>
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+
+        // Toggle vehicle selection
+        function toggleVehicle(vehicleId, element) {
+            if (selectedVehicles.has(vehicleId)) {
+                selectedVehicles.delete(vehicleId);
+                element.classList.remove('selected');
+            } else {
+                selectedVehicles.add(vehicleId);
+                element.classList.add('selected');
+            }
+        }
+
+        // Assign vehicles to company
+        async function assignVehicles() {
+            const companyId = document.getElementById('companySelect').value;
+            
+            if (!companyId) {
+                alert('Vyberte firmu!');
+                return;
+            }
+            
+            if (selectedVehicles.size === 0) {
+                alert('Vyberte aspoň jedno vozidlo!');
+                return;
+            }
+            
+            if (!token) {
+                alert('Najprv sa prihláste!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/vehicles/assign-to-company`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({
+                        vehicleIds: Array.from(selectedVehicles),
+                        companyId: companyId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('assignStatus').innerHTML = 
+                        `<div class="success">✅ ${data.message}</div>`;
+                    
+                    // Clear selection and reload data
+                    selectedVehicles.clear();
+                    loadDebugInfo();
+                } else {
+                    document.getElementById('assignStatus').innerHTML = 
+                        `<div class="error">❌ ${data.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('assignStatus').innerHTML = 
+                    `<div class="error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-login if admin credentials are filled
+        window.onload = function() {
+            if (document.getElementById('username').value && document.getElementById('password').value) {
+                login();
+            }
+        };
+    </script>
+</body>
+</html> 

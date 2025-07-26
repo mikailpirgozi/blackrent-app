@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { Vehicle, ApiResponse } from '../types';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requireRole } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -27,9 +27,22 @@ router.get('/',
     try {
       let vehicles = await postgresDatabase.getVehicles();
       
+      console.log('🚗 Vehicles GET - user:', { 
+        role: req.user?.role, 
+        companyId: req.user?.companyId, 
+        totalVehicles: vehicles.length 
+      });
+      
       // 🏢 COMPANY OWNER - filter len vlastné vozidlá
       if (req.user?.role === 'company_owner' && req.user.companyId) {
+        const originalCount = vehicles.length;
         vehicles = vehicles.filter(v => v.ownerCompanyId === req.user?.companyId);
+        console.log('🏢 Company Owner Filter:', {
+          userCompanyId: req.user.companyId,
+          originalCount,
+          filteredCount: vehicles.length,
+          sampleVehicleOwners: vehicles.slice(0, 3).map(v => ({ id: v.id, ownerCompanyId: v.ownerCompanyId }))
+        });
       }
       
       res.json({
@@ -196,5 +209,65 @@ router.delete('/:id',
     });
   }
 });
+
+// 🔧 ADMIN TOOL - Priradenie vozidiel k firme
+router.post('/assign-to-company', 
+  authenticateToken, 
+  requireRole(['admin']),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { vehicleIds, companyId } = req.body;
+
+      if (!vehicleIds || !Array.isArray(vehicleIds) || !companyId) {
+        return res.status(400).json({
+          success: false,
+          error: 'vehicleIds (array) a companyId sú povinné'
+        });
+      }
+
+      // Verify company exists
+      const companies = await postgresDatabase.getCompanies();
+      const company = companies.find(c => c.id === companyId);
+      if (!company) {
+        return res.status(404).json({
+          success: false,
+          error: 'Firma nenájdená'
+        });
+      }
+
+      // Update vehicles
+      const client = await postgresDatabase.pool.connect();
+      try {
+        for (const vehicleId of vehicleIds) {
+          await client.query(
+            'UPDATE vehicles SET owner_company_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [companyId, vehicleId]
+          );
+        }
+
+        console.log(`🏢 Assigned ${vehicleIds.length} vehicles to company ${company.name}`);
+
+        res.json({
+          success: true,
+          message: `${vehicleIds.length} vozidiel úspešne priradených k firme ${company.name}`,
+          data: {
+            companyId,
+            companyName: company.name,
+            assignedVehicleIds: vehicleIds
+          }
+        });
+      } finally {
+        client.release();
+      }
+
+    } catch (error) {
+      console.error('Assign vehicles to company error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri priradzovaní vozidiel'
+      });
+    }
+  }
+);
 
 export default router; 
