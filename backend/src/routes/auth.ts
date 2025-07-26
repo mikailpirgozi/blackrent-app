@@ -1789,95 +1789,78 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
   }
 });
 
-// DEBUG endpoint na testovanie JWT tokenov
-router.get('/debug-token', async (req: Request, res: Response<any>) => {
+// GET /api/auth/debug-token - Debug endpoint pre JWT token diagnostiku
+router.get('/debug-token', async (req: Request, res: Response<ApiResponse>) => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
     
-    console.log('🐛 DEBUG TOKEN - Auth header:', authHeader ? 'exists' : 'missing');
-    console.log('🐛 DEBUG TOKEN - Token extracted:', token ? 'yes' : 'no');
+    console.log('🔍 TOKEN DEBUG - Auth header:', authHeader);
+    console.log('🔍 TOKEN DEBUG - Extracted token:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
     
     if (!token) {
-      return res.status(400).json({
+      return res.json({
         success: false,
         error: 'No token provided',
-        debug: { authHeader: !!authHeader }
+        data: {
+          authHeader: !!authHeader,
+          tokenExtracted: false
+        }
       });
     }
-    
-    // Manual JWT verification with detailed logging
-    console.log('🐛 DEBUG TOKEN - JWT_SECRET:', JWT_SECRET.substring(0, 10) + '...');
-    console.log('🐛 DEBUG TOKEN - Token preview:', token.substring(0, 20) + '...');
-    
+
     try {
+      // Manuálne overenie tokenu
       const decoded = jwt.verify(token, JWT_SECRET) as any;
-      console.log('🐛 DEBUG TOKEN - JWT decoded successfully:', {
-        userId: decoded.userId,
-        username: decoded.username,
-        role: decoded.role,
-        iat: decoded.iat,
-        exp: decoded.exp
-      });
+      console.log('🔍 TOKEN DEBUG - Token successfully decoded:', decoded);
       
-      // Check token expiry
-      const now = Math.floor(Date.now() / 1000);
-      const isExpired = decoded.exp < now;
-      console.log('🐛 DEBUG TOKEN - Expiry check:', {
-        now,
-        exp: decoded.exp,
-        isExpired
-      });
-      
-      if (isExpired) {
-        return res.status(401).json({
-          success: false,
-          error: 'Token expired',
-          debug: { now, exp: decoded.exp, isExpired }
-        });
-      }
-      
-      // Try to get user from database
-      console.log('🐛 DEBUG TOKEN - Getting user from database...');
+      // Skús získať používateľa z databázy
       const user = await postgresDatabase.getUserById(decoded.userId);
-      console.log('🐛 DEBUG TOKEN - User found:', !!user);
+      console.log('🔍 TOKEN DEBUG - User from database:', user ? 'FOUND' : 'NOT FOUND');
       
       return res.json({
         success: true,
         message: 'Token is valid',
-        debug: {
+        data: {
+          tokenValid: true,
           decoded: {
             userId: decoded.userId,
             username: decoded.username,
-            role: decoded.role
+            role: decoded.role,
+            exp: decoded.exp,
+            iat: decoded.iat
           },
-          userFound: !!user,
-          userDetails: user ? {
-            id: user.id,
-            username: user.username,
-            role: user.role
-          } : null
+          userExists: !!user,
+          currentTime: Math.floor(Date.now() / 1000),
+          tokenExpiry: decoded.exp,
+          timeToExpiry: decoded.exp - Math.floor(Date.now() / 1000),
+          jwtSecret: JWT_SECRET.substring(0, 10) + '...'
         }
       });
       
-    } catch (jwtError: any) {
-      console.log('🐛 DEBUG TOKEN - JWT verification failed:', jwtError.message);
-      return res.status(401).json({
+    } catch (jwtError) {
+      console.error('🔍 TOKEN DEBUG - JWT verification failed:', jwtError);
+      
+      return res.json({
         success: false,
-        error: 'JWT verification failed',
-        debug: {
-          jwtError: jwtError.message,
-          tokenPreview: token.substring(0, 20) + '...'
+        error: 'Token verification failed',
+        data: {
+          tokenValid: false,
+          jwtError: jwtError instanceof Error ? jwtError.message : String(jwtError),
+          jwtSecret: JWT_SECRET.substring(0, 10) + '...',
+          tokenLength: token.length
         }
       });
     }
     
-  } catch (error: any) {
-    console.error('🐛 DEBUG TOKEN - Unexpected error:', error);
+  } catch (error) {
+    console.error('🔍 TOKEN DEBUG ERROR:', error);
     return res.status(500).json({
       success: false,
       error: 'Debug endpoint error',
-      debug: { error: error.message }
+      data: {
+        error: error instanceof Error ? error.message : String(error)
+      }
     });
   }
 });
