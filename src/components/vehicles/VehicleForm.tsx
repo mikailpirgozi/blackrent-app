@@ -459,7 +459,13 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
       {/* Dialog pre editáciu dokumentov */}
       <DocumentDialog
         document={editingDocument}
-        onSave={editingDocument?.id ? handleUpdateDocument : handleAddDocument}
+        onSave={async (docData: VehicleDocument | Partial<VehicleDocument>) => {
+          if (editingDocument?.id) {
+            await handleUpdateDocument(docData as VehicleDocument);
+          } else {
+            await handleAddDocument(docData);
+          }
+        }}
         onCancel={() => setEditingDocument(null)}
       />
     </Box>
@@ -469,7 +475,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
 // Dialóg pre editáciu/pridávanie dokumentov
 interface DocumentDialogProps {
   document: VehicleDocument | null;
-  onSave: (document: VehicleDocument | Partial<VehicleDocument>) => void;
+  onSave: (document: VehicleDocument | Partial<VehicleDocument>) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -488,11 +494,11 @@ function DocumentDialog({ document, onSave, onCancel }: DocumentDialogProps) {
     }
   }, [document]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.documentType || !formData.validTo) return;
 
-    onSave(document?.id ? { ...document, ...formData } as VehicleDocument : formData);
+    await onSave(document?.id ? { ...document, ...formData } as VehicleDocument : formData);
   };
 
   return (
