@@ -1284,997 +1284,311 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         </Box>
       </Box>
     ) : (
-    <Card>
-      <CardContent>
-          <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} gap={2} mb={2}>
-            <Typography variant="h6" display="flex" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }}>
-            <CalendarIcon sx={{ mr: 1 }} />
+    /* DESKTOP CARD-BASED KALENDÁR - inšpirovaný mobilnou verziou */
+    <Box sx={{ p: 0 }}>
+      {/* Desktop header s prepínačmi */}
+      <Card sx={{ mb: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <CardContent>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            mb: 2
+          }}>
+            <Typography variant="h6" sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              fontWeight: 600,
+              color: '#1976d2'
+            }}>
+              <CalendarIcon sx={{ mr: 1 }} />
               Prehľad Dostupnosti
-          </Typography>
-          
-          <IconButton onClick={handleRefresh} size="small">
-            <RefreshIcon />
-          </IconButton>
-        </Box>
-
-        {/* View Mode Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-          <Tabs value={viewMode} onChange={handleViewModeChange} centered>
-            <Tab label="�� Navigácia mesiacov" value="navigation" />
-            <Tab label="📊 Vlastný rozsah" value="range" />
-          </Tabs>
-        </Box>
-
-        {/* Navigation Mode Controls */}
-        {viewMode === 'navigation' && (
-          <Box display="flex" alignItems="center" justifyContent="center" gap={1} mb={2}>
-            <IconButton onClick={handlePrevMonth} size="small">
-              <PrevIcon />
-            </IconButton>
-            
-            <Typography 
-              variant="h6"
-              sx={{ 
-                minWidth: { xs: 150, md: 200 }, 
-                textAlign: 'center',
-                cursor: 'pointer',
-                '&:hover': { bgcolor: 'action.hover' },
-                px: 1,
-                py: 0.5,
-                borderRadius: 1,
-                fontSize: { xs: '0.9rem', md: '1.25rem' }
-              }}
-              onClick={handleToday}
-            >
-              {format(currentDate, 'MMMM yyyy', { locale: sk })}
             </Typography>
             
-            <IconButton onClick={handleNextMonth} size="small">
-              <NextIcon />
-            </IconButton>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Button
+                variant={mobileViewMode === 'week' ? 'contained' : 'outlined'}
+                onClick={() => {
+                  setMobileViewMode('week');
+                  setCurrentWeekOffset(0);
+                }}
+                sx={{ minWidth: 120 }}
+              >
+                Týždenný
+              </Button>
+              <Button
+                variant={mobileViewMode === 'month' ? 'contained' : 'outlined'}
+                onClick={() => setMobileViewMode('month')}
+                sx={{ minWidth: 120 }}
+              >
+                Mesačný
+              </Button>
+              <IconButton onClick={handleRefresh} size="small">
+                <RefreshIcon />
+              </IconButton>
+            </Box>
           </Box>
-        )}
+        </CardContent>
+      </Card>
 
-        {/* Date Range Mode Controls */}
-        {viewMode === 'range' && (
-          <Card sx={{ mb: 2, bgcolor: 'background.default' }}>
-            <CardContent>
-              <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                📊 Vlastný dátumový rozsah
-              </Typography>
-              
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Od dátumu"
-                    type="date"
-                    value={fromDate ? format(fromDate, 'yyyy-MM-dd') : ''}
-                    onChange={(e) => {
-                      const newDate = e.target.value ? new Date(e.target.value) : null;
-                      setFromDate(newDate);
-                    }}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Do dátumu"
-                    type="date"
-                    value={toDate ? format(toDate, 'yyyy-MM-dd') : ''}
-                    onChange={(e) => {
-                      const newDate = e.target.value ? new Date(e.target.value) : null;
-                      setToDate(newDate);
-                    }}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <Box display="flex" gap={1} flexWrap="wrap" justifyContent={{ xs: 'center', md: 'flex-start' }}>
-                    <Button size="small" variant="outlined" onClick={() => handleQuickRange(7)}>
-                      Dnes + 7 dní
-                    </Button>
-                    <Button size="small" variant="outlined" onClick={() => handleQuickRange(14)}>
-                      Dnes + 14 dní
-                    </Button>  
-                    <Button size="small" variant="outlined" onClick={() => handleQuickRange(30)}>
-                      Dnes + 30 dní
-                    </Button>
-                  </Box>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        )}
-
-        {error && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            {error} - Zobrazujem testovacie dáta
-          </Alert>
-        )}
-
-        {/* Search Bar - Always Visible */}
-        <Card sx={{ mb: 2 }}>
-          <CardContent sx={{ py: 2 }}>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  size="medium"
-                  label="🔍 Vyhľadať vozidlo"
-                  placeholder="Zadajte značku, model alebo ŠPZ (napr. BMW, X5, BA123AB...)"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Optimalizované - len ak sa hodnota skutočne zmenila
-                    if (value !== searchQuery) {
-                      setSearchQuery(value);
-                    }
-                  }}
-                  InputProps={{
-                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      fontSize: '1.1rem'
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Box display="flex" justifyContent={{ xs: 'flex-start', md: 'flex-end' }} alignItems="center" gap={1} flexWrap="wrap">
-                  {searchQuery && (
-                    <Button
-                      size="small"
-                      startIcon={<ClearIcon />}
-                      onClick={() => setSearchQuery('')}
-                      color="secondary"
-                      variant="outlined"
-                    >
-                      Vyčistiť hľadanie
-                    </Button>
-                  )}
-                  <Button
-                    size="small"
-                    onClick={toggleFilters}
-                    startIcon={<FilterIcon />}
-                    endIcon={showFilters ? <CollapseIcon /> : <ExpandIcon />}
-                    variant={showFilters ? "contained" : "outlined"}
-                  >
-                    Rozšírené filtre
-                  </Button>
-                  <Button
-                    size="small"
-                    onClick={() => {
-                      setMaintenanceFormData({
-                        vehicleId: '',
-                        startDate: format(new Date(), 'yyyy-MM-dd'),
-                        endDate: format(new Date(), 'yyyy-MM-dd'),
-                        reason: '',
-                        type: 'maintenance',
-                        notes: '',
-                        priority: 2,
-                        recurring: false,
-                      });
-                      setEditingMaintenance(null);
-                      setMaintenanceDialogOpen(true);
-                    }}
-                    startIcon={<AddIcon />}
-                    variant="contained"
-                    color="primary"
-                  >
-                    Vytvoriť nedostupnosť
-                  </Button>
+      {/* Desktop kalendár - card layout pre vozidlá */}
+      <Box sx={{ 
+        display: 'grid',
+        gridTemplateColumns: { md: '1fr', lg: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' },
+        gap: 2
+      }}>
+        {filteredVehicles.map((vehicle) => (
+          <Card key={vehicle.id} sx={{ 
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            borderRadius: 3,
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
+            }
+          }}>
+            <CardContent sx={{ p: 3 }}>
+              {/* Vozidlo header */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                mb: 2,
+                pb: 2,
+                borderBottom: '2px solid #f0f0f0'
+              }}>
+                <Box>
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 600, 
+                    fontSize: '1.1rem',
+                    color: '#1976d2',
+                    mb: 0.5
+                  }}>
+                    {vehicle.brand} {vehicle.model}
+                  </Typography>
+                  <Typography variant="body2" sx={{ 
+                    color: '#666', 
+                    fontSize: '0.9rem',
+                    fontFamily: 'monospace',
+                    fontWeight: 600
+                  }}>
+                    {vehicle.licensePlate}
+                  </Typography>
                 </Box>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-
-        {/* Advanced Filters Panel - Collapsible */}
-        <Collapse in={showFilters}>
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="subtitle1" display="flex" alignItems="center">
-                  <FilterIcon sx={{ mr: 1 }} />
-                  Rozšírené filtre
-                        </Typography>
-                {(statusFilter !== 'all' || brandFilter !== 'all' || companyFilter !== 'all' || availableFromDate || availableToDate) && (
-                  <Button
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Chip 
+                    label={vehicle.status}
                     size="small"
-                    startIcon={<ClearIcon />}
-                    onClick={() => {
-                      setStatusFilter('all');
-                      setBrandFilter('all');
-                      setCompanyFilter('all');
-                      setAvailableFromDate('');
-                      setAvailableToDate('');
-                    }}
-                    color="secondary"
-                  >
-                    Vyčistiť filtre
-                  </Button>
-                )}
+                    color={vehicle.status === 'available' ? 'success' : 
+                           vehicle.status === 'rented' ? 'primary' : 'warning'}
+                    sx={{ fontWeight: 600 }}
+                  />
+                  {mobileViewMode === 'week' && (
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <IconButton 
+                        size="small"
+                        onClick={() => setCurrentWeekOffset(prev => prev - 1)}
+                        disabled={currentWeekOffset <= 0}
+                        sx={{ 
+                          width: 32, 
+                          height: 32,
+                          backgroundColor: currentWeekOffset > 0 ? '#f5f5f5' : 'transparent'
+                        }}
+                      >
+                        <ChevronLeftIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        size="small"
+                        onClick={() => setCurrentWeekOffset(prev => prev + 1)}
+                        disabled={currentWeekOffset >= Math.floor(statusFilteredCalendarData.length / 7) - 1}
+                        sx={{ 
+                          width: 32, 
+                          height: 32,
+                          backgroundColor: '#f5f5f5'
+                        }}
+                      >
+                        <ChevronRightIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
+                </Box>
               </Box>
 
-              <Grid container spacing={2}>
-                {/* Status Filter */}
-                <Grid item xs={12} md={3}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Stav vozidiel</InputLabel>
-                    <Select
-                      value={statusFilter}
-                      label="Stav vozidiel"
-                      onChange={(e) => setStatusFilter(e.target.value as any)}
-                    >
-                      <MenuItem value="all">📋 Všetky stavy</MenuItem>
-                      <MenuItem value="available">✅ Dostupné</MenuItem>
-                      <MenuItem value="rented">🔴 Obsadené</MenuItem>
-                      <MenuItem value="maintenance">🔧 Údržba</MenuItem>
-                      <MenuItem value="service">⚙️ Servis</MenuItem>
-                      <MenuItem value="repair">🔨 Oprava</MenuItem>
-                      <MenuItem value="blocked">🚫 Blokované</MenuItem>
-                      <MenuItem value="cleaning">🧽 Čistenie</MenuItem>
-                      <MenuItem value="inspection">✅ Kontrola</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                {/* Brand Filter */}
-                <Grid item xs={12} md={3}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Značka vozidiel</InputLabel>
-                    <Select
-                      value={brandFilter}
-                      label="Značka vozidiel"
-                      onChange={(e) => setBrandFilter(e.target.value)}
-                    >
-                      <MenuItem value="all">🚗 Všetky značky</MenuItem>
-                      {uniqueBrands.map(brand => (
-                        <MenuItem key={brand} value={brand}>
-                          {brand}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                {/* Company Filter */}
-                <Grid item xs={12} md={3}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Firma</InputLabel>
-                    <Select
-                      value={companyFilter}
-                      label="Firma"
-                      onChange={(e) => setCompanyFilter(e.target.value)}
-                    >
-                      <MenuItem value="all">🏢 Všetky firmy</MenuItem>
-                      {uniqueCompanies.map(company => (
-                        <MenuItem key={company} value={company}>
-                          {company}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                {/* Date Range Availability Filter */}
-                <Grid item xs={12} md={3}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel shrink>Voľné od-do</InputLabel>
-                    <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
-                      <TextField
-                        size="small"
-                        type="date"
-                        value={availableFromDate}
-                        onChange={(e) => setAvailableFromDate(e.target.value)}
-                        sx={{ flex: 1 }}
-                        inputProps={{ style: { fontSize: '0.75rem' } }}
-                      />
-                      <TextField
-                        size="small"
-                        type="date"
-                        value={availableToDate}
-                        onChange={(e) => setAvailableToDate(e.target.value)}
-                        sx={{ flex: 1 }}
-                        inputProps={{ style: { fontSize: '0.75rem' } }}
-                      />
-                    </Box>
-                  </FormControl>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Collapse>
-
-        {/* BOOKING.COM STYLE PROFESSIONAL CALENDAR */}
-        <Card sx={{ 
-          overflow: 'hidden',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-          borderRadius: 2
-        }}>
-          <CardContent sx={{ p: 0 }}>
-            {filteredVehicles.length === 0 ? (
-              <Box display="flex" flexDirection="column" alignItems="center" gap={2} p={6}>
-                <SearchIcon color="disabled" sx={{ fontSize: 64 }} />
-                <Typography variant="h5" color="textSecondary" textAlign="center">
-                  Žiadne vozidlá nevyhovujú filtrom
-                        </Typography>
-                <Typography variant="body1" color="textSecondary" textAlign="center">
-                  Skúste upraviť filtre alebo vyčistiť vyhľadávanie
-                </Typography>
-                <Button variant="contained" onClick={handleResetFilters} sx={{ mt: 1 }}>
-                  Vyčistiť všetky filtre
-                </Button>
-                      </Box>
-            ) : (
-              <>
-                {/* HEADER S DÁTUMAMI - HORIZONTÁLNE */}
-                <Box sx={{ 
-                  display: 'flex',
-                  borderBottom: '2px solid #e0e0e0',
-                  backgroundColor: '#f8f9fa',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 1000
-                }}>
-                  {/* Vozidlá header */}
-                  <Box sx={{ 
-                    minWidth: 360,
-                    maxWidth: 360,
-                    p: 2.5,
-                    borderRight: '2px solid #e0e0e0',
-                    fontWeight: 'bold',
-                    backgroundColor: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    boxShadow: '2px 0 4px rgba(0,0,0,0.1)'
-                  }}>
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
-                      🚗 Vozidlá ({filteredVehicles.length})
-                    </Typography>
-                  </Box>
+              {/* Dostupnosť kalendár */}
+              <Typography variant="subtitle2" sx={{ 
+                mb: 2, 
+                fontWeight: 600,
+                color: '#333'
+              }}>
+                {mobileViewMode === 'week' 
+                  ? `Dostupnosť (${format(new Date(Date.now() + currentWeekOffset * 7 * 24 * 60 * 60 * 1000), 'd.M.')} - ${format(new Date(Date.now() + (currentWeekOffset * 7 + 6) * 24 * 60 * 60 * 1000), 'd.M.')}):` 
+                  : 'Dostupnosť na 30 dní:'
+                }
+              </Typography>
+              
+              <Box sx={{ 
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gridTemplateRows: mobileViewMode === 'month' ? 'repeat(5, 1fr)' : '1fr',
+                gap: 0.75,
+                mb: 3
+              }}>
+                {(mobileViewMode === 'week' 
+                  ? statusFilteredCalendarData.slice(currentWeekOffset * 7, (currentWeekOffset + 1) * 7)
+                  : statusFilteredCalendarData.slice(0, 30)
+                ).map((day) => {
+                  const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
+                  const isAvailable = !vehicleStatus || vehicleStatus.status === 'available';
+                  const isRented = vehicleStatus?.status === 'rented';
+                  const isMaintenance = vehicleStatus?.status === 'maintenance' || vehicleStatus?.status === 'service' || vehicleStatus?.status === 'blocked';
+                  const dayIsToday = isToday(new Date(day.date));
                   
-                  {/* Dátumy header - horizontálne scroll */}
-                  <Box 
-                    id="calendar-header-scroll"
-                    sx={{ 
-                      display: 'flex',
-                      flex: 1,
-                      overflowX: 'auto',
-                      '&::-webkit-scrollbar': { height: 8 },
-                      '&::-webkit-scrollbar-thumb': { 
-                        backgroundColor: '#1976d2', 
-                        borderRadius: 4,
-                        '&:hover': { backgroundColor: '#1565c0' }
-                      },
-                      '&::-webkit-scrollbar-track': { backgroundColor: '#f5f5f5' }
-                    }}
-                    onScroll={(e) => {
-                      // Sync scroll with vehicle rows
-                      const scrollLeft = e.currentTarget.scrollLeft;
-                      const vehicleRows = document.querySelectorAll('.vehicle-calendar-row');
-                      vehicleRows.forEach((row) => {
-                        row.scrollLeft = scrollLeft;
-                      });
-                    }}
-                  >
-                    {statusFilteredCalendarData.map((day, index) => (
-                      <Box 
-                        key={day.date}
-                        sx={{ 
-                          minWidth: 80,
-                          maxWidth: 80,
-                          p: 1.5,
-                          borderRight: index < statusFilteredCalendarData.length - 1 ? '1px solid #e0e0e0' : 'none',
-                          textAlign: 'center',
-                          backgroundColor: isToday(new Date(day.date)) ? '#e3f2fd' : '#f8f9fa',
-                          transition: 'background-color 0.2s',
-                          '&:hover': { backgroundColor: '#e1f5fe' }
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ 
-                          fontWeight: 700, 
-                          fontSize: '0.95rem',
-                          color: isToday(new Date(day.date)) ? '#1976d2' : '#333'
-                        }}>
-                          {format(new Date(day.date), 'd')}
-                        </Typography>
-                        <Typography variant="caption" sx={{ 
-                          color: isToday(new Date(day.date)) ? '#1976d2' : '#666', 
-                          fontSize: '0.75rem',
-                          fontWeight: 500
-                        }}>
-                          {format(new Date(day.date), 'EEE', { locale: sk })}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
-
-                {/* VOZIDLÁ ROWS - BOOKING.COM STYLE */}
-                <Box>
-                  {filteredVehicles.map((vehicle, vehicleIndex) => (
+                  return (
                     <Box 
-                      key={vehicle.id}
+                      key={day.date}
                       sx={{ 
-                        display: 'flex',
-                        borderBottom: vehicleIndex < filteredVehicles.length - 1 ? '1px solid #e0e0e0' : 'none',
-                        '&:hover': { backgroundColor: '#f8f9fa' },
-                        minHeight: 70,
-                        transition: 'background-color 0.2s'
+                        textAlign: 'center',
+                        p: 1,
+                        borderRadius: 2,
+                        backgroundColor: 
+                          dayIsToday ? '#e3f2fd' :
+                          isRented ? '#ffebee' :
+                          isMaintenance ? '#fff3e0' : '#e8f5e8',
+                        border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          transform: 'scale(1.05)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }
                       }}
                     >
-                      {/* VOZIDLO INFO - STICKY LEFT */}
-                      <Box sx={{ 
-                        minWidth: 360,
-                        maxWidth: 360,
-                        p: 2,
-                        borderRight: '2px solid #e0e0e0',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        backgroundColor: '#ffffff',
-                        position: 'sticky',
-                        left: 0,
-                        zIndex: 10,
-                        boxShadow: '2px 0 4px rgba(0,0,0,0.05)'
+                      <Typography variant="caption" sx={{ 
+                        fontWeight: dayIsToday ? 700 : 600,
+                        fontSize: '0.8rem',
+                        color: dayIsToday ? '#1976d2' : '#333',
+                        display: 'block',
+                        lineHeight: 1.2
                       }}>
-                        <Typography variant="h6" sx={{ 
-                          fontWeight: 600, 
-                          mb: 0.5,
-                          fontSize: '1.1rem',
-                          color: '#1976d2'
-                        }}>
-                          {vehicle.brand} {vehicle.model}
-                        </Typography>
-                        <Typography variant="body2" sx={{ 
-                          color: '#666',
-                          fontWeight: 500,
-                          mb: 0.25
-                        }}>
-                          📋 {vehicle.licensePlate}
-                        </Typography>
-                        <Typography variant="caption" sx={{ 
-                          color: '#888',
-                          fontSize: '0.75rem'
-                        }}>
-                          🏢 {vehicle.company}
-                        </Typography>
-                      </Box>
-                      
-                      {/* KALENDÁR GRID PRE VOZIDLO */}
-                      <Box 
-                        className="vehicle-calendar-row"
-                        sx={{ 
-                          display: 'flex',
-                          flex: 1,
-                          overflowX: 'auto'
-                        }}
-                        onScroll={(e) => {
-                          // Sync scroll with header
-                          const scrollLeft = e.currentTarget.scrollLeft;
-                          const headerScroll = document.getElementById('calendar-header-scroll');
-                          if (headerScroll) {
-                            headerScroll.scrollLeft = scrollLeft;
-                          }
-                          // Sync with other vehicle rows
-                          const otherRows = document.querySelectorAll('.vehicle-calendar-row');
-                          otherRows.forEach((row) => {
-                            if (row !== e.currentTarget) {
-                              row.scrollLeft = scrollLeft;
-                            }
-                          });
-                        }}
-                      >
-                        {statusFilteredCalendarData.map((day, dayIndex) => {
-                          const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
-                          
-                return (
-                            <Box 
-                              key={day.date}
-                              sx={{ 
-                                minWidth: 80,
-                                maxWidth: 80,
-                                borderRight: dayIndex < statusFilteredCalendarData.length - 1 ? '1px solid #e0e0e0' : 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                position: 'relative',
-                                backgroundColor: 
-                                  vehicleStatus?.status === 'rented' ? '#ffebee' :
-                                  vehicleStatus?.unavailabilityReason ? '#fff3e0' : 
-                                  vehicleStatus?.status === 'available' ? '#e8f5e8' : '#ffffff',
-                                transition: 'all 0.2s ease',
-                                '&:hover': { 
-                                  backgroundColor: 
-                                    vehicleStatus?.status === 'rented' ? '#ffcdd2' :
-                                    vehicleStatus?.unavailabilityReason ? '#ffe0b2' :
-                                    vehicleStatus?.status === 'available' ? '#c8e6c9' : '#f0f0f0',
-                                  transform: 'scale(1.02)'
-                                }
-                              }}
-                              onClick={() => vehicleStatus && handleStatusClick(vehicleStatus, day.date)}
-                            >
-                              {/* PRENÁJOM BLOCK */}
-                              {vehicleStatus?.status === 'rented' && (
-                                <Box sx={{ 
-                                  position: 'absolute',
-                                  top: 6,
-                                  left: 6,
-                                  right: 6,
-                                  bottom: 6,
-                                  backgroundColor: '#f44336',
-                                  borderRadius: 1.5,
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: 'white',
-                                  fontSize: '0.65rem',
-                                  fontWeight: 700,
-                                  textAlign: 'center',
-                                  boxShadow: '0 2px 8px rgba(244,67,54,0.3)',
-                                  overflow: 'hidden'
-                                }}>
-                                  <Box>PRENÁJOM</Box>
-                                  {vehicleStatus.customerName && (
-                                    <Box sx={{ 
-                                      fontSize: '0.55rem',
-                                      mt: 0.25,
-                                      opacity: 0.9,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                      maxWidth: '100%'
-                                    }}>
-                                      {vehicleStatus.customerName}
-                                    </Box>
-                                  )}
-                                </Box>
-                              )}
-                              
-                              {/* NEDOSTUPNOSŤ BLOCK */}
-                              {vehicleStatus?.unavailabilityReason && (
-                                <Box sx={{ 
-                                  position: 'absolute',
-                                  top: 6,
-                                  left: 6,
-                                  right: 6,
-                                  bottom: 6,
-                                  backgroundColor: '#ff9800',
-                                  borderRadius: 1.5,
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: 'white',
-                                  fontSize: '0.6rem',
-                                  fontWeight: 700,
-                                  textAlign: 'center',
-                                  boxShadow: '0 2px 8px rgba(255,152,0,0.3)',
-                                  overflow: 'hidden'
-                                }}>
-                                  <Box>{vehicleStatus.unavailabilityType?.toUpperCase() || 'NEDOSTUPNÉ'}</Box>
-                                  <Box sx={{ 
-                                    fontSize: '0.5rem',
-                                    mt: 0.25,
-                                    opacity: 0.9,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                    maxWidth: '100%'
-                                  }}>
-                                    {vehicleStatus.unavailabilityReason}
-                                  </Box>
-                                </Box>
-                              )}
-                              
-                              {/* DOSTUPNÉ INDICATOR */}
-                              {vehicleStatus?.status === 'available' && !vehicleStatus?.unavailabilityReason && (
-                                <Box sx={{ 
-                                  width: 12,
-                                  height: 12,
-                                  borderRadius: '50%',
-                                  backgroundColor: '#4caf50',
-                                  boxShadow: '0 2px 4px rgba(76,175,80,0.3)',
-                                  transition: 'transform 0.2s',
-                                  '&:hover': { transform: 'scale(1.2)' }
-                                }} />
-                              )}
-                            </Box>
-                          );
-                        })}
-                      </Box>
+                        {format(new Date(day.date), 'd')}
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: dayIsToday ? '#1976d2' : '#666',
+                        fontSize: '0.7rem',
+                        lineHeight: 1
+                      }}>
+                        {format(new Date(day.date), 'EE', { locale: sk })}
+                      </Typography>
+                      <Box sx={{ 
+                        width: 10, 
+                        height: 10, 
+                        borderRadius: '50%',
+                        backgroundColor: 
+                          isRented ? '#f44336' :
+                          isMaintenance ? '#ff9800' : '#4caf50',
+                        mx: 'auto',
+                        mt: 0.5
+                      }} />
                     </Box>
-                  ))}
-                </Box>
-              </>
-            )}
-          </CardContent>
-        </Card>
+                  );
+                })}
+              </Box>
 
-        <Box mt={2} display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} gap={2}>
-          <Box display="flex" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }} gap={2} flexWrap="wrap">
-            <Typography variant="caption" color="textSecondary" textAlign={{ xs: 'center', md: 'left' }}>
-              Zobrazuje sa: <strong>{filteredVehicles.length}</strong> z {vehicles.length} vozidiel
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary">
-              •  {calendarData.length} dní
-                      </Typography>
-            {(searchQuery || statusFilter !== 'all' || brandFilter !== 'all' || companyFilter !== 'all') && (
-                              <Chip
-                label="Filtrované" 
-                                size="small"
-                color="primary" 
-                                variant="outlined"
-                icon={<FilterIcon />}
-              />
-            )}
-          </Box>
-          <Typography variant="caption" color="textSecondary" textAlign={{ xs: 'center', md: 'right' }} sx={{ display: { xs: 'none', sm: 'block' } }}>
-            💡 Tip: Horizontálne scrollujte pre zobrazenie všetkých vozidiel
-          </Typography>
-        </Box>
-      </CardContent>
-    </Card>
+              {/* Akcie pre vozidlo */}
+              <Box sx={{ 
+                display: 'flex',
+                gap: 1,
+                flexWrap: 'wrap',
+                justifyContent: 'center'
+              }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    setEditingMaintenance(null);
+                    setMaintenanceDialogOpen(true);
+                  }}
+                  sx={{ minWidth: 100 }}
+                >
+                  Blokovať
+                </Button>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => {
+                    // Otvorenie detailu vozidla
+                    console.log('Detail vozidla:', vehicle);
+                  }}
+                  sx={{ minWidth: 100 }}
+                >
+                  Detail
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
+    </Box>
     )}
 
-    {/* Rental Details Dialog */}
-    <Dialog open={rentalDetailsOpen} onClose={handleCloseRentalDetails} maxWidth="sm" fullWidth>
+    {/* Maintenance/Unavailability Dialog */}
+    <Dialog 
+      open={maintenanceDialogOpen} 
+      onClose={() => setMaintenanceDialogOpen(false)}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <OrderIcon />
-          Detaily nájmu
-        </Box>
+        {editingMaintenance ? 'Upraviť nedostupnosť' : 'Vytvoriť nedostupnosť vozidla'}
       </DialogTitle>
-      <DialogContent dividers>
-        {loadingRentalDetails ? (
-          <Box display="flex" justifyContent="center" p={4}>
-            <CircularProgress />
-            <Typography variant="body2" sx={{ ml: 2 }}>
-              Načítavam detaily nájmu...
-          </Typography>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <FormControl fullWidth>
+            <InputLabel>Vozidlo</InputLabel>
+            <Select
+              value={maintenanceFormData.vehicleId}
+              onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, vehicleId: e.target.value }))}
+              label="Vozidlo"
+            >
+              {filteredVehicles.map(vehicle => (
+                <MenuItem key={vehicle.id} value={vehicle.id}>
+                  {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          <TextField
+            label="Od dátumu"
+            type="date"
+            value={maintenanceFormData.startDate}
+            onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, startDate: e.target.value }))}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+          />
+          
+          <TextField
+            label="Do dátumu"
+            type="date"
+            value={maintenanceFormData.endDate}
+            onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, endDate: e.target.value }))}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+          />
+          
+          <TextField
+            label="Dôvod nedostupnosti"
+            multiline
+            rows={3}
+            value={maintenanceFormData.reason}
+            onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, reason: e.target.value }))}
+            fullWidth
+            placeholder="Napríklad: Servis, Oprava, Čistenie..."
+          />
         </Box>
-        ) : selectedRental && selectedRental.id ? (
-          <Grid container spacing={2}>
-            {/* Order Information */}
-            <Grid item xs={12}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
-                    <OrderIcon />
-                    {selectedRental.orderNumber ? `Objednávka #${selectedRental.orderNumber}` : `Prenájom #${selectedRental.id.slice(0, 8)}`}
-                  </Typography>
-                  <Divider sx={{ my: 1 }} />
-                  
-                  <Box display="flex" alignItems="center" gap={1} mb={1}>
-                    <DateIcon />
-                    <Typography variant="subtitle2">Dátumy nájmu:</Typography>
-                  </Box>
-                  <Typography variant="body2">
-                    Od: {format(new Date(selectedRental.startDate), 'dd.MM.yyyy', { locale: sk })}
-                  </Typography>
-                  <Typography variant="body2">
-                    Do: {format(new Date(selectedRental.endDate), 'dd.MM.yyyy', { locale: sk })}
-                  </Typography>
-                  
-                  {selectedRental.handoverPlace && (
-                    <>
-                      <Box display="flex" alignItems="center" gap={1} mt={2} mb={1}>
-                        <LocationIcon />
-                        <Typography variant="subtitle2">Miesto odovzdania:</Typography>
-                      </Box>
-                      <Typography variant="body2">
-                        {selectedRental.handoverPlace}
-                      </Typography>
-                    </>
-                  )}
-      </CardContent>
-    </Card>
-            </Grid>
-
-            {/* Customer Information */}
-            <Grid item xs={12}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
-                    <CustomerIcon />
-                    Zákazník
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {selectedRental.customerName}
-                  </Typography>
-                  {selectedRental.customerPhone && (
-                    <Typography variant="body2" display="flex" alignItems="center" gap={0.5} mb={0.5}>
-                      <PhoneIcon fontSize="small" />
-                      {selectedRental.customerPhone}
-                    </Typography>
-                  )}
-                  {selectedRental.customerEmail && (
-                    <Typography variant="body2" display="flex" alignItems="center" gap={0.5}>
-                      <EmailIcon fontSize="small" />
-                      {selectedRental.customerEmail}
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Price Information */}
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
-                    <PriceIcon />
-                    Cena
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Celková cena: {selectedRental.totalPrice} €</strong>
-                  </Typography>
-                  {selectedRental.commission > 0 && (
-                    <Typography variant="body2">
-                      Provízia: {selectedRental.commission} €
-                    </Typography>
-                  )}
-                  <Typography variant="body2">
-                    Platba: {selectedRental.paymentMethod === 'cash' ? 'Hotovosť' : 
-                            selectedRental.paymentMethod === 'bank_transfer' ? 'Prevod' : 
-                            selectedRental.paymentMethod}
-                  </Typography>
-                  <Typography variant="body2">
-                    Stav: {selectedRental.paid ? '✅ Zaplatené' : '❌ Nezaplatené'}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Additional Information */}
-            {(selectedRental.deposit || selectedRental.allowedKilometers) && (
-              <Grid item xs={12} md={6}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
-                      <DepositIcon />
-                      Dodatočné info
-                    </Typography>
-                    {selectedRental.deposit && (
-                      <Typography variant="body2">
-                        Depozit: {selectedRental.deposit} €
-                      </Typography>
-                    )}
-                    {selectedRental.allowedKilometers && (
-                      <Typography variant="body2" display="flex" alignItems="center" gap={0.5}>
-                        <KilometersIcon fontSize="small" />
-                        Povolené km: {selectedRental.allowedKilometers}
-                      </Typography>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-            )}
-
-            {/* Notes */}
-            {selectedRental.notes && (
-              <Grid item xs={12}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Poznámky
-                    </Typography>
-                    <Typography variant="body2">
-                      {selectedRental.notes}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            )}
-          </Grid>
-        ) : (
-          <Box display="flex" justifyContent="center" p={4}>
-            <Typography variant="body2" color="textSecondary">
-              Žiadne detaily nájmu pre tento vozidlo.
-            </Typography>
-          </Box>
-        )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleCloseRentalDetails} color="primary">
-          Zavrieť
-        </Button>
-      </DialogActions>
-    </Dialog>
-
-    {/* Maintenance Management Dialog */}
-    <Dialog open={maintenanceDialogOpen} onClose={handleMaintenanceClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {editingMaintenance ? 'Upraviť nedostupnosť' : 'Pridať nedostupnosť vozidla'}
-      </DialogTitle>
-      <DialogContent dividers>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {success}
-          </Alert>
-        )}
-
-        <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12}>
-            {maintenanceFormData.vehicleId && clickedVehicleId ? (
-              <TextField
-                label="Vozidlo"
-                value={state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.brand + ' ' + state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.model + ' (' + state.vehicles.find(v => v.id === maintenanceFormData.vehicleId)?.licensePlate + ')' || 'Neznáme vozidlo'}
-                fullWidth
-                disabled
-                variant="outlined"
-              />
-            ) : (
-              <Autocomplete
-                options={state.vehicles}
-                getOptionLabel={(vehicle) => `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
-                value={state.vehicles.find(v => v.id === maintenanceFormData.vehicleId) || null}
-                onChange={(event, newValue) => {
-                  setMaintenanceFormData(prev => ({
-                    ...prev,
-                    vehicleId: newValue?.id || ''
-                  }));
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Vyberte vozidlo *"
-                    variant="outlined"
-                    required
-                    error={!maintenanceFormData.vehicleId}
-                    helperText={!maintenanceFormData.vehicleId ? 'Vyberte vozidlo' : ''}
-                  />
-                )}
-                fullWidth
-              />
-            )}
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              label="Dátum začiatku"
-              type="date"
-              value={maintenanceFormData.startDate}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value !== maintenanceFormData.startDate) {
-                  setMaintenanceFormData(prev => ({ ...prev, startDate: value }));
-                }
-              }}
-              fullWidth
-              required
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              label="Dátum ukončenia"
-              type="date"
-              value={maintenanceFormData.endDate}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value !== maintenanceFormData.endDate) {
-                  setMaintenanceFormData(prev => ({ ...prev, endDate: value }));
-                }
-              }}
-              fullWidth
-              required
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth required>
-              <InputLabel>Typ nedostupnosti</InputLabel>
-              <Select
-                value={maintenanceFormData.type}
-                label="Typ nedostupnosti"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value !== maintenanceFormData.type) {
-                    setMaintenanceFormData(prev => ({ ...prev, type: value as any }));
-                  }
-                }}
-              >
-                <MenuItem value="maintenance">🔧 Údržba</MenuItem>
-                <MenuItem value="service">⚙️ Servis</MenuItem>
-                <MenuItem value="repair">🔨 Oprava</MenuItem>
-                <MenuItem value="blocked">🚫 Blokované</MenuItem>
-                <MenuItem value="cleaning">🧽 Čistenie</MenuItem>
-                <MenuItem value="inspection">✅ Kontrola</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Priorita</InputLabel>
-              <Select
-                value={maintenanceFormData.priority}
-                label="Priorita"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value !== maintenanceFormData.priority) {
-                    setMaintenanceFormData(prev => ({ ...prev, priority: value as any }));
-                  }
-                }}
-              >
-                <MenuItem value={1}>🔴 Kritická</MenuItem>
-                <MenuItem value={2}>🟡 Normálna</MenuItem>
-                <MenuItem value={3}>🟢 Nízka</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              label="Dôvod nedostupnosti"
-              value={maintenanceFormData.reason}
-              onChange={(e) => {
-                const value = e.target.value;
-                // Optimalizované - len ak sa hodnota skutočne zmenila
-                if (value !== maintenanceFormData.reason) {
-                  setMaintenanceFormData(prev => ({ ...prev, reason: value }));
-                }
-              }}
-              fullWidth
-              required
-              placeholder="Napr. Pravidelný servis, Oprava brzd, Čistenie..."
-              // Optimalizácia pre rýchle písanie
-              inputProps={{
-                autoComplete: 'off',
-                spellCheck: 'false'
-              }}
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              label="Poznámky"
-              value={maintenanceFormData.notes}
-              onChange={(e) => {
-                const value = e.target.value;
-                // Optimalizované - len ak sa hodnota skutočne zmenila
-                if (value !== maintenanceFormData.notes) {
-                  setMaintenanceFormData(prev => ({ ...prev, notes: value }));
-                }
-              }}
-              fullWidth
-              // Optimalizácia pre rýchle písanie
-              inputProps={{
-                autoComplete: 'off',
-                spellCheck: 'false'
-              }}
-              multiline
-              rows={3}
-              placeholder="Dodatočné informácie..."
-            />
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleMaintenanceClose}>
+        <Button onClick={() => setMaintenanceDialogOpen(false)}>
           Zrušiť
         </Button>
         <Button 
