@@ -40,6 +40,26 @@ export class PostgresDatabase {
   private async initTables() {
     const client = await this.pool.connect();
     try {
+      // FÁZA 1: ROLE-BASED PERMISSIONS - Vytvorenie companies tabuľky
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS companies (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name VARCHAR(255) NOT NULL,
+          business_id VARCHAR(50),
+          tax_id VARCHAR(50),
+          address TEXT,
+          contact_person VARCHAR(255),
+          email VARCHAR(255),
+          phone VARCHAR(50),
+          contract_start_date DATE,
+          contract_end_date DATE,
+          commission_rate DECIMAL(5,2) DEFAULT 20.00,
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       // Tabuľka používateľov s hashovanými heslami
       await client.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -47,11 +67,28 @@ export class PostgresDatabase {
           username VARCHAR(50) UNIQUE NOT NULL,
           email VARCHAR(100) UNIQUE NOT NULL,
           password_hash VARCHAR(255) NOT NULL,
-          role VARCHAR(30) DEFAULT 'user',
+          role VARCHAR(30) DEFAULT 'admin',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // FÁZA 1: Rozšírenie users tabuľky o nové stĺpce
+      try {
+        await client.query(`
+          ALTER TABLE users 
+          ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES companies(id),
+          ADD COLUMN IF NOT EXISTS employee_number VARCHAR(20),
+          ADD COLUMN IF NOT EXISTS hire_date DATE,
+          ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+          ADD COLUMN IF NOT EXISTS last_login TIMESTAMP,
+          ADD COLUMN IF NOT EXISTS first_name VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS last_name VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS signature_template TEXT
+        `);
+      } catch (error) {
+        console.log('ℹ️ Users table columns already exist or error occurred:', error);
+      }
 
       // Tabuľka vozidiel
       await client.query(`
@@ -68,6 +105,17 @@ export class PostgresDatabase {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // FÁZA 1: Rozšírenie vehicles tabuľky o company ownership a mechanic assignment
+      try {
+        await client.query(`
+          ALTER TABLE vehicles 
+          ADD COLUMN IF NOT EXISTS owner_company_id UUID REFERENCES companies(id),
+          ADD COLUMN IF NOT EXISTS assigned_mechanic_id UUID REFERENCES users(id)
+        `);
+      } catch (error) {
+        console.log('ℹ️ Vehicles table columns already exist or error occurred:', error);
+      }
 
       // Tabuľka zákazníkov
       await client.query(`
@@ -711,7 +759,7 @@ export class PostgresDatabase {
     try {
       // Najprv skús v hlavnej users tabuľke
       const result = await this.pool.query(
-        'SELECT id, username, email, password_hash as password, role, first_name, last_name, signature_template, created_at FROM users WHERE username = $1',
+        'SELECT id, username, email, password_hash as password, role, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE username = $1',
         [username]
       );
 
@@ -725,12 +773,18 @@ export class PostgresDatabase {
           firstName: row.first_name,
           lastName: row.last_name,
           role: row.role,
+          companyId: row.company_id,
+          employeeNumber: row.employee_number,
+          hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
+          isActive: row.is_active ?? true,
+          lastLogin: row.last_login ? new Date(row.last_login) : undefined,
           signatureTemplate: row.signature_template,
-          createdAt: row.created_at
+          createdAt: new Date(row.created_at),
+          updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
         };
       }
 
-      // Ak sa nenájde, skús v users_new tabuľke
+      // Ak sa nenájde, skús v users_new tabuľke (fallback)
       const resultNew = await this.pool.query(
         'SELECT id, username, email, password, role, created_at FROM users_new WHERE username = $1',
         [username]
@@ -744,7 +798,8 @@ export class PostgresDatabase {
           email: row.email,
           password: row.password,
           role: row.role,
-          createdAt: row.created_at
+          isActive: true, // default pre starých používateľov
+          createdAt: new Date(row.created_at)
         };
       }
 
@@ -758,7 +813,7 @@ export class PostgresDatabase {
   async getUserById(id: string): Promise<User | null> {
     try {
       const result = await this.pool.query(
-        'SELECT id, username, email, password_hash as password, role, first_name, last_name, signature_template, created_at FROM users WHERE id = $1',
+        'SELECT id, username, email, password_hash as password, role, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE id = $1',
         [id]
       );
 
@@ -772,8 +827,14 @@ export class PostgresDatabase {
           firstName: row.first_name,
           lastName: row.last_name,
           role: row.role,
+          companyId: row.company_id,
+          employeeNumber: row.employee_number,
+          hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
+          isActive: row.is_active ?? true,
+          lastLogin: row.last_login ? new Date(row.last_login) : undefined,
           signatureTemplate: row.signature_template,
-          createdAt: row.created_at
+          createdAt: new Date(row.created_at),
+          updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
         };
       }
 
@@ -789,8 +850,8 @@ export class PostgresDatabase {
     try {
       const hashedPassword = await bcrypt.hash(userData.password, 12);
       const result = await client.query(
-        'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, password_hash, role, created_at',
-        [userData.username, userData.email, hashedPassword, userData.role]
+        'INSERT INTO users (username, email, password_hash, role, is_active) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, email, password_hash, role, is_active, created_at',
+        [userData.username, userData.email, hashedPassword, userData.role, true]
       );
       
       const row = result.rows[0];
@@ -800,6 +861,7 @@ export class PostgresDatabase {
         email: row.email,
         password: row.password_hash,
         role: row.role,
+        isActive: row.is_active ?? true,
         createdAt: new Date(row.created_at)
       };
     } finally {
@@ -833,7 +895,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'SELECT id, username, email, password_hash as password, role, created_at FROM users ORDER BY created_at DESC'
+        'SELECT id, username, email, password_hash as password, role, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users ORDER BY created_at DESC'
       );
       
       return result.rows.map(row => ({
@@ -841,8 +903,17 @@ export class PostgresDatabase {
         username: row.username,
         email: row.email,
         password: row.password_hash,
+        firstName: row.first_name,
+        lastName: row.last_name,
         role: row.role,
-        createdAt: row.created_at
+        companyId: row.company_id,
+        employeeNumber: row.employee_number,
+        hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
+        isActive: row.is_active ?? true,
+        lastLogin: row.last_login ? new Date(row.last_login) : undefined,
+        signatureTemplate: row.signature_template,
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
       }));
     } finally {
       client.release();
@@ -1711,15 +1782,26 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'INSERT INTO companies (name) VALUES ($1) RETURNING id, name, created_at', 
-        [companyData.name]
+        'INSERT INTO companies (name, commission_rate, is_active) VALUES ($1, $2, $3) RETURNING id, name, business_id, tax_id, address, contact_person, email, phone, contract_start_date, contract_end_date, commission_rate, is_active, created_at, updated_at', 
+        [companyData.name, 20.00, true]
       );
       
       const row = result.rows[0];
       return {
         id: row.id.toString(),
         name: row.name,
-        createdAt: new Date(row.created_at)
+        businessId: row.business_id,
+        taxId: row.tax_id,
+        address: row.address,
+        contactPerson: row.contact_person,
+        email: row.email,
+        phone: row.phone,
+        contractStartDate: row.contract_start_date ? new Date(row.contract_start_date) : undefined,
+        contractEndDate: row.contract_end_date ? new Date(row.contract_end_date) : undefined,
+        commissionRate: parseFloat(row.commission_rate) || 20.00,
+        isActive: row.is_active ?? true,
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
       };
     } finally {
       client.release();
