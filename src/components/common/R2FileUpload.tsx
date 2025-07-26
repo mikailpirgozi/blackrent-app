@@ -96,11 +96,15 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    console.log('🔍 R2 FILE SELECT - Files selected:', files.length);
+    
     setError(null);
     setUploading(true);
 
     try {
       const uploadPromises = Array.from(files).map(async (file) => {
+        console.log('🔍 R2 UPLOAD START - File:', file.name, 'Type:', file.type, 'Size:', file.size);
+        
         // Validácia typu súboru
         if (!acceptedTypes.includes(file.type)) {
           throw new Error(`Nepodporovaný typ súboru: ${file.type}`);
@@ -114,7 +118,9 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
         // Automatická kompresia obrázkov
         let processedFile = file;
         if (file.type.startsWith('image/')) {
+          console.log('🔍 R2 COMPRESS - Compressing image...');
           processedFile = await compressImage(file);
+          console.log('🔍 R2 COMPRESS - Compressed size:', processedFile.size);
         }
 
         // Upload do R2
@@ -122,6 +128,8 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
         formData.append('file', processedFile);
         formData.append('type', type);
         formData.append('entityId', entityId);
+
+        console.log('🔍 R2 UPLOAD - Sending to backend:', `${API_BASE_URL}/files/upload`);
 
         // Get auth token
         const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
@@ -134,7 +142,10 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
           body: formData,
         });
 
+        console.log('🔍 R2 UPLOAD - Response status:', response.status);
+        
         const data = await response.json();
+        console.log('🔍 R2 UPLOAD - Response data:', data);
 
         if (!response.ok || !data.success) {
           throw new Error(data.error || 'Upload zlyhal');
@@ -144,6 +155,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
       });
 
       const results = await Promise.all(uploadPromises);
+      console.log('🔍 R2 UPLOAD - All uploads completed:', results);
       
       if (multiple) {
         setUploadedFiles(prev => [...prev, ...results]);
@@ -153,11 +165,13 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
 
       // Callback pre rodiča
       results.forEach((fileData: FileData) => {
+        console.log('🔍 R2 CALLBACK - Calling onUploadSuccess with:', fileData);
         onUploadSuccess?.(fileData);
       });
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Upload zlyhal';
+      console.error('🔍 R2 UPLOAD ERROR:', errorMessage);
       setError(errorMessage);
       onUploadError?.(errorMessage);
     } finally {

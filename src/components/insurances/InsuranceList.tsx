@@ -281,6 +281,10 @@ export default function InsuranceList() {
   };
 
   const handleSave = async (data: any) => {
+    console.log('🔍 HANDLE SAVE START - Received data:', data);
+    console.log('🔍 HANDLE SAVE START - FilePath in data:', data.filePath);
+    console.log('🔍 HANDLE SAVE START - Editing document:', editingDocument);
+    
     try {
       if (editingDocument) {
         if (editingDocument.type === 'insurance') {
@@ -297,6 +301,8 @@ export default function InsuranceList() {
             paymentFrequency: data.paymentFrequency || 'yearly',
             filePath: data.filePath
           };
+          console.log('🔍 HANDLE SAVE - Updating insurance with data:', insuranceData);
+          console.log('🔍 HANDLE SAVE - Insurance filePath:', insuranceData.filePath);
           await updateInsurance(insuranceData);
         } else {
           // Transform UnifiedDocument to VehicleDocument format
@@ -311,6 +317,8 @@ export default function InsuranceList() {
             notes: data.notes,
             filePath: data.filePath
           };
+          console.log('🔍 HANDLE SAVE - Updating vehicle document with data:', vehicleDocData);
+          console.log('🔍 HANDLE SAVE - Vehicle document filePath:', vehicleDocData.filePath);
           await updateVehicleDocument(vehicleDocData);
         }
       } else {
@@ -328,6 +336,8 @@ export default function InsuranceList() {
             paymentFrequency: data.paymentFrequency || 'yearly',
             filePath: data.filePath
           };
+          console.log('🔍 HANDLE SAVE - Creating insurance with data:', insuranceData);
+          console.log('🔍 HANDLE SAVE - Insurance filePath:', insuranceData.filePath);
           await createInsurance(insuranceData);
         } else {
           // Transform UnifiedDocument to VehicleDocument format
@@ -342,9 +352,12 @@ export default function InsuranceList() {
             notes: data.notes,
             filePath: data.filePath
           };
+          console.log('🔍 HANDLE SAVE - Creating vehicle document with data:', vehicleDocData);
+          console.log('🔍 HANDLE SAVE - Vehicle document filePath:', vehicleDocData.filePath);
           await createVehicleDocument(vehicleDocData);
         }
       }
+      console.log('🔍 HANDLE SAVE - Save completed successfully');
       setOpenDialog(false);
       setEditingDocument(null);
     } catch (error) {
