@@ -2283,37 +2283,62 @@ router.post('/auto-assign-vehicles',
       
       let assignedCount = 0;
       let createdCompanies = 0;
+      let skippedCount = 0;
       const results = [];
+      const errors = [];
       
       // 3. Pre každé vozidlo
       for (const vehicle of vehicles) {
-        if (!vehicle.company || vehicle.ownerCompanyId) {
-          continue; // Preskočiť ak už má priradené ownerCompanyId alebo nemá company
+        try {
+          if (!vehicle.company) {
+            skippedCount++;
+            continue; // Preskočiť ak nemá company
+          }
+          
+          if (vehicle.ownerCompanyId) {
+            results.push(`⏭️ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) už má firmu`);
+            skippedCount++;
+            continue; // Preskočiť ak už má priradené ownerCompanyId
+          }
+          
+          const companyName = vehicle.company.trim();
+          const companyNameLower = companyName.toLowerCase();
+          
+          let companyId = existingCompanies.get(companyNameLower);
+          
+          // 4. Ak firma neexistuje, vytvor ju
+          if (!companyId) {
+            console.log(`🆕 Vytváram novú firmu: ${companyName}`);
+            try {
+              const newCompany = await postgresDatabase.createCompany({
+                name: companyName
+              });
+              companyId = newCompany.id;
+              existingCompanies.set(companyNameLower, companyId);
+              createdCompanies++;
+            } catch (createError) {
+              console.error(`❌ Chyba pri vytváraní firmy ${companyName}:`, createError);
+              errors.push(`Nemôžem vytvoriť firmu ${companyName}: ${createError.message}`);
+              continue;
+            }
+          }
+          
+          // 5. Priradí vozidlo k firme pomocou existujúcej metódy
+          try {
+            await postgresDatabase.assignVehiclesToCompany([vehicle.id], companyId);
+            const result = `✅ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) → ${companyName}`;
+            console.log(result);
+            results.push(result);
+            assignedCount++;
+          } catch (assignError) {
+            console.error(`❌ Chyba pri priradzovaní vozidla ${vehicle.id}:`, assignError);
+            errors.push(`Nemôžem priradiť ${vehicle.brand} ${vehicle.model}: ${assignError.message}`);
+          }
+          
+        } catch (vehicleError) {
+          console.error(`❌ Chyba pri spracovaní vozidla ${vehicle.id}:`, vehicleError);
+          errors.push(`Chyba pri spracovaní ${vehicle.brand} ${vehicle.model}: ${vehicleError.message}`);
         }
-        
-        const companyName = vehicle.company.trim();
-        const companyNameLower = companyName.toLowerCase();
-        
-        let companyId = existingCompanies.get(companyNameLower);
-        
-        // 4. Ak firma neexistuje, vytvor ju
-        if (!companyId) {
-          console.log(`🆕 Vytváram novú firmu: ${companyName}`);
-          const newCompany = await postgresDatabase.createCompany({
-            name: companyName
-          });
-          companyId = newCompany.id;
-          existingCompanies.set(companyNameLower, companyId);
-          createdCompanies++;
-        }
-        
-        // 5. Priradí vozidlo k firme pomocou existujúcej metódy
-        await postgresDatabase.assignVehiclesToCompany([vehicle.id], companyId);
-        
-        const result = `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) → ${companyName}`;
-        console.log(`✅ ${result}`);
-        results.push(result);
-        assignedCount++;
       }
       
       res.json({
@@ -2322,15 +2347,18 @@ router.post('/auto-assign-vehicles',
         data: {
           createdCompanies,
           assignedVehicles: assignedCount,
-          results
+          skippedVehicles: skippedCount,
+          results,
+          errors: errors.length > 0 ? errors : undefined
         }
       });
 
     } catch (error) {
-      console.error('Auto-assign vehicles error:', error);
+      console.error('❌ Auto-assign vehicles critical error:', error);
       res.status(500).json({
         success: false,
-        error: 'Chyba pri automatickom priradzovaní vozidiel'
+        error: `Kritická chyba pri automatickom priradzovaní: ${error.message}`,
+        details: error.stack
       });
     }
   }
