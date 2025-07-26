@@ -34,8 +34,6 @@ import {
   History as HistoryIcon,
   Search as SearchIcon,
   FilterList as FilterListIcon,
-  Refresh as RefreshIcon,
-  ViewList as ViewListIcon,
   CalendarToday as CalendarIcon,
   Business as BusinessIcon,
   DirectionsCar as CarIcon,
@@ -92,7 +90,6 @@ export default function VehicleListNew() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   // States
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [searchQuery, setSearchQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -272,12 +269,6 @@ export default function VehicleListNew() {
             >
               <FilterListIcon />
             </IconButton>
-            <IconButton
-              onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-              sx={{ bgcolor: '#f5f5f5', '&:hover': { bgcolor: '#e0e0e0' } }}
-            >
-              <ViewListIcon />
-            </IconButton>
           </Box>
 
           {/* Filters */}
@@ -386,7 +377,7 @@ export default function VehicleListNew() {
       </Box>
 
       {/* Vehicle List */}
-      {viewMode === 'cards' ? (
+      {isMobile ? (
         /* MOBILE CARDS VIEW */
         <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
           <CardContent sx={{ p: 0 }}>
@@ -579,8 +570,327 @@ export default function VehicleListNew() {
           </CardContent>
         </Card>
       ) : (
-        /* DESKTOP TABLE VIEW - TODO: Implement desktop table similar to rentals */
-        <Alert severity="info">Desktop table view - TODO: Implement</Alert>
+        /* DESKTOP TABLE VIEW */
+        <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
+          <CardContent sx={{ p: 0 }}>
+            {/* Desktop Header */}
+            <Box sx={{ 
+              display: 'flex',
+              bgcolor: '#f8f9fa',
+              borderBottom: '2px solid #e0e0e0',
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              minHeight: 56
+            }}>
+              {/* Vozidlo column */}
+              <Box sx={{ 
+                width: 200,
+                minWidth: 200,
+                p: 2,
+                borderRight: '1px solid #e0e0e0',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
+                  🚗 Vozidlo
+                </Typography>
+              </Box>
+              
+              {/* ŠPZ column */}
+              <Box sx={{ 
+                width: 120,
+                minWidth: 120,
+                p: 2,
+                borderRight: '1px solid #e0e0e0',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
+                  📋 ŠPZ
+                </Typography>
+              </Box>
+              
+              {/* Firma column */}
+              <Box sx={{ 
+                width: 150,
+                minWidth: 150,
+                p: 2,
+                borderRight: '1px solid #e0e0e0',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
+                  🏢 Firma
+                </Typography>
+              </Box>
+              
+              {/* Status column */}
+              <Box sx={{ 
+                width: 140,
+                minWidth: 140,
+                p: 2,
+                borderRight: '1px solid #e0e0e0',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
+                  📊 Status
+                </Typography>
+              </Box>
+              
+              {/* Ceny column */}
+              <Box sx={{ 
+                width: 200,
+                minWidth: 200,
+                p: 2,
+                borderRight: '1px solid #e0e0e0',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
+                  💰 Ceny
+                </Typography>
+              </Box>
+              
+              {/* Akcie column */}
+              <Box sx={{ 
+                width: 120,
+                minWidth: 120,
+                p: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
+                  ⚡ Akcie
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Desktop Vehicle Rows */}
+            <Box>
+              {filteredVehicles.map((vehicle, index) => (
+                <Box 
+                  key={vehicle.id}
+                  sx={{ 
+                    display: 'flex',
+                    borderBottom: index < filteredVehicles.length - 1 ? '1px solid #e0e0e0' : 'none',
+                    '&:hover': { backgroundColor: '#f8f9fa' },
+                    minHeight: 72,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleEdit(vehicle)}
+                >
+                  {/* Vozidlo column */}
+                  <Box sx={{ 
+                    width: 200,
+                    minWidth: 200,
+                    p: 2,
+                    borderRight: '1px solid #e0e0e0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                  }}>
+                    <Typography variant="subtitle2" sx={{ 
+                      fontWeight: 600, 
+                      color: '#1976d2',
+                      mb: 0.5
+                    }}>
+                      {vehicle.brand} {vehicle.model}
+                    </Typography>
+                    <Typography variant="caption" sx={{ 
+                      color: '#666',
+                      fontSize: '0.7rem'
+                    }}>
+                      ID: {vehicle.id.slice(0, 8)}...
+                    </Typography>
+                  </Box>
+                  
+                  {/* ŠPZ column */}
+                  <Box sx={{ 
+                    width: 120,
+                    minWidth: 120,
+                    p: 2,
+                    borderRight: '1px solid #e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 600,
+                      color: '#333',
+                      fontFamily: 'monospace'
+                    }}>
+                      {vehicle.licensePlate}
+                    </Typography>
+                  </Box>
+                  
+                  {/* Firma column */}
+                  <Box sx={{ 
+                    width: 150,
+                    minWidth: 150,
+                    p: 2,
+                    borderRight: '1px solid #e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    <Typography variant="body2" sx={{ 
+                      color: '#333',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {vehicle.company}
+                    </Typography>
+                  </Box>
+                  
+                  {/* Status column */}
+                  <Box sx={{ 
+                    width: 140,
+                    minWidth: 140,
+                    p: 2,
+                    borderRight: '1px solid #e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    <Chip
+                      size="small"
+                      label={getStatusText(vehicle.status)}
+                      icon={getStatusIcon(vehicle.status)}
+                      sx={{
+                        height: 24,
+                        fontSize: '0.7rem',
+                        bgcolor: getStatusColor(vehicle.status),
+                        color: 'white',
+                        fontWeight: 700,
+                        '& .MuiChip-icon': {
+                          color: 'white',
+                          fontSize: '0.9rem'
+                        }
+                      }}
+                    />
+                  </Box>
+                  
+                  {/* Ceny column */}
+                  <Box sx={{ 
+                    width: 200,
+                    minWidth: 200,
+                    p: 2,
+                    borderRight: '1px solid #e0e0e0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                  }}>
+                    {vehicle.pricing && vehicle.pricing.length > 0 ? (
+                      <>
+                        <Typography variant="caption" sx={{ 
+                          color: '#666',
+                          fontSize: '0.65rem',
+                          mb: 0.25
+                        }}>
+                          1 deň: {vehicle.pricing.find(p => p.minDays === 0 && p.maxDays === 1)?.pricePerDay || 0}€
+                        </Typography>
+                        <Typography variant="caption" sx={{ 
+                          color: '#666',
+                          fontSize: '0.65rem'
+                        }}>
+                          7+ dní: {vehicle.pricing.find(p => p.minDays === 4 && p.maxDays === 7)?.pricePerDay || 0}€
+                        </Typography>
+                      </>
+                    ) : (
+                      <Typography variant="caption" sx={{ color: '#999' }}>
+                        Nezadané
+                      </Typography>
+                    )}
+                  </Box>
+                  
+                  {/* Akcie column */}
+                  <Box sx={{ 
+                    width: 120,
+                    minWidth: 120,
+                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 0.5
+                  }}>
+                    {/* Edit Button */}
+                    <IconButton
+                      size="small"
+                      title="Upraviť vozidlo"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(vehicle);
+                      }}
+                      sx={{ 
+                        bgcolor: '#2196f3', 
+                        color: 'white',
+                        width: 28,
+                        height: 28,
+                        '&:hover': { 
+                          bgcolor: '#1976d2',
+                          transform: 'scale(1.1)',
+                          boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
+                        },
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    
+                    {/* History Button */}
+                    <IconButton
+                      size="small"
+                      title="História vozidla"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // TODO: Implement history view
+                      }}
+                      sx={{ 
+                        bgcolor: '#9c27b0', 
+                        color: 'white',
+                        width: 28,
+                        height: 28,
+                        '&:hover': { 
+                          bgcolor: '#7b1fa2',
+                          transform: 'scale(1.1)',
+                          boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
+                        },
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <HistoryIcon fontSize="small" />
+                    </IconButton>
+                    
+                    {/* Delete Button */}
+                    <IconButton
+                      size="small"
+                      title="Zmazať vozidlo"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(vehicle.id);
+                      }}
+                      sx={{ 
+                        bgcolor: '#f44336', 
+                        color: 'white',
+                        width: 28,
+                        height: 28,
+                        '&:hover': { 
+                          bgcolor: '#d32f2f',
+                          transform: 'scale(1.1)',
+                          boxShadow: '0 4px 12px rgba(244,67,54,0.4)'
+                        },
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
       )}
 
       {/* Vehicle Form Dialog */}
