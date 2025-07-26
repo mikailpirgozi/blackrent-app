@@ -506,8 +506,11 @@ class ApiService {
     
     const response = await this.request<any>('/auth/users');
     console.log('👥 API getUsers - response:', response);
+    console.log('👥 API getUsers - response type:', typeof response);
+    console.log('👥 API getUsers - is array:', Array.isArray(response));
     
-    return response.data || [];
+    // request() už parsuje data a vracia priamo users array
+    return Array.isArray(response) ? response : [];
   }
 
   async createUser(userData: any): Promise<any> {
@@ -519,7 +522,10 @@ class ApiService {
     });
     
     console.log('👤 API createUser - response:', response);
-    return response.data;
+    console.log('👤 API createUser - response type:', typeof response);
+    
+    // request() už parsuje data a vracia priamo user objekt
+    return response;
   }
 
   async updateUser(userId: string, userData: any): Promise<any> {
@@ -531,7 +537,10 @@ class ApiService {
     });
     
     console.log('👤 API updateUser - response:', response);
-    return response.data;
+    console.log('👤 API updateUser - response type:', typeof response);
+    
+    // request() už parsuje data a vracia priamo user objekt
+    return response;
   }
 
   async deleteUser(userId: string): Promise<void> {

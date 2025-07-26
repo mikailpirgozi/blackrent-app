@@ -655,7 +655,21 @@ router.get('/users', authenticateToken, requireRole(['admin']), async (req: Requ
 // POST /api/auth/users - Vytvorenie nového používateľa (len admin)
 router.post('/users', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { username, email, password, role } = req.body;
+    const { 
+      username, 
+      email, 
+      password, 
+      role,
+      firstName,
+      lastName,
+      companyId,
+      employeeNumber,
+      hireDate,
+      isActive,
+      signatureTemplate
+    } = req.body;
+
+    console.log('📋 Create user request body:', req.body);
 
     if (!username || !email || !password || !role) {
       return res.status(400).json({
@@ -673,12 +687,22 @@ router.post('/users', authenticateToken, requireRole(['admin']), async (req: Req
       });
     }
 
-    const createdUser = await postgresDatabase.createUser({
+    const userData = {
       username,
       email, 
       password,
-      role
-    });
+      role,
+      firstName: firstName || null,
+      lastName: lastName || null,
+      companyId: companyId || null,
+      employeeNumber: employeeNumber || null,
+      hireDate: hireDate ? new Date(hireDate) : null,
+      isActive: isActive !== undefined ? isActive : true,
+      signatureTemplate: signatureTemplate || null
+    };
+
+    console.log('👤 Creating user with data:', userData);
+    const createdUser = await postgresDatabase.createUser(userData);
 
     res.status(201).json({
       success: true,
