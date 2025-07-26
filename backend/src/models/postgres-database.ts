@@ -73,11 +73,11 @@ export class PostgresDatabase {
         )
       `);
 
-      // FÁZA 1: Rozšírenie users tabuľky o nové stĺpce
+      // FÁZA 1: Rozšírenie users tabuľky o nové stĺpce (bez company_id foreign key kvôli type mismatch)
       try {
         await client.query(`
           ALTER TABLE users 
-          ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES companies(id),
+          ADD COLUMN IF NOT EXISTS company_id INTEGER,
           ADD COLUMN IF NOT EXISTS employee_number VARCHAR(20),
           ADD COLUMN IF NOT EXISTS hire_date DATE,
           ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
@@ -107,15 +107,8 @@ export class PostgresDatabase {
       `);
 
       // FÁZA 1: Rozšírenie vehicles tabuľky o company ownership a mechanic assignment
-      try {
-        await client.query(`
-          ALTER TABLE vehicles 
-          ADD COLUMN IF NOT EXISTS owner_company_id UUID REFERENCES companies(id),
-          ADD COLUMN IF NOT EXISTS assigned_mechanic_id UUID REFERENCES users(id)
-        `);
-      } catch (error) {
-        console.log('ℹ️ Vehicles table columns already exist or error occurred:', error);
-      }
+      // Poznámka: Skipped - vehicles už má company_id (integer) foreign key na companies(id)
+      console.log('ℹ️ Vehicles table - using existing company_id column (integer type)');
 
       // Tabuľka zákazníkov
       await client.query(`
@@ -976,6 +969,7 @@ export class PostgresDatabase {
         ...row,
         id: row.id?.toString() || '',
         licensePlate: row.license_plate, // Mapovanie column názvu
+        ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
         createdAt: new Date(row.created_at)
@@ -997,6 +991,7 @@ export class PostgresDatabase {
         ...row,
         id: row.id.toString(),
         licensePlate: row.license_plate, // Mapovanie column názvu
+        ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
         createdAt: new Date(row.created_at)
@@ -3750,8 +3745,8 @@ export class PostgresDatabase {
     try {
       for (const vehicleId of vehicleIds) {
         await client.query(
-          'UPDATE vehicles SET owner_company_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-          [companyId, vehicleId]
+          'UPDATE vehicles SET company_id = $1 WHERE id = $2',
+          [parseInt(companyId), parseInt(vehicleId)]
         );
       }
     } finally {
