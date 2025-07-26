@@ -940,42 +940,17 @@ export default function RentalList() {
     console.log('📋 Handover protocol:', hasHandover ? 'EXISTS' : 'NOT FOUND');
     console.log('📋 Return protocol:', hasReturn ? 'EXISTS' : 'NOT FOUND');
     
+    // Silently open protocols if they exist, no alerts or confirmations
     if (!hasHandover && !hasReturn) {
-      alert('❌ Žiadne protokoly nenájdené pre tento prenájom.');
+      // Do nothing - no protocols exist, no message
       return;
     }
     
-    // Create a summary dialog content
-    let message = '📋 Nájdené protokoly:\n\n';
-    
+    // If both exist, prefer handover first, otherwise open the existing one
     if (hasHandover) {
-      message += `✅ Odovzdávací protokol:\n`;
-      message += `   - PDF: ${handoverProtocol.pdfUrl ? 'Dostupné' : 'Nedostupné'}\n`;
-      message += `   - Fotky: ${handoverProtocol.images?.length || 0} ks\n\n`;
-    }
-    
-    if (hasReturn) {
-      message += `✅ Preberací protokol:\n`;
-      message += `   - PDF: ${returnProtocol.pdfUrl ? 'Dostupné' : 'Nedostupné'}\n`;
-      message += `   - Fotky: ${returnProtocol.images?.length || 0} ks\n\n`;
-    }
-    
-    message += 'Chcete otvoriť protokoly?';
-    
-    if (window.confirm(message)) {
-      // If both exist, let user choose, otherwise open the existing one
-      if (hasHandover && hasReturn) {
-        const choice = window.prompt('Ktorý protokol chcete otvoriť?\n1 - Odovzdávací\n2 - Preberací\n(Zadajte 1 alebo 2)');
-        if (choice === '1') {
-          handleOpenProtocolMenu(rental, 'handover');
-        } else if (choice === '2') {
-          handleOpenProtocolMenu(rental, 'return');
-        }
-      } else if (hasHandover) {
-        handleOpenProtocolMenu(rental, 'handover');
-      } else if (hasReturn) {
-        handleOpenProtocolMenu(rental, 'return');
-      }
+      handleOpenProtocolMenu(rental, 'handover');
+    } else if (hasReturn) {
+      handleOpenProtocolMenu(rental, 'return');
     }
   };
 
@@ -3495,6 +3470,31 @@ export default function RentalList() {
                          hasHandover ? '🚗→ Odovzdané' : 
                          hasReturn ? '←🚗 Vrátené' : '⏳ Čaká'}
                       </Typography>
+                      
+                      {/* Protocol Check Button - in protocols column */}
+                      <IconButton
+                        size="small"
+                        title="Skontrolovať protokoly"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCheckProtocols(rental);
+                        }}
+                        sx={{ 
+                          bgcolor: '#9c27b0', 
+                          color: 'white',
+                          width: 28,
+                          height: 28,
+                          mt: 0.5,
+                          '&:hover': { 
+                            bgcolor: '#7b1fa2',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <SearchIcon fontSize="small" />
+                      </IconButton>
                     </Box>
 
                     {/* Akcie */}
@@ -3580,28 +3580,6 @@ export default function RentalList() {
                         }}
                       >
                         <ReturnIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        title="Skontrolovať protokoly"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCheckProtocols(rental);
-                        }}
-                        sx={{ 
-                          bgcolor: '#9c27b0', 
-                          color: 'white',
-                          width: 36,
-                          height: 36,
-                          '&:hover': { 
-                            bgcolor: '#7b1fa2',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
-                          },
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <SearchIcon fontSize="small" />
                       </IconButton>
                       <IconButton
                         size="small"
