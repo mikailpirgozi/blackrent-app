@@ -68,10 +68,13 @@ import {
   ShowChart as ShowChartIcon,
   Business as BusinessIcon,
   Payment as PaymentIcon,
-  Dashboard as DashboardIcon
+  Dashboard as DashboardIcon,
+  Percent as PercentIcon,
+  CreditCard as CreditCardIcon,
+  AccountBalance as AccountBalanceIcon
 } from '@mui/icons-material';
 import { useApp } from '../context/AppContext';
-import { format, startOfMonth, endOfMonth, subMonths, differenceInDays, isAfter, isBefore } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, differenceInDays, isAfter, isBefore, startOfYear, endOfYear } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -108,33 +111,81 @@ const Statistics: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [tabValue, setTabValue] = useState(0);
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState<'month' | 'quarter' | 'year'>('month');
+  const [timeRange, setTimeRange] = useState<'month' | 'year'>('month');
+  
+  // Nové state pre filtrovanie
+  const [filterYear, setFilterYear] = useState(new Date().getFullYear());
+  const [filterMonth, setFilterMonth] = useState(new Date().getMonth());
 
-  // Reálne dáta z aplikácie
+  // Reálne dáta z aplikácie s novými metrikami
   const stats = useMemo(() => {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
 
-    // Filtrovanie prenájmov pre aktuálny mesiac
+    // Definícia filtrovacieho obdobia
+    const filterStartDate = timeRange === 'month' 
+      ? startOfMonth(new Date(filterYear, filterMonth))
+      : startOfYear(new Date(filterYear, 0));
+    
+    const filterEndDate = timeRange === 'month'
+      ? endOfMonth(new Date(filterYear, filterMonth))
+      : endOfYear(new Date(filterYear, 0));
+
+    console.log('📊 Filter period:', {
+      timeRange,
+      filterYear,
+      filterMonth,
+      filterStartDate: format(filterStartDate, 'yyyy-MM-dd'),
+      filterEndDate: format(filterEndDate, 'yyyy-MM-dd')
+    });
+
+    // Filtrované prenájmy pre vybrané obdobie
+    const filteredRentals = state.rentals.filter(rental => {
+      const rentalDate = new Date(rental.startDate);
+      return rentalDate >= filterStartDate && rentalDate <= filterEndDate;
+    });
+
+    // Filtrované náklady pre vybrané obdobie a iba Black Holding
+    const filteredExpenses = state.expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      const isInPeriod = expenseDate >= filterStartDate && expenseDate <= filterEndDate;
+      const isBlackHolding = expense.company?.toLowerCase().includes('black holding');
+      return isInPeriod && isBlackHolding;
+    });
+
+    console.log('📈 Filtered data:', {
+      rentals: filteredRentals.length,
+      expenses: filteredExpenses.length,
+      totalExpenseAmount: filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0)
+    });
+
+    // NOVÉ METRIKY
+    // 1. Celkové tržby za obdobie
+    const totalRevenuePeriod = filteredRentals.reduce((sum, rental) => sum + (rental.totalPrice || 0), 0);
+    
+    // 2. Náklady Black Holding za obdobie
+    const blackHoldingExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    
+    // 3. Celkové provízie za obdobie
+    const totalCommissionPeriod = filteredRentals.reduce((sum, rental) => sum + (rental.commission || 0), 0);
+
+    // Existujúce výpočty (pre všetky časy)
     const currentMonthRentals = state.rentals.filter(rental => {
       const rentalDate = new Date(rental.startDate);
       return rentalDate.getMonth() === currentMonth && rentalDate.getFullYear() === currentYear;
     });
 
-    // Filtrovanie prenájmov pre aktuálny rok
     const currentYearRentals = state.rentals.filter(rental => {
       const rentalDate = new Date(rental.startDate);
       return rentalDate.getFullYear() === currentYear;
     });
 
-    // Filtrovanie prenájmov pre vybraný mesiac
     const selectedMonthRentals = state.rentals.filter(rental => {
       const rentalDate = new Date(rental.startDate);
       return rentalDate.getMonth() === selectedMonth && rentalDate.getFullYear() === selectedYear;
     });
 
-    // Filtrovanie prenájmov pre vybraný rok
     const selectedYearRentals = state.rentals.filter(rental => {
       const rentalDate = new Date(rental.startDate);
       return rentalDate.getFullYear() === selectedYear;
@@ -166,7 +217,7 @@ const Statistics: React.FC = () => {
     // Nezaplatené prenájmy
     const unpaidRentals = state.rentals.filter(rental => !rental.paid);
 
-    // Výpočet celkových príjmov
+    // Výpočet celkových príjmov (všetky časy)
     const totalRevenue = state.rentals.reduce((sum, rental) => sum + (rental.totalPrice || 0), 0);
     const totalCommission = state.rentals.reduce((sum, rental) => sum + (rental.commission || 0), 0);
 
@@ -219,6 +270,14 @@ const Statistics: React.FC = () => {
     });
 
     return {
+      // Nové metriky
+      totalRevenuePeriod,
+      blackHoldingExpenses,
+      totalCommissionPeriod,
+      filteredRentals,
+      filteredExpenses,
+      
+      // Existujúce
       currentMonthRentals,
       currentYearRentals,
       selectedMonthRentals,
@@ -235,7 +294,7 @@ const Statistics: React.FC = () => {
       companyStats,
       monthlyData,
     };
-  }, [state.rentals, selectedYear, selectedMonth]);
+  }, [state.rentals, state.expenses, selectedYear, selectedMonth, timeRange, filterYear, filterMonth]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -323,6 +382,15 @@ const Statistics: React.FC = () => {
     </Card>
   );
 
+  // Pomocná funkcia pre formátovanie obdobia
+  const formatPeriod = () => {
+    if (timeRange === 'month') {
+      return format(new Date(filterYear, filterMonth), 'MMMM yyyy', { locale: sk });
+    } else {
+      return `${filterYear}`;
+    }
+  };
+
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       {/* Modern Header */}
@@ -345,14 +413,14 @@ const Statistics: React.FC = () => {
               </Box>
             </Box>
             
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <FormControl size="small" sx={{ minWidth: 120 }}>
                 <InputLabel sx={{ color: 'white', '&.Mui-focused': { color: 'white' } }}>
                   Obdobie
                 </InputLabel>
                 <Select
                   value={timeRange}
-                  onChange={(e) => setTimeRange(e.target.value as 'month' | 'quarter' | 'year')}
+                  onChange={(e) => setTimeRange(e.target.value as 'month' | 'year')}
                   label="Obdobie"
                   sx={{
                     color: 'white',
@@ -371,8 +439,76 @@ const Statistics: React.FC = () => {
                   }}
                 >
                   <MenuItem value="month">Mesiac</MenuItem>
-                  <MenuItem value="quarter">Štvrťrok</MenuItem>
                   <MenuItem value="year">Rok</MenuItem>
+                </Select>
+              </FormControl>
+
+              {timeRange === 'month' && (
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel sx={{ color: 'white', '&.Mui-focused': { color: 'white' } }}>
+                    Mesiac
+                  </InputLabel>
+                  <Select
+                    value={filterMonth}
+                    onChange={(e) => setFilterMonth(e.target.value as number)}
+                    label="Mesiac"
+                    sx={{
+                      color: 'white',
+                      '.MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255,255,255,0.3)',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255,255,255,0.5)',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'white',
+                      },
+                      '.MuiSvgIcon-root': {
+                        color: 'white',
+                      },
+                    }}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <MenuItem key={i} value={i}>
+                        {format(new Date(2023, i), 'MMMM', { locale: sk })}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+
+              <FormControl size="small" sx={{ minWidth: 100 }}>
+                <InputLabel sx={{ color: 'white', '&.Mui-focused': { color: 'white' } }}>
+                  Rok
+                </InputLabel>
+                <Select
+                  value={filterYear}
+                  onChange={(e) => setFilterYear(e.target.value as number)}
+                  label="Rok"
+                  sx={{
+                    color: 'white',
+                    '.MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255,255,255,0.3)',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255,255,255,0.5)',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'white',
+                    },
+                    '.MuiSvgIcon-root': {
+                      color: 'white',
+                    },
+                  }}
+                >
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const year = new Date().getFullYear() - 2 + i;
+                    return (
+                      <MenuItem key={year} value={year}>
+                        {year}
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </FormControl>
               
@@ -396,7 +532,53 @@ const Statistics: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Modernizované kľúčové metriky */}
+      {/* Info karta s vybraným obdobím */}
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+          📊 Zobrazujú sa dáta za obdobie: <strong>{formatPeriod()}</strong>
+        </Typography>
+        <Typography variant="body2">
+          Prenájmy: {stats.filteredRentals.length} • Náklady Black Holding: {stats.filteredExpenses.length}
+        </Typography>
+      </Alert>
+
+      {/* NOVÉ štatistické karty pre vybrané obdobie */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={4}>
+          <StatCard
+            title="Tržby za obdobie"
+            value={`${stats.totalRevenuePeriod.toLocaleString()} €`}
+            subtitle={formatPeriod()}
+            icon={<CreditCardIcon />}
+            gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+          />
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={4}>
+          <StatCard
+            title="Náklady Black Holding"
+            value={`${stats.blackHoldingExpenses.toLocaleString()} €`}
+            subtitle={formatPeriod()}
+            icon={<AccountBalanceIcon />}
+            gradient="linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
+          <StatCard
+            title="Provízie za obdobie"
+            value={`${stats.totalCommissionPeriod.toLocaleString()} €`}
+            subtitle={formatPeriod()}
+            icon={<PercentIcon />}
+            gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+          />
+        </Grid>
+      </Grid>
+
+      {/* Existujúce kľúčové metriky */}
+      <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: '#667eea' }}>
+        Všeobecné štatistiky
+      </Typography>
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
