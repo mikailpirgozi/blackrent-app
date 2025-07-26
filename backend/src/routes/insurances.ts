@@ -2,29 +2,66 @@ import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { Insurance, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+// 🔍 CONTEXT FUNCTIONS
+const getInsuranceContext = async (req: Request) => {
+  const insuranceId = req.params.id;
+  if (!insuranceId) return {};
+  
+  const insurances = await postgresDatabase.getInsurances();
+  const insurance = insurances.find(i => i.id === insuranceId);
+  if (!insurance || !insurance.vehicleId) return {};
+  
+  // Získaj vehicle pre company context
+  const vehicle = await postgresDatabase.getVehicle(insurance.vehicleId);
+  return {
+    resourceCompanyId: vehicle?.ownerCompanyId,
+    amount: insurance.price
+  };
+};
+
 // GET /api/insurances - Získanie všetkých poistiek
-router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<Insurance[]>>) => {
-  try {
-    const insurances = await postgresDatabase.getInsurances();
-    res.json({
-      success: true,
-      data: insurances
-    });
-  } catch (error) {
-    console.error('Get insurances error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Chyba pri získavaní poistiek'
-    });
-  }
-});
+router.get('/', 
+  authenticateToken,
+  checkPermission('insurances', 'read'),
+  async (req: Request, res: Response<ApiResponse<Insurance[]>>) => {
+    try {
+      let insurances = await postgresDatabase.getInsurances();
+      
+      // 🏢 COMPANY OWNER - filter len poistky vlastných vozidiel
+      if (req.user?.role === 'company_owner' && req.user.companyId) {
+        const vehicles = await postgresDatabase.getVehicles();
+        const companyVehicleIds = vehicles
+          .filter(v => v.ownerCompanyId === req.user?.companyId)
+          .map(v => v.id);
+        
+        insurances = insurances.filter(i => 
+          i.vehicleId && companyVehicleIds.includes(i.vehicleId)
+        );
+      }
+      
+      res.json({
+        success: true,
+        data: insurances
+      });
+    } catch (error) {
+      console.error('Get insurances error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri získavaní poistiek'
+      });
+    }
+  });
 
 // POST /api/insurances - Vytvorenie novej poistky
-router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.post('/', 
+  authenticateToken,
+  checkPermission('insurances', 'create'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath } = req.body;
 
@@ -63,7 +100,10 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
 });
 
 // PUT /api/insurances/:id - Aktualizácia poistky
-router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.put('/:id', 
+  authenticateToken,
+  checkPermission('insurances', 'update', { getContext: getInsuranceContext }),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
     const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath } = req.body;

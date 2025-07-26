@@ -136,6 +136,20 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
       }
     },
     {
+      resource: 'expenses',
+      actions: ['read'],
+      conditions: {
+        companyOnly: true // len náklady pre vlastné vozidlá
+      }
+    },
+    {
+      resource: 'insurances',
+      actions: ['read'],
+      conditions: {
+        companyOnly: true // len poistky pre vlastné vozidlá
+      }
+    },
+    {
       resource: 'finances',
       actions: ['read'],
       conditions: {

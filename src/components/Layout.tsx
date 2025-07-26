@@ -58,9 +58,9 @@ const allMenuItems = [
   { text: 'Databáza vozidiel', icon: <CarRental />, path: '/vehicles', resource: 'vehicles' as const },
   { text: 'Zákazníci', icon: <GroupOutlined />, path: '/customers', resource: 'customers' as const },
   { text: 'Dostupnosť áut', icon: <CalendarToday />, path: '/availability', resource: 'vehicles' as const }, // availability uses vehicles permissions
-  { text: 'Náklady', icon: <AttachMoney />, path: '/expenses', resource: 'finances' as const },
+  { text: 'Náklady', icon: <AttachMoney />, path: '/expenses', resource: 'expenses' as const },
   { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'finances' as const },
-  { text: 'Poistky/STK/Dialničné', icon: <SecurityOutlined />, path: '/insurances', resource: 'vehicles' as const }, // insurances are vehicle-related
+  { text: 'Poistky/STK/Dialničné', icon: <SecurityOutlined />, path: '/insurances', resource: 'insurances' as const },
   { text: 'Správa používateľov', icon: <AdminPanelSettingsOutlined />, path: '/users', resource: 'users' as const },
   { text: 'Štatistiky', icon: <DashboardOutlined />, path: '/statistics', resource: 'finances' as const }, // statistics need finance access
 ];
