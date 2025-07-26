@@ -893,60 +893,27 @@ export default function ExpenseList() {
                   </Box>
                 )}
 
-                {/* Akčné tlačidlá */}
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                {/* Akcie */}
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
                   <IconButton 
-                    size="medium" 
+                    size="small" 
                     onClick={(e) => { e.stopPropagation(); handleShowHistory(expense); }} 
-                    sx={{ 
-                      color: 'white',
-                      bgcolor: 'info.main',
-                      border: '1px solid',
-                      borderColor: 'info.main',
-                      '&:hover': { 
-                        bgcolor: 'info.dark', 
-                        borderColor: 'info.dark',
-                        transform: 'scale(1.05)'
-                      },
-                      transition: 'all 0.2s ease-in-out'
-                    }}
+                    sx={{ color: 'info.main' }}
                     title="História zmien"
                   >
                     <HistoryIcon fontSize="small" />
                   </IconButton>
                   <IconButton 
-                    size="medium" 
+                    size="small" 
                     onClick={(e) => { e.stopPropagation(); handleEdit(expense); }} 
-                    sx={{ 
-                      color: 'white',
-                      bgcolor: 'primary.main',
-                      border: '1px solid',
-                      borderColor: 'primary.main',
-                      '&:hover': { 
-                        bgcolor: 'primary.dark', 
-                        borderColor: 'primary.dark',
-                        transform: 'scale(1.05)'
-                      },
-                      transition: 'all 0.2s ease-in-out'
-                    }}
+                    sx={{ color: 'primary.main' }}
                   >
                     <EditIcon fontSize="small" />
                   </IconButton>
                   <IconButton 
-                    size="medium" 
+                    size="small" 
                     onClick={(e) => { e.stopPropagation(); handleDelete(expense.id); }} 
-                    sx={{ 
-                      color: 'white',
-                      bgcolor: 'error.main',
-                      border: '1px solid',
-                      borderColor: 'error.main',
-                      '&:hover': { 
-                        bgcolor: 'error.dark', 
-                        borderColor: 'error.dark',
-                        transform: 'scale(1.05)'
-                      },
-                      transition: 'all 0.2s ease-in-out'
-                    }}
+                    sx={{ color: 'error.main' }}
                   >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
