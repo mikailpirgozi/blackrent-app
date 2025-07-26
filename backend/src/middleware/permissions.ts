@@ -189,10 +189,14 @@ export function hasPermission(
     amount?: number;
   }
 ): PermissionResult {
+  console.log('🛡️ hasPermission called:', { userRole, resource, action, context });
+  
   const rolePermissions = ROLE_PERMISSIONS[userRole];
+  console.log('📋 Role permissions:', rolePermissions);
   
   // Admin má vždy práva
   if (userRole === 'admin') {
+    console.log('👑 Admin access granted');
     return { hasAccess: true, requiresApproval: false };
   }
 
@@ -201,14 +205,20 @@ export function hasPermission(
     p.resource === resource || p.resource === '*'
   );
 
+  console.log('🔍 Found permission:', permission);
+
   if (!permission) {
+    console.log('❌ No permission found for resource');
     return { hasAccess: false, requiresApproval: false, reason: 'Žiadne oprávnenie pre tento resource' };
   }
 
   // Skontroluj action
   if (!permission.actions.includes(action)) {
+    console.log('❌ Action not allowed:', { allowedActions: permission.actions, requestedAction: action });
     return { hasAccess: false, requiresApproval: false, reason: `Akcia '${action}' nie je povolená` };
   }
+
+  console.log('✅ Action is allowed');
 
   // Skontroluj podmienky
   const conditions = permission.conditions;
@@ -218,8 +228,12 @@ export function hasPermission(
       return { hasAccess: false, requiresApproval: false, reason: 'Prístup len k vlastným záznamom' };
     }
 
-    // Kontrola "companyOnly"
-    if (conditions.companyOnly && context.resourceCompanyId !== context.companyId) {
+    // Kontrola "companyOnly" - len ak máme resourceCompanyId (nie pre list endpoints)
+    if (conditions.companyOnly && context.resourceCompanyId && context.resourceCompanyId !== context.companyId) {
+      console.log('❌ CompanyOnly check failed:', { 
+        resourceCompanyId: context.resourceCompanyId, 
+        userCompanyId: context.companyId 
+      });
       return { hasAccess: false, requiresApproval: false, reason: 'Prístup len k záznamom vlastnej firmy' };
     }
 
@@ -237,10 +251,13 @@ export function hasPermission(
     }
   }
 
-  return { 
+  const result = { 
     hasAccess: true, 
     requiresApproval: conditions?.approvalRequired || false 
   };
+  
+  console.log('✅ hasPermission final result:', result);
+  return result;
 }
 
 // 🚀 EXPRESS MIDDLEWARE
@@ -254,7 +271,19 @@ export function checkPermission(
 ) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log('🔐 Permission check:', {
+        resource,
+        action,
+        user: req.user ? {
+          id: req.user.id,
+          username: req.user.username,
+          role: req.user.role,
+          companyId: req.user.companyId
+        } : null
+      });
+
       if (!req.user) {
+        console.log('❌ Permission denied: No user');
         return res.status(401).json({
           success: false,
           error: 'Používateľ nie je prihlásený'
@@ -266,6 +295,8 @@ export function checkPermission(
       if (options?.getContext) {
         context = await options.getContext(req);
       }
+
+      console.log('🔍 Permission context:', context);
 
       // Skontroluj oprávnenie
       const permissionCheck = hasPermission(
@@ -279,15 +310,20 @@ export function checkPermission(
         }
       );
 
+      console.log('🔐 Permission result:', permissionCheck);
+
       // Ulož výsledok do request
       req.permissionCheck = permissionCheck;
 
       if (!permissionCheck.hasAccess) {
+        console.log('❌ Permission denied:', permissionCheck.reason);
         return res.status(403).json({
           success: false,
           error: permissionCheck.reason || 'Nemáte oprávnenie pre túto akciu'
         });
       }
+
+      console.log('✅ Permission granted');
 
       if (permissionCheck.requiresApproval) {
         if (options?.onApprovalRequired) {
