@@ -1408,13 +1408,16 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           <Card key={vehicle.id} sx={{ 
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             borderRadius: 3,
+            minHeight: '500px',
+            display: 'flex',
+            flexDirection: 'column',
             transition: 'transform 0.2s ease, box-shadow 0.2s ease',
             '&:hover': {
               transform: 'translateY(-2px)',
               boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
             }
           }}>
-            <CardContent sx={{ p: 3 }}>
+            <CardContent sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
               {/* Vozidlo header */}
               <Box sx={{ 
                 display: 'flex', 
@@ -1536,7 +1539,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 gridTemplateColumns: 'repeat(7, 1fr)',
                 gridTemplateRows: getVehicleViewMode(vehicle.id) === 'month' ? 'repeat(5, 1fr)' : '1fr',
                 gap: 0.75,
-                mb: 3
+                mb: 3,
+                minHeight: getVehicleViewMode(vehicle.id) === 'month' ? '320px' : '80px'
               }}>
                 {(() => {
                   const vehicleMode = getVehicleViewMode(vehicle.id);
@@ -1555,7 +1559,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       key={day.date}
                       sx={{ 
                         textAlign: 'center',
-                        p: 1,
+                        p: 1.5,
                         borderRadius: 2,
                         backgroundColor: 
                           dayIsToday ? '#e3f2fd' :
@@ -1564,6 +1568,11 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
+                        minHeight: '60px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
                         '&:hover': {
                           transform: 'scale(1.05)',
                           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
@@ -1572,17 +1581,19 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     >
                       <Typography variant="caption" sx={{ 
                         fontWeight: dayIsToday ? 700 : 600,
-                        fontSize: '0.8rem',
+                        fontSize: '0.9rem',
                         color: dayIsToday ? '#1976d2' : '#333',
                         display: 'block',
-                        lineHeight: 1.2
+                        lineHeight: 1.2,
+                        mb: 0.5
                       }}>
                         {format(new Date(day.date), 'd')}
                       </Typography>
                       <Typography variant="caption" sx={{ 
                         color: dayIsToday ? '#1976d2' : '#666',
-                        fontSize: '0.7rem',
-                        lineHeight: 1
+                        fontSize: '0.75rem',
+                        lineHeight: 1,
+                        mb: 0.5
                       }}>
                         {format(new Date(day.date), 'EE', { locale: sk })}
                       </Typography>
@@ -1593,8 +1604,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         backgroundColor: 
                           isRented ? '#f44336' :
                           isMaintenance ? '#ff9800' : '#4caf50',
-                        mx: 'auto',
-                        mt: 0.5
+                        mt: 'auto'
                       }} />
                     </Box>
                   );
