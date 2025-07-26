@@ -87,7 +87,7 @@ export default function RentalList() {
   const getVehicleByRental = useCallback((rental: Rental) => {
     return rental.vehicleId ? state.vehicles.find(v => v.id === rental.vehicleId) : null;
   }, [state.vehicles]);
-
+  
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -940,14 +940,14 @@ export default function RentalList() {
         const vehicle = getVehicleByRental(rental);
         
         return (
-          <Box>
-            <Typography variant="body2" fontWeight="bold">
+        <Box>
+          <Typography variant="body2" fontWeight="bold">
               {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Bez vozidla'}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
               {vehicle?.licensePlate || 'N/A'}
-            </Typography>
-          </Box>
+          </Typography>
+        </Box>
         );
       }
     },
