@@ -159,12 +159,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const [toDate, setToDate] = useState<Date | null>(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // +30 days
   
   // Filter states
-  const [searchQuery, setSearchQuery] = useState(propSearchQuery);
+  const [searchQuery, setSearchQuery] = useState(propSearchQuery || '');
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
 
   // Update search query when prop changes
   useEffect(() => {
-    setSearchQuery(propSearchQuery);
+    setSearchQuery(propSearchQuery || '');
   }, [propSearchQuery]);
 
 
@@ -576,8 +576,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   // Filter vehicles based on current filters - memoized with debounced search
   const filteredVehicles = useMemo(() => {
     return vehicles.filter(vehicle => {
-      // Search filter with debounced query
-      if (debouncedSearchQuery.trim()) {
+      // Search filter with debounced query - safe string handling
+      if (debouncedSearchQuery && debouncedSearchQuery.trim()) {
         const query = debouncedSearchQuery.toLowerCase();
         const matches = [
           vehicle.brand?.toLowerCase(),
