@@ -173,6 +173,15 @@ export class PostgresDatabase {
         console.log('ℹ️ Payment frequency column already exists or error occurred:', error);
       }
 
+      // Pridáme stĺpec file_path ak neexistuje (migrácia pre file uploads)
+      try {
+        await client.query(`
+          ALTER TABLE insurances ADD COLUMN IF NOT EXISTS file_path TEXT
+        `);
+      } catch (error) {
+        console.log('ℹ️ Insurance file_path column already exists or error occurred:', error);
+      }
+
       // Tabuľka firiem
       await client.query(`
         CREATE TABLE IF NOT EXISTS companies (
@@ -204,10 +213,20 @@ export class PostgresDatabase {
           document_number VARCHAR(100),
           price DECIMAL(10,2),
           notes TEXT,
+          file_path TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // Pridáme stĺpec file_path ak neexistuje (migrácia existujúcich tabuliek)
+      try {
+        await client.query(`
+          ALTER TABLE vehicle_documents ADD COLUMN IF NOT EXISTS file_path TEXT
+        `);
+      } catch (error) {
+        console.log('ℹ️ Vehicle documents file_path column already exists or error occurred:', error);
+      }
 
       // Tabuľka nedostupností vozidiel (servis, údržba, blokovanie)
       await client.query(`
@@ -1551,7 +1570,8 @@ export class PostgresDatabase {
         validTo: new Date(row.valid_to),
         price: parseFloat(row.price) || 0,
         company: row.company,
-        paymentFrequency: row.payment_frequency || 'yearly'
+        paymentFrequency: row.payment_frequency || 'yearly',
+        filePath: row.file_path || undefined
       }));
     } finally {
       client.release();
@@ -1567,12 +1587,13 @@ export class PostgresDatabase {
     price: number;
     company: string;
     paymentFrequency?: string;
+    filePath?: string;
   }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'INSERT INTO insurances (vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency, created_at',
-        [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company, insuranceData.paymentFrequency || 'yearly']
+        'INSERT INTO insurances (vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency, file_path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency, file_path, created_at',
+        [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null]
       );
 
       const row = result.rows[0];
@@ -1585,7 +1606,8 @@ export class PostgresDatabase {
         validTo: new Date(row.valid_to),
         price: parseFloat(row.price) || 0,
         company: row.company,
-        paymentFrequency: row.payment_frequency || 'yearly'
+        paymentFrequency: row.payment_frequency || 'yearly',
+        filePath: row.file_path || undefined
       };
     } finally {
       client.release();
@@ -1601,12 +1623,13 @@ export class PostgresDatabase {
     price: number;
     company: string;
     paymentFrequency?: string;
+    filePath?: string;
   }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'UPDATE insurances SET vehicle_id = $1, type = $2, policy_number = $3, valid_from = $4, valid_to = $5, price = $6, company = $7, payment_frequency = $8, updated_at = CURRENT_TIMESTAMP WHERE id = $9 RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency',
-        [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company, insuranceData.paymentFrequency || 'yearly', id]
+        'UPDATE insurances SET vehicle_id = $1, type = $2, policy_number = $3, valid_from = $4, valid_to = $5, price = $6, company = $7, payment_frequency = $8, file_path = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10 RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency, file_path',
+        [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, id]
       );
 
       if (result.rows.length === 0) {
@@ -1623,7 +1646,8 @@ export class PostgresDatabase {
         validTo: new Date(row.valid_to),
         price: parseFloat(row.price) || 0,
         company: row.company,
-        paymentFrequency: row.payment_frequency || 'yearly'
+        paymentFrequency: row.payment_frequency || 'yearly',
+        filePath: row.file_path || undefined
       };
     } finally {
       client.release();
@@ -3262,7 +3286,8 @@ export class PostgresDatabase {
         validTo: new Date(row.valid_to),
         documentNumber: row.document_number || undefined,
         price: row.price ? parseFloat(row.price) : undefined,
-        notes: row.notes || undefined
+        notes: row.notes || undefined,
+        filePath: row.file_path || undefined
       }));
     } finally {
       client.release();
@@ -3277,14 +3302,15 @@ export class PostgresDatabase {
     documentNumber?: string;
     price?: number;
     notes?: string;
+    filePath?: string;
   }): Promise<VehicleDocument> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        `INSERT INTO vehicle_documents (vehicle_id, document_type, valid_from, valid_to, document_number, price, notes) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7) 
-         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, created_at`,
-        [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes]
+        `INSERT INTO vehicle_documents (vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, created_at`,
+        [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null]
       );
 
       const row = result.rows[0];
@@ -3296,7 +3322,8 @@ export class PostgresDatabase {
         validTo: new Date(row.valid_to),
         documentNumber: row.document_number || undefined,
         price: row.price ? parseFloat(row.price) : undefined,
-        notes: row.notes || undefined
+        notes: row.notes || undefined,
+        filePath: row.file_path || undefined
       };
     } finally {
       client.release();
@@ -3311,15 +3338,16 @@ export class PostgresDatabase {
     documentNumber?: string;
     price?: number;
     notes?: string;
+    filePath?: string;
   }): Promise<VehicleDocument> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
         `UPDATE vehicle_documents 
-         SET vehicle_id = $1, document_type = $2, valid_from = $3, valid_to = $4, document_number = $5, price = $6, notes = $7, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = $8 
-         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes`,
-        [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, id]
+         SET vehicle_id = $1, document_type = $2, valid_from = $3, valid_to = $4, document_number = $5, price = $6, notes = $7, file_path = $8, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $9 
+         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path`,
+        [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, id]
       );
 
       if (result.rows.length === 0) {
@@ -3335,7 +3363,8 @@ export class PostgresDatabase {
         validTo: new Date(row.valid_to),
         documentNumber: row.document_number || undefined,
         price: row.price ? parseFloat(row.price) : undefined,
-        notes: row.notes || undefined
+        notes: row.notes || undefined,
+        filePath: row.file_path || undefined
       };
     } finally {
       client.release();

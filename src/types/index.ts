@@ -142,6 +142,7 @@ export interface VehicleDocument {
   documentNumber?: string;
   price?: number;
   notes?: string;
+  filePath?: string;
 }
 
 export interface Insurance {
@@ -154,6 +155,7 @@ export interface Insurance {
   price: number;
   company: string;
   paymentFrequency: PaymentFrequency;
+  filePath?: string;
 }
 
 export interface Settlement {
