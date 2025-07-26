@@ -397,6 +397,8 @@ export default function RentalList() {
                 const newCompany = {
                   id: uuidv4(),
                   name: companyName,
+                  commissionRate: 20.00,
+                  isActive: true,
                   createdAt: new Date()
                 };
                 

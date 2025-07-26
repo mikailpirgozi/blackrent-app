@@ -381,7 +381,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isCompanyUser = (): boolean => {
-    return state.user?.role === 'company';
+    return state.user?.role === 'company_owner';
   };
 
   const updateUser = (userData: Partial<User>) => {
