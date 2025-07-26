@@ -25,7 +25,7 @@ const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));
 const InsuranceList = lazy(() => import('./components/insurances/InsuranceList'));
 const Statistics = lazy(() => import('./components/Statistics'));
 const UserManagement = lazy(() => import('./components/users/UserManagement'));
-const SettlementList = lazy(() => import('./components/settlements/SettlementList'));
+const SettlementList = lazy(() => import('./components/settlements/SettlementListNew'));
 const AvailabilityPage = lazy(() => import('./pages/AvailabilityPageNew'));
 
 // OPTIMALIZOVANÝ Loading component pre lazy loaded routes
