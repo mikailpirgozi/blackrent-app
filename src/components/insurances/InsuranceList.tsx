@@ -136,10 +136,7 @@ export default function InsuranceList() {
     updateInsurance,
     createVehicleDocument,
     updateVehicleDocument,
-    deleteVehicleDocument,
-    createInsuranceClaim,
-    updateInsuranceClaim,
-    deleteInsuranceClaim
+    deleteVehicleDocument
   } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
