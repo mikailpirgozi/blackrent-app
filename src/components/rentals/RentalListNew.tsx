@@ -375,7 +375,9 @@ export default function RentalList() {
                   address: '',
                   phone: '',
                   email: '',
-                  notes: ''
+                  commissionRate: 20.00,
+                  isActive: true,
+                  createdAt: new Date()
                 };
                 await apiService.createCompany(newCompany);
                 createdCompanies.push(newCompany);

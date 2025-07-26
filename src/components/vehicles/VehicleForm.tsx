@@ -250,7 +250,13 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
                 onClick={async () => {
                   try {
                     const id = uuidv4();
-                    await createCompany({ id, name: newCompanyName.trim() });
+                    await createCompany({ 
+  id, 
+  name: newCompanyName.trim(),
+  commissionRate: 20.00,
+  isActive: true,
+  createdAt: new Date()
+});
                     setFormData((prev) => ({ ...prev, company: newCompanyName.trim() }));
                     setNewCompanyName('');
                     setAddingCompany(false);
