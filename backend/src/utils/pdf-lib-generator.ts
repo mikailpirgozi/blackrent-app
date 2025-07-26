@@ -1,5 +1,5 @@
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
 
 /**
  * PDF-lib Generator - Vysoká kvalita PDF bez system dependencies
@@ -769,5 +769,178 @@ export class PDFLibGenerator {
         ['Počet fotiek poškodení:', `${(protocol.damageImages?.length || 0)} poškodenia`]
       ]);
     }
+  }
+
+  /**
+   * Generovanie vyúčtovania PDF s pdf-lib (rovnaký štýl ako protokoly)
+   */
+  async generateSettlement(settlement: Settlement): Promise<Buffer> {
+    console.log('🎨 PDF-LIB GENERÁTOR SPUSTENÝ - Vyúčtovanie');
+    console.log('📋 Settlement ID:', settlement.id);
+    
+    // Vytvorenie nového PDF dokumentu
+    this.doc = await PDFDocument.create();
+    this.currentPage = this.doc.addPage(PageSizes.A4);
+    
+    // Nahranie fontov
+    this.font = await this.doc.embedFont(StandardFonts.Helvetica);
+    this.boldFont = await this.doc.embedFont(StandardFonts.HelveticaBold);
+    
+    // Reset pozície
+    this.currentY = this.pageHeight - 50;
+    
+    // 1. Záhlavie
+    this.addModernHeader('VYÚČTOVANIE');
+    
+    // 2. Základné informácie o vyúčtovaní
+    const formatDate = (date: Date | string) => {
+      try {
+        const d = typeof date === 'string' ? new Date(date) : date;
+        return d.toLocaleDateString('sk-SK');
+      } catch {
+        return 'N/A';
+      }
+    };
+
+    this.addInfoSection('Základné informácie', [
+      ['Číslo vyúčtovania:', settlement.id.slice(-8).toUpperCase()],
+      ['Firma:', settlement.company || 'N/A'],
+      ['Obdobie od:', formatDate(settlement.period.from)],
+      ['Obdobie do:', formatDate(settlement.period.to)],
+      ['Dátum vytvorenia:', new Date().toLocaleDateString('sk-SK')],
+    ]);
+
+    // 3. Finančný súhrn
+    this.addInfoSection('Finančný súhrn', [
+      ['Celkové príjmy:', `${settlement.totalIncome.toFixed(2)} €`],
+      ['Celkové náklady:', `${settlement.totalExpenses.toFixed(2)} €`],
+      ['Celkové provízie:', `${settlement.totalCommission.toFixed(2)} €`],
+      ['Celkový zisk/strata:', `${settlement.profit.toFixed(2)} €`],
+    ]);
+
+         // 4. Prehľad podľa spôsobov platby
+     const rentalsByPaymentMethod = {
+       cash: settlement.rentals.filter(r => r.paymentMethod === 'cash'),
+       bank_transfer: settlement.rentals.filter(r => r.paymentMethod === 'bank_transfer'),
+       vrp: settlement.rentals.filter(r => r.paymentMethod === 'vrp'),
+       direct_to_owner: settlement.rentals.filter(r => r.paymentMethod === 'direct_to_owner'),
+     };
+
+     const getPaymentMethodLabel = (method: string) => {
+       switch (method) {
+         case 'cash': return 'Hotovost';
+         case 'bank_transfer': return 'FA (Faktura)';
+         case 'vrp': return 'VRP';
+         case 'direct_to_owner': return 'Majitel';
+         default: return method;
+       }
+     };
+
+     // Zobrazenie platobných metód ako info sekcie
+     if (rentalsByPaymentMethod.cash.length > 0) {
+       const cashStats = rentalsByPaymentMethod.cash.reduce((acc, r) => ({
+         count: acc.count + 1,
+         totalPrice: acc.totalPrice + r.totalPrice,
+         commission: acc.commission + r.commission
+       }), { count: 0, totalPrice: 0, commission: 0 });
+
+       this.addInfoSection('Platby - Hotovost', [
+         ['Pocet prenajmov:', cashStats.count.toString()],
+         ['Celkova cena:', `${cashStats.totalPrice.toFixed(2)} EUR`],
+         ['Providzie:', `${cashStats.commission.toFixed(2)} EUR`],
+         ['Cista suma:', `${(cashStats.totalPrice - cashStats.commission).toFixed(2)} EUR`],
+       ]);
+     }
+
+     if (rentalsByPaymentMethod.bank_transfer.length > 0) {
+       const bankStats = rentalsByPaymentMethod.bank_transfer.reduce((acc, r) => ({
+         count: acc.count + 1,
+         totalPrice: acc.totalPrice + r.totalPrice,
+         commission: acc.commission + r.commission
+       }), { count: 0, totalPrice: 0, commission: 0 });
+
+       this.addInfoSection('Platby - FA (Faktura)', [
+         ['Pocet prenajmov:', bankStats.count.toString()],
+         ['Celkova cena:', `${bankStats.totalPrice.toFixed(2)} EUR`],
+         ['Providzie:', `${bankStats.commission.toFixed(2)} EUR`],
+         ['Cista suma:', `${(bankStats.totalPrice - bankStats.commission).toFixed(2)} EUR`],
+       ]);
+     }
+
+     if (rentalsByPaymentMethod.vrp.length > 0) {
+       const vrpStats = rentalsByPaymentMethod.vrp.reduce((acc, r) => ({
+         count: acc.count + 1,
+         totalPrice: acc.totalPrice + r.totalPrice,
+         commission: acc.commission + r.commission
+       }), { count: 0, totalPrice: 0, commission: 0 });
+
+       this.addInfoSection('Platby - VRP', [
+         ['Pocet prenajmov:', vrpStats.count.toString()],
+         ['Celkova cena:', `${vrpStats.totalPrice.toFixed(2)} EUR`],
+         ['Providzie:', `${vrpStats.commission.toFixed(2)} EUR`],
+         ['Cista suma:', `${(vrpStats.totalPrice - vrpStats.commission).toFixed(2)} EUR`],
+       ]);
+     }
+
+     if (rentalsByPaymentMethod.direct_to_owner.length > 0) {
+       const ownerStats = rentalsByPaymentMethod.direct_to_owner.reduce((acc, r) => ({
+         count: acc.count + 1,
+         totalPrice: acc.totalPrice + r.totalPrice,
+         commission: acc.commission + r.commission
+       }), { count: 0, totalPrice: 0, commission: 0 });
+
+       this.addInfoSection('Platby - Majitel', [
+         ['Pocet prenajmov:', ownerStats.count.toString()],
+         ['Celkova cena:', `${ownerStats.totalPrice.toFixed(2)} EUR`],
+         ['Providzie:', `${ownerStats.commission.toFixed(2)} EUR`],
+         ['Cista suma:', `${(ownerStats.totalPrice - ownerStats.commission).toFixed(2)} EUR`],
+       ]);
+     }
+
+     // 5. Súhrn prenájmov - prvých 10 položiek
+     if (settlement.rentals && settlement.rentals.length > 0) {
+       const displayRentals = settlement.rentals.slice(0, 10); // Prvých 10
+       const rentalSummary: [string, string][] = displayRentals.map((rental, index) => [
+         `${index + 1}. ${rental.vehicle?.brand || ''} ${rental.vehicle?.model || ''}`,
+         `${rental.customerName} - ${getPaymentMethodLabel(rental.paymentMethod)} - ${rental.totalPrice.toFixed(2)} EUR`
+       ]);
+
+       if (settlement.rentals.length > 10) {
+         rentalSummary.push([`... a dalsich ${settlement.rentals.length - 10} prenajmov`, '']);
+       }
+
+       this.addInfoSection(`Prenajmy (${settlement.rentals.length})`, rentalSummary);
+     }
+
+     // 6. Súhrn nákladov - prvých 10 položiek
+     if (settlement.expenses && settlement.expenses.length > 0) {
+       const displayExpenses = settlement.expenses.slice(0, 10);
+       const expenseSummary: [string, string][] = displayExpenses.map((expense, index) => [
+         `${index + 1}. ${expense.description}`,
+         `${expense.category} - ${expense.amount.toFixed(2)} EUR`
+       ]);
+
+       if (settlement.expenses.length > 10) {
+         expenseSummary.push([`... a dalsich ${settlement.expenses.length - 10} nakladov`, '']);
+       }
+
+       this.addInfoSection(`Naklady ${settlement.company || 'N/A'} (${settlement.expenses.length})`, expenseSummary);
+     }
+
+    // 7. Pätička
+    this.currentY -= 40;
+    this.currentPage.drawText('Dokument automaticky vygenerovany systemom BlackRent', {
+      x: this.margin,
+      y: this.currentY,
+      size: 10,
+      font: this.font,
+      color: this.secondaryColor,
+    });
+
+    // 8. Vygeneruj a vráť PDF buffer
+    const pdfBytes = await this.doc.save();
+    console.log(`✅ PDF-lib vyúčtovanie vygenerované, veľkosť: ${(pdfBytes.length / 1024).toFixed(1)}KB`);
+    
+    return Buffer.from(pdfBytes);
   }
 } 

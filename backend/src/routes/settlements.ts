@@ -231,12 +231,12 @@ router.get('/:id/pdf', authenticateToken, async (req: Request, res: Response) =>
 
     console.log(`✅ Settlement načítané: ${settlement.company}, obdobie: ${settlement.period?.from} - ${settlement.period?.to}`);
 
-    // Použij Puppeteer generátor (funguje perfektne so slovenskými znakmi)
-    const { PuppeteerPDFGeneratorV2 } = await import('../utils/puppeteer-pdf-generator-v2');
+    // Použij PDFLib generátor (rovnaký ako protokoly)
+    const { PDFLibGenerator } = await import('../utils/pdf-lib-generator');
     
     // Vytvor PDF generátor a vygeneruj PDF
-    const pdfGenerator = new PuppeteerPDFGeneratorV2();
-    const pdfBuffer = await pdfGenerator.generateSettlementPDF(settlement);
+    const pdfGenerator = new PDFLibGenerator();
+    const pdfBuffer = await pdfGenerator.generateSettlement(settlement);
 
     console.log(`✅ PDF vygenerované úspešne, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
 
