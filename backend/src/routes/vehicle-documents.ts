@@ -27,7 +27,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response<ApiRespons
 // POST /api/vehicle-documents - Vytvorenie nového dokumentu vozidla
 router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { vehicleId, documentType, validFrom, validTo, documentNumber, price, notes } = req.body;
+    const { vehicleId, documentType, validFrom, validTo, documentNumber, price, notes, filePath } = req.body;
 
     if (!vehicleId || !documentType || !validTo) {
       return res.status(400).json({
@@ -43,7 +43,8 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       validTo: new Date(validTo),
       documentNumber,
       price,
-      notes
+      notes,
+      filePath
     });
 
     res.status(201).json({
@@ -65,7 +66,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
 router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const { vehicleId, documentType, validFrom, validTo, documentNumber, price, notes } = req.body;
+    const { vehicleId, documentType, validFrom, validTo, documentNumber, price, notes, filePath } = req.body;
 
     if (!vehicleId || !documentType || !validTo) {
       return res.status(400).json({
@@ -81,7 +82,8 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
       validTo: new Date(validTo),
       documentNumber,
       price,
-      notes
+      notes,
+      filePath
     });
 
     res.json({
