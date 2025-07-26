@@ -32,9 +32,9 @@ app.use(cors({
     
     console.log('🌐 CORS request from:', origin);
     
-    // Ak nie je origin (napr. direct request, Postman)
-    if (!origin) {
-      console.log('✅ No origin - allowing request');
+    // Ak nie je origin (napr. direct request, Postman, lokálne HTML súbory)
+    if (!origin || origin === 'null') {
+      console.log('✅ No origin or null origin (local HTML files via file://) - allowing request');
       return callback(null, true);
     }
     
@@ -47,6 +47,12 @@ app.use(cors({
     // ✅ KĽÚČOVÁ OPRAVA: Povolím všetky Vercel domény
     if (origin.endsWith('.vercel.app')) {
       console.log('✅ Vercel domain detected - allowing:', origin);
+      return callback(null, true);
+    }
+    
+    // Povolím file:// protokol pre lokálne súbory
+    if (origin.startsWith('file://')) {
+      console.log('✅ Local file protocol detected - allowing:', origin);
       return callback(null, true);
     }
     
