@@ -139,6 +139,16 @@
         <div class="assign-section">
             <h2>🚗 Priradenie vozidiel k firme</h2>
             
+            <!-- Auto Assignment -->
+            <div style="background: #e8f5e8; border: 2px solid #4CAF50; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                <h3 style="color: #2e7d32; margin-top: 0;">🚗 Automatické Priradenie Vozidiel</h3>
+                <p>Automaticky priradí <strong>všetky vozidlá</strong> k firmám na základe stĺpca "company".</p>
+                <button onclick="autoAssignVehicles()" style="background: #4CAF50; color: white; font-weight: bold; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                    🔧 Automaticky Priradiť Všetky Vozidlá
+                </button>
+                <div id="autoAssignResult" style="margin-top: 10px; font-family: monospace; white-space: pre-wrap;"></div>
+            </div>
+
             <!-- Quick Fix for Lubka -->
             <div style="background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
                 <h3 style="color: #e65100; margin-top: 0;">🔧 Rýchla oprava Lubka vozidiel</h3>
@@ -558,6 +568,72 @@
             } catch (error) {
                 document.getElementById('analysisResult').textContent = 
                     `Network error: ${error.message}`;
+            }
+        }
+
+        // Auto assign all vehicles to companies
+        async function autoAssignVehicles() {
+            if (!token) {
+                alert('Najprv sa prihláste!');
+                return;
+            }
+
+            document.getElementById('autoAssignResult').textContent = '🔄 Spúšťam automatické priradenie vozidiel...';
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/auto-assign-vehicles`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    let resultHtml = `
+                        <div style="color: #388e3c; background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                            ✅ ${data.message}
+                        </div>
+                        <strong>Výsledky:</strong>
+                        <br>🆕 Vytvorených firiem: ${data.data.createdCompanies}
+                        <br>🚗 Priradených vozidiel: ${data.data.assignedVehicles}
+                        <br>⏭️ Preskočených vozidiel: ${data.data.skippedVehicles}
+                    `;
+                    
+                    if (data.data.errors && data.data.errors.length > 0) {
+                        resultHtml += `
+                            <br><br><div style="color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                                ⚠️ Chyby (${data.data.errors.length}):
+                                <pre style="margin-top: 5px;">${data.data.errors.join('\n')}</pre>
+                            </div>
+                        `;
+                    }
+                    
+                    if (data.data.results && data.data.results.length > 0) {
+                        resultHtml += `
+                            <br><br><strong>Detail operácií:</strong>
+                            <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 300px;">${data.data.results.join('\n')}</pre>
+                        `;
+                    }
+                    
+                    document.getElementById('autoAssignResult').innerHTML = resultHtml;
+                    
+                    // Reload debug info to show updated data
+                    loadDebugInfo();
+                } else {
+                    let errorHtml = `<div style="color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px;">❌ ${data.error}</div>`;
+                    
+                    if (data.details) {
+                        errorHtml += `<br><details style="margin-top: 10px;"><summary>Technické detaily</summary><pre style="background: #f5f5f5; padding: 10px; margin-top: 5px; font-size: 12px;">${data.details}</pre></details>`;
+                    }
+                    
+                    document.getElementById('autoAssignResult').innerHTML = errorHtml;
+                }
+            } catch (error) {
+                document.getElementById('autoAssignResult').innerHTML = 
+                    `<div style="color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px;">❌ Network error: ${error.message}</div>`;
             }
         }
 
