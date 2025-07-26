@@ -20,7 +20,7 @@ import { Suspense, lazy } from 'react';
 
 const VehicleList = lazy(() => import('./components/vehicles/VehicleListNew'));
 const RentalList = lazy(() => import('./components/rentals/RentalListNew'));
-const CustomerList = lazy(() => import('./components/customers/CustomerList'));
+const CustomerList = lazy(() => import('./components/customers/CustomerListNew'));
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseList'));
 const InsuranceList = lazy(() => import('./components/insurances/InsuranceList'));
 const Statistics = lazy(() => import('./components/Statistics'));
