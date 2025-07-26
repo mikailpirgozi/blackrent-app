@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
-import { Vehicle, Rental, Expense, Insurance, Settlement, Customer, Company, Insurer } from '../types';
+import { Vehicle, Rental, Expense, Insurance, Settlement, Customer, Company, Insurer, VehicleDocument } from '../types';
 import { apiService } from '../services/api';
 import { useAuth } from './AuthContext';
 
@@ -12,6 +12,7 @@ interface AppState {
   companies: Company[];
   insurers: Insurer[];
   customers: Customer[];
+  vehicleDocuments: VehicleDocument[];
   loading: boolean;
   error: string | null;
   // OPTIMALIZÁCIA: Cache stav pre rýchlejšie načítanie
@@ -24,6 +25,7 @@ interface AppState {
     companies: boolean;
     insurers: boolean;
     customers: boolean;
+    vehicleDocuments: boolean;
   };
   lastLoadTime: number | null;
 }
@@ -39,6 +41,7 @@ type AppAction =
   | { type: 'SET_COMPANIES'; payload: Company[] }
   | { type: 'SET_INSURERS'; payload: Insurer[] }
   | { type: 'SET_SETTLEMENTS'; payload: Settlement[] }
+  | { type: 'SET_VEHICLE_DOCUMENTS'; payload: VehicleDocument[] }
   | { type: 'ADD_VEHICLE'; payload: Vehicle }
   | { type: 'UPDATE_VEHICLE'; payload: Vehicle }
   | { type: 'DELETE_VEHICLE'; payload: string }
@@ -61,6 +64,9 @@ type AppAction =
   | { type: 'ADD_CUSTOMER'; payload: Customer }
   | { type: 'UPDATE_CUSTOMER'; payload: Customer }
   | { type: 'DELETE_CUSTOMER'; payload: string }
+  | { type: 'ADD_VEHICLE_DOCUMENT'; payload: VehicleDocument }
+  | { type: 'UPDATE_VEHICLE_DOCUMENT'; payload: VehicleDocument }
+  | { type: 'DELETE_VEHICLE_DOCUMENT'; payload: string }
   | { type: 'CLEAR_ALL_DATA' }
   | { type: 'LOAD_DATA'; payload: AppState }
   | { type: 'SET_DATA_LOADED'; payload: { type: keyof AppState['dataLoaded']; loaded: boolean } }
@@ -75,6 +81,7 @@ const initialState: AppState = {
   companies: [],
   insurers: [],
   customers: [],
+  vehicleDocuments: [],
   loading: false,
   error: null,
   // OPTIMALIZÁCIA: Cache stav
@@ -87,6 +94,7 @@ const initialState: AppState = {
     companies: false,
     insurers: false,
     customers: false,
+    vehicleDocuments: false,
   },
   lastLoadTime: null,
 };
@@ -113,6 +121,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, insurers: action.payload };
     case 'SET_SETTLEMENTS':
       return { ...state, settlements: action.payload };
+    case 'SET_VEHICLE_DOCUMENTS':
+      return { ...state, vehicleDocuments: action.payload };
     case 'ADD_VEHICLE':
       return { ...state, vehicles: [...state.vehicles, action.payload] };
     case 'UPDATE_VEHICLE':
@@ -189,6 +199,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         customers: state.customers.filter(c => c.id !== action.payload)
+      };
+    case 'ADD_VEHICLE_DOCUMENT':
+      return { ...state, vehicleDocuments: [...state.vehicleDocuments, action.payload] };
+    case 'UPDATE_VEHICLE_DOCUMENT':
+      return {
+        ...state,
+        vehicleDocuments: state.vehicleDocuments.map(doc => doc.id === action.payload.id ? action.payload : doc)
+      };
+    case 'DELETE_VEHICLE_DOCUMENT':
+      return {
+        ...state,
+        vehicleDocuments: state.vehicleDocuments.filter(doc => doc.id !== action.payload)
       };
     case 'CLEAR_ALL_DATA':
       return {
