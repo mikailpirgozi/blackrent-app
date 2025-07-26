@@ -502,10 +502,9 @@ export default function SettlementList() {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                   borderRadius: 2,
                   '&:hover': {
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                    transform: 'translateY(-2px)'
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
                   },
-                  transition: 'all 0.2s ease'
+                  transition: 'box-shadow 0.2s ease'
                 }}>
                   <CardContent sx={{ p: 2 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -539,23 +538,37 @@ export default function SettlementList() {
                           size="small" 
                           onClick={() => handleView(settlement)}
                           sx={{ 
+                            width: 32,
+                            height: 32,
                             backgroundColor: '#e3f2fd',
                             color: '#1976d2',
-                            '&:hover': { backgroundColor: '#bbdefb' }
+                            '&:hover': { 
+                              backgroundColor: '#bbdefb',
+                              color: '#1565c0'
+                            },
+                            transition: 'all 0.2s ease',
+                            flexShrink: 0
                           }}
                         >
-                          <ViewIcon fontSize="small" />
+                          <ViewIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                         <IconButton 
                           size="small" 
                           onClick={() => handleDelete(settlement.id)}
                           sx={{ 
+                            width: 32,
+                            height: 32,
                             backgroundColor: '#ffebee',
                             color: '#d32f2f',
-                            '&:hover': { backgroundColor: '#ffcdd2' }
+                            '&:hover': { 
+                              backgroundColor: '#ffcdd2',
+                              color: '#c62828'
+                            },
+                            transition: 'all 0.2s ease',
+                            flexShrink: 0
                           }}
                         >
-                          <DeleteIcon fontSize="small" />
+                          <DeleteIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Box>
                     </Box>
@@ -738,12 +751,19 @@ export default function SettlementList() {
                           size="small" 
                           onClick={() => handleView(settlement)}
                           sx={{ 
+                            width: 32,
+                            height: 32,
                             backgroundColor: '#e3f2fd',
                             color: '#1976d2',
-                            '&:hover': { backgroundColor: '#bbdefb' }
+                            '&:hover': { 
+                              backgroundColor: '#bbdefb',
+                              color: '#1565c0'
+                            },
+                            transition: 'all 0.2s ease',
+                            flexShrink: 0
                           }}
                         >
-                          <ViewIcon fontSize="small" />
+                          <ViewIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Zmazať">
@@ -751,12 +771,19 @@ export default function SettlementList() {
                           size="small" 
                           onClick={() => handleDelete(settlement.id)}
                           sx={{ 
+                            width: 32,
+                            height: 32,
                             backgroundColor: '#ffebee',
                             color: '#d32f2f',
-                            '&:hover': { backgroundColor: '#ffcdd2' }
+                            '&:hover': { 
+                              backgroundColor: '#ffcdd2',
+                              color: '#c62828'
+                            },
+                            transition: 'all 0.2s ease',
+                            flexShrink: 0
                           }}
                         >
-                          <DeleteIcon fontSize="small" />
+                          <DeleteIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
                     </Box>
