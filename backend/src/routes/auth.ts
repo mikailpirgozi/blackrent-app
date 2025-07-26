@@ -2130,21 +2130,23 @@ router.get('/debug-company-owner', authenticateToken, async (req: Request, res: 
     const vehicles = await postgresDatabase.getVehicles();
     const companies = await postgresDatabase.getCompanies();
     
+    const user = req.user!; // Non-null assertion since we checked above
+    
     const debugInfo = {
       currentUser: {
-        id: req.user.id,
-        username: req.user.username,
-        role: req.user.role,
-        companyId: req.user.companyId
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        companyId: user.companyId
       },
-      userCompany: companies.find(c => c.id === req.user.companyId),
+      userCompany: companies.find(c => c.id === user.companyId),
       allVehicles: vehicles.map(v => ({
         id: v.id,
         brand: v.brand,
         model: v.model,
         ownerCompanyId: v.ownerCompanyId
       })),
-      userCompanyVehicles: vehicles.filter(v => v.ownerCompanyId === req.user.companyId),
+      userCompanyVehicles: vehicles.filter(v => v.ownerCompanyId === user.companyId),
       allCompanies: companies.map(c => ({ id: c.id, name: c.name }))
     };
 

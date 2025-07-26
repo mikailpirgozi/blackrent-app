@@ -3743,6 +3743,21 @@ export class PostgresDatabase {
       client.release();
     }
   }
+
+  // 🔧 ADMIN UTILITY - Assign vehicles to company
+  async assignVehiclesToCompany(vehicleIds: string[], companyId: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      for (const vehicleId of vehicleIds) {
+        await client.query(
+          'UPDATE vehicles SET owner_company_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+          [companyId, vehicleId]
+        );
+      }
+    } finally {
+      client.release();
+    }
+  }
 }
 
 export const postgresDatabase = new PostgresDatabase(); 
