@@ -459,6 +459,7 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       orderNumber: parsedData.orderNumber || '',
       // Rozšírené polia z emailu
       deposit: parsedData.deposit || 0,
+      dailyKilometers: parsedData.dailyKilometers || 0,
       allowedKilometers: parsedData.allowedKilometers || 0,
       extraKilometerRate: parsedData.extraKilometerRate || 0,
       fuelLevel: parsedData.fuelLevel || 100,
@@ -481,7 +482,9 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       hasVehicleId: !!rentalData.vehicleId,
       selectedVehicle: selectedVehicle ? { id: selectedVehicle.id, plate: selectedVehicle.licensePlate } : null,
       vehicleCode: rentalData.vehicleCode,
-      vehicleName: rentalData.vehicleName
+      vehicleName: rentalData.vehicleName,
+      dailyKilometers: rentalData.dailyKilometers,
+      allowedKilometers: rentalData.allowedKilometers
     });
 
     onParseSuccess(rentalData, customer);
