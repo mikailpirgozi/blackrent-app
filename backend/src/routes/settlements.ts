@@ -213,4 +213,53 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response<ApiR
   }
 });
 
+// GET /api/settlements/:id/pdf - Export vyúčtovania do PDF
+router.get('/:id/pdf', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    console.log(`🎯 PDF export request pre settlement ID: ${id}`);
+
+    // Získaj vyúčtovanie z databázy
+    const settlement = await postgresDatabase.getSettlement(id);
+    if (!settlement) {
+      console.error(`❌ Settlement s ID ${id} nenájdené`);
+      return res.status(404).json({
+        success: false,
+        error: 'Vyúčtovanie nenájdené'
+      });
+    }
+
+    console.log(`✅ Settlement načítané: ${settlement.company}, obdobie: ${settlement.period?.from} - ${settlement.period?.to}`);
+
+    // Import PDF generátora pre vyúčtovania
+    const { SettlementPDFGenerator } = await import('../utils/settlement-pdf-generator');
+    
+    // Vytvor PDF generátor a vygeneruj PDF
+    const pdfGenerator = new SettlementPDFGenerator();
+    const pdfBuffer = await pdfGenerator.generateSettlementPDF(settlement);
+
+    console.log(`✅ PDF vygenerované úspešne, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
+
+    // Nastav správne headers pre PDF download
+    const filename = `vyuctovanie_${settlement.company?.replace(/[^a-zA-Z0-9]/g, '_')}_${settlement.id.slice(-8)}.pdf`;
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // Pošli PDF buffer
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error('❌ Settlement PDF export error:', error);
+    res.status(500).json({
+      success: false,
+      error: `Chyba pri generovaní PDF: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
+    });
+  }
+});
+
 export default router; 
