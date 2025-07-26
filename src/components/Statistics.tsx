@@ -63,6 +63,12 @@ import {
   Refresh as RefreshIcon,
   Download as DownloadIcon,
   FilterList as FilterListIcon,
+  Assessment as AssessmentIcon,
+  Euro as EuroIcon,
+  ShowChart as ShowChartIcon,
+  Business as BusinessIcon,
+  Payment as PaymentIcon,
+  Dashboard as DashboardIcon
 } from '@mui/icons-material';
 import { useApp } from '../context/AppContext';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInDays, isAfter, isBefore } from 'date-fns';
@@ -91,7 +97,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+const COLORS = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'];
 
 const Statistics: React.FC = () => {
   const { state } = useApp();
@@ -258,88 +264,111 @@ const Statistics: React.FC = () => {
     return null;
   };
 
-  // Statistiky kariet
-  const StatCard = ({ title, value, subtitle, icon, color, trend }: {
+  // Modernizované štatistické karty
+  const StatCard = ({ title, value, subtitle, icon, gradient, trend }: {
     title: string;
     value: string | number;
     subtitle?: string;
     icon: React.ReactNode;
-    color: string;
+    gradient: string;
     trend?: { value: number; isPositive: boolean };
   }) => (
-    <Fade in={true} timeout={500}>
-      <Card sx={{ 
-        height: '100%', 
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-        }
-      }}>
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-            <Avatar sx={{ bgcolor: color, width: 56, height: 56 }}>
-              {icon}
-            </Avatar>
-            {trend && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {trend.isPositive ? (
-                  <TrendingUpIcon color="success" fontSize="small" />
-                ) : (
-                  <TrendingDownIcon color="error" fontSize="small" />
-                )}
-                <Typography variant="caption" color={trend.isPositive ? 'success.main' : 'error.main'}>
-                  {trend.value}%
-                </Typography>
-              </Box>
+    <Card sx={{ 
+      height: '100%',
+      background: gradient,
+      color: 'white',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+        transform: 'translateY(-4px)',
+      }
+    }}>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, opacity: 0.9 }}>
+              {title.toUpperCase()}
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              {typeof value === 'number' ? value.toLocaleString() : value}
+            </Typography>
+            {subtitle && (
+              <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
+                {subtitle}
+              </Typography>
             )}
           </Box>
-          
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            {typeof value === 'number' ? value.toLocaleString() : value}
-          </Typography>
-          
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            {title}
-          </Typography>
-          
-          {subtitle && (
-            <Typography variant="caption" color="text.secondary">
-              {subtitle}
+          <Box sx={{ opacity: 0.8 }}>
+            {React.cloneElement(icon as React.ReactElement, { sx: { fontSize: 40 } })}
+          </Box>
+        </Box>
+        
+        {trend && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+            {trend.isPositive ? (
+              <TrendingUpIcon sx={{ fontSize: 16 }} />
+            ) : (
+              <TrendingDownIcon sx={{ fontSize: 16 }} />
+            )}
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {trend.isPositive ? '+' : ''}{trend.value}%
             </Typography>
-          )}
-        </CardContent>
-      </Card>
-    </Fade>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              vs. predch. obdobie
+            </Typography>
+          </Box>
+        )}
+      </CardContent>
+    </Card>
   );
 
   return (
-    <Box sx={{ p: { xs: 1, md: 2 } }}>
-      {/* Header */}
-      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
-        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
+      {/* Modern Header */}
+      <Card sx={{ mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <CardContent sx={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          position: 'relative'
+        }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar sx={{ bgcolor: 'primary.main' }}>
-                <TrendingUpIcon />
-              </Avatar>
+              <DashboardIcon sx={{ fontSize: 32 }} />
               <Box>
-                <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                  Štatistiky a Dashboard
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                  Štatistiky & Dashboard
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Prehľad výkonnosti a trendov
+                <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                  Prehľad výkonnosti a obchodných trendov
                 </Typography>
               </Box>
             </Box>
             
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <FormControl size="small">
-                <InputLabel>Obdobie</InputLabel>
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel sx={{ color: 'white', '&.Mui-focused': { color: 'white' } }}>
+                  Obdobie
+                </InputLabel>
                 <Select
                   value={timeRange}
                   onChange={(e) => setTimeRange(e.target.value as 'month' | 'quarter' | 'year')}
                   label="Obdobie"
+                  sx={{
+                    color: 'white',
+                    '.MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255,255,255,0.3)',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255,255,255,0.5)',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'white',
+                    },
+                    '.MuiSvgIcon-root': {
+                      color: 'white',
+                    },
+                  }}
                 >
                   <MenuItem value="month">Mesiac</MenuItem>
                   <MenuItem value="quarter">Štvrťrok</MenuItem>
@@ -348,9 +377,17 @@ const Statistics: React.FC = () => {
               </FormControl>
               
               <Button
-                variant="outlined"
+                variant="contained"
                 startIcon={<RefreshIcon />}
                 size="small"
+                sx={{
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.3)',
+                  },
+                }}
               >
                 Obnoviť
               </Button>
@@ -359,15 +396,15 @@ const Statistics: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Kľúčové metriky */}
+      {/* Modernizované kľúčové metriky */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Celkové príjmy"
             value={`${stats.totalRevenue.toLocaleString()} €`}
             subtitle="Všetky časy"
-            icon={<MoneyIcon />}
-            color="success.main"
+            icon={<EuroIcon />}
+            gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
             trend={{ value: 12.5, isPositive: true }}
           />
         </Grid>
@@ -378,7 +415,7 @@ const Statistics: React.FC = () => {
             value={stats.activeRentals.length}
             subtitle="Momentálne aktívne"
             icon={<CarIcon />}
-            color="primary.main"
+            gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
           />
         </Grid>
         
@@ -388,7 +425,7 @@ const Statistics: React.FC = () => {
             value={stats.todayReturns.length}
             subtitle="Vrátenia dnes"
             icon={<CalendarIcon />}
-            color="warning.main"
+            gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
           />
         </Grid>
         
@@ -398,19 +435,70 @@ const Statistics: React.FC = () => {
             value={stats.unpaidRentals.length}
             subtitle="Čakajú na platbu"
             icon={<WarningIcon />}
-            color="error.main"
+            gradient="linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
           />
         </Grid>
       </Grid>
 
-      {/* Tabs */}
-      <Card sx={{ mb: 3 }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="statistics tabs">
-            <Tab label="Prehľad" />
-            <Tab label="Grafy" />
-            <Tab label="Firmy" />
-            <Tab label="Platby" />
+      {/* Modernizované Tabs */}
+      <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <Box sx={{ 
+          borderBottom: 1, 
+          borderColor: 'divider',
+          background: 'linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%)'
+        }}>
+          <Tabs 
+            value={tabValue} 
+            onChange={handleTabChange} 
+            aria-label="statistics tabs"
+            sx={{
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '1rem',
+                minHeight: 64,
+                '&.Mui-selected': {
+                  color: '#667eea',
+                }
+              },
+              '& .MuiTabs-indicator': {
+                backgroundColor: '#667eea',
+                height: 3,
+              }
+            }}
+          >
+            <Tab 
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <AssessmentIcon />
+                  Prehľad
+                </Box>
+              } 
+            />
+            <Tab 
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ShowChartIcon />
+                  Grafy
+                </Box>
+              } 
+            />
+            <Tab 
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <BusinessIcon />
+                  Firmy
+                </Box>
+              } 
+            />
+            <Tab 
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PaymentIcon />
+                  Platby
+                </Box>
+              } 
+            />
           </Tabs>
         </Box>
 
@@ -419,9 +507,14 @@ const Statistics: React.FC = () => {
           <Grid container spacing={3}>
             {/* Mesiačný trend */}
             <Grid item xs={12} lg={8}>
-              <Card>
+              <Card sx={{ 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                }
+              }}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#667eea' }}>
                     Mesiačný trend príjmov
                   </Typography>
                   <ResponsiveContainer width="100%" height={300}>
@@ -433,11 +526,17 @@ const Statistics: React.FC = () => {
                       <Area 
                         type="monotone" 
                         dataKey="revenue" 
-                        stroke="#8884d8" 
-                        fill="#8884d8" 
-                        fillOpacity={0.3}
+                        stroke="#667eea" 
+                        fill="url(#colorRevenue)" 
+                        strokeWidth={3}
                         name="Príjmy"
                       />
+                      <defs>
+                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#667eea" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#667eea" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
                     </AreaChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -446,35 +545,68 @@ const Statistics: React.FC = () => {
 
             {/* Rýchle štatistiky */}
             <Grid item xs={12} lg={4}>
-              <Card>
+              <Card sx={{ 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                }
+              }}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#667eea' }}>
                     Rýchle štatistiky
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2">Priemerná cena</Typography>
-                      <Typography variant="h6" fontWeight="bold">
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      p: 2,
+                      borderRadius: 1,
+                      backgroundColor: '#f8f9fa'
+                    }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>Priemerná cena</Typography>
+                      <Typography variant="h6" fontWeight="bold" sx={{ color: '#11998e' }}>
                         {stats.avgRentalPrice.toFixed(2)} €
                       </Typography>
                     </Box>
                     <Divider />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2">Priemerná dĺžka</Typography>
-                      <Typography variant="h6" fontWeight="bold">
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      p: 2,
+                      borderRadius: 1,
+                      backgroundColor: '#f8f9fa'
+                    }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>Priemerná dĺžka</Typography>
+                      <Typography variant="h6" fontWeight="bold" sx={{ color: '#667eea' }}>
                         {stats.avgRentalDuration.toFixed(1)} dní
                       </Typography>
                     </Box>
                     <Divider />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2">Celková provízia</Typography>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      p: 2,
+                      borderRadius: 1,
+                      backgroundColor: '#f8f9fa'
+                    }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>Celková provízia</Typography>
                       <Typography variant="h6" fontWeight="bold" color="warning.main">
                         {stats.totalCommission.toLocaleString()} €
                       </Typography>
                     </Box>
                     <Divider />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2">Zajtrajšie vrátenia</Typography>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      p: 2,
+                      borderRadius: 1,
+                      backgroundColor: '#f8f9fa'
+                    }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>Zajtrajšie vrátenia</Typography>
                       <Typography variant="h6" fontWeight="bold" color="info.main">
                         {stats.tomorrowReturns.length}
                       </Typography>
@@ -486,19 +618,24 @@ const Statistics: React.FC = () => {
 
             {/* Top firmy */}
             <Grid item xs={12}>
-              <Card>
+              <Card sx={{ 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                }
+              }}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#667eea' }}>
                     Top firmy podľa príjmov
                   </Typography>
                   <TableContainer>
                     <Table>
                       <TableHead>
-                        <TableRow>
-                          <TableCell>Firma</TableCell>
-                          <TableCell align="right">Počet prenájmov</TableCell>
-                          <TableCell align="right">Príjmy</TableCell>
-                          <TableCell align="right">Provízia</TableCell>
+                        <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
+                          <TableCell sx={{ fontWeight: 700 }}>Firma</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>Počet prenájmov</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>Príjmy</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>Provízia</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -506,10 +643,18 @@ const Statistics: React.FC = () => {
                           .sort(([,a], [,b]) => b.revenue - a.revenue)
                           .slice(0, 5)
                           .map(([company, data]) => (
-                            <TableRow key={company}>
+                            <TableRow 
+                              key={company}
+                              sx={{ 
+                                '&:hover': { 
+                                  backgroundColor: '#f8f9fa' 
+                                },
+                                transition: 'background-color 0.2s ease'
+                              }}
+                            >
                               <TableCell>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+                                  <Avatar sx={{ width: 32, height: 32, bgcolor: '#667eea' }}>
                                     <PersonIcon fontSize="small" />
                                   </Avatar>
                                   <Typography variant="body2" fontWeight="medium">
@@ -518,15 +663,23 @@ const Statistics: React.FC = () => {
                                 </Box>
                               </TableCell>
                               <TableCell align="right">
-                                <Chip label={data.count} size="small" color="primary" variant="outlined" />
+                                <Chip 
+                                  label={data.count} 
+                                  size="small" 
+                                  sx={{ 
+                                    backgroundColor: '#667eea',
+                                    color: 'white',
+                                    fontWeight: 600
+                                  }}
+                                />
                               </TableCell>
                               <TableCell align="right">
-                                <Typography variant="body2" fontWeight="bold">
+                                <Typography variant="body2" fontWeight="bold" sx={{ color: '#11998e' }}>
                                   {data.revenue.toLocaleString()} €
                                 </Typography>
                               </TableCell>
                               <TableCell align="right">
-                                <Typography variant="body2" color="warning.main">
+                                <Typography variant="body2" color="warning.main" fontWeight="bold">
                                   {data.commission.toLocaleString()} €
                                 </Typography>
                               </TableCell>
@@ -546,9 +699,14 @@ const Statistics: React.FC = () => {
           <Grid container spacing={3}>
             {/* Stĺpcový graf - mesiačné prenájmy */}
             <Grid item xs={12} lg={6}>
-              <Card>
+              <Card sx={{ 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                }
+              }}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#667eea' }}>
                     Počet prenájmov podľa mesiacov
                   </Typography>
                   <ResponsiveContainer width="100%" height={300}>
@@ -557,7 +715,7 @@ const Statistics: React.FC = () => {
                       <XAxis dataKey="month" />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="rentals" fill="#8884d8" name="Prenájmy" />
+                      <Bar dataKey="rentals" fill="#667eea" name="Prenájmy" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -566,9 +724,14 @@ const Statistics: React.FC = () => {
 
             {/* Koláčový graf - spôsoby platby */}
             <Grid item xs={12} lg={6}>
-              <Card>
+              <Card sx={{ 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                }
+              }}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#667eea' }}>
                     Rozdelenie podľa spôsobu platby
                   </Typography>
                   <ResponsiveContainer width="100%" height={300}>
@@ -583,7 +746,7 @@ const Statistics: React.FC = () => {
                         labelLine={false}
                         label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                         outerRadius={80}
-                        fill="#8884d8"
+                        fill="#667eea"
                         dataKey="value"
                       >
                         {Object.entries(stats.paymentMethodStats).map((entry, index) => (
@@ -599,9 +762,14 @@ const Statistics: React.FC = () => {
 
             {/* Línový graf - trend príjmov vs provízií */}
             <Grid item xs={12}>
-              <Card>
+              <Card sx={{ 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                }
+              }}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#667eea' }}>
                     Trend príjmov vs provízií
                   </Typography>
                   <ResponsiveContainer width="100%" height={400}>
@@ -614,16 +782,18 @@ const Statistics: React.FC = () => {
                       <Line 
                         type="monotone" 
                         dataKey="revenue" 
-                        stroke="#8884d8" 
+                        stroke="#667eea" 
                         strokeWidth={3}
                         name="Príjmy"
+                        dot={{ fill: '#667eea', strokeWidth: 2, r: 6 }}
                       />
                       <Line 
                         type="monotone" 
                         dataKey="commission" 
-                        stroke="#82ca9d" 
+                        stroke="#11998e" 
                         strokeWidth={3}
                         name="Provízie"
+                        dot={{ fill: '#11998e', strokeWidth: 2, r: 6 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -640,10 +810,17 @@ const Statistics: React.FC = () => {
               .sort(([,a], [,b]) => b.revenue - a.revenue)
               .map(([company, data]) => (
                 <Grid item xs={12} md={6} lg={4} key={company}>
-                  <Card>
+                  <Card sx={{ 
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                      transform: 'translateY(-4px)',
+                    }
+                  }}>
                     <CardContent>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                        <Avatar sx={{ bgcolor: 'primary.main' }}>
+                        <Avatar sx={{ bgcolor: '#667eea' }}>
                           <PersonIcon />
                         </Avatar>
                         <Box>
@@ -656,15 +833,28 @@ const Statistics: React.FC = () => {
                         </Box>
                       </Box>
                       
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="body2">Príjmy:</Typography>
-                        <Typography variant="body2" fontWeight="bold">
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        mb: 1,
+                        p: 1.5,
+                        borderRadius: 1,
+                        backgroundColor: '#f8f9fa'
+                      }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>Príjmy:</Typography>
+                        <Typography variant="body2" fontWeight="bold" sx={{ color: '#11998e' }}>
                           {data.revenue.toLocaleString()} €
                         </Typography>
                       </Box>
                       
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2">Provízia:</Typography>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        p: 1.5,
+                        borderRadius: 1,
+                        backgroundColor: '#fff3e0'
+                      }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>Provízia:</Typography>
                         <Typography variant="body2" color="warning.main" fontWeight="bold">
                           {data.commission.toLocaleString()} €
                         </Typography>
@@ -680,19 +870,24 @@ const Statistics: React.FC = () => {
         <TabPanel value={tabValue} index={3}>
           <Grid container spacing={3}>
             <Grid item xs={12} lg={8}>
-              <Card>
+              <Card sx={{ 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                }
+              }}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#667eea' }}>
                     Štatistiky platieb
                   </Typography>
                   <TableContainer>
                     <Table>
                       <TableHead>
-                        <TableRow>
-                          <TableCell>Spôsob platby</TableCell>
-                          <TableCell align="right">Počet</TableCell>
-                          <TableCell align="right">Príjmy</TableCell>
-                          <TableCell align="right">Podiel</TableCell>
+                        <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
+                          <TableCell sx={{ fontWeight: 700 }}>Spôsob platby</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>Počet</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>Príjmy</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>Podiel</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -701,14 +896,25 @@ const Statistics: React.FC = () => {
                           .map(([method, data]) => {
                             const percentage = (data.revenue / stats.totalRevenue) * 100;
                             return (
-                              <TableRow key={method}>
+                              <TableRow 
+                                key={method}
+                                sx={{ 
+                                  '&:hover': { 
+                                    backgroundColor: '#f8f9fa' 
+                                  },
+                                  transition: 'background-color 0.2s ease'
+                                }}
+                              >
                                 <TableCell>
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <Chip 
                                       label={method} 
                                       size="small" 
-                                      color="primary" 
-                                      variant="outlined" 
+                                      sx={{
+                                        backgroundColor: '#667eea',
+                                        color: 'white',
+                                        fontWeight: 600
+                                      }}
                                     />
                                   </Box>
                                 </TableCell>
@@ -718,12 +924,12 @@ const Statistics: React.FC = () => {
                                   </Typography>
                                 </TableCell>
                                 <TableCell align="right">
-                                  <Typography variant="body2" fontWeight="bold">
+                                  <Typography variant="body2" fontWeight="bold" sx={{ color: '#11998e' }}>
                                     {data.revenue.toLocaleString()} €
                                   </Typography>
                                 </TableCell>
                                 <TableCell align="right">
-                                  <Typography variant="body2" color="text.secondary">
+                                  <Typography variant="body2" color="text.secondary" fontWeight="bold">
                                     {percentage.toFixed(1)}%
                                   </Typography>
                                 </TableCell>
@@ -738,22 +944,41 @@ const Statistics: React.FC = () => {
             </Grid>
 
             <Grid item xs={12} lg={4}>
-              <Card>
+              <Card sx={{ 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                }
+              }}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#667eea' }}>
                     Nezaplatené prenájmy
                   </Typography>
                   {stats.unpaidRentals.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 4 }}>
                       <CheckCircleIcon sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
-                      <Typography variant="body1" color="success.main" gutterBottom>
+                      <Typography variant="body1" color="success.main" gutterBottom fontWeight="bold">
                         Všetky prenájmy sú zaplatené!
                       </Typography>
                     </Box>
                   ) : (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       {stats.unpaidRentals.slice(0, 5).map((rental) => (
-                        <Box key={rental.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                        <Box 
+                          key={rental.id} 
+                          sx={{ 
+                            p: 2, 
+                            border: '1px solid', 
+                            borderColor: 'divider', 
+                            borderRadius: 2,
+                            backgroundColor: '#fff3e0',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                              transform: 'translateY(-2px)',
+                            }
+                          }}
+                        >
                           <Typography variant="body2" fontWeight="bold">
                             {rental.customerName}
                           </Typography>
@@ -766,7 +991,7 @@ const Statistics: React.FC = () => {
                         </Box>
                       ))}
                       {stats.unpaidRentals.length > 5 && (
-                        <Typography variant="body2" color="text.secondary" textAlign="center">
+                        <Typography variant="body2" color="text.secondary" textAlign="center" fontWeight="bold">
                           + {stats.unpaidRentals.length - 5} ďalších
                         </Typography>
                       )}
