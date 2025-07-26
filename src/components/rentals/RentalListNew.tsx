@@ -894,6 +894,56 @@ export default function RentalList() {
     handleCloseProtocolMenu();
   };
 
+  // New function to check all protocols for a rental
+  const handleCheckProtocols = (rental: Rental) => {
+    const hasHandover = rental.handoverProtocolId && protocols[rental.id]?.handover;
+    const hasReturn = rental.returnProtocolId && protocols[rental.id]?.return;
+    
+    console.log('🔍 Checking protocols for rental:', rental.id);
+    console.log('📋 Handover protocol:', hasHandover ? 'EXISTS' : 'NOT FOUND');
+    console.log('📋 Return protocol:', hasReturn ? 'EXISTS' : 'NOT FOUND');
+    
+    if (!hasHandover && !hasReturn) {
+      alert('❌ Žiadne protokoly nenájdené pre tento prenájom.');
+      return;
+    }
+    
+    // Create a summary dialog content
+    let message = '📋 Nájdené protokoly:\n\n';
+    
+    if (hasHandover) {
+      const handoverProtocol = protocols[rental.id].handover;
+      message += `✅ Odovzdávací protokol:\n`;
+      message += `   - PDF: ${handoverProtocol.pdfUrl ? 'Dostupné' : 'Nedostupné'}\n`;
+      message += `   - Fotky: ${handoverProtocol.images?.length || 0} ks\n\n`;
+    }
+    
+    if (hasReturn) {
+      const returnProtocol = protocols[rental.id].return;
+      message += `✅ Preberací protokol:\n`;
+      message += `   - PDF: ${returnProtocol.pdfUrl ? 'Dostupné' : 'Nedostupné'}\n`;
+      message += `   - Fotky: ${returnProtocol.images?.length || 0} ks\n\n`;
+    }
+    
+    message += 'Chcete otvoriť protokoly?';
+    
+    if (confirm(message)) {
+      // If both exist, let user choose, otherwise open the existing one
+      if (hasHandover && hasReturn) {
+        const choice = prompt('Ktorý protokol chcete otvoriť?\n1 - Odovzdávací\n2 - Preberací\n(Zadajte 1 alebo 2)');
+        if (choice === '1') {
+          handleOpenProtocolMenu(rental, 'handover');
+        } else if (choice === '2') {
+          handleOpenProtocolMenu(rental, 'return');
+        }
+      } else if (hasHandover) {
+        handleOpenProtocolMenu(rental, 'handover');
+      } else if (hasReturn) {
+        handleOpenProtocolMenu(rental, 'return');
+      }
+    }
+  };
+
   const handleDeleteProtocol = async (rentalId: string, type: 'handover' | 'return') => {
     if (!window.confirm(`Naozaj chcete vymazať protokol ${type === 'handover' ? 'prevzatia' : 'vrátenia'}?`)) {
       return;
@@ -3007,6 +3057,33 @@ export default function RentalList() {
                         />
                         <Chip
                           size="small"
+                          label="🔍"
+                          title="Skontrolovať protokoly"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCheckProtocols(rental);
+                          }}
+                          sx={{
+                            height: { xs: 24, sm: 28 },
+                            fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                            bgcolor: '#9c27b0',
+                            color: 'white',
+                            fontWeight: 700,
+                            minWidth: { xs: 36, sm: 42 },
+                            maxWidth: { xs: 50, sm: 60 },
+                            cursor: 'pointer',
+                            borderRadius: { xs: 2, sm: 2.5 },
+                            boxShadow: '0 2px 8px rgba(156,39,176,0.3)',
+                            '&:hover': {
+                              bgcolor: '#7b1fa2',
+                              transform: 'scale(1.1)',
+                              boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        />
+                        <Chip
+                          size="small"
                           label={rental.paid ? '💰' : '⏰'}
                           title={rental.paid ? 'Uhradené' : 'Neuhradené'}
                           sx={{
@@ -3468,6 +3545,28 @@ export default function RentalList() {
                         }}
                       >
                         <ReturnIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        title="Skontrolovať protokoly"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCheckProtocols(rental);
+                        }}
+                        sx={{ 
+                          bgcolor: '#9c27b0', 
+                          color: 'white',
+                          width: 36,
+                          height: 36,
+                          '&:hover': { 
+                            bgcolor: '#7b1fa2',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <CheckCircleIcon fontSize="small" />
                       </IconButton>
                       <IconButton
                         size="small"
