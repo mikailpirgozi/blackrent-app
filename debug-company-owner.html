@@ -90,10 +90,11 @@
         <div class="login-form">
             <h2>🔑 Prihlásenie</h2>
             <input type="text" id="username" placeholder="Username" value="admin">
-            <input type="password" id="password" placeholder="Password" value="admin123">
-            <br>
-            <small>💡 Prebere sa Lubica/heslo123 ak chceš testovať company owner</small>
-            <br>
+            <input type="password" id="password" placeholder="Password" value="Black123">
+            <br>  
+            <button onclick="setLubicaCredentials()" style="background: #ff9800;">👩 Prepnúť na Lubica</button>
+            <button onclick="setAdminCredentials()" style="background: #2196f3;">👑 Prepnúť na Admin</button>
+            <br><br>
             <button onclick="testBackend()">🔍 Test Backend</button>
             <button onclick="login()">🔑 Prihlásiť</button>
             <br>
@@ -156,6 +157,21 @@
         let selectedVehicles = new Set();
         let allVehicles = [];
         let allCompanies = [];
+
+        // Quick credential switchers
+        function setAdminCredentials() {
+            document.getElementById('username').value = 'admin';
+            document.getElementById('password').value = 'Black123';
+            document.getElementById('loginStatus').innerHTML = 
+                `<div>👑 Nastavené na Admin credentials</div>`;
+        }
+
+        function setLubicaCredentials() {
+            document.getElementById('username').value = 'Lubica';
+            document.getElementById('password').value = 'Black123';
+            document.getElementById('loginStatus').innerHTML = 
+                `<div>👩 Nastavené na Lubica (company_owner) credentials</div>`;
+        }
 
         // Test backend connection
         async function testBackend() {
