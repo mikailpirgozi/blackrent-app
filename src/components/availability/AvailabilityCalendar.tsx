@@ -1070,17 +1070,53 @@ const AvailabilityCalendar: React.FC = () => {
     {isMobile ? (
       /* MOBILNÝ BOOKING.COM STYLE KALENDÁR */
       <Box sx={{ p: 0 }}>
-        {/* Mobilný header */}
-        <Box sx={{ mb: 2, px: 1 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+        {/* Mobilný header s vylepšenou responsivitou */}
+        <Box sx={{ mb: { xs: 1.5, sm: 2 }, px: { xs: 0.5, sm: 1 } }}>
+          <Stack 
+            direction="row" 
+            justifyContent="space-between" 
+            alignItems="center" 
+            sx={{ 
+              mb: { xs: 1, sm: 1.5 },
+              flexWrap: { xs: 'wrap', sm: 'nowrap' },
+              gap: { xs: 1, sm: 0 }
+            }}
+          >
+            <Typography variant="h6" sx={{ 
+              fontWeight: 700, 
+              color: 'primary.main',
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+              minWidth: 'fit-content'
+            }}>
               📅 Dostupnosť
             </Typography>
-            <Stack direction="row" spacing={0.5}>
-              <IconButton onClick={handleToday} size="small" sx={{ bgcolor: 'primary.light' }}>
+            <Stack 
+              direction="row" 
+              spacing={{ xs: 0.25, sm: 0.5 }}
+              sx={{ flexShrink: 0 }}
+            >
+              <IconButton 
+                onClick={handleToday} 
+                size="small" 
+                sx={{ 
+                  bgcolor: 'primary.light',
+                  width: { xs: 32, sm: 36 },
+                  height: { xs: 32, sm: 36 },
+                  '&:hover': { bgcolor: 'primary.main', color: 'white' }
+                }}
+              >
                 <TodayIcon fontSize="small" />
               </IconButton>
-              <IconButton onClick={handleRefresh} size="small" sx={{ bgcolor: 'primary.light' }}>
+              <IconButton 
+                onClick={handleRefresh} 
+                size="small" 
+                sx={{ 
+                  bgcolor: 'primary.light',
+                  width: { xs: 32, sm: 36 },
+                  height: { xs: 32, sm: 36 },
+                  '&:hover': { bgcolor: 'primary.main', color: 'white' }
+                }}
+              >
                 <RefreshIcon fontSize="small" />
               </IconButton>
               <Button 
@@ -1088,9 +1124,14 @@ const AvailabilityCalendar: React.FC = () => {
                 variant="contained" 
                 startIcon={<AddIcon />}
                 onClick={() => setMaintenanceDialogOpen(true)}
-                sx={{ fontSize: '0.75rem' }}
+                sx={{ 
+                  fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                  px: { xs: 1, sm: 1.5 },
+                  minWidth: { xs: 'auto', sm: 'auto' },
+                  height: { xs: 32, sm: 36 }
+                }}
               >
-                Pridať
+                {isSmallMobile ? '+' : 'Pridať'}
               </Button>
             </Stack>
           </Stack>
@@ -1100,14 +1141,27 @@ const AvailabilityCalendar: React.FC = () => {
             label="🔍 Hľadať vozidlo"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ '& .MuiInputBase-input': { fontSize: '16px' } }}
+            sx={{ 
+              '& .MuiInputBase-input': { 
+                fontSize: { xs: '14px', sm: '16px' },
+                padding: { xs: '8px 12px', sm: '10px 14px' }
+              },
+              '& .MuiInputLabel-root': {
+                fontSize: { xs: '0.8rem', sm: '0.875rem' }
+              }
+            }}
           />
         </Box>
 
-        {/* Mobilný horizontálny kalendár */}
-        <Card sx={{ overflow: 'hidden', mx: 1, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        {/* Mobilný horizontálny kalendár s vylepšenou responsivitou */}
+        <Card sx={{ 
+          overflow: 'hidden', 
+          mx: { xs: 0.5, sm: 1 }, 
+          boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
+          borderRadius: { xs: 2, sm: 3 }
+        }}>
           <CardContent sx={{ p: 0 }}>
-            {/* Sticky header s dátumami */}
+            {/* Sticky header s dátumami - vylepšený */}
             <Box sx={{ 
               display: 'flex',
               borderBottom: '2px solid #e0e0e0',
@@ -1117,14 +1171,19 @@ const AvailabilityCalendar: React.FC = () => {
               zIndex: 1000
             }}>
               <Box sx={{ 
-                minWidth: 120,
-                p: 1,
+                minWidth: { xs: 100, sm: 120 },
+                p: { xs: 0.75, sm: 1 },
                 borderRight: '2px solid #e0e0e0',
                 backgroundColor: '#ffffff',
                 display: 'flex',
                 alignItems: 'center'
               }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1976d2', fontSize: '0.75rem' }}>
+                <Typography variant="subtitle2" sx={{ 
+                  fontWeight: 700, 
+                  color: '#1976d2', 
+                  fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                  lineHeight: 1.2
+                }}>
                   🚗 Vozidlá
                 </Typography>
               </Box>
@@ -1146,25 +1205,42 @@ const AvailabilityCalendar: React.FC = () => {
                 {statusFilteredCalendarData.map((day, index) => (
                   <Box 
                     key={day.date}
+                    data-today={isToday(new Date(day.date))}
                     sx={{ 
-                      minWidth: 50,
-                      p: 0.75,
+                      minWidth: { xs: 44, sm: 50 },
+                      p: { xs: 0.5, sm: 0.75 },
                       borderRight: index < statusFilteredCalendarData.length - 1 ? '1px solid #e0e0e0' : 'none',
                       textAlign: 'center',
-                      backgroundColor: isToday(new Date(day.date)) ? '#e3f2fd' : '#f8f9fa'
+                      backgroundColor: isToday(new Date(day.date)) ? '#e3f2fd' : '#f8f9fa',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: isToday(new Date(day.date)) ? '#bbdefb' : '#e0e0e0'
+                      },
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onClick={() => {
+                      // Scroll to today functionality
+                      if (isToday(new Date(day.date))) {
+                        const element = document.querySelector(`[data-today="true"]`);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                        }
+                      }
                     }}
                   >
                     <Typography variant="caption" sx={{ 
                       fontWeight: 700, 
-                      fontSize: '0.65rem',
+                      fontSize: { xs: '0.6rem', sm: '0.65rem' },
                       color: isToday(new Date(day.date)) ? '#1976d2' : '#333',
-                      display: 'block'
+                      display: 'block',
+                      lineHeight: 1.1
                     }}>
                       {format(new Date(day.date), 'd')}
                     </Typography>
                     <Typography variant="caption" sx={{ 
                       color: isToday(new Date(day.date)) ? '#1976d2' : '#666', 
-                      fontSize: '0.6rem'
+                      fontSize: { xs: '0.55rem', sm: '0.6rem' },
+                      lineHeight: 1
                     }}>
                       {format(new Date(day.date), 'EEE', { locale: sk })}
                     </Typography>
@@ -1173,7 +1249,7 @@ const AvailabilityCalendar: React.FC = () => {
               </Box>
             </Box>
 
-            {/* Vozidlá rows */}
+            {/* Vozidlá rows - vylepšené pre mobil */}
             <Box>
               {filteredVehicles.map((vehicle, vehicleIndex) => (
                 <Box 
@@ -1181,12 +1257,16 @@ const AvailabilityCalendar: React.FC = () => {
                   sx={{ 
                     display: 'flex',
                     borderBottom: vehicleIndex < filteredVehicles.length - 1 ? '1px solid #e0e0e0' : 'none',
-                    minHeight: 50
+                    minHeight: { xs: 44, sm: 50 },
+                    '&:hover': {
+                      backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                    },
+                    transition: 'background-color 0.2s ease'
                   }}
                 >
                   <Box sx={{ 
-                    minWidth: 120,
-                    p: 1,
+                    minWidth: { xs: 100, sm: 120 },
+                    p: { xs: 0.75, sm: 1 },
                     borderRight: '2px solid #e0e0e0',
                     display: 'flex',
                     flexDirection: 'column',
@@ -1198,15 +1278,22 @@ const AvailabilityCalendar: React.FC = () => {
                   }}>
                     <Typography variant="subtitle2" sx={{ 
                       fontWeight: 600, 
-                      fontSize: '0.75rem',
+                      fontSize: { xs: '0.65rem', sm: '0.75rem' },
                       color: '#1976d2',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1.2,
+                      mb: 0.25
                     }}>
                       {vehicle.brand} {vehicle.model}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#666', fontSize: '0.65rem' }}>
+                    <Typography variant="caption" sx={{ 
+                      color: '#666', 
+                      fontSize: { xs: '0.6rem', sm: '0.65rem' },
+                      fontFamily: 'monospace',
+                      fontWeight: 600
+                    }}>
                       {vehicle.licensePlate}
                     </Typography>
                   </Box>
@@ -1229,7 +1316,7 @@ const AvailabilityCalendar: React.FC = () => {
                         <Box 
                           key={day.date}
                           sx={{ 
-                            minWidth: 50,
+                            minWidth: { xs: 44, sm: 50 },
                             borderRight: dayIndex < statusFilteredCalendarData.length - 1 ? '1px solid #e0e0e0' : 'none',
                             display: 'flex',
                             alignItems: 'center',
@@ -1239,47 +1326,68 @@ const AvailabilityCalendar: React.FC = () => {
                             backgroundColor: 
                               vehicleStatus?.status === 'rented' ? '#ffebee' :
                               vehicleStatus?.unavailabilityReason ? '#fff3e0' : 
-                              vehicleStatus?.status === 'available' ? '#e8f5e8' : '#ffffff'
+                              vehicleStatus?.status === 'available' ? '#e8f5e8' : '#ffffff',
+                            '&:hover': {
+                              backgroundColor: 
+                                vehicleStatus?.status === 'rented' ? '#ffcdd2' :
+                                vehicleStatus?.unavailabilityReason ? '#ffe0b2' : 
+                                vehicleStatus?.status === 'available' ? '#c8e6c9' : '#f5f5f5'
+                            },
+                            transition: 'background-color 0.2s ease',
+                            minHeight: { xs: 44, sm: 50 }
                           }}
                           onClick={() => vehicleStatus && handleStatusClick(vehicleStatus, day.date)}
                         >
                           {vehicleStatus?.status === 'rented' && (
                             <Box sx={{ 
                               position: 'absolute',
-                              top: 2, left: 2, right: 2, bottom: 2,
+                              top: { xs: 1, sm: 2 }, 
+                              left: { xs: 1, sm: 2 }, 
+                              right: { xs: 1, sm: 2 }, 
+                              bottom: { xs: 1, sm: 2 },
                               backgroundColor: '#f44336',
-                              borderRadius: 1,
+                              borderRadius: { xs: 0.5, sm: 1 },
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               color: 'white',
-                              fontSize: '0.5rem',
-                              fontWeight: 700
+                              fontSize: { xs: '0.4rem', sm: '0.5rem' },
+                              fontWeight: 700,
+                              boxShadow: '0 2px 4px rgba(244,67,54,0.3)'
                             }}>
-                              PRENÁJOM
+                              {isSmallMobile ? 'P' : 'PRENÁJOM'}
                             </Box>
                           )}
                           {vehicleStatus?.unavailabilityReason && (
                             <Box sx={{ 
                               position: 'absolute',
-                              top: 2, left: 2, right: 2, bottom: 2,
+                              top: { xs: 1, sm: 2 }, 
+                              left: { xs: 1, sm: 2 }, 
+                              right: { xs: 1, sm: 2 }, 
+                              bottom: { xs: 1, sm: 2 },
                               backgroundColor: '#ff9800',
-                              borderRadius: 1,
+                              borderRadius: { xs: 0.5, sm: 1 },
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               color: 'white',
-                              fontSize: '0.45rem',
-                              fontWeight: 700
+                              fontSize: { xs: '0.35rem', sm: '0.45rem' },
+                              fontWeight: 700,
+                              boxShadow: '0 2px 4px rgba(255,152,0,0.3)'
                             }}>
-                              {vehicleStatus.unavailabilityType?.toUpperCase() || 'NEDOSTUPNÉ'}
+                              {isSmallMobile 
+                                ? (vehicleStatus.unavailabilityType?.charAt(0).toUpperCase() || 'N')
+                                : (vehicleStatus.unavailabilityType?.toUpperCase() || 'NEDOSTUPNÉ')
+                              }
                             </Box>
                           )}
                           {vehicleStatus?.status === 'available' && !vehicleStatus?.unavailabilityReason && (
                             <Box sx={{ 
-                              width: 6, height: 6,
+                              width: { xs: 4, sm: 6 }, 
+                              height: { xs: 4, sm: 6 },
                               borderRadius: '50%',
-                              backgroundColor: '#4caf50'
+                              backgroundColor: '#4caf50',
+                              boxShadow: '0 1px 3px rgba(76,175,80,0.4)'
                             }} />
                           )}
                         </Box>
