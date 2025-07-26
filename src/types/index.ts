@@ -269,7 +269,7 @@ export interface Company {
 
 // Permission system interfaces
 export interface Permission {
-  resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | '*';
+  resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | 'expenses' | 'insurances' | '*';
   actions: ('read' | 'create' | 'update' | 'delete')[];
   conditions?: {
     ownOnly?: boolean;        // len vlastné záznamy
