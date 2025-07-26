@@ -80,6 +80,10 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
     const rentals = await postgresDatabase.getRentals();
     const expenses = await postgresDatabase.getExpenses();
     
+    console.log(`🔍 Settlement for company: ${company} from ${fromDate} to ${toDate}`);
+    console.log(`📊 Total rentals in DB: ${rentals.length}`);
+    console.log(`📊 Total expenses in DB: ${expenses.length}`);
+    
     // Filtruj prenájmy pre dané obdobie a firmu
     const filteredRentals = rentals.filter(rental => {
       const rentalStart = new Date(rental.startDate);
@@ -87,15 +91,27 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) || 
                         (rentalEnd >= fromDate && rentalEnd <= toDate) ||
                         (rentalStart <= fromDate && rentalEnd >= toDate);
-      return isInPeriod && rental.vehicle?.company === company;
+      const hasMatchingCompany = rental.vehicle?.company === company;
+      
+      console.log(`🏠 Rental ${rental.id} - Vehicle company: "${rental.vehicle?.company}", Looking for: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
+      
+      return isInPeriod && hasMatchingCompany;
     });
+    
+    console.log(`✅ Filtered rentals: ${filteredRentals.length}`);
     
     // Filtruj náklady pre dané obdobie a firmu
     const filteredExpenses = expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
       const isInPeriod = expenseDate >= fromDate && expenseDate <= toDate;
-      return isInPeriod && expense.company === company;
+      const hasMatchingCompany = expense.company === company;
+      
+      console.log(`💰 Expense ${expense.id} - Company: "${expense.company}", Looking for: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
+      
+      return isInPeriod && hasMatchingCompany;
     });
+    
+    console.log(`✅ Filtered expenses: ${filteredExpenses.length}`);
     
     // Vypočítaj skutočné hodnoty
     const calculatedIncome = filteredRentals.reduce((sum, rental) => sum + rental.totalPrice, 0);
