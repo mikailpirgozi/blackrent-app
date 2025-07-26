@@ -2165,4 +2165,24 @@ router.get('/debug-company-owner', authenticateToken, async (req: Request, res: 
   }
 });
 
+// 🏥 HEALTH CHECK ENDPOINT - No auth required
+router.get('/health', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    res.json({
+      success: true,
+      message: 'Backend is running',
+      data: {
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'development'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Health check failed'
+    });
+  }
+});
+
 export default router; 
