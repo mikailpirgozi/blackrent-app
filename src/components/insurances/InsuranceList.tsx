@@ -45,7 +45,7 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
-import { Insurance } from '../../types';
+import { Insurance, PaymentFrequency } from '../../types';
 import { format, isAfter, addDays, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import InsuranceForm from './InsuranceForm';
@@ -62,6 +62,21 @@ const getExpiryStatus = (validTo: Date | string) => {
     return { status: 'valid', color: 'success', text: 'Platná', bgColor: '#e8f5e8' };
   } else {
     return { status: 'expiring', color: 'warning', text: 'Vyprší čoskoro', bgColor: '#fff3e0' };
+  }
+};
+
+const getPaymentFrequencyText = (frequency: PaymentFrequency) => {
+  switch (frequency) {
+    case 'monthly':
+      return 'Mesačne';
+    case 'quarterly':
+      return 'Štvrťročne';
+    case 'biannual':
+      return 'Polročne';
+    case 'yearly':
+      return 'Ročne';
+    default:
+      return 'Ročne';
   }
 };
 
@@ -521,6 +536,13 @@ export default function InsuranceList() {
                       <BusinessIcon sx={{ fontSize: 18, color: '#666' }} />
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {insurance.company}
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <ScheduleIcon sx={{ fontSize: 18, color: '#666' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        Platenie: {getPaymentFrequencyText(insurance.paymentFrequency || 'yearly')}
                       </Typography>
                     </Box>
                     

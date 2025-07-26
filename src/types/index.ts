@@ -129,6 +129,8 @@ export interface Expense {
 
 export type ExpenseCategory = 'service' | 'insurance' | 'fuel' | 'other';
 
+export type PaymentFrequency = 'monthly' | 'quarterly' | 'biannual' | 'yearly';
+
 export interface Insurance {
   id: string;
   vehicleId: string;
@@ -138,6 +140,7 @@ export interface Insurance {
   validTo: Date;
   price: number;
   company: string;
+  paymentFrequency: PaymentFrequency;
 }
 
 export interface Settlement {

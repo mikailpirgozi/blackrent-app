@@ -164,6 +164,15 @@ export class PostgresDatabase {
         console.log('ℹ️ Policy number column already exists or error occurred:', error);
       }
 
+      // Pridáme stĺpec payment_frequency ak neexistuje (migrácia existujúcich tabuliek)
+      try {
+        await client.query(`
+          ALTER TABLE insurances ADD COLUMN IF NOT EXISTS payment_frequency VARCHAR(20) NOT NULL DEFAULT 'yearly'
+        `);
+      } catch (error) {
+        console.log('ℹ️ Payment frequency column already exists or error occurred:', error);
+      }
+
       // Tabuľka firiem
       await client.query(`
         CREATE TABLE IF NOT EXISTS companies (
@@ -1525,7 +1534,8 @@ export class PostgresDatabase {
         validFrom: new Date(row.valid_from),
         validTo: new Date(row.valid_to),
         price: parseFloat(row.price) || 0,
-        company: row.company
+        company: row.company,
+        paymentFrequency: row.payment_frequency || 'yearly'
       }));
     } finally {
       client.release();
@@ -1540,12 +1550,13 @@ export class PostgresDatabase {
     validTo: Date;
     price: number;
     company: string;
+    paymentFrequency?: string;
   }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'INSERT INTO insurances (vehicle_id, type, policy_number, valid_from, valid_to, price, company) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, created_at',
-        [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company]
+        'INSERT INTO insurances (vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency, created_at',
+        [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company, insuranceData.paymentFrequency || 'yearly']
       );
 
       const row = result.rows[0];
@@ -1557,7 +1568,46 @@ export class PostgresDatabase {
         validFrom: new Date(row.valid_from),
         validTo: new Date(row.valid_to),
         price: parseFloat(row.price) || 0,
-        company: row.company
+        company: row.company,
+        paymentFrequency: row.payment_frequency || 'yearly'
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async updateInsurance(id: string, insuranceData: {
+    vehicleId: string;
+    type: string;
+    policyNumber: string;
+    validFrom: Date;
+    validTo: Date;
+    price: number;
+    company: string;
+    paymentFrequency?: string;
+  }): Promise<Insurance> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        'UPDATE insurances SET vehicle_id = $1, type = $2, policy_number = $3, valid_from = $4, valid_to = $5, price = $6, company = $7, payment_frequency = $8, updated_at = CURRENT_TIMESTAMP WHERE id = $9 RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency',
+        [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company, insuranceData.paymentFrequency || 'yearly', id]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error('Poistka nebola nájdená');
+      }
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id,
+        type: row.type,
+        policyNumber: row.policy_number || '',
+        validFrom: new Date(row.valid_from),
+        validTo: new Date(row.valid_to),
+        price: parseFloat(row.price) || 0,
+        company: row.company,
+        paymentFrequency: row.payment_frequency || 'yearly'
       };
     } finally {
       client.release();
