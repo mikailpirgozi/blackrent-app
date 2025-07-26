@@ -122,6 +122,14 @@ const Statistics: React.FC = () => {
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
   const [filterMonth, setFilterMonth] = useState(new Date().getMonth());
 
+  // State pre pagination Top štatistík
+  const [showVehiclesByUtilization, setShowVehiclesByUtilization] = useState(10);
+  const [showVehiclesByRevenue, setShowVehiclesByRevenue] = useState(10);
+  const [showVehiclesByRentals, setShowVehiclesByRentals] = useState(10);
+  const [showCustomersByRentals, setShowCustomersByRentals] = useState(10);
+  const [showCustomersByRevenue, setShowCustomersByRevenue] = useState(10);
+  const [showCustomersByDays, setShowCustomersByDays] = useState(10);
+
   // Reálne dáta z aplikácie s novými metrikami
   const stats = useMemo(() => {
     const currentDate = new Date();
@@ -411,6 +419,14 @@ const Statistics: React.FC = () => {
       topCustomerByRevenue,
       topCustomerByDays,
       
+      // Sortované zoznamy pre Top 10+
+      vehiclesByUtilization: vehicleStats.sort((a, b) => b.utilizationPercentage - a.utilizationPercentage),
+      vehiclesByRevenue: vehicleStats.sort((a, b) => b.totalRevenue - a.totalRevenue),
+      vehiclesByRentals: vehicleStats.sort((a, b) => b.rentalCount - a.rentalCount),
+      customersByRentals: customerStatsArray.sort((a, b) => b.rentalCount - a.rentalCount),
+      customersByRevenue: customerStatsArray.sort((a, b) => b.totalRevenue - a.totalRevenue),
+      customersByDays: customerStatsArray.sort((a, b) => b.totalDaysRented - a.totalDaysRented),
+      
       // Existujúce
       currentMonthRentals,
       currentYearRentals,
@@ -597,6 +613,92 @@ const Statistics: React.FC = () => {
               }}
             />
           </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  // Nový komponent pre Top 10+ zoznamy
+  const TopListCard = ({ 
+    title, 
+    icon, 
+    gradient,
+    data,
+    showCount,
+    onLoadMore,
+    renderItem,
+    emptyMessage = "Žiadne dáta"
+  }: {
+    title: string;
+    icon: React.ReactNode;
+    gradient: string;
+    data: any[];
+    showCount: number;
+    onLoadMore: () => void;
+    renderItem: (item: any, index: number) => React.ReactNode;
+    emptyMessage?: string;
+  }) => (
+    <Card sx={{ 
+      height: 'fit-content',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+      }
+    }}>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+          <Avatar sx={{ 
+            bgcolor: 'transparent',
+            background: gradient,
+            width: 48,
+            height: 48
+          }}>
+            {icon}
+          </Avatar>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#667eea' }}>
+              {title}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Top {Math.min(showCount, data.length)} z {data.length}
+            </Typography>
+          </Box>
+          <TrophyIcon sx={{ color: '#ffd700', fontSize: 28 }} />
+        </Box>
+        
+        {data.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="body1" color="text.secondary">
+              {emptyMessage}
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {data.slice(0, showCount).map((item, index) => renderItem(item, index))}
+            </Box>
+            
+            {showCount < data.length && (
+              <Box sx={{ mt: 3, textAlign: 'center' }}>
+                <Button
+                  variant="outlined"
+                  onClick={onLoadMore}
+                  startIcon={<KeyboardArrowDownIcon />}
+                  sx={{
+                    borderColor: '#667eea',
+                    color: '#667eea',
+                    '&:hover': {
+                      borderColor: '#5a6fd8',
+                      backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                    }
+                  }}
+                >
+                  Zobraziť ďalších {Math.min(10, data.length - showCount)}
+                </Button>
+              </Box>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
@@ -1429,37 +1531,221 @@ const Statistics: React.FC = () => {
               </Typography>
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <TopStatCard
-                title="Najviac vyťažené auto"
+            <Grid item xs={12} lg={4}>
+              <TopListCard
+                title="TOP Vyťažené autá"
                 icon={<SpeedIcon />}
-                data={stats.topVehicleByUtilization}
-                primaryValue={`${stats.topVehicleByUtilization?.utilizationPercentage?.toFixed(1) || '0'}%`}
-                secondaryValue={`${stats.topVehicleByUtilization?.totalDaysRented || 0} dní prenájmu`}
                 gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                percentage={stats.topVehicleByUtilization?.utilizationPercentage}
+                data={stats.vehiclesByUtilization}
+                showCount={showVehiclesByUtilization}
+                onLoadMore={() => setShowVehiclesByUtilization(prev => prev + 10)}
+                renderItem={(vehicle, index) => (
+                  <Box 
+                    key={vehicle.vehicle.id}
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 2, 
+                      p: 2,
+                      borderRadius: 2,
+                      backgroundColor: index < 3 ? 'rgba(102, 126, 234, 0.04)' : '#f8f9fa',
+                      border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateX(4px)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      }
+                    }}
+                  >
+                    <Box sx={{ 
+                      minWidth: 32, 
+                      height: 32, 
+                      borderRadius: '50%', 
+                      background: index < 3 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#bdbdbd',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 700,
+                      fontSize: '0.9rem'
+                    }}>
+                      {index + 1}
+                    </Box>
+                    
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#667eea' }}>
+                      <CarIcon fontSize="small" />
+                    </Avatar>
+                    
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {vehicle.vehicle.brand} {vehicle.vehicle.model}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {vehicle.vehicle.licensePlate} • {vehicle.totalDaysRented} dní
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ textAlign: 'right', minWidth: 80 }}>
+                      <Typography variant="h6" fontWeight="bold" sx={{ 
+                        color: vehicle.utilizationPercentage > 70 ? '#4caf50' : 
+                               vehicle.utilizationPercentage > 40 ? '#ff9800' : '#f44336'
+                      }}>
+                        {vehicle.utilizationPercentage.toFixed(1)}%
+                      </Typography>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={Math.min(vehicle.utilizationPercentage, 100)}
+                        sx={{
+                          height: 6,
+                          borderRadius: 3,
+                          backgroundColor: '#e0e0e0',
+                          '& .MuiLinearProgress-bar': {
+                            background: vehicle.utilizationPercentage > 70 ? '#4caf50' : 
+                                       vehicle.utilizationPercentage > 40 ? '#ff9800' : '#f44336',
+                            borderRadius: 3,
+                          }
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                )}
+                emptyMessage="Žiadne autá v tomto období"
               />
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <TopStatCard
-                title="Najvýnosnejšie auto"
+            <Grid item xs={12} lg={4}>
+              <TopListCard
+                title="TOP Výnosné autá"
                 icon={<EuroIcon />}
-                data={stats.topVehicleByRevenue}
-                primaryValue={`${stats.topVehicleByRevenue?.totalRevenue?.toLocaleString() || '0'} €`}
-                secondaryValue={`${stats.topVehicleByRevenue?.rentalCount || 0} prenájmov`}
                 gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
+                data={stats.vehiclesByRevenue}
+                showCount={showVehiclesByRevenue}
+                onLoadMore={() => setShowVehiclesByRevenue(prev => prev + 10)}
+                renderItem={(vehicle, index) => (
+                  <Box 
+                    key={vehicle.vehicle.id}
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 2, 
+                      p: 2,
+                      borderRadius: 2,
+                      backgroundColor: index < 3 ? 'rgba(17, 153, 142, 0.04)' : '#f8f9fa',
+                      border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateX(4px)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      }
+                    }}
+                  >
+                    <Box sx={{ 
+                      minWidth: 32, 
+                      height: 32, 
+                      borderRadius: '50%', 
+                      background: index < 3 ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' : '#bdbdbd',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 700,
+                      fontSize: '0.9rem'
+                    }}>
+                      {index + 1}
+                    </Box>
+                    
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#11998e' }}>
+                      <CarIcon fontSize="small" />
+                    </Avatar>
+                    
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {vehicle.vehicle.brand} {vehicle.vehicle.model}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {vehicle.vehicle.licensePlate} • {vehicle.rentalCount} prenájmov
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="h6" fontWeight="bold" sx={{ color: '#11998e' }}>
+                        {vehicle.totalRevenue.toLocaleString()} €
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {vehicle.avgRevenuePerRental.toFixed(0)} €/prenájom
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                emptyMessage="Žiadne autá v tomto období"
               />
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <TopStatCard
-                title="Najviac prenajímané auto"
+            <Grid item xs={12} lg={4}>
+              <TopListCard
+                title="TOP Prenajímané autá"
                 icon={<CarIcon />}
-                data={stats.topVehicleByRentals}
-                primaryValue={`${stats.topVehicleByRentals?.rentalCount || 0}x`}
-                secondaryValue={`${stats.topVehicleByRentals?.totalRevenue?.toLocaleString() || '0'} € celkom`}
                 gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+                data={stats.vehiclesByRentals}
+                showCount={showVehiclesByRentals}
+                onLoadMore={() => setShowVehiclesByRentals(prev => prev + 10)}
+                renderItem={(vehicle, index) => (
+                  <Box 
+                    key={vehicle.vehicle.id}
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 2, 
+                      p: 2,
+                      borderRadius: 2,
+                      backgroundColor: index < 3 ? 'rgba(240, 147, 251, 0.04)' : '#f8f9fa',
+                      border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateX(4px)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      }
+                    }}
+                  >
+                    <Box sx={{ 
+                      minWidth: 32, 
+                      height: 32, 
+                      borderRadius: '50%', 
+                      background: index < 3 ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' : '#bdbdbd',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 700,
+                      fontSize: '0.9rem'
+                    }}>
+                      {index + 1}
+                    </Box>
+                    
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#f093fb' }}>
+                      <CarIcon fontSize="small" />
+                    </Avatar>
+                    
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {vehicle.vehicle.brand} {vehicle.vehicle.model}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {vehicle.vehicle.licensePlate} • {vehicle.totalDaysRented} dní celkom
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="h6" fontWeight="bold" sx={{ color: '#f093fb' }}>
+                        {vehicle.rentalCount}x
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {vehicle.totalRevenue.toLocaleString()} € celkom
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                emptyMessage="Žiadne autá v tomto období"
               />
             </Grid>
 
@@ -1471,136 +1757,211 @@ const Statistics: React.FC = () => {
               </Typography>
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <TopStatCard
-                title="Najaktívnejší zákazník"
+            <Grid item xs={12} lg={4}>
+              <TopListCard
+                title="TOP Aktívni zákazníci"
                 icon={<StarIcon />}
-                data={stats.topCustomerByRentals}
-                primaryValue={`${stats.topCustomerByRentals?.rentalCount || 0} prenájmov`}
-                secondaryValue={`${stats.topCustomerByRentals?.totalRevenue?.toLocaleString() || '0'} € celkom`}
                 gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
+                data={stats.customersByRentals}
+                showCount={showCustomersByRentals}
+                onLoadMore={() => setShowCustomersByRentals(prev => prev + 10)}
+                renderItem={(customer, index) => (
+                  <Box 
+                    key={customer.customerName}
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 2, 
+                      p: 2,
+                      borderRadius: 2,
+                      backgroundColor: index < 3 ? 'rgba(255, 154, 158, 0.04)' : '#f8f9fa',
+                      border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateX(4px)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      }
+                    }}
+                  >
+                    <Box sx={{ 
+                      minWidth: 32, 
+                      height: 32, 
+                      borderRadius: '50%', 
+                      background: index < 3 ? 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)' : '#bdbdbd',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 700,
+                      fontSize: '0.9rem'
+                    }}>
+                      {index + 1}
+                    </Box>
+                    
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#ff9a9e' }}>
+                      <PersonIcon fontSize="small" />
+                    </Avatar>
+                    
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {customer.customerName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {customer.totalDaysRented} dní celkom • Priemer: {customer.avgRentalDuration.toFixed(1)} dní
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="h6" fontWeight="bold" sx={{ color: '#ff9a9e' }}>
+                        {customer.rentalCount}x
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {customer.totalRevenue.toLocaleString()} € celkom
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                emptyMessage="Žiadni zákazníci v tomto období"
               />
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <TopStatCard
-                title="Najziskovejší zákazník"
+            <Grid item xs={12} lg={4}>
+              <TopListCard
+                title="TOP Ziskoví zákazníci"
                 icon={<MoneyIcon />}
-                data={stats.topCustomerByRevenue}
-                primaryValue={`${stats.topCustomerByRevenue?.totalRevenue?.toLocaleString() || '0'} €`}
-                secondaryValue={`${stats.topCustomerByRevenue?.rentalCount || 0} prenájmov`}
                 gradient="linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
+                data={stats.customersByRevenue}
+                showCount={showCustomersByRevenue}
+                onLoadMore={() => setShowCustomersByRevenue(prev => prev + 10)}
+                renderItem={(customer, index) => (
+                  <Box 
+                    key={customer.customerName}
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 2, 
+                      p: 2,
+                      borderRadius: 2,
+                      backgroundColor: index < 3 ? 'rgba(255, 107, 107, 0.04)' : '#f8f9fa',
+                      border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateX(4px)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      }
+                    }}
+                  >
+                    <Box sx={{ 
+                      minWidth: 32, 
+                      height: 32, 
+                      borderRadius: '50%', 
+                      background: index < 3 ? 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)' : '#bdbdbd',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 700,
+                      fontSize: '0.9rem'
+                    }}>
+                      {index + 1}
+                    </Box>
+                    
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#ff6b6b' }}>
+                      <PersonIcon fontSize="small" />
+                    </Avatar>
+                    
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {customer.customerName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {customer.rentalCount} prenájmov • {customer.totalDaysRented} dní
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="h6" fontWeight="bold" sx={{ color: '#ff6b6b' }}>
+                        {customer.totalRevenue.toLocaleString()} €
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {(customer.totalRevenue / customer.rentalCount).toFixed(0)} €/prenájom
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                emptyMessage="Žiadni zákazníci v tomto období"
               />
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <TopStatCard
-                title="Najdlhšie prenájmy"
+            <Grid item xs={12} lg={4}>
+              <TopListCard
+                title="TOP Dlhodobí zákazníci"
                 icon={<TimeIcon />}
-                data={stats.topCustomerByDays}
-                primaryValue={`${stats.topCustomerByDays?.totalDaysRented || 0} dní`}  
-                secondaryValue={`Priemer: ${stats.topCustomerByDays?.avgRentalDuration?.toFixed(1) || '0'} dní/prenájom`}
                 gradient="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+                data={stats.customersByDays}
+                showCount={showCustomersByDays}
+                onLoadMore={() => setShowCustomersByDays(prev => prev + 10)}
+                renderItem={(customer, index) => (
+                  <Box 
+                    key={customer.customerName}
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 2, 
+                      p: 2,
+                      borderRadius: 2,
+                      backgroundColor: index < 3 ? 'rgba(79, 172, 254, 0.04)' : '#f8f9fa',
+                      border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateX(4px)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      }
+                    }}
+                  >
+                    <Box sx={{ 
+                      minWidth: 32, 
+                      height: 32, 
+                      borderRadius: '50%', 
+                      background: index < 3 ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' : '#bdbdbd',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 700,
+                      fontSize: '0.9rem'
+                    }}>
+                      {index + 1}
+                    </Box>
+                    
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#4facfe' }}>
+                      <PersonIcon fontSize="small" />
+                    </Avatar>
+                    
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {customer.customerName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {customer.rentalCount} prenájmov • {customer.totalRevenue.toLocaleString()} €
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="h6" fontWeight="bold" sx={{ color: '#4facfe' }}>
+                        {customer.totalDaysRented} dní
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Priemer: {customer.avgRentalDuration.toFixed(1)} dní/prenájom
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                emptyMessage="Žiadni zákazníci v tomto období"
               />
             </Grid>
 
-            {/* Detailné štatistiky autá */}
-            <Grid item xs={12}>
-              <Card sx={{ 
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                mt: 4,
-                '&:hover': {
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                }
-              }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#667eea' }}>
-                    Detailné štatistiky všetkých áut
-                  </Typography>
-                  <TableContainer>
-                    <Table>
-                      <TableHead>
-                        <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
-                          <TableCell sx={{ fontWeight: 700 }}>Auto</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Prenájmy</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Dni</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Vyťaženosť</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Príjmy</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Priemer/prenájom</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {stats.vehicleStats
-                          .sort((a, b) => b.utilizationPercentage - a.utilizationPercentage)
-                          .map((vehicleStat) => (
-                            <TableRow 
-                              key={vehicleStat.vehicle.id}
-                              sx={{ 
-                                '&:hover': { 
-                                  backgroundColor: '#f8f9fa' 
-                                },
-                                transition: 'background-color 0.2s ease'
-                              }}
-                            >
-                              <TableCell>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Avatar sx={{ width: 32, height: 32, bgcolor: '#667eea' }}>
-                                    <CarIcon fontSize="small" />
-                                  </Avatar>
-                                  <Box>
-                                    <Typography variant="body2" fontWeight="medium">
-                                      {vehicleStat.vehicle.brand} {vehicleStat.vehicle.model}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                      {vehicleStat.vehicle.licensePlate}
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                              </TableCell>
-                              <TableCell align="right">
-                                <Chip 
-                                  label={vehicleStat.rentalCount} 
-                                  size="small" 
-                                  sx={{ 
-                                    backgroundColor: '#667eea',
-                                    color: 'white',
-                                    fontWeight: 600
-                                  }}
-                                />
-                              </TableCell>
-                              <TableCell align="right">
-                                <Typography variant="body2" fontWeight="bold">
-                                  {vehicleStat.totalDaysRented}
-                                </Typography>
-                              </TableCell>
-                              <TableCell align="right">
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
-                                  <Typography variant="body2" fontWeight="bold" sx={{ 
-                                    color: vehicleStat.utilizationPercentage > 70 ? '#4caf50' : 
-                                           vehicleStat.utilizationPercentage > 40 ? '#ff9800' : '#f44336'
-                                  }}>
-                                    {vehicleStat.utilizationPercentage.toFixed(1)}%
-                                  </Typography>
-                                </Box>
-                              </TableCell>
-                              <TableCell align="right">
-                                <Typography variant="body2" fontWeight="bold" sx={{ color: '#11998e' }}>
-                                  {vehicleStat.totalRevenue.toLocaleString()} €
-                                </Typography>
-                              </TableCell>
-                              <TableCell align="right">
-                                <Typography variant="body2" color="warning.main" fontWeight="bold">
-                                  {vehicleStat.avgRevenuePerRental.toFixed(0)} €
-                                </Typography>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
-            </Grid>
+            {/* Zjednodušená detailná tabuľka - presunieme do iného tabu ak bude potreba */}
           </Grid>
         </TabPanel>
       </Card>
