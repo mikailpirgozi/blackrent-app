@@ -23,7 +23,15 @@ import {
   Tooltip,
   Alert,
   CircularProgress,
-  Fab
+  Fab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TablePagination
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -42,13 +50,33 @@ import {
   Schedule as ScheduleIcon,
   Assessment as ReportIcon,
   Receipt as ReceiptIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Assignment as AssignmentIcon,
+  Highway as HighwayIcon,
+  Build as BuildIcon
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
-import { Insurance, PaymentFrequency } from '../../types';
+import { Insurance, PaymentFrequency, VehicleDocument, DocumentType } from '../../types';
 import { format, isAfter, addDays, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import InsuranceForm from './InsuranceForm';
+
+// Unified document type for table display
+interface UnifiedDocument {
+  id: string;
+  vehicleId: string;
+  type: 'insurance' | 'stk' | 'ek' | 'vignette';
+  documentNumber?: string;
+  policyNumber?: string;
+  validFrom?: Date | string;
+  validTo: Date | string;
+  price?: number;
+  company?: string;
+  paymentFrequency?: PaymentFrequency;
+  notes?: string;
+  createdAt: Date | string;
+  originalData: Insurance | VehicleDocument;
+}
 
 const getExpiryStatus = (validTo: Date | string) => {
   const today = new Date();
@@ -57,9 +85,9 @@ const getExpiryStatus = (validTo: Date | string) => {
   const validToDate = typeof validTo === 'string' ? parseISO(validTo) : validTo;
   
   if (isAfter(today, validToDate)) {
-    return { status: 'expired', color: 'error', text: 'Vypršala', bgColor: '#ffebee' };
+    return { status: 'expired', color: 'error', text: 'Vypršalo', bgColor: '#ffebee' };
   } else if (isAfter(validToDate, thirtyDaysFromNow)) {
-    return { status: 'valid', color: 'success', text: 'Platná', bgColor: '#e8f5e8' };
+    return { status: 'valid', color: 'success', text: 'Platné', bgColor: '#e8f5e8' };
   } else {
     return { status: 'expiring', color: 'warning', text: 'Vyprší čoskoro', bgColor: '#fff3e0' };
   }
@@ -80,89 +108,175 @@ const getPaymentFrequencyText = (frequency: PaymentFrequency) => {
   }
 };
 
+const getDocumentTypeInfo = (type: string) => {
+  switch (type) {
+    case 'insurance':
+      return { label: 'Poistka', icon: <SecurityIcon sx={{ fontSize: 16 }} />, color: '#1976d2' };
+    case 'stk':
+      return { label: 'STK', icon: <BuildIcon sx={{ fontSize: 16 }} />, color: '#388e3c' };
+    case 'ek':
+      return { label: 'EK', icon: <AssignmentIcon sx={{ fontSize: 16 }} />, color: '#f57c00' };
+    case 'vignette':
+      return { label: 'Dialničná', icon: <HighwayIcon sx={{ fontSize: 16 }} />, color: '#7b1fa2' };
+    default:
+      return { label: type, icon: <ReportIcon sx={{ fontSize: 16 }} />, color: '#666' };
+  }
+};
+
 export default function InsuranceList() {
-  const { state, dispatch, createInsurance, updateInsurance } = useApp();
+  const { 
+    state, 
+    dispatch, 
+    createInsurance, 
+    updateInsurance,
+    createVehicleDocument,
+    updateVehicleDocument,
+    deleteVehicleDocument
+  } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingInsurance, setEditingInsurance] = useState<Insurance | null>(null);
+  const [editingDocument, setEditingDocument] = useState<UnifiedDocument | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterVehicle, setFilterVehicle] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Vypočítane štatistiky pomocou useMemo
+  // Convert data to unified format
+  const unifiedDocuments = useMemo(() => {
+    const docs: UnifiedDocument[] = [];
+    
+    // Add insurances
+    state.insurances.forEach(insurance => {
+      docs.push({
+        id: insurance.id,
+        vehicleId: insurance.vehicleId,
+        type: 'insurance',
+        policyNumber: insurance.policyNumber,
+        validFrom: insurance.validFrom,
+        validTo: insurance.validTo,
+        price: insurance.price,
+        company: insurance.company,
+        paymentFrequency: insurance.paymentFrequency,
+        createdAt: insurance.createdAt,
+        originalData: insurance
+      });
+    });
+    
+    // Add vehicle documents
+    state.vehicleDocuments.forEach(doc => {
+      docs.push({
+        id: doc.id,
+        vehicleId: doc.vehicleId,
+        type: doc.documentType as any,
+        documentNumber: doc.documentNumber,
+        validFrom: doc.validFrom,
+        validTo: doc.validTo,
+        price: doc.price,
+        notes: doc.notes,
+        createdAt: doc.createdAt,
+        originalData: doc
+      });
+    });
+    
+    return docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [state.insurances, state.vehicleDocuments]);
+
+  // Statistics
   const stats = useMemo(() => {
-    const total = state.insurances.length;
-    const validInsurances = state.insurances.filter(insurance => {
-      const status = getExpiryStatus(insurance.validTo);
+    const total = unifiedDocuments.length;
+    const validDocs = unifiedDocuments.filter(doc => {
+      const status = getExpiryStatus(doc.validTo);
       return status.status === 'valid';
     }).length;
     
-    const expiringInsurances = state.insurances.filter(insurance => {
-      const status = getExpiryStatus(insurance.validTo);
+    const expiringDocs = unifiedDocuments.filter(doc => {
+      const status = getExpiryStatus(doc.validTo);
       return status.status === 'expiring';
     }).length;
     
-    const expiredInsurances = state.insurances.filter(insurance => {
-      const status = getExpiryStatus(insurance.validTo);
+    const expiredDocs = unifiedDocuments.filter(doc => {
+      const status = getExpiryStatus(doc.validTo);
       return status.status === 'expired';
     }).length;
     
-    const totalValue = state.insurances.reduce((sum, insurance) => sum + insurance.price, 0);
+    const totalValue = unifiedDocuments.reduce((sum, doc) => sum + (doc.price || 0), 0);
     
-    return { total, validInsurances, expiringInsurances, expiredInsurances, totalValue };
-  }, [state.insurances]);
+    return { total, validDocs, expiringDocs, expiredDocs, totalValue };
+  }, [unifiedDocuments]);
 
-  // Filtrované poistky
-  const filteredInsurances = useMemo(() => {
-    return state.insurances.filter((insurance) => {
+  // Filtered documents
+  const filteredDocuments = useMemo(() => {
+    return unifiedDocuments.filter((doc) => {
+      const vehicle = state.vehicles.find(v => v.id === doc.vehicleId);
+      const vehicleText = vehicle ? `${vehicle.brand} ${vehicle.model} ${vehicle.licensePlate}` : '';
+      
       const matchesSearch = !searchQuery || 
-        insurance.policyNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        insurance.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        insurance.type.toLowerCase().includes(searchQuery.toLowerCase());
+        (doc.policyNumber && doc.policyNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (doc.documentNumber && doc.documentNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (doc.company && doc.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        vehicleText.toLowerCase().includes(searchQuery.toLowerCase());
       
-      const matchesVehicle = !filterVehicle || insurance.vehicleId === filterVehicle;
-      const matchesCompany = !filterCompany || insurance.company === filterCompany;
-      const matchesType = !filterType || insurance.type === filterType;
+      const matchesVehicle = !filterVehicle || doc.vehicleId === filterVehicle;
+      const matchesCompany = !filterCompany || doc.company === filterCompany;
+      const matchesType = !filterType || doc.type === filterType;
       
-      const matchesStatus = !filterStatus || getExpiryStatus(insurance.validTo).status === filterStatus;
+      const matchesStatus = !filterStatus || getExpiryStatus(doc.validTo).status === filterStatus;
       
       return matchesSearch && matchesVehicle && matchesCompany && matchesType && matchesStatus;
     });
-  }, [state.insurances, searchQuery, filterVehicle, filterCompany, filterType, filterStatus]);
+  }, [unifiedDocuments, searchQuery, filterVehicle, filterCompany, filterType, filterStatus, state.vehicles]);
 
   const handleAdd = () => {
-    setEditingInsurance(null);
+    setEditingDocument(null);
     setOpenDialog(true);
   };
 
-  const handleEdit = (insurance: Insurance) => {
-    setEditingInsurance(insurance);
+  const handleEdit = (doc: UnifiedDocument) => {
+    setEditingDocument(doc);
     setOpenDialog(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Naozaj chcete vymazať túto poistku?')) {
-      dispatch({ type: 'DELETE_INSURANCE', payload: id });
+  const handleDelete = async (doc: UnifiedDocument) => {
+    if (window.confirm('Naozaj chcete vymazať tento dokument?')) {
+      try {
+        if (doc.type === 'insurance') {
+          dispatch({ type: 'DELETE_INSURANCE', payload: doc.id });
+        } else {
+          await deleteVehicleDocument(doc.id);
+        }
+      } catch (error) {
+        console.error('Chyba pri mazaní dokumentu:', error);
+        alert('Chyba pri mazaní dokumentu');
+      }
     }
   };
 
-  const handleSave = async (insurance: Insurance) => {
+  const handleSave = async (data: any) => {
     try {
-      if (editingInsurance) {
-        await updateInsurance(insurance);
+      if (editingDocument) {
+        if (editingDocument.type === 'insurance') {
+          await updateInsurance(data);
+        } else {
+          await updateVehicleDocument(editingDocument.id, data);
+        }
       } else {
-        await createInsurance(insurance);
+        if (data.type === 'insurance') {
+          await createInsurance(data);
+        } else {
+          await createVehicleDocument(data);
+        }
       }
       setOpenDialog(false);
-      setEditingInsurance(null);
+      setEditingDocument(null);
     } catch (error) {
-      console.error('Chyba pri ukladaní poistky:', error);
-      alert('Chyba pri ukladaní poistky: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
+      console.error('Chyba pri ukladaní dokumentu:', error);
+      alert('Chyba pri ukladaní dokumentu: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
     }
   };
 
@@ -175,6 +289,15 @@ export default function InsuranceList() {
   };
 
   const hasActiveFilters = searchQuery || filterVehicle || filterCompany || filterType || filterStatus;
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -190,10 +313,10 @@ export default function InsuranceList() {
               <SecurityIcon sx={{ fontSize: 32 }} />
               <Box>
                 <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                  Poistky
+                  Poistky/STK/Dialničné
                 </Typography>
                 <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                  Správa poistných zmlúv vozidiel
+                  Správa všetkých dokumentov vozidiel
                 </Typography>
               </Box>
             </Box>
@@ -212,7 +335,7 @@ export default function InsuranceList() {
                   },
                 }}
               >
-                Pridať poistku
+                Pridať dokument
               </Button>
             )}
           </Box>
@@ -232,7 +355,7 @@ export default function InsuranceList() {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                    CELKOM POISTIEK
+                    CELKOM DOKUMENTOV
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 700 }}>
                     {stats.total}
@@ -255,10 +378,10 @@ export default function InsuranceList() {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                    PLATNÉ POISTKY
+                    PLATNÉ
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {stats.validInsurances}
+                    {stats.validDocs}
                   </Typography>
                 </Box>
                 <CheckCircleIcon sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -269,7 +392,7 @@ export default function InsuranceList() {
         
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ 
-            background: 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)',
+            background: 'linear-gradient(135deg, #ffa726 0%, #fb8c00 100%)',
             color: 'white',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             height: '100%'
@@ -278,10 +401,10 @@ export default function InsuranceList() {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                    VYPRŠIA ČOSKORO
+                    VYPRŠÍ ČOSKORO
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {stats.expiringInsurances}
+                    {stats.expiringDocs}
                   </Typography>
                 </Box>
                 <ScheduleIcon sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -292,7 +415,7 @@ export default function InsuranceList() {
         
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ 
-            background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
+            background: 'linear-gradient(135deg, #ef5350 0%, #e53935 100%)',
             color: 'white',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             height: '100%'
@@ -304,7 +427,7 @@ export default function InsuranceList() {
                     VYPRŠANÉ
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {stats.expiredInsurances}
+                    {stats.expiredDocs}
                   </Typography>
                 </Box>
                 <ErrorIcon sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -317,56 +440,40 @@ export default function InsuranceList() {
       {/* Search and Filters */}
       <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: showFilters ? 2 : 0 }}>
+          <Box sx={{ display: 'flex', gap: 2, mb: showFilters ? 2 : 0, flexWrap: 'wrap' }}>
             <TextField
-              placeholder="Hľadať poistky..."
+              placeholder="Vyhľadať dokument..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ flex: 1 }}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
-                endAdornment: searchQuery && (
-                  <IconButton size="small" onClick={() => setSearchQuery('')}>
-                    <CloseIcon />
-                  </IconButton>
-                )
               }}
+              sx={{ flex: 1, minWidth: '250px' }}
             />
-            
             <Button
               variant={showFilters ? 'contained' : 'outlined'}
               startIcon={<FilterListIcon />}
               onClick={() => setShowFilters(!showFilters)}
-              sx={{
-                minWidth: 120,
-                backgroundColor: showFilters ? '#1976d2' : 'transparent',
-              }}
+              sx={{ whiteSpace: 'nowrap' }}
             >
-              Filtre
-              {hasActiveFilters && (
-                <Chip 
-                  label={filteredInsurances.length} 
-                  size="small" 
-                  sx={{ ml: 1, height: 20, fontSize: '0.75rem' }}
-                  color={showFilters ? 'default' : 'primary'}
-                />
-              )}
+              Filtre {hasActiveFilters && `(${Object.values({ searchQuery, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})`}
             </Button>
-            
             {hasActiveFilters && (
               <Button
-                variant="text"
+                variant="outlined"
+                startIcon={<CloseIcon />}
                 onClick={clearFilters}
-                sx={{ color: 'error.main' }}
+                color="secondary"
+                sx={{ whiteSpace: 'nowrap' }}
               >
-                Vymazať
+                Zrušiť filtre
               </Button>
             )}
           </Box>
-          
+
           {showFilters && (
             <>
-              <Divider sx={{ mb: 2 }} />
+              <Divider sx={{ my: 2 }} />
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6} md={3}>
                   <FormControl fullWidth>
@@ -379,7 +486,7 @@ export default function InsuranceList() {
                       <MenuItem value="">Všetky</MenuItem>
                       {state.vehicles.map(vehicle => (
                         <MenuItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
+                          {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
                         </MenuItem>
                       ))}
                     </Select>
@@ -387,30 +494,31 @@ export default function InsuranceList() {
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <FormControl fullWidth>
-                    <InputLabel>Poisťovňa</InputLabel>
+                    <InputLabel>Typ dokumentu</InputLabel>
                     <Select
-                      value={filterCompany}
-                      label="Poisťovňa"
-                      onChange={(e) => setFilterCompany(e.target.value)}
+                      value={filterType}
+                      label="Typ dokumentu"
+                      onChange={(e) => setFilterType(e.target.value)}
                     >
                       <MenuItem value="">Všetky</MenuItem>
-                      {Array.from(new Set(state.insurances.map(i => i.company))).map(company => (
-                        <MenuItem key={company} value={company}>{company}</MenuItem>
-                      ))}
+                      <MenuItem value="insurance">Poistka</MenuItem>
+                      <MenuItem value="stk">STK</MenuItem>
+                      <MenuItem value="ek">EK</MenuItem>
+                      <MenuItem value="vignette">Dialničná</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <FormControl fullWidth>
-                    <InputLabel>Typ poistky</InputLabel>
+                    <InputLabel>Spoločnosť</InputLabel>
                     <Select
-                      value={filterType}
-                      label="Typ poistky"
-                      onChange={(e) => setFilterType(e.target.value)}
+                      value={filterCompany}
+                      label="Spoločnosť"
+                      onChange={(e) => setFilterCompany(e.target.value)}
                     >
                       <MenuItem value="">Všetky</MenuItem>
-                      {Array.from(new Set(state.insurances.map(i => i.type))).map(type => (
-                        <MenuItem key={type} value={type}>{type}</MenuItem>
+                      {Array.from(new Set(unifiedDocuments.map(d => d.company).filter(Boolean))).map(company => (
+                        <MenuItem key={company} value={company}>{company}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
@@ -436,189 +544,160 @@ export default function InsuranceList() {
         </CardContent>
       </Card>
 
-      {/* Alert pre vypršané poistky */}
-      {stats.expiredInsurances > 0 && (
+      {/* Alerts */}
+      {stats.expiredDocs > 0 && (
         <Alert 
           severity="error" 
           sx={{ mb: 3 }}
           icon={<WarningIcon />}
         >
           <Typography variant="body1" sx={{ fontWeight: 600 }}>
-            Pozor! {stats.expiredInsurances} poistiek už vypršalo
+            Pozor! {stats.expiredDocs} dokumentov už vypršalo
           </Typography>
         </Alert>
       )}
 
-      {/* Alert pre čoskoro vypršané poistky */}
-      {stats.expiringInsurances > 0 && (
+      {stats.expiringDocs > 0 && (
         <Alert 
           severity="warning" 
           sx={{ mb: 3 }}
           icon={<ScheduleIcon />}
         >
           <Typography variant="body1" sx={{ fontWeight: 600 }}>
-            Upozornenie: {stats.expiringInsurances} poistiek vyprší do 30 dní
+            Upozornenie: {stats.expiringDocs} dokumentov vyprší do 30 dní
           </Typography>
         </Alert>
       )}
 
-      {/* Insurance Cards */}
-      <Grid container spacing={2}>
-        {filteredInsurances.map((insurance) => {
-          const vehicle = state.vehicles.find(v => v.id === insurance.vehicleId);
-          const expiryStatus = getExpiryStatus(insurance.validTo);
-          
-          return (
-            <Grid item xs={12} sm={6} lg={4} key={insurance.id}>
-              <Card sx={{ 
-                height: '100%',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                borderRadius: 2,
-                transition: 'all 0.2s ease',
-                border: `1px solid ${
-                  expiryStatus.status === 'expired' ? '#f44336' :
-                  expiryStatus.status === 'expiring' ? '#ff9800' :
-                  '#e0e0e0'
-                }`,
-                '&:hover': {
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                  transform: 'translateY(-4px)',
-                }
-              }}>
-                <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  {/* Header s vozidlom a stavom */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <CarIcon sx={{ color: '#1976d2', fontSize: 20 }} />
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
-                          {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'N/A'}
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        {vehicle?.licensePlate}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      label={expiryStatus.text}
-                      color={expiryStatus.color as any}
-                      sx={{ 
-                        fontWeight: 600,
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                      }}
-                    />
-                  </Box>
+      {/* Documents Table */}
+      <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                <TableCell sx={{ fontWeight: 600 }}>Vozidlo</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Typ</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Číslo/Polisa</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Spoločnosť</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Platné do</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Stav</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Cena</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Akcie</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredDocuments
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((doc) => {
+                  const vehicle = state.vehicles.find(v => v.id === doc.vehicleId);
+                  const expiryStatus = getExpiryStatus(doc.validTo);
+                  const typeInfo = getDocumentTypeInfo(doc.type);
                   
-                  {/* Informácie o poistke */}
-                  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                    <Box sx={{ 
-                      backgroundColor: expiryStatus.bgColor,
-                      borderRadius: 1,
-                      p: 1.5,
-                      border: `1px solid ${
-                        expiryStatus.status === 'expired' ? '#ffcdd2' :
-                        expiryStatus.status === 'expiring' ? '#ffe0b2' :
-                        '#c8e6c9'
-                      }`
-                    }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <SecurityIcon sx={{ fontSize: 18, color: '#1976d2' }} />
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2' }}>
-                          {insurance.type}
+                  return (
+                    <TableRow key={`${doc.type}-${doc.id}`} hover>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CarIcon sx={{ color: '#1976d2', fontSize: 18 }} />
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'N/A'}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {vehicle?.licensePlate}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {typeInfo.icon}
+                          <Typography variant="body2" sx={{ color: typeInfo.color, fontWeight: 600 }}>
+                            {typeInfo.label}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {doc.policyNumber || doc.documentNumber || '-'}
                         </Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Číslo: {insurance.policyNumber}
-                      </Typography>
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <BusinessIcon sx={{ fontSize: 18, color: '#666' }} />
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {insurance.company}
-                      </Typography>
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <ScheduleIcon sx={{ fontSize: 18, color: '#666' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        Platenie: {getPaymentFrequencyText(insurance.paymentFrequency || 'yearly')}
-                      </Typography>
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <EventIcon sx={{ fontSize: 18, color: '#666' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {format(typeof insurance.validFrom === 'string' ? parseISO(insurance.validFrom) : insurance.validFrom, 'dd.MM.yyyy', { locale: sk })} - {format(typeof insurance.validTo === 'string' ? parseISO(insurance.validTo) : insurance.validTo, 'dd.MM.yyyy', { locale: sk })}
-                      </Typography>
-                    </Box>
-                    
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 1,
-                      backgroundColor: '#f5f5f5',
-                      borderRadius: 1,
-                      p: 1
-                    }}>
-                      <EuroIcon sx={{ fontSize: 18, color: '#4caf50' }} />
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: '#4caf50' }}>
-                        {insurance.price.toFixed(2)} €
-                      </Typography>
-                    </Box>
-                  </Box>
-                  
-                  {/* Action Buttons */}
-                  <Divider sx={{ my: 2 }} />
-                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<EditIcon />}
-                      onClick={() => handleEdit(insurance)}
-                      sx={{
-                        borderColor: '#1976d2',
-                        color: '#1976d2',
-                        '&:hover': {
-                          borderColor: '#1565c0',
-                          backgroundColor: 'rgba(25, 118, 210, 0.04)',
-                        },
-                      }}
-                    >
-                      Upraviť
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="error"
-                      startIcon={<DeleteIcon />}
-                      onClick={() => handleDelete(insurance.id)}
-                      sx={{
-                        '&:hover': {
-                          backgroundColor: 'rgba(244, 67, 54, 0.04)',
-                        },
-                      }}
-                    >
-                      Vymazať
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          );
-        })}
-      </Grid>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {doc.company || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {format(typeof doc.validTo === 'string' ? parseISO(doc.validTo) : doc.validTo, 'dd.MM.yyyy', { locale: sk })}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={expiryStatus.text}
+                          color={expiryStatus.color as any}
+                          size="small"
+                          variant="filled"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {doc.price ? `€${doc.price.toFixed(2)}` : '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <Tooltip title="Upraviť">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleEdit(doc)}
+                              sx={{ color: '#1976d2' }}
+                            >
+                              <EditIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Vymazať">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDelete(doc)}
+                              sx={{ color: '#d32f2f' }}
+                            >
+                              <DeleteIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          component="div"
+          count={filteredDocuments.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Riadkov na stránku:"
+          labelDisplayedRows={({ from, to, count }) => 
+            `${from}–${to} z ${count !== -1 ? count : `viac ako ${to}`}`
+          }
+        />
+      </Card>
 
       {/* Empty State */}
-      {filteredInsurances.length === 0 && (
+      {filteredDocuments.length === 0 && (
         <Card sx={{ textAlign: 'center', py: 6, mt: 3 }}>
           <CardContent>
             <SecurityIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
             <Typography variant="h6" color="text.secondary" gutterBottom>
-              {hasActiveFilters ? 'Žiadne poistky nevyhovujú filtrom' : 'Žiadne poistky'}
+              {hasActiveFilters ? 'Žiadne dokumenty nevyhovujú filtrom' : 'Žiadne dokumenty'}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {hasActiveFilters ? 'Skúste zmeniť filtre alebo vyhľadávanie' : 'Začnite pridaním prvej poistky'}
+              {hasActiveFilters ? 'Skúste zmeniť filtre alebo vyhľadávanie' : 'Začnite pridaním prvého dokumentu'}
             </Typography>
             {!hasActiveFilters && (
               <Button
@@ -627,7 +706,7 @@ export default function InsuranceList() {
                 onClick={handleAdd}
                 sx={{ mt: 2 }}
               >
-                Pridať poistku
+                Pridať dokument
               </Button>
             )}
           </CardContent>
@@ -654,7 +733,7 @@ export default function InsuranceList() {
         </Fab>
       )}
 
-      {/* Dialog */}
+      {/* Dialog - TODO: Implement unified form */}
       <Dialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}
@@ -671,14 +750,12 @@ export default function InsuranceList() {
           gap: 1
         }}>
           <SecurityIcon />
-          {editingInsurance ? 'Upraviť poistku' : 'Pridať novú poistku'}
+          {editingDocument ? 'Upraviť dokument' : 'Pridať nový dokument'}
         </DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
-          <InsuranceForm
-            insurance={editingInsurance}
-            onSave={handleSave}
-            onCancel={() => setOpenDialog(false)}
-          />
+          <Typography variant="body2" color="text.secondary">
+            Dialog pre pridávanie/editáciu dokumentov bude implementovaný v ďalšom kroku
+          </Typography>
         </DialogContent>
       </Dialog>
     </Box>
