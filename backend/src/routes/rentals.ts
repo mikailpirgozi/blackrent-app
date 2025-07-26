@@ -2,29 +2,63 @@ import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { Rental, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+// 🔍 CONTEXT FUNCTIONS
+const getRentalContext = async (req: Request) => {
+  const rentalId = req.params.id;
+  if (!rentalId) return {};
+  
+  const rental = await postgresDatabase.getRental(rentalId);
+  if (!rental || !rental.vehicleId) return {};
+  
+  // Získaj vehicle pre company context
+  const vehicle = await postgresDatabase.getVehicle(rental.vehicleId);
+  return {
+    resourceCompanyId: vehicle?.ownerCompanyId,
+    amount: rental.totalPrice
+  };
+};
+
 // GET /api/rentals - Získanie všetkých prenájmov
-router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<Rental[]>>) => {
-  try {
-    const rentals = await postgresDatabase.getRentals();
-    res.json({
-      success: true,
-      data: rentals
-    });
-  } catch (error) {
-    console.error('Get rentals error:', error);
-    res.status(500).json({
-      success: false,
+router.get('/', 
+  authenticateToken,
+  checkPermission('rentals', 'read'),
+  async (req: Request, res: Response<ApiResponse<Rental[]>>) => {
+    try {
+      let rentals = await postgresDatabase.getRentals();
+      
+      // 🏢 COMPANY OWNER - filter len prenájmy vlastných vozidiel
+      if (req.user?.role === 'company_owner' && req.user.companyId) {
+        const vehicles = await postgresDatabase.getVehicles();
+        const companyVehicleIds = vehicles
+          .filter(v => v.ownerCompanyId === req.user?.companyId)
+          .map(v => v.id);
+        
+        rentals = rentals.filter(r => r.vehicleId && companyVehicleIds.includes(r.vehicleId));
+      }
+      
+      res.json({
+        success: true,
+        data: rentals
+      });
+    } catch (error) {
+      console.error('Get rentals error:', error);
+      res.status(500).json({
+        success: false,
       error: 'Chyba pri získavaní prenájmov'
     });
   }
 });
 
 // GET /api/rentals/:id - Získanie konkrétneho prenájmu
-router.get('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse<Rental>>) => {
+router.get('/:id', 
+  authenticateToken,
+  checkPermission('rentals', 'read', { getContext: getRentalContext }),
+  async (req: Request, res: Response<ApiResponse<Rental>>) => {
   try {
     const { id } = req.params;
     const rental = await postgresDatabase.getRental(id);
@@ -50,7 +84,10 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
 });
 
 // POST /api/rentals - Vytvorenie nového prenájmu
-router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.post('/', 
+  authenticateToken,
+  checkPermission('rentals', 'create'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const {
       vehicleId,
@@ -144,7 +181,10 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
 });
 
 // PUT /api/rentals/:id - Aktualizácia prenájmu
-router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.put('/:id', 
+  authenticateToken,
+  checkPermission('rentals', 'update', { getContext: getRentalContext }),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -184,7 +224,10 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
 });
 
 // DELETE /api/rentals/:id - Vymazanie prenájmu
-router.delete('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.delete('/:id', 
+  authenticateToken,
+  checkPermission('rentals', 'delete', { getContext: getRentalContext }),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
     const userId = (req as any).user.id;

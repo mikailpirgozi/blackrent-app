@@ -7,6 +7,8 @@ export interface Vehicle {
   pricing: PricingTier[];
   commission: Commission;
   status: VehicleStatus;
+  ownerCompanyId?: string; // 🏢 ID vlastníckej firmy
+  assignedMechanicId?: string; // 🔨 ID priradeného mechanika
 }
 
 export interface PricingTier {
@@ -286,6 +288,12 @@ export interface PermissionCheck {
   action: string;
   targetCompanyId?: string; // pre company-scoped resources
   amount?: number; // pre finančné operácie
+}
+
+export interface PermissionResult {
+  hasAccess: boolean;
+  requiresApproval?: boolean;
+  reason?: string;
 }
 
 export interface AuthState {
