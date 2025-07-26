@@ -1,5 +1,5 @@
 import { Pool, PoolClient } from 'pg';
-import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement } from '../types';
+import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument } from '../types';
 import bcrypt from 'bcryptjs';
 import { r2Storage } from '../utils/r2-storage';
 
@@ -188,6 +188,22 @@ export class PostgresDatabase {
         CREATE TABLE IF NOT EXISTS insurers (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           name VARCHAR(100) NOT NULL UNIQUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Tabuľka evidencie platnosti vozidiel (STK, EK, dialničné známky)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS vehicle_documents (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          document_type VARCHAR(20) NOT NULL,
+          valid_from DATE,
+          valid_to DATE NOT NULL,
+          document_number VARCHAR(100),
+          price DECIMAL(10,2),
+          notes TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -3218,6 +3234,118 @@ export class PostgresDatabase {
         updatedAt: new Date(row.updated_at),
         createdBy: row.created_by
       }));
+    } finally {
+      client.release();
+    }
+  }
+
+  // Metódy pre evidenciu platnosti vozidiel
+  async getVehicleDocuments(vehicleId?: string): Promise<VehicleDocument[]> {
+    const client = await this.pool.connect();
+    try {
+      let query = 'SELECT * FROM vehicle_documents';
+      let params: any[] = [];
+
+      if (vehicleId) {
+        query += ' WHERE vehicle_id = $1';
+        params.push(vehicleId);
+      }
+
+      query += ' ORDER BY valid_to ASC';
+
+      const result = await client.query(query, params);
+      return result.rows.map(row => ({
+        id: row.id?.toString() || '',
+        vehicleId: row.vehicle_id?.toString() || '',
+        documentType: row.document_type,
+        validFrom: row.valid_from ? new Date(row.valid_from) : undefined,
+        validTo: new Date(row.valid_to),
+        documentNumber: row.document_number || undefined,
+        price: row.price ? parseFloat(row.price) : undefined,
+        notes: row.notes || undefined
+      }));
+    } finally {
+      client.release();
+    }
+  }
+
+  async createVehicleDocument(documentData: {
+    vehicleId: string;
+    documentType: string;
+    validFrom?: Date;
+    validTo: Date;
+    documentNumber?: string;
+    price?: number;
+    notes?: string;
+  }): Promise<VehicleDocument> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `INSERT INTO vehicle_documents (vehicle_id, document_type, valid_from, valid_to, document_number, price, notes) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7) 
+         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, created_at`,
+        [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes]
+      );
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id,
+        documentType: row.document_type,
+        validFrom: row.valid_from ? new Date(row.valid_from) : undefined,
+        validTo: new Date(row.valid_to),
+        documentNumber: row.document_number || undefined,
+        price: row.price ? parseFloat(row.price) : undefined,
+        notes: row.notes || undefined
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async updateVehicleDocument(id: string, documentData: {
+    vehicleId: string;
+    documentType: string;
+    validFrom?: Date;
+    validTo: Date;
+    documentNumber?: string;
+    price?: number;
+    notes?: string;
+  }): Promise<VehicleDocument> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `UPDATE vehicle_documents 
+         SET vehicle_id = $1, document_type = $2, valid_from = $3, valid_to = $4, document_number = $5, price = $6, notes = $7, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $8 
+         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes`,
+        [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, id]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error('Dokument nebol nájdený');
+      }
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id,
+        documentType: row.document_type,
+        validFrom: row.valid_from ? new Date(row.valid_from) : undefined,
+        validTo: new Date(row.valid_to),
+        documentNumber: row.document_number || undefined,
+        price: row.price ? parseFloat(row.price) : undefined,
+        notes: row.notes || undefined
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async deleteVehicleDocument(id: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('DELETE FROM vehicle_documents WHERE id = $1', [id]);
     } finally {
       client.release();
     }

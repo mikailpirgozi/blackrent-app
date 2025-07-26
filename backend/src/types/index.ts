@@ -125,6 +125,19 @@ export type ExpenseCategory = 'service' | 'insurance' | 'fuel' | 'other';
 
 export type PaymentFrequency = 'monthly' | 'quarterly' | 'biannual' | 'yearly';
 
+export type DocumentType = 'stk' | 'ek' | 'vignette';
+
+export interface VehicleDocument {
+  id: string;
+  vehicleId: string;
+  documentType: DocumentType;
+  validFrom?: Date;
+  validTo: Date;
+  documentNumber?: string;
+  price?: number;
+  notes?: string;
+}
+
 export interface Insurance {
   id: string;
   vehicleId: string;
