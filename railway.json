@@ -1,8 +1,8 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile.backend"
+    "builder": "DOCKERFILE", 
+    "dockerfilePath": "Dockerfile.railway"
   },
   "deploy": {
     "healthcheckPath": "/api/health",
@@ -14,6 +14,8 @@
     "NODE_ENV": "production",
     "PORT": "3001",
     "DATABASE_URL": "${{DATABASE_URL}}",
-    "PDF_GENERATOR_TYPE": "pdf-lib"
+    "PDF_GENERATOR_TYPE": "pdf-lib",
+    "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true",
+    "PUPPETEER_EXECUTABLE_PATH": "/usr/bin/google-chrome-stable"
   }
 } 
