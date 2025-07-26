@@ -21,7 +21,7 @@ export class PuppeteerPDFGeneratorV2 {
         executablePath: customExecutablePath || undefined,
         headless: true,
         args: [
-          // Basic security and sandbox
+          // Essential security and sandbox
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
@@ -34,48 +34,63 @@ export class PuppeteerPDFGeneratorV2 {
           '--single-process',
           '--no-zygote',
           
-          // File system restrictions - FIX pre Railway
-          '--homedir=/tmp',
+          // File system - FIX pre Railway permissions
           '--user-data-dir=/tmp/chrome-user-data',
           '--data-path=/tmp/chrome-data',
           '--disk-cache-dir=/tmp/chrome-cache',
-          '--crash-dumps-dir=/tmp/chrome-crashes',
           '--temp-dir=/tmp',
           
-          // Disable problematic features
+          // Disable crashpad (hlavný problém)
+          '--disable-crash-reporter',
+          '--disable-crashpad',
+          '--crash-dumps-dir=/tmp/chrome-crashes',
+          
+          // Home directory fix
+          '--homedir=/tmp',
+          '--disable-background-networking',
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
           '--disable-renderer-backgrounding',
+          
+          // Disable všetky extensions a plugins
           '--disable-extensions',
           '--disable-plugins',
           '--disable-default-apps',
-          '--disable-background-networking',
           '--disable-sync',
           '--disable-translate',
           '--disable-ipc-flooding-protection',
           
-          // Security restrictions for Railway
+          // Security a web restrictions
           '--disable-web-security',
-          '--disable-features=TranslateUI',
+          '--disable-features=TranslateUI,BlinkGenPropertyTrees',
           '--disable-component-extensions-with-background-pages',
           '--disable-blink-features=AutomationControlled',
           
-          // Prevent file access issues
+          // Prevent problematic file operations
           '--no-first-run',
           '--no-default-browser-check',
-          '--disable-default-apps',
           '--disable-popup-blocking',
           '--disable-prompt-on-repost',
           '--disable-hang-monitor',
           '--disable-client-side-phishing-detection',
+          '--disable-component-update',
+          '--disable-domain-reliability',
           
-          // Railway container specific
+          // Railway container optimizations
           '--virtual-time-budget=25000',
           '--run-all-compositor-stages-before-draw',
           '--disable-partial-raster',
           '--disable-skia-runtime-opts',
           '--disable-system-font-check',
           '--disable-font-subpixel-positioning',
+          
+          // Additional permission fixes
+          '--no-pings',
+          '--disable-permissions-api',
+          '--disable-notifications',
+          '--disable-desktop-notifications',
+          '--disable-file-system',
+          '--disable-shared-workers',
         ],
         timeout: 30000,
         ignoreDefaultArgs: ['--enable-automation'],
