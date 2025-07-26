@@ -2129,16 +2129,29 @@ router.get('/debug-company-owner', authenticateToken, async (req: Request, res: 
 
     const vehicles = await postgresDatabase.getVehicles();
     const companies = await postgresDatabase.getCompanies();
+    const allUsers = await postgresDatabase.getUsers();
     
     const user = req.user!; // Non-null assertion since we checked above
+    
+    // Find Lubica user for debugging
+    const lubicaUser = allUsers.find(u => u.username === 'Lubica');
     
     const debugInfo = {
       currentUser: {
         id: user.id,
         username: user.username,
         role: user.role,
-        companyId: user.companyId
+        companyId: user.companyId,
+        isActive: user.isActive
       },
+      lubicaUserDebug: lubicaUser ? {
+        id: lubicaUser.id,
+        username: lubicaUser.username,
+        role: lubicaUser.role,
+        companyId: lubicaUser.companyId,
+        isActive: lubicaUser.isActive,
+        hasCompany: !!companies.find(c => c.id === lubicaUser.companyId)
+      } : 'User Lubica not found',
       userCompany: companies.find(c => c.id === user.companyId),
       allVehicles: vehicles.map(v => ({
         id: v.id,
@@ -2147,7 +2160,14 @@ router.get('/debug-company-owner', authenticateToken, async (req: Request, res: 
         ownerCompanyId: v.ownerCompanyId
       })),
       userCompanyVehicles: vehicles.filter(v => v.ownerCompanyId === user.companyId),
-      allCompanies: companies.map(c => ({ id: c.id, name: c.name }))
+      allCompanies: companies.map(c => ({ id: c.id, name: c.name })),
+      allUsers: allUsers.map(u => ({
+        id: u.id,
+        username: u.username,
+        role: u.role,
+        companyId: u.companyId,
+        isActive: u.isActive
+      }))
     };
 
     res.json({
@@ -2181,6 +2201,61 @@ router.get('/health', async (req: Request, res: Response<ApiResponse>) => {
     res.status(500).json({
       success: false,
       error: 'Health check failed'
+    });
+  }
+});
+
+// 🔍 DEBUG PERMISSION TEST - For testing specific permissions
+router.post('/debug-permission', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Používateľ nie je prihlásený'
+      });
+    }
+
+    const { resource, action } = req.body;
+    
+    if (!resource || !action) {
+      return res.status(400).json({
+        success: false,
+        error: 'resource a action sú povinné'
+      });
+    }
+
+    const { hasPermission } = await import('../middleware/permissions');
+    
+    const permissionResult = hasPermission(
+      req.user.role,
+      resource,
+      action,
+      {
+        userId: req.user.id,
+        companyId: req.user.companyId
+      }
+    );
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: req.user.id,
+          username: req.user.username,
+          role: req.user.role,
+          companyId: req.user.companyId
+        },
+        request: { resource, action },
+        result: permissionResult
+      },
+      message: `Permission check pre: ${resource}/${action}`
+    });
+
+  } catch (error) {
+    console.error('❌ Debug permission error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Chyba pri debug permission'
     });
   }
 });
