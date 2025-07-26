@@ -895,13 +895,24 @@ export default function RentalList() {
   };
 
   // New function to check all protocols for a rental
-  const handleCheckProtocols = (rental: Rental) => {
+  const handleCheckProtocols = async (rental: Rental) => {
+    console.log('🔍 Checking protocols for rental:', rental.id);
+    
+    // First, load protocols if not already loaded
+    if (!protocols[rental.id]) {
+      console.log('📥 Loading protocols first...');
+      await loadProtocolsForRental(rental.id);
+    }
+    
+    // Now check loaded protocols
     const hasHandover = rental.handoverProtocolId && protocols[rental.id]?.handover;
     const hasReturn = rental.returnProtocolId && protocols[rental.id]?.return;
     
-    console.log('🔍 Checking protocols for rental:', rental.id);
     console.log('📋 Handover protocol:', hasHandover ? 'EXISTS' : 'NOT FOUND');
     console.log('📋 Return protocol:', hasReturn ? 'EXISTS' : 'NOT FOUND');
+    console.log('📋 Rental handoverProtocolId:', rental.handoverProtocolId);
+    console.log('📋 Rental returnProtocolId:', rental.returnProtocolId);
+    console.log('📋 Loaded protocols:', protocols[rental.id]);
     
     if (!hasHandover && !hasReturn) {
       alert('❌ Žiadne protokoly nenájdené pre tento prenájom.');
