@@ -46,6 +46,7 @@ import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { useApp } from '../../context/AppContext';
 import { Vehicle, VehicleStatus } from '../../types';
+import { Can } from '../common/PermissionGuard';
 import VehicleForm from './VehicleForm';
 
 const getStatusColor = (status: VehicleStatus) => {
@@ -226,20 +227,22 @@ export default function VehicleListNew() {
         }}>
           🚗 Databáza vozidiel
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setOpenDialog(true)}
-          sx={{
-            bgcolor: '#1976d2',
-            '&:hover': { bgcolor: '#1565c0' },
-            borderRadius: 2,
-            px: 3,
-            py: 1
-          }}
-        >
-          Nové vozidlo
-        </Button>
+        <Can create="vehicles">
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setOpenDialog(true)}
+            sx={{
+              bgcolor: '#1976d2',
+              '&:hover': { bgcolor: '#1565c0' },
+              borderRadius: 2,
+              px: 3,
+              py: 1
+            }}
+          >
+            Nové vozidlo
+          </Button>
+        </Can>
       </Box>
 
       {/* Search and Filters */}
@@ -492,28 +495,30 @@ export default function VehicleListNew() {
                       flexWrap: 'wrap'
                     }}>
                       {/* Edit Button */}
-                      <IconButton
-                        size="small"
-                        title="Upraviť vozidlo"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(vehicle);
-                        }}
-                        sx={{ 
-                          bgcolor: '#2196f3', 
-                          color: 'white',
-                          width: { xs: 36, sm: 32 },
-                          height: { xs: 36, sm: 32 },
-                          '&:hover': { 
-                            bgcolor: '#1976d2',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
-                          },
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
+                      <Can update="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>
+                        <IconButton
+                          size="small"
+                          title="Upraviť vozidlo"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(vehicle);
+                          }}
+                          sx={{ 
+                            bgcolor: '#2196f3', 
+                            color: 'white',
+                            width: { xs: 36, sm: 32 },
+                            height: { xs: 36, sm: 32 },
+                            '&:hover': { 
+                              bgcolor: '#1976d2',
+                              transform: 'scale(1.1)',
+                              boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Can>
                       
                       {/* History Button */}
                       <IconButton
@@ -540,28 +545,30 @@ export default function VehicleListNew() {
                       </IconButton>
                       
                       {/* Delete Button */}
-                      <IconButton
-                        size="small"
-                        title="Zmazať vozidlo"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(vehicle.id);
-                        }}
-                        sx={{ 
-                          bgcolor: '#f44336', 
-                          color: 'white',
-                          width: { xs: 36, sm: 32 },
-                          height: { xs: 36, sm: 32 },
-                          '&:hover': { 
-                            bgcolor: '#d32f2f',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(244,67,54,0.4)'
-                          },
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                      <Can delete="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>
+                        <IconButton
+                          size="small"
+                          title="Zmazať vozidlo"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(vehicle.id);
+                          }}
+                          sx={{ 
+                            bgcolor: '#f44336', 
+                            color: 'white',
+                            width: { xs: 36, sm: 32 },
+                            height: { xs: 36, sm: 32 },
+                            '&:hover': { 
+                              bgcolor: '#d32f2f',
+                              transform: 'scale(1.1)',
+                              boxShadow: '0 4px 12px rgba(244,67,54,0.4)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Can>
                     </Box>
                   </Box>
                 </Box>
@@ -815,28 +822,30 @@ export default function VehicleListNew() {
                     gap: 0.5
                   }}>
                     {/* Edit Button */}
-                    <IconButton
-                      size="small"
-                      title="Upraviť vozidlo"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEdit(vehicle);
-                      }}
-                      sx={{ 
-                        bgcolor: '#2196f3', 
-                        color: 'white',
-                        width: 28,
-                        height: 28,
-                        '&:hover': { 
-                          bgcolor: '#1976d2',
-                          transform: 'scale(1.1)',
-                          boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
-                        },
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
+                    <Can update="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>
+                      <IconButton
+                        size="small"
+                        title="Upraviť vozidlo"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(vehicle);
+                        }}
+                        sx={{ 
+                          bgcolor: '#2196f3', 
+                          color: 'white',
+                          width: 28,
+                          height: 28,
+                          '&:hover': { 
+                            bgcolor: '#1976d2',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Can>
                     
                     {/* History Button */}
                     <IconButton
@@ -863,28 +872,30 @@ export default function VehicleListNew() {
                     </IconButton>
                     
                     {/* Delete Button */}
-                    <IconButton
-                      size="small"
-                      title="Zmazať vozidlo"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(vehicle.id);
-                      }}
-                      sx={{ 
-                        bgcolor: '#f44336', 
-                        color: 'white',
-                        width: 28,
-                        height: 28,
-                        '&:hover': { 
-                          bgcolor: '#d32f2f',
-                          transform: 'scale(1.1)',
-                          boxShadow: '0 4px 12px rgba(244,67,54,0.4)'
-                        },
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    <Can delete="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>
+                      <IconButton
+                        size="small"
+                        title="Zmazať vozidlo"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(vehicle.id);
+                        }}
+                        sx={{ 
+                          bgcolor: '#f44336', 
+                          color: 'white',
+                          width: 28,
+                          height: 28,
+                          '&:hover': { 
+                            bgcolor: '#d32f2f',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(244,67,54,0.4)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Can>
                   </Box>
                 </Box>
               ))}
