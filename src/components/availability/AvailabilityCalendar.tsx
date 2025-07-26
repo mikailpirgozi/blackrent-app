@@ -187,6 +187,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
   // Mobilný kalendár - týždňová navigácia
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
+  
+  // Mobilný kalendár - prepínanie medzi týždenným a mesačným zobrazením
+  const [mobileViewMode, setMobileViewMode] = useState<'week' | 'month'>('week');
 
   // Function to fetch rental details
   const fetchRentalDetails = async (rentalId: string) => {
@@ -1130,7 +1133,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   />
                 </Box>
 
-                {/* Status pre aktuálny týždeň s navigáciou */}
+                {/* Status pre aktuálny týždeň/mesiac s navigáciou */}
                 <Box sx={{ 
                   display: 'flex', 
                   justifyContent: 'space-between', 
@@ -1141,43 +1144,52 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     fontWeight: 600,
                     color: '#333'
                   }}>
-                    Dostupnosť ({format(new Date(Date.now() + currentWeekOffset * 7 * 24 * 60 * 60 * 1000), 'd.M.')} - {format(new Date(Date.now() + (currentWeekOffset * 7 + 6) * 24 * 60 * 60 * 1000), 'd.M.')}):
+                    {mobileViewMode === 'week' 
+                      ? `Dostupnosť (${format(new Date(Date.now() + currentWeekOffset * 7 * 24 * 60 * 60 * 1000), 'd.M.')} - ${format(new Date(Date.now() + (currentWeekOffset * 7 + 6) * 24 * 60 * 60 * 1000), 'd.M.')}):` 
+                      : 'Dostupnosť na 30 dní:'
+                    }
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <IconButton 
-                      size="small"
-                      onClick={() => setCurrentWeekOffset(prev => prev - 1)}
-                      disabled={currentWeekOffset <= 0}
-                      sx={{ 
-                        width: 28, 
-                        height: 28,
-                        backgroundColor: currentWeekOffset > 0 ? '#f5f5f5' : 'transparent'
-                      }}
-                    >
-                      <ChevronLeftIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton 
-                      size="small"
-                      onClick={() => setCurrentWeekOffset(prev => prev + 1)}
-                      disabled={currentWeekOffset >= Math.floor(statusFilteredCalendarData.length / 7) - 1}
-                      sx={{ 
-                        width: 28, 
-                        height: 28,
-                        backgroundColor: '#f5f5f5'
-                      }}
-                    >
-                      <ChevronRightIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
+                  {mobileViewMode === 'week' && (
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <IconButton 
+                        size="small"
+                        onClick={() => setCurrentWeekOffset(prev => prev - 1)}
+                        disabled={currentWeekOffset <= 0}
+                        sx={{ 
+                          width: 28, 
+                          height: 28,
+                          backgroundColor: currentWeekOffset > 0 ? '#f5f5f5' : 'transparent'
+                        }}
+                      >
+                        <ChevronLeftIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        size="small"
+                        onClick={() => setCurrentWeekOffset(prev => prev + 1)}
+                        disabled={currentWeekOffset >= Math.floor(statusFilteredCalendarData.length / 7) - 1}
+                        sx={{ 
+                          width: 28, 
+                          height: 28,
+                          backgroundColor: '#f5f5f5'
+                        }}
+                      >
+                        <ChevronRightIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
                 </Box>
                 
                 <Box sx={{ 
                   display: 'grid',
                   gridTemplateColumns: 'repeat(7, 1fr)',
+                  gridTemplateRows: mobileViewMode === 'month' ? 'repeat(5, 1fr)' : '1fr',
                   gap: 0.5,
                   mb: 2
                 }}>
-                  {statusFilteredCalendarData.slice(currentWeekOffset * 7, (currentWeekOffset + 1) * 7).map((day) => {
+                  {(mobileViewMode === 'week' 
+                    ? statusFilteredCalendarData.slice(currentWeekOffset * 7, (currentWeekOffset + 1) * 7)
+                    : statusFilteredCalendarData.slice(0, 30)
+                  ).map((day) => {
                     const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
                     const isAvailable = !vehicleStatus || vehicleStatus.status === 'available';
                     const isRented = vehicleStatus?.status === 'rented';
@@ -1237,6 +1249,25 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 }}>
                   <Button
                     size="small"
+                    variant={mobileViewMode === 'week' ? 'contained' : 'outlined'}
+                    onClick={() => {
+                      setMobileViewMode('week');
+                      setCurrentWeekOffset(0);
+                    }}
+                    sx={{ fontSize: '0.75rem' }}
+                  >
+                    Tento týždeň
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={mobileViewMode === 'month' ? 'contained' : 'outlined'}
+                    onClick={() => setMobileViewMode('month')}
+                    sx={{ fontSize: '0.75rem' }}
+                  >
+                    30 dní
+                  </Button>
+                  <Button
+                    size="small"
                     variant="outlined"
                     onClick={() => {
                       setEditingMaintenance(null);
@@ -1245,15 +1276,6 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     sx={{ fontSize: '0.75rem' }}
                   >
                     Blokovať
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="text"
-                    onClick={() => setCurrentWeekOffset(0)}
-                    disabled={currentWeekOffset === 0}
-                    sx={{ fontSize: '0.75rem' }}
-                  >
-                    Tento týždeň
                   </Button>
                 </Box>
               </CardContent>
@@ -1278,7 +1300,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         {/* View Mode Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
           <Tabs value={viewMode} onChange={handleViewModeChange} centered>
-            <Tab label="📅 Navigácia mesiacov" value="navigation" />
+            <Tab label="�� Navigácia mesiacov" value="navigation" />
             <Tab label="📊 Vlastný rozsah" value="range" />
           </Tabs>
         </Box>
