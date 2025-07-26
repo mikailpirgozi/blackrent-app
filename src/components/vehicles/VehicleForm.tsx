@@ -13,8 +13,22 @@ import {
   Typography,
   Card,
   CardContent,
+  Chip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  Divider,
 } from '@mui/material';
-import { Vehicle, PricingTier } from '../../types';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Assignment as DocumentIcon,
+} from '@mui/icons-material';
+import { Vehicle, PricingTier, VehicleDocument, DocumentType } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -25,7 +39,7 @@ interface VehicleFormProps {
 }
 
 export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormProps) {
-  const { state, createCompany } = useApp();
+  const { state, createCompany, createVehicleDocument, updateVehicleDocument, deleteVehicleDocument } = useApp();
   const defaultPricing = [
     { id: '1', minDays: 0, maxDays: 1, pricePerDay: 0 },
     { id: '2', minDays: 2, maxDays: 3, pricePerDay: 0 },
@@ -46,12 +60,17 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
   });
   const [addingCompany, setAddingCompany] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
+  const [vehicleDocuments, setVehicleDocuments] = useState<VehicleDocument[]>([]);
+  const [editingDocument, setEditingDocument] = useState<VehicleDocument | null>(null);
 
   useEffect(() => {
     if (vehicle) {
       setFormData(vehicle);
+      // Načítaj dokumenty pre existujúce vozidlo
+      const vehicleDocs = state.vehicleDocuments.filter(doc => doc.vehicleId === vehicle.id);
+      setVehicleDocuments(vehicleDocs);
     }
-  }, [vehicle]);
+  }, [vehicle, state.vehicleDocuments]);
 
   const handleInputChange = (field: keyof Vehicle, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -100,6 +119,78 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
     ...state.companies.map(c => c.name),
     ...state.vehicles.map(v => v.company)
   ])).filter(Boolean).sort((a, b) => a.localeCompare(b));
+
+  // Helper funkcie pre dokumenty
+  const handleAddDocument = async (docData: Partial<VehicleDocument>) => {
+    if (!formData.id) return; // Môžeme pridávať dokumenty len pre existujúce vozidlá
+    
+    const newDocument: VehicleDocument = {
+      id: uuidv4(),
+      vehicleId: formData.id,
+      documentType: docData.documentType as DocumentType,
+      validFrom: docData.validFrom,
+      validTo: docData.validTo!,
+      documentNumber: docData.documentNumber,
+      price: docData.price,
+      notes: docData.notes
+    };
+
+    try {
+      await createVehicleDocument(newDocument);
+      setVehicleDocuments(prev => [...prev, newDocument]);
+      setEditingDocument(null);
+    } catch (error) {
+      console.error('Chyba pri pridávaní dokumentu:', error);
+    }
+  };
+
+  const handleUpdateDocument = async (docData: VehicleDocument) => {
+    try {
+      await updateVehicleDocument(docData);
+      setVehicleDocuments(prev => prev.map(doc => doc.id === docData.id ? docData : doc));
+      setEditingDocument(null);
+    } catch (error) {
+      console.error('Chyba pri aktualizácii dokumentu:', error);
+    }
+  };
+
+  const handleDeleteDocument = async (id: string) => {
+    if (window.confirm('Naozaj chcete vymazať tento dokument?')) {
+      try {
+        await deleteVehicleDocument(id);
+        setVehicleDocuments(prev => prev.filter(doc => doc.id !== id));
+      } catch (error) {
+        console.error('Chyba pri mazaní dokumentu:', error);
+      }
+    }
+  };
+
+  const getDocumentTypeLabel = (type: DocumentType) => {
+    switch (type) {
+      case 'stk':
+        return 'STK';
+      case 'ek':
+        return 'EK';
+      case 'vignette':
+        return 'Dialničná známka';
+      default:
+        return type;
+    }
+  };
+
+  const getExpiryStatus = (validTo: Date) => {
+    const today = new Date();
+    const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const validToDate = new Date(validTo);
+
+    if (validToDate < today) {
+      return { status: 'expired', color: 'error', text: 'Vypršal' };
+    } else if (validToDate <= thirtyDaysFromNow) {
+      return { status: 'expiring', color: 'warning', text: 'Vyprší čoskoro' };
+    } else {
+      return { status: 'valid', color: 'success', text: 'Platný' };
+    }
+  };
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
@@ -255,6 +346,106 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           </Card>
         </Box>
 
+        {/* Evidencia platnosti */}
+        {formData.id && (
+          <Box sx={{ gridColumn: '1 / -1' }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <DocumentIcon />
+                    <Typography variant="h6">Evidencia platnosti</Typography>
+                  </Box>
+                  <Button
+                    startIcon={<AddIcon />}
+                    variant="outlined"
+                    onClick={() => setEditingDocument({
+                      id: '',
+                      vehicleId: formData.id!,
+                      documentType: 'stk',
+                      validTo: new Date()
+                    } as VehicleDocument)}
+                  >
+                    Pridať dokument
+                  </Button>
+                </Box>
+
+                <Grid container spacing={2}>
+                  {vehicleDocuments.map((doc) => {
+                    const expiryStatus = getExpiryStatus(doc.validTo);
+                    return (
+                      <Grid item xs={12} sm={6} md={4} key={doc.id}>
+                        <Card sx={{ 
+                          border: `1px solid ${
+                            expiryStatus.status === 'expired' ? '#f44336' :
+                            expiryStatus.status === 'expiring' ? '#ff9800' :
+                            '#e0e0e0'
+                          }`,
+                          '&:hover': { boxShadow: 2 }
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                {getDocumentTypeLabel(doc.documentType)}
+                              </Typography>
+                              <Chip
+                                label={expiryStatus.text}
+                                color={expiryStatus.color as any}
+                                size="small"
+                              />
+                            </Box>
+                            
+                            {doc.documentNumber && (
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                Číslo: {doc.documentNumber}
+                              </Typography>
+                            )}
+                            
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              Platné do: {new Date(doc.validTo).toLocaleDateString()}
+                            </Typography>
+                            
+                            {doc.price && (
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                Cena: {doc.price.toFixed(2)} €
+                              </Typography>
+                            )}
+
+                            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                              <IconButton
+                                size="small"
+                                onClick={() => setEditingDocument(doc)}
+                                color="primary"
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteDocument(doc.id)}
+                                color="error"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    );
+                  })}
+                  
+                  {vehicleDocuments.length === 0 && (
+                    <Grid item xs={12}>
+                      <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                        Žiadne dokumenty evidované. Kliknite na "Pridať dokument" pre pridanie STK, EK alebo dialničnej známky.
+                      </Typography>
+                    </Grid>
+                  )}
+                </Grid>
+              </CardContent>
+            </Card>
+          </Box>
+        )}
+
         <Box sx={{ gridColumn: '1 / -1', display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
           <Button variant="outlined" onClick={onCancel}>
             Zrušiť
@@ -264,6 +455,127 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           </Button>
         </Box>
       </Box>
+
+      {/* Dialog pre editáciu dokumentov */}
+      <DocumentDialog
+        document={editingDocument}
+        onSave={editingDocument?.id ? handleUpdateDocument : handleAddDocument}
+        onCancel={() => setEditingDocument(null)}
+      />
     </Box>
+  );
+}
+
+// Dialóg pre editáciu/pridávanie dokumentov
+interface DocumentDialogProps {
+  document: VehicleDocument | null;
+  onSave: (document: VehicleDocument | Partial<VehicleDocument>) => void;
+  onCancel: () => void;
+}
+
+function DocumentDialog({ document, onSave, onCancel }: DocumentDialogProps) {
+  const [formData, setFormData] = useState<Partial<VehicleDocument>>({});
+
+  useEffect(() => {
+    if (document) {
+      setFormData({
+        ...document,
+        validFrom: document.validFrom || undefined,
+        validTo: document.validTo || new Date()
+      });
+    } else {
+      setFormData({});
+    }
+  }, [document]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.documentType || !formData.validTo) return;
+
+    onSave(document?.id ? { ...document, ...formData } as VehicleDocument : formData);
+  };
+
+  return (
+    <Dialog open={!!document} onClose={onCancel} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        {document?.id ? 'Upraviť dokument' : 'Pridať dokument'}
+      </DialogTitle>
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel>Typ dokumentu</InputLabel>
+              <Select
+                value={formData.documentType || 'stk'}
+                onChange={(e) => setFormData(prev => ({ ...prev, documentType: e.target.value as DocumentType }))}
+                label="Typ dokumentu"
+                required
+              >
+                <MenuItem value="stk">STK</MenuItem>
+                <MenuItem value="ek">EK</MenuItem>
+                <MenuItem value="vignette">Dialničná známka</MenuItem>
+              </Select>
+            </FormControl>
+
+            <TextField
+              fullWidth
+              label="Číslo dokumentu"
+              value={formData.documentNumber || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, documentNumber: e.target.value }))}
+            />
+
+            <TextField
+              fullWidth
+              label="Platný od"
+              type="date"
+              value={
+                formData.validFrom && !isNaN(new Date(formData.validFrom).getTime())
+                  ? new Date(formData.validFrom).toISOString().split('T')[0]
+                  : ''
+              }
+              onChange={(e) => setFormData(prev => ({ ...prev, validFrom: e.target.value ? new Date(e.target.value) : undefined }))}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              fullWidth
+              label="Platný do"
+              type="date"
+              value={
+                formData.validTo && !isNaN(new Date(formData.validTo).getTime())
+                  ? new Date(formData.validTo).toISOString().split('T')[0]
+                  : ''
+              }
+              onChange={(e) => setFormData(prev => ({ ...prev, validTo: new Date(e.target.value) }))}
+              InputLabelProps={{ shrink: true }}
+              required
+            />
+
+            <TextField
+              fullWidth
+              label="Cena (€)"
+              type="number"
+              value={formData.price || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value ? parseFloat(e.target.value) : undefined }))}
+            />
+
+            <TextField
+              fullWidth
+              label="Poznámky"
+              multiline
+              rows={3}
+              value={formData.notes || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onCancel}>Zrušiť</Button>
+          <Button type="submit" variant="contained">
+            {document?.id ? 'Uložiť' : 'Pridať'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 } 
