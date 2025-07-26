@@ -845,24 +845,67 @@ export class PostgresDatabase {
     }
   }
 
-  async createUser(userData: { username: string; email: string; password: string; role: string }): Promise<User> {
+  async createUser(userData: { 
+    username: string; 
+    email: string; 
+    password: string; 
+    role: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    companyId?: string | null;
+    employeeNumber?: string | null;
+    hireDate?: Date | null;
+    isActive?: boolean;
+    signatureTemplate?: string | null;
+  }): Promise<User> {
     const client = await this.pool.connect();
     try {
+      console.log('🗄️ Database createUser - userData:', userData);
+      
       const hashedPassword = await bcrypt.hash(userData.password, 12);
       const result = await client.query(
-        'INSERT INTO users (username, email, password_hash, role, is_active) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, email, password_hash, role, is_active, created_at',
-        [userData.username, userData.email, hashedPassword, userData.role, true]
+        `INSERT INTO users (
+          username, email, password_hash, role, first_name, last_name, 
+          company_id, employee_number, hire_date, is_active, signature_template
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+        RETURNING id, username, email, password_hash, role, first_name, last_name,
+                  company_id, employee_number, hire_date, is_active, last_login,
+                  signature_template, created_at, updated_at`,
+        [
+          userData.username, 
+          userData.email, 
+          hashedPassword, 
+          userData.role,
+          userData.firstName,
+          userData.lastName,
+          userData.companyId,
+          userData.employeeNumber,
+          userData.hireDate,
+          userData.isActive ?? true,
+          userData.signatureTemplate
+        ]
       );
       
       const row = result.rows[0];
+      console.log('🗄️ Database createUser - result row:', row);
+      
       return {
         id: row.id.toString(),
         username: row.username,
         email: row.email,
         password: row.password_hash,
         role: row.role,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        companyId: row.company_id,
+        employeeNumber: row.employee_number,
+        hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
         isActive: row.is_active ?? true,
-        createdAt: new Date(row.created_at)
+        lastLogin: row.last_login ? new Date(row.last_login) : undefined,
+        permissions: [], // Default empty permissions
+        signatureTemplate: row.signature_template,
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
       };
     } finally {
       client.release();
@@ -902,7 +945,7 @@ export class PostgresDatabase {
         id: row.id?.toString(),
         username: row.username,
         email: row.email,
-        password: row.password_hash,
+        password: row.password, // using alias from SELECT
         firstName: row.first_name,
         lastName: row.last_name,
         role: row.role,
@@ -911,6 +954,7 @@ export class PostgresDatabase {
         hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
         isActive: row.is_active ?? true,
         lastLogin: row.last_login ? new Date(row.last_login) : undefined,
+        permissions: [], // Default empty permissions
         signatureTemplate: row.signature_template,
         createdAt: new Date(row.created_at),
         updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
