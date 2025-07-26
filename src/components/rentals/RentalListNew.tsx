@@ -940,18 +940,24 @@ export default function RentalList() {
     console.log('📋 Handover protocol:', hasHandover ? 'EXISTS' : 'NOT FOUND');
     console.log('📋 Return protocol:', hasReturn ? 'EXISTS' : 'NOT FOUND');
     
-    // Silently open protocols if they exist, no alerts or confirmations
-    if (!hasHandover && !hasReturn) {
-      // Do nothing - no protocols exist, no message
-      return;
+    // Just show a simple status message - no actions, no protocol opening
+    let statusMessage = '📋 Stav protokolov:\n\n';
+    
+    if (hasHandover) {
+      statusMessage += '✅ Odovzdávací protokol: EXISTUJE\n';
+    } else {
+      statusMessage += '❌ Odovzdávací protokol: NEEXISTUJE\n';
     }
     
-    // If both exist, prefer handover first, otherwise open the existing one
-    if (hasHandover) {
-      handleOpenProtocolMenu(rental, 'handover');
-    } else if (hasReturn) {
-      handleOpenProtocolMenu(rental, 'return');
+    if (hasReturn) {
+      statusMessage += '✅ Preberací protokol: EXISTUJE\n';
+    } else {
+      statusMessage += '❌ Preberací protokol: NEEXISTUJE\n';
     }
+    
+    statusMessage += '\nKliknite na príslušný protocol chip (🚗→ alebo ←🚗) pre otvorenie.';
+    
+    alert(statusMessage);
   };
 
   const handleDeleteProtocol = async (rentalId: string, type: 'handover' | 'return') => {
