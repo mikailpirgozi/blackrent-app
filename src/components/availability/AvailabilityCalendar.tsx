@@ -188,8 +188,32 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   // Mobilný kalendár - týždňová navigácia
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   
+  // Mobilný kalendár - mesačná navigácia
+  const [currentMonthOffset, setCurrentMonthOffset] = useState(0);
+  
   // Mobilný kalendár - prepínanie medzi týždenným a mesačným zobrazením
   const [mobileViewMode, setMobileViewMode] = useState<'week' | 'month'>('week');
+
+  // Funkcia na generovanie kalendárnych dní pre neobmedzenú navigáciu
+  const generateCalendarDays = (offset: number, daysCount: number) => {
+    const startDate = new Date(Date.now() + offset * daysCount * 24 * 60 * 60 * 1000);
+    const days = [];
+    
+    for (let i = 0; i < daysCount; i++) {
+      const currentDate = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const dateString = format(currentDate, 'yyyy-MM-dd');
+      
+      // Nájdeme existujúce dáta pre tento dátum alebo vytvoríme prázdne
+      const existingDay = statusFilteredCalendarData.find(day => day.date === dateString);
+      
+      days.push(existingDay || {
+        date: dateString,
+        vehicles: [] // Prázdne vozidlá pre budúce dátumy
+      });
+    }
+    
+    return days;
+  };
 
   // Function to fetch rental details
   const fetchRentalDetails = async (rentalId: string) => {
@@ -1146,37 +1170,45 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   }}>
                     {mobileViewMode === 'week' 
                       ? `Dostupnosť (${format(new Date(Date.now() + currentWeekOffset * 7 * 24 * 60 * 60 * 1000), 'd.M.')} - ${format(new Date(Date.now() + (currentWeekOffset * 7 + 6) * 24 * 60 * 60 * 1000), 'd.M.')}):` 
-                      : 'Dostupnosť na 30 dní:'
+                      : `Dostupnosť (${format(new Date(Date.now() + currentMonthOffset * 30 * 24 * 60 * 60 * 1000), 'd.M.')} - ${format(new Date(Date.now() + (currentMonthOffset * 30 + 29) * 24 * 60 * 60 * 1000), 'd.M.')}):` 
                     }
                   </Typography>
-                  {mobileViewMode === 'week' && (
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <IconButton 
-                        size="small"
-                        onClick={() => setCurrentWeekOffset(prev => prev - 1)}
-                        disabled={currentWeekOffset <= 0}
-                        sx={{ 
-                          width: 28, 
-                          height: 28,
-                          backgroundColor: currentWeekOffset > 0 ? '#f5f5f5' : 'transparent'
-                        }}
-                      >
-                        <ChevronLeftIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton 
-                        size="small"
-                        onClick={() => setCurrentWeekOffset(prev => prev + 1)}
-                        disabled={currentWeekOffset >= Math.floor(statusFilteredCalendarData.length / 7) - 1}
-                        sx={{ 
-                          width: 28, 
-                          height: 28,
-                          backgroundColor: '#f5f5f5'
-                        }}
-                      >
-                        <ChevronRightIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  )}
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <IconButton 
+                      size="small"
+                      onClick={() => {
+                        if (mobileViewMode === 'week') {
+                          setCurrentWeekOffset(prev => prev - 1);
+                        } else {
+                          setCurrentMonthOffset(prev => prev - 1);
+                        }
+                      }}
+                      sx={{ 
+                        width: 28, 
+                        height: 28,
+                        backgroundColor: '#f5f5f5'
+                      }}
+                    >
+                      <ChevronLeftIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton 
+                      size="small"
+                      onClick={() => {
+                        if (mobileViewMode === 'week') {
+                          setCurrentWeekOffset(prev => prev + 1);
+                        } else {
+                          setCurrentMonthOffset(prev => prev + 1);
+                        }
+                      }}
+                      sx={{ 
+                        width: 28, 
+                        height: 28,
+                        backgroundColor: '#f5f5f5'
+                      }}
+                    >
+                      <ChevronRightIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
                 </Box>
                 
                 <Box sx={{ 
@@ -1187,8 +1219,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   mb: 2
                 }}>
                   {(mobileViewMode === 'week' 
-                    ? statusFilteredCalendarData.slice(currentWeekOffset * 7, (currentWeekOffset + 1) * 7)
-                    : statusFilteredCalendarData.slice(0, 30)
+                    ? generateCalendarDays(currentWeekOffset, 7)
+                    : generateCalendarDays(currentMonthOffset, 30)
                   ).map((day) => {
                     const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
                     const isAvailable = !vehicleStatus || vehicleStatus.status === 'available';
@@ -1383,34 +1415,43 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                            vehicle.status === 'rented' ? 'primary' : 'warning'}
                     sx={{ fontWeight: 600 }}
                   />
-                  {mobileViewMode === 'week' && (
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <IconButton 
-                        size="small"
-                        onClick={() => setCurrentWeekOffset(prev => prev - 1)}
-                        disabled={currentWeekOffset <= 0}
-                        sx={{ 
-                          width: 32, 
-                          height: 32,
-                          backgroundColor: currentWeekOffset > 0 ? '#f5f5f5' : 'transparent'
-                        }}
-                      >
-                        <ChevronLeftIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton 
-                        size="small"
-                        onClick={() => setCurrentWeekOffset(prev => prev + 1)}
-                        disabled={currentWeekOffset >= Math.floor(statusFilteredCalendarData.length / 7) - 1}
-                        sx={{ 
-                          width: 32, 
-                          height: 32,
-                          backgroundColor: '#f5f5f5'
-                        }}
-                      >
-                        <ChevronRightIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  )}
+                  {/* Navigation pre desktop - vždy zobrazené bez obmedzení */}
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <IconButton 
+                      size="small"
+                      onClick={() => {
+                        if (mobileViewMode === 'week') {
+                          setCurrentWeekOffset(prev => prev - 1);
+                        } else {
+                          setCurrentMonthOffset(prev => prev - 1);
+                        }
+                      }}
+                      sx={{ 
+                        width: 32, 
+                        height: 32,
+                        backgroundColor: '#f5f5f5'
+                      }}
+                    >
+                      <ChevronLeftIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton 
+                      size="small"
+                      onClick={() => {
+                        if (mobileViewMode === 'week') {
+                          setCurrentWeekOffset(prev => prev + 1);
+                        } else {
+                          setCurrentMonthOffset(prev => prev + 1);
+                        }
+                      }}
+                      sx={{ 
+                        width: 32, 
+                        height: 32,
+                        backgroundColor: '#f5f5f5'
+                      }}
+                    >
+                      <ChevronRightIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
                 </Box>
               </Box>
 
@@ -1422,7 +1463,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               }}>
                 {mobileViewMode === 'week' 
                   ? `Dostupnosť (${format(new Date(Date.now() + currentWeekOffset * 7 * 24 * 60 * 60 * 1000), 'd.M.')} - ${format(new Date(Date.now() + (currentWeekOffset * 7 + 6) * 24 * 60 * 60 * 1000), 'd.M.')}):` 
-                  : 'Dostupnosť na 30 dní:'
+                  : `Dostupnosť (${format(new Date(Date.now() + currentMonthOffset * 30 * 24 * 60 * 60 * 1000), 'd.M.')} - ${format(new Date(Date.now() + (currentMonthOffset * 30 + 29) * 24 * 60 * 60 * 1000), 'd.M.')}):` 
                 }
               </Typography>
               
@@ -1434,8 +1475,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 mb: 3
               }}>
                 {(mobileViewMode === 'week' 
-                  ? statusFilteredCalendarData.slice(currentWeekOffset * 7, (currentWeekOffset + 1) * 7)
-                  : statusFilteredCalendarData.slice(0, 30)
+                  ? generateCalendarDays(currentWeekOffset, 7)
+                  : generateCalendarDays(currentMonthOffset, 30)
                 ).map((day) => {
                   const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
                   const isAvailable = !vehicleStatus || vehicleStatus.status === 'available';
