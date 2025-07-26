@@ -235,30 +235,20 @@ router.post('/assign-to-company',
         });
       }
 
-      // Update vehicles
-      const client = await postgresDatabase.pool.connect();
-      try {
-        for (const vehicleId of vehicleIds) {
-          await client.query(
-            'UPDATE vehicles SET owner_company_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-            [companyId, vehicleId]
-          );
+      // Update vehicles using database method
+      await postgresDatabase.assignVehiclesToCompany(vehicleIds, companyId);
+
+      console.log(`🏢 Assigned ${vehicleIds.length} vehicles to company ${company.name}`);
+
+      res.json({
+        success: true,
+        message: `${vehicleIds.length} vozidiel úspešne priradených k firme ${company.name}`,
+        data: {
+          companyId,
+          companyName: company.name,
+          assignedVehicleIds: vehicleIds
         }
-
-        console.log(`🏢 Assigned ${vehicleIds.length} vehicles to company ${company.name}`);
-
-        res.json({
-          success: true,
-          message: `${vehicleIds.length} vozidiel úspešne priradených k firme ${company.name}`,
-          data: {
-            companyId,
-            companyName: company.name,
-            assignedVehicleIds: vehicleIds
-          }
-        });
-      } finally {
-        client.release();
-      }
+      });
 
     } catch (error) {
       console.error('Assign vehicles to company error:', error);
