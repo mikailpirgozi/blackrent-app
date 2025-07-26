@@ -137,6 +137,18 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleFileUploadSuccess = (fileData: { url: string; key: string; filename: string }) => {
+    console.log('🔍 FILE UPLOAD SUCCESS:', fileData);
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        filePath: fileData.url
+      };
+      console.log('🔍 UPDATED FORM DATA:', newData);
+      return newData;
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -144,14 +156,10 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
       return;
     }
 
+    console.log('🔍 FORM SUBMIT - Form data being saved:', formData);
+    console.log('🔍 FORM SUBMIT - FilePath value:', formData.filePath);
+    
     onSave(formData);
-  };
-
-  const handleFileUploadSuccess = (fileData: { url: string; key: string; filename: string }) => {
-    setFormData(prev => ({
-      ...prev,
-      filePath: fileData.url
-    }));
   };
 
   const typeInfo = getDocumentTypeInfo(formData.type);
