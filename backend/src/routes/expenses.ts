@@ -32,6 +32,12 @@ router.get('/',
     try {
       let expenses = await postgresDatabase.getExpenses();
       
+      console.log('💰 Expenses GET - user:', { 
+        role: req.user?.role, 
+        companyId: req.user?.companyId, 
+        totalExpenses: expenses.length 
+      });
+      
       // 🏢 COMPANY OWNER - filter len náklady vlastných vozidiel
       if (req.user?.role === 'company_owner' && req.user.companyId) {
         const vehicles = await postgresDatabase.getVehicles();
@@ -39,9 +45,17 @@ router.get('/',
           .filter(v => v.ownerCompanyId === req.user?.companyId)
           .map(v => v.id);
         
+        const originalCount = expenses.length;
         expenses = expenses.filter(e => 
           e.vehicleId && companyVehicleIds.includes(e.vehicleId)
         );
+        
+        console.log('🏢 Company Owner Expenses Filter:', {
+          userCompanyId: req.user.companyId,
+          companyVehicleIds,
+          originalCount,
+          filteredCount: expenses.length
+        });
       }
       
       res.json({

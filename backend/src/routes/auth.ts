@@ -2117,4 +2117,50 @@ router.get('/test-permissions', authenticateToken, async (req: Request, res: Res
   }
 });
 
+// 🔍 DEBUG ENDPOINT - Company Owner Data
+router.get('/debug-company-owner', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Používateľ nie je prihlásený'
+      });
+    }
+
+    const vehicles = await postgresDatabase.getVehicles();
+    const companies = await postgresDatabase.getCompanies();
+    
+    const debugInfo = {
+      currentUser: {
+        id: req.user.id,
+        username: req.user.username,
+        role: req.user.role,
+        companyId: req.user.companyId
+      },
+      userCompany: companies.find(c => c.id === req.user.companyId),
+      allVehicles: vehicles.map(v => ({
+        id: v.id,
+        brand: v.brand,
+        model: v.model,
+        ownerCompanyId: v.ownerCompanyId
+      })),
+      userCompanyVehicles: vehicles.filter(v => v.ownerCompanyId === req.user.companyId),
+      allCompanies: companies.map(c => ({ id: c.id, name: c.name }))
+    };
+
+    res.json({
+      success: true,
+      data: debugInfo,
+      message: `Debug info pre: ${req.user.username} (${req.user.role})`
+    });
+
+  } catch (error) {
+    console.error('❌ Debug company owner error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Chyba pri debug info'
+    });
+  }
+});
+
 export default router; 
