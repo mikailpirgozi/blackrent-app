@@ -927,10 +927,10 @@ export default function RentalList() {
     
     message += 'Chcete otvoriť protokoly?';
     
-    if (confirm(message)) {
+    if (window.confirm(message)) {
       // If both exist, let user choose, otherwise open the existing one
       if (hasHandover && hasReturn) {
-        const choice = prompt('Ktorý protokol chcete otvoriť?\n1 - Odovzdávací\n2 - Preberací\n(Zadajte 1 alebo 2)');
+        const choice = window.prompt('Ktorý protokol chcete otvoriť?\n1 - Odovzdávací\n2 - Preberací\n(Zadajte 1 alebo 2)');
         if (choice === '1') {
           handleOpenProtocolMenu(rental, 'handover');
         } else if (choice === '2') {
