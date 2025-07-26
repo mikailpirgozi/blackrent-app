@@ -1668,22 +1668,49 @@ export class PostgresDatabase {
       
       console.log(`📊 Found ${result.rows.length} settlements`);
 
+      // Load rentals and expenses for filtering
+      const allRentals = await this.getRentals();
+      const allExpenses = await this.getExpenses();
+
       // Map to Settlement interface format
-      return result.rows.map((row: any) => ({
-        id: row.id?.toString() || '',
-        period: {
-          from: new Date(row.from_date || new Date()),
-          to: new Date(row.to_date || new Date())
-        },
-        rentals: [], // Empty array - will be loaded separately if needed
-        expenses: [], // Empty array - will be loaded separately if needed
-        totalIncome: parseFloat(row.total_income) || 0,
-        totalExpenses: parseFloat(row.total_expenses) || 0,
-        totalCommission: parseFloat(row.commission) || 0,
-        profit: parseFloat(row.profit) || 0,
-        company: row.company || 'Default Company',
-        vehicleId: undefined
-      }));
+      return result.rows.map((row: any) => {
+        const fromDate = new Date(row.from_date || new Date());
+        const toDate = new Date(row.to_date || new Date());
+        const company = row.company || 'Default Company';
+        
+                 // Filter rentals for this settlement
+         const filteredRentals = allRentals.filter(rental => {
+           const rentalStart = new Date(rental.startDate);
+           const rentalEnd = new Date(rental.endDate);
+           const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) || 
+                             (rentalEnd >= fromDate && rentalEnd <= toDate) ||
+                             (rentalStart <= fromDate && rentalEnd >= toDate);
+           return isInPeriod && rental.vehicle?.company === company;
+         });
+        
+        // Filter expenses for this settlement
+        const filteredExpenses = allExpenses.filter(expense => {
+          const expenseDate = new Date(expense.date);
+          const isInPeriod = expenseDate >= fromDate && expenseDate <= toDate;
+          return isInPeriod && expense.company === company;
+        });
+
+        return {
+          id: row.id?.toString() || '',
+          period: {
+            from: fromDate,
+            to: toDate
+          },
+          rentals: filteredRentals,
+          expenses: filteredExpenses,
+          totalIncome: parseFloat(row.total_income) || 0,
+          totalExpenses: parseFloat(row.total_expenses) || 0,
+          totalCommission: parseFloat(row.commission) || 0,
+          profit: parseFloat(row.profit) || 0,
+          company: company,
+          vehicleId: undefined
+        };
+      });
     } catch (error) {
       console.error('❌ getSettlements error:', error);
       // Return empty array instead of throwing - graceful fallback
@@ -1738,6 +1765,8 @@ export class PostgresDatabase {
     commission?: number;
     profit?: number;
     summary?: string;
+    rentals?: any[];
+    expenses?: any[];
   }): Promise<Settlement> {
     const client = await this.pool.connect();
     try {
@@ -1787,8 +1816,8 @@ export class PostgresDatabase {
           from: new Date(row.from_date),
           to: new Date(row.to_date)
         },
-        rentals: [], // Empty array - will be populated separately if needed
-        expenses: [], // Empty array - will be populated separately if needed
+        rentals: settlementData.rentals || [],
+        expenses: settlementData.expenses || [],
         totalIncome: parseFloat(row.total_income) || 0,
         totalExpenses: parseFloat(row.total_expenses) || 0,
         totalCommission: parseFloat(row.commission) || 0,

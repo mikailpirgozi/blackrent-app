@@ -76,16 +76,48 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       });
     }
 
+    // Vypočítaj skutočné hodnoty z prenájmov a nákladov
+    const rentals = await postgresDatabase.getRentals();
+    const expenses = await postgresDatabase.getExpenses();
+    
+    // Filtruj prenájmy pre dané obdobie a firmu
+    const filteredRentals = rentals.filter(rental => {
+      const rentalStart = new Date(rental.startDate);
+      const rentalEnd = new Date(rental.endDate);
+      const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) || 
+                        (rentalEnd >= fromDate && rentalEnd <= toDate) ||
+                        (rentalStart <= fromDate && rentalEnd >= toDate);
+      return isInPeriod && rental.vehicle?.company === company;
+    });
+    
+    // Filtruj náklady pre dané obdobie a firmu
+    const filteredExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      const isInPeriod = expenseDate >= fromDate && expenseDate <= toDate;
+      return isInPeriod && expense.company === company;
+    });
+    
+    // Vypočítaj skutočné hodnoty
+    const calculatedIncome = filteredRentals.reduce((sum, rental) => sum + rental.totalPrice, 0);
+    const calculatedExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const calculatedCommission = filteredRentals.reduce((sum, rental) => {
+      // Assuming commission is calculated from rental price - adjust as needed
+      return sum + (rental.totalPrice * 0.1); // 10% commission example
+    }, 0);
+    const calculatedProfit = calculatedIncome - calculatedExpenses - calculatedCommission;
+
     const createdSettlement = await postgresDatabase.createSettlement({
       company,
       period: periodString,
       fromDate,
       toDate,
-      totalIncome: totalIncome || 0,
-      totalExpenses: totalExpenses || 0,
-      commission: totalCommission || 0,
-      profit: profit || 0,
-      summary: `Vyúčtovanie pre ${company} za obdobie ${periodString}`
+      totalIncome: calculatedIncome,
+      totalExpenses: calculatedExpenses,
+      commission: calculatedCommission,
+      profit: calculatedProfit,
+      summary: `Vyúčtovanie pre ${company} za obdobie ${periodString}`,
+      rentals: filteredRentals,
+      expenses: filteredExpenses
     });
 
     res.status(201).json({

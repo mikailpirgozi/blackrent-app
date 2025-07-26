@@ -20,7 +20,9 @@ import {
   useTheme,
   Tooltip,
   Alert,
-  CircularProgress
+  CircularProgress,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -50,14 +52,17 @@ const SettlementListNew: React.FC = () => {
   const { 
     state,
     getFilteredVehicles, 
-    createSettlement 
+    createSettlement,
+    deleteSettlement,
+    loadData
   } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
 
   // Get data from context
-  const settlements = state.settlements;
+  const settlements = state.settlements || [];
   const vehicles = getFilteredVehicles();
+  const companies = state.companies || [];
 
   // States
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,9 +79,17 @@ const SettlementListNew: React.FC = () => {
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [periodFrom, setPeriodFrom] = useState('');
   const [periodTo, setPeriodTo] = useState('');
+  const [periodType, setPeriodType] = useState<'month' | 'range'>('month');
+  const [selectedMonth, setSelectedMonth] = useState('');
 
   // Get unique values for filters
   const uniqueCompanies = useMemo(() => 
+    companies.map(c => c.name).sort(),
+    [companies]
+  );
+
+  // Get unique companies from settlements for filtering
+  const settlementsCompanies = useMemo(() => 
     Array.from(new Set(settlements.map((s: Settlement) => s.company).filter((company): company is string => Boolean(company)))).sort(),
     [settlements]
   );
@@ -122,6 +135,8 @@ const SettlementListNew: React.FC = () => {
     setSelectedVehicleId('');
     setPeriodFrom('');
     setPeriodTo('');
+    setSelectedMonth('');
+    setPeriodType('month');
     setCreateDialogOpen(true);
   };
 
@@ -132,14 +147,40 @@ const SettlementListNew: React.FC = () => {
 
   const handleDeleteSettlement = async (settlement: Settlement) => {
     if (window.confirm(`Naozaj chcete zmazať vyúčtovanie za obdobie ${format(new Date(settlement.period.from), 'dd.MM.yyyy')} - ${format(new Date(settlement.period.to), 'dd.MM.yyyy')}?`)) {
-      // Note: Delete functionality would need to be implemented in AppContext
-      console.log('Delete settlement:', settlement.id);
+      try {
+        console.log('Delete settlement:', settlement.id);
+        await deleteSettlement(settlement.id);
+      } catch (error) {
+        console.error('Chyba pri mazaní vyúčtovania:', error);
+        alert('Chyba pri mazaní vyúčtovania. Skúste to znova.');
+      }
     }
   };
 
   const handleCreateSubmit = async () => {
-    if (!periodFrom || !periodTo) {
-      alert('Prosím vyberte obdobie');
+    let fromDate: Date;
+    let toDate: Date;
+
+    if (periodType === 'month') {
+      if (!selectedMonth) {
+        alert('Prosím vyberte mesiac');
+        return;
+      }
+      // Parse YYYY-MM format
+      const [year, month] = selectedMonth.split('-').map(Number);
+      fromDate = new Date(year, month - 1, 1); // month is 0-indexed
+      toDate = new Date(year, month, 0); // Last day of month
+    } else {
+      if (!periodFrom || !periodTo) {
+        alert('Prosím vyberte obdobie');
+        return;
+      }
+      fromDate = new Date(periodFrom);
+      toDate = new Date(periodTo);
+    }
+
+    if (!selectedCompany) {
+      alert('Prosím vyberte firmu');
       return;
     }
 
@@ -147,15 +188,29 @@ const SettlementListNew: React.FC = () => {
     try {
       const settlementData = {
         period: {
-          from: new Date(periodFrom),
-          to: new Date(periodTo)
+          from: fromDate,
+          to: toDate
         },
-        company: selectedCompany || undefined,
-        vehicleId: selectedVehicleId || undefined
+        company: selectedCompany,
+        vehicleId: selectedVehicleId || undefined,
+        totalIncome: 0,
+        totalExpenses: 0,
+        totalCommission: 0,
+        profit: 0
       };
       
       await createSettlement(settlementData as any); // Type assertion since createSettlement expects full Settlement
+      
+      // Refresh data to show new settlement
+      await loadData();
+      
       setCreateDialogOpen(false);
+      // Clear form
+      setSelectedCompany('');
+      setSelectedVehicleId('');
+      setPeriodFrom('');  
+      setPeriodTo('');
+      setSelectedMonth('');
     } catch (error) {
       console.error('Error creating settlement:', error);
       alert('Chyba pri vytváraní vyúčtovania');
@@ -175,8 +230,8 @@ const SettlementListNew: React.FC = () => {
       'Náklady': settlement.totalExpenses,
       'Provízia': settlement.totalCommission,
       'Zisk': settlement.profit,
-      'Počet prenájmov': settlement.rentals.length,
-      'Počet nákladov': settlement.expenses.length
+      'Počet prenájmov': settlement.rentals?.length || 0,
+      'Počet nákladov': settlement.expenses?.length || 0
     }));
 
     const csv = Papa.unparse(csvData);
@@ -270,7 +325,7 @@ const SettlementListNew: React.FC = () => {
                       label="Firma"
                     >
                       <MenuItem value="">Všetky firmy</MenuItem>
-                      {uniqueCompanies.map((company: string) => (
+                      {settlementsCompanies.map((company: string) => (
                         <MenuItem key={company} value={company}>{company}</MenuItem>
                       ))}
                     </Select>
@@ -529,7 +584,7 @@ const SettlementListNew: React.FC = () => {
                           backgroundColor: '#f5f5f5',
                           borderRadius: 1
                         }}>
-                          {settlement.rentals.length} prenájmov • {settlement.expenses.length} nákladov
+                          {settlement.rentals?.length || 0} prenájmov • {settlement.expenses?.length || 0} nákladov
                         </Typography>
                       </Grid>
                     </Grid>
@@ -606,7 +661,7 @@ const SettlementListNew: React.FC = () => {
                       <Typography variant="body2" sx={{ 
                         color: 'text.secondary'
                       }}>
-                        {settlement.rentals.length} prenájmov • {settlement.expenses.length} nákladov
+                        {settlement.rentals?.length || 0} prenájmov • {settlement.expenses?.length || 0} nákladov
                       </Typography>
                     </Box>
                     
@@ -704,35 +759,83 @@ const SettlementListNew: React.FC = () => {
           </Typography>
           
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Od dátumu"
-                type="date"
-                value={periodFrom}
-                onChange={(e) => setPeriodFrom(e.target.value)}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Do dátumu"
-                type="date"
-                value={periodTo}
-                onChange={(e) => setPeriodTo(e.target.value)}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
             <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Firma (voliteľné)</InputLabel>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Typ obdobia
+                </Typography>
+                <ToggleButtonGroup
+                  value={periodType}
+                  exclusive
+                  onChange={(e, newType) => {
+                    if (newType !== null) {
+                      setPeriodType(newType);
+                      // Clear values when switching
+                      setPeriodFrom('');
+                      setPeriodTo('');
+                      setSelectedMonth('');
+                    }
+                  }}
+                  aria-label="period type"
+                  size="small"
+                  fullWidth
+                >
+                  <ToggleButton value="month" aria-label="mesiac">
+                    Mesiac
+                  </ToggleButton>
+                  <ToggleButton value="range" aria-label="obdobie">
+                    Časové obdobie
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+            </Grid>
+
+            {periodType === 'month' ? (
+              <Grid item xs={12}>
+                <TextField
+                  label="Mesiac"
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  helperText="Vyberte mesiac pre vyúčtovanie"
+                />
+              </Grid>
+            ) : (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Od dátumu"
+                    type="date"
+                    value={periodFrom}
+                    onChange={(e) => setPeriodFrom(e.target.value)}
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Do dátumu"
+                    type="date"
+                    value={periodTo}
+                    onChange={(e) => setPeriodTo(e.target.value)}
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+              </>
+            )}
+            <Grid item xs={12}>
+              <FormControl fullWidth required>
+                <InputLabel>Firma *</InputLabel>
                 <Select
                   value={selectedCompany}
                   onChange={(e) => setSelectedCompany(e.target.value)}
-                  label="Firma (voliteľné)"
+                  label="Firma *"
+                  required
                 >
-                  <MenuItem value="">Všetky firmy</MenuItem>
+                  <MenuItem value="">Vyberte firmu</MenuItem>
                   {uniqueCompanies.map((company: string) => (
                     <MenuItem key={company} value={company}>{company}</MenuItem>
                   ))}
