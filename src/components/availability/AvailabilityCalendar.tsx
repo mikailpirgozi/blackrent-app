@@ -106,7 +106,11 @@ interface MaintenanceFormData {
   recurring: boolean;
 }
 
-const AvailabilityCalendar: React.FC = () => {
+interface AvailabilityCalendarProps {
+  searchQuery?: string;
+}
+
+const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ searchQuery: propSearchQuery = '' }) => {
   const { state } = useApp();
   
   // MOBILNÁ RESPONSIBILITA
@@ -150,8 +154,14 @@ const AvailabilityCalendar: React.FC = () => {
   const [toDate, setToDate] = useState<Date | null>(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // +30 days
   
   // Filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(propSearchQuery);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(propSearchQuery);
+
+  // Update search query when prop changes
+  useEffect(() => {
+    setSearchQuery(propSearchQuery);
+    setDebouncedSearchQuery(propSearchQuery);
+  }, [propSearchQuery]);
 
   // Debounce search input for better performance
   useEffect(() => {
@@ -1068,90 +1078,8 @@ const AvailabilityCalendar: React.FC = () => {
     <>
     {/* Mobilný vs Desktop view */}
     {isMobile ? (
-      /* MOBILNÝ BOOKING.COM STYLE KALENDÁR */
+      /* MOBILNÝ BOOKING.COM STYLE KALENDÁR - bez vlastného headeru */
       <Box sx={{ p: 0 }}>
-        {/* Mobilný header s vylepšenou responsivitou */}
-        <Box sx={{ mb: { xs: 1.5, sm: 2 }, px: { xs: 0.5, sm: 1 } }}>
-          <Stack 
-            direction="row" 
-            justifyContent="space-between" 
-            alignItems="center" 
-            sx={{ 
-              mb: { xs: 1, sm: 1.5 },
-              flexWrap: { xs: 'wrap', sm: 'nowrap' },
-              gap: { xs: 1, sm: 0 }
-            }}
-          >
-            <Typography variant="h6" sx={{ 
-              fontWeight: 700, 
-              color: 'primary.main',
-              fontSize: { xs: '1rem', sm: '1.25rem' },
-              minWidth: 'fit-content'
-            }}>
-              📅 Dostupnosť
-            </Typography>
-            <Stack 
-              direction="row" 
-              spacing={{ xs: 0.25, sm: 0.5 }}
-              sx={{ flexShrink: 0 }}
-            >
-              <IconButton 
-                onClick={handleToday} 
-                size="small" 
-                sx={{ 
-                  bgcolor: 'primary.light',
-                  width: { xs: 32, sm: 36 },
-                  height: { xs: 32, sm: 36 },
-                  '&:hover': { bgcolor: 'primary.main', color: 'white' }
-                }}
-              >
-                <TodayIcon fontSize="small" />
-              </IconButton>
-              <IconButton 
-                onClick={handleRefresh} 
-                size="small" 
-                sx={{ 
-                  bgcolor: 'primary.light',
-                  width: { xs: 32, sm: 36 },
-                  height: { xs: 32, sm: 36 },
-                  '&:hover': { bgcolor: 'primary.main', color: 'white' }
-                }}
-              >
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-              <Button 
-                size="small" 
-                variant="contained" 
-                startIcon={<AddIcon />}
-                onClick={() => setMaintenanceDialogOpen(true)}
-                sx={{ 
-                  fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                  px: { xs: 1, sm: 1.5 },
-                  minWidth: { xs: 'auto', sm: 'auto' },
-                  height: { xs: 32, sm: 36 }
-                }}
-              >
-                {isSmallMobile ? '+' : 'Pridať'}
-              </Button>
-            </Stack>
-          </Stack>
-          <TextField
-            fullWidth
-            size="small"
-            label="🔍 Hľadať vozidlo"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ 
-              '& .MuiInputBase-input': { 
-                fontSize: { xs: '14px', sm: '16px' },
-                padding: { xs: '8px 12px', sm: '10px 14px' }
-              },
-              '& .MuiInputLabel-root': {
-                fontSize: { xs: '0.8rem', sm: '0.875rem' }
-              }
-            }}
-          />
-        </Box>
 
         {/* Mobilný horizontálny kalendár s vylepšenou responsivitou */}
         <Card sx={{ 
