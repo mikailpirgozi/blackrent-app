@@ -188,12 +188,12 @@ export function hasPermission(
   );
 
   if (!permission) {
-    return { hasAccess: false, reason: 'Žiadne oprávnenie pre tento resource' };
+    return { hasAccess: false, requiresApproval: false, reason: 'Žiadne oprávnenie pre tento resource' };
   }
 
   // Skontroluj action
   if (!permission.actions.includes(action)) {
-    return { hasAccess: false, reason: `Akcia '${action}' nie je povolená` };
+    return { hasAccess: false, requiresApproval: false, reason: `Akcia '${action}' nie je povolená` };
   }
 
   // Skontroluj podmienky
@@ -201,12 +201,12 @@ export function hasPermission(
   if (conditions && context) {
     // Kontrola "ownOnly"
     if (conditions.ownOnly && context.resourceOwnerId !== context.userId) {
-      return { hasAccess: false, reason: 'Prístup len k vlastným záznamom' };
+      return { hasAccess: false, requiresApproval: false, reason: 'Prístup len k vlastným záznamom' };
     }
 
     // Kontrola "companyOnly"
     if (conditions.companyOnly && context.resourceCompanyId !== context.companyId) {
-      return { hasAccess: false, reason: 'Prístup len k záznamom vlastnej firmy' };
+      return { hasAccess: false, requiresApproval: false, reason: 'Prístup len k záznamom vlastnej firmy' };
     }
 
     // Kontrola max amount
@@ -218,7 +218,7 @@ export function hasPermission(
           reason: `Suma ${context.amount}€ presahuje limit ${conditions.maxAmount}€` 
         };
       } else {
-        return { hasAccess: false, reason: `Maximálna povolená suma je ${conditions.maxAmount}€` };
+        return { hasAccess: false, requiresApproval: false, reason: `Maximálna povolená suma je ${conditions.maxAmount}€` };
       }
     }
   }

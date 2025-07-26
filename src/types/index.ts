@@ -292,7 +292,7 @@ export interface PermissionCheck {
 
 export interface PermissionResult {
   hasAccess: boolean;
-  requiresApproval?: boolean;
+  requiresApproval: boolean;
   reason?: string;
 }
 
