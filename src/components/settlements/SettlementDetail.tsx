@@ -112,7 +112,7 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
                 <TableRow sx={{ backgroundColor: 'action.hover' }}>
                   <TableCell><strong>SPOLU</strong></TableCell>
                   <TableCell align="right">
-                    <strong>{settlement.rentals.length}</strong>
+                    <strong>{settlement.rentals?.length || 0}</strong>
                   </TableCell>
                   <TableCell align="right">
                     <strong>{settlement.totalIncome.toFixed(2)}</strong>
@@ -186,7 +186,7 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              Prenájmy ({settlement.rentals.length})
+              Prenájmy ({settlement.rentals?.length || 0})
             </Typography>
             <TableContainer component={Paper} sx={{ backgroundColor: 'transparent' }}>
               <Table size="small">
@@ -220,7 +220,7 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              Náklady {settlement.company || 'N/A'} ({settlement.expenses.length})
+              Náklady {settlement.company || 'N/A'} ({settlement.expenses?.length || 0})
             </Typography>
             <TableContainer component={Paper} sx={{ backgroundColor: 'transparent' }}>
               <Table size="small">
