@@ -58,9 +58,8 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Today as TodayIcon,
-
-
-
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
   PriorityHigh as PriorityIcon,
 } from '@mui/icons-material';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
@@ -68,6 +67,7 @@ import { sk } from 'date-fns/locale';
 import { API_BASE_URL } from '../../services/api';
 import { Rental, VehicleUnavailability } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { useDebounce } from '../../utils/performance';
 
 // Custom isToday function to avoid hot reload issues
 const isToday = (date: Date): boolean => {
@@ -160,22 +160,14 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState(propSearchQuery);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(propSearchQuery);
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
 
   // Update search query when prop changes
   useEffect(() => {
     setSearchQuery(propSearchQuery);
-    setDebouncedSearchQuery(propSearchQuery);
   }, [propSearchQuery]);
 
-  // Debounce search input for better performance
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 300);
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'rented' | 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection'>('all');
   const [brandFilter, setBrandFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
@@ -192,6 +184,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   // MOBILNÝ KALENDÁR - vybraný dátum a počet zobrazených dní
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [visibleDays, setVisibleDays] = useState(14);
+
+  // Mobilný kalendár - týždňová navigácia
+  const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
 
   // Function to fetch rental details
   const fetchRentalDetails = async (rentalId: string) => {
@@ -1135,14 +1130,46 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   />
                 </Box>
 
-                {/* Status pre najbližších 7 dní */}
-                <Typography variant="subtitle2" sx={{ 
-                  mb: 1, 
-                  fontWeight: 600,
-                  color: '#333'
+                {/* Status pre aktuálny týždeň s navigáciou */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  mb: 1
                 }}>
-                  Dostupnosť na najbližších 7 dní:
-                </Typography>
+                  <Typography variant="subtitle2" sx={{ 
+                    fontWeight: 600,
+                    color: '#333'
+                  }}>
+                    Dostupnosť ({format(new Date(Date.now() + currentWeekOffset * 7 * 24 * 60 * 60 * 1000), 'd.M.')} - {format(new Date(Date.now() + (currentWeekOffset * 7 + 6) * 24 * 60 * 60 * 1000), 'd.M.')}):
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <IconButton 
+                      size="small"
+                      onClick={() => setCurrentWeekOffset(prev => prev - 1)}
+                      disabled={currentWeekOffset <= 0}
+                      sx={{ 
+                        width: 28, 
+                        height: 28,
+                        backgroundColor: currentWeekOffset > 0 ? '#f5f5f5' : 'transparent'
+                      }}
+                    >
+                      <ChevronLeftIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton 
+                      size="small"
+                      onClick={() => setCurrentWeekOffset(prev => prev + 1)}
+                      disabled={currentWeekOffset >= Math.floor(statusFilteredCalendarData.length / 7) - 1}
+                      sx={{ 
+                        width: 28, 
+                        height: 28,
+                        backgroundColor: '#f5f5f5'
+                      }}
+                    >
+                      <ChevronRightIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
                 
                 <Box sx={{ 
                   display: 'grid',
@@ -1150,7 +1177,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   gap: 0.5,
                   mb: 2
                 }}>
-                  {statusFilteredCalendarData.slice(0, 7).map((day) => {
+                  {statusFilteredCalendarData.slice(currentWeekOffset * 7, (currentWeekOffset + 1) * 7).map((day) => {
                     const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
                     const isAvailable = !vehicleStatus || vehicleStatus.status === 'available';
                     const isRented = vehicleStatus?.status === 'rented';
@@ -1222,16 +1249,11 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   <Button
                     size="small"
                     variant="text"
-                    onClick={() => {
-                      const today = new Date();
-                      const element = document.querySelector(`[data-today="true"]`);
-                      if (element) {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }
-                    }}
+                    onClick={() => setCurrentWeekOffset(0)}
+                    disabled={currentWeekOffset === 0}
                     sx={{ fontSize: '0.75rem' }}
                   >
-                    Dnes
+                    Tento týždeň
                   </Button>
                 </Box>
               </CardContent>
