@@ -1991,4 +1991,106 @@ router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
   }
 });
 
+// 🧪 TEST PERMISSION ENDPOINT - pre lokálne testovanie
+router.get('/test-permissions', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    const { hasPermission } = await import('../middleware/permissions');
+    
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Používateľ nie je prihlásený'
+      });
+    }
+
+    const testResults = {
+      currentUser: {
+        id: req.user.id,
+        username: req.user.username,
+        role: req.user.role,
+        companyId: req.user.companyId
+      },
+      permissionTests: {
+        // 🚗 VEHICLES
+        vehicles_read: hasPermission(req.user.role, 'vehicles', 'read'),
+        vehicles_create: hasPermission(req.user.role, 'vehicles', 'create'),
+        vehicles_update: hasPermission(req.user.role, 'vehicles', 'update'),
+        vehicles_delete: hasPermission(req.user.role, 'vehicles', 'delete'),
+        
+        // 🏠 RENTALS  
+        rentals_read: hasPermission(req.user.role, 'rentals', 'read'),
+        rentals_create: hasPermission(req.user.role, 'rentals', 'create'),
+        rentals_update: hasPermission(req.user.role, 'rentals', 'update'),
+        rentals_delete: hasPermission(req.user.role, 'rentals', 'delete'),
+        
+        // 🏢 COMPANIES
+        companies_read: hasPermission(req.user.role, 'companies', 'read'),
+        companies_create: hasPermission(req.user.role, 'companies', 'create'),
+        companies_delete: hasPermission(req.user.role, 'companies', 'delete'),
+        
+        // 👥 USERS
+        users_read: hasPermission(req.user.role, 'users', 'read'),
+        users_create: hasPermission(req.user.role, 'users', 'create'),
+        users_update: hasPermission(req.user.role, 'users', 'update'),
+        users_delete: hasPermission(req.user.role, 'users', 'delete'),
+        
+        // 🔧 MAINTENANCE
+        maintenance_read: hasPermission(req.user.role, 'maintenance', 'read'),
+        maintenance_create: hasPermission(req.user.role, 'maintenance', 'create'),
+        maintenance_update: hasPermission(req.user.role, 'maintenance', 'update'),
+        maintenance_delete: hasPermission(req.user.role, 'maintenance', 'delete'),
+        
+        // 💰 PRICING with amount limits
+        pricing_under_limit: hasPermission(req.user.role, 'pricing', 'update', {
+          userId: req.user.id,
+          companyId: req.user.companyId,
+          amount: 3000 // pod limitom pre sales_rep
+        }),
+        pricing_over_limit: hasPermission(req.user.role, 'pricing', 'update', {
+          userId: req.user.id, 
+          companyId: req.user.companyId,
+          amount: 7000 // nad limitom pre sales_rep
+        }),
+        
+        // 🏢 COMPANY-ONLY tests
+        company_vehicle_access: hasPermission(req.user.role, 'vehicles', 'read', {
+          userId: req.user.id,
+          companyId: req.user.companyId,
+          resourceCompanyId: req.user.companyId // same company
+        }),
+        other_company_vehicle_access: hasPermission(req.user.role, 'vehicles', 'read', {
+          userId: req.user.id,
+          companyId: req.user.companyId,
+          resourceCompanyId: 'different-company-id' // different company
+        }),
+        
+        // 🔨 MECHANIC-ONLY tests  
+        own_vehicle_access: hasPermission(req.user.role, 'vehicles', 'update', {
+          userId: req.user.id,
+          companyId: req.user.companyId,
+          resourceOwnerId: req.user.id // own vehicle
+        }),
+        other_mechanic_vehicle_access: hasPermission(req.user.role, 'vehicles', 'update', {
+          userId: req.user.id,
+          companyId: req.user.companyId,
+          resourceOwnerId: 'different-mechanic-id' // different mechanic
+        })
+      }
+    };
+
+    res.json({
+      success: true,
+      data: testResults,
+      message: `Permission test pre role: ${req.user.role}`
+    });
+
+  } catch (error) {
+    console.error('❌ Permission test error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Chyba pri testovaní permissions'
+    });
+  }
+});
+
 export default router; 
