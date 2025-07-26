@@ -79,6 +79,7 @@ import migrationRoutes from './routes/migration';
 import availabilityRoutes from './routes/availability';
 import vehicleUnavailabilityRoutes from './routes/vehicle-unavailability';
 import vehicleDocumentRoutes from './routes/vehicle-documents';
+import insuranceClaimRoutes from './routes/insurance-claims';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -96,6 +97,7 @@ app.use('/api/migration', migrationRoutes);
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/vehicle-unavailability', vehicleUnavailabilityRoutes);
 app.use('/api/vehicle-documents', vehicleDocumentRoutes);
+app.use('/api/insurance-claims', insuranceClaimRoutes);
 
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {

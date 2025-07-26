@@ -1,5 +1,5 @@
 import { Pool, PoolClient } from 'pg';
-import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument } from '../types';
+import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim } from '../types';
 import bcrypt from 'bcryptjs';
 import { r2Storage } from '../utils/r2-storage';
 
@@ -214,6 +214,44 @@ export class PostgresDatabase {
           price DECIMAL(10,2),
           notes TEXT,
           file_path TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Tabuľka poistných udalostí
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS insurance_claims (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          insurance_id UUID REFERENCES insurances(id) ON DELETE SET NULL,
+          
+          -- Základné info o udalosti
+          incident_date TIMESTAMP NOT NULL,
+          reported_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          claim_number VARCHAR(100),
+          
+          -- Popis udalosti
+          description TEXT NOT NULL,
+          location VARCHAR(255),
+          incident_type VARCHAR(50) NOT NULL DEFAULT 'other',
+          
+          -- Finančné údaje
+          estimated_damage DECIMAL(10,2),
+          deductible DECIMAL(10,2),
+          payout_amount DECIMAL(10,2),
+          
+          -- Stav
+          status VARCHAR(50) NOT NULL DEFAULT 'reported',
+          
+          -- Súbory a dokumenty
+          file_paths TEXT[],
+          
+          -- Dodatočné info
+          police_report_number VARCHAR(100),
+          other_party_info TEXT,
+          notes TEXT,
+          
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -3287,7 +3325,9 @@ export class PostgresDatabase {
         documentNumber: row.document_number || undefined,
         price: row.price ? parseFloat(row.price) : undefined,
         notes: row.notes || undefined,
-        filePath: row.file_path || undefined
+        filePath: row.file_path || undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
       }));
     } finally {
       client.release();
@@ -3323,7 +3363,9 @@ export class PostgresDatabase {
         documentNumber: row.document_number || undefined,
         price: row.price ? parseFloat(row.price) : undefined,
         notes: row.notes || undefined,
-        filePath: row.file_path || undefined
+        filePath: row.file_path || undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: undefined
       };
     } finally {
       client.release();
@@ -3346,7 +3388,7 @@ export class PostgresDatabase {
         `UPDATE vehicle_documents 
          SET vehicle_id = $1, document_type = $2, valid_from = $3, valid_to = $4, document_number = $5, price = $6, notes = $7, file_path = $8, updated_at = CURRENT_TIMESTAMP 
          WHERE id = $9 
-         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path`,
+         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, created_at, updated_at`,
         [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, id]
       );
 
@@ -3364,7 +3406,9 @@ export class PostgresDatabase {
         documentNumber: row.document_number || undefined,
         price: row.price ? parseFloat(row.price) : undefined,
         notes: row.notes || undefined,
-        filePath: row.file_path || undefined
+        filePath: row.file_path || undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
       };
     } finally {
       client.release();
@@ -3375,6 +3419,200 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       await client.query('DELETE FROM vehicle_documents WHERE id = $1', [id]);
+    } finally {
+      client.release();
+    }
+  }
+
+  // Metódy pre poistné udalosti
+  async getInsuranceClaims(vehicleId?: string): Promise<InsuranceClaim[]> {
+    const client = await this.pool.connect();
+    try {
+      let query = 'SELECT * FROM insurance_claims';
+      let params: any[] = [];
+
+      if (vehicleId) {
+        query += ' WHERE vehicle_id = $1';
+        params.push(vehicleId);
+      }
+
+      query += ' ORDER BY incident_date DESC';
+
+      const result = await client.query(query, params);
+      return result.rows.map(row => ({
+        id: row.id?.toString() || '',
+        vehicleId: row.vehicle_id?.toString() || '',
+        insuranceId: row.insurance_id?.toString() || undefined,
+        incidentDate: new Date(row.incident_date),
+        reportedDate: new Date(row.reported_date),
+        claimNumber: row.claim_number || undefined,
+        description: row.description,
+        location: row.location || undefined,
+        incidentType: row.incident_type,
+        estimatedDamage: row.estimated_damage ? parseFloat(row.estimated_damage) : undefined,
+        deductible: row.deductible ? parseFloat(row.deductible) : undefined,
+        payoutAmount: row.payout_amount ? parseFloat(row.payout_amount) : undefined,
+        status: row.status,
+        filePaths: row.file_paths || [],
+        policeReportNumber: row.police_report_number || undefined,
+        otherPartyInfo: row.other_party_info || undefined,
+        notes: row.notes || undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+      }));
+    } finally {
+      client.release();
+    }
+  }
+
+  async createInsuranceClaim(claimData: {
+    vehicleId: string;
+    insuranceId?: string;
+    incidentDate: Date;
+    description: string;
+    location?: string;
+    incidentType: string;
+    estimatedDamage?: number;
+    deductible?: number;
+    payoutAmount?: number;
+    status?: string;
+    claimNumber?: string;
+    filePaths?: string[];
+    policeReportNumber?: string;
+    otherPartyInfo?: string;
+    notes?: string;
+  }): Promise<InsuranceClaim> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `INSERT INTO insurance_claims (vehicle_id, insurance_id, incident_date, description, location, incident_type, estimated_damage, deductible, payout_amount, status, claim_number, file_paths, police_report_number, other_party_info, notes) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
+         RETURNING id, vehicle_id, insurance_id, incident_date, reported_date, claim_number, description, location, incident_type, estimated_damage, deductible, payout_amount, status, file_paths, police_report_number, other_party_info, notes, created_at`,
+        [
+          claimData.vehicleId, 
+          claimData.insuranceId || null, 
+          claimData.incidentDate, 
+          claimData.description, 
+          claimData.location || null,
+          claimData.incidentType, 
+          claimData.estimatedDamage || null, 
+          claimData.deductible || null, 
+          claimData.payoutAmount || null,
+          claimData.status || 'reported', 
+          claimData.claimNumber || null, 
+          claimData.filePaths || [], 
+          claimData.policeReportNumber || null,
+          claimData.otherPartyInfo || null, 
+          claimData.notes || null
+        ]
+      );
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id,
+        insuranceId: row.insurance_id?.toString() || undefined,
+        incidentDate: new Date(row.incident_date),
+        reportedDate: new Date(row.reported_date),
+        claimNumber: row.claim_number || undefined,
+        description: row.description,
+        location: row.location || undefined,
+        incidentType: row.incident_type,
+        estimatedDamage: row.estimated_damage ? parseFloat(row.estimated_damage) : undefined,
+        deductible: row.deductible ? parseFloat(row.deductible) : undefined,
+        payoutAmount: row.payout_amount ? parseFloat(row.payout_amount) : undefined,
+        status: row.status,
+        filePaths: row.file_paths || [],
+        policeReportNumber: row.police_report_number || undefined,
+        otherPartyInfo: row.other_party_info || undefined,
+        notes: row.notes || undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: undefined
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async updateInsuranceClaim(id: string, claimData: {
+    vehicleId: string;
+    insuranceId?: string;
+    incidentDate: Date;
+    description: string;
+    location?: string;
+    incidentType: string;
+    estimatedDamage?: number;
+    deductible?: number;
+    payoutAmount?: number;
+    status?: string;
+    claimNumber?: string;
+    filePaths?: string[];
+    policeReportNumber?: string;
+    otherPartyInfo?: string;
+    notes?: string;
+  }): Promise<InsuranceClaim> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `UPDATE insurance_claims 
+         SET vehicle_id = $1, insurance_id = $2, incident_date = $3, description = $4, location = $5, incident_type = $6, estimated_damage = $7, deductible = $8, payout_amount = $9, status = $10, claim_number = $11, file_paths = $12, police_report_number = $13, other_party_info = $14, notes = $15, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $16 
+         RETURNING id, vehicle_id, insurance_id, incident_date, reported_date, claim_number, description, location, incident_type, estimated_damage, deductible, payout_amount, status, file_paths, police_report_number, other_party_info, notes, created_at, updated_at`,
+        [
+          claimData.vehicleId, 
+          claimData.insuranceId || null, 
+          claimData.incidentDate, 
+          claimData.description, 
+          claimData.location || null,
+          claimData.incidentType, 
+          claimData.estimatedDamage || null, 
+          claimData.deductible || null, 
+          claimData.payoutAmount || null,
+          claimData.status || 'reported', 
+          claimData.claimNumber || null, 
+          claimData.filePaths || [], 
+          claimData.policeReportNumber || null,
+          claimData.otherPartyInfo || null, 
+          claimData.notes || null,
+          id
+        ]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error('Poistná udalosť nebola nájdená');
+      }
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id,
+        insuranceId: row.insurance_id?.toString() || undefined,
+        incidentDate: new Date(row.incident_date),
+        reportedDate: new Date(row.reported_date),
+        claimNumber: row.claim_number || undefined,
+        description: row.description,
+        location: row.location || undefined,
+        incidentType: row.incident_type,
+        estimatedDamage: row.estimated_damage ? parseFloat(row.estimated_damage) : undefined,
+        deductible: row.deductible ? parseFloat(row.deductible) : undefined,
+        payoutAmount: row.payout_amount ? parseFloat(row.payout_amount) : undefined,
+        status: row.status,
+        filePaths: row.file_paths || [],
+        policeReportNumber: row.police_report_number || undefined,
+        otherPartyInfo: row.other_party_info || undefined,
+        notes: row.notes || undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async deleteInsuranceClaim(id: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('DELETE FROM insurance_claims WHERE id = $1', [id]);
     } finally {
       client.release();
     }
