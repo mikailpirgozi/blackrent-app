@@ -2946,15 +2946,14 @@ export default function RentalList() {
                         <Chip
                           size="small"
                           label={hasHandover ? '🚗→' : '⏳'}
-                          title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Kliknite pre vytvorenie protokolu'}
+                          title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (hasHandover) {
-                              // Open handover protocol menu
+                              // Open handover protocol menu only if exists
                               handleOpenProtocolMenu(rental, 'handover');
-                            } else {
-                              handleCreateHandover(rental);
                             }
+                            // Do nothing if protocol doesn't exist
                           }}
                           sx={{
                             height: { xs: 24, sm: 28 },
@@ -2964,29 +2963,28 @@ export default function RentalList() {
                             fontWeight: 700,
                             minWidth: { xs: 36, sm: 42 },
                             maxWidth: { xs: 50, sm: 60 },
-                            cursor: 'pointer',
+                            cursor: hasHandover ? 'pointer' : 'default',
                             borderRadius: { xs: 2, sm: 2.5 },
                             boxShadow: hasHandover ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
-                            '&:hover': {
-                              bgcolor: hasHandover ? '#388e3c' : '#999',
+                            '&:hover': hasHandover ? {
+                              bgcolor: '#388e3c',
                               transform: 'scale(1.1)',
-                              boxShadow: hasHandover ? '0 4px 12px rgba(76,175,80,0.4)' : '0 4px 8px rgba(0,0,0,0.2)'
-                            },
+                              boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
+                            } : {},
                             transition: 'all 0.2s ease'
                           }}
                         />
                         <Chip
                           size="small"
                           label={hasReturn ? '←🚗' : '⏳'}
-                          title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Kliknite pre vytvorenie protokolu'}
+                          title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (hasReturn) {
-                              // Open return protocol menu
+                              // Open return protocol menu only if exists
                               handleOpenProtocolMenu(rental, 'return');
-                            } else {
-                              handleCreateReturn(rental);
                             }
+                            // Do nothing if protocol doesn't exist
                           }}
                           sx={{
                             height: { xs: 24, sm: 28 },
@@ -2996,14 +2994,14 @@ export default function RentalList() {
                             fontWeight: 700,
                             minWidth: { xs: 36, sm: 42 },
                             maxWidth: { xs: 50, sm: 60 },
-                            cursor: 'pointer',
+                            cursor: hasReturn ? 'pointer' : 'default',
                             borderRadius: { xs: 2, sm: 2.5 },
                             boxShadow: hasReturn ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
-                            '&:hover': {
-                              bgcolor: hasReturn ? '#388e3c' : '#999',
+                            '&:hover': hasReturn ? {
+                              bgcolor: '#388e3c',
                               transform: 'scale(1.1)',
-                              boxShadow: hasReturn ? '0 4px 12px rgba(76,175,80,0.4)' : '0 4px 8px rgba(0,0,0,0.2)'
-                            },
+                              boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
+                            } : {},
                             transition: 'all 0.2s ease'
                           }}
                         />
@@ -3324,14 +3322,13 @@ export default function RentalList() {
                         <Chip
                           size="small"
                           label="🚗→"
-                          title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Kliknite pre vytvorenie protokolu'}
+                          title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (hasHandover) {
                               handleOpenProtocolMenu(rental, 'handover');
-                            } else {
-                              handleCreateHandover(rental);
                             }
+                            // Do nothing if protocol doesn't exist
                           }}
                           sx={{
                             height: 28,
@@ -3340,26 +3337,25 @@ export default function RentalList() {
                             bgcolor: hasHandover ? '#4caf50' : '#ccc',
                             color: 'white',
                             fontWeight: 700,
-                            cursor: 'pointer',
-                            '&:hover': {
-                              bgcolor: hasHandover ? '#388e3c' : '#999',
+                            cursor: hasHandover ? 'pointer' : 'default',
+                            '&:hover': hasHandover ? {
+                              bgcolor: '#388e3c',
                               transform: 'scale(1.1)',
                               boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
-                            },
+                            } : {},
                             transition: 'all 0.2s ease'
                           }}
                         />
                         <Chip
                           size="small"
                           label="←🚗"
-                          title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Kliknite pre vytvorenie protokolu'}
+                          title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (hasReturn) {
                               handleOpenProtocolMenu(rental, 'return');
-                            } else {
-                              handleCreateReturn(rental);
                             }
+                            // Do nothing if protocol doesn't exist
                           }}
                           sx={{
                             height: 28,
@@ -3368,12 +3364,12 @@ export default function RentalList() {
                             bgcolor: hasReturn ? '#4caf50' : '#ccc',
                             color: 'white',
                             fontWeight: 700,
-                            cursor: 'pointer',
-                            '&:hover': {
-                              bgcolor: hasReturn ? '#388e3c' : '#999',
+                            cursor: hasReturn ? 'pointer' : 'default',
+                            '&:hover': hasReturn ? {
+                              bgcolor: '#388e3c',
                               transform: 'scale(1.1)',
                               boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
-                            },
+                            } : {},
                             transition: 'all 0.2s ease'
                           }}
                         />
