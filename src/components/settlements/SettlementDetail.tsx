@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -12,11 +12,33 @@ import {
   TableHead,
   TableRow,
   Typography,
-
+  CircularProgress,
+  Grid,
+  Divider,
+  Chip,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
+import {
+  PictureAsPdf as PdfIcon,
+  AccountBalance as BankIcon,
+  TrendingUp as ProfitIcon,
+  TrendingDown as LossIcon,
+  Euro as EuroIcon,
+  Business as CompanyIcon,
+  Assessment as ReportIcon,
+  CalendarToday as CalendarIcon,
+  Receipt as ReceiptIcon,
+  DirectionsCar as VehicleIcon,
+  Person as PersonIcon,
+  Payment as PaymentIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
 import { Settlement } from '../../types';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import { useAuth } from '../../context/AuthContext';
+import { API_BASE_URL } from '../../services/api';
 
 interface SettlementDetailProps {
   settlement: Settlement;
@@ -24,6 +46,11 @@ interface SettlementDetailProps {
 }
 
 export default function SettlementDetail({ settlement, onClose }: SettlementDetailProps) {
+  const { state } = useAuth();
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   // Počítame podľa spôsobov platby
   const rentalsByPaymentMethod = {
     cash: settlement.rentals.filter(r => r.paymentMethod === 'cash'),
@@ -70,59 +97,297 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
     }
   };
 
-  return (
-    <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Vyúčtovanie pre firmu: <strong>{settlement.company || 'N/A'}</strong>
-        </Typography>
-        <Typography variant="h6" gutterBottom>
-          Obdobie: {format(settlement.period.from, 'dd.MM.yyyy', { locale: sk })} - 
-          {format(settlement.period.to, 'dd.MM.yyyy', { locale: sk })}
-        </Typography>
-      </Box>
+  const getPaymentMethodColor = (method: string) => {
+    switch (method) {
+      case 'cash': return '#4caf50';
+      case 'bank_transfer': return '#2196f3';
+      case 'vrp': return '#ff9800';
+      case 'direct_to_owner': return '#9e9e9e';
+      default: return '#666';
+    }
+  };
 
-      {/* Prehľad podľa spôsobov platby */}
-      <Card sx={{ mb: 3 }}>
+  // Funkcia na stiahnutie PDF vyúčtovania
+  const handleDownloadPDF = async () => {
+    if (!state.token) {
+      alert('Nie ste prihlásený');
+      return;
+    }
+
+    setPdfLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/settlements/${settlement.id}/pdf`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${state.token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Neznáma chyba' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      // Získaj PDF blob
+      const blob = await response.blob();
+      
+      // Vytvor download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Názov súboru
+      const filename = `vyuctovanie_${settlement.company?.replace(/[^a-zA-Z0-9]/g, '_')}_${settlement.id.slice(-8)}.pdf`;
+      link.download = filename;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log('✅ PDF úspešne stiahnuté');
+    } catch (error) {
+      console.error('❌ Chyba pri sťahovaní PDF:', error);
+      alert(`Chyba pri sťahovaní PDF: ${error instanceof Error ? error.message : 'Neznáma chyba'}`);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  return (
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
+      {/* Modern Header */}
+      <Card sx={{ mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <CardContent sx={{ 
+          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+          color: 'white',
+          position: 'relative'
+        }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <ReportIcon sx={{ fontSize: 32 }} />
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                  Detail vyúčtovania
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CompanyIcon sx={{ fontSize: 20 }} />
+                  <Typography variant="h6">
+                    {settlement.company || 'N/A'}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+            
+            <Button
+              variant="outlined"
+              startIcon={<CloseIcon />}
+              onClick={onClose}
+              sx={{
+                color: 'white',
+                borderColor: 'white',
+                '&:hover': {
+                  borderColor: 'white',
+                  backgroundColor: 'rgba(255,255,255,0.1)'
+                }
+              }}
+            >
+              Zavrieť
+            </Button>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CalendarIcon sx={{ fontSize: 18 }} />
+            <Typography variant="body1">
+              Obdobie: {format(settlement.period.from, 'dd.MM.yyyy', { locale: sk })} - 
+              {format(settlement.period.to, 'dd.MM.yyyy', { locale: sk })}
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Financial Summary Cards */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            height: '100%'
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    CELKOVÉ PRÍJMY
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {settlement.totalIncome.toFixed(2)}€
+                  </Typography>
+                </Box>
+                <BankIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            height: '100%'
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    CELKOVÉ NÁKLADY
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {settlement.totalExpenses.toFixed(2)}€
+                  </Typography>
+                </Box>
+                <EuroIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            height: '100%'
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    CELKOVÉ PROVÍZIE
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {settlement.totalCommission.toFixed(2)}€
+                  </Typography>
+                </Box>
+                <ReceiptIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ 
+            background: settlement.profit >= 0 
+              ? 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+              : 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            height: '100%'
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    {settlement.profit >= 0 ? 'CELKOVÝ ZISK' : 'CELKOVÁ STRATA'}
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {settlement.profit.toFixed(2)}€
+                  </Typography>
+                </Box>
+                {settlement.profit >= 0 ? 
+                  <ProfitIcon sx={{ fontSize: 40, opacity: 0.8 }} /> :
+                  <LossIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                }
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Payment Methods Overview */}
+      <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Prehľad podľa spôsobov platby
-          </Typography>
-          <TableContainer component={Paper} sx={{ backgroundColor: 'transparent' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <PaymentIcon sx={{ color: '#1976d2' }} />
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#1976d2' }}>
+              Prehľad podľa spôsobov platby
+            </Typography>
+          </Box>
+          
+          <TableContainer sx={{ 
+            backgroundColor: 'transparent',
+            '& .MuiTableHead-root': {
+              '& .MuiTableCell-root': {
+                backgroundColor: '#f8f9fa',
+                fontWeight: 600,
+                color: '#1976d2'
+              }
+            }
+          }}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell><strong>Spôsob platby</strong></TableCell>
-                  <TableCell align="right"><strong>Počet prenájmov</strong></TableCell>
-                  <TableCell align="right"><strong>Celková cena (€)</strong></TableCell>
-                  <TableCell align="right"><strong>Provízie (€)</strong></TableCell>
-                  <TableCell align="right"><strong>Po odpočítaní provízií (€)</strong></TableCell>
+                  <TableCell>Spôsob platby</TableCell>
+                  <TableCell align="center">Počet prenájmov</TableCell>
+                  <TableCell align="right">Celková cena (€)</TableCell>
+                  <TableCell align="right">Provízie (€)</TableCell>
+                  <TableCell align="right">Po odpočítaní provízií (€)</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {Object.entries(paymentMethodStats).map(([method, stats]) => (
-                  <TableRow key={method}>
-                    <TableCell><strong>{getPaymentMethodLabel(method)}</strong></TableCell>
-                    <TableCell align="right">{stats.count}</TableCell>
-                    <TableCell align="right">{stats.totalPrice.toFixed(2)}</TableCell>
-                    <TableCell align="right">{stats.totalCommission.toFixed(2)}</TableCell>
-                    <TableCell align="right">{stats.netAmount.toFixed(2)}</TableCell>
+                  <TableRow key={method} sx={{
+                    '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.04)' }
+                  }}>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          backgroundColor: getPaymentMethodColor(method)
+                        }} />
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {getPaymentMethodLabel(method)}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip 
+                        label={stats.count} 
+                        size="small" 
+                        color="primary" 
+                        variant="outlined" 
+                      />
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>
+                      {stats.totalPrice.toFixed(2)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, color: '#ff9800' }}>
+                      {stats.totalCommission.toFixed(2)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, color: '#4caf50' }}>
+                      {stats.netAmount.toFixed(2)}
+                    </TableCell>
                   </TableRow>
                 ))}
-                <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                  <TableCell><strong>SPOLU</strong></TableCell>
-                  <TableCell align="right">
-                    <strong>{settlement.rentals?.length || 0}</strong>
-                  </TableCell>
-                  <TableCell align="right">
-                    <strong>{settlement.totalIncome.toFixed(2)}</strong>
-                  </TableCell>
-                  <TableCell align="right">
-                    <strong>{settlement.totalCommission.toFixed(2)}</strong>
-                  </TableCell>
-                  <TableCell align="right">
-                    <strong>{(settlement.totalIncome - settlement.totalCommission).toFixed(2)}</strong>
-                  </TableCell>
+                <TableRow sx={{ 
+                  backgroundColor: '#e3f2fd',
+                  '& .MuiTableCell-root': { 
+                    fontWeight: 700,
+                    borderTop: '2px solid #1976d2'
+                  }
+                }}>
+                  <TableCell>SPOLU</TableCell>
+                  <TableCell align="center">{settlement.rentals?.length || 0}</TableCell>
+                  <TableCell align="right">{settlement.totalIncome.toFixed(2)}</TableCell>
+                  <TableCell align="right">{settlement.totalCommission.toFixed(2)}</TableCell>
+                  <TableCell align="right">{(settlement.totalIncome - settlement.totalCommission).toFixed(2)}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -130,127 +395,209 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
         </CardContent>
       </Card>
 
-      {/* Celková rekapitulácia */}
-      <Card sx={{ mb: 3 }}>
+      {/* Detailed Lists */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} lg={6}>
+          <Card sx={{ 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            height: 'fit-content'
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <VehicleIcon sx={{ color: '#4caf50' }} />
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#4caf50' }}>
+                  Prenájmy ({settlement.rentals?.length || 0})
+                </Typography>
+              </Box>
+              
+              <TableContainer sx={{ 
+                maxHeight: 400,
+                '& .MuiTableHead-root': {
+                  '& .MuiTableCell-root': {
+                    backgroundColor: '#e8f5e8',
+                    fontWeight: 600,
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 1
+                  }
+                }
+              }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Vozidlo</TableCell>
+                      <TableCell>Zákazník</TableCell>
+                      <TableCell>Platba</TableCell>
+                      <TableCell align="right">Cena (€)</TableCell>
+                      <TableCell align="right">Provízia (€)</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {settlement.rentals.map((rental, index) => (
+                      <TableRow 
+                        key={rental.id}
+                        sx={{
+                          backgroundColor: index % 2 === 0 ? 'transparent' : '#fafafa',
+                          '&:hover': { backgroundColor: 'rgba(76, 175, 80, 0.04)' }
+                        }}
+                      >
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {rental.vehicle?.brand} {rental.vehicle?.model}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {rental.vehicle?.licensePlate}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2">
+                              {rental.customerName}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={getPaymentMethodLabel(rental.paymentMethod)}
+                            size="small"
+                            sx={{
+                              backgroundColor: getPaymentMethodColor(rental.paymentMethod),
+                              color: 'white',
+                              fontWeight: 600
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>
+                          {rental.totalPrice.toFixed(2)}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: '#ff9800' }}>
+                          {rental.commission.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} lg={6}>
+          <Card sx={{ 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            height: 'fit-content'
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <EuroIcon sx={{ color: '#f44336' }} />
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#f44336' }}>
+                  Náklady {settlement.company || 'N/A'} ({settlement.expenses?.length || 0})
+                </Typography>
+              </Box>
+              
+              <TableContainer sx={{ 
+                maxHeight: 400,
+                '& .MuiTableHead-root': {
+                  '& .MuiTableCell-root': {
+                    backgroundColor: '#ffebee',
+                    fontWeight: 600,
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 1
+                  }
+                }
+              }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Popis</TableCell>
+                      <TableCell>Kategória</TableCell>
+                      <TableCell align="right">Suma (€)</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {settlement.expenses.map((expense, index) => (
+                      <TableRow 
+                        key={expense.id}
+                        sx={{
+                          backgroundColor: index % 2 === 0 ? 'transparent' : '#fafafa',
+                          '&:hover': { backgroundColor: 'rgba(244, 67, 54, 0.04)' }
+                        }}
+                      >
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {expense.description}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={expense.category}
+                            size="small"
+                            color="secondary"
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: '#f44336' }}>
+                          {expense.amount.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Action Buttons */}
+      <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Celková rekapitulácia
-          </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" color="primary">
-                  Celkové príjmy
-                </Typography>
-                <Typography variant="h4">
-                  {settlement.totalIncome.toFixed(2)} €
-                </Typography>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" color="warning.main">
-                  Celkové provízie
-                </Typography>
-                <Typography variant="h4">
-                  {settlement.totalCommission.toFixed(2)} €
-                </Typography>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" color="error">
-                  Náklady ({settlement.company || 'N/A'})
-                </Typography>
-                <Typography variant="h4">
-                  {settlement.totalExpenses.toFixed(2)} €
-                </Typography>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" color={settlement.profit >= 0 ? 'success.main' : 'error.main'}>
-                  Celkový zisk
-                </Typography>
-                <Typography variant="h4">
-                  {settlement.profit.toFixed(2)} €
-                </Typography>
-              </CardContent>
-            </Card>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 2
+          }}>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={pdfLoading ? <CircularProgress size={20} color="inherit" /> : <PdfIcon />}
+              onClick={handleDownloadPDF}
+              disabled={pdfLoading}
+              sx={{
+                background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
+                px: 4,
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #c62828 0%, #e53935 100%)',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 16px rgba(211, 47, 47, 0.4)',
+                },
+                '&:disabled': {
+                  background: 'linear-gradient(135deg, #bdbdbd 0%, #9e9e9e 100%)',
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {pdfLoading ? 'Generujem PDF...' : 'Stiahnuť PDF'}
+            </Button>
+            
+            <Typography variant="body2" color="text.secondary" sx={{ 
+              fontStyle: 'italic',
+              textAlign: { xs: 'center', sm: 'right' }
+            }}>
+              ID vyúčtovania: {settlement.id.slice(-8).toUpperCase()}
+            </Typography>
           </Box>
         </CardContent>
       </Card>
-
-      {/* Detailné zobrazenie prenájmov */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 3 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Prenájmy ({settlement.rentals?.length || 0})
-            </Typography>
-            <TableContainer component={Paper} sx={{ backgroundColor: 'transparent' }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Vozidlo</TableCell>
-                    <TableCell>Zákazník</TableCell>
-                    <TableCell>Spôsob platby</TableCell>
-                    <TableCell>Cena (€)</TableCell>
-                    <TableCell>Provízia (€)</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {settlement.rentals.map((rental) => (
-                    <TableRow key={rental.id}>
-                      <TableCell>
-                        {rental.vehicle?.brand} {rental.vehicle?.model}
-                      </TableCell>
-                      <TableCell>{rental.customerName}</TableCell>
-                      <TableCell>{getPaymentMethodLabel(rental.paymentMethod)}</TableCell>
-                      <TableCell>{rental.totalPrice.toFixed(2)}</TableCell>
-                      <TableCell>{rental.commission.toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Náklady {settlement.company || 'N/A'} ({settlement.expenses?.length || 0})
-            </Typography>
-            <TableContainer component={Paper} sx={{ backgroundColor: 'transparent' }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Popis</TableCell>
-                    <TableCell>Kategória</TableCell>
-                    <TableCell>Suma (€)</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {settlement.expenses.map((expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell>{expense.description}</TableCell>
-                      <TableCell>{expense.category}</TableCell>
-                      <TableCell>{expense.amount.toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-      </Box>
-
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-        <Button variant="outlined" onClick={onClose}>
-          Zavrieť
-        </Button>
-      </Box>
     </Box>
   );
 } 
