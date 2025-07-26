@@ -2260,4 +2260,80 @@ router.post('/debug-permission', authenticateToken, async (req: Request, res: Re
   }
 });
 
+// 🔧 ADMIN UTILITY - Automatické priradenie vozidiel k firmám
+router.post('/auto-assign-vehicles', 
+  authenticateToken, 
+  requireRole(['admin']),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      console.log('🚗 Spúšťam automatické priradenie vozidiel k firmám...');
+      
+      // 1. Načítaj všetky vozidlá
+      const vehicles = await postgresDatabase.getVehicles();
+      console.log(`📊 Nájdených ${vehicles.length} vozidiel`);
+      
+      // 2. Načítaj všetky existujúce firmy
+      const companies = await postgresDatabase.getCompanies();
+      const existingCompanies = new Map();
+      companies.forEach(company => {
+        existingCompanies.set(company.name.toLowerCase(), company.id);
+      });
+      
+      console.log(`🏢 Existujúce firmy: ${companies.map(c => c.name).join(', ')}`);
+      
+      let assignedCount = 0;
+      let createdCompanies = 0;
+      const results = [];
+      
+      // 3. Pre každé vozidlo
+      for (const vehicle of vehicles) {
+        if (!vehicle.company || vehicle.ownerCompanyId) {
+          continue; // Preskočiť ak už má priradené ownerCompanyId alebo nemá company
+        }
+        
+        const companyName = vehicle.company.trim();
+        const companyNameLower = companyName.toLowerCase();
+        
+        let companyId = existingCompanies.get(companyNameLower);
+        
+        // 4. Ak firma neexistuje, vytvor ju
+        if (!companyId) {
+          console.log(`🆕 Vytváram novú firmu: ${companyName}`);
+          const newCompany = await postgresDatabase.createCompany({
+            name: companyName
+          });
+          companyId = newCompany.id;
+          existingCompanies.set(companyNameLower, companyId);
+          createdCompanies++;
+        }
+        
+        // 5. Priradí vozidlo k firme pomocou existujúcej metódy
+        await postgresDatabase.assignVehiclesToCompany([vehicle.id], companyId);
+        
+        const result = `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) → ${companyName}`;
+        console.log(`✅ ${result}`);
+        results.push(result);
+        assignedCount++;
+      }
+      
+      res.json({
+        success: true,
+        message: `Automatické priradenie dokončené`,
+        data: {
+          createdCompanies,
+          assignedVehicles: assignedCount,
+          results
+        }
+      });
+
+    } catch (error) {
+      console.error('Auto-assign vehicles error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri automatickom priradzovaní vozidiel'
+      });
+    }
+  }
+);
+
 export default router; 
