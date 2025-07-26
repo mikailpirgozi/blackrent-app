@@ -106,7 +106,9 @@
         <div class="debug-section">
             <h2>🔍 Debug Info</h2>
             <button onclick="loadDebugInfo()">Načítať Debug Info</button>
+            <button onclick="analyzeLubicaProblem()" style="background: #e91e63;">🕵️ Analyzuj Lubica Problém</button>
             <div id="debugInfo" class="debug-info"></div>
+            <div id="analysisResult" class="debug-info" style="background: #fff3e0; border-left: 4px solid #ff9800;"></div>
         </div>
 
         <!-- Permission Test Section -->
@@ -408,6 +410,130 @@
                 }
             } catch (error) {
                 document.getElementById('permissionResult').textContent = 
+                    `Network error: ${error.message}`;
+            }
+        }
+
+        // Analyze Lubica problem specifically
+        async function analyzeLubicaProblem() {
+            if (!token) {
+                alert('Najprv sa prihláste!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/debug-company-owner`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    document.getElementById('analysisResult').textContent = `Error: ${data.error}`;
+                    return;
+                }
+
+                const debugData = data.data;
+                
+                // Analyze the problem
+                const lubicaUser = debugData.lubicaUserDebug;
+                const allCompanies = debugData.allCompanies;
+                const allVehicles = debugData.allVehicles;
+                
+                let analysis = "🕵️ ANALÝZA LUBICA PROBLÉMU:\n\n";
+                
+                // 1. Lubica user info
+                analysis += `👩 LUBICA USER:\n`;
+                analysis += `- Username: ${lubicaUser?.username || 'Not found'}\n`;
+                analysis += `- Role: ${lubicaUser?.role || 'Unknown'}\n`;
+                analysis += `- Company ID: ${lubicaUser?.companyId || 'None'}\n`;
+                analysis += `- Is Active: ${lubicaUser?.isActive || false}\n\n`;
+                
+                // 2. Find Lubica's assigned company
+                const lubicaAssignedCompany = allCompanies.find(c => c.id === lubicaUser?.companyId);
+                analysis += `🏢 LUBICA PRIRADENÁ FIRMA:\n`;
+                if (lubicaAssignedCompany) {
+                    analysis += `- Názov: "${lubicaAssignedCompany.name}"\n`;
+                    analysis += `- ID: ${lubicaAssignedCompany.id}\n`;
+                } else {
+                    analysis += `- ❌ PROBLÉM: Firma s ID ${lubicaUser?.companyId} neexistuje!\n`;
+                }
+                analysis += `\n`;
+                
+                // 3. Find "Lubka" company
+                const lubkaCompany = allCompanies.find(c => c.name.toLowerCase().includes('lubka') || c.name.toLowerCase().includes('lubica'));
+                analysis += `🔍 HĽADANIE "LUBKA" FIRMY:\n`;
+                if (lubkaCompany) {
+                    analysis += `- Nájdená firma: "${lubkaCompany.name}"\n`;
+                    analysis += `- ID: ${lubkaCompany.id}\n`;
+                    analysis += `- Zhoduje sa s Lubica company ID: ${lubkaCompany.id === lubicaUser?.companyId ? '✅ ÁNO' : '❌ NIE'}\n`;
+                } else {
+                    analysis += `- ❌ Firma "Lubka" nebola nájdená!\n`;
+                }
+                analysis += `\n`;
+                
+                // 4. Find vehicles owned by "Lubka" company
+                if (lubkaCompany) {
+                    const lubkaVehicles = allVehicles.filter(v => v.ownerCompanyId === lubkaCompany.id);
+                    analysis += `🚗 VOZIDLÁ FIRMY "${lubkaCompany.name}":\n`;
+                    analysis += `- Počet vozidiel: ${lubkaVehicles.length}\n`;
+                    if (lubkaVehicles.length > 0) {
+                        analysis += `- Príklady:\n`;
+                        lubkaVehicles.slice(0, 3).forEach(v => {
+                            analysis += `  • ${v.brand} ${v.model} (ID: ${v.id})\n`;
+                        });
+                    }
+                    analysis += `\n`;
+                }
+                
+                // 5. Find vehicles with no owner
+                const orphanVehicles = allVehicles.filter(v => !v.ownerCompanyId);
+                analysis += `👻 VOZIDLÁ BEZ MAJITEĽA:\n`;
+                analysis += `- Počet: ${orphanVehicles.length}\n`;
+                if (orphanVehicles.length > 0) {
+                    analysis += `- Príklady:\n`;
+                    orphanVehicles.slice(0, 3).forEach(v => {
+                        analysis += `  • ${v.brand} ${v.model} (ID: ${v.id})\n`;
+                    });
+                }
+                analysis += `\n`;
+                
+                // 6. Diagnosis and solution
+                analysis += `🩺 DIAGNÓZA:\n`;
+                if (!lubicaUser) {
+                    analysis += `❌ Lubica user neexistuje!\n`;
+                } else if (!lubicaUser.companyId) {
+                    analysis += `❌ Lubica nemá priradené companyId!\n`;
+                } else if (!lubicaAssignedCompany) {
+                    analysis += `❌ Lubica má neplatné companyId!\n`;
+                } else if (!lubkaCompany) {
+                    analysis += `❌ Firma "Lubka" neexistuje v databáze!\n`;
+                } else if (lubkaCompany.id !== lubicaUser.companyId) {
+                    analysis += `❌ Lubica je priradená k zlej firme!\n`;
+                    analysis += `   Očakávaná: "${lubkaCompany.name}" (${lubkaCompany.id})\n`;
+                    analysis += `   Aktuálna: "${lubicaAssignedCompany?.name}" (${lubicaUser.companyId})\n`;
+                } else if (allVehicles.filter(v => v.ownerCompanyId === lubkaCompany.id).length === 0) {
+                    analysis += `❌ Firma "${lubkaCompany.name}" nemá priradené žiadne vozidlá!\n`;
+                } else {
+                    analysis += `✅ Všetko vyzerá v poriadku - možno problém v permission systéme?\n`;
+                }
+                
+                analysis += `\n💡 ODPORÚČANÉ RIEŠENIE:\n`;
+                if (lubkaCompany && lubicaUser && lubkaCompany.id !== lubicaUser.companyId) {
+                    analysis += `1. Oprav Lubica companyId na: ${lubkaCompany.id}\n`;
+                    analysis += `2. Alebo priraď vozidlá k jej aktuálnej firme: ${lubicaUser.companyId}\n`;
+                } else if (orphanVehicles.length > 0 && lubkaCompany) {
+                    analysis += `1. Priraď vozidlá bez majiteľa k firme "${lubkaCompany.name}"\n`;
+                    analysis += `2. Použi nástroj "Priradenie vozidiel k firme" nižšie\n`;
+                } else {
+                    analysis += `1. Skontroluj databázovú konzistenciu\n`;
+                    analysis += `2. Možno vytvor novú firmu "Lubka" a priraď k nej vozidlá\n`;
+                }
+
+                document.getElementById('analysisResult').textContent = analysis;
+                
+            } catch (error) {
+                document.getElementById('analysisResult').textContent = 
                     `Network error: ${error.message}`;
             }
         }
