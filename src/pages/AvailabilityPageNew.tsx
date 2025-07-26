@@ -273,7 +273,7 @@ const AvailabilityPageNew: React.FC = () => {
       {/* Calendar */}
       <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
         <CardContent sx={{ p: 0 }}>
-          <AvailabilityCalendar />
+          <AvailabilityCalendar searchQuery={searchQuery} />
         </CardContent>
       </Card>
     </Box>
