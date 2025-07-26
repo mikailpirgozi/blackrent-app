@@ -230,8 +230,12 @@ export function hasPermission(
   // Skontroluj podmienky
   const conditions = permission.conditions;
   if (conditions && context) {
-    // Kontrola "ownOnly"
-    if (conditions.ownOnly && context.resourceOwnerId !== context.userId) {
+    // Kontrola "ownOnly" - len ak máme resourceOwnerId (nie pre list endpoints)
+    if (conditions.ownOnly && context.resourceOwnerId && context.resourceOwnerId !== context.userId) {
+      console.log('❌ OwnOnly check failed:', { 
+        resourceOwnerId: context.resourceOwnerId, 
+        userId: context.userId 
+      });
       return { hasAccess: false, requiresApproval: false, reason: 'Prístup len k vlastným záznamom' };
     }
 
