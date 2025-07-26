@@ -159,6 +159,13 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
       }
     },
     {
+      resource: 'companies',
+      actions: ['read'],
+      conditions: {
+        ownOnly: true // len svoju vlastnú firmu
+      }
+    },
+    {
       resource: 'finances',
       actions: ['read'],
       conditions: {

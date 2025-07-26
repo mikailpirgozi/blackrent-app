@@ -13,7 +13,26 @@ router.get('/',
   checkPermission('companies', 'read'),
   async (req: Request, res: Response<ApiResponse<Company[]>>) => {
   try {
-    const companies = await postgresDatabase.getCompanies();
+    let companies = await postgresDatabase.getCompanies();
+    
+    console.log('🏢 Companies GET - user:', { 
+      role: req.user?.role, 
+      companyId: req.user?.companyId, 
+      totalCompanies: companies.length 
+    });
+    
+    // 🏢 COMPANY OWNER - filter len svoju vlastnú firmu
+    if (req.user?.role === 'company_owner' && req.user.companyId) {
+      const originalCount = companies.length;
+      companies = companies.filter(c => c.id === req.user?.companyId);
+      console.log('🏢 Company Owner Filter:', {
+        userCompanyId: req.user.companyId,
+        originalCount,
+        filteredCount: companies.length,
+        userCompany: companies[0]?.name || 'Not found'
+      });
+    }
+    
     res.json({
       success: true,
       data: companies
