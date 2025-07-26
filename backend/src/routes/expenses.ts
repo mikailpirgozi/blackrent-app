@@ -146,7 +146,7 @@ router.put('/:id',
 // DELETE /api/expenses/:id - Zmazanie nákladu
 router.delete('/:id', 
   authenticateToken,
-  checkPermission('expenses', 'delete', getExpenseContext),
+  checkPermission('expenses', 'delete', { getContext: getExpenseContext }),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
