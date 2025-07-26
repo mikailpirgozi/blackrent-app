@@ -338,7 +338,10 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
   // NEW: Auto-calculate total kilometers based on daily km and rental duration
   useEffect(() => {
     if (dailyKilometers > 0 && formData.startDate && formData.endDate) {
-      const rentalDays = calculateRentalDays(formData.startDate, formData.endDate);
+      // Safe date conversion
+      const startDate = formData.startDate instanceof Date ? formData.startDate : new Date(formData.startDate);
+      const endDate = formData.endDate instanceof Date ? formData.endDate : new Date(formData.endDate);
+      const rentalDays = calculateRentalDays(startDate, endDate);
       const totalKm = dailyKilometers * rentalDays;
       setAllowedKilometers(totalKm);
       console.log(`🚗 Auto-calculated km: ${dailyKilometers} km/day × ${rentalDays} days = ${totalKm} km`);
@@ -869,7 +872,12 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
           placeholder="0 = neobmedzené"
           helperText={
             dailyKilometers > 0 
-              ? `Automaticky: ${dailyKilometers} km/deň × ${formData.startDate && formData.endDate ? calculateRentalDays(formData.startDate, formData.endDate) : '?'} dní`
+              ? `Automaticky: ${dailyKilometers} km/deň × ${formData.startDate && formData.endDate ? (() => {
+                  // Safe date conversion for helper text
+                  const startDate = formData.startDate instanceof Date ? formData.startDate : new Date(formData.startDate);
+                  const endDate = formData.endDate instanceof Date ? formData.endDate : new Date(formData.endDate);
+                  return calculateRentalDays(startDate, endDate);
+                })() : '?'} dní`
               : "0 znamená neobmedzené kilometry"
           }
           sx={{ 

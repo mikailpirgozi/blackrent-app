@@ -174,7 +174,10 @@ export default function CustomerRentalHistory({
                 <Box sx={{ p: isSmallScreen ? 1 : 2 }}>
                   {customerRentals.map((rental) => {
                     const status = getRentalStatus(rental);
-                    const days = calculateRentalDays(rental.startDate, rental.endDate);
+                    // Safe date conversion
+                    const startDate = rental.startDate instanceof Date ? rental.startDate : new Date(rental.startDate);
+                    const endDate = rental.endDate instanceof Date ? rental.endDate : new Date(rental.endDate);
+                    const days = calculateRentalDays(startDate, endDate);
                     
                     return (
                       <Card 
@@ -289,7 +292,10 @@ export default function CustomerRentalHistory({
                     <TableBody>
                       {customerRentals.map((rental) => {
                         const status = getRentalStatus(rental);
-                        const days = calculateRentalDays(rental.startDate, rental.endDate);
+                        // Safe date conversion
+                        const startDate = rental.startDate instanceof Date ? rental.startDate : new Date(rental.startDate);
+                        const endDate = rental.endDate instanceof Date ? rental.endDate : new Date(rental.endDate);
+                        const days = calculateRentalDays(startDate, endDate);
                         
                         return (
                           <TableRow 
@@ -464,7 +470,12 @@ export default function CustomerRentalHistory({
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Dní:</Typography>
                         <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
-                          {calculateRentalDays(selectedRental.startDate, selectedRental.endDate)}
+                          {(() => {
+                            // Safe date conversion
+                            const startDate = selectedRental.startDate instanceof Date ? selectedRental.startDate : new Date(selectedRental.startDate);
+                            const endDate = selectedRental.endDate instanceof Date ? selectedRental.endDate : new Date(selectedRental.endDate);
+                            return calculateRentalDays(startDate, endDate);
+                          })()}
                         </Typography>
                       </Box>
                       <Divider />
