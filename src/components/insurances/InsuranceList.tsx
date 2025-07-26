@@ -31,7 +31,9 @@ import {
   TableHead,
   TableRow,
   Paper,
-  TablePagination
+  TablePagination,
+  Tabs,
+  Tab
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -61,6 +63,7 @@ import { Insurance, PaymentFrequency, VehicleDocument, DocumentType } from '../.
 import { format, isAfter, addDays, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
+import InsuranceClaimList from './InsuranceClaimList';
 
 // Unified document type for table display
 interface UnifiedDocument {
@@ -133,11 +136,15 @@ export default function InsuranceList() {
     updateInsurance,
     createVehicleDocument,
     updateVehicleDocument,
-    deleteVehicleDocument
+    deleteVehicleDocument,
+    createInsuranceClaim,
+    updateInsuranceClaim,
+    deleteInsuranceClaim
   } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
+  const [activeTab, setActiveTab] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDocument, setEditingDocument] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -428,8 +435,9 @@ export default function InsuranceList() {
         </CardContent>
       </Card>
 
-      {/* Statistics Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
+      {/* Statistics Cards - only for Documents tab */}
+      {activeTab === 0 && (
+        <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -521,9 +529,11 @@ export default function InsuranceList() {
             </CardContent>
           </Card>
         </Grid>
-      </Grid>
+        </Grid>
+      )}
 
-      {/* Search and Filters */}
+      {/* Search and Filters - only for Documents tab */}
+      {activeTab === 0 && (
       <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, mb: showFilters ? 2 : 0, flexWrap: 'wrap' }}>
@@ -628,34 +638,58 @@ export default function InsuranceList() {
             </>
           )}
         </CardContent>
+        </Card>
+      )}
+
+      {/* Tab Navigation */}
+      <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <Tabs
+          value={activeTab}
+          onChange={(event, newValue) => setActiveTab(newValue)}
+          sx={{ 
+            borderBottom: 1, 
+            borderColor: 'divider',
+            '& .MuiTab-root': {
+              fontWeight: 600,
+              textTransform: 'none',
+              fontSize: '1rem'
+            }
+          }}
+        >
+          <Tab label="Dokumenty" icon={<SecurityIcon />} iconPosition="start" />
+          <Tab label="Poistné udalosti" icon={<WarningIcon />} iconPosition="start" />
+        </Tabs>
       </Card>
 
-      {/* Alerts */}
-      {stats.expiredDocs > 0 && (
-        <Alert 
-          severity="error" 
-          sx={{ mb: 3 }}
-          icon={<WarningIcon />}
-        >
-          <Typography variant="body1" sx={{ fontWeight: 600 }}>
-            Pozor! {stats.expiredDocs} dokumentov už vypršalo
-          </Typography>
-        </Alert>
-      )}
+      {/* Tab Content */}
+      {activeTab === 0 && (
+        <>
+          {/* Alerts for Documents */}
+          {stats.expiredDocs > 0 && (
+            <Alert 
+              severity="error" 
+              sx={{ mb: 3 }}
+              icon={<WarningIcon />}
+            >
+              <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                Pozor! {stats.expiredDocs} dokumentov už vypršalo
+              </Typography>
+            </Alert>
+          )}
 
-      {stats.expiringDocs > 0 && (
-        <Alert 
-          severity="warning" 
-          sx={{ mb: 3 }}
-          icon={<ScheduleIcon />}
-        >
-          <Typography variant="body1" sx={{ fontWeight: 600 }}>
-            Upozornenie: {stats.expiringDocs} dokumentov vyprší do 30 dní
-          </Typography>
-        </Alert>
-      )}
+          {stats.expiringDocs > 0 && (
+            <Alert 
+              severity="warning" 
+              sx={{ mb: 3 }}
+              icon={<ScheduleIcon />}
+            >
+              <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                Upozornenie: {stats.expiringDocs} dokumentov vyprší do 30 dní
+              </Typography>
+            </Alert>
+          )}
 
-      {/* Documents Table */}
+          {/* Documents Table */}
       <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <TableContainer>
           <Table>
@@ -815,41 +849,50 @@ export default function InsuranceList() {
         </Card>
       )}
 
-      {/* Floating Action Button for Mobile */}
-      {isMobile && (
-        <Fab
-          color="primary"
-          aria-label="add"
-          onClick={handleAdd}
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-            },
-          }}
-        >
-          <AddIcon />
-        </Fab>
+          {/* Floating Action Button for Mobile */}
+          {isMobile && (
+            <Fab
+              color="primary"
+              aria-label="add"
+              onClick={handleAdd}
+              sx={{
+                position: 'fixed',
+                bottom: 24,
+                right: 24,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+                },
+              }}
+            >
+              <AddIcon />
+            </Fab>
+          )}
+        </>
+      )}
+
+      {/* Insurance Claims Tab */}
+      {activeTab === 1 && (
+        <InsuranceClaimList />
       )}
 
       {/* Document Form Dialog */}
-      <Dialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
-        maxWidth="lg"
-        fullWidth
-        disableRestoreFocus
-        keepMounted={false}
-      >
-        <UnifiedDocumentForm
-          document={editingDocument}
-          onSave={handleSave}
-          onCancel={() => setOpenDialog(false)}
-        />
-      </Dialog>
+      {activeTab === 0 && (
+        <Dialog
+          open={openDialog}
+          onClose={() => setOpenDialog(false)}
+          maxWidth="lg"
+          fullWidth
+          disableRestoreFocus
+          keepMounted={false}
+        >
+          <UnifiedDocumentForm
+            document={editingDocument}
+            onSave={handleSave}
+            onCancel={() => setOpenDialog(false)}
+          />
+        </Dialog>
+      )}
     </Box>
   );
 } 
