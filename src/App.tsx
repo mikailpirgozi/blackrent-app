@@ -18,7 +18,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 // Lazy imports pre code splitting a lepšie performance
 import { Suspense, lazy } from 'react';
 
-const VehicleList = lazy(() => import('./components/vehicles/VehicleList'));
+const VehicleList = lazy(() => import('./components/vehicles/VehicleListNew'));
 const RentalList = lazy(() => import('./components/rentals/RentalListNew'));
 const CustomerList = lazy(() => import('./components/customers/CustomerList'));
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseList'));
