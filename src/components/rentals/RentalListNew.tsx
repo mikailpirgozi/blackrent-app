@@ -3423,20 +3423,24 @@ export default function RentalList() {
                       </IconButton>
                       <IconButton
                         size="small"
-                        title="Vytvoriť odovzdávací protokol"
+                        title={hasHandover ? "Zobraziť odovzdávací protokol" : "Vytvoriť odovzdávací protokol"}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleCreateHandover(rental);
+                          if (hasHandover) {
+                            handleOpenProtocolMenu(rental, 'handover');
+                          } else {
+                            handleCreateHandover(rental);
+                          }
                         }}
                         sx={{ 
-                          bgcolor: '#ff9800', 
+                          bgcolor: hasHandover ? '#4caf50' : '#ff9800', 
                           color: 'white',
                           width: 36,
                           height: 36,
                           '&:hover': { 
-                            bgcolor: '#f57c00',
+                            bgcolor: hasHandover ? '#388e3c' : '#f57c00',
                             transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(255,152,0,0.4)'
+                            boxShadow: hasHandover ? '0 4px 12px rgba(76,175,80,0.4)' : '0 4px 12px rgba(255,152,0,0.4)'
                           },
                           transition: 'all 0.2s ease'
                         }}
@@ -3445,20 +3449,24 @@ export default function RentalList() {
                       </IconButton>
                       <IconButton
                         size="small"
-                        title="Vytvoriť preberací protokol"
+                        title={hasReturn ? "Zobraziť preberací protokol" : "Vytvoriť preberací protokol"}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleCreateReturn(rental);
+                          if (hasReturn) {
+                            handleOpenProtocolMenu(rental, 'return');
+                          } else {
+                            handleCreateReturn(rental);
+                          }
                         }}
                         sx={{ 
-                          bgcolor: '#4caf50', 
+                          bgcolor: hasReturn ? '#2196f3' : '#4caf50', 
                           color: 'white',
                           width: 36,
                           height: 36,
                           '&:hover': { 
-                            bgcolor: '#388e3c',
+                            bgcolor: hasReturn ? '#1976d2' : '#388e3c',
                             transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
+                            boxShadow: hasReturn ? '0 4px 12px rgba(33,150,243,0.4)' : '0 4px 12px rgba(76,175,80,0.4)'
                           },
                           transition: 'all 0.2s ease'
                         }}
