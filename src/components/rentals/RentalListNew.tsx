@@ -3097,6 +3097,101 @@ export default function RentalList() {
                           }}
                         />
                       </Box>
+                      
+                      {/* Mobile Action Buttons Row */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        gap: { xs: 0.5, sm: 0.75 }, 
+                        mt: { xs: 1, sm: 1.5 }, 
+                        justifyContent: 'flex-start',
+                        flexWrap: 'wrap'
+                      }}>
+                        {/* Create Handover Protocol Button */}
+                        <IconButton
+                          size="small"
+                          title={hasHandover ? "Protokol už existuje" : "Vytvoriť odovzdávací protokol"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!hasHandover) {
+                              handleCreateHandover(rental);
+                            }
+                          }}
+                          disabled={hasHandover}
+                          sx={{ 
+                            bgcolor: hasHandover ? '#ccc' : '#ff9800', 
+                            color: 'white',
+                            width: { xs: 36, sm: 32 },
+                            height: { xs: 36, sm: 32 },
+                            '&:hover': !hasHandover ? { 
+                              bgcolor: '#f57c00',
+                              transform: 'scale(1.1)',
+                              boxShadow: '0 4px 12px rgba(255,152,0,0.4)'
+                            } : {},
+                            '&:disabled': {
+                              bgcolor: '#ccc',
+                              color: '#999'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <HandoverIcon fontSize="small" />
+                        </IconButton>
+                        
+                        {/* Create Return Protocol Button */}
+                        <IconButton
+                          size="small"
+                          title={hasReturn ? "Protokol už existuje" : "Vytvoriť preberací protokol"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!hasReturn) {
+                              handleCreateReturn(rental);
+                            }
+                          }}
+                          disabled={hasReturn}
+                          sx={{ 
+                            bgcolor: hasReturn ? '#ccc' : '#4caf50', 
+                            color: 'white',
+                            width: { xs: 36, sm: 32 },
+                            height: { xs: 36, sm: 32 },
+                            '&:hover': !hasReturn ? { 
+                              bgcolor: '#388e3c',
+                              transform: 'scale(1.1)',
+                              boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
+                            } : {},
+                            '&:disabled': {
+                              bgcolor: '#ccc',
+                              color: '#999'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <ReturnIcon fontSize="small" />
+                        </IconButton>
+                        
+                        {/* Delete Rental Button */}
+                        <IconButton
+                          size="small"
+                          title="Zmazať prenájom"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(rental.id);
+                          }}
+                          sx={{ 
+                            bgcolor: '#f44336', 
+                            color: 'white',
+                            width: { xs: 36, sm: 32 },
+                            height: { xs: 36, sm: 32 },
+                            '&:hover': { 
+                              bgcolor: '#d32f2f',
+                              transform: 'scale(1.1)',
+                              boxShadow: '0 4px 12px rgba(244,67,54,0.4)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
                     </Box>
                   </Box>
                 );
