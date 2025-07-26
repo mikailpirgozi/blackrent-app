@@ -81,7 +81,7 @@ const getPaymentFrequencyText = (frequency: PaymentFrequency) => {
 };
 
 export default function InsuranceList() {
-  const { state, dispatch, createInsurance } = useApp();
+  const { state, dispatch, createInsurance, updateInsurance } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -154,7 +154,7 @@ export default function InsuranceList() {
   const handleSave = async (insurance: Insurance) => {
     try {
       if (editingInsurance) {
-        dispatch({ type: 'UPDATE_INSURANCE', payload: insurance });
+        await updateInsurance(insurance);
       } else {
         await createInsurance(insurance);
       }
