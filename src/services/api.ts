@@ -499,6 +499,50 @@ class ApiService {
     console.log('👤 API updateUserProfile - response:', response);
     return response;
   }
+
+  // 👥 USER MANAGEMENT API METHODS
+  async getUsers(): Promise<any[]> {
+    console.log('👥 API getUsers - fetching all users');
+    
+    const response = await this.request<any>('/auth/users');
+    console.log('👥 API getUsers - response:', response);
+    
+    return response.data || [];
+  }
+
+  async createUser(userData: any): Promise<any> {
+    console.log('👤 API createUser - creating user:', userData);
+    
+    const response = await this.request<any>('/auth/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+    
+    console.log('👤 API createUser - response:', response);
+    return response.data;
+  }
+
+  async updateUser(userId: string, userData: any): Promise<any> {
+    console.log('👤 API updateUser - updating user:', userId, userData);
+    
+    const response = await this.request<any>(`/auth/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+    
+    console.log('👤 API updateUser - response:', response);
+    return response.data;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    console.log('👤 API deleteUser - deleting user:', userId);
+    
+    await this.request<void>(`/auth/users/${userId}`, {
+      method: 'DELETE',
+    });
+    
+    console.log('👤 API deleteUser - user deleted successfully');
+  }
 }
 
 export const apiService = new ApiService();
