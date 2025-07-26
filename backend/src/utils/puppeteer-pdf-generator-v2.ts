@@ -13,11 +13,12 @@ export class PuppeteerPDFGeneratorV2 {
       console.log('🚀 Launching Puppeteer browser...');
       
       const isProduction = process.env.NODE_ENV === 'production';
-      const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
+      const customExecutablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
       
-      // 🎯 RAILWAY-OPTIMIZED LAUNCH OPTIONS
+      // 🎯 RAILWAY-OPTIMIZED LAUNCH OPTIONS s fallback stratégiou
       const launchOptions = {
-        executablePath: isProduction ? executablePath : undefined,
+        // Ak nie je nastavená custom cesta, nech si Puppeteer nájde vlastný Chromium
+        executablePath: customExecutablePath || undefined,
         headless: true,
         args: [
           // Basic security and sandbox
@@ -82,9 +83,10 @@ export class PuppeteerPDFGeneratorV2 {
       };
 
       console.log('🔧 Puppeteer launch options:', {
-        executablePath: launchOptions.executablePath,
+        executablePath: launchOptions.executablePath || 'bundled-chromium',
         argsCount: launchOptions.args?.length,
         isProduction,
+        customPath: customExecutablePath,
         userDataDir: '/tmp/chrome-user-data'
       });
 
