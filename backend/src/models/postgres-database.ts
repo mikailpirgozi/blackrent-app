@@ -979,14 +979,16 @@ export class PostgresDatabase {
   async getRentals(): Promise<Rental[]> {
     const client = await this.pool.connect();
     try {
-      // OPTIMALIZÁCIA: Odstránené debug logy pre lepší výkon
+      // JOIN s vehicles tabuľkou aby sme dostali company informácie
       const result = await client.query(`
-        SELECT id, customer_id, vehicle_id, start_date, end_date, 
-               total_price, commission, payment_method, paid, status, 
-               customer_name, created_at, order_number, deposit, 
-               allowed_kilometers, daily_kilometers, handover_place
-        FROM rentals 
-        ORDER BY created_at DESC
+        SELECT r.id, r.customer_id, r.vehicle_id, r.start_date, r.end_date, 
+               r.total_price, r.commission, r.payment_method, r.paid, r.status, 
+               r.customer_name, r.created_at, r.order_number, r.deposit, 
+               r.allowed_kilometers, r.daily_kilometers, r.handover_place,
+               v.brand, v.model, v.license_plate, v.company
+        FROM rentals r
+        LEFT JOIN vehicles v ON r.vehicle_id = v.id
+        ORDER BY r.created_at DESC
       `);
       
       if (result.rows.length === 0) {
@@ -1013,7 +1015,18 @@ export class PostgresDatabase {
             deposit: row.deposit ? parseFloat(row.deposit) : undefined,
             allowedKilometers: row.allowed_kilometers || undefined,
             dailyKilometers: row.daily_kilometers || undefined,
-            handoverPlace: row.handover_place || undefined
+            handoverPlace: row.handover_place || undefined,
+            // Pridaj vehicle informácie
+            vehicle: row.brand ? {
+              id: row.vehicle_id?.toString() || '',
+              brand: row.brand,
+              model: row.model,
+              licensePlate: row.license_plate,
+              company: row.company || 'N/A',
+              pricing: [],
+              commission: { type: 'percentage', value: 0 },
+              status: 'available'
+            } : undefined
           };
           
           return rental;
@@ -1685,7 +1698,13 @@ export class PostgresDatabase {
            const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) || 
                              (rentalEnd >= fromDate && rentalEnd <= toDate) ||
                              (rentalStart <= fromDate && rentalEnd >= toDate);
-           return isInPeriod && rental.vehicle?.company === company;
+           const hasMatchingCompany = rental.vehicle?.company === company;
+           
+           if (row.id && (isInPeriod || hasMatchingCompany)) {
+             console.log(`🏠 Settlement ${row.id} - Rental ${rental.id}: Vehicle company: "${rental.vehicle?.company}", Settlement company: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
+           }
+           
+           return isInPeriod && hasMatchingCompany;
          });
         
         // Filter expenses for this settlement
