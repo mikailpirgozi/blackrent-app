@@ -979,17 +979,39 @@ export class PostgresDatabase {
   async getRentals(): Promise<Rental[]> {
     const client = await this.pool.connect();
     try {
-      // JOIN s vehicles tabuľkou aby sme dostali company informácie
+      // Najprv jednoduchý dotaz bez JOIN pre debugging
+      console.log('🔍 Loading rentals...');
       const result = await client.query(`
-        SELECT r.id, r.customer_id, r.vehicle_id, r.start_date, r.end_date, 
-               r.total_price, r.commission, r.payment_method, r.paid, r.status, 
-               r.customer_name, r.created_at, r.order_number, r.deposit, 
-               r.allowed_kilometers, r.daily_kilometers, r.handover_place,
-               v.brand, v.model, v.license_plate, v.company
-        FROM rentals r
-        LEFT JOIN vehicles v ON r.vehicle_id = v.id
-        ORDER BY r.created_at DESC
+        SELECT id, customer_id, vehicle_id, start_date, end_date, 
+               total_price, commission, payment_method, paid, status, 
+               customer_name, created_at, order_number, deposit, 
+               allowed_kilometers, daily_kilometers, handover_place
+        FROM rentals 
+        ORDER BY created_at DESC
       `);
+      console.log(`📊 Found ${result.rows.length} rentals`);
+      
+      // Načítaj vehicles separately pre company info
+      const vehiclesResult = await client.query(`
+        SELECT id, brand, model, license_plate, company 
+        FROM vehicles
+      `);
+      console.log(`🚗 Found ${vehiclesResult.rows.length} vehicles`);
+      
+      // Create vehicles map for quick lookup
+      const vehiclesMap = new Map();
+      vehiclesResult.rows.forEach(v => {
+        vehiclesMap.set(v.id, {
+          id: v.id,
+          brand: v.brand,
+          model: v.model, 
+          licensePlate: v.license_plate,
+          company: v.company || 'N/A',
+          pricing: [],
+          commission: { type: 'percentage', value: 0 },
+          status: 'available'
+        });
+      });
       
       if (result.rows.length === 0) {
         return [];
@@ -1016,17 +1038,8 @@ export class PostgresDatabase {
             allowedKilometers: row.allowed_kilometers || undefined,
             dailyKilometers: row.daily_kilometers || undefined,
             handoverPlace: row.handover_place || undefined,
-            // Pridaj vehicle informácie
-            vehicle: row.brand ? {
-              id: row.vehicle_id?.toString() || '',
-              brand: row.brand,
-              model: row.model,
-              licensePlate: row.license_plate,
-              company: row.company || 'N/A',
-              pricing: [],
-              commission: { type: 'percentage', value: 0 },
-              status: 'available'
-            } : undefined
+            // Pridaj vehicle informácie z mapy
+            vehicle: row.vehicle_id ? vehiclesMap.get(row.vehicle_id) : undefined
           };
           
           return rental;
