@@ -52,7 +52,7 @@ import {
   Receipt as ReceiptIcon,
   Close as CloseIcon,
   Assignment as AssignmentIcon,
-  Highway as HighwayIcon,
+  LocalShipping as HighwayIcon,
   Build as BuildIcon
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
@@ -152,37 +152,41 @@ export default function InsuranceList() {
     const docs: UnifiedDocument[] = [];
     
     // Add insurances
-    state.insurances.forEach(insurance => {
-      docs.push({
-        id: insurance.id,
-        vehicleId: insurance.vehicleId,
-        type: 'insurance',
-        policyNumber: insurance.policyNumber,
-        validFrom: insurance.validFrom,
-        validTo: insurance.validTo,
-        price: insurance.price,
-        company: insurance.company,
-        paymentFrequency: insurance.paymentFrequency,
-        createdAt: insurance.createdAt,
-        originalData: insurance
+    if (state.insurances) {
+      state.insurances.forEach(insurance => {
+        docs.push({
+          id: insurance.id,
+          vehicleId: insurance.vehicleId,
+          type: 'insurance',
+          policyNumber: insurance.policyNumber,
+          validFrom: insurance.validFrom,
+          validTo: insurance.validTo,
+          price: insurance.price,
+          company: insurance.company,
+          paymentFrequency: insurance.paymentFrequency,
+          createdAt: insurance.validTo, // Use validTo as fallback for sorting
+          originalData: insurance
+        });
       });
-    });
+    }
     
     // Add vehicle documents
-    state.vehicleDocuments.forEach(doc => {
-      docs.push({
-        id: doc.id,
-        vehicleId: doc.vehicleId,
-        type: doc.documentType as any,
-        documentNumber: doc.documentNumber,
-        validFrom: doc.validFrom,
-        validTo: doc.validTo,
-        price: doc.price,
-        notes: doc.notes,
-        createdAt: doc.createdAt,
-        originalData: doc
+    if (state.vehicleDocuments) {
+      state.vehicleDocuments.forEach(doc => {
+        docs.push({
+          id: doc.id,
+          vehicleId: doc.vehicleId,
+          type: doc.documentType as any,
+          documentNumber: doc.documentNumber,
+          validFrom: doc.validFrom,
+          validTo: doc.validTo,
+          price: doc.price,
+          notes: doc.notes,
+          createdAt: doc.validTo, // Use validTo as fallback for sorting
+          originalData: doc
+        });
       });
-    });
+    }
     
     return docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [state.insurances, state.vehicleDocuments]);
@@ -213,7 +217,7 @@ export default function InsuranceList() {
   // Filtered documents
   const filteredDocuments = useMemo(() => {
     return unifiedDocuments.filter((doc) => {
-      const vehicle = state.vehicles.find(v => v.id === doc.vehicleId);
+      const vehicle = state.vehicles?.find(v => v.id === doc.vehicleId);
       const vehicleText = vehicle ? `${vehicle.brand} ${vehicle.model} ${vehicle.licensePlate}` : '';
       
       const matchesSearch = !searchQuery || 
@@ -263,7 +267,7 @@ export default function InsuranceList() {
         if (editingDocument.type === 'insurance') {
           await updateInsurance(data);
         } else {
-          await updateVehicleDocument(editingDocument.id, data);
+          await updateVehicleDocument({ ...editingDocument.originalData, ...data } as VehicleDocument);
         }
       } else {
         if (data.type === 'insurance') {
@@ -484,11 +488,11 @@ export default function InsuranceList() {
                       onChange={(e) => setFilterVehicle(e.target.value)}
                     >
                       <MenuItem value="">Všetky</MenuItem>
-                      {state.vehicles.map(vehicle => (
+                      {state.vehicles?.map(vehicle => (
                         <MenuItem key={vehicle.id} value={vehicle.id}>
                           {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
                         </MenuItem>
-                      ))}
+                      )) || []}
                     </Select>
                   </FormControl>
                 </Grid>
@@ -589,7 +593,7 @@ export default function InsuranceList() {
               {filteredDocuments
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((doc) => {
-                  const vehicle = state.vehicles.find(v => v.id === doc.vehicleId);
+                                     const vehicle = state.vehicles?.find(v => v.id === doc.vehicleId);
                   const expiryStatus = getExpiryStatus(doc.validTo);
                   const typeInfo = getDocumentTypeInfo(doc.type);
                   
