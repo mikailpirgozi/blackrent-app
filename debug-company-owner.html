@@ -91,7 +91,11 @@
             <h2>🔑 Prihlásenie</h2>
             <input type="text" id="username" placeholder="Username" value="admin">
             <input type="password" id="password" placeholder="Password" value="admin123">
-            <button onclick="login()">Prihlásiť</button>
+            <br>
+            <button onclick="testBackend()">🔍 Test Backend</button>
+            <button onclick="login()">🔑 Prihlásiť</button>
+            <br>
+            <small>💡 Ak prihlásenie nefunguje, skús najprv "Test Backend"</small>
             <div id="loginStatus"></div>
         </div>
 
@@ -127,10 +131,42 @@
         let allVehicles = [];
         let allCompanies = [];
 
+        // Test backend connection
+        async function testBackend() {
+            try {
+                document.getElementById('loginStatus').innerHTML = 
+                    `<div>🔄 Testujem backend connection...</div>`;
+                
+                // First try health endpoint (no auth needed)
+                const healthResponse = await fetch(`${API_BASE}/auth/health`);
+                
+                if (healthResponse.ok) {
+                    const healthData = await healthResponse.json();
+                    document.getElementById('loginStatus').innerHTML = 
+                        `<div class="success">✅ Backend beží! 
+                         <br><small>Uptime: ${Math.floor(healthData.data.uptime)}s, Env: ${healthData.data.environment}</small>
+                         <br><small>Môžeš sa teraz prihlásiť</small></div>`;
+                    return true;
+                } else {
+                    throw new Error(`Health check failed: ${healthResponse.status}`);
+                }
+            } catch (error) {
+                console.error('Backend test error:', error);
+                document.getElementById('loginStatus').innerHTML = 
+                    `<div class="error">❌ Backend nedostupný: ${error.message}
+                    <br><small>URL: ${API_BASE}/auth/health</small>
+                    <br><small>Skontroluj či Railway backend beží</small></div>`;
+                return false;
+            }
+        }
+
         // Login
         async function login() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+            
+            document.getElementById('loginStatus').innerHTML = 
+                `<div>🔄 Prihlasovanie...</div>`;
             
             try {
                 const response = await fetch(`${API_BASE}/auth/login`, {
@@ -139,7 +175,11 @@
                     body: JSON.stringify({ username, password })
                 });
                 
+                console.log('Login response status:', response.status);
+                console.log('Login response headers:', response.headers);
+                
                 const data = await response.json();
+                console.log('Login response data:', data);
                 
                 if (data.success) {
                     token = data.token;
@@ -148,11 +188,13 @@
                     loadDebugInfo();
                 } else {
                     document.getElementById('loginStatus').innerHTML = 
-                        `<div class="error">❌ ${data.error}</div>`;
+                        `<div class="error">❌ ${data.error || 'Neznáma chyba'}</div>`;
                 }
             } catch (error) {
+                console.error('Login error:', error);
                 document.getElementById('loginStatus').innerHTML = 
-                    `<div class="error">❌ Network error: ${error.message}</div>`;
+                    `<div class="error">❌ Network error: ${error.message}<br>
+                    <small>Skontroluj console (F12) pre viac detailov</small></div>`;
             }
         }
 
@@ -288,11 +330,10 @@
             }
         }
 
-        // Auto-login if admin credentials are filled
+        // Auto-test backend on load
         window.onload = function() {
-            if (document.getElementById('username').value && document.getElementById('password').value) {
-                login();
-            }
+            console.log('🔍 Debug tool loaded, testing backend...');
+            testBackend();
         };
     </script>
 </body>
