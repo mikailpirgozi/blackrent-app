@@ -37,8 +37,6 @@ import {
 import { Settlement } from '../../types';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import { useAuth } from '../../context/AuthContext';
-import { API_BASE_URL } from '../../services/api';
 
 interface SettlementDetailProps {
   settlement: Settlement;
@@ -46,7 +44,6 @@ interface SettlementDetailProps {
 }
 
 export default function SettlementDetail({ settlement, onClose }: SettlementDetailProps) {
-  const { state } = useAuth();
   const [pdfLoading, setPdfLoading] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -107,54 +104,338 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
     }
   };
 
-  // Funkcia na stiahnutie PDF vyúčtovania
-  const handleDownloadPDF = async () => {
-    if (!state.token) {
-      alert('Nie ste prihlásený');
-      return;
-    }
-
+  // Client-side PDF generovanie (bez servera!)
+  const handleDownloadPDF = () => {
     setPdfLoading(true);
+    
     try {
-      const response = await fetch(`${API_BASE_URL}/settlements/${settlement.id}/pdf`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${state.token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Neznáma chyba' }));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
-      // Získaj PDF blob
-      const blob = await response.blob();
+      // Vytvor hidden print container
+      const printContainer = document.createElement('div');
+      printContainer.id = 'pdf-print-container';
+      printContainer.style.position = 'absolute';
+      printContainer.style.left = '-9999px';
+      printContainer.style.top = '0';
       
-      // Vytvor download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
+      // Vygeneruj HTML pre tlač
+      printContainer.innerHTML = generatePrintHTML();
       
-      // Názov súboru
-      const filename = `vyuctovanie_${settlement.company?.replace(/[^a-zA-Z0-9]/g, '_')}_${settlement.id.slice(-8)}.pdf`;
-      link.download = filename;
+      // Pridaj do DOM
+      document.body.appendChild(printContainer);
       
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
+      // Pridaj print styles
+      const printStyles = document.createElement('style');
+      printStyles.innerHTML = getPrintStyles();
+      document.head.appendChild(printStyles);
       
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Spusti print dialog
+      setTimeout(() => {
+        window.print();
+        
+        // Cleanup po tlači
+        setTimeout(() => {
+          document.body.removeChild(printContainer);
+          document.head.removeChild(printStyles);
+          setPdfLoading(false);
+        }, 1000);
+      }, 100);
       
-      console.log('✅ PDF úspešne stiahnuté');
+      console.log('✅ PDF print dialog otvorený');
     } catch (error) {
-      console.error('❌ Chyba pri sťahovaní PDF:', error);
-      alert(`Chyba pri sťahovaní PDF: ${error instanceof Error ? error.message : 'Neznáma chyba'}`);
-    } finally {
+      console.error('❌ Chyba pri generovaní PDF:', error);
+      alert(`Chyba pri generovaní PDF: ${error instanceof Error ? error.message : 'Neznáma chyba'}`);
       setPdfLoading(false);
     }
+  };
+
+  // Generuj HTML pre tlač
+  const generatePrintHTML = () => {
+    const formatDate = (date: Date | string) => {
+      try {
+        const d = typeof date === 'string' ? new Date(date) : date;
+        return d.toLocaleDateString('sk-SK');
+      } catch {
+        return 'N/A';
+      }
+    };
+
+    return `
+      <div class="print-document">
+        <div class="print-header">
+          <h1>VYÚČTOVANIE</h1>
+          <h2>${settlement.company || 'N/A'}</h2>
+          <div class="print-period">
+            Obdobie: ${formatDate(settlement.period.from)} - ${formatDate(settlement.period.to)}
+          </div>
+        </div>
+
+        <div class="print-summary">
+          <div class="summary-item">
+            <h3>Celkové príjmy</h3>
+            <div class="amount">${settlement.totalIncome.toFixed(2)}€</div>
+          </div>
+          <div class="summary-item">
+            <h3>Celkové náklady</h3>
+            <div class="amount">${settlement.totalExpenses.toFixed(2)}€</div>
+          </div>
+          <div class="summary-item">
+            <h3>Celkové provízie</h3>
+            <div class="amount">${settlement.totalCommission.toFixed(2)}€</div>
+          </div>
+          <div class="summary-item ${settlement.profit >= 0 ? 'profit' : 'loss'}">
+            <h3>${settlement.profit >= 0 ? 'Celkový zisk' : 'Celková strata'}</h3>
+            <div class="amount">${settlement.profit.toFixed(2)}€</div>
+          </div>
+        </div>
+
+        <div class="print-section">
+          <h2>Prehľad podľa spôsobov platby</h2>
+          <table class="print-table">
+            <thead>
+              <tr>
+                <th>Spôsob platby</th>
+                <th>Počet prenájmov</th>
+                <th>Celková cena (€)</th>
+                <th>Provízie (€)</th>
+                <th>Po odpočítaní provízií (€)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(paymentMethodStats).map(([method, stats]) => `
+                <tr>
+                  <td>${getPaymentMethodLabel(method)}</td>
+                  <td>${stats.count}</td>
+                  <td>${stats.totalPrice.toFixed(2)}</td>
+                  <td>${stats.totalCommission.toFixed(2)}</td>
+                  <td>${stats.netAmount.toFixed(2)}</td>
+                </tr>
+              `).join('')}
+              <tr class="total-row">
+                <td><strong>SPOLU</strong></td>
+                <td><strong>${settlement.rentals?.length || 0}</strong></td>
+                <td><strong>${settlement.totalIncome.toFixed(2)}</strong></td>
+                <td><strong>${settlement.totalCommission.toFixed(2)}</strong></td>
+                <td><strong>${(settlement.totalIncome - settlement.totalCommission).toFixed(2)}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="print-details">
+          <div class="print-section">
+            <h2>Prenájmy (${settlement.rentals?.length || 0})</h2>
+            <table class="print-table">
+              <thead>
+                <tr>
+                  <th>Vozidlo</th>
+                  <th>Zákazník</th>
+                  <th>Platba</th>
+                  <th>Cena (€)</th>
+                  <th>Provízia (€)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${settlement.rentals.map(rental => `
+                  <tr>
+                    <td>${rental.vehicle?.brand || ''} ${rental.vehicle?.model || ''}<br>
+                        <small>${rental.vehicle?.licensePlate || ''}</small></td>
+                    <td>${rental.customerName}</td>
+                    <td>${getPaymentMethodLabel(rental.paymentMethod)}</td>
+                    <td>${rental.totalPrice.toFixed(2)}</td>
+                    <td>${rental.commission.toFixed(2)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="print-section">
+            <h2>Náklady ${settlement.company || 'N/A'} (${settlement.expenses?.length || 0})</h2>
+            <table class="print-table">
+              <thead>
+                <tr>
+                  <th>Popis</th>
+                  <th>Kategória</th>
+                  <th>Suma (€)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${settlement.expenses.map(expense => `
+                  <tr>
+                    <td>${expense.description}</td>
+                    <td>${expense.category}</td>
+                    <td>${expense.amount.toFixed(2)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="print-footer">
+          <p>ID vyúčtovania: ${settlement.id.slice(-8).toUpperCase()}</p>
+          <p>Dokument automaticky vygenerovaný systémom BlackRent dňa ${new Date().toLocaleDateString('sk-SK')}</p>
+        </div>
+      </div>
+    `;
+  };
+
+  // CSS štýly pre tlač
+  const getPrintStyles = () => {
+    return `
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        
+        #pdf-print-container,
+        #pdf-print-container * {
+          visibility: visible;
+        }
+        
+        #pdf-print-container {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+        }
+
+        .print-document {
+          font-family: 'Inter', Arial, sans-serif;
+          font-size: 12px;
+          line-height: 1.4;
+          color: #000;
+          margin: 0;
+          padding: 20px;
+        }
+
+        .print-header {
+          text-align: center;
+          margin-bottom: 30px;
+          border-bottom: 3px solid #1976d2;
+          padding-bottom: 20px;
+        }
+
+        .print-header h1 {
+          font-size: 28px;
+          font-weight: bold;
+          color: #1976d2;
+          margin: 0 0 10px 0;
+        }
+
+        .print-header h2 {
+          font-size: 20px;
+          font-weight: 600;
+          margin: 0 0 15px 0;
+        }
+
+        .print-period {
+          font-size: 16px;
+          background: #f0f0f0;
+          padding: 8px 16px;
+          border-radius: 20px;
+          display: inline-block;
+        }
+
+        .print-summary {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px;
+          margin-bottom: 30px;
+        }
+
+        .summary-item {
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 15px;
+          text-align: center;
+        }
+
+        .summary-item h3 {
+          font-size: 14px;
+          font-weight: 600;
+          margin: 0 0 8px 0;
+          text-transform: uppercase;
+        }
+
+        .summary-item .amount {
+          font-size: 20px;
+          font-weight: bold;
+        }
+
+        .summary-item.profit .amount {
+          color: #4caf50;
+        }
+
+        .summary-item.loss .amount {
+          color: #f44336;
+        }
+
+        .print-section {
+          margin-bottom: 25px;
+          page-break-inside: avoid;
+        }
+
+        .print-section h2 {
+          font-size: 16px;
+          font-weight: 600;
+          color: #1976d2;
+          background: #f8f9fa;
+          padding: 12px 16px;
+          border-left: 4px solid #1976d2;
+          margin: 0 0 15px 0;
+        }
+
+        .print-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+
+        .print-table th {
+          background: #1976d2;
+          color: white;
+          padding: 10px;
+          text-align: left;
+          font-weight: 600;
+          font-size: 11px;
+        }
+
+        .print-table td {
+          padding: 8px 10px;
+          border-bottom: 1px solid #ddd;
+          font-size: 11px;
+        }
+
+        .print-table tr:nth-child(even) {
+          background: #f9f9f9;
+        }
+
+        .total-row {
+          background: #e3f2fd !important;
+          border-top: 2px solid #1976d2;
+        }
+
+        .print-details {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 30px;
+        }
+
+        .print-footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #ddd;
+          font-size: 11px;
+          color: #666;
+        }
+
+        small {
+          font-size: 9px;
+          color: #666;
+        }
+      }
+    `;
   };
 
   return (
@@ -586,7 +867,7 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
                 transition: 'all 0.2s ease'
               }}
             >
-              {pdfLoading ? 'Generujem PDF...' : 'Stiahnuť PDF'}
+              {pdfLoading ? 'Pripravujem tlač...' : 'Tlačiť / Uložiť PDF'}
             </Button>
             
             <Typography variant="body2" color="text.secondary" sx={{ 
