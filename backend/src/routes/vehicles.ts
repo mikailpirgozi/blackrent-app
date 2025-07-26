@@ -2,55 +2,85 @@ import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { Vehicle, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
-// GET /api/vehicles - Získanie všetkých vozidiel
-router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<Vehicle[]>>) => {
-  try {
-    const vehicles = await postgresDatabase.getVehicles();
-    res.json({
-      success: true,
-      data: vehicles
-    });
-  } catch (error) {
-    console.error('Get vehicles error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Chyba pri získavaní vozidiel'
-    });
-  }
-});
+// 🔍 CONTEXT FUNCTIONS
+const getVehicleContext = async (req: Request) => {
+  const vehicleId = req.params.id;
+  if (!vehicleId) return {};
+  
+  const vehicle = await postgresDatabase.getVehicle(vehicleId);
+  return {
+    resourceOwnerId: vehicle?.assignedMechanicId,
+    resourceCompanyId: vehicle?.ownerCompanyId
+  };
+};
 
-// GET /api/vehicles/:id - Získanie konkrétneho vozidla
-router.get('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse<Vehicle>>) => {
-  try {
-    const { id } = req.params;
-    const vehicle = await postgresDatabase.getVehicle(id);
-    
-    if (!vehicle) {
-      return res.status(404).json({
+// GET /api/vehicles - Získanie všetkých vozidiel
+router.get('/', 
+  authenticateToken, 
+  checkPermission('vehicles', 'read'),
+  async (req: Request, res: Response<ApiResponse<Vehicle[]>>) => {
+    try {
+      let vehicles = await postgresDatabase.getVehicles();
+      
+      // 🏢 COMPANY OWNER - filter len vlastné vozidlá
+      if (req.user?.role === 'company_owner' && req.user.companyId) {
+        vehicles = vehicles.filter(v => v.ownerCompanyId === req.user?.companyId);
+      }
+      
+      res.json({
+        success: true,
+        data: vehicles
+      });
+    } catch (error) {
+      console.error('Get vehicles error:', error);
+      res.status(500).json({
         success: false,
-        error: 'Vozidlo nenájdené'
+        error: 'Chyba pri získavaní vozidiel'
       });
     }
-
-    res.json({
-      success: true,
-      data: vehicle
-    });
-  } catch (error) {
-    console.error('Get vehicle error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Chyba pri získavaní vozidla'
-    });
   }
-});
+);
+
+// GET /api/vehicles/:id - Získanie konkrétneho vozidla
+router.get('/:id', 
+  authenticateToken,
+  checkPermission('vehicles', 'read', { getContext: getVehicleContext }),
+  async (req: Request, res: Response<ApiResponse<Vehicle>>) => {
+    try {
+      const { id } = req.params;
+      const vehicle = await postgresDatabase.getVehicle(id);
+      
+      if (!vehicle) {
+        return res.status(404).json({
+          success: false,
+          error: 'Vozidlo nenájdené'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: vehicle
+      });
+    } catch (error) {
+      console.error('Get vehicle error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri získavaní vozidla'
+      });
+    }
+  }
+);
 
 // POST /api/vehicles - Vytvorenie nového vozidla
-router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.post('/', 
+  authenticateToken,
+  checkPermission('vehicles', 'create'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { brand, model, licensePlate, company, pricing, commission, status, year } = req.body;
 
@@ -89,7 +119,10 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
 });
 
 // PUT /api/vehicles/:id - Aktualizácia vozidla
-router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.put('/:id', 
+  authenticateToken,
+  checkPermission('vehicles', 'update', { getContext: getVehicleContext }),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
     const { brand, model, licensePlate, company, pricing, commission, status } = req.body;
@@ -132,7 +165,10 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
 });
 
 // DELETE /api/vehicles/:id - Vymazanie vozidla
-router.delete('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.delete('/:id', 
+  authenticateToken,
+  checkPermission('vehicles', 'delete', { getContext: getVehicleContext }),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
 

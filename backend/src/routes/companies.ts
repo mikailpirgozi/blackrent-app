@@ -2,12 +2,16 @@ import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { Company, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
 // GET /api/companies - Získanie všetkých firiem
-router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<Company[]>>) => {
+router.get('/', 
+  authenticateToken,
+  checkPermission('companies', 'read'),
+  async (req: Request, res: Response<ApiResponse<Company[]>>) => {
   try {
     const companies = await postgresDatabase.getCompanies();
     res.json({
@@ -24,7 +28,10 @@ router.get('/', authenticateToken, async (req: Request, res: Response<ApiRespons
 });
 
 // POST /api/companies - Vytvorenie novej firmy
-router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.post('/', 
+  authenticateToken,
+  checkPermission('companies', 'create'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { name } = req.body;
 
@@ -53,7 +60,10 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
 });
 
 // DELETE /api/companies/:id - Vymazanie firmy
-router.delete('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.delete('/:id', 
+  authenticateToken,
+  checkPermission('companies', 'delete'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
 
