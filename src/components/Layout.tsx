@@ -59,7 +59,7 @@ const allMenuItems = [
   { text: 'Dostupnosť áut', icon: <CalendarToday />, path: '/availability', resource: 'availability' },
   { text: 'Náklady', icon: <AttachMoney />, path: '/expenses', resource: 'expenses' },
   { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'settlements' },
-  { text: 'Poistky', icon: <SecurityOutlined />, path: '/insurances', resource: 'insurances' },
+  { text: 'Poistky/STK/Dialničné', icon: <SecurityOutlined />, path: '/insurances', resource: 'insurances' },
   { text: 'Správa používateľov', icon: <AdminPanelSettingsOutlined />, path: '/users', resource: 'users' },
   { text: 'Štatistiky', icon: <DashboardOutlined />, path: '/statistics', resource: 'statistics' },
 ];
