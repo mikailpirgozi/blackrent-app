@@ -536,39 +536,17 @@ export default function SettlementList() {
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
                         <IconButton 
                           size="small" 
-                          onClick={() => handleView(settlement)}
-                          sx={{ 
-                            width: 32,
-                            height: 32,
-                            backgroundColor: '#e3f2fd',
-                            color: '#1976d2',
-                            '&:hover': { 
-                              backgroundColor: '#bbdefb',
-                              color: '#1565c0'
-                            },
-                            transition: 'all 0.2s ease',
-                            flexShrink: 0
-                          }}
+                          onClick={(e) => { e.stopPropagation(); handleView(settlement); }}
+                          sx={{ color: 'primary.main' }}
                         >
-                          <ViewIcon sx={{ fontSize: 16 }} />
+                          <ViewIcon fontSize="small" />
                         </IconButton>
                         <IconButton 
                           size="small" 
-                          onClick={() => handleDelete(settlement.id)}
-                          sx={{ 
-                            width: 32,
-                            height: 32,
-                            backgroundColor: '#ffebee',
-                            color: '#d32f2f',
-                            '&:hover': { 
-                              backgroundColor: '#ffcdd2',
-                              color: '#c62828'
-                            },
-                            transition: 'all 0.2s ease',
-                            flexShrink: 0
-                          }}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(settlement.id); }}
+                          sx={{ color: 'error.main' }}
                         >
-                          <DeleteIcon sx={{ fontSize: 16 }} />
+                          <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Box>
                     </Box>
@@ -749,41 +727,19 @@ export default function SettlementList() {
                       <Tooltip title="Zobraziť detail">
                         <IconButton 
                           size="small" 
-                          onClick={() => handleView(settlement)}
-                          sx={{ 
-                            width: 32,
-                            height: 32,
-                            backgroundColor: '#e3f2fd',
-                            color: '#1976d2',
-                            '&:hover': { 
-                              backgroundColor: '#bbdefb',
-                              color: '#1565c0'
-                            },
-                            transition: 'all 0.2s ease',
-                            flexShrink: 0
-                          }}
+                          onClick={(e) => { e.stopPropagation(); handleView(settlement); }}
+                          sx={{ color: 'primary.main' }}
                         >
-                          <ViewIcon sx={{ fontSize: 16 }} />
+                          <ViewIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Zmazať">
                         <IconButton 
                           size="small" 
-                          onClick={() => handleDelete(settlement.id)}
-                          sx={{ 
-                            width: 32,
-                            height: 32,
-                            backgroundColor: '#ffebee',
-                            color: '#d32f2f',
-                            '&:hover': { 
-                              backgroundColor: '#ffcdd2',
-                              color: '#c62828'
-                            },
-                            transition: 'all 0.2s ease',
-                            flexShrink: 0
-                          }}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(settlement.id); }}
+                          sx={{ color: 'error.main' }}
                         >
-                          <DeleteIcon sx={{ fontSize: 16 }} />
+                          <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     </Box>
