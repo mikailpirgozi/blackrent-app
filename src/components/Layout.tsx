@@ -46,6 +46,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAuth } from '../context/AuthContext';
+import { usePermissions, getUserRoleDisplayName } from '../hooks/usePermissions';
 import { useThemeMode } from '../context/ThemeContext';
 import ChangePasswordForm from './auth/ChangePasswordForm';
 import UserProfile from './users/UserProfile';
@@ -53,15 +54,15 @@ import UserProfile from './users/UserProfile';
 const drawerWidth = 280;
 
 const allMenuItems = [
-  { text: 'Prenájmy', icon: <ReceiptLongOutlined />, path: '/rentals', resource: 'rentals' },
-  { text: 'Databáza vozidiel', icon: <CarRental />, path: '/vehicles', resource: 'vehicles' },
-  { text: 'Zákazníci', icon: <GroupOutlined />, path: '/customers', resource: 'customers' },
-  { text: 'Dostupnosť áut', icon: <CalendarToday />, path: '/availability', resource: 'availability' },
-  { text: 'Náklady', icon: <AttachMoney />, path: '/expenses', resource: 'expenses' },
-  { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'settlements' },
-  { text: 'Poistky/STK/Dialničné', icon: <SecurityOutlined />, path: '/insurances', resource: 'insurances' },
-  { text: 'Správa používateľov', icon: <AdminPanelSettingsOutlined />, path: '/users', resource: 'users' },
-  { text: 'Štatistiky', icon: <DashboardOutlined />, path: '/statistics', resource: 'statistics' },
+  { text: 'Prenájmy', icon: <ReceiptLongOutlined />, path: '/rentals', resource: 'rentals' as const },
+  { text: 'Databáza vozidiel', icon: <CarRental />, path: '/vehicles', resource: 'vehicles' as const },
+  { text: 'Zákazníci', icon: <GroupOutlined />, path: '/customers', resource: 'customers' as const },
+  { text: 'Dostupnosť áut', icon: <CalendarToday />, path: '/availability', resource: 'vehicles' as const }, // availability uses vehicles permissions
+  { text: 'Náklady', icon: <AttachMoney />, path: '/expenses', resource: 'finances' as const },
+  { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'finances' as const },
+  { text: 'Poistky/STK/Dialničné', icon: <SecurityOutlined />, path: '/insurances', resource: 'vehicles' as const }, // insurances are vehicle-related
+  { text: 'Správa používateľov', icon: <AdminPanelSettingsOutlined />, path: '/users', resource: 'users' as const },
+  { text: 'Štatistiky', icon: <DashboardOutlined />, path: '/statistics', resource: 'finances' as const }, // statistics need finance access
 ];
 
 interface LayoutProps {
@@ -76,7 +77,8 @@ export default function Layout({ children }: LayoutProps) {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { state, logout, hasPermission } = useAuth();
+  const { state, logout } = useAuth();
+  const permissions = usePermissions();
   const { isDarkMode, toggleTheme } = useThemeMode();
   const isMobile = useMediaQuery('(max-width:600px)');
 
@@ -109,7 +111,7 @@ export default function Layout({ children }: LayoutProps) {
 
   // Filtruj menu items podľa permissions
   const menuItems = allMenuItems.filter(item => 
-    hasPermission(item.resource, 'read')
+    permissions.canRead(item.resource)
   );
 
   // Nájdi aktívny index pre bottom navigation
@@ -291,7 +293,7 @@ export default function Layout({ children }: LayoutProps) {
                   fontSize: '0.75rem',
                 }}
               >
-                {state.user?.role === 'admin' ? 'Administrátor' : 'Používateľ'}
+                {state.user?.role ? getUserRoleDisplayName(state.user.role) : 'Používateľ'}
               </Typography>
             </Box>
           </Box>

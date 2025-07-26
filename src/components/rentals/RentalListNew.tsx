@@ -56,6 +56,7 @@ import { sk } from 'date-fns/locale';
 import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import { useApp } from '../../context/AppContext';
 import { Rental } from '../../types';
+import { Can } from '../common/PermissionGuard';
 import { apiService } from '../../services/api';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
