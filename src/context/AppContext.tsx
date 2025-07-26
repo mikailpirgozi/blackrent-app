@@ -269,6 +269,9 @@ interface AppContextType {
   deleteCompany: (id: string) => Promise<void>;
   createInsurer: (insurer: Insurer) => Promise<void>;
   deleteInsurer: (id: string) => Promise<void>;
+  createVehicleDocument: (document: VehicleDocument) => Promise<void>;
+  updateVehicleDocument: (document: VehicleDocument) => Promise<void>;
+  deleteVehicleDocument: (id: string) => Promise<void>;
   loadData: () => Promise<void>;
 }
 
@@ -325,13 +328,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       
       // OPTIMALIZÁCIA: Načítaj ostatné dáta PARALELNE
       console.log('📦 2. Načítavam ostatné dáta paralelne...');
-      const [rentals, expenses, insurances, companies, insurers, settlements] = await Promise.all([
+      const [rentals, expenses, insurances, companies, insurers, settlements, vehicleDocuments] = await Promise.all([
         apiService.getRentals(),
         apiService.getExpenses(),
         apiService.getInsurances(),
         apiService.getCompanies(),
         apiService.getInsurers(),
-        apiService.getSettlements()
+        apiService.getSettlements(),
+        apiService.getVehicleDocuments()
       ]);
       
       console.log('✅ Dáta úspešne načítané:', { 
@@ -342,7 +346,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         customers: customers.length,
         companies: companies.length,
         insurers: insurers.length,
-        settlements: settlements.length
+        settlements: settlements.length,
+        vehicleDocuments: vehicleDocuments.length
       });
       
       // Dispatch všetkých dát naraz
@@ -352,6 +357,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_COMPANIES', payload: companies });
       dispatch({ type: 'SET_INSURERS', payload: insurers });
       dispatch({ type: 'SET_SETTLEMENTS', payload: settlements });
+      dispatch({ type: 'SET_VEHICLE_DOCUMENTS', payload: vehicleDocuments });
       
       // Označ všetky dáta ako načítané
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'rentals', loaded: true } });
@@ -360,6 +366,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'companies', loaded: true } });
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insurers', loaded: true } });
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'settlements', loaded: true } });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'vehicleDocuments', loaded: true } });
       
       // Nastav čas načítania pre cache
       dispatch({ type: 'SET_LAST_LOAD_TIME', payload: Date.now() });
@@ -603,6 +610,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const createVehicleDocument = async (document: VehicleDocument): Promise<void> => {
+    try {
+      await apiService.createVehicleDocument(document);
+      dispatch({ type: 'ADD_VEHICLE_DOCUMENT', payload: document });
+    } catch (error) {
+      console.error('Chyba pri vytváraní dokumentu vozidla:', error);
+      throw error;
+    }
+  };
+
+  const updateVehicleDocument = async (document: VehicleDocument): Promise<void> => {
+    try {
+      await apiService.updateVehicleDocument(document);
+      dispatch({ type: 'UPDATE_VEHICLE_DOCUMENT', payload: document });
+    } catch (error) {
+      console.error('Chyba pri aktualizácii dokumentu vozidla:', error);
+      throw error;
+    }
+  };
+
+  const deleteVehicleDocument = async (id: string): Promise<void> => {
+    try {
+      await apiService.deleteVehicleDocument(id);
+      dispatch({ type: 'DELETE_VEHICLE_DOCUMENT', payload: id });
+    } catch (error) {
+      console.error('Chyba pri mazaní dokumentu vozidla:', error);
+      throw error;
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -634,6 +671,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deleteCompany,
         createInsurer,
         deleteInsurer,
+        createVehicleDocument,
+        updateVehicleDocument,
+        deleteVehicleDocument,
         loadData,
       }}
     >

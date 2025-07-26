@@ -26,7 +26,7 @@ import {
   History as HistoryIcon,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
-import { Vehicle, VehicleStatus } from '../../types';
+import { Vehicle, VehicleStatus, VehicleDocument, DocumentType } from '../../types';
 import VehicleForm from './VehicleForm';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
@@ -69,6 +69,29 @@ const getStatusText = (status: VehicleStatus) => {
       return 'Prepisané';
     default:
       return status;
+  }
+};
+
+const getDocumentExpiryStatus = (documents: VehicleDocument[]) => {
+  if (documents.length === 0) {
+    return { status: 'none', color: 'default', text: 'Žiadne dokumenty', count: 0 };
+  }
+
+  const today = new Date();
+  const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const expiredDocs = documents.filter(doc => new Date(doc.validTo) < today);
+  const expiringDocs = documents.filter(doc => {
+    const validTo = new Date(doc.validTo);
+    return validTo >= today && validTo <= thirtyDaysFromNow;
+  });
+
+  if (expiredDocs.length > 0) {
+    return { status: 'expired', color: 'error', text: `${expiredDocs.length} vypršalo`, count: expiredDocs.length };
+  } else if (expiringDocs.length > 0) {
+    return { status: 'expiring', color: 'warning', text: `${expiringDocs.length} vyprší čoskoro`, count: expiringDocs.length };
+  } else {
+    return { status: 'valid', color: 'success', text: 'Všetko platné', count: documents.length };
   }
 };
 
@@ -260,6 +283,25 @@ export default function VehicleList() {
       )
     },
     {
+      id: 'documents',
+      label: 'Dokumenty',
+      width: { xs: '100px', md: '120px' },
+      hideOnMobile: true,
+      render: (value: any, vehicle: Vehicle) => {
+        const vehicleDocuments = state.vehicleDocuments.filter(doc => doc.vehicleId === vehicle.id);
+        const expiryStatus = getDocumentExpiryStatus(vehicleDocuments);
+        
+        return (
+          <Chip
+            label={expiryStatus.text}
+            color={expiryStatus.color as any}
+            size="small"
+            variant={expiryStatus.status === 'none' ? 'outlined' : 'filled'}
+          />
+        );
+      }
+    },
+    {
       id: 'actions',
       label: 'Akcie',
       width: { xs: '100px', md: '120px' },
@@ -290,7 +332,7 @@ export default function VehicleList() {
         </Box>
       )
     }
-  ], [handleEdit, handleDelete, handleShowHistory]);
+  ], [handleEdit, handleDelete, handleShowHistory, state.vehicleDocuments]);
 
   function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
