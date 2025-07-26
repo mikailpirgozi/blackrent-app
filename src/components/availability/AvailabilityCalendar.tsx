@@ -194,6 +194,13 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   // Mobilný kalendár - prepínanie medzi týždenným a mesačným zobrazením
   const [mobileViewMode, setMobileViewMode] = useState<'week' | 'month'>('week');
 
+  // Individual view modes pre každé vozidlo na desktop
+  const [vehicleViewModes, setVehicleViewModes] = useState<Record<string, 'week' | 'month'>>({});
+  
+  // Individual navigation offsets pre každé vozidlo
+  const [vehicleWeekOffsets, setVehicleWeekOffsets] = useState<Record<string, number>>({});
+  const [vehicleMonthOffsets, setVehicleMonthOffsets] = useState<Record<string, number>>({});
+
   // Funkcia na generovanie kalendárnych dní pre neobmedzenú navigáciu
   const generateCalendarDays = (offset: number, daysCount: number) => {
     const startDate = new Date(Date.now() + offset * daysCount * 24 * 60 * 60 * 1000);
@@ -213,6 +220,34 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     }
     
     return days;
+  };
+
+  // Helper funkcie pre individuálne vozidlá
+  const getVehicleViewMode = (vehicleId: string): 'week' | 'month' => {
+    return vehicleViewModes[vehicleId] || mobileViewMode; // Fallback na globálny mode
+  };
+
+  const setVehicleViewMode = (vehicleId: string, mode: 'week' | 'month') => {
+    setVehicleViewModes(prev => ({ ...prev, [vehicleId]: mode }));
+    // Reset offsets pri zmene módu
+    setVehicleWeekOffsets(prev => ({ ...prev, [vehicleId]: 0 }));
+    setVehicleMonthOffsets(prev => ({ ...prev, [vehicleId]: 0 }));
+  };
+
+  const getVehicleOffset = (vehicleId: string, mode: 'week' | 'month'): number => {
+    if (mode === 'week') {
+      return vehicleWeekOffsets[vehicleId] || currentWeekOffset;
+    } else {
+      return vehicleMonthOffsets[vehicleId] || currentMonthOffset;
+    }
+  };
+
+  const setVehicleOffset = (vehicleId: string, mode: 'week' | 'month', offset: number) => {
+    if (mode === 'week') {
+      setVehicleWeekOffsets(prev => ({ ...prev, [vehicleId]: offset }));
+    } else {
+      setVehicleMonthOffsets(prev => ({ ...prev, [vehicleId]: offset }));
+    }
   };
 
   // Function to fetch rental details
@@ -1415,16 +1450,43 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                            vehicle.status === 'rented' ? 'primary' : 'warning'}
                     sx={{ fontWeight: 600 }}
                   />
-                  {/* Navigation pre desktop - vždy zobrazené bez obmedzení */}
+                  
+                  {/* Individual prepínače pre vozidlo */}
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <Button
+                      size="small"
+                      variant={getVehicleViewMode(vehicle.id) === 'week' ? 'contained' : 'outlined'}
+                      onClick={() => setVehicleViewMode(vehicle.id, 'week')}
+                      sx={{ 
+                        minWidth: 60, 
+                        fontSize: '0.7rem',
+                        height: 28
+                      }}
+                    >
+                      Týždeň
+                    </Button>
+                    <Button
+                      size="small"
+                      variant={getVehicleViewMode(vehicle.id) === 'month' ? 'contained' : 'outlined'}
+                      onClick={() => setVehicleViewMode(vehicle.id, 'month')}
+                      sx={{ 
+                        minWidth: 60, 
+                        fontSize: '0.7rem',
+                        height: 28
+                      }}
+                    >
+                      30 dní
+                    </Button>
+                  </Box>
+                  
+                  {/* Navigation pre individual vozidlo */}
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
                     <IconButton 
                       size="small"
                       onClick={() => {
-                        if (mobileViewMode === 'week') {
-                          setCurrentWeekOffset(prev => prev - 1);
-                        } else {
-                          setCurrentMonthOffset(prev => prev - 1);
-                        }
+                        const currentMode = getVehicleViewMode(vehicle.id);
+                        const currentOffset = getVehicleOffset(vehicle.id, currentMode);
+                        setVehicleOffset(vehicle.id, currentMode, currentOffset - 1);
                       }}
                       sx={{ 
                         width: 32, 
@@ -1437,11 +1499,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     <IconButton 
                       size="small"
                       onClick={() => {
-                        if (mobileViewMode === 'week') {
-                          setCurrentWeekOffset(prev => prev + 1);
-                        } else {
-                          setCurrentMonthOffset(prev => prev + 1);
-                        }
+                        const currentMode = getVehicleViewMode(vehicle.id);
+                        const currentOffset = getVehicleOffset(vehicle.id, currentMode);
+                        setVehicleOffset(vehicle.id, currentMode, currentOffset + 1);
                       }}
                       sx={{ 
                         width: 32, 
@@ -1461,23 +1521,29 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 fontWeight: 600,
                 color: '#333'
               }}>
-                {mobileViewMode === 'week' 
-                  ? `Dostupnosť (${format(new Date(Date.now() + currentWeekOffset * 7 * 24 * 60 * 60 * 1000), 'd.M.')} - ${format(new Date(Date.now() + (currentWeekOffset * 7 + 6) * 24 * 60 * 60 * 1000), 'd.M.')}):` 
-                  : `Dostupnosť (${format(new Date(Date.now() + currentMonthOffset * 30 * 24 * 60 * 60 * 1000), 'd.M.')} - ${format(new Date(Date.now() + (currentMonthOffset * 30 + 29) * 24 * 60 * 60 * 1000), 'd.M.')}):` 
-                }
+                {(() => {
+                  const vehicleMode = getVehicleViewMode(vehicle.id);
+                  const vehicleOffset = getVehicleOffset(vehicle.id, vehicleMode);
+                  const daysCount = vehicleMode === 'week' ? 7 : 30;
+                  const startDate = new Date(Date.now() + vehicleOffset * daysCount * 24 * 60 * 60 * 1000);
+                  const endDate = new Date(startDate.getTime() + (daysCount - 1) * 24 * 60 * 60 * 1000);
+                  return `Dostupnosť (${format(startDate, 'd.M.')} - ${format(endDate, 'd.M.')}):`;
+                })()}
               </Typography>
               
               <Box sx={{ 
                 display: 'grid',
                 gridTemplateColumns: 'repeat(7, 1fr)',
-                gridTemplateRows: mobileViewMode === 'month' ? 'repeat(5, 1fr)' : '1fr',
+                gridTemplateRows: getVehicleViewMode(vehicle.id) === 'month' ? 'repeat(5, 1fr)' : '1fr',
                 gap: 0.75,
                 mb: 3
               }}>
-                {(mobileViewMode === 'week' 
-                  ? generateCalendarDays(currentWeekOffset, 7)
-                  : generateCalendarDays(currentMonthOffset, 30)
-                ).map((day) => {
+                {(() => {
+                  const vehicleMode = getVehicleViewMode(vehicle.id);
+                  const vehicleOffset = getVehicleOffset(vehicle.id, vehicleMode);
+                  const daysCount = vehicleMode === 'week' ? 7 : 30;
+                  return generateCalendarDays(vehicleOffset, daysCount);
+                })().map((day) => {
                   const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
                   const isAvailable = !vehicleStatus || vehicleStatus.status === 'available';
                   const isRented = vehicleStatus?.status === 'rented';
