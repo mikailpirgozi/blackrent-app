@@ -26,7 +26,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response<ApiRespons
 // POST /api/insurances - Vytvorenie novej poistky
 router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath } = req.body;
 
     if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
       return res.status(400).json({
@@ -43,7 +43,8 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       validTo: new Date(validTo),
       price,
       company,
-      paymentFrequency
+      paymentFrequency,
+      filePath
     });
 
     res.status(201).json({
@@ -65,7 +66,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
 router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath } = req.body;
 
     if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
       return res.status(400).json({
@@ -82,7 +83,8 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
       validTo: new Date(validTo),
       price,
       company,
-      paymentFrequency
+      paymentFrequency,
+      filePath
     });
 
     res.json({
