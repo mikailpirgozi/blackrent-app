@@ -904,9 +904,9 @@ export default function RentalList() {
       await loadProtocolsForRental(rental.id);
     }
     
-    // Now check loaded protocols
-    const hasHandover = rental.handoverProtocolId && protocols[rental.id]?.handover;
-    const hasReturn = rental.returnProtocolId && protocols[rental.id]?.return;
+    // Now check loaded protocols - check API data directly, not rental IDs
+    const hasHandover = protocols[rental.id]?.handover;
+    const hasReturn = protocols[rental.id]?.return;
     
     console.log('📋 Handover protocol:', hasHandover ? 'EXISTS' : 'NOT FOUND');
     console.log('📋 Return protocol:', hasReturn ? 'EXISTS' : 'NOT FOUND');
@@ -3577,7 +3577,7 @@ export default function RentalList() {
                           transition: 'all 0.2s ease'
                         }}
                       >
-                        <CheckCircleIcon fontSize="small" />
+                        <SearchIcon fontSize="small" />
                       </IconButton>
                       <IconButton
                         size="small"
