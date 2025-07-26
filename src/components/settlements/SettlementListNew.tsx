@@ -613,14 +613,14 @@ const SettlementListNew: React.FC = () => {
               color: '#1976d2',
               backgroundColor: '#f8f9fa'
             }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Obdobie</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Firma</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Vozidlo</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Príjmy</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Náklady</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Provízia</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Zisk</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>Akcie</Typography>
+              <Typography key="obdobie" variant="subtitle1" sx={{ fontWeight: 700 }}>Obdobie</Typography>
+              <Typography key="firma" variant="subtitle1" sx={{ fontWeight: 700 }}>Firma</Typography>
+              <Typography key="vozidlo" variant="subtitle1" sx={{ fontWeight: 700 }}>Vozidlo</Typography>
+              <Typography key="prijmy" variant="subtitle1" sx={{ fontWeight: 700 }}>Príjmy</Typography>
+              <Typography key="naklady" variant="subtitle1" sx={{ fontWeight: 700 }}>Náklady</Typography>
+              <Typography key="provizia" variant="subtitle1" sx={{ fontWeight: 700 }}>Provízia</Typography>
+              <Typography key="zisk" variant="subtitle1" sx={{ fontWeight: 700 }}>Zisk</Typography>
+              <Typography key="akcie" variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>Akcie</Typography>
             </Box>
           </Box>
           
