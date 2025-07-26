@@ -92,6 +92,8 @@
             <input type="text" id="username" placeholder="Username" value="admin">
             <input type="password" id="password" placeholder="Password" value="admin123">
             <br>
+            <small>💡 Prebere sa Lubica/heslo123 ak chceš testovať company owner</small>
+            <br>
             <button onclick="testBackend()">🔍 Test Backend</button>
             <button onclick="login()">🔑 Prihlásiť</button>
             <br>
@@ -104,6 +106,30 @@
             <h2>🔍 Debug Info</h2>
             <button onclick="loadDebugInfo()">Načítať Debug Info</button>
             <div id="debugInfo" class="debug-info"></div>
+        </div>
+
+        <!-- Permission Test Section -->
+        <div class="debug-section">
+            <h2>🔐 Permission Test</h2>
+            <div>
+                <select id="testResource">
+                    <option value="">-- Vyber Resource --</option>
+                    <option value="companies">companies</option>
+                    <option value="vehicles">vehicles</option>
+                    <option value="expenses">expenses</option>
+                    <option value="insurances">insurances</option>
+                    <option value="rentals">rentals</option>
+                </select>
+                <select id="testAction">
+                    <option value="">-- Vyber Action --</option>
+                    <option value="read">read</option>
+                    <option value="create">create</option>
+                    <option value="update">update</option>
+                    <option value="delete">delete</option>
+                </select>
+                <button onclick="testPermission()">🧪 Test Permission</button>
+            </div>
+            <div id="permissionResult" class="debug-info"></div>
         </div>
 
         <!-- Vehicle Assignment Section -->
@@ -327,6 +353,46 @@
             } catch (error) {
                 document.getElementById('assignStatus').innerHTML = 
                     `<div class="error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+
+        // Test specific permission
+        async function testPermission() {
+            const resource = document.getElementById('testResource').value;
+            const action = document.getElementById('testAction').value;
+            
+            if (!resource || !action) {
+                alert('Vyber resource a action!');
+                return;
+            }
+            
+            if (!token) {
+                alert('Najprv sa prihláste!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/debug-permission`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ resource, action })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('permissionResult').textContent = 
+                        JSON.stringify(data.data, null, 2);
+                } else {
+                    document.getElementById('permissionResult').textContent = 
+                        `Error: ${data.error}`;
+                }
+            } catch (error) {
+                document.getElementById('permissionResult').textContent = 
+                    `Network error: ${error.message}`;
             }
         }
 
