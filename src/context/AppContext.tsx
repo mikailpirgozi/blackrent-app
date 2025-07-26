@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
-import { Vehicle, Rental, Expense, Insurance, Settlement, Customer, Company, Insurer, VehicleDocument } from '../types';
+import { Vehicle, Rental, Expense, Insurance, Settlement, Customer, Company, Insurer, VehicleDocument, InsuranceClaim } from '../types';
 import { apiService } from '../services/api';
 import { useAuth } from './AuthContext';
 
@@ -13,6 +13,7 @@ interface AppState {
   insurers: Insurer[];
   customers: Customer[];
   vehicleDocuments: VehicleDocument[];
+  insuranceClaims: InsuranceClaim[];
   loading: boolean;
   error: string | null;
   // OPTIMALIZÁCIA: Cache stav pre rýchlejšie načítanie
@@ -26,6 +27,7 @@ interface AppState {
     insurers: boolean;
     customers: boolean;
     vehicleDocuments: boolean;
+    insuranceClaims: boolean;
   };
   lastLoadTime: number | null;
 }
@@ -67,6 +69,10 @@ type AppAction =
   | { type: 'ADD_VEHICLE_DOCUMENT'; payload: VehicleDocument }
   | { type: 'UPDATE_VEHICLE_DOCUMENT'; payload: VehicleDocument }
   | { type: 'DELETE_VEHICLE_DOCUMENT'; payload: string }
+  | { type: 'SET_INSURANCE_CLAIMS'; payload: InsuranceClaim[] }
+  | { type: 'ADD_INSURANCE_CLAIM'; payload: InsuranceClaim }
+  | { type: 'UPDATE_INSURANCE_CLAIM'; payload: InsuranceClaim }
+  | { type: 'DELETE_INSURANCE_CLAIM'; payload: string }
   | { type: 'CLEAR_ALL_DATA' }
   | { type: 'LOAD_DATA'; payload: AppState }
   | { type: 'SET_DATA_LOADED'; payload: { type: keyof AppState['dataLoaded']; loaded: boolean } }
@@ -82,6 +88,7 @@ const initialState: AppState = {
   insurers: [],
   customers: [],
   vehicleDocuments: [],
+  insuranceClaims: [],
   loading: false,
   error: null,
   // OPTIMALIZÁCIA: Cache stav
@@ -95,6 +102,7 @@ const initialState: AppState = {
     insurers: false,
     customers: false,
     vehicleDocuments: false,
+    insuranceClaims: false,
   },
   lastLoadTime: null,
 };
@@ -123,6 +131,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, settlements: action.payload };
     case 'SET_VEHICLE_DOCUMENTS':
       return { ...state, vehicleDocuments: action.payload };
+    case 'SET_INSURANCE_CLAIMS':
+      return { ...state, insuranceClaims: action.payload };
     case 'ADD_VEHICLE':
       return { ...state, vehicles: [...state.vehicles, action.payload] };
     case 'UPDATE_VEHICLE':
@@ -212,6 +222,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         vehicleDocuments: state.vehicleDocuments.filter(doc => doc.id !== action.payload)
       };
+    case 'ADD_INSURANCE_CLAIM':
+      return { ...state, insuranceClaims: [...state.insuranceClaims, action.payload] };
+    case 'UPDATE_INSURANCE_CLAIM':
+      return {
+        ...state,
+        insuranceClaims: state.insuranceClaims.map(claim => claim.id === action.payload.id ? action.payload : claim)
+      };
+    case 'DELETE_INSURANCE_CLAIM':
+      return {
+        ...state,
+        insuranceClaims: state.insuranceClaims.filter(claim => claim.id !== action.payload)
+      };
     case 'CLEAR_ALL_DATA':
       return {
         ...initialState,
@@ -272,6 +294,9 @@ interface AppContextType {
   createVehicleDocument: (document: VehicleDocument) => Promise<void>;
   updateVehicleDocument: (document: VehicleDocument) => Promise<void>;
   deleteVehicleDocument: (id: string) => Promise<void>;
+  createInsuranceClaim: (claim: InsuranceClaim) => Promise<void>;
+  updateInsuranceClaim: (claim: InsuranceClaim) => Promise<void>;
+  deleteInsuranceClaim: (id: string) => Promise<void>;
   loadData: () => Promise<void>;
 }
 
@@ -328,14 +353,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       
       // OPTIMALIZÁCIA: Načítaj ostatné dáta PARALELNE
       console.log('📦 2. Načítavam ostatné dáta paralelne...');
-      const [rentals, expenses, insurances, companies, insurers, settlements, vehicleDocuments] = await Promise.all([
+      const [rentals, expenses, insurances, companies, insurers, settlements, vehicleDocuments, insuranceClaims] = await Promise.all([
         apiService.getRentals(),
         apiService.getExpenses(),
         apiService.getInsurances(),
         apiService.getCompanies(),
         apiService.getInsurers(),
         apiService.getSettlements(),
-        apiService.getVehicleDocuments()
+        apiService.getVehicleDocuments(),
+        apiService.getInsuranceClaims()
       ]);
       
       console.log('✅ Dáta úspešne načítané:', { 
@@ -347,7 +373,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         companies: companies.length,
         insurers: insurers.length,
         settlements: settlements.length,
-        vehicleDocuments: vehicleDocuments.length
+        vehicleDocuments: vehicleDocuments.length,
+        insuranceClaims: insuranceClaims.length
       });
       
       // Dispatch všetkých dát naraz
@@ -358,6 +385,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_INSURERS', payload: insurers });
       dispatch({ type: 'SET_SETTLEMENTS', payload: settlements });
       dispatch({ type: 'SET_VEHICLE_DOCUMENTS', payload: vehicleDocuments });
+      dispatch({ type: 'SET_INSURANCE_CLAIMS', payload: insuranceClaims });
       
       // Označ všetky dáta ako načítané
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'rentals', loaded: true } });
@@ -367,6 +395,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insurers', loaded: true } });
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'settlements', loaded: true } });
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'vehicleDocuments', loaded: true } });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insuranceClaims', loaded: true } });
       
       // Nastav čas načítania pre cache
       dispatch({ type: 'SET_LAST_LOAD_TIME', payload: Date.now() });
@@ -640,6 +669,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const createInsuranceClaim = async (claim: InsuranceClaim): Promise<void> => {
+    try {
+      await apiService.createInsuranceClaim(claim);
+      dispatch({ type: 'ADD_INSURANCE_CLAIM', payload: claim });
+    } catch (error) {
+      console.error('Chyba pri vytváraní poistnej udalosti:', error);
+      throw error;
+    }
+  };
+
+  const updateInsuranceClaim = async (claim: InsuranceClaim): Promise<void> => {
+    try {
+      await apiService.updateInsuranceClaim(claim);
+      dispatch({ type: 'UPDATE_INSURANCE_CLAIM', payload: claim });
+    } catch (error) {
+      console.error('Chyba pri aktualizácii poistnej udalosti:', error);
+      throw error;
+    }
+  };
+
+  const deleteInsuranceClaim = async (id: string): Promise<void> => {
+    try {
+      await apiService.deleteInsuranceClaim(id);
+      dispatch({ type: 'DELETE_INSURANCE_CLAIM', payload: id });
+    } catch (error) {
+      console.error('Chyba pri mazaní poistnej udalosti:', error);
+      throw error;
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -674,6 +733,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         createVehicleDocument,
         updateVehicleDocument,
         deleteVehicleDocument,
+        createInsuranceClaim,
+        updateInsuranceClaim,
+        deleteInsuranceClaim,
         loadData,
       }}
     >

@@ -1,4 +1,4 @@
-import { Vehicle, Rental, Customer, Expense, Insurance, Company, Insurer, Settlement, VehicleDocument } from '../types';
+import { Vehicle, Rental, Customer, Expense, Insurance, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim } from '../types';
 
 const getApiBaseUrl = () => {
   // V produkcii používame Railway URL
@@ -281,6 +281,30 @@ class ApiService {
 
   async deleteVehicleDocument(id: string): Promise<void> {
     return this.request<void>(`/vehicle-documents/${id}`, { method: 'DELETE' });
+  }
+
+  // Insurance Claims
+  async getInsuranceClaims(vehicleId?: string): Promise<InsuranceClaim[]> {
+    const url = vehicleId ? `/insurance-claims?vehicleId=${vehicleId}` : '/insurance-claims';
+    return this.request<InsuranceClaim[]>(url);
+  }
+
+  async createInsuranceClaim(claim: InsuranceClaim): Promise<void> {
+    return this.request<void>('/insurance-claims', {
+      method: 'POST',
+      body: JSON.stringify(claim),
+    });
+  }
+
+  async updateInsuranceClaim(claim: InsuranceClaim): Promise<void> {
+    return this.request<void>(`/insurance-claims/${claim.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(claim),
+    });
+  }
+
+  async deleteInsuranceClaim(id: string): Promise<void> {
+    return this.request<void>(`/insurance-claims/${id}`, { method: 'DELETE' });
   }
 
   // Firmy

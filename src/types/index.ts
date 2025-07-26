@@ -145,6 +145,28 @@ export interface VehicleDocument {
   filePath?: string;
 }
 
+export interface InsuranceClaim {
+  id: string;
+  vehicleId: string;
+  insuranceId?: string;
+  incidentDate: Date;
+  reportedDate: Date;
+  claimNumber?: string;
+  description: string;
+  location?: string;
+  incidentType: 'accident' | 'theft' | 'vandalism' | 'weather' | 'other';
+  estimatedDamage?: number;
+  deductible?: number;
+  payoutAmount?: number;
+  status: 'reported' | 'investigating' | 'approved' | 'rejected' | 'closed';
+  filePaths?: string[];
+  policeReportNumber?: string;
+  otherPartyInfo?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
 export interface Insurance {
   id: string;
   vehicleId: string;
