@@ -212,11 +212,7 @@ export interface VehicleUnavailability {
   createdBy: string;
 }
 
-export interface Company {
-  id: string;
-  name: string;
-  createdAt?: Date;
-}
+
 
 export interface Insurer {
   id: string;

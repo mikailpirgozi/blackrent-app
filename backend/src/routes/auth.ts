@@ -570,11 +570,17 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
       id: user.id,
       username: user.username,
       email: user.email,
-      role: user.role,
       firstName: user.first_name,
       lastName: user.last_name,
+      role: user.role,
+      companyId: user.company_id,
+      employeeNumber: user.employee_number,
+      hireDate: user.hire_date ? new Date(user.hire_date) : undefined,
+      isActive: user.is_active ?? true,
+      lastLogin: user.last_login ? new Date(user.last_login) : undefined,
       signatureTemplate: user.signature_template,
-      createdAt: user.created_at
+      createdAt: new Date(user.created_at),
+      updatedAt: user.updated_at ? new Date(user.updated_at) : undefined
     };
 
     res.json({
@@ -619,8 +625,18 @@ router.get('/users', authenticateToken, requireRole(['admin']), async (req: Requ
       id: user.id,
       username: user.username,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role,
-      createdAt: user.createdAt
+      companyId: user.companyId,
+      employeeNumber: user.employeeNumber,
+      hireDate: user.hireDate,
+      isActive: user.isActive,
+      lastLogin: user.lastLogin,
+      permissions: user.permissions,
+      signatureTemplate: user.signatureTemplate,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     }));
 
     res.json({
@@ -671,8 +687,18 @@ router.post('/users', authenticateToken, requireRole(['admin']), async (req: Req
         id: createdUser.id,
         username: createdUser.username,
         email: createdUser.email,
+        firstName: createdUser.firstName,
+        lastName: createdUser.lastName,
         role: createdUser.role,
-        createdAt: createdUser.createdAt
+        companyId: createdUser.companyId,
+        employeeNumber: createdUser.employeeNumber,
+        hireDate: createdUser.hireDate,
+        isActive: createdUser.isActive,
+        lastLogin: createdUser.lastLogin,
+        permissions: createdUser.permissions,
+        signatureTemplate: createdUser.signatureTemplate,
+        createdAt: createdUser.createdAt,
+        updatedAt: createdUser.updatedAt
       }
     });
 
@@ -704,9 +730,19 @@ router.put('/users/:id', authenticateToken, requireRole(['admin']), async (req: 
       id,
       username: username || existingUser.username,
       email: email || existingUser.email,
+      firstName: existingUser.firstName,
+      lastName: existingUser.lastName,
       password: password || existingUser.password,
       role: role || existingUser.role,
-      createdAt: existingUser.createdAt
+      companyId: existingUser.companyId,
+      employeeNumber: existingUser.employeeNumber,
+      hireDate: existingUser.hireDate,
+      isActive: existingUser.isActive,
+      lastLogin: existingUser.lastLogin,
+      permissions: existingUser.permissions,
+      signatureTemplate: existingUser.signatureTemplate,
+      createdAt: existingUser.createdAt,
+      updatedAt: new Date()
     };
 
     await postgresDatabase.updateUser(updatedUser);
