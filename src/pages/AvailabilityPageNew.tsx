@@ -32,7 +32,7 @@ import { useApp } from '../context/AppContext';
 const AvailabilityPageNew: React.FC = () => {
   const { state } = useApp();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
   
   // States
   const [searchQuery, setSearchQuery] = useState('');
@@ -273,7 +273,7 @@ const AvailabilityPageNew: React.FC = () => {
       {/* Calendar */}
       <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
         <CardContent sx={{ p: 0 }}>
-          <AvailabilityCalendar searchQuery={searchQuery} />
+          <AvailabilityCalendar searchQuery={searchQuery} isMobile={isMobile} />
         </CardContent>
       </Card>
     </Box>

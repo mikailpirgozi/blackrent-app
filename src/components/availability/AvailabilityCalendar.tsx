@@ -108,15 +108,20 @@ interface MaintenanceFormData {
 
 interface AvailabilityCalendarProps {
   searchQuery?: string;
+  isMobile?: boolean;
 }
 
-const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ searchQuery: propSearchQuery = '' }) => {
+const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ 
+  searchQuery: propSearchQuery = '', 
+  isMobile: propIsMobile 
+}) => {
   const { state } = useApp();
   
-  // MOBILNÁ RESPONSIBILITA
+  // MOBILNÁ RESPONSIBILITA - používame prop ak je poskytnutý
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const fallbackIsMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
+  const isMobile = propIsMobile !== undefined ? propIsMobile : fallbackIsMobile;
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'), { noSsr: true });
   const [calendarData, setCalendarData] = useState<CalendarDay[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [unavailabilities, setUnavailabilities] = useState<VehicleUnavailability[]>([]);
