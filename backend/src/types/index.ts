@@ -225,7 +225,7 @@ export interface Insurer {
 }
 
 // Auth types
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'employee' | 'temp_worker' | 'mechanic' | 'sales_rep' | 'company_owner';
 
 export interface User {
   id: string;
@@ -235,13 +235,59 @@ export interface User {
   lastName?: string; // Priezvisko zamestnanca
   password: string;
   role: UserRole;
+  companyId?: string; // Prepojenie na firmu
+  employeeNumber?: string; // Zamestnanecké číslo
+  hireDate?: Date; // Dátum nástupu
+  isActive: boolean; // Aktívny používateľ
+  lastLogin?: Date; // Posledné prihlásenie
+  permissions?: Permission[]; // Custom permissions
   signatureTemplate?: string; // Base64 signature template for employees
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export type UserWithoutPassword = Omit<User, 'password'>;
 
+// Company interface
+export interface Company {
+  id: string;
+  name: string;
+  businessId?: string; // IČO
+  taxId?: string; // DIČ
+  address?: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  contractStartDate?: Date;
+  contractEndDate?: Date;
+  commissionRate: number; // % provízia
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt?: Date;
+}
 
+// Permission system interfaces
+export interface Permission {
+  resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | '*';
+  actions: ('read' | 'create' | 'update' | 'delete')[];
+  conditions?: {
+    ownOnly?: boolean;        // len vlastné záznamy
+    companyOnly?: boolean;    // len firma vlastníka
+    maxAmount?: number;       // finančný limit
+    approvalRequired?: boolean; // vyžaduje schválenie
+    readOnlyFields?: string[]; // read-only polia
+  };
+}
+
+export interface PermissionCheck {
+  userId: string;
+  userRole: UserRole;
+  companyId?: string;
+  resource: string;
+  action: string;
+  targetCompanyId?: string; // pre company-scoped resources
+  amount?: number; // pre finančné operácie
+}
 
 export interface LoginCredentials {
   username: string;
