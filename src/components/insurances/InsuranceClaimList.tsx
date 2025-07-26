@@ -14,9 +14,7 @@ import {
   Select,
   MenuItem,
   Grid,
-  Stack,
   Tooltip,
-  Alert,
   CircularProgress,
   Fab,
   Table,
@@ -35,7 +33,6 @@ import {
   Search as SearchIcon,
   FilterList as FilterListIcon,
   DirectionsCar as CarIcon,
-  Business as BusinessIcon,
   Event as EventIcon,
   Euro as EuroIcon,
   Warning as WarningIcon,
@@ -43,8 +40,7 @@ import {
   Error as ErrorIcon,
   Schedule as ScheduleIcon,
   ReportProblem as ClaimIcon,
-  Close as CloseIcon,
-  AttachFile as FileIcon
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { InsuranceClaim } from '../../types';

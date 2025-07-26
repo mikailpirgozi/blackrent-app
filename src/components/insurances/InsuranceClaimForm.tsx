@@ -11,8 +11,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Divider,
-  Alert,
   Chip,
   DialogTitle,
   DialogContent,
@@ -28,7 +26,6 @@ import {
   DirectionsCar as CarIcon,
   Event as EventIcon,
   Euro as EuroIcon,
-  Description as DescriptionIcon,
   LocationOn as LocationIcon,
   Assignment as DocumentIcon,
   Security as InsuranceIcon,
@@ -113,7 +110,6 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
 
   // Get available vehicles and their insurances
   const availableVehicles = state.vehicles || [];
-  const selectedVehicle = availableVehicles.find(v => v.id === formData.vehicleId);
   const vehicleInsurances = (state.insurances || []).filter(ins => ins.vehicleId === formData.vehicleId);
 
   const validateForm = () => {
@@ -185,7 +181,6 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
     setUploadedFiles(prev => prev.filter(url => url !== fileUrl));
   };
 
-  const typeInfo = getIncidentTypeInfo(formData.incidentType || 'accident');
   const statusInfo = getStatusInfo(formData.status || 'reported');
 
   return (
