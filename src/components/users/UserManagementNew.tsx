@@ -171,7 +171,15 @@ export default function UserManagementNew() {
 
   // Filtered users
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
+    console.log('🔍 Filtering users...', { 
+      totalUsers: users.length, 
+      searchQuery, 
+      filterRole, 
+      filterCompany, 
+      filterActive 
+    });
+    
+    const filtered = users.filter((user) => {
       const matchesSearch = !searchQuery || 
         user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -184,16 +192,28 @@ export default function UserManagementNew() {
       
       return matchesSearch && matchesRole && matchesCompany && matchesActive;
     });
+    
+    console.log('🔍 Filtered users count:', filtered.length);
+    return filtered;
   }, [users, searchQuery, filterRole, filterCompany, filterActive]);
 
   // Paginated users
   const paginatedUsers = useMemo(() => {
     const startIndex = page * rowsPerPage;
-    return filteredUsers.slice(startIndex, startIndex + rowsPerPage);
+    const paginated = filteredUsers.slice(startIndex, startIndex + rowsPerPage);
+    console.log('📄 Paginated users:', { 
+      page, 
+      rowsPerPage, 
+      startIndex, 
+      filteredCount: filteredUsers.length,
+      paginatedCount: paginated.length 
+    });
+    return paginated;
   }, [filteredUsers, page, rowsPerPage]);
 
   // Fetch data
   useEffect(() => {
+    console.log('🏁 UserManagement mounted, fetching initial data...');
     fetchUsers();
     fetchCompanies();
   }, []);
@@ -201,11 +221,16 @@ export default function UserManagementNew() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      console.log('👥 Fetching users...');
       const response = await apiService.getUsers();
+      console.log('👥 Users response:', response);
+      console.log('👥 Users count:', response?.length);
       setUsers(response);
+      setError(null); // clear any previous errors
     } catch (error) {
       console.error('Error fetching users:', error);
       setError('Chyba pri načítavaní používateľov');
+      setUsers([]); // fallback to empty array
     } finally {
       setLoading(false);
     }
@@ -213,9 +238,13 @@ export default function UserManagementNew() {
 
   const fetchCompanies = async () => {
     try {
-      setCompanies(appState.companies || []);
+      console.log('🏢 Fetching companies...');
+      const response = await apiService.getCompanies();
+      console.log('🏢 Companies response:', response);
+      setCompanies(response);
     } catch (error) {
       console.error('Error fetching companies:', error);
+      setCompanies([]); // fallback to empty array
     }
   };
 
@@ -302,7 +331,10 @@ export default function UserManagementNew() {
         setSuccess('Používateľ úspešne vytvorený');
       }
 
-      fetchUsers();
+      console.log('👤 User saved, refreshing list...');
+      await fetchUsers(); // wait for users to be fetched
+      console.log('👤 Users refreshed');
+      
       setTimeout(() => {
         handleCloseDialog();
       }, 1500);
@@ -324,7 +356,8 @@ export default function UserManagementNew() {
       setLoading(true);
       await apiService.deleteUser(userId);
       setSuccess('Používateľ úspešne zmazaný');
-      fetchUsers();
+      console.log('👤 User deleted, refreshing list...');
+      await fetchUsers();
     } catch (error: any) {
       console.error('Error deleting user:', error);
       setError(error.response?.data?.error || 'Chyba pri mazaní používateľa');
@@ -336,7 +369,8 @@ export default function UserManagementNew() {
   const handleToggleActive = async (user: User) => {
     try {
       await apiService.updateUser(user.id, { ...user, isActive: !user.isActive });
-      fetchUsers();
+      console.log('👤 User status toggled, refreshing list...');
+      await fetchUsers();
     } catch (error) {
       console.error('Error toggling user status:', error);
     }
