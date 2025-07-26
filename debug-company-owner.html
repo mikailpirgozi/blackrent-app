@@ -138,6 +138,18 @@
         <!-- Vehicle Assignment Section -->
         <div class="assign-section">
             <h2>🚗 Priradenie vozidiel k firme</h2>
+            
+            <!-- Quick Fix for Lubka -->
+            <div style="background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                <h3 style="color: #e65100; margin-top: 0;">🔧 Rýchla oprava Lubka vozidiel</h3>
+                <p>Opraví všetky vozidlá ktoré majú company="Lubka" ale chýba im ownerCompanyId.</p>
+                <button onclick="fixLubkaVehicles()" style="background: #ff9800; color: white; font-weight: bold; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                    🔧 Oprav Lubka Vozidlá
+                </button>
+                <div id="lubkaFixResult" style="margin-top: 10px; font-family: monospace; white-space: pre-wrap;"></div>
+            </div>
+            
+            <!-- Manual Assignment -->
             <div>
                 <label>Firma:</label>
                 <select id="companySelect">
@@ -475,12 +487,19 @@
                 // 4. Find vehicles owned by "Lubka" company
                 if (lubkaCompany) {
                     const lubkaVehicles = allVehicles.filter(v => v.ownerCompanyId === lubkaCompany.id);
+                    const lubkaVehiclesByName = allVehicles.filter(v => v.company && v.company.toLowerCase().includes('lubka'));
+                    
                     analysis += `🚗 VOZIDLÁ FIRMY "${lubkaCompany.name}":\n`;
-                    analysis += `- Počet vozidiel: ${lubkaVehicles.length}\n`;
-                    if (lubkaVehicles.length > 0) {
-                        analysis += `- Príklady:\n`;
-                        lubkaVehicles.slice(0, 3).forEach(v => {
-                            analysis += `  • ${v.brand} ${v.model} (ID: ${v.id})\n`;
+                    analysis += `- Podľa ownerCompanyId: ${lubkaVehicles.length}\n`;
+                    analysis += `- Podľa company názvu: ${lubkaVehiclesByName.length}\n`;
+                    
+                    if (lubkaVehiclesByName.length > 0) {
+                        analysis += `- Vozidlá s názvom "Lubka":\n`;
+                        lubkaVehiclesByName.slice(0, 5).forEach(v => {
+                            analysis += `  • ${v.brand} ${v.model} ${v.licensePlate}\n`;
+                            analysis += `    - company: "${v.company}"\n`;
+                            analysis += `    - ownerCompanyId: ${v.ownerCompanyId || 'NULL'}\n`;
+                            analysis += `    - ❌ NESÚLAD!\n`;
                         });
                     }
                     analysis += `\n`;
@@ -522,6 +541,10 @@
                 if (lubkaCompany && lubicaUser && lubkaCompany.id !== lubicaUser.companyId) {
                     analysis += `1. Oprav Lubica companyId na: ${lubkaCompany.id}\n`;
                     analysis += `2. Alebo priraď vozidlá k jej aktuálnej firme: ${lubicaUser.companyId}\n`;
+                } else if (lubkaVehiclesByName.length > 0 && lubkaCompany) {
+                    analysis += `🔧 AUTOMATICKÉ RIEŠENIE DOSTUPNÉ!\n`;
+                    analysis += `1. Klikni "🔧 Oprav Lubka Vozidlá" nižšie\n`;
+                    analysis += `2. Automaticky nastaví ownerCompanyId pre všetky vozidlá s názvom "Lubka"\n`;
                 } else if (orphanVehicles.length > 0 && lubkaCompany) {
                     analysis += `1. Priraď vozidlá bez majiteľa k firme "${lubkaCompany.name}"\n`;
                     analysis += `2. Použi nástroj "Priradenie vozidiel k firme" nižšie\n`;
@@ -535,6 +558,94 @@
             } catch (error) {
                 document.getElementById('analysisResult').textContent = 
                     `Network error: ${error.message}`;
+            }
+        }
+
+        // Fix Lubka vehicles by setting ownerCompanyId
+        async function fixLubkaVehicles() {
+            if (!token) {
+                alert('Najprv sa prihláste!');
+                return;
+            }
+
+            try {
+                document.getElementById('lubkaFixResult').textContent = '🔄 Načítavam dáta...';
+
+                // Get debug data first
+                const response = await fetch(`${API_BASE}/auth/debug-company-owner`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const debugData = await response.json();
+                if (!debugData.success) {
+                    document.getElementById('lubkaFixResult').textContent = `❌ Error: ${debugData.error}`;
+                    return;
+                }
+
+                const allVehicles = debugData.data.allVehicles;
+                const allCompanies = debugData.data.allCompanies;
+                
+                // Find Lubka company
+                const lubkaCompany = allCompanies.find(c => c.name.toLowerCase().includes('lubka'));
+                if (!lubkaCompany) {
+                    document.getElementById('lubkaFixResult').textContent = '❌ Firma "Lubka" nebola nájdená!';
+                    return;
+                }
+
+                // Find vehicles with company="Lubka" but no ownerCompanyId
+                const vehiclesToFix = allVehicles.filter(v => 
+                    v.company && v.company.toLowerCase().includes('lubka') && !v.ownerCompanyId
+                );
+
+                if (vehiclesToFix.length === 0) {
+                    document.getElementById('lubkaFixResult').textContent = '✅ Všetky Lubka vozidlá už majú správne ownerCompanyId!';
+                    return;
+                }
+
+                document.getElementById('lubkaFixResult').textContent = 
+                    `🔧 Opravujem ${vehiclesToFix.length} vozidiel...\n`;
+
+                // Fix each vehicle
+                let fixedCount = 0;
+                let errorCount = 0;
+                
+                for (const vehicle of vehiclesToFix) {
+                    try {
+                        const updateResponse = await fetch(`${API_BASE}/vehicles/${vehicle.id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                ...vehicle,
+                                ownerCompanyId: lubkaCompany.id
+                            })
+                        });
+
+                        if (updateResponse.ok) {
+                            fixedCount++;
+                            document.getElementById('lubkaFixResult').textContent += 
+                                `✅ ${vehicle.brand} ${vehicle.model} ${vehicle.licensePlate}\n`;
+                        } else {
+                            errorCount++;
+                            document.getElementById('lubkaFixResult').textContent += 
+                                `❌ ${vehicle.brand} ${vehicle.model} ${vehicle.licensePlate} - Error ${updateResponse.status}\n`;
+                        }
+                    } catch (error) {
+                        errorCount++;
+                        document.getElementById('lubkaFixResult').textContent += 
+                            `❌ ${vehicle.brand} ${vehicle.model} ${vehicle.licensePlate} - ${error.message}\n`;
+                    }
+                }
+
+                document.getElementById('lubkaFixResult').textContent += 
+                    `\n🎯 VÝSLEDOK:\n✅ Opravené: ${fixedCount}\n❌ Chyby: ${errorCount}\n\n` +
+                    `🔄 Teraz spusti analýzu znovu pre overenie!`;
+
+            } catch (error) {
+                document.getElementById('lubkaFixResult').textContent = 
+                    `❌ Network error: ${error.message}`;
             }
         }
 
