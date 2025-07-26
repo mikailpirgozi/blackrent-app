@@ -50,6 +50,7 @@ import { useApp } from '../../context/AppContext';
 import { InsuranceClaim } from '../../types';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import InsuranceClaimForm from './InsuranceClaimForm';
 
 const getIncidentTypeInfo = (type: string) => {
   switch (type) {
@@ -143,6 +144,21 @@ export default function InsuranceClaimList() {
       } catch (error) {
         alert('Chyba pri mazaní poistnej udalosti');
       }
+    }
+  };
+
+  const handleSave = async (claimData: InsuranceClaim) => {
+    try {
+      if (editingClaim && editingClaim.id) {
+        await updateInsuranceClaim(claimData);
+      } else {
+        await createInsuranceClaim(claimData);
+      }
+      setOpenDialog(false);
+      setEditingClaim(null);
+    } catch (error) {
+      console.error('Chyba pri ukladaní poistnej udalosti:', error);
+      alert('Chyba pri ukladaní poistnej udalosti: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
     }
   };
 
@@ -519,27 +535,21 @@ export default function InsuranceClaimList() {
         <AddIcon />
       </Fab>
 
-      {/* TODO: Add InsuranceClaimForm Dialog */}
+      {/* Insurance Claim Form Dialog */}
       {openDialog && (
         <Dialog
           open={openDialog}
           onClose={() => setOpenDialog(false)}
           maxWidth="lg"
           fullWidth
+          disableRestoreFocus
+          keepMounted={false}
         >
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              {editingClaim ? 'Upraviť poistnú udalosť' : 'Pridať poistnú udalosť'}
-            </Typography>
-            <Alert severity="info">
-              Formulár pre poistné udalosti bude implementovaný v ďalšom kroku.
-            </Alert>
-            <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <Button onClick={() => setOpenDialog(false)}>
-                Zavrieť
-              </Button>
-            </Box>
-          </Box>
+          <InsuranceClaimForm
+            claim={editingClaim}
+            onSave={handleSave}
+            onCancel={() => setOpenDialog(false)}
+          />
         </Dialog>
       )}
     </Box>
