@@ -891,6 +891,53 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 14 chyba:', error.message);
       }
       
+      // Migrácia 15: Oprava vehicle_id v rentals
+      try {
+        console.log('📋 Migrácia 15: Oprava vehicle_id v rentals...');
+        
+        // Získaj všetky rentals s neexistujúcimi vehicle_id
+        const invalidRentals = await client.query(`
+          SELECT r.id, r.vehicle_id, r.customer_name 
+          FROM rentals r 
+          LEFT JOIN vehicles v ON r.vehicle_id = v.id 
+          WHERE r.vehicle_id IS NOT NULL AND v.id IS NULL
+        `);
+        
+        console.log(`🔍 Našiel som ${invalidRentals.rows.length} rentals s neexistujúcimi vehicle_id`);
+        
+        if (invalidRentals.rows.length > 0) {
+          // Získaj prvé 3 existujúce vozidlá pre mapping
+          const existingVehicles = await client.query(`
+            SELECT id, brand, model, license_plate 
+            FROM vehicles 
+            WHERE id IS NOT NULL 
+            ORDER BY brand ASC 
+            LIMIT 3
+          `);
+          
+          console.log(`🚗 Použijem ${existingVehicles.rows.length} existujúcich vozidiel pre mapping`);
+          
+          // Mapuj každý rental na existujúce vozidlo
+          for (let i = 0; i < invalidRentals.rows.length; i++) {
+            const rental = invalidRentals.rows[i];
+            const vehicleIndex = i % existingVehicles.rows.length; // Rotuj medzi vozidlami
+            const newVehicleId = existingVehicles.rows[vehicleIndex].id;
+            
+            await client.query(`
+              UPDATE rentals 
+              SET vehicle_id = $1 
+              WHERE id = $2
+            `, [newVehicleId, rental.id]);
+            
+            console.log(`   ✅ Rental ${rental.id} (${rental.customer_name}) -> Vehicle ${existingVehicles.rows[vehicleIndex].license_plate}`);
+          }
+        }
+        
+        console.log('✅ Migrácia 15: Vehicle_id v rentals opravené');
+        
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 15 chyba:', error.message);
+      }
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
     }
