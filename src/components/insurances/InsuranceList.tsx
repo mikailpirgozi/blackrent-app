@@ -291,6 +291,7 @@ export default function InsuranceList() {
     
     try {
       if (editingDocument) {
+        // EDITING existing document
         if (editingDocument.type === 'insurance') {
           // Transform UnifiedDocument to Insurance format
           const insuranceData = {
@@ -326,6 +327,7 @@ export default function InsuranceList() {
           await updateVehicleDocument(vehicleDocData);
         }
       } else {
+        // CREATING new document
         if (data.type === 'insurance') {
           // Transform UnifiedDocument to Insurance format
           const insuranceData = {
@@ -706,13 +708,13 @@ export default function InsuranceList() {
             <TableBody>
               {filteredDocuments
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((doc) => {
+                .map((doc, index) => {
                                      const vehicle = state.vehicles?.find(v => v.id === doc.vehicleId);
                   const expiryStatus = getExpiryStatus(doc.validTo);
                   const typeInfo = getDocumentTypeInfo(doc.type);
                   
                   return (
-                    <TableRow key={`${doc.type}-${doc.id}`} hover>
+                    <TableRow key={`${doc.type}-${doc.id || `temp-${index}`}`} hover>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <CarIcon sx={{ color: '#1976d2', fontSize: 18 }} />
