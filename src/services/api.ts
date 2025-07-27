@@ -167,6 +167,29 @@ class ApiService {
     return this.request<void>(`/vehicles/${id}`, { method: 'DELETE' });
   }
 
+  // CSV Export/Import pre vozidlá
+  async exportVehiclesCSV(): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/vehicles/export/csv`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.getAuthToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
+  async importVehiclesCSV(csvData: string): Promise<any> {
+    return this.request<any>('/vehicles/import/csv', {
+      method: 'POST',
+      body: JSON.stringify({ csvData }),
+    });
+  }
+
   // Prenájmy
   async getRentals(): Promise<Rental[]> {
     return this.request<Rental[]>('/rentals');

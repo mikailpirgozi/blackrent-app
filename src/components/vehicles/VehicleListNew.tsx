@@ -50,6 +50,9 @@ import { useApp } from '../../context/AppContext';
 import { Vehicle, VehicleStatus } from '../../types';
 import { Can } from '../common/PermissionGuard';
 import VehicleForm from './VehicleForm';
+import { apiService } from '../../services/api';
+import { saveAs } from 'file-saver';
+import Papa from 'papaparse';
 
 const getStatusColor = (status: VehicleStatus): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
   switch (status) {
@@ -295,6 +298,52 @@ export default function VehicleListNew() {
     );
   }
 
+  // CSV funkcionalita
+  const handleExportCSV = async () => {
+    try {
+      const blob = await apiService.exportVehiclesCSV();
+      const filename = `vozidla-${new Date().toISOString().split('T')[0]}.csv`;
+      saveAs(blob, filename);
+      
+      alert('CSV export úspešný');
+    } catch (error) {
+      console.error('CSV export error:', error);
+      alert('Chyba pri CSV exporte');
+    }
+  };
+
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      complete: async (results: any) => {
+        try {
+          // Konvertuj parsované dáta späť na CSV string
+          const csvString = Papa.unparse(results.data);
+          
+          const result = await apiService.importVehiclesCSV(csvString);
+          
+          if (result.success) {
+            alert(result.message);
+            // Refresh vehicle list - force reload
+            window.location.reload();
+          } else {
+            alert(result.error || 'Chyba pri importe');
+          }
+        } catch (error) {
+          console.error('CSV import error:', error);
+          alert('Chyba pri CSV importe');
+        }
+      },
+      header: false,
+      skipEmptyLines: true
+    });
+    
+    // Reset input
+    event.target.value = '';
+  };
+
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header */}
@@ -313,22 +362,61 @@ export default function VehicleListNew() {
         }}>
           🚗 Databáza vozidiel
         </Typography>
-        <Can create="vehicles">
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Can create="vehicles">
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setOpenDialog(true)}
+              sx={{
+                bgcolor: '#1976d2',
+                '&:hover': { bgcolor: '#1565c0' },
+                borderRadius: 2,
+                px: 3,
+                py: 1
+              }}
+            >
+              Nové vozidlo
+            </Button>
+          </Can>
+          
+          {/* CSV Export/Import tlačidlá */}
           <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setOpenDialog(true)}
+            variant="outlined"
+            onClick={handleExportCSV}
             sx={{
-              bgcolor: '#1976d2',
-              '&:hover': { bgcolor: '#1565c0' },
+              borderColor: '#1976d2',
+              color: '#1976d2',
+              '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' },
               borderRadius: 2,
               px: 3,
               py: 1
             }}
           >
-            Nové vozidlo
+            📊 Export CSV
           </Button>
-        </Can>
+          
+          <Button
+            variant="outlined"
+            component="label"
+            sx={{
+              borderColor: '#1976d2',
+              color: '#1976d2',
+              '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' },
+              borderRadius: 2,
+              px: 3,
+              py: 1
+            }}
+          >
+            📥 Import CSV
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleImportCSV}
+              style={{ display: 'none' }}
+            />
+          </Button>
+        </Box>
       </Box>
 
       {/* Search and Filters */}
