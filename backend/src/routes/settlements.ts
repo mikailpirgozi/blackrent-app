@@ -17,23 +17,31 @@ router.get('/', authenticateToken, async (req: Request, res: Response<ApiRespons
       totalSettlements: settlements.length 
     });
     
-    // 🏢 COMPANY OWNER - filter len vyúčtovania vlastnej firmy
-    if (req.user?.role === 'company_owner' && req.user.companyId) {
-      // Získaj názov firmy používateľa
-      const companies = await postgresDatabase.getCompanies();
-      const userCompany = companies.find(c => c.id === req.user?.companyId);
+    // 🔐 NON-ADMIN USERS - filter podľa company permissions
+    if (req.user?.role !== 'admin' && req.user) {
+      const user = req.user; // TypeScript safe assignment
+      const originalCount = settlements.length;
       
-      if (userCompany) {
-        const originalCount = settlements.length;
-        settlements = settlements.filter(s => s.company === userCompany.name);
-        
-        console.log('🏢 Company Owner Settlements Filter:', {
-          userCompanyId: req.user.companyId,
-          userCompanyName: userCompany.name,
-          originalCount,
-          filteredCount: settlements.length
-        });
-      }
+      // Získaj company access pre používateľa
+      const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
+      const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+      
+      // Získaj všetky companies pre mapping
+      const companies = await postgresDatabase.getCompanies();
+      const allowedCompanyNames = companies
+        .filter(c => allowedCompanyIds.includes(c.id))
+        .map(c => c.name);
+      
+      // Filter settlements len pre povolené firmy
+      settlements = settlements.filter(s => s.company && allowedCompanyNames.includes(s.company));
+      
+      console.log('🔐 Settlements Company Permission Filter:', {
+        userId: user!.id,
+        allowedCompanyIds,
+        allowedCompanyNames,
+        originalCount,
+        filteredCount: settlements.length
+      });
     }
     
     res.json({

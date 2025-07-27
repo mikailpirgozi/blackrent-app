@@ -9,7 +9,52 @@ const router = Router();
 // GET /api/customers - Získanie všetkých zákazníkov
 router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<Customer[]>>) => {
   try {
-    const customers = await postgresDatabase.getCustomers();
+    let customers = await postgresDatabase.getCustomers();
+    
+    console.log('👥 Customers GET - user:', { 
+      role: req.user?.role, 
+      userId: req.user?.id,
+      totalCustomers: customers.length 
+    });
+    
+    // 🔐 NON-ADMIN USERS - filter podľa company permissions
+    if (req.user?.role !== 'admin' && req.user) {
+      const user = req.user; // TypeScript safe assignment
+      const originalCount = customers.length;
+      
+      // Získaj company access pre používateľa
+      const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
+      const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+      
+      // Získaj všetky rentals a vehicles pre mapping
+      const rentals = await postgresDatabase.getRentals();
+      const vehicles = await postgresDatabase.getVehicles();
+      
+      // Filter zákazníkov len tých, ktorí mali prenajaté vozidlá z povolených firiem
+      const allowedCustomerIds = new Set<string>();
+      
+      rentals.forEach(rental => {
+        if (!rental.customerId || !rental.vehicleId) return;
+        
+        const vehicle = vehicles.find(v => v.id === rental.vehicleId);
+        if (!vehicle || !vehicle.ownerCompanyId) return;
+        
+        if (allowedCompanyIds.includes(vehicle.ownerCompanyId)) {
+          allowedCustomerIds.add(rental.customerId);
+        }
+      });
+      
+      customers = customers.filter(c => allowedCustomerIds.has(c.id));
+      
+      console.log('🔐 Customers Company Permission Filter:', {
+        userId: user!.id,
+        allowedCompanyIds,
+        originalCount,
+        filteredCount: customers.length,
+        allowedCustomerIds: Array.from(allowedCustomerIds)
+      });
+    }
+    
     res.json({
       success: true,
       data: customers
