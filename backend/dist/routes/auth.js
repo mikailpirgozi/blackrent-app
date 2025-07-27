@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -450,13 +483,16 @@ router.post('/login', async (req, res) => {
         const client = await postgres_database_1.postgresDatabase.pool.connect();
         let user;
         try {
-            const result = await client.query('SELECT * FROM users WHERE username = $1', [username]);
+            const result = await client.query('SELECT id, username, email, password_hash, role, first_name, last_name, signature_template, created_at FROM users WHERE username = $1', [username]);
             user = result.rows[0];
             console.log('🔍 LOGIN DEBUG - Database query result:', {
                 found: !!user,
                 username: user?.username,
                 hasPasswordHash: !!user?.password_hash,
-                passwordHashLength: user?.password_hash?.length
+                passwordHashLength: user?.password_hash?.length,
+                hasFirstName: !!user?.first_name,
+                hasLastName: !!user?.last_name,
+                hasSignatureTemplate: !!user?.signature_template
             });
         }
         finally {
@@ -492,8 +528,17 @@ router.post('/login', async (req, res) => {
             id: user.id,
             username: user.username,
             email: user.email,
+            firstName: user.first_name,
+            lastName: user.last_name,
             role: user.role,
-            createdAt: user.created_at
+            companyId: user.company_id,
+            employeeNumber: user.employee_number,
+            hireDate: user.hire_date ? new Date(user.hire_date) : undefined,
+            isActive: user.is_active ?? true,
+            lastLogin: user.last_login ? new Date(user.last_login) : undefined,
+            signatureTemplate: user.signature_template,
+            createdAt: new Date(user.created_at),
+            updatedAt: user.updated_at ? new Date(user.updated_at) : undefined
         };
         res.json({
             success: true,
@@ -534,8 +579,18 @@ router.get('/users', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']
             id: user.id,
             username: user.username,
             email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
             role: user.role,
-            createdAt: user.createdAt
+            companyId: user.companyId,
+            employeeNumber: user.employeeNumber,
+            hireDate: user.hireDate,
+            isActive: user.isActive,
+            lastLogin: user.lastLogin,
+            permissions: user.permissions,
+            signatureTemplate: user.signatureTemplate,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
         }));
         res.json({
             success: true,
@@ -553,7 +608,8 @@ router.get('/users', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']
 // POST /api/auth/users - Vytvorenie nového používateľa (len admin)
 router.post('/users', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), async (req, res) => {
     try {
-        const { username, email, password, role } = req.body;
+        const { username, email, password, role, firstName, lastName, companyId, employeeNumber, hireDate, isActive, signatureTemplate } = req.body;
+        console.log('📋 Create user request body:', req.body);
         if (!username || !email || !password || !role) {
             return res.status(400).json({
                 success: false,
@@ -568,12 +624,21 @@ router.post('/users', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin'
                 error: 'Používateľ s týmto menom už existuje'
             });
         }
-        const createdUser = await postgres_database_1.postgresDatabase.createUser({
+        const userData = {
             username,
             email,
             password,
-            role
-        });
+            role,
+            firstName: firstName || null,
+            lastName: lastName || null,
+            companyId: companyId || null,
+            employeeNumber: employeeNumber || null,
+            hireDate: hireDate ? new Date(hireDate) : null,
+            isActive: isActive !== undefined ? isActive : true,
+            signatureTemplate: signatureTemplate || null
+        };
+        console.log('👤 Creating user with data:', userData);
+        const createdUser = await postgres_database_1.postgresDatabase.createUser(userData);
         res.status(201).json({
             success: true,
             message: 'Používateľ úspešne vytvorený',
@@ -581,8 +646,18 @@ router.post('/users', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin'
                 id: createdUser.id,
                 username: createdUser.username,
                 email: createdUser.email,
+                firstName: createdUser.firstName,
+                lastName: createdUser.lastName,
                 role: createdUser.role,
-                createdAt: createdUser.createdAt
+                companyId: createdUser.companyId,
+                employeeNumber: createdUser.employeeNumber,
+                hireDate: createdUser.hireDate,
+                isActive: createdUser.isActive,
+                lastLogin: createdUser.lastLogin,
+                permissions: createdUser.permissions,
+                signatureTemplate: createdUser.signatureTemplate,
+                createdAt: createdUser.createdAt,
+                updatedAt: createdUser.updatedAt
             }
         });
     }
@@ -611,9 +686,19 @@ router.put('/users/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['adm
             id,
             username: username || existingUser.username,
             email: email || existingUser.email,
+            firstName: existingUser.firstName,
+            lastName: existingUser.lastName,
             password: password || existingUser.password,
             role: role || existingUser.role,
-            createdAt: existingUser.createdAt
+            companyId: existingUser.companyId,
+            employeeNumber: existingUser.employeeNumber,
+            hireDate: existingUser.hireDate,
+            isActive: existingUser.isActive,
+            lastLogin: existingUser.lastLogin,
+            permissions: existingUser.permissions,
+            signatureTemplate: existingUser.signatureTemplate,
+            createdAt: existingUser.createdAt,
+            updatedAt: new Date()
         };
         await postgres_database_1.postgresDatabase.updateUser(updatedUser);
         res.json({
@@ -1601,87 +1686,456 @@ router.put('/profile', auth_1.authenticateToken, async (req, res) => {
         });
     }
 });
-// DEBUG endpoint na testovanie JWT tokenov
+// GET /api/auth/debug-token - Debug endpoint pre JWT token diagnostiku
 router.get('/debug-token', async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
         const token = authHeader && authHeader.split(' ')[1];
-        console.log('🐛 DEBUG TOKEN - Auth header:', authHeader ? 'exists' : 'missing');
-        console.log('🐛 DEBUG TOKEN - Token extracted:', token ? 'yes' : 'no');
+        console.log('🔍 TOKEN DEBUG - Auth header:', authHeader);
+        console.log('🔍 TOKEN DEBUG - Extracted token:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
         if (!token) {
-            return res.status(400).json({
+            return res.json({
                 success: false,
                 error: 'No token provided',
-                debug: { authHeader: !!authHeader }
+                data: {
+                    authHeader: !!authHeader,
+                    tokenExtracted: false
+                }
             });
         }
-        // Manual JWT verification with detailed logging
-        console.log('🐛 DEBUG TOKEN - JWT_SECRET:', JWT_SECRET.substring(0, 10) + '...');
-        console.log('🐛 DEBUG TOKEN - Token preview:', token.substring(0, 20) + '...');
         try {
+            // Manuálne overenie tokenu
             const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
-            console.log('🐛 DEBUG TOKEN - JWT decoded successfully:', {
-                userId: decoded.userId,
-                username: decoded.username,
-                role: decoded.role,
-                iat: decoded.iat,
-                exp: decoded.exp
-            });
-            // Check token expiry
-            const now = Math.floor(Date.now() / 1000);
-            const isExpired = decoded.exp < now;
-            console.log('🐛 DEBUG TOKEN - Expiry check:', {
-                now,
-                exp: decoded.exp,
-                isExpired
-            });
-            if (isExpired) {
-                return res.status(401).json({
-                    success: false,
-                    error: 'Token expired',
-                    debug: { now, exp: decoded.exp, isExpired }
-                });
-            }
-            // Try to get user from database
-            console.log('🐛 DEBUG TOKEN - Getting user from database...');
+            console.log('🔍 TOKEN DEBUG - Token successfully decoded:', decoded);
+            // Skús získať používateľa z databázy
             const user = await postgres_database_1.postgresDatabase.getUserById(decoded.userId);
-            console.log('🐛 DEBUG TOKEN - User found:', !!user);
+            console.log('🔍 TOKEN DEBUG - User from database:', user ? 'FOUND' : 'NOT FOUND');
             return res.json({
                 success: true,
                 message: 'Token is valid',
-                debug: {
+                data: {
+                    tokenValid: true,
                     decoded: {
                         userId: decoded.userId,
                         username: decoded.username,
-                        role: decoded.role
+                        role: decoded.role,
+                        exp: decoded.exp,
+                        iat: decoded.iat
                     },
-                    userFound: !!user,
-                    userDetails: user ? {
-                        id: user.id,
-                        username: user.username,
-                        role: user.role
-                    } : null
+                    userExists: !!user,
+                    currentTime: Math.floor(Date.now() / 1000),
+                    tokenExpiry: decoded.exp,
+                    timeToExpiry: decoded.exp - Math.floor(Date.now() / 1000),
+                    jwtSecret: JWT_SECRET.substring(0, 10) + '...'
                 }
             });
         }
         catch (jwtError) {
-            console.log('🐛 DEBUG TOKEN - JWT verification failed:', jwtError.message);
-            return res.status(401).json({
+            console.error('🔍 TOKEN DEBUG - JWT verification failed:', jwtError);
+            return res.json({
                 success: false,
-                error: 'JWT verification failed',
-                debug: {
-                    jwtError: jwtError.message,
-                    tokenPreview: token.substring(0, 20) + '...'
+                error: 'Token verification failed',
+                data: {
+                    tokenValid: false,
+                    jwtError: jwtError instanceof Error ? jwtError.message : String(jwtError),
+                    jwtSecret: JWT_SECRET.substring(0, 10) + '...',
+                    tokenLength: token.length
                 }
             });
         }
     }
     catch (error) {
-        console.error('🐛 DEBUG TOKEN - Unexpected error:', error);
+        console.error('🔍 TOKEN DEBUG ERROR:', error);
         return res.status(500).json({
             success: false,
             error: 'Debug endpoint error',
-            debug: { error: error.message }
+            data: {
+                error: error instanceof Error ? error.message : String(error)
+            }
+        });
+    }
+});
+// DEBUG endpoint na kontrolu users tabuľky a migrácií
+router.get('/debug-users-table', async (req, res) => {
+    try {
+        console.log('🔍 DEBUG: Kontrolujem users tabuľku...');
+        const client = await postgres_database_1.postgresDatabase.pool.connect();
+        try {
+            // 1. Skontroluj či existuje users tabuľka
+            const tableExists = await client.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'users'
+        );
+      `);
+            console.log('🔍 Users tabuľka existuje:', tableExists.rows[0].exists);
+            if (!tableExists.rows[0].exists) {
+                return res.json({
+                    success: false,
+                    error: 'Users tabuľka neexistuje',
+                    debug: { tableExists: false }
+                });
+            }
+            // 2. Skontroluj stĺpce v users tabuľke
+            const columns = await client.query(`
+        SELECT column_name, data_type, is_nullable
+        FROM information_schema.columns 
+        WHERE table_name = 'users' 
+        ORDER BY ordinal_position;
+      `);
+            console.log('🔍 Stĺpce v users tabuľke:', columns.rows);
+            // 3. Skontroluj či existujú potrebné stĺpce
+            const hasFirstName = columns.rows.some((col) => col.column_name === 'first_name');
+            const hasLastName = columns.rows.some((col) => col.column_name === 'last_name');
+            const hasSignatureTemplate = columns.rows.some((col) => col.column_name === 'signature_template');
+            // 4. Ak chýbajú stĺpce, spusti migráciu
+            if (!hasFirstName || !hasLastName || !hasSignatureTemplate) {
+                console.log('🔧 Spúšťam migráciu pre chýbajúce stĺpce...');
+                await client.query(`
+          ALTER TABLE users 
+          ADD COLUMN IF NOT EXISTS signature_template TEXT,
+          ADD COLUMN IF NOT EXISTS first_name VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
+        `);
+                console.log('✅ Migrácia dokončená');
+            }
+            // 5. Skontroluj admin používateľa
+            const adminUser = await client.query(`
+        SELECT id, username, email, role, first_name, last_name, signature_template
+        FROM users 
+        WHERE username = 'admin'
+        LIMIT 1;
+      `);
+            console.log('🔍 Admin používateľ:', adminUser.rows[0] || 'Nenájdený');
+            return res.json({
+                success: true,
+                message: 'Users tabuľka debug dokončený',
+                debug: {
+                    tableExists: true,
+                    columns: columns.rows,
+                    hasFirstName,
+                    hasLastName,
+                    hasSignatureTemplate,
+                    adminUser: adminUser.rows[0] || null
+                }
+            });
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (error) {
+        console.error('❌ DEBUG chyba:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'DEBUG chyba: ' + error.message
+        });
+    }
+});
+// 🧪 TEST PERMISSION ENDPOINT - pre lokálne testovanie
+router.get('/test-permissions', auth_1.authenticateToken, async (req, res) => {
+    try {
+        const { hasPermission } = await Promise.resolve().then(() => __importStar(require('../middleware/permissions')));
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                error: 'Používateľ nie je prihlásený'
+            });
+        }
+        const testResults = {
+            currentUser: {
+                id: req.user.id,
+                username: req.user.username,
+                role: req.user.role,
+                companyId: req.user.companyId
+            },
+            permissionTests: {
+                // 🚗 VEHICLES
+                vehicles_read: hasPermission(req.user.role, 'vehicles', 'read'),
+                vehicles_create: hasPermission(req.user.role, 'vehicles', 'create'),
+                vehicles_update: hasPermission(req.user.role, 'vehicles', 'update'),
+                vehicles_delete: hasPermission(req.user.role, 'vehicles', 'delete'),
+                // 🏠 RENTALS  
+                rentals_read: hasPermission(req.user.role, 'rentals', 'read'),
+                rentals_create: hasPermission(req.user.role, 'rentals', 'create'),
+                rentals_update: hasPermission(req.user.role, 'rentals', 'update'),
+                rentals_delete: hasPermission(req.user.role, 'rentals', 'delete'),
+                // 🏢 COMPANIES
+                companies_read: hasPermission(req.user.role, 'companies', 'read'),
+                companies_create: hasPermission(req.user.role, 'companies', 'create'),
+                companies_delete: hasPermission(req.user.role, 'companies', 'delete'),
+                // 👥 USERS
+                users_read: hasPermission(req.user.role, 'users', 'read'),
+                users_create: hasPermission(req.user.role, 'users', 'create'),
+                users_update: hasPermission(req.user.role, 'users', 'update'),
+                users_delete: hasPermission(req.user.role, 'users', 'delete'),
+                // 🔧 MAINTENANCE
+                maintenance_read: hasPermission(req.user.role, 'maintenance', 'read'),
+                maintenance_create: hasPermission(req.user.role, 'maintenance', 'create'),
+                maintenance_update: hasPermission(req.user.role, 'maintenance', 'update'),
+                maintenance_delete: hasPermission(req.user.role, 'maintenance', 'delete'),
+                // 💰 PRICING with amount limits
+                pricing_under_limit: hasPermission(req.user.role, 'pricing', 'update', {
+                    userId: req.user.id,
+                    companyId: req.user.companyId,
+                    amount: 3000 // pod limitom pre sales_rep
+                }),
+                pricing_over_limit: hasPermission(req.user.role, 'pricing', 'update', {
+                    userId: req.user.id,
+                    companyId: req.user.companyId,
+                    amount: 7000 // nad limitom pre sales_rep
+                }),
+                // 🏢 COMPANY-ONLY tests
+                company_vehicle_access: hasPermission(req.user.role, 'vehicles', 'read', {
+                    userId: req.user.id,
+                    companyId: req.user.companyId,
+                    resourceCompanyId: req.user.companyId // same company
+                }),
+                other_company_vehicle_access: hasPermission(req.user.role, 'vehicles', 'read', {
+                    userId: req.user.id,
+                    companyId: req.user.companyId,
+                    resourceCompanyId: 'different-company-id' // different company
+                }),
+                // 🔨 MECHANIC-ONLY tests  
+                own_vehicle_access: hasPermission(req.user.role, 'vehicles', 'update', {
+                    userId: req.user.id,
+                    companyId: req.user.companyId,
+                    resourceOwnerId: req.user.id // own vehicle
+                }),
+                other_mechanic_vehicle_access: hasPermission(req.user.role, 'vehicles', 'update', {
+                    userId: req.user.id,
+                    companyId: req.user.companyId,
+                    resourceOwnerId: 'different-mechanic-id' // different mechanic
+                })
+            }
+        };
+        res.json({
+            success: true,
+            data: testResults,
+            message: `Permission test pre role: ${req.user.role}`
+        });
+    }
+    catch (error) {
+        console.error('❌ Permission test error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri testovaní permissions'
+        });
+    }
+});
+// 🔍 DEBUG ENDPOINT - Company Owner Data
+router.get('/debug-company-owner', auth_1.authenticateToken, async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                error: 'Používateľ nie je prihlásený'
+            });
+        }
+        const vehicles = await postgres_database_1.postgresDatabase.getVehicles();
+        const companies = await postgres_database_1.postgresDatabase.getCompanies();
+        const allUsers = await postgres_database_1.postgresDatabase.getUsers();
+        const user = req.user; // Non-null assertion since we checked above
+        // Find Lubica user for debugging
+        const lubicaUser = allUsers.find(u => u.username === 'Lubica');
+        const debugInfo = {
+            currentUser: {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                companyId: user.companyId,
+                isActive: user.isActive
+            },
+            lubicaUserDebug: lubicaUser ? {
+                id: lubicaUser.id,
+                username: lubicaUser.username,
+                role: lubicaUser.role,
+                companyId: lubicaUser.companyId,
+                isActive: lubicaUser.isActive,
+                hasCompany: !!companies.find(c => c.id === lubicaUser.companyId)
+            } : 'User Lubica not found',
+            userCompany: companies.find(c => c.id === user.companyId),
+            allVehicles: vehicles.map(v => ({
+                id: v.id,
+                brand: v.brand,
+                model: v.model,
+                ownerCompanyId: v.ownerCompanyId
+            })),
+            userCompanyVehicles: vehicles.filter(v => v.ownerCompanyId === user.companyId),
+            allCompanies: companies.map(c => ({ id: c.id, name: c.name })),
+            allUsers: allUsers.map(u => ({
+                id: u.id,
+                username: u.username,
+                role: u.role,
+                companyId: u.companyId,
+                isActive: u.isActive
+            }))
+        };
+        res.json({
+            success: true,
+            data: debugInfo,
+            message: `Debug info pre: ${req.user.username} (${req.user.role})`
+        });
+    }
+    catch (error) {
+        console.error('❌ Debug company owner error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri debug info'
+        });
+    }
+});
+// 🏥 HEALTH CHECK ENDPOINT - No auth required
+router.get('/health', async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            message: 'Backend is running',
+            data: {
+                timestamp: new Date().toISOString(),
+                uptime: process.uptime(),
+                environment: process.env.NODE_ENV || 'development'
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Health check failed'
+        });
+    }
+});
+// 🔍 DEBUG PERMISSION TEST - For testing specific permissions
+router.post('/debug-permission', auth_1.authenticateToken, async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                error: 'Používateľ nie je prihlásený'
+            });
+        }
+        const { resource, action } = req.body;
+        if (!resource || !action) {
+            return res.status(400).json({
+                success: false,
+                error: 'resource a action sú povinné'
+            });
+        }
+        const { hasPermission } = await Promise.resolve().then(() => __importStar(require('../middleware/permissions')));
+        const permissionResult = hasPermission(req.user.role, resource, action, {
+            userId: req.user.id,
+            companyId: req.user.companyId
+        });
+        res.json({
+            success: true,
+            data: {
+                user: {
+                    id: req.user.id,
+                    username: req.user.username,
+                    role: req.user.role,
+                    companyId: req.user.companyId
+                },
+                request: { resource, action },
+                result: permissionResult
+            },
+            message: `Permission check pre: ${resource}/${action}`
+        });
+    }
+    catch (error) {
+        console.error('❌ Debug permission error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri debug permission'
+        });
+    }
+});
+// 🔧 ADMIN UTILITY - Automatické priradenie vozidiel k firmám
+router.post('/auto-assign-vehicles', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), async (req, res) => {
+    try {
+        console.log('🚗 Spúšťam automatické priradenie vozidiel k firmám...');
+        // 1. Načítaj všetky vozidlá
+        const vehicles = await postgres_database_1.postgresDatabase.getVehicles();
+        console.log(`📊 Nájdených ${vehicles.length} vozidiel`);
+        // 2. Načítaj všetky existujúce firmy
+        const companies = await postgres_database_1.postgresDatabase.getCompanies();
+        const existingCompanies = new Map();
+        companies.forEach(company => {
+            existingCompanies.set(company.name.toLowerCase(), company.id);
+        });
+        console.log(`🏢 Existujúce firmy: ${companies.map(c => c.name).join(', ')}`);
+        let assignedCount = 0;
+        let createdCompanies = 0;
+        let skippedCount = 0;
+        const results = [];
+        const errors = [];
+        // 3. Pre každé vozidlo
+        for (const vehicle of vehicles) {
+            try {
+                if (!vehicle.company) {
+                    skippedCount++;
+                    continue; // Preskočiť ak nemá company
+                }
+                if (vehicle.ownerCompanyId) {
+                    results.push(`⏭️ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) už má firmu`);
+                    skippedCount++;
+                    continue; // Preskočiť ak už má priradené ownerCompanyId
+                }
+                const companyName = vehicle.company.trim();
+                const companyNameLower = companyName.toLowerCase();
+                let companyId = existingCompanies.get(companyNameLower);
+                // 4. Ak firma neexistuje, vytvor ju
+                if (!companyId) {
+                    console.log(`🆕 Vytváram novú firmu: ${companyName}`);
+                    try {
+                        const newCompany = await postgres_database_1.postgresDatabase.createCompany({
+                            name: companyName
+                        });
+                        companyId = newCompany.id;
+                        existingCompanies.set(companyNameLower, companyId);
+                        createdCompanies++;
+                    }
+                    catch (createError) {
+                        console.error(`❌ Chyba pri vytváraní firmy ${companyName}:`, createError);
+                        errors.push(`Nemôžem vytvoriť firmu ${companyName}: ${createError instanceof Error ? createError.message : String(createError)}`);
+                        continue;
+                    }
+                }
+                // 5. Priradí vozidlo k firme pomocou existujúcej metódy
+                try {
+                    await postgres_database_1.postgresDatabase.assignVehiclesToCompany([vehicle.id], companyId);
+                    const result = `✅ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) → ${companyName}`;
+                    console.log(result);
+                    results.push(result);
+                    assignedCount++;
+                }
+                catch (assignError) {
+                    console.error(`❌ Chyba pri priradzovaní vozidla ${vehicle.id}:`, assignError);
+                    errors.push(`Nemôžem priradiť ${vehicle.brand} ${vehicle.model}: ${assignError instanceof Error ? assignError.message : String(assignError)}`);
+                }
+            }
+            catch (vehicleError) {
+                console.error(`❌ Chyba pri spracovaní vozidla ${vehicle.id}:`, vehicleError);
+                errors.push(`Chyba pri spracovaní ${vehicle.brand} ${vehicle.model}: ${vehicleError instanceof Error ? vehicleError.message : String(vehicleError)}`);
+            }
+        }
+        res.json({
+            success: true,
+            message: `Automatické priradenie dokončené`,
+            data: {
+                createdCompanies,
+                assignedVehicles: assignedCount,
+                skippedVehicles: skippedCount,
+                results,
+                errors: errors.length > 0 ? errors : undefined
+            }
+        });
+    }
+    catch (error) {
+        console.error('❌ Auto-assign vehicles critical error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Kritická chyba pri automatickom priradzovaní: ${error instanceof Error ? error.message : String(error)}`
         });
     }
 });

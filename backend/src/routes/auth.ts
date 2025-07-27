@@ -2316,7 +2316,7 @@ router.post('/auto-assign-vehicles',
               companyId = newCompany.id;
               existingCompanies.set(companyNameLower, companyId);
               createdCompanies++;
-            } catch (createError) {
+            } catch (createError: unknown) {
               console.error(`❌ Chyba pri vytváraní firmy ${companyName}:`, createError);
               errors.push(`Nemôžem vytvoriť firmu ${companyName}: ${createError instanceof Error ? createError.message : String(createError)}`);
               continue;
@@ -2330,12 +2330,12 @@ router.post('/auto-assign-vehicles',
             console.log(result);
             results.push(result);
             assignedCount++;
-          } catch (assignError) {
+          } catch (assignError: unknown) {
             console.error(`❌ Chyba pri priradzovaní vozidla ${vehicle.id}:`, assignError);
             errors.push(`Nemôžem priradiť ${vehicle.brand} ${vehicle.model}: ${assignError instanceof Error ? assignError.message : String(assignError)}`);
           }
           
-        } catch (vehicleError) {
+        } catch (vehicleError: unknown) {
           console.error(`❌ Chyba pri spracovaní vozidla ${vehicle.id}:`, vehicleError);
           errors.push(`Chyba pri spracovaní ${vehicle.brand} ${vehicle.model}: ${vehicleError instanceof Error ? vehicleError.message : String(vehicleError)}`);
         }
@@ -2353,7 +2353,7 @@ router.post('/auto-assign-vehicles',
         }
       });
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('❌ Auto-assign vehicles critical error:', error);
       res.status(500).json({
         success: false,

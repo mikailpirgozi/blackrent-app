@@ -3,11 +3,48 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
+const permissions_1 = require("../middleware/permissions");
 const router = (0, express_1.Router)();
+// 🔍 CONTEXT FUNCTIONS
+const getExpenseContext = async (req) => {
+    const expenseId = req.params.id;
+    if (!expenseId)
+        return {};
+    const expenses = await postgres_database_1.postgresDatabase.getExpenses();
+    const expense = expenses.find(e => e.id === expenseId);
+    if (!expense || !expense.vehicleId)
+        return {};
+    // Získaj vehicle pre company context
+    const vehicle = await postgres_database_1.postgresDatabase.getVehicle(expense.vehicleId);
+    return {
+        resourceCompanyId: vehicle?.ownerCompanyId,
+        amount: expense.amount
+    };
+};
 // GET /api/expenses - Získanie všetkých nákladov
-router.get('/', auth_1.authenticateToken, async (req, res) => {
+router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('expenses', 'read'), async (req, res) => {
     try {
-        const expenses = await postgres_database_1.postgresDatabase.getExpenses();
+        let expenses = await postgres_database_1.postgresDatabase.getExpenses();
+        console.log('💰 Expenses GET - user:', {
+            role: req.user?.role,
+            companyId: req.user?.companyId,
+            totalExpenses: expenses.length
+        });
+        // 🏢 COMPANY OWNER - filter len náklady vlastných vozidiel
+        if (req.user?.role === 'company_owner' && req.user.companyId) {
+            const vehicles = await postgres_database_1.postgresDatabase.getVehicles();
+            const companyVehicleIds = vehicles
+                .filter(v => v.ownerCompanyId === req.user?.companyId)
+                .map(v => v.id);
+            const originalCount = expenses.length;
+            expenses = expenses.filter(e => e.vehicleId && companyVehicleIds.includes(e.vehicleId));
+            console.log('🏢 Company Owner Expenses Filter:', {
+                userCompanyId: req.user.companyId,
+                companyVehicleIds,
+                originalCount,
+                filteredCount: expenses.length
+            });
+        }
         res.json({
             success: true,
             data: expenses
@@ -22,7 +59,7 @@ router.get('/', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // POST /api/expenses - Vytvorenie nového nákladu
-router.post('/', auth_1.authenticateToken, async (req, res) => {
+router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('expenses', 'create'), async (req, res) => {
     try {
         const { description, amount, date, vehicleId, company, category, note } = req.body;
         // Povinné je len description
@@ -56,7 +93,7 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // PUT /api/expenses/:id - Aktualizácia nákladu
-router.put('/:id', auth_1.authenticateToken, async (req, res) => {
+router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('expenses', 'update', { getContext: getExpenseContext }), async (req, res) => {
     try {
         const { id } = req.params;
         const { description, amount, date, vehicleId, company, category, note } = req.body;
@@ -93,7 +130,7 @@ router.put('/:id', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // DELETE /api/expenses/:id - Zmazanie nákladu
-router.delete('/:id', auth_1.authenticateToken, async (req, res) => {
+router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('expenses', 'delete', { getContext: getExpenseContext }), async (req, res) => {
     try {
         const { id } = req.params;
         await postgres_database_1.postgresDatabase.deleteExpense(id);

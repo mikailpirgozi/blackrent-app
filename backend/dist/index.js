@@ -29,9 +29,9 @@ app.use((0, cors_1.default)({
             process.env.FRONTEND_URL || 'http://localhost:3000'
         ];
         console.log('🌐 CORS request from:', origin);
-        // Ak nie je origin (napr. direct request, Postman)
-        if (!origin) {
-            console.log('✅ No origin - allowing request');
+        // Ak nie je origin (napr. direct request, Postman, lokálne HTML súbory)
+        if (!origin || origin === 'null') {
+            console.log('✅ No origin or null origin (local HTML files via file://) - allowing request');
             return callback(null, true);
         }
         // Skontroluj základné allowed origins
@@ -42,6 +42,11 @@ app.use((0, cors_1.default)({
         // ✅ KĽÚČOVÁ OPRAVA: Povolím všetky Vercel domény
         if (origin.endsWith('.vercel.app')) {
             console.log('✅ Vercel domain detected - allowing:', origin);
+            return callback(null, true);
+        }
+        // Povolím file:// protokol pre lokálne súbory
+        if (origin.startsWith('file://')) {
+            console.log('✅ Local file protocol detected - allowing:', origin);
             return callback(null, true);
         }
         // Inak zamietni
@@ -68,6 +73,10 @@ const protocols_1 = __importDefault(require("./routes/protocols"));
 const files_1 = __importDefault(require("./routes/files"));
 const settlements_1 = __importDefault(require("./routes/settlements"));
 const migration_1 = __importDefault(require("./routes/migration"));
+const availability_1 = __importDefault(require("./routes/availability"));
+const vehicle_unavailability_1 = __importDefault(require("./routes/vehicle-unavailability"));
+const vehicle_documents_1 = __importDefault(require("./routes/vehicle-documents"));
+const insurance_claims_1 = __importDefault(require("./routes/insurance-claims"));
 // API routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/vehicles', vehicles_1.default);
@@ -81,6 +90,15 @@ app.use('/api/protocols', protocols_1.default);
 app.use('/api/files', files_1.default);
 app.use('/api/settlements', settlements_1.default);
 app.use('/api/migration', migration_1.default);
+app.use('/api/availability', availability_1.default);
+app.use('/api/vehicle-unavailability', vehicle_unavailability_1.default);
+app.use('/api/vehicle-documents', vehicle_documents_1.default);
+app.use('/api/insurance-claims', insurance_claims_1.default);
+// SIMPLE TEST ENDPOINT - bez middleware
+app.get('/api/test-simple', (req, res) => {
+    console.log('🧪 Simple test endpoint called');
+    res.json({ success: true, message: 'Backend funguje!', timestamp: new Date().toISOString() });
+});
 // Debug endpoint pre diagnostiku PDF generátora
 app.get('/api/debug/pdf-generator', (req, res) => {
     const puppeteerAvailable = !!process.env.PDF_GENERATOR_TYPE;

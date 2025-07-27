@@ -1,4 +1,4 @@
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
 /**
  * PDF-lib Generator - Vysoká kvalita PDF bez system dependencies
  * Produkuje profesionálne PDF dokumenty s lepšou typografiou
@@ -76,5 +76,9 @@ export declare class PDFLibGenerator {
      * NOVÉ: Sekcia pre zobrazenie obrázkov v PDF protokole
      */
     private addImagesSection;
+    /**
+     * Generovanie vyúčtovania PDF s pdf-lib (rovnaký štýl ako protokoly)
+     */
+    generateSettlement(settlement: Settlement): Promise<Buffer>;
 }
 //# sourceMappingURL=pdf-lib-generator.d.ts.map

@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
@@ -62,16 +95,53 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
                 error: 'Všetky povinné polia musia byť vyplnené (firma, obdobie od, obdobie do)'
             });
         }
+        // Vypočítaj skutočné hodnoty z prenájmov a nákladov
+        const rentals = await postgres_database_1.postgresDatabase.getRentals();
+        const expenses = await postgres_database_1.postgresDatabase.getExpenses();
+        console.log(`🔍 Settlement for company: ${company} from ${fromDate} to ${toDate}`);
+        console.log(`📊 Total rentals in DB: ${rentals.length}`);
+        console.log(`📊 Total expenses in DB: ${expenses.length}`);
+        // Filtruj prenájmy pre dané obdobie a firmu
+        const filteredRentals = rentals.filter(rental => {
+            const rentalStart = new Date(rental.startDate);
+            const rentalEnd = new Date(rental.endDate);
+            const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) ||
+                (rentalEnd >= fromDate && rentalEnd <= toDate) ||
+                (rentalStart <= fromDate && rentalEnd >= toDate);
+            const hasMatchingCompany = rental.vehicle?.company === company;
+            console.log(`🏠 Rental ${rental.id} - Vehicle company: "${rental.vehicle?.company}", Looking for: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
+            return isInPeriod && hasMatchingCompany;
+        });
+        console.log(`✅ Filtered rentals: ${filteredRentals.length}`);
+        // Filtruj náklady pre dané obdobie a firmu
+        const filteredExpenses = expenses.filter(expense => {
+            const expenseDate = new Date(expense.date);
+            const isInPeriod = expenseDate >= fromDate && expenseDate <= toDate;
+            const hasMatchingCompany = expense.company === company;
+            console.log(`💰 Expense ${expense.id} - Company: "${expense.company}", Looking for: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
+            return isInPeriod && hasMatchingCompany;
+        });
+        console.log(`✅ Filtered expenses: ${filteredExpenses.length}`);
+        // Vypočítaj skutočné hodnoty
+        const calculatedIncome = filteredRentals.reduce((sum, rental) => sum + rental.totalPrice, 0);
+        const calculatedExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+        const calculatedCommission = filteredRentals.reduce((sum, rental) => {
+            // Assuming commission is calculated from rental price - adjust as needed
+            return sum + (rental.totalPrice * 0.1); // 10% commission example
+        }, 0);
+        const calculatedProfit = calculatedIncome - calculatedExpenses - calculatedCommission;
         const createdSettlement = await postgres_database_1.postgresDatabase.createSettlement({
             company,
             period: periodString,
             fromDate,
             toDate,
-            totalIncome: totalIncome || 0,
-            totalExpenses: totalExpenses || 0,
-            commission: totalCommission || 0,
-            profit: profit || 0,
-            summary: `Vyúčtovanie pre ${company} za obdobie ${periodString}`
+            totalIncome: calculatedIncome,
+            totalExpenses: calculatedExpenses,
+            commission: calculatedCommission,
+            profit: calculatedProfit,
+            summary: `Vyúčtovanie pre ${company} za obdobie ${periodString}`,
+            rentals: filteredRentals,
+            expenses: filteredExpenses
         });
         res.status(201).json({
             success: true,
@@ -138,6 +208,46 @@ router.delete('/:id', auth_1.authenticateToken, async (req, res) => {
         res.status(500).json({
             success: false,
             error: `Chyba pri vymazávaní vyúčtovania: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
+        });
+    }
+});
+// GET /api/settlements/:id/pdf - Export vyúčtovania do PDF
+router.get('/:id/pdf', auth_1.authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log(`🎯 PDF export request pre settlement ID: ${id}`);
+        // Získaj vyúčtovanie z databázy
+        const settlement = await postgres_database_1.postgresDatabase.getSettlement(id);
+        if (!settlement) {
+            console.error(`❌ Settlement s ID ${id} nenájdené`);
+            return res.status(404).json({
+                success: false,
+                error: 'Vyúčtovanie nenájdené'
+            });
+        }
+        console.log(`✅ Settlement načítané: ${settlement.company}, obdobie: ${settlement.period?.from} - ${settlement.period?.to}`);
+        // Použij PDFLib generátor (rovnaký ako protokoly)
+        const { PDFLibGenerator } = await Promise.resolve().then(() => __importStar(require('../utils/pdf-lib-generator')));
+        // Vytvor PDF generátor a vygeneruj PDF
+        const pdfGenerator = new PDFLibGenerator();
+        const pdfBuffer = await pdfGenerator.generateSettlement(settlement);
+        console.log(`✅ PDF vygenerované úspešne, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
+        // Nastav správne headers pre PDF download
+        const filename = `vyuctovanie_${settlement.company?.replace(/[^a-zA-Z0-9]/g, '_')}_${settlement.id.slice(-8)}.pdf`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        // Pošli PDF buffer
+        res.send(pdfBuffer);
+    }
+    catch (error) {
+        console.error('❌ Settlement PDF export error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Chyba pri generovaní PDF: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
         });
     }
 });
