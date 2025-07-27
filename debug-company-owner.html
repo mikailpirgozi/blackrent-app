@@ -158,6 +158,23 @@
                 </button>
                 <div id="lubkaFixResult" style="margin-top: 10px; font-family: monospace; white-space: pre-wrap;"></div>
             </div>
+
+            <!-- Vincursky Debug & Fix -->
+            <div style="background: #e8f5e8; border: 2px solid #6f42c1; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                <h3 style="color: #6f42c1; margin-top: 0;">🔍 Vincursky Debug & Fix</h3>
+                <p>Analyzuje a opraví mapovanie medzi Vincursky používateľom a vozidlami.</p>
+                <button onclick="debugUserVehicleMapping()" style="background: #6f42c1; color: white; font-weight: bold; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                    🔍 Debug Mapping
+                </button>
+                <button onclick="fixVincurskyUser()" style="background: #dc3545; color: white; font-weight: bold; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                    🔧 Fix Vincursky User
+                </button>
+                <button onclick="autoAssignUserCompanies()" style="background: #28a745; color: white; font-weight: bold; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                    🤖 Auto-assign All Users
+                </button>
+                <div id="debugResult" style="margin-top: 10px; font-family: monospace; white-space: pre-wrap;"></div>
+                <div id="fixResult" style="margin-top: 10px; font-family: monospace; white-space: pre-wrap;"></div>
+            </div>
             
             <!-- Manual Assignment -->
             <div>
@@ -722,6 +739,204 @@
             } catch (error) {
                 document.getElementById('lubkaFixResult').textContent = 
                     `❌ Network error: ${error.message}`;
+            }
+        }
+
+        // Debug company-user-vehicle mapping
+        async function debugUserVehicleMapping() {
+            if (!token) {
+                alert('Najprv sa prihláste!');
+                return;
+            }
+
+            try {
+                document.getElementById('debugResult').innerHTML = '🔄 Načítavam mapovanie...';
+
+                // Get all users
+                const usersResponse = await makeRequest('/users');
+                const users = usersResponse.data || [];
+
+                // Get all companies  
+                const companiesResponse = await makeRequest('/companies');
+                const companies = companiesResponse.data || [];
+
+                // Get all vehicles
+                const vehiclesResponse = await makeRequest('/vehicles');
+                const vehicles = vehiclesResponse.data || [];
+
+                // Find Vincursky user
+                const vincurskyUser = users.find(u => u.username?.toLowerCase().includes('vincursky'));
+                
+                // Find Vincursky company
+                const vincurskyCompany = companies.find(c => c.name?.toLowerCase().includes('vincursky'));
+                
+                // Find Vincursky vehicles
+                const vincurskyVehicles = vehicles.filter(v => 
+                    v.company?.toLowerCase().includes('vincursky') || 
+                    v.ownerName?.toLowerCase().includes('vincursky')
+                );
+
+                let resultHtml = `
+                    <h4>🔍 User-Vehicle Mapping Debug</h4>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                        <strong>👤 Vincursky User:</strong><br>
+                        ${vincurskyUser ? `
+                            ID: ${vincurskyUser.id}<br>
+                            Username: ${vincurskyUser.username}<br>
+                            Role: ${vincurskyUser.role}<br>
+                            CompanyId: ${vincurskyUser.companyId || 'NULL ❌'}
+                        ` : 'Nenájdený ❌'}
+                    </div>
+
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                        <strong>🏢 Vincursky Company:</strong><br>
+                        ${vincurskyCompany ? `
+                            ID: ${vincurskyCompany.id}<br>
+                            Name: ${vincurskyCompany.name}
+                        ` : 'Nenájdená ❌'}
+                    </div>
+
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                        <strong>🚗 Vincursky Vehicles (${vincurskyVehicles.length}):</strong><br>
+                        ${vincurskyVehicles.map(v => `
+                            ${v.brand} ${v.model} (${v.licensePlate})<br>
+                            - Company: ${v.company}<br>
+                            - OwnerName: ${v.ownerName || 'NULL'}<br>
+                            - OwnerCompanyId: ${v.ownerCompanyId || 'NULL ❌'}<br>
+                        `).join('<br>')}
+                    </div>
+
+                    <div style="background: ${vincurskyUser?.companyId === vincurskyCompany?.id ? '#d4edda' : '#f8d7da'}; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                        <strong>🔗 Mapping Status:</strong><br>
+                        User CompanyId: ${vincurskyUser?.companyId || 'NULL'}<br>
+                        Company ID: ${vincurskyCompany?.id || 'NULL'}<br>
+                        Match: ${vincurskyUser?.companyId === vincurskyCompany?.id ? '✅ YES' : '❌ NO'}<br>
+                        <br>
+                        Vehicle CompanyId matches: ${vincurskyVehicles.filter(v => v.ownerCompanyId === vincurskyUser?.companyId).length}/${vincurskyVehicles.length}
+                    </div>
+                `;
+
+                document.getElementById('debugResult').innerHTML = resultHtml;
+
+            } catch (error) {
+                document.getElementById('debugResult').innerHTML = 
+                    `<div style="color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px;">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Fix Vincursky user companyId
+        async function fixVincurskyUser() {
+            if (!token) {
+                alert('Najprv sa prihláste!');
+                return;
+            }
+
+            try {
+                document.getElementById('fixResult').innerHTML = '🔄 Opravujem Vincursky používateľa...';
+
+                // Get companies to find Vincursky company ID
+                const companiesResponse = await makeRequest('/companies');
+                const companies = companiesResponse.data || [];
+                const vincurskyCompany = companies.find(c => c.name?.toLowerCase().includes('vincursky'));
+
+                if (!vincurskyCompany) {
+                    document.getElementById('fixResult').innerHTML = 
+                        `<div style="color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px;">❌ Vincursky company not found</div>`;
+                    return;
+                }
+
+                // Get users to find Vincursky user
+                const usersResponse = await makeRequest('/users');
+                const users = usersResponse.data || [];
+                const vincurskyUser = users.find(u => u.username?.toLowerCase().includes('vincursky'));
+
+                if (!vincurskyUser) {
+                    document.getElementById('fixResult').innerHTML = 
+                        `<div style="color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px;">❌ Vincursky user not found</div>`;
+                    return;
+                }
+
+                // Update user companyId
+                const updateData = {
+                    ...vincurskyUser,
+                    companyId: vincurskyCompany.id
+                };
+
+                const updateResponse = await makeRequestPost(`/users/${vincurskyUser.id}`, updateData);
+
+                if (updateResponse.success) {
+                    document.getElementById('fixResult').innerHTML = 
+                        `<div style="color: #155724; background: #d4edda; padding: 10px; border-radius: 4px;">
+                            ✅ Vincursky user updated successfully!<br>
+                            User: ${vincurskyUser.username}<br>
+                            New CompanyId: ${vincurskyCompany.id}<br>
+                            Company: ${vincurskyCompany.name}
+                        </div>`;
+                    
+                    // Refresh debug info
+                    debugUserVehicleMapping();
+                } else {
+                    document.getElementById('fixResult').innerHTML = 
+                        `<div style="color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px;">❌ ${updateResponse.error}</div>`;
+                }
+
+            } catch (error) {
+                document.getElementById('fixResult').innerHTML = 
+                    `<div style="color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px;">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-assign user companies
+        async function autoAssignUserCompanies() {
+            if (!token) {
+                alert('Najprv sa prihláste!');
+                return;
+            }
+
+            try {
+                document.getElementById('fixResult').innerHTML = '🔄 Automaticky priraďujem používateľov k firmám...';
+
+                const response = await makeRequestPost('/auth/auto-assign-user-companies', {});
+
+                if (response.success) {
+                    let resultHtml = `
+                        <div style="color: #155724; background: #d4edda; padding: 10px; border-radius: 4px;">
+                            ✅ Auto-assignment completed!<br>
+                            👥 Assigned users: ${response.data.assignedUsers}<br>
+                            🏢 Created companies: ${response.data.createdCompanies}<br>
+                            ⏭️ Skipped users: ${response.data.skippedUsers}
+                        </div>
+                    `;
+                    
+                    if (response.data.results && response.data.results.length > 0) {
+                        resultHtml += `
+                            <br><strong>Results:</strong>
+                            <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 300px;">${response.data.results.join('\n')}</pre>
+                        `;
+                    }
+                    
+                    if (response.data.errors && response.data.errors.length > 0) {
+                        resultHtml += `
+                            <br><div style="color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                                ⚠️ Errors (${response.data.errors.length}):
+                                <pre style="margin-top: 5px;">${response.data.errors.join('\n')}</pre>
+                            </div>
+                        `;
+                    }
+                    
+                    document.getElementById('fixResult').innerHTML = resultHtml;
+                    
+                    // Refresh debug info
+                    debugUserVehicleMapping();
+                } else {
+                    document.getElementById('fixResult').innerHTML = 
+                        `<div style="color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px;">❌ ${response.error}</div>`;
+                }
+
+            } catch (error) {
+                document.getElementById('fixResult').innerHTML = 
+                    `<div style="color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px;">❌ Error: ${error.message}</div>`;
             }
         }
 

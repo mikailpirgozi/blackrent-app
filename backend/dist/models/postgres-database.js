@@ -819,7 +819,7 @@ class PostgresDatabase {
                 userData.role,
                 userData.firstName,
                 userData.lastName,
-                userData.companyId,
+                userData.companyId ? parseInt(userData.companyId) : null, // Convert to integer for database consistency
                 userData.employeeNumber,
                 userData.hireDate,
                 userData.isActive ?? true,
@@ -835,7 +835,7 @@ class PostgresDatabase {
                 role: row.role,
                 firstName: row.first_name,
                 lastName: row.last_name,
-                companyId: row.company_id,
+                companyId: row.company_id?.toString(), // Convert back to string for consistency
                 employeeNumber: row.employee_number,
                 hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
                 isActive: row.is_active ?? true,
