@@ -321,6 +321,13 @@ export function checkPermission(
         }
       );
 
+      // Admin má práva na všetko - preskoč kontrolu
+      if (req.user.role === 'admin') {
+        console.log('✅ Admin access granted');
+        req.permissionCheck = { hasAccess: true, requiresApproval: false };
+        return next();
+      }
+
       console.log('🔐 Permission result:', permissionCheck);
 
       // Ulož výsledok do request

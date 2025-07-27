@@ -393,7 +393,15 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
       existingVehicles.map(v => [v.licensePlate?.toLowerCase(), v])
     );
 
+    // Progress tracking
+    const progressInterval = Math.max(1, Math.floor(dataLines.length / 10)); // Log každých 10% alebo každý záznam ak je menej ako 10
+
     for (let i = 0; i < dataLines.length; i++) {
+      // Progress logging
+      if (i % progressInterval === 0 || i === dataLines.length - 1) {
+        const progress = Math.round(((i + 1) / dataLines.length) * 100);
+        console.log(`📊 CSV Import Progress: ${progress}% (${i + 1}/${dataLines.length})`);
+      }
       try {
         const line = dataLines[i].trim();
         if (!line) continue;
