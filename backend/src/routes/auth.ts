@@ -2447,4 +2447,118 @@ router.get('/debug-vincursky', authenticateToken, requireRole(['admin']),
   }
 );
 
+// 🔧 MIGRATION - Fix ownerCompanyId for all existing vehicles
+router.post('/migrate-vehicle-companies', authenticateToken, requireRole(['admin']), 
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      console.log('🔧 MIGRATION: Fixing ownerCompanyId for all vehicles...');
+      
+      // 1. Get all vehicles
+      const allVehicles = await postgresDatabase.getVehicles();
+      console.log(`📊 Found ${allVehicles.length} vehicles to process`);
+      
+      // 2. Get all companies
+      const allCompanies = await postgresDatabase.getCompanies();
+      console.log(`🏢 Found ${allCompanies.length} companies`);
+      
+      // Create company name -> ID mapping
+      const companyMap = new Map();
+      allCompanies.forEach(company => {
+        companyMap.set(company.name.toLowerCase().trim(), company.id);
+      });
+      
+      let updatedCount = 0;
+      let skippedCount = 0;
+      let createdCompanies = 0;
+      const results = [];
+      const errors = [];
+      
+      // 3. Process each vehicle
+      for (const vehicle of allVehicles) {
+        try {
+          // Skip if already has ownerCompanyId
+          if (vehicle.ownerCompanyId) {
+            results.push(`⏭️ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) already has ownerCompanyId`);
+            skippedCount++;
+            continue;
+          }
+          
+          if (!vehicle.company || !vehicle.company.trim()) {
+            results.push(`⚠️ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) has no company name`);
+            skippedCount++;
+            continue;
+          }
+          
+          const companyName = vehicle.company.trim();
+          const companyNameLower = companyName.toLowerCase();
+          
+          let companyId = companyMap.get(companyNameLower);
+          
+          // Create company if it doesn't exist
+          if (!companyId) {
+            console.log(`🆕 Creating new company: ${companyName}`);
+            try {
+              const newCompany = await postgresDatabase.createCompany({
+                name: companyName
+              });
+              companyId = newCompany.id;
+              companyMap.set(companyNameLower, companyId);
+              createdCompanies++;
+              results.push(`🆕 Created company: ${companyName}`);
+            } catch (createError) {
+              console.error(`❌ Error creating company ${companyName}:`, createError);
+              errors.push(`Failed to create company ${companyName}: ${createError instanceof Error ? createError.message : String(createError)}`);
+              continue;
+            }
+          }
+          
+          // Update vehicle with ownerCompanyId
+          try {
+            const updatedVehicle = { 
+              ...vehicle, 
+              ownerCompanyId: companyId 
+            };
+            await postgresDatabase.updateVehicle(updatedVehicle);
+            
+            const result = `✅ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) → ${companyName} (ID: ${companyId})`;
+            console.log(result);
+            results.push(result);
+            updatedCount++;
+          } catch (updateError) {
+            console.error(`❌ Error updating vehicle ${vehicle.id}:`, updateError);
+            errors.push(`Failed to update ${vehicle.brand} ${vehicle.model}: ${updateError instanceof Error ? updateError.message : String(updateError)}`);
+          }
+          
+        } catch (vehicleError) {
+          console.error(`❌ Error processing vehicle ${vehicle.id}:`, vehicleError);
+          errors.push(`Error processing ${vehicle.brand} ${vehicle.model}: ${vehicleError instanceof Error ? vehicleError.message : String(vehicleError)}`);
+        }
+      }
+      
+      console.log(`🎉 Migration completed: ${updatedCount} updated, ${skippedCount} skipped, ${createdCompanies} companies created`);
+      
+      res.json({
+        success: true,
+        message: `Vehicle-Company migration completed successfully`,
+        data: {
+          totalVehicles: allVehicles.length,
+          updatedVehicles: updatedCount,
+          skippedVehicles: skippedCount,
+          createdCompanies,
+          totalCompanies: allCompanies.length + createdCompanies,
+          results,
+          errors: errors.length > 0 ? errors : undefined
+        }
+      });
+
+    } catch (error: unknown) {
+      console.error('❌ Migration error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Migration failed: ${error instanceof Error ? error.message : String(error)}`
+      });
+    }
+  }
+);
+
 export default router; 
