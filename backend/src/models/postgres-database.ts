@@ -1680,6 +1680,21 @@ export class PostgresDatabase {
     try {
       // 🚀 NOVÝ PRÍSTUP: Priamy JOIN ako getVehicles() - STABILNÝ ✅
       console.log('🔍 Loading rentals with direct JOIN...');
+      
+      // 🐛 DEBUG: Check vehicle_id types in rentals before JOIN
+      console.log('🔍 DEBUG: Checking vehicle_id types in rentals...');
+      const typeCheck = await client.query(`
+        SELECT 
+          id, 
+          vehicle_id, 
+          pg_typeof(vehicle_id) as vehicle_id_type,
+          customer_name
+        FROM rentals 
+        LIMIT 3
+      `);
+      console.log('🔍 DEBUG: Sample rentals data:', typeCheck.rows);
+      
+      // 🔧 FIX: Remove ::uuid cast - if vehicle_id is already uuid, casting is unnecessary
       const result = await client.query(`
         SELECT 
           r.id, r.customer_id, r.vehicle_id, r.start_date, r.end_date, 
@@ -1688,7 +1703,7 @@ export class PostgresDatabase {
           r.allowed_kilometers, r.daily_kilometers, r.handover_place,
           v.brand, v.model, v.license_plate, v.company, v.pricing, v.commission as v_commission, v.status as v_status
         FROM rentals r
-        LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id
+        LEFT JOIN vehicles v ON r.vehicle_id = v.id
         ORDER BY r.created_at DESC
       `);
       console.log(`📊 Found ${result.rows.length} rentals`);
