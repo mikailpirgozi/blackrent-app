@@ -653,6 +653,101 @@ router.post('/:id/transfer-ownership',
   }
 );
 
+// PUT /api/vehicles/ownership-history/:historyId - Úprava transferu vlastníctva
+router.put('/ownership-history/:historyId',
+  authenticateToken,
+  requireRole(['admin']),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { historyId } = req.params;
+      const { 
+        ownerCompanyId,
+        transferReason,
+        transferNotes,
+        validFrom
+      } = req.body;
+
+      console.log('📝 Editing ownership transfer:', {
+        historyId,
+        ownerCompanyId,
+        transferReason,
+        validFrom,
+        requestedBy: req.user?.username
+      });
+
+      // Validácia
+      if (!ownerCompanyId || !transferReason || !validFrom) {
+        return res.status(400).json({
+          success: false,
+          error: 'Required fields: ownerCompanyId, transferReason, validFrom'
+        });
+      }
+
+      await postgresDatabase.updateVehicleOwnershipHistory(historyId, {
+        ownerCompanyId,
+        transferReason,
+        transferNotes,
+        validFrom: new Date(validFrom)
+      });
+
+      console.log('✅ Ownership transfer updated successfully:', historyId);
+
+      res.json({
+        success: true,
+        message: 'Transfer vlastníctva úspešne upravený'
+      });
+
+    } catch (error) {
+      console.error('Update ownership transfer error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  }
+);
+
+// DELETE /api/vehicles/ownership-history/:historyId - Vymazanie transferu vlastníctva
+router.delete('/ownership-history/:historyId',
+  authenticateToken,
+  requireRole(['admin']),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { historyId } = req.params;
+
+      console.log('🗑️ Deleting ownership transfer:', {
+        historyId,
+        requestedBy: req.user?.username
+      });
+
+      // Overenie, že transfer existuje
+      const exists = await postgresDatabase.checkOwnershipHistoryExists(historyId);
+      if (!exists) {
+        return res.status(404).json({
+          success: false,
+          error: 'Ownership transfer not found'
+        });
+      }
+
+      await postgresDatabase.deleteVehicleOwnershipHistory(historyId);
+
+      console.log('✅ Ownership transfer deleted successfully:', historyId);
+
+      res.json({
+        success: true,
+        message: 'Transfer vlastníctva úspešne vymazaný'
+      });
+
+    } catch (error) {
+      console.error('Delete ownership transfer error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  }
+);
+
 // GET /api/vehicles/:id/ownership-history - História vlastníctva vozidla
 router.get('/:id/ownership-history',
   authenticateToken,
