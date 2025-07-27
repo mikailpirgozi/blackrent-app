@@ -325,7 +325,7 @@ class PostgresDatabase {
         CREATE TABLE IF NOT EXISTS user_permissions (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           user_id UUID NOT NULL,
-          company_id UUID NOT NULL,
+          company_id INTEGER NOT NULL,
           permissions JSONB NOT NULL DEFAULT '{}',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -3546,7 +3546,7 @@ class PostgresDatabase {
             const result = await client.query(`
         SELECT up.*, c.name as company_name
         FROM user_permissions up
-        JOIN companies c ON up.company_id::text = c.id::text
+        JOIN companies c ON up.company_id = c.id
         WHERE up.user_id = $1
         ORDER BY c.name
       `, [userId]);
@@ -3569,7 +3569,7 @@ class PostgresDatabase {
             const result = await client.query(`
         SELECT up.company_id, c.name as company_name, up.permissions
         FROM user_permissions up
-        JOIN companies c ON up.company_id::text = c.id::text
+        JOIN companies c ON up.company_id = c.id
         WHERE up.user_id = $1
         ORDER BY c.name
         `, [userId]);
@@ -3632,7 +3632,7 @@ class PostgresDatabase {
         SELECT up.user_id, u.username, up.permissions
         FROM user_permissions up
         JOIN users u ON up.user_id = u.id
-        WHERE up.company_id::text = $1::text
+        WHERE up.company_id = $1
         ORDER BY u.username
       `, [companyId]);
             return result.rows.map(row => ({
