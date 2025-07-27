@@ -899,7 +899,7 @@ export class PostgresDatabase {
         const invalidRentals = await client.query(`
           SELECT r.id, r.vehicle_id, r.customer_name 
           FROM rentals r 
-          LEFT JOIN vehicles v ON r.vehicle_id = v.id 
+          LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
           WHERE r.vehicle_id IS NOT NULL AND v.id IS NULL
         `);
         
@@ -917,19 +917,23 @@ export class PostgresDatabase {
           
           console.log(`🚗 Použijem ${existingVehicles.rows.length} existujúcich vozidiel pre mapping`);
           
-          // Mapuj každý rental na existujúce vozidlo
-          for (let i = 0; i < invalidRentals.rows.length; i++) {
-            const rental = invalidRentals.rows[i];
-            const vehicleIndex = i % existingVehicles.rows.length; // Rotuj medzi vozidlami
-            const newVehicleId = existingVehicles.rows[vehicleIndex].id;
-            
-            await client.query(`
-              UPDATE rentals 
-              SET vehicle_id = $1 
-              WHERE id = $2
-            `, [newVehicleId, rental.id]);
-            
-            console.log(`   ✅ Rental ${rental.id} (${rental.customer_name}) -> Vehicle ${existingVehicles.rows[vehicleIndex].license_plate}`);
+          if (existingVehicles.rows.length > 0) {
+            // Mapuj každý rental na existujúce vozidlo
+            for (let i = 0; i < invalidRentals.rows.length; i++) {
+              const rental = invalidRentals.rows[i];
+              const vehicleIndex = i % existingVehicles.rows.length; // Rotuj medzi vozidlami
+              const newVehicleId = existingVehicles.rows[vehicleIndex].id;
+              
+              await client.query(`
+                UPDATE rentals 
+                SET vehicle_id = $1 
+                WHERE id = $2
+              `, [newVehicleId, rental.id]);
+              
+              console.log(`   ✅ Rental ${rental.id} (${rental.customer_name}) -> Vehicle ${existingVehicles.rows[vehicleIndex].license_plate}`);
+            }
+          } else {
+            console.log('   ⚠️ Žiadne existujúce vozidlá pre mapping');
           }
         }
         
