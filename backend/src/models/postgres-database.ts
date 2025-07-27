@@ -612,6 +612,61 @@ export class PostgresDatabase {
           console.log('⚠️ Migrácia 10 retry chyba:', retryError.message);
         }
       }
+
+      // Migrácia 11: Oprava vehicles.id typu z INTEGER na UUID
+      try {
+        console.log('📋 Migrácia 11: Opravujem vehicles.id typ z INTEGER na UUID...');
+        
+        // Najprv odstráň všetky foreign key constraints
+        await client.query(`
+          ALTER TABLE rentals DROP CONSTRAINT IF EXISTS rentals_vehicle_id_fkey;
+          ALTER TABLE expenses DROP CONSTRAINT IF EXISTS expenses_vehicle_id_fkey;
+          ALTER TABLE insurances DROP CONSTRAINT IF EXISTS insurances_vehicle_id_fkey;
+          ALTER TABLE vehicle_documents DROP CONSTRAINT IF EXISTS vehicle_documents_vehicle_id_fkey;
+          ALTER TABLE insurance_claims DROP CONSTRAINT IF EXISTS insurance_claims_vehicle_id_fkey;
+          ALTER TABLE vehicle_unavailability DROP CONSTRAINT IF EXISTS vehicle_unavailability_vehicle_id_fkey;
+        `);
+        
+        // Zmeň typ stĺpca z INTEGER na UUID
+        await client.query(`
+          ALTER TABLE vehicles ALTER COLUMN id TYPE UUID USING id::text::uuid;
+        `);
+        
+        // Pridaj späť všetky foreign key constraints
+        await client.query(`
+          ALTER TABLE rentals ADD CONSTRAINT rentals_vehicle_id_fkey 
+          FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL;
+          
+          ALTER TABLE expenses ADD CONSTRAINT expenses_vehicle_id_fkey 
+          FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL;
+          
+          ALTER TABLE insurances ADD CONSTRAINT insurances_vehicle_id_fkey 
+          FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE;
+          
+          ALTER TABLE vehicle_documents ADD CONSTRAINT vehicle_documents_vehicle_id_fkey 
+          FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE;
+          
+          ALTER TABLE insurance_claims ADD CONSTRAINT insurance_claims_vehicle_id_fkey 
+          FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE;
+          
+          ALTER TABLE vehicle_unavailability ADD CONSTRAINT vehicle_unavailability_vehicle_id_fkey 
+          FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE;
+        `);
+        
+        console.log('✅ Migrácia 11: vehicles.id typ opravený na UUID');
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 11 chyba:', error.message);
+        // Ak zlyhá konverzia, skús pridať stĺpec nanovo
+        try {
+          await client.query(`
+            ALTER TABLE vehicles DROP COLUMN IF EXISTS id;
+            ALTER TABLE vehicles ADD COLUMN id UUID PRIMARY KEY DEFAULT gen_random_uuid();
+          `);
+          console.log('✅ Migrácia 11: vehicles.id stĺpec znovu vytvorený ako UUID');
+        } catch (retryError: any) {
+          console.log('⚠️ Migrácia 11 retry chyba:', retryError.message);
+        }
+      }
       
       console.log('✅ Databázové migrácie úspešne dokončené');
     } catch (error: any) {
