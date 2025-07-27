@@ -76,8 +76,8 @@ router.get('/',
                   const companyNames = await Promise.all(
                     allowedCompanyIds.map(async (companyId) => {
                       try {
-                        const company = await postgresDatabase.getCompany(companyId);
-                        return company?.name;
+                        const companyName = await postgresDatabase.getCompanyNameById(companyId);
+                        return companyName;
                       } catch (error) {
                         return null;
                       }
