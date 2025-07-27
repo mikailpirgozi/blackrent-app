@@ -4,6 +4,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
+import { PermissionsProvider } from './context/PermissionsContext';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { CssBaseline, Box, CircularProgress } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -79,7 +80,8 @@ const AppContent: React.FC = () => {
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <AuthProvider>
-          <AppProvider>
+          <PermissionsProvider>
+            <AppProvider>
             <Router>
               <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
                 <Routes>
@@ -204,6 +206,7 @@ const AppContent: React.FC = () => {
                 </Box>
               </Router>
             </AppProvider>
+          </PermissionsProvider>
           </AuthProvider>
         </LocalizationProvider>
       </MuiThemeProvider>
