@@ -182,7 +182,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
             // FALLBACK 2: Legacy matching
             if (rental.vehicle?.company === company) {
               filteredRentals.push(rental);
-              console.log(`📝 Rental ${rental.id} - Legacy match: ${rental.vehicle.company}`);
+              console.log(`📝 Rental ${rental.id} - Legacy match: ${rental.vehicle?.company}`);
             }
           }
         }
