@@ -115,7 +115,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   searchQuery: propSearchQuery = '', 
   isMobile: propIsMobile 
 }) => {
-  const { state } = useApp();
+  const { state, getFilteredVehicles } = useApp();
   
   // MOBILNÁ RESPONSIBILITA - používame prop ak je poskytnutý
   const theme = useTheme();
@@ -517,7 +517,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       if (data.success) {
         console.log('✅ Calendar data received:', data.data);
         setCalendarData(data.data.calendar || []);
-        setVehicles(data.data.vehicles || []);
+        // Use filtered vehicles from context instead of API vehicles
+        setVehicles(getFilteredVehicles());
         setUnavailabilities(data.data.unavailabilities || []);
         
         // OPTIMALIZÁCIA: Update cache
@@ -530,13 +531,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       console.error('❌ Calendar fetch error:', err);
       setError('Chyba pri načítaní kalendárnych dát');
       
-      // Ak backend nefunguje, zobrazíme aspoň základné dáta
-      const mockVehicles = [
-        { id: '1', brand: 'BMW', model: 'X3', licensePlate: 'BA-123-AB' },
-        { id: '2', brand: 'Audi', model: 'A4', licensePlate: 'BA-456-CD' },
-        { id: '3', brand: 'Mercedes', model: 'C-Class', licensePlate: 'BA-789-EF' }
-      ];
-      setVehicles(mockVehicles);
+      // Ak backend nefunguje, zobrazíme aspoň filtrované vozidlá
+      const filteredVehicles = getFilteredVehicles();
+      setVehicles(filteredVehicles);
       
       // Mock kalendárne dáta pre celý mesiac
       const mockCalendar = eachDayOfInterval({
@@ -544,7 +541,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         end: endOfMonth(currentDate)
       }).map(date => ({
         date: format(date, 'yyyy-MM-dd'),
-        vehicles: mockVehicles.map(vehicle => ({
+        vehicles: filteredVehicles.map(vehicle => ({
           vehicleId: vehicle.id,
           vehicleName: `${vehicle.brand} ${vehicle.model}`,
           licensePlate: vehicle.licensePlate,
@@ -556,7 +553,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [currentDate, viewMode, fromDate, toDate]);
+  }, [currentDate, viewMode, fromDate, toDate, getFilteredVehicles]);
 
   useEffect(() => {
     if (viewMode === 'navigation') {

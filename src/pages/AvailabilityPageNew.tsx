@@ -30,7 +30,7 @@ import AvailabilityCalendar from '../components/availability/AvailabilityCalenda
 import { useApp } from '../context/AppContext';
 
 const AvailabilityPageNew: React.FC = () => {
-  const { state } = useApp();
+  const { state, getFilteredVehicles } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
   
@@ -43,8 +43,11 @@ const AvailabilityPageNew: React.FC = () => {
   const [showRented, setShowRented] = useState(true);
   const [showMaintenance, setShowMaintenance] = useState(true);
 
+  // Get filtered vehicles based on user permissions
+  const filteredVehicles = getFilteredVehicles();
+  
   // Get unique companies for filter
-  const uniqueCompanies = [...new Set(state.vehicles.map(v => v.company))].sort();
+  const uniqueCompanies = [...new Set(filteredVehicles.map(v => v.company))].sort();
 
   const handleRefresh = () => {
     // Trigger calendar refresh
@@ -212,7 +215,7 @@ const AvailabilityPageNew: React.FC = () => {
           }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {state.vehicles.filter(v => v.status === 'available').length}
+                {filteredVehicles.filter(v => v.status === 'available').length}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Dostupné
@@ -228,7 +231,7 @@ const AvailabilityPageNew: React.FC = () => {
           }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {state.vehicles.filter(v => v.status === 'rented').length}
+                {filteredVehicles.filter(v => v.status === 'rented').length}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Prenajaté
@@ -244,7 +247,7 @@ const AvailabilityPageNew: React.FC = () => {
           }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {state.vehicles.filter(v => v.status === 'maintenance').length}
+                {filteredVehicles.filter(v => v.status === 'maintenance').length}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Údržba
@@ -260,7 +263,7 @@ const AvailabilityPageNew: React.FC = () => {
           }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {state.vehicles.length}
+                {filteredVehicles.length}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Celkom
