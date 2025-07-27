@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
-import { User, AuthState, LoginCredentials } from '../types';
+import { User, AuthState, LoginCredentials, UserCompanyAccess } from '../types';
 import { apiService, API_BASE_URL } from '../services/api';
 import { StorageManager } from '../utils/storage';
 
@@ -13,6 +13,8 @@ interface AuthContextType {
   isAdmin: () => boolean;
   isEmployee: () => boolean;
   isCompanyUser: () => boolean;
+  userCompanyAccess: UserCompanyAccess[]; // Add this to expose user company access
+  refreshUserPermissions: () => Promise<void>; // Add method to refresh permissions
 }
 
 type AuthAction =
@@ -76,8 +78,21 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [userCompanyAccess, setUserCompanyAccess] = React.useState<UserCompanyAccess[]>([]);
 
   const getAuthData = (): { token: string | null; user: any | null } => {
     return StorageManager.getAuthData();
@@ -262,6 +277,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [state.isAuthenticated, state.token, state.user, restoreSession]);
 
+  // Function to load user company access
+  const loadUserCompanyAccess = async () => {
+    if (!state.user || state.user.role === 'admin') {
+      setUserCompanyAccess([]);
+      return;
+    }
+
+    try {
+      const access = await apiService.getUserCompanyAccess(state.user.id);
+      setUserCompanyAccess(access);
+      console.log('🔐 Loaded user company access:', access);
+    } catch (error) {
+      console.error('❌ Error loading user company access:', error);
+      setUserCompanyAccess([]);
+    }
+  };
+
+  // Load permissions when user changes
+  useEffect(() => {
+    if (state.isAuthenticated && state.user) {
+      loadUserCompanyAccess();
+    } else {
+      setUserCompanyAccess([]);
+    }
+  }, [state.user, state.isAuthenticated]);
+
   const login = async (credentials: LoginCredentials, rememberMe: boolean = true): Promise<boolean> => {
     dispatch({ type: 'SET_LOADING', payload: true });
     
@@ -344,22 +385,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const hasPermission = (resource: string, action: string): boolean => {
-    // Zjednodušené oprávnenia - admin má všetky práva
+    // Admin má všetky práva
     if (state.user?.role === 'admin') {
       return true;
     }
     
-    // Ostatní používatelia majú základné oprávnenia
-    const basicPermissions = {
-      'vehicles': ['read', 'create', 'update', 'delete'],
-      'rentals': ['read', 'create', 'update', 'delete'],
-      'customers': ['read', 'create', 'update', 'delete'],
-      'expenses': ['read', 'create', 'update', 'delete'],
-      'insurances': ['read', 'create', 'update', 'delete']
-    };
-
-    const allowedActions = basicPermissions[resource as keyof typeof basicPermissions] || [];
-    return allowedActions.includes(action);
+    // Pre ostatných používateľov skontroluj permissions v aspoň jednej firme
+    return userCompanyAccess.some(access => {
+      const resourcePermissions = (access.permissions as any)[resource];
+      if (!resourcePermissions) return false;
+      
+      // Convert action to permission key (read -> read, create/update/delete -> write)
+      const permissionKey = action === 'read' ? 'read' : 'write';
+      return resourcePermissions[permissionKey] === true;
+    });
   };
 
   const canAccessCompanyData = (companyId: string): boolean => {
@@ -368,8 +407,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     }
     
-    // Ostatní používatelia majú prístup ku všetkým firmám (zjednodušené)
-    return true;
+    // Pre ostatných používateľov skontroluj či majú prístup k danej firme
+    return userCompanyAccess.some(access => access.companyId === companyId);
   };
 
   const isAdmin = (): boolean => {
@@ -398,6 +437,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshUserPermissions = async () => {
+    await loadUserCompanyAccess();
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -410,17 +453,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin,
         isEmployee,
         isCompanyUser,
+        userCompanyAccess,
+        refreshUserPermissions,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 } 

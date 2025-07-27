@@ -263,6 +263,12 @@ export declare class PostgresDatabase {
         username: string;
         permissions: CompanyPermissions;
     }[]>;
+    getCompanyIdByName(companyName: string): Promise<string | null>;
+    getCompanyNameById(companyId: string): Promise<string | null>;
+    getAllCompanies(): Promise<{
+        id: string;
+        name: string;
+    }[]>;
 }
 export declare const postgresDatabase: PostgresDatabase;
 //# sourceMappingURL=postgres-database.d.ts.map

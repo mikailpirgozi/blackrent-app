@@ -671,6 +671,166 @@ class PostgresDatabase {
                 }
             }
             console.log('✅ Databázové migrácie úspešne dokončené');
+            // Migrácia 13: COMPANY SYSTEM CLEANUP - Oprava celého company systému
+            try {
+                console.log('📋 Migrácia 13: Company System Cleanup...');
+                // 13.1: Backup existujúcich dát
+                console.log('📋 13.1: Backup company dát...');
+                const existingCompanies = await client.query('SELECT id, name FROM companies ORDER BY id');
+                console.log(`📊 Našiel som ${existingCompanies.rows.length} firiem na migráciu`);
+                // 13.2: Vytvor novú companies tabuľku s UUID
+                console.log('📋 13.2: Vytváram novú companies tabuľku s UUID...');
+                await client.query('DROP TABLE IF EXISTS companies_new');
+                await client.query(`
+          CREATE TABLE companies_new (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name VARCHAR(255) NOT NULL,
+            business_id VARCHAR(50),
+            tax_id VARCHAR(50),
+            address TEXT,
+            contact_person VARCHAR(255),
+            email VARCHAR(255),
+            phone VARCHAR(50),
+            contract_start_date DATE,
+            contract_end_date DATE,
+            commission_rate DECIMAL(5,2) DEFAULT 20.00,
+            is_active BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+                // 13.3: Migruj dáta s novými UUID
+                console.log('📋 13.3: Migrujem company dáta s novými UUID...');
+                const companyMapping = new Map(); // old_id -> new_uuid
+                for (const company of existingCompanies.rows) {
+                    const result = await client.query(`
+            INSERT INTO companies_new (name, is_active, created_at)
+            VALUES ($1, true, CURRENT_TIMESTAMP)
+            RETURNING id
+          `, [company.name]);
+                    const newUuid = result.rows[0].id;
+                    companyMapping.set(company.id, newUuid);
+                    console.log(`   ${company.id} (${company.name}) -> ${newUuid}`);
+                }
+                // 13.4: Aktualizuj user_permissions s novými UUID
+                console.log('📋 13.4: Aktualizujem user_permissions...');
+                const permissions = await client.query('SELECT id, company_id FROM user_permissions');
+                for (const perm of permissions.rows) {
+                    const newUuid = companyMapping.get(parseInt(perm.company_id));
+                    if (newUuid) {
+                        await client.query('UPDATE user_permissions SET company_id = $1 WHERE id = $2', [newUuid, perm.id]);
+                    }
+                }
+                // 13.5: Aktualizuj users.company_id s novými UUID
+                console.log('📋 13.5: Aktualizujem users.company_id...');
+                const users = await client.query('SELECT id, company_id FROM users WHERE company_id IS NOT NULL');
+                for (const user of users.rows) {
+                    const newUuid = companyMapping.get(parseInt(user.company_id));
+                    if (newUuid) {
+                        await client.query('UPDATE users SET company_id = $1 WHERE id = $2', [newUuid, user.id]);
+                    }
+                }
+                // 13.6: Nahraď starú companies tabuľku
+                console.log('📋 13.6: Nahrádzam starú companies tabuľku...');
+                // Najprv odstráň všetky FK constraints na companies
+                try {
+                    await client.query('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_company_id_fkey');
+                    await client.query('ALTER TABLE user_permissions DROP CONSTRAINT IF EXISTS user_permissions_company_id_fkey');
+                    await client.query('ALTER TABLE vehicles DROP CONSTRAINT IF EXISTS vehicles_company_id_fkey');
+                    console.log('   ✅ FK constraints odstránené');
+                }
+                catch (e) {
+                    console.log('   ⚠️ FK constraints už neexistujú');
+                }
+                await client.query('DROP TABLE companies');
+                await client.query('ALTER TABLE companies_new RENAME TO companies');
+                // Pridaj nové FK constraints
+                try {
+                    await client.query('ALTER TABLE users ADD CONSTRAINT users_company_id_fkey FOREIGN KEY (company_id) REFERENCES companies(id)');
+                    await client.query('ALTER TABLE user_permissions ADD CONSTRAINT user_permissions_company_id_fkey FOREIGN KEY (company_id) REFERENCES companies(id)');
+                    console.log('   ✅ Nové FK constraints pridané');
+                }
+                catch (e) {
+                    console.log('   ⚠️ FK constraints sa nepodarilo pridať:', e.message);
+                }
+                // 13.7: Odstráň duplicitné company_id polia
+                console.log('📋 13.7: Odstraňujem duplicitné company_id polia...');
+                try {
+                    await client.query('ALTER TABLE vehicles DROP COLUMN IF EXISTS company_id');
+                    console.log('   ✅ vehicles.company_id odstránené');
+                }
+                catch (e) {
+                    console.log('   ⚠️ vehicles.company_id už neexistuje');
+                }
+                try {
+                    await client.query('ALTER TABLE settlements DROP COLUMN IF EXISTS company_id');
+                    console.log('   ✅ settlements.company_id odstránené');
+                }
+                catch (e) {
+                    console.log('   ⚠️ settlements.company_id už neexistuje');
+                }
+                // 13.8: Pridaj chýbajúce company polia
+                console.log('📋 13.8: Pridávam chýbajúce company polia...');
+                // Expenses
+                try {
+                    await client.query('ALTER TABLE expenses ADD COLUMN IF NOT EXISTS company VARCHAR(255) DEFAULT \'Unknown\'');
+                    console.log('   ✅ expenses.company pridané');
+                }
+                catch (e) {
+                    console.log('   ⚠️ expenses.company už existuje');
+                }
+                // Insurances
+                try {
+                    await client.query('ALTER TABLE insurances ADD COLUMN IF NOT EXISTS company VARCHAR(255) DEFAULT \'Unknown\'');
+                    console.log('   ✅ insurances.company pridané');
+                }
+                catch (e) {
+                    console.log('   ⚠️ insurances.company už existuje');
+                }
+                // Rentals - nepridávame company pole, lebo sa filtruje cez vehicle.company
+                console.log('   ℹ️ rentals.company nie je potrebné - filtruje sa cez vehicle.company');
+                console.log('✅ Migrácia 13: Company System Cleanup dokončená');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 13 chyba:', error.message);
+            }
+            // Migrácia 14: FINAL COMPANY CLEANUP - Odstránenie owner_name a priradenie company všetkým
+            try {
+                console.log('📋 Migrácia 14: Final Company Cleanup...');
+                // 14.1: Odstráň owner_name z vehicles (nie je potrebné)
+                console.log('📋 14.1: Odstraňujem owner_name z vehicles...');
+                try {
+                    await client.query('ALTER TABLE vehicles DROP COLUMN IF EXISTS owner_name');
+                    console.log('   ✅ vehicles.owner_name odstránené');
+                }
+                catch (e) {
+                    console.log('   ⚠️ vehicles.owner_name už neexistuje');
+                }
+                // 14.2: Priradenie company všetkým používateľom (Lubka ako default)
+                console.log('📋 14.2: Priradenie company všetkým používateľom...');
+                const lubkaId = await this.getCompanyIdByName('Lubka');
+                if (lubkaId) {
+                    const result = await client.query(`
+            UPDATE users 
+            SET company_id = $1 
+            WHERE company_id IS NULL
+          `, [lubkaId]);
+                    console.log(`   ✅ ${result.rowCount} používateľov priradených k Lubka company`);
+                }
+                else {
+                    console.log('   ⚠️ Lubka company nenájdená');
+                }
+                // 14.3: Skontroluj že všetko má company assignment
+                console.log('📋 14.3: Kontrola company assignments...');
+                const usersWithoutCompany = await client.query('SELECT COUNT(*) FROM users WHERE company_id IS NULL');
+                console.log(`   Users bez company: ${usersWithoutCompany.rows[0].count}`);
+                const vehiclesWithCompany = await client.query('SELECT COUNT(*) FROM vehicles WHERE company IS NOT NULL');
+                console.log(`   Vehicles s company: ${vehiclesWithCompany.rows[0].count}`);
+                console.log('✅ Migrácia 14: Final Company Cleanup dokončená');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 14 chyba:', error.message);
+            }
         }
         catch (error) {
             console.log('⚠️ Migrácie celkovo preskočené:', error.message);
@@ -3639,6 +3799,40 @@ class PostgresDatabase {
                 userId: row.user_id,
                 username: row.username,
                 permissions: row.permissions
+            }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🔄 COMPANY MAPPING FUNCTIONS
+    async getCompanyIdByName(companyName) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT id FROM companies WHERE name = $1', [companyName]);
+            return result.rows.length > 0 ? result.rows[0].id : null;
+        }
+        finally {
+            client.release();
+        }
+    }
+    async getCompanyNameById(companyId) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT name FROM companies WHERE id = $1', [companyId]);
+            return result.rows.length > 0 ? result.rows[0].name : null;
+        }
+        finally {
+            client.release();
+        }
+    }
+    async getAllCompanies() {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT id, name FROM companies ORDER BY name');
+            return result.rows.map(row => ({
+                id: row.id,
+                name: row.name
             }));
         }
         finally {
