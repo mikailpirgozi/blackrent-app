@@ -97,4 +97,80 @@ router.post('/reset-database',
   }
 );
 
+// 🔧 FIX DATABASE SCHEMA - ADMIN ONLY
+router.post('/fix-schema', 
+  authenticateToken,
+  requireRole(['admin']),
+  async (req: Request, res: Response) => {
+    try {
+      console.log('🔧 ADMIN: Starting schema fix...');
+      
+      const client = await (postgresDatabase as any).pool.connect();
+      try {
+        // SQL script na opravu schémy
+        const fixSchemaSQL = `
+          -- 🔧 OPRAVA DATABÁZOVEJ SCHÉMY
+          BEGIN;
+          
+          -- 1. OPRAVA COMPANIES TABUĽKY
+          ALTER TABLE companies ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+          UPDATE companies SET is_active = true WHERE is_active IS NULL;
+          
+          -- 2. OPRAVA VEHICLES TABUĽKY  
+          ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS year INTEGER DEFAULT 2024;
+          ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS stk DATE;
+          
+          -- 3. OPRAVA RENTALS TABUĽKY
+          ALTER TABLE rentals ALTER COLUMN vehicle_id DROP NOT NULL;
+          
+          COMMIT;
+        `;
+        
+        await client.query(fixSchemaSQL);
+        
+        // Diagnostika - zisti štruktúru tabuliek
+        const companiesInfo = await client.query(`
+          SELECT column_name, data_type, is_nullable, column_default 
+          FROM information_schema.columns 
+          WHERE table_name = 'companies' 
+          ORDER BY ordinal_position
+        `);
+        
+        const vehiclesInfo = await client.query(`
+          SELECT column_name, data_type, is_nullable, column_default 
+          FROM information_schema.columns 
+          WHERE table_name = 'vehicles' 
+          ORDER BY ordinal_position
+        `);
+        
+        console.log('✅ Schema fix completed');
+        console.log('📊 Companies columns:', companiesInfo.rows.length);
+        console.log('📊 Vehicles columns:', vehiclesInfo.rows.length);
+        
+        res.json({
+          success: true,
+          message: 'Databázová schéma úspešne opravená',
+          details: {
+            companiesColumns: companiesInfo.rows.length,
+            vehiclesColumns: vehiclesInfo.rows.length,
+            companiesStructure: companiesInfo.rows,
+            vehiclesStructure: vehiclesInfo.rows
+          }
+        });
+        
+      } finally {
+        client.release();
+      }
+      
+    } catch (error) {
+      console.error('❌ Schema fix error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri oprave schémy',
+        details: error instanceof Error ? error.message : 'Neznáma chyba'
+      });
+    }
+  }
+);
+
 export default router; 
