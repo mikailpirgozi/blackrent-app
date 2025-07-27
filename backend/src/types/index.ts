@@ -5,7 +5,6 @@ export interface Vehicle {
   year?: number;
   licensePlate: string;
   company: string;
-  ownerName?: string; // 👤 Meno majiteľa (hlavný identifikátor - Lubka, Peter, atď.)
   pricing: PricingTier[];
   commission: Commission;
   status: VehicleStatus;
