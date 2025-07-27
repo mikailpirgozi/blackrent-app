@@ -359,6 +359,9 @@ export class PostgresDatabase {
       // Vytvorenie testovacích dát ak databáza je prázdna
       await this.createSampleDataIfEmpty(client);
       
+      // DATA INTEGRITY VALIDATION - Kompletná kontrola dát
+      await this.validateDataIntegrity(client);
+      
       console.log('✅ PostgreSQL tabuľky inicializované');
     } catch (error) {
       console.error('❌ Chyba pri inicializácii tabuliek:', error);
@@ -711,14 +714,23 @@ export class PostgresDatabase {
       
       console.log('✅ Databázové migrácie úspešne dokončené');
       
-      // Migrácia 13: COMPANY SYSTEM CLEANUP - Oprava celého company systému
-      // KONTROLA: Spustiť len ak nebola už spustená
-      const migration13Check = await client.query(`
-        SELECT COUNT(*) as count FROM information_schema.tables 
-        WHERE table_name = 'companies_new'
+      // MIGRATION TRACKING SYSTEM - Vytvor tabuľku pre tracking migrácií
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS migration_history (
+          id SERIAL PRIMARY KEY,
+          migration_name VARCHAR(255) UNIQUE NOT NULL,
+          executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          success BOOLEAN DEFAULT true
+        )
       `);
       
-      if (migration13Check.rows[0].count > 0) {
+      // Migrácia 13: COMPANY SYSTEM CLEANUP - Oprava celého company systému
+      const migration13Executed = await client.query(`
+        SELECT COUNT(*) as count FROM migration_history 
+        WHERE migration_name = 'migration_13_company_cleanup'
+      `);
+      
+      if (migration13Executed.rows[0].count > 0) {
         console.log('📋 Migrácia 13: Už bola spustená, preskakujem...');
       } else {
         try {
@@ -852,6 +864,13 @@ export class PostgresDatabase {
         
         console.log('✅ Migrácia 13: Company System Cleanup dokončená');
         
+        // Mark migration as completed
+        await client.query(`
+          INSERT INTO migration_history (migration_name) 
+          VALUES ('migration_13_company_cleanup') 
+          ON CONFLICT (migration_name) DO NOTHING
+        `);
+        
         } catch (error: any) {
           console.log('⚠️ Migrácia 13 chyba:', error.message);
         }
@@ -902,15 +921,13 @@ export class PostgresDatabase {
       }
       
       // Migrácia 15: Oprava vehicle_id v rentals
-      // KONTROLA: Spustiť len ak sú skutočne neplatné vehicle_id
-      const invalidRentalsCheck = await client.query(`
-        SELECT COUNT(*) as count FROM rentals r 
-        LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
-        WHERE r.vehicle_id IS NOT NULL AND v.id IS NULL
+      const migration15Executed = await client.query(`
+        SELECT COUNT(*) as count FROM migration_history 
+        WHERE migration_name = 'migration_15_vehicle_id_fix'
       `);
       
-      if (invalidRentalsCheck.rows[0].count == 0) {
-        console.log('📋 Migrácia 15: Všetky vehicle_id sú platné, preskakujem...');
+      if (migration15Executed.rows[0].count > 0) {
+        console.log('📋 Migrácia 15: Už bola spustená, preskakujem...');
       } else {
         try {
           console.log('📋 Migrácia 15: Oprava vehicle_id v rentals...');
@@ -959,6 +976,13 @@ export class PostgresDatabase {
         
         console.log('✅ Migrácia 15: Vehicle_id v rentals opravené');
         
+        // Mark migration as completed
+        await client.query(`
+          INSERT INTO migration_history (migration_name) 
+          VALUES ('migration_15_vehicle_id_fix') 
+          ON CONFLICT (migration_name) DO NOTHING
+        `);
+        
         } catch (error: any) {
           console.log('⚠️ Migrácia 15 chyba:', error.message);
         }
@@ -993,6 +1017,77 @@ export class PostgresDatabase {
       }
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
+    }
+  }
+
+  // DATA INTEGRITY VALIDATION
+  private async validateDataIntegrity(client: PoolClient) {
+    console.log('🔍 Spúšťam data integrity validation...');
+    
+    try {
+      // 1. Kontrola orphaned rentals (rentals bez platných vehicles)
+      const orphanedRentals = await client.query(`
+        SELECT r.id, r.customer_name, r.vehicle_id 
+        FROM rentals r 
+        LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
+        WHERE r.vehicle_id IS NOT NULL AND v.id IS NULL
+      `);
+      
+      if (orphanedRentals.rows.length > 0) {
+        console.log(`⚠️ PROBLÉM: ${orphanedRentals.rows.length} rentals má neplatné vehicle_id`);
+        for (const rental of orphanedRentals.rows) {
+          console.log(`   ❌ Rental ${rental.id} (${rental.customer_name}) -> neexistujúce vehicle_id: ${rental.vehicle_id}`);
+        }
+      } else {
+        console.log('✅ Všetky rentals majú platné vehicle_id');
+      }
+      
+      // 2. Kontrola vehicles bez owner_company_id
+      const vehiclesWithoutCompany = await client.query(`
+        SELECT id, brand, model, license_plate, company 
+        FROM vehicles 
+        WHERE owner_company_id IS NULL
+      `);
+      
+      if (vehiclesWithoutCompany.rows.length > 0) {
+        console.log(`⚠️ PROBLÉM: ${vehiclesWithoutCompany.rows.length} vozidiel nemá owner_company_id`);
+      } else {
+        console.log('✅ Všetky vozidlá majú owner_company_id');
+      }
+      
+      // 3. Kontrola users bez company_id
+      const usersWithoutCompany = await client.query(`
+        SELECT id, username, role 
+        FROM users 
+        WHERE company_id IS NULL AND role = 'company_owner'
+      `);
+      
+      if (usersWithoutCompany.rows.length > 0) {
+        console.log(`⚠️ PROBLÉM: ${usersWithoutCompany.rows.length} company_owner users nemá company_id`);
+      } else {
+        console.log('✅ Všetci company_owner users majú company_id');
+      }
+      
+      // 4. Kontrola UUID konzistentnosti
+      const uuidConsistency = await client.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM vehicles WHERE id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') as valid_vehicle_uuids,
+          (SELECT COUNT(*) FROM vehicles) as total_vehicles,
+          (SELECT COUNT(*) FROM users WHERE id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') as valid_user_uuids,
+          (SELECT COUNT(*) FROM users) as total_users
+      `);
+      
+      const uuidData = uuidConsistency.rows[0];
+      if (uuidData.valid_vehicle_uuids == uuidData.total_vehicles && uuidData.valid_user_uuids == uuidData.total_users) {
+        console.log('✅ UUID formát je konzistentný');
+      } else {
+        console.log(`⚠️ PROBLÉM: UUID formát nie je konzistentný - Vehicles: ${uuidData.valid_vehicle_uuids}/${uuidData.total_vehicles}, Users: ${uuidData.valid_user_uuids}/${uuidData.total_users}`);
+      }
+      
+      console.log('✅ Data integrity validation dokončená');
+      
+    } catch (error: any) {
+      console.log('⚠️ Data integrity validation chyba:', error.message);
     }
   }
 
