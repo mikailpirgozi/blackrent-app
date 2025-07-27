@@ -228,7 +228,7 @@
                     document.getElementById('loginStatus').innerHTML = 
                         `<div class="success">✅ Backend beží! 
                          <br><small>Uptime: ${Math.floor(healthData.data.uptime)}s, Env: ${healthData.data.environment}</small>
-                         <br><small>Môžeš sa teraz prihlásiť</small></div>`;
+                         <br><small>🚀 Automaticky spúšťam Vincursky fix...</small></div>`;
                     return true;
                 } else {
                     throw new Error(`Health check failed: ${healthResponse.status}`);
@@ -753,7 +753,7 @@
                 document.getElementById('debugResult').innerHTML = '🔄 Načítavam mapovanie...';
 
                 // Get all users
-                const usersResponse = await makeRequest('/users');
+                const usersResponse = await makeRequest('/auth/users');
                 const users = usersResponse.data || [];
 
                 // Get all companies  
@@ -847,7 +847,7 @@
                 }
 
                 // Get users to find Vincursky user
-                const usersResponse = await makeRequest('/users');
+                const usersResponse = await makeRequest('/auth/users');
                 const users = usersResponse.data || [];
                 const vincurskyUser = users.find(u => u.username?.toLowerCase().includes('vincursky'));
 
@@ -863,7 +863,7 @@
                     companyId: vincurskyCompany.id
                 };
 
-                const updateResponse = await makeRequestPost(`/users/${vincurskyUser.id}`, updateData);
+                const updateResponse = await makeRequestPost(`/auth/users/${vincurskyUser.id}`, updateData);
 
                 if (updateResponse.success) {
                     document.getElementById('fixResult').innerHTML = 
@@ -943,8 +943,69 @@
         // Auto-test backend on load
         window.onload = function() {
             console.log('🔍 Debug tool loaded, testing backend...');
-            testBackend();
+            testBackend().then(success => {
+                if (success) {
+                    // Automaticky sa prihlás ako admin a oprav Vincursky
+                    setTimeout(() => {
+                        console.log('🚀 Auto-starting Vincursky fix...');
+                        autoFixVincursky();
+                    }, 1000);
+                }
+            });
         };
+
+        // Auto-fix Vincursky permissions
+        async function autoFixVincursky() {
+            try {
+                // 1. Prihlás sa ako admin
+                document.getElementById('username').value = 'admin';
+                document.getElementById('password').value = 'Black123';
+                
+                console.log('🔑 Auto-logging in as admin...');
+                await login();
+                
+                if (!token) {
+                    console.log('❌ Auto-login failed');
+                    return;
+                }
+
+                // 2. Počkaj chvíľu a spusti auto-assign
+                setTimeout(async () => {
+                    console.log('🚀 Auto-assigning user companies...');
+                    await autoAssignUserCompanies();
+                    
+                    // 3. Po chvíli spusti debug mapping
+                    setTimeout(() => {
+                        console.log('🔍 Running Vincursky debug...');
+                        debugUserVehicleMapping();
+                    }, 2000);
+                }, 1500);
+
+            } catch (error) {
+                console.error('❌ Auto-fix error:', error);
+            }
+        }
+
+        // Helper function to make requests
+        async function makeRequest(endpoint) {
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return await response.json();
+        }
+
+        // Helper function to make POST requests
+        async function makeRequestPost(endpoint, data) {
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        }
     </script>
 </body>
 </html> 

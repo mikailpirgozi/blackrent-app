@@ -560,6 +560,140 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
   }
 });
 
+// POST /api/vehicles/:id/transfer-ownership - Transfer vlastníctva vozidla
+router.post('/:id/transfer-ownership', 
+  authenticateToken,
+  requireRole(['admin']), // Len admin môže robiť transfer
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { id: vehicleId } = req.params;
+      const { 
+        newOwnerCompanyId, 
+        transferReason = 'manual_transfer',
+        transferNotes = null,
+        transferDate 
+      } = req.body;
 
+      console.log('🔄 Vehicle Ownership Transfer:', {
+        vehicleId,
+        newOwnerCompanyId,
+        transferReason,
+        transferDate: transferDate || 'now',
+        requestedBy: req.user?.username
+      });
+
+      // Validácia
+      if (!newOwnerCompanyId) {
+        return res.status(400).json({
+          success: false,
+          error: 'New owner company ID is required'
+        });
+      }
+
+      // Overenie, že vozidlo existuje
+      const vehicle = await postgresDatabase.getVehicle(vehicleId);
+      if (!vehicle) {
+        return res.status(404).json({
+          success: false,
+          error: 'Vehicle not found'
+        });
+      }
+
+      // Získanie súčasného vlastníka pre logovanie
+      const currentOwner = await postgresDatabase.getCurrentVehicleOwner(vehicleId);
+      
+      // Transfer ownership
+      const transferDate_parsed = transferDate ? new Date(transferDate) : new Date();
+      
+      await postgresDatabase.transferVehicleOwnership(
+        vehicleId,
+        newOwnerCompanyId,
+        transferReason,
+        transferNotes,
+        transferDate_parsed
+      );
+
+      // Získanie nového vlastníka pre response
+      const newOwner = await postgresDatabase.getCurrentVehicleOwner(vehicleId);
+
+      console.log('✅ Vehicle ownership transferred successfully:', {
+        vehicleId,
+        vehicle: `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`,
+        fromCompany: currentOwner?.ownerCompanyName || 'Unknown',
+        toCompany: newOwner?.ownerCompanyName || 'Unknown',
+        transferDate: transferDate_parsed,
+        reason: transferReason
+      });
+
+      res.json({
+        success: true,
+        message: `Vehicle ownership transferred successfully from ${currentOwner?.ownerCompanyName || 'Unknown'} to ${newOwner?.ownerCompanyName || 'Unknown'}`,
+        data: {
+          vehicleId,
+          vehicle: {
+            brand: vehicle.brand,
+            model: vehicle.model,
+            licensePlate: vehicle.licensePlate
+          },
+          previousOwner: currentOwner,
+          newOwner: newOwner,
+          transferDate: transferDate_parsed,
+          transferReason,
+          transferNotes
+        }
+      });
+
+    } catch (error) {
+      console.error('Vehicle ownership transfer error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Transfer failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  }
+);
+
+// GET /api/vehicles/:id/ownership-history - História vlastníctva vozidla
+router.get('/:id/ownership-history',
+  authenticateToken,
+  requireRole(['admin']), // Len admin môže vidieť históriu
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { id: vehicleId } = req.params;
+
+      // Overenie, že vozidlo existuje
+      const vehicle = await postgresDatabase.getVehicle(vehicleId);
+      if (!vehicle) {
+        return res.status(404).json({
+          success: false,
+          error: 'Vehicle not found'
+        });
+      }
+
+      // Získanie ownership history
+      const history = await postgresDatabase.getVehicleOwnershipHistory(vehicleId);
+
+      res.json({
+        success: true,
+        data: {
+          vehicle: {
+            id: vehicle.id,
+            brand: vehicle.brand,
+            model: vehicle.model,
+            licensePlate: vehicle.licensePlate
+          },
+          ownershipHistory: history
+        }
+      });
+
+    } catch (error) {
+      console.error('Get ownership history error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Failed to get ownership history: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  }
+);
 
 export default router; 

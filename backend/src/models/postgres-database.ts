@@ -835,6 +835,92 @@ export class PostgresDatabase {
       } catch (error: any) {
         console.log('⚠️ Migrácia 17 chyba:', error.message);
       }
+
+      // Migrácia 18: Vehicle Ownership History - Pre tracking zmien vlastníctva vozidiel
+      try {
+        console.log('📋 Migrácia 18: Vytváram vehicle ownership history tabuľku...');
+        
+        // Skontroluj či tabuľka už existuje
+        const tableExists = await client.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_name = 'vehicle_ownership_history'
+        `);
+        
+        if (tableExists.rows.length === 0) {
+          // Vytvor vehicle ownership history tabuľku
+          await client.query(`
+            CREATE TABLE vehicle_ownership_history (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+              owner_company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+              owner_company_name VARCHAR(255) NOT NULL, -- cached pre performance
+              valid_from TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              valid_to TIMESTAMP, -- NULL = aktívny vlastník
+              transfer_reason VARCHAR(255) DEFAULT 'initial_setup', -- 'sale', 'acquisition', 'lease_end', etc.
+              transfer_notes TEXT,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+          console.log('   ✅ vehicle_ownership_history tabuľka vytvorená');
+          
+          // Vytvor indexy pre performance
+          await client.query(`
+            CREATE INDEX idx_vehicle_ownership_history_vehicle_id 
+            ON vehicle_ownership_history(vehicle_id)
+          `);
+          await client.query(`
+            CREATE INDEX idx_vehicle_ownership_history_owner_company_id 
+            ON vehicle_ownership_history(owner_company_id)
+          `);
+          await client.query(`
+            CREATE INDEX idx_vehicle_ownership_history_valid_period 
+            ON vehicle_ownership_history(valid_from, valid_to)
+          `);
+          await client.query(`
+            CREATE UNIQUE INDEX idx_vehicle_ownership_one_active 
+            ON vehicle_ownership_history(vehicle_id) 
+            WHERE valid_to IS NULL
+          `);
+          console.log('   ✅ Indexy pre ownership history vytvorené');
+          
+          // Migrácia existujúcich dát - vytvor historický záznam pre každé vozidlo
+          const migratedRows = await client.query(`
+            INSERT INTO vehicle_ownership_history (
+              vehicle_id, 
+              owner_company_id, 
+              owner_company_name, 
+              valid_from, 
+              transfer_reason
+            )
+            SELECT 
+              v.id as vehicle_id,
+              v.owner_company_id,
+              c.name as owner_company_name,
+              COALESCE(v.created_at, CURRENT_TIMESTAMP - INTERVAL '1 year') as valid_from,
+              'initial_setup' as transfer_reason
+            FROM vehicles v
+            JOIN companies c ON v.owner_company_id = c.id
+            WHERE v.owner_company_id IS NOT NULL
+            AND NOT EXISTS (
+              SELECT 1 FROM vehicle_ownership_history voh 
+              WHERE voh.vehicle_id = v.id
+            )
+            RETURNING id
+          `);
+          console.log(`   ✅ ${migratedRows.rowCount} existujúcich vozidiel migrovanych do ownership history`);
+          
+        } else {
+          console.log('   ℹ️ vehicle_ownership_history tabuľka už existuje');
+        }
+        
+        console.log('✅ Migrácia 18: Vehicle Ownership History úspešne vytvorená');
+        
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 18 chyba:', error.message);
+      }
+
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
     }
@@ -4429,6 +4515,194 @@ export class PostgresDatabase {
     }
   }
 
+  // 🏗️ VEHICLE OWNERSHIP HISTORY FUNCTIONS
+  
+  // Získanie aktuálneho vlastníka vozidla
+  async getCurrentVehicleOwner(vehicleId: string): Promise<{ownerCompanyId: string, ownerCompanyName: string} | null> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT owner_company_id, owner_company_name
+        FROM vehicle_ownership_history
+        WHERE vehicle_id = $1 AND valid_to IS NULL
+        ORDER BY valid_from DESC
+        LIMIT 1
+      `, [vehicleId]);
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      return {
+        ownerCompanyId: result.rows[0].owner_company_id,
+        ownerCompanyName: result.rows[0].owner_company_name
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  // Získanie vlastníka vozidla v konkrétnom čase
+  async getVehicleOwnerAtTime(vehicleId: string, timestamp: Date): Promise<{ownerCompanyId: string, ownerCompanyName: string} | null> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT owner_company_id, owner_company_name
+        FROM vehicle_ownership_history
+        WHERE vehicle_id = $1 
+          AND valid_from <= $2
+          AND (valid_to IS NULL OR valid_to > $2)
+        ORDER BY valid_from DESC
+        LIMIT 1
+      `, [vehicleId, timestamp]);
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      return {
+        ownerCompanyId: result.rows[0].owner_company_id,
+        ownerCompanyName: result.rows[0].owner_company_name
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  // Získanie histórie vlastníctva vozidla
+  async getVehicleOwnershipHistory(vehicleId: string): Promise<{
+    id: string,
+    ownerCompanyId: string,
+    ownerCompanyName: string,
+    validFrom: Date,
+    validTo: Date | null,
+    transferReason: string,
+    transferNotes: string | null
+  }[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT 
+          id,
+          owner_company_id,
+          owner_company_name,
+          valid_from,
+          valid_to,
+          transfer_reason,
+          transfer_notes
+        FROM vehicle_ownership_history
+        WHERE vehicle_id = $1
+        ORDER BY valid_from DESC
+      `, [vehicleId]);
+
+      return result.rows.map(row => ({
+        id: row.id,
+        ownerCompanyId: row.owner_company_id,
+        ownerCompanyName: row.owner_company_name,
+        validFrom: row.valid_from,
+        validTo: row.valid_to,
+        transferReason: row.transfer_reason,
+        transferNotes: row.transfer_notes
+      }));
+    } finally {
+      client.release();
+    }
+  }
+
+  // Transfer vlastníctva vozidla
+  async transferVehicleOwnership(
+    vehicleId: string, 
+    newOwnerCompanyId: string, 
+    transferReason: string = 'manual_transfer',
+    transferNotes: string | null = null,
+    transferDate: Date = new Date()
+  ): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Získaj názov novej firmy
+      const companyResult = await client.query(`
+        SELECT name FROM companies WHERE id = $1
+      `, [newOwnerCompanyId]);
+
+      if (companyResult.rows.length === 0) {
+        throw new Error(`Company with ID ${newOwnerCompanyId} not found`);
+      }
+
+      const newOwnerCompanyName = companyResult.rows[0].name;
+
+      // 2. Ukončí súčasné vlastníctvo
+      await client.query(`
+        UPDATE vehicle_ownership_history 
+        SET valid_to = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE vehicle_id = $2 AND valid_to IS NULL
+      `, [transferDate, vehicleId]);
+
+      // 3. Vytvor nový ownership záznam
+      await client.query(`
+        INSERT INTO vehicle_ownership_history (
+          vehicle_id, 
+          owner_company_id, 
+          owner_company_name,
+          valid_from, 
+          transfer_reason, 
+          transfer_notes
+        ) VALUES ($1, $2, $3, $4, $5, $6)
+      `, [vehicleId, newOwnerCompanyId, newOwnerCompanyName, transferDate, transferReason, transferNotes]);
+
+      // 4. Aktualizuj vehicles tabuľku pre súčasný stav
+      await client.query(`
+        UPDATE vehicles 
+        SET owner_company_id = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2
+      `, [newOwnerCompanyId, vehicleId]);
+
+      await client.query('COMMIT');
+      return true;
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Transfer ownership error:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  // Získanie vozidiel firmy v konkrétnom čase
+  async getCompanyVehiclesAtTime(companyId: string, timestamp: Date): Promise<Vehicle[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT DISTINCT v.*
+        FROM vehicles v
+        JOIN vehicle_ownership_history voh ON v.id = voh.vehicle_id
+        WHERE voh.owner_company_id = $1
+          AND voh.valid_from <= $2
+          AND (voh.valid_to IS NULL OR voh.valid_to > $2)
+        ORDER BY v.brand, v.model, v.license_plate
+      `, [companyId, timestamp]);
+
+      return result.rows.map(row => ({
+        id: row.id,
+        brand: row.brand,
+        model: row.model,
+        year: row.year,
+        licensePlate: row.license_plate,
+        company: row.company,
+        ownerCompanyId: row.owner_company_id?.toString(),
+        pricing: row.pricing,
+        commission: row.commission,
+        status: row.status,
+        stk: row.stk,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }));
+    } finally {
+      client.release();
+    }
+  }
 
 }
 

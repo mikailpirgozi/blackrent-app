@@ -28,6 +28,7 @@ const Statistics = lazy(() => import('./components/Statistics'));
 const UserManagement = lazy(() => import('./components/users/UserManagementNew'));
 const SettlementList = lazy(() => import('./components/settlements/SettlementListNew'));
 const AvailabilityPage = lazy(() => import('./pages/AvailabilityPageNew'));
+const VehicleOwnershipTransfer = lazy(() => import('./components/admin/VehicleOwnershipTransfer'));
 
 // OPTIMALIZOVANÝ Loading component pre lazy loaded routes
 const PageLoader = () => (
@@ -197,6 +198,18 @@ const AppContent: React.FC = () => {
                           <ErrorBoundary>
                             <Suspense fallback={<PageLoader />}>
                               <AvailabilityPage />
+                            </Suspense>
+                          </ErrorBoundary>
+                        </Layout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/admin/vehicle-ownership" element={
+                      <ProtectedRoute allowedRoles={['admin']}>
+                        <Layout>
+                          <ErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                              <VehicleOwnershipTransfer />
                             </Suspense>
                           </ErrorBoundary>
                         </Layout>

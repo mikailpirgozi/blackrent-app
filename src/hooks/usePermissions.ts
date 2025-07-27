@@ -141,55 +141,133 @@ export function usePermissions() {
 
     return {
       // 🔍 COMPANY-BASED PERMISSION FUNCTIONS
-      canRead: (resource: string, context?: { companyId?: string }) => 
-        hasCompanyPermission(userCompanyAccess, user.role, resource, 'read', context).hasAccess,
+      canRead: (resource: string, context?: { companyId?: string }) => {
+        // Pre company_owner - automaticky povolí resources definované v backend ROLE_PERMISSIONS
+        if (user.role === 'company_owner') {
+          const backendPermissions = ['vehicles', 'rentals', 'expenses', 'insurances', 'companies', 'finances', 'protocols', 'settlements', 'customers'];
+          if (backendPermissions.includes(resource)) {
+            return true;
+          }
+        }
+        return hasCompanyPermission(userCompanyAccess, user.role, resource, 'read', context).hasAccess;
+      },
 
-      canCreate: (resource: string, context?: { companyId?: string }) => 
-        hasCompanyPermission(userCompanyAccess, user.role, resource, 'write', context).hasAccess,
+      canCreate: (resource: string, context?: { companyId?: string }) => {
+        // Pre company_owner - obmedzené create permissions
+        if (user.role === 'company_owner') {
+          const writePermissions = ['rentals', 'expenses', 'settlements']; // len niektoré resources môže vytvárať
+          if (writePermissions.includes(resource)) {
+            return true;
+          }
+          return false;
+        }
+        return hasCompanyPermission(userCompanyAccess, user.role, resource, 'write', context).hasAccess;
+      },
 
-      canUpdate: (resource: string, context?: { companyId?: string }) => 
-        hasCompanyPermission(userCompanyAccess, user.role, resource, 'write', context).hasAccess,
+      canUpdate: (resource: string, context?: { companyId?: string }) => {
+        // Pre company_owner - obmedzené update permissions  
+        if (user.role === 'company_owner') {
+          const updatePermissions = ['companies', 'settlements']; // len svoju firmu a vyúčtovania môže upraviť
+          if (updatePermissions.includes(resource)) {
+            return true;
+          }
+          return false;
+        }
+        return hasCompanyPermission(userCompanyAccess, user.role, resource, 'write', context).hasAccess;
+      },
 
-      canDelete: (resource: string, context?: { companyId?: string }) => 
-        hasCompanyPermission(userCompanyAccess, user.role, resource, 'delete', context).hasAccess,
+      canDelete: (resource: string, context?: { companyId?: string }) => {
+        // Pre company_owner - obmedzené delete permissions
+        if (user.role === 'company_owner') {
+          const deletePermissions = ['settlements']; // len vyúčtovania môže mazať
+          if (deletePermissions.includes(resource)) {
+            return true;
+          }
+          return false;
+        }
+        return hasCompanyPermission(userCompanyAccess, user.role, resource, 'delete', context).hasAccess;
+      },
 
       // 🛡️ FULL PERMISSION CHECK
       hasPermission: (resource: Permission['resource'], action: Permission['actions'][0], context?: any): PermissionResult => {
-        // Pre admin používame legacy funkciu, pre ostatných company-based
+        // Pre admin používame legacy funkciu
         if (user.role === 'admin') {
           return hasLegacyPermission(user.role, resource, action, {
             userId: user.id,
             companyId: user.companyId,
             ...context
           });
-        } else {
-          // Pre ostatných používame company-based permissions
-          const actionMap = {
-            'read': 'read',
-            'create': 'write',
-            'update': 'write',
-            'delete': 'delete'
-          } as const;
+        }
+        
+        // Pre company_owner používame vlastnú logiku
+        if (user.role === 'company_owner') {
+          const backendPermissions = ['vehicles', 'rentals', 'expenses', 'insurances', 'companies', 'finances', 'protocols', 'settlements', 'customers'];
           
-          const mappedAction = actionMap[action as keyof typeof actionMap];
-          if (!mappedAction) {
-            return { hasAccess: false, requiresApproval: false, reason: 'Neznáma akcia' };
+          if (action === 'read' && backendPermissions.includes(resource)) {
+            return { hasAccess: true, requiresApproval: false };
           }
           
-          return hasCompanyPermission(userCompanyAccess, user.role, resource, mappedAction, {
-            userId: user.id,
-            companyId: user.companyId,
-            ...context
-          });
+          if (action === 'create' && ['rentals', 'expenses', 'settlements'].includes(resource)) {
+            return { hasAccess: true, requiresApproval: false };
+          }
+          
+          if (action === 'update' && ['companies', 'settlements'].includes(resource)) {
+            return { hasAccess: true, requiresApproval: false };
+          }
+          
+          if (action === 'delete' && ['settlements'].includes(resource)) {
+            return { hasAccess: true, requiresApproval: false };
+          }
+          
+          return { hasAccess: false, requiresApproval: false, reason: 'Company owner nemá oprávnenie na túto akciu' };
         }
+        
+        // Pre ostatných používame company-based permissions
+        const actionMap = {
+          'read': 'read',
+          'create': 'write',
+          'update': 'write',
+          'delete': 'delete'
+        } as const;
+        
+        const mappedAction = actionMap[action as keyof typeof actionMap];
+        if (!mappedAction) {
+          return { hasAccess: false, requiresApproval: false, reason: 'Neznáma akcia' };
+        }
+        
+        return hasCompanyPermission(userCompanyAccess, user.role, resource, mappedAction, {
+          userId: user.id,
+          companyId: user.companyId,
+          ...context
+        });
       },
 
       // 🏢 COMPANY-BASED PERMISSION CHECK
-      hasCompanyPermission: (resource: string, action: 'read' | 'write' | 'delete', context?: { companyId?: string }): PermissionResult =>
-        hasCompanyPermission(userCompanyAccess, user.role, resource, action, {
+      hasCompanyPermission: (resource: string, action: 'read' | 'write' | 'delete', context?: { companyId?: string }): PermissionResult => {
+        // Pre company_owner používame vlastnú logiku
+        if (user.role === 'company_owner') {
+          const backendPermissions = ['vehicles', 'rentals', 'expenses', 'insurances', 'companies', 'finances', 'protocols', 'settlements', 'customers'];
+          
+          if (action === 'read' && backendPermissions.includes(resource)) {
+            return { hasAccess: true, requiresApproval: false };
+          }
+          
+          if (action === 'write' && ['rentals', 'expenses', 'companies', 'settlements'].includes(resource)) {
+            return { hasAccess: true, requiresApproval: false };
+          }
+          
+          if (action === 'delete' && ['settlements'].includes(resource)) {
+            return { hasAccess: true, requiresApproval: false };
+          }
+          
+          return { hasAccess: false, requiresApproval: false, reason: 'Company owner nemá oprávnenie na túto akciu' };
+        }
+        
+        return hasCompanyPermission(userCompanyAccess, user.role, resource, action, {
           userId: user.id,
           ...context
-        }),
+        });
+      },
 
       // 📋 GET ALL USER PERMISSIONS
       getUserPermissions: () => ROLE_PERMISSIONS[user.role] || [],
