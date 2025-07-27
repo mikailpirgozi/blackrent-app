@@ -65,8 +65,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { usePermissions, getUserRoleDisplayName } from '../../hooks/usePermissions';
 import { PermissionGuard, RoleGuard } from '../common/PermissionGuard';
-import { User, UserRole, Company } from '../../types';
+import { User, UserRole, Company, UserCompanyAccess } from '../../types';
 import { apiService } from '../../services/api';
+import UserCompanyPermissions from './UserCompanyPermissions';
 
 interface UserFormData {
   username: string;
@@ -147,6 +148,9 @@ export default function UserManagementNew() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [showPasswords, setShowPasswords] = useState(false);
+  
+  // Permissions state
+  const [userPermissions, setUserPermissions] = useState<UserCompanyAccess[]>([]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -282,6 +286,7 @@ export default function UserManagementNew() {
     setDialogOpen(true);
     setError(null);
     setSuccess(null);
+    setUserPermissions([]); // Reset permissions
   };
 
   const handleCloseDialog = () => {
@@ -289,6 +294,7 @@ export default function UserManagementNew() {
     setEditingUser(null);
     setError(null);
     setSuccess(null);
+    setUserPermissions([]); // Reset permissions
   };
 
   const handleSubmit = async () => {
@@ -323,12 +329,35 @@ export default function UserManagementNew() {
         (userData as any).password = formData.password;
       }
 
+      let userId: string;
+      
       if (editingUser) {
         await apiService.updateUser(editingUser.id, userData);
+        userId = editingUser.id;
         setSuccess('Používateľ úspešne aktualizovaný');
       } else {
-        await apiService.createUser(userData as User);
+        const newUser = await apiService.createUser(userData as User);
+        userId = newUser.id;
         setSuccess('Používateľ úspešne vytvorený');
+      }
+
+      // Ulož oprávnenia používateľa na firmy
+      if (userPermissions.length > 0) {
+        try {
+          console.log('🔐 Saving user permissions:', userPermissions);
+          const assignments = userPermissions.map(access => ({
+            userId: userId,
+            companyId: access.companyId,
+            permissions: access.permissions
+          }));
+          
+          await apiService.setUserPermissionsBulk(assignments);
+          console.log('🔐 User permissions saved successfully');
+        } catch (permError) {
+          console.error('❌ Error saving permissions:', permError);
+          setError('Používateľ bol vytvorený, ale nepodarilo sa uložiť oprávnenia');
+          return;
+        }
       }
 
       console.log('👤 User saved, refreshing list...');
@@ -766,7 +795,7 @@ export default function UserManagementNew() {
         <Dialog 
           open={dialogOpen} 
           onClose={handleCloseDialog}
-          maxWidth="md"
+          maxWidth="lg"
           fullWidth
         >
           <DialogTitle>
@@ -889,6 +918,15 @@ export default function UserManagementNew() {
                 />
               </Grid>
             </Grid>
+
+            {/* Permissions Section */}
+            <Box sx={{ mt: 4 }}>
+              <Divider sx={{ mb: 3 }} />
+              <UserCompanyPermissions
+                userId={editingUser?.id}
+                onPermissionsChange={setUserPermissions}
+              />
+            </Box>
           </DialogContent>
           
           <DialogActions sx={{ p: 3 }}>

@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
-import { UserRole, Permission, PermissionResult } from '../types';
+import { useMemo, useState, useEffect } from 'react';
+import { UserRole, Permission, PermissionResult, UserCompanyAccess, CompanyPermissions, ResourcePermission } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { apiService } from '../services/api';
 
-// 🔐 FRONTEND ROLE PERMISSIONS MATRIX (mirror backendu)
+// 🔐 FRONTEND ROLE PERMISSIONS MATRIX (fallback pre admin)
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   // 👑 ADMIN - Úplné práva na všetko
   admin: [
@@ -13,161 +14,78 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     }
   ],
 
-  // 👥 EMPLOYEE - Základné operácie s vozidlami, prenájmami, zákazníkmi
-  employee: [
-    {
-      resource: 'vehicles',
-      actions: ['read', 'create', 'update'],
-      conditions: {}
-    },
-    {
-      resource: 'rentals',
-      actions: ['read', 'create', 'update'],
-      conditions: {}
-    },
-    {
-      resource: 'customers',
-      actions: ['read', 'create', 'update'],
-      conditions: {}
-    },
-    {
-      resource: 'maintenance',
-      actions: ['read', 'create'],
-      conditions: {}
-    },
-    {
-      resource: 'protocols',
-      actions: ['read', 'create', 'update'],
-      conditions: {}
-    }
-  ],
-
-  // 🔧 TEMP WORKER - Obmedzené práva, hlavne čítanie
-  temp_worker: [
-    {
-      resource: 'vehicles',
-      actions: ['read'],
-      conditions: {}
-    },
-    {
-      resource: 'rentals',
-      actions: ['read', 'create'],
-      conditions: {}
-    },
-    {
-      resource: 'customers',
-      actions: ['read', 'create'],
-      conditions: {}
-    },
-    {
-      resource: 'protocols',
-      actions: ['read', 'create'],
-      conditions: {}
-    }
-  ],
-
-  // 🔨 MECHANIC - Špecializované práva na údržbu
-  mechanic: [
-    {
-      resource: 'vehicles',
-      actions: ['read', 'update'],
-      conditions: {
-        ownOnly: true, // len priradené vozidlá
-        readOnlyFields: ['price', 'purchasePrice']
-      }
-    },
-    {
-      resource: 'maintenance',
-      actions: ['read', 'create', 'update', 'delete'],
-      conditions: {
-        ownOnly: true
-      }
-    },
-    {
-      resource: 'protocols',
-      actions: ['read', 'create', 'update'],
-      conditions: {
-        ownOnly: true
-      }
-    }
-  ],
-
-  // 💼 SALES REP - Obchodné operácie s limitmi
-  sales_rep: [
-    {
-      resource: 'vehicles',
-      actions: ['read'],
-      conditions: {}
-    },
-    {
-      resource: 'rentals',
-      actions: ['read', 'create', 'update'],
-      conditions: {}
-    },
-    {
-      resource: 'customers',
-      actions: ['read', 'create', 'update'],
-      conditions: {}
-    },
-    {
-      resource: 'pricing',
-      actions: ['read', 'update'],
-      conditions: {
-        maxAmount: 5000, // max cena prenájmu
-        approvalRequired: true
-      }
-    }
-  ],
-
-  // 🏢 COMPANY OWNER - Len vlastné vozidlá a súvisiace dáta
-  company_owner: [
-    {
-      resource: 'vehicles',
-      actions: ['read'],
-      conditions: {
-        companyOnly: true // len vlastné vozidlá
-      }
-    },
-    {
-      resource: 'rentals',
-      actions: ['read'],
-      conditions: {
-        companyOnly: true
-      }
-    },
-    {
-      resource: 'expenses',
-      actions: ['read'],
-      conditions: {
-        companyOnly: true // len náklady pre vlastné vozidlá
-      }
-    },
-    {
-      resource: 'insurances',
-      actions: ['read'],
-      conditions: {
-        companyOnly: true // len poistky pre vlastné vozidlá
-      }
-    },
-    {
-      resource: 'finances',
-      actions: ['read'],
-      conditions: {
-        companyOnly: true,
-        readOnlyFields: ['totalRevenue', 'commission']
-      }
-    },
-    {
-      resource: 'protocols',
-      actions: ['read'],
-      conditions: {
-        companyOnly: true
-      }
-    }
-  ]
+  // Ostatné roly sa teraz riadia company-based permissions
+  employee: [],
+  temp_worker: [],
+  mechanic: [],
+  sales_rep: [],
+  company_owner: []
 };
 
-// 🛡️ PERMISSION CHECK FUNCTION (frontend verzia)
+// 🛡️ COMPANY-BASED PERMISSION CHECK FUNCTION
+export function hasCompanyPermission(
+  userCompanyAccess: UserCompanyAccess[],
+  userRole: UserRole,
+  resource: string,
+  action: 'read' | 'write' | 'delete',
+  context?: {
+    companyId?: string;
+    userId?: string;
+  }
+): PermissionResult {
+  // Admin má vždy práva
+  if (userRole === 'admin') {
+    return { hasAccess: true, requiresApproval: false };
+  }
+
+  // Ak nie je zadané companyId, skontroluj všetky firmy používateľa
+  if (!context?.companyId) {
+    // Má používateľ prístup k tomuto resource aspoň v jednej firme?
+    const hasAnyAccess = userCompanyAccess.some(access => {
+      const resourcePermission = access.permissions[resource as keyof CompanyPermissions];
+      if (!resourcePermission) return false;
+      
+      if (action === 'read') return resourcePermission.read;
+      if (action === 'write') return resourcePermission.write;
+      if (action === 'delete') return resourcePermission.delete;
+      return false;
+    });
+
+    if (hasAnyAccess) {
+      return { hasAccess: true, requiresApproval: false };
+    } else {
+      return { hasAccess: false, requiresApproval: false, reason: 'Nemáte oprávnenie k tomuto zdroju v žiadnej firme' };
+    }
+  }
+
+  // Kontrola pre konkrétnu firmu
+  const companyAccess = userCompanyAccess.find(access => access.companyId === context.companyId);
+  if (!companyAccess) {
+    return { hasAccess: false, requiresApproval: false, reason: 'Nemáte prístup k tejto firme' };
+  }
+
+  const resourcePermission = companyAccess.permissions[resource as keyof CompanyPermissions];
+  if (!resourcePermission) {
+    return { hasAccess: false, requiresApproval: false, reason: 'Neznámy zdroj' };
+  }
+
+  let hasAccess = false;
+  if (action === 'read') hasAccess = resourcePermission.read;
+  if (action === 'write') hasAccess = resourcePermission.write;
+  if (action === 'delete') hasAccess = resourcePermission.delete;
+
+  if (hasAccess) {
+    return { hasAccess: true, requiresApproval: false };
+  } else {
+    return { 
+      hasAccess: false, 
+      requiresApproval: false, 
+      reason: `Nemáte oprávnenie na '${action}' pre '${resource}' v tejto firme` 
+    };
+  }
+}
+
+// 🛡️ LEGACY PERMISSION CHECK FUNCTION (pre spätnú kompatibilitu)
 export function hasPermission(
   userRole: UserRole, 
   resource: Permission['resource'], 
@@ -187,57 +105,42 @@ export function hasPermission(
     return { hasAccess: true, requiresApproval: false };
   }
 
-  // Nájdi relevantné permission pre resource
-  const permission = rolePermissions.find(p => 
-    p.resource === resource || p.resource === '*'
-  );
-
-  if (!permission) {
-    return { hasAccess: false, requiresApproval: false, reason: 'Žiadne oprávnenie pre tento resource' };
-  }
-
-  // Skontroluj action
-  if (!permission.actions.includes(action)) {
-    return { hasAccess: false, requiresApproval: false, reason: `Akcia '${action}' nie je povolená` };
-  }
-
-  // Skontroluj podmienky
-  const conditions = permission.conditions;
-  if (conditions && context) {
-    // Kontrola "ownOnly"
-    if (conditions.ownOnly && context.resourceOwnerId !== context.userId) {
-      return { hasAccess: false, requiresApproval: false, reason: 'Prístup len k vlastným záznamom' };
-    }
-
-    // Kontrola "companyOnly"
-    if (conditions.companyOnly && context.resourceCompanyId !== context.companyId) {
-      return { hasAccess: false, requiresApproval: false, reason: 'Prístup len k záznamom vlastnej firmy' };
-    }
-
-    // Kontrola max amount
-    if (conditions.maxAmount && context.amount && context.amount > conditions.maxAmount) {
-      if (conditions.approvalRequired) {
-        return { 
-          hasAccess: true, 
-          requiresApproval: true, 
-          reason: `Suma ${context.amount}€ presahuje limit ${conditions.maxAmount}€` 
-        };
-      } else {
-        return { hasAccess: false, requiresApproval: false, reason: `Maximálna povolená suma je ${conditions.maxAmount}€` };
-      }
-    }
-  }
-
-  return { 
-    hasAccess: true, 
-    requiresApproval: conditions?.approvalRequired || false 
-  };
+  // Pre ostatné roly vráti false - používajú sa company permissions
+  return { hasAccess: false, requiresApproval: false, reason: 'Používajte company-based permissions' };
 }
 
 // 🎯 REACT HOOK PRE PERMISSIONS
 export function usePermissions() {
   const { state } = useAuth();
   const user = state.user;
+  const [userCompanyAccess, setUserCompanyAccess] = useState<UserCompanyAccess[]>([]);
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const [permissionsError, setPermissionsError] = useState<string | null>(null);
+
+  // Načítaj company permissions pre používateľa
+  useEffect(() => {
+    if (!user || user.role === 'admin') {
+      setUserCompanyAccess([]);
+      return;
+    }
+
+    const fetchUserPermissions = async () => {
+      try {
+        setPermissionsLoading(true);
+        setPermissionsError(null);
+        const accessData = await apiService.getUserCompanyAccess(user.id);
+        setUserCompanyAccess(accessData);
+      } catch (error) {
+        console.error('Error fetching user permissions:', error);
+        setPermissionsError('Chyba pri načítavaní oprávnení');
+        setUserCompanyAccess([]);
+      } finally {
+        setPermissionsLoading(false);
+      }
+    };
+
+    fetchUserPermissions();
+  }, [user]);
 
   const permissions = useMemo(() => {
     if (!user) {
@@ -247,46 +150,35 @@ export function usePermissions() {
         canUpdate: () => false,
         canDelete: () => false,
         hasPermission: (): PermissionResult => ({ hasAccess: false, requiresApproval: false, reason: 'Používateľ nie je prihlásený' }),
+        hasCompanyPermission: (): PermissionResult => ({ hasAccess: false, requiresApproval: false, reason: 'Používateľ nie je prihlásený' }),
         getUserPermissions: () => [],
+        getUserCompanyAccess: () => [],
+        getAccessibleCompanies: () => [],
         currentUser: null,
         isAdmin: false,
         isEmployee: false,
         isTempWorker: false,
         isMechanic: false,
         isSalesRep: false,
-        isCompanyOwner: false
+        isCompanyOwner: false,
+        permissionsLoading: false,
+        permissionsError: null
       };
     }
 
     return {
-      // 🔍 QUICK ACCESS FUNCTIONS
-      canRead: (resource: Permission['resource'], context?: any) => 
-        hasPermission(user.role, resource, 'read', {
-          userId: user.id,
-          companyId: user.companyId,
-          ...context
-        }).hasAccess,
+      // 🔍 COMPANY-BASED PERMISSION FUNCTIONS
+      canRead: (resource: string, context?: { companyId?: string }) => 
+        hasCompanyPermission(userCompanyAccess, user.role, resource, 'read', context).hasAccess,
 
-      canCreate: (resource: Permission['resource'], context?: any) => 
-        hasPermission(user.role, resource, 'create', {
-          userId: user.id,
-          companyId: user.companyId,
-          ...context
-        }).hasAccess,
+      canCreate: (resource: string, context?: { companyId?: string }) => 
+        hasCompanyPermission(userCompanyAccess, user.role, resource, 'write', context).hasAccess,
 
-      canUpdate: (resource: Permission['resource'], context?: any) => 
-        hasPermission(user.role, resource, 'update', {
-          userId: user.id,
-          companyId: user.companyId,
-          ...context
-        }).hasAccess,
+      canUpdate: (resource: string, context?: { companyId?: string }) => 
+        hasCompanyPermission(userCompanyAccess, user.role, resource, 'write', context).hasAccess,
 
-      canDelete: (resource: Permission['resource'], context?: any) => 
-        hasPermission(user.role, resource, 'delete', {
-          userId: user.id,
-          companyId: user.companyId,
-          ...context
-        }).hasAccess,
+      canDelete: (resource: string, context?: { companyId?: string }) => 
+        hasCompanyPermission(userCompanyAccess, user.role, resource, 'delete', context).hasAccess,
 
       // 🛡️ FULL PERMISSION CHECK
       hasPermission: (resource: Permission['resource'], action: Permission['actions'][0], context?: any): PermissionResult =>
@@ -296,8 +188,24 @@ export function usePermissions() {
           ...context
         }),
 
+      // 🏢 COMPANY-BASED PERMISSION CHECK
+      hasCompanyPermission: (resource: string, action: 'read' | 'write' | 'delete', context?: { companyId?: string }): PermissionResult =>
+        hasCompanyPermission(userCompanyAccess, user.role, resource, action, {
+          userId: user.id,
+          ...context
+        }),
+
       // 📋 GET ALL USER PERMISSIONS
       getUserPermissions: () => ROLE_PERMISSIONS[user.role] || [],
+      
+      // 🏢 GET USER COMPANY ACCESS
+      getUserCompanyAccess: () => userCompanyAccess,
+
+      // 🏢 GET ACCESSIBLE COMPANIES
+      getAccessibleCompanies: () => userCompanyAccess.map(access => ({
+        id: access.companyId,
+        name: access.companyName
+      })),
 
       // 👤 CURRENT USER INFO
       currentUser: user,
@@ -308,9 +216,13 @@ export function usePermissions() {
       isTempWorker: user.role === 'temp_worker',
       isMechanic: user.role === 'mechanic',
       isSalesRep: user.role === 'sales_rep',
-      isCompanyOwner: user.role === 'company_owner'
+      isCompanyOwner: user.role === 'company_owner',
+
+      // 📊 LOADING & ERROR STATES
+      permissionsLoading,
+      permissionsError
     };
-  }, [user]);
+  }, [user, userCompanyAccess, permissionsLoading, permissionsError]);
 
   return permissions;
 }

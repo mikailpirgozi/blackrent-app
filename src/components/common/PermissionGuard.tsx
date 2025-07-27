@@ -8,8 +8,7 @@ interface PermissionGuardProps {
   resource: Permission['resource'];
   action: Permission['actions'][0];
   context?: {
-    resourceOwnerId?: string;
-    resourceCompanyId?: string;
+    companyId?: string;
     amount?: number;
   };
   children: React.ReactNode;
@@ -127,14 +126,14 @@ export function Can({
 // 🏢 COMPANY OWNER GUARD
 interface CompanyOnlyProps {
   resource: Permission['resource'];
-  resourceCompanyId?: string;
+  companyId?: string;
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }
 
 export function CompanyOnly({
   resource,
-  resourceCompanyId,
+  companyId,
   children,
   fallback
 }: CompanyOnlyProps) {
@@ -142,7 +141,7 @@ export function CompanyOnly({
 
   // Company owner môže vidieť len svoje company resources
   if (currentUser?.role === 'company_owner') {
-    const canAccess = canRead(resource, { resourceCompanyId });
+    const canAccess = canRead(resource, { companyId });
     return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : null);
   }
 
@@ -153,21 +152,21 @@ export function CompanyOnly({
 
 // 🔨 MECHANIC ONLY GUARD
 interface MechanicOnlyProps {
-  resourceOwnerId?: string;
+  companyId?: string;
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }
 
 export function MechanicOnly({
-  resourceOwnerId,
+  companyId,
   children,
   fallback
 }: MechanicOnlyProps) {
   const { currentUser, canUpdate } = usePermissions();
 
-  // Mechanic môže vidieť len svoje priradené vozidlá
+  // Mechanic môže vidieť len vozidlá v firmách kde má oprávnenia
   if (currentUser?.role === 'mechanic') {
-    const canAccess = canUpdate('vehicles', { resourceOwnerId });
+    const canAccess = canUpdate('vehicles', { companyId });
     return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : null);
   }
 
