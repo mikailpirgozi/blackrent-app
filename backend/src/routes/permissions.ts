@@ -40,6 +40,9 @@ router.get('/user/:userId/access', authenticateToken, async (req: Request, res: 
     
     const access = await postgresDatabase.getUserCompanyAccess(userId);
     
+    // ✅ Dáta už obsahujú správne company UUID a názvy z migrácie 13
+    console.log(`🔐 API getUserCompanyAccess - returning ${access.length} company access records for user ${userId}`);
+    
     res.json({
       success: true,
       data: access,

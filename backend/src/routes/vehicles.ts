@@ -29,19 +29,50 @@ router.get('/',
       
       console.log('🚗 Vehicles GET - user:', { 
         role: req.user?.role, 
-        companyId: req.user?.companyId, 
+        userId: req.user?.id,
         totalVehicles: vehicles.length 
       });
       
-      // 🏢 COMPANY OWNER - filter len vlastné vozidlá
-      if (req.user?.role === 'company_owner' && req.user.companyId) {
+      // 🔐 NON-ADMIN USERS - filter podľa company permissions
+      if (req.user?.role !== 'admin' && req.user) {
+        const user = req.user; // TypeScript safe assignment
         const originalCount = vehicles.length;
-        vehicles = vehicles.filter(v => v.ownerCompanyId === req.user?.companyId);
-        console.log('🏢 Company Owner Filter:', {
-          userCompanyId: req.user.companyId,
+        
+        // Získaj company access pre používateľa
+        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user.id);
+        const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+        
+        // Filter vozidlá len pre firmy, ku ktorým má používateľ prístup
+        vehicles = vehicles.filter(v => {
+          // Ak má vozidlo nastavené owner_company_id, skontroluj to
+          if (v.ownerCompanyId && allowedCompanyIds.includes(v.ownerCompanyId)) {
+            return true;
+          }
+          
+          // Ak nemá owner_company_id, pokús sa namapovať podľa textového company názvu
+          // (temporary fallback - neskôr opravíme data mapping)
+          if (!v.ownerCompanyId && v.company) {
+            return userCompanyAccess.some(access => 
+              access.companyName === v.company || 
+              access.companyName.includes(v.company) ||
+              v.company.includes(access.companyName)
+            );
+          }
+          
+          return false;
+        });
+        
+        console.log('🔐 Company Permission Filter:', {
+          userId: user.id,
+          allowedCompanyIds,
+          userCompanyAccess: userCompanyAccess.map(a => ({ id: a.companyId, name: a.companyName })),
           originalCount,
           filteredCount: vehicles.length,
-          sampleVehicleOwners: vehicles.slice(0, 3).map(v => ({ id: v.id, ownerCompanyId: v.ownerCompanyId }))
+          sampleResults: vehicles.slice(0, 3).map(v => ({ 
+            licensePlate: v.licensePlate, 
+            company: v.company, 
+            ownerCompanyId: v.ownerCompanyId 
+          }))
         });
       }
       

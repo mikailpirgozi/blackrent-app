@@ -31,14 +31,54 @@ router.get('/',
     try {
       let rentals = await postgresDatabase.getRentals();
       
-      // 🏢 COMPANY OWNER - filter len prenájmy vlastných vozidiel
-      if (req.user?.role === 'company_owner' && req.user.companyId) {
-        const vehicles = await postgresDatabase.getVehicles();
-        const companyVehicleIds = vehicles
-          .filter(v => v.ownerCompanyId === req.user?.companyId)
-          .map(v => v.id);
+      console.log('🚗 Rentals GET - user:', { 
+        role: req.user?.role, 
+        userId: req.user?.id,
+        totalRentals: rentals.length 
+      });
+      
+      // 🔐 NON-ADMIN USERS - filter podľa company permissions
+      if (req.user?.role !== 'admin' && req.user) {
+        const user = req.user; // TypeScript safe assignment
+        const originalCount = rentals.length;
         
-        rentals = rentals.filter(r => r.vehicleId && companyVehicleIds.includes(r.vehicleId));
+        // Získaj company access pre používateľa
+        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user.id);
+        const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+        
+        // Získaj všetky vehicles pre mapping
+        const vehicles = await postgresDatabase.getVehicles();
+        
+        // Filter prenájmy len pre vozidlá firiem, ku ktorým má používateľ prístup
+        rentals = rentals.filter(r => {
+          if (!r.vehicleId) return false;
+          
+          const vehicle = vehicles.find(v => v.id === r.vehicleId);
+          if (!vehicle) return false;
+          
+          // Ak má vozidlo nastavené owner_company_id, skontroluj to
+          if (vehicle.ownerCompanyId && allowedCompanyIds.includes(vehicle.ownerCompanyId)) {
+            return true;
+          }
+          
+          // Fallback - textový matching company názvu
+          if (!vehicle.ownerCompanyId && vehicle.company) {
+            return userCompanyAccess.some(access => 
+              access.companyName === vehicle.company || 
+              access.companyName.includes(vehicle.company) ||
+              vehicle.company.includes(access.companyName)
+            );
+          }
+          
+          return false;
+        });
+        
+        console.log('🔐 Rentals Company Permission Filter:', {
+          userId: user.id,
+          allowedCompanyIds,
+          originalCount,
+          filteredCount: rentals.length
+        });
       }
       
       res.json({
