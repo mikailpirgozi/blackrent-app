@@ -1002,7 +1002,7 @@ export class PostgresDatabase {
         'SELECT * FROM vehicles ORDER BY created_at DESC'
       );
       
-      return result.rows.map(row => ({
+      const vehicles = result.rows.map(row => ({
         ...row,
         id: row.id?.toString() || '',
         licensePlate: row.license_plate, // Mapovanie column názvu
@@ -1012,6 +1012,56 @@ export class PostgresDatabase {
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
         createdAt: new Date(row.created_at)
       }));
+
+      // 🔧 AUTO-FIX: Automaticky oprav ownerCompanyId pre vozidlá ktoré ho nemajú
+      const vehiclesToFix = vehicles.filter(v => !v.ownerCompanyId && v.company?.trim());
+      
+      if (vehiclesToFix.length > 0) {
+        console.log(`🔧 AUTO-FIX: Found ${vehiclesToFix.length} vehicles without ownerCompanyId, fixing...`);
+        
+        // Získaj všetky firmy pre mapovanie
+        const companiesResult = await client.query('SELECT id, name FROM companies');
+        const companyMap = new Map();
+        companiesResult.rows.forEach(company => {
+          companyMap.set(company.name.toLowerCase().trim(), company.id);
+        });
+
+        // Oprav vozidlá
+        for (const vehicle of vehiclesToFix) {
+          try {
+            const companyName = vehicle.company.trim();
+            const companyNameLower = companyName.toLowerCase();
+            
+            let companyId = companyMap.get(companyNameLower);
+            
+            // Vytvor firmu ak neexistuje
+            if (!companyId) {
+              const newCompanyResult = await client.query(
+                'INSERT INTO companies (name) VALUES ($1) RETURNING id', 
+                [companyName]
+              );
+              companyId = newCompanyResult.rows[0].id;
+              companyMap.set(companyNameLower, companyId);
+              console.log(`🆕 AUTO-FIX: Created company "${companyName}" with ID ${companyId}`);
+            }
+            
+            // Aktualizuj vozidlo
+            await client.query(
+              'UPDATE vehicles SET company_id = $1 WHERE id = $2',
+              [companyId, vehicle.id]
+            );
+            
+            // Aktualizuj vozidlo v pamäti
+            vehicle.ownerCompanyId = companyId.toString();
+            console.log(`✅ AUTO-FIX: ${vehicle.brand} ${vehicle.model} → ${companyName} (${companyId})`);
+            
+          } catch (fixError) {
+            console.error(`❌ AUTO-FIX error for vehicle ${vehicle.id}:`, fixError);
+          }
+        }
+      }
+
+      return vehicles;
     } finally {
       client.release();
     }

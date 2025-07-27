@@ -2139,5 +2139,177 @@ router.post('/auto-assign-vehicles', auth_1.authenticateToken, (0, auth_1.requir
         });
     }
 });
+// 🔍 DEBUG - Vincursky account analysis
+router.get('/debug-vincursky', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), async (req, res) => {
+    try {
+        console.log('🔍 DEBUG: Analyzing Vincursky account...');
+        // 1. Find Vincursky user
+        const vincurskyUser = await postgres_database_1.postgresDatabase.getUserByUsername('vincursky');
+        console.log('👤 Vincursky user:', vincurskyUser ? {
+            id: vincurskyUser.id,
+            username: vincurskyUser.username,
+            role: vincurskyUser.role,
+            companyId: vincurskyUser.companyId
+        } : 'NOT FOUND');
+        // 2. Find all companies
+        const companies = await postgres_database_1.postgresDatabase.getCompanies();
+        console.log('🏢 All companies:', companies.map(c => ({ id: c.id, name: c.name })));
+        // 3. Find Vincursky company
+        const vincurskyCompany = companies.find(c => c.name.toLowerCase().includes('vincursky'));
+        console.log('🏢 Vincursky company:', vincurskyCompany || 'NOT FOUND');
+        // 4. Find all vehicles
+        const allVehicles = await postgres_database_1.postgresDatabase.getVehicles();
+        console.log('🚗 Total vehicles:', allVehicles.length);
+        // 5. Find vehicles with Vincursky company
+        const vincurskyVehicles = allVehicles.filter(v => v.company?.toLowerCase().includes('vincursky') ||
+            (vincurskyCompany && v.ownerCompanyId === vincurskyCompany.id));
+        console.log('🚗 Vincursky vehicles:', vincurskyVehicles.map(v => ({
+            id: v.id,
+            brand: v.brand,
+            model: v.model,
+            licensePlate: v.licensePlate,
+            company: v.company,
+            ownerCompanyId: v.ownerCompanyId
+        })));
+        // 6. Test filtering logic
+        let filteredVehicles = allVehicles;
+        if (vincurskyUser?.role === 'company_owner' && vincurskyUser.companyId) {
+            filteredVehicles = allVehicles.filter(v => v.ownerCompanyId === vincurskyUser.companyId);
+            console.log('🔍 Filtered vehicles for Vincursky:', filteredVehicles.length);
+        }
+        res.json({
+            success: true,
+            data: {
+                user: vincurskyUser ? {
+                    id: vincurskyUser.id,
+                    username: vincurskyUser.username,
+                    role: vincurskyUser.role,
+                    companyId: vincurskyUser.companyId
+                } : null,
+                companies: companies.map(c => ({ id: c.id, name: c.name })),
+                vincurskyCompany,
+                allVehiclesCount: allVehicles.length,
+                vincurskyVehicles: vincurskyVehicles.map(v => ({
+                    id: v.id,
+                    brand: v.brand,
+                    model: v.model,
+                    licensePlate: v.licensePlate,
+                    company: v.company,
+                    ownerCompanyId: v.ownerCompanyId
+                })),
+                filteredVehiclesCount: filteredVehicles.length,
+                filteringWorks: vincurskyUser?.role === 'company_owner' && vincurskyUser.companyId ?
+                    filteredVehicles.length > 0 : 'N/A - not company_owner or no companyId'
+            }
+        });
+    }
+    catch (error) {
+        console.error('❌ Debug Vincursky error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Debug error: ${error instanceof Error ? error.message : String(error)}`
+        });
+    }
+});
+// 🔧 MIGRATION - Fix ownerCompanyId for all existing vehicles
+router.post('/migrate-vehicle-companies', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), async (req, res) => {
+    try {
+        console.log('🔧 MIGRATION: Fixing ownerCompanyId for all vehicles...');
+        // 1. Get all vehicles
+        const allVehicles = await postgres_database_1.postgresDatabase.getVehicles();
+        console.log(`📊 Found ${allVehicles.length} vehicles to process`);
+        // 2. Get all companies
+        const allCompanies = await postgres_database_1.postgresDatabase.getCompanies();
+        console.log(`🏢 Found ${allCompanies.length} companies`);
+        // Create company name -> ID mapping
+        const companyMap = new Map();
+        allCompanies.forEach(company => {
+            companyMap.set(company.name.toLowerCase().trim(), company.id);
+        });
+        let updatedCount = 0;
+        let skippedCount = 0;
+        let createdCompanies = 0;
+        const results = [];
+        const errors = [];
+        // 3. Process each vehicle
+        for (const vehicle of allVehicles) {
+            try {
+                // Skip if already has ownerCompanyId
+                if (vehicle.ownerCompanyId) {
+                    results.push(`⏭️ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) already has ownerCompanyId`);
+                    skippedCount++;
+                    continue;
+                }
+                if (!vehicle.company || !vehicle.company.trim()) {
+                    results.push(`⚠️ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) has no company name`);
+                    skippedCount++;
+                    continue;
+                }
+                const companyName = vehicle.company.trim();
+                const companyNameLower = companyName.toLowerCase();
+                let companyId = companyMap.get(companyNameLower);
+                // Create company if it doesn't exist
+                if (!companyId) {
+                    console.log(`🆕 Creating new company: ${companyName}`);
+                    try {
+                        const newCompany = await postgres_database_1.postgresDatabase.createCompany({
+                            name: companyName
+                        });
+                        companyId = newCompany.id;
+                        companyMap.set(companyNameLower, companyId);
+                        createdCompanies++;
+                        results.push(`🆕 Created company: ${companyName}`);
+                    }
+                    catch (createError) {
+                        console.error(`❌ Error creating company ${companyName}:`, createError);
+                        errors.push(`Failed to create company ${companyName}: ${createError instanceof Error ? createError.message : String(createError)}`);
+                        continue;
+                    }
+                }
+                // Update vehicle with ownerCompanyId
+                try {
+                    const updatedVehicle = {
+                        ...vehicle,
+                        ownerCompanyId: companyId
+                    };
+                    await postgres_database_1.postgresDatabase.updateVehicle(updatedVehicle);
+                    const result = `✅ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) → ${companyName} (ID: ${companyId})`;
+                    console.log(result);
+                    results.push(result);
+                    updatedCount++;
+                }
+                catch (updateError) {
+                    console.error(`❌ Error updating vehicle ${vehicle.id}:`, updateError);
+                    errors.push(`Failed to update ${vehicle.brand} ${vehicle.model}: ${updateError instanceof Error ? updateError.message : String(updateError)}`);
+                }
+            }
+            catch (vehicleError) {
+                console.error(`❌ Error processing vehicle ${vehicle.id}:`, vehicleError);
+                errors.push(`Error processing ${vehicle.brand} ${vehicle.model}: ${vehicleError instanceof Error ? vehicleError.message : String(vehicleError)}`);
+            }
+        }
+        console.log(`🎉 Migration completed: ${updatedCount} updated, ${skippedCount} skipped, ${createdCompanies} companies created`);
+        res.json({
+            success: true,
+            message: `Vehicle-Company migration completed successfully`,
+            data: {
+                totalVehicles: allVehicles.length,
+                updatedVehicles: updatedCount,
+                skippedVehicles: skippedCount,
+                createdCompanies,
+                totalCompanies: allCompanies.length + createdCompanies,
+                results,
+                errors: errors.length > 0 ? errors : undefined
+            }
+        });
+    }
+    catch (error) {
+        console.error('❌ Migration error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Migration failed: ${error instanceof Error ? error.message : String(error)}`
+        });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=auth.js.map
