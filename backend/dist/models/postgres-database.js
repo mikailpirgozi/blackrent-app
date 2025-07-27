@@ -540,13 +540,45 @@ class PostgresDatabase {
             try {
                 console.log('📋 Migrácia 9: Pridávanie company_id stĺpca do vehicles...');
                 await client.query(`
-          ALTER TABLE vehicles 
+          ALTER TABLE vehicles
           ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id);
         `);
                 console.log('✅ Migrácia 9: company_id stĺpec pridaný do vehicles tabuľky');
             }
             catch (error) {
                 console.log('⚠️ Migrácia 9 chyba:', error.message);
+            }
+            // Migrácia 10: Oprava company_id typu v users tabuľke z INTEGER na UUID
+            try {
+                console.log('📋 Migrácia 10: Opravujem company_id typ v users tabuľke...');
+                // Najprv odstráň foreign key constraint ak existuje
+                await client.query(`
+          ALTER TABLE users DROP CONSTRAINT IF EXISTS users_company_id_fkey;
+        `);
+                // Zmeň typ stĺpca z INTEGER na UUID
+                await client.query(`
+          ALTER TABLE users ALTER COLUMN company_id TYPE UUID USING company_id::text::uuid;
+        `);
+                // Pridaj nový foreign key constraint
+                await client.query(`
+          ALTER TABLE users ADD CONSTRAINT users_company_id_fkey 
+          FOREIGN KEY (company_id) REFERENCES companies(id);
+        `);
+                console.log('✅ Migrácia 10: company_id typ opravený na UUID');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 10 chyba:', error.message);
+                // Ak zlyhá konverzia, skús pridať stĺpec nanovo
+                try {
+                    await client.query(`
+            ALTER TABLE users DROP COLUMN IF EXISTS company_id;
+            ALTER TABLE users ADD COLUMN company_id UUID REFERENCES companies(id);
+          `);
+                    console.log('✅ Migrácia 10: company_id stĺpec znovu vytvorený ako UUID');
+                }
+                catch (retryError) {
+                    console.log('⚠️ Migrácia 10 retry chyba:', retryError.message);
+                }
             }
             console.log('✅ Databázové migrácie úspešne dokončené');
         }
@@ -819,7 +851,7 @@ class PostgresDatabase {
                 userData.role,
                 userData.firstName,
                 userData.lastName,
-                userData.companyId && !isNaN(parseInt(userData.companyId)) ? parseInt(userData.companyId) : null, // Convert to integer for database consistency, handle invalid values
+                userData.companyId || null, // UUID string, no conversion needed
                 userData.employeeNumber,
                 userData.hireDate,
                 userData.isActive ?? true,
@@ -835,7 +867,7 @@ class PostgresDatabase {
                 role: row.role,
                 firstName: row.first_name,
                 lastName: row.last_name,
-                companyId: row.company_id?.toString(), // Convert back to string for consistency
+                companyId: row.company_id, // UUID string, no conversion needed
                 employeeNumber: row.employee_number,
                 hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
                 isActive: row.is_active ?? true,
@@ -863,7 +895,7 @@ class PostgresDatabase {
                 user.email,
                 hashedPassword,
                 user.role,
-                user.companyId && !isNaN(parseInt(user.companyId)) ? parseInt(user.companyId) : null, // Convert to integer for database, handle invalid values
+                user.companyId || null, // UUID string, no conversion needed
                 user.employeeNumber,
                 user.hireDate,
                 user.isActive,
