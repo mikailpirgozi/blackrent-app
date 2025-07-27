@@ -29,6 +29,7 @@ import {
 } from '@mui/material';
 import {
   SwapHoriz as TransferIcon,
+  SwapHoriz,
   History as HistoryIcon,
   ExpandMore as ExpandMoreIcon,
   DirectionsCar as CarIcon,
@@ -91,6 +92,10 @@ const VehicleOwnershipTransfer: React.FC = () => {
   const [editReason, setEditReason] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [editDate, setEditDate] = useState('');
+  
+  // Delete confirmation dialog states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transferToDelete, setTransferToDelete] = useState<OwnershipHistory | null>(null);
 
   const transferReasons = [
     { value: 'sale', label: 'Predaj' },
@@ -253,14 +258,17 @@ const VehicleOwnershipTransfer: React.FC = () => {
     }
   };
 
-  const handleDeleteTransfer = async (transfer: OwnershipHistory) => {
-    if (!confirm(`Naozaj chcete vymazať tento transfer vlastníctva?\n\nFirma: ${transfer.ownerCompanyName}\nDátum: ${format(new Date(transfer.validFrom), 'dd.MM.yyyy')}`)) {
-      return;
-    }
+  const handleDeleteTransfer = (transfer: OwnershipHistory) => {
+    setTransferToDelete(transfer);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteTransfer = async () => {
+    if (!transferToDelete) return;
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/vehicles/ownership-history/${transfer.id}`, {
+      const response = await fetch(`${API_BASE_URL}/vehicles/ownership-history/${transferToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
@@ -281,6 +289,8 @@ const VehicleOwnershipTransfer: React.FC = () => {
       setMessage({ type: 'error', text: 'Chyba pri vymazávaní transferu' });
     } finally {
       setLoading(false);
+      setDeleteDialogOpen(false);
+      setTransferToDelete(null);
     }
   };
 
@@ -617,6 +627,68 @@ const VehicleOwnershipTransfer: React.FC = () => {
             startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
           >
             {loading ? 'Ukladám...' : 'Uložiť'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DeleteIcon />
+            Potvrdiť vymazanie transferu
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {transferToDelete && (
+            <Box>
+              <Typography variant="body1" gutterBottom>
+                Naozaj chcete vymazať tento transfer vlastníctva?
+              </Typography>
+              
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  <strong>Firma:</strong> {transferToDelete.ownerCompanyName}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Dátum:</strong> {format(new Date(transferToDelete.validFrom), 'dd.MM.yyyy', { locale: sk })}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Dôvod:</strong> {transferReasons.find(r => r.value === transferToDelete.transferReason)?.label || transferToDelete.transferReason}
+                </Typography>
+                {transferToDelete.transferNotes && (
+                  <Typography variant="body2">
+                    <strong>Poznámky:</strong> {transferToDelete.transferNotes}
+                  </Typography>
+                )}
+              </Alert>
+              
+              <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+                Táto akcia sa nedá vrátiť späť.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)}
+            startIcon={<CancelIcon />}
+          >
+            Zrušiť
+          </Button>
+          <Button 
+            onClick={confirmDeleteTransfer}
+            variant="contained"
+            color="error"
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={16} /> : <DeleteIcon />}
+          >
+            {loading ? 'Vymazávam...' : 'Vymazať'}
           </Button>
         </DialogActions>
       </Dialog>
