@@ -52,16 +52,23 @@ router.post('/',
   checkPermission('companies', 'create'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
+    console.log('🏢 POST /api/companies - Creating company');
+    console.log('🏢 Request body:', req.body);
+    console.log('🏢 User:', req.user);
+    
     const { name } = req.body;
 
     if (!name) {
+      console.log('❌ Company name is missing');
       return res.status(400).json({
         success: false,
         error: 'Názov firmy je povinný'
       });
     }
 
+    console.log('🏢 Creating company with name:', name);
     const createdCompany = await postgresDatabase.createCompany({ name });
+    console.log('🏢 Company created:', createdCompany);
 
     res.status(201).json({
       success: true,
@@ -70,10 +77,11 @@ router.post('/',
     });
 
   } catch (error) {
-    console.error('Create company error:', error);
+    console.error('❌ Create company error:', error);
     res.status(500).json({
       success: false,
-      error: 'Chyba pri vytváraní firmy'
+      error: 'Chyba pri vytváraní firmy',
+      details: error instanceof Error ? error.message : 'Neznáma chyba'
     });
   }
 });
