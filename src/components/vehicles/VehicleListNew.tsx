@@ -317,6 +317,48 @@ export default function VehicleListNew() {
     }
   };
 
+  // 🗑️ DELETE ALL VEHICLES funkcionalita
+  const handleDeleteAllVehicles = async () => {
+    const confirmed = window.confirm(
+      '⚠️ POZOR: Toto zmaže VŠETKY vozidlá z databázy!\n\n' +
+      'Táto akcia je NEVRATNÁ a zmaže aj všetky súvisiace prenájmy, náklady a poistenia.\n\n' +
+      'Ste si istý, že chcete pokračovať?'
+    );
+
+    if (!confirmed) return;
+
+    const doubleConfirmed = window.confirm(
+      '🚨 POSLEDNÉ VAROVANIE!\n\n' +
+      `Zmaže sa ${state.vehicles.length} vozidiel a všetky súvisiace dáta.\n\n` +
+      'Napíšte "DELETE ALL" pre potvrdenie:'
+    );
+
+    if (!doubleConfirmed) return;
+
+    const userInput = prompt('Napíšte "DELETE ALL" pre potvrdenie:');
+    if (userInput !== 'DELETE ALL') {
+      alert('Akcia zrušená - nesprávne potvrdenie');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await apiService.deleteAllVehicles();
+      
+      if (result.success) {
+        alert(`✅ Úspešne zmazané: ${result.data.deletedCount} vozidiel`);
+        window.location.reload();
+      } else {
+        alert(`❌ Chyba: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Delete all vehicles error:', error);
+      alert('Chyba pri mazaní vozidiel');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -328,29 +370,39 @@ export default function VehicleListNew() {
       complete: async (results: any) => {
         try {
           // Zobraz počet riadkov na spracovanie
-          const rowCount = results.data.length - 1; // -1 for header
-          console.log(`📊 Spracovávam ${rowCount} vozidiel z CSV...`);
+          const totalRows = results.data.length - 1; // -1 pre header
+          console.log(`📊 Spracovávam ${totalRows} vozidiel z CSV...`);
+          
+          // Zobraz progress dialog
+          const progressDialog = window.confirm(
+            `📥 Začínam import ${totalRows} vozidiel z CSV súboru...\n\n` +
+            'Tento proces môže trvať niekoľko sekúnd.\n' +
+            'Chcete pokračovať?'
+          );
+          
+          if (!progressDialog) {
+            setLoading(false);
+            return;
+          }
           
           // Konvertuj parsované dáta späť na CSV string
           const csvString = Papa.unparse(results.data);
-          
-          // Zobraz progress message
-          alert(`Spracovávam ${rowCount} vozidiel... Prosím čakajte.`);
           
           const result = await apiService.importVehiclesCSV(csvString);
           
           console.log('📥 CSV Import result:', result);
           
-          // ✅ ZLEPŠENÉ HANDLING - kontrola dát namiesto iba success flag
-          if (result.data && result.data.imported > 0) {
-            const message = `✅ ${result.message}\n\nImportované: ${result.data.imported} vozidiel\nChyby: ${result.data.errorsCount || 0}`;
-            alert(message);
+          if (result.success) {
+            const { imported, updated, errorsCount } = result.data;
             
-            // Refresh vehicle list - force reload
-            window.location.reload();
-          } else if (result.success) {
-            // Aj keď je success ale 0 importovaných
-            alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\nSkontrolujte formát CSV súboru.`);
+            if (imported > 0 || updated > 0) {
+              alert(`✅ CSV import úspešný!\n\n📊 Výsledky:\n• Vytvorených: ${imported}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n\nStránka sa obnoví za 3 sekundy...`);
+              setTimeout(() => window.location.reload(), 3000);
+            } else if (errorsCount > 0) {
+              alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${imported}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n\nSkontrolujte formát CSV súboru.`);
+            } else {
+              alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\nSkontrolujte formát CSV súboru.`);
+            }
           } else {
             alert(`❌ Chyba pri importe: ${result.error || result.message || 'Neznáma chyba'}`);
           }
@@ -588,6 +640,23 @@ export default function VehicleListNew() {
               onChange={handleImportCSV}
               style={{ display: 'none' }}
             />
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={handleDeleteAllVehicles}
+            disabled={loading}
+            sx={{
+              borderColor: '#d32f2f',
+              color: '#d32f2f',
+              '&:hover': { borderColor: '#c62828', bgcolor: 'rgba(211, 47, 47, 0.04)' },
+              '&:disabled': { borderColor: '#ccc', color: '#ccc' },
+              borderRadius: 2,
+              px: 3,
+              py: 1
+            }}
+          >
+            🗑️ Vymazať všetky
           </Button>
         </Box>
       </Box>
