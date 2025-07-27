@@ -46,21 +46,27 @@ router.get('/', auth_1.authenticateToken, async (req, res) => {
             companyId: req.user?.companyId,
             totalSettlements: settlements.length
         });
-        // 🏢 COMPANY OWNER - filter len vyúčtovania vlastnej firmy
-        if (req.user?.role === 'company_owner' && req.user.companyId) {
-            // Získaj názov firmy používateľa
+        // 🔐 NON-ADMIN USERS - filter podľa company permissions
+        if (req.user?.role !== 'admin' && req.user) {
+            const user = req.user; // TypeScript safe assignment
+            const originalCount = settlements.length;
+            // Získaj company access pre používateľa
+            const userCompanyAccess = await postgres_database_1.postgresDatabase.getUserCompanyAccess(user.id);
+            const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+            // Získaj všetky companies pre mapping
             const companies = await postgres_database_1.postgresDatabase.getCompanies();
-            const userCompany = companies.find(c => c.id === req.user?.companyId);
-            if (userCompany) {
-                const originalCount = settlements.length;
-                settlements = settlements.filter(s => s.company === userCompany.name);
-                console.log('🏢 Company Owner Settlements Filter:', {
-                    userCompanyId: req.user.companyId,
-                    userCompanyName: userCompany.name,
-                    originalCount,
-                    filteredCount: settlements.length
-                });
-            }
+            const allowedCompanyNames = companies
+                .filter(c => allowedCompanyIds.includes(c.id))
+                .map(c => c.name);
+            // Filter settlements len pre povolené firmy
+            settlements = settlements.filter(s => s.company && allowedCompanyNames.includes(s.company));
+            console.log('🔐 Settlements Company Permission Filter:', {
+                userId: user.id,
+                allowedCompanyIds,
+                allowedCompanyNames,
+                originalCount,
+                filteredCount: settlements.length
+            });
         }
         res.json({
             success: true,

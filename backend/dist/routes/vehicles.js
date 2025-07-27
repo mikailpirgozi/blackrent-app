@@ -22,18 +22,32 @@ router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('ve
         let vehicles = await postgres_database_1.postgresDatabase.getVehicles();
         console.log('🚗 Vehicles GET - user:', {
             role: req.user?.role,
-            companyId: req.user?.companyId,
+            userId: req.user?.id,
             totalVehicles: vehicles.length
         });
-        // 🏢 COMPANY OWNER - filter len vlastné vozidlá
-        if (req.user?.role === 'company_owner' && req.user.companyId) {
+        // 🔐 NON-ADMIN USERS - filter podľa company permissions
+        if (req.user?.role !== 'admin' && req.user) {
+            const user = req.user; // TypeScript safe assignment
             const originalCount = vehicles.length;
-            vehicles = vehicles.filter(v => v.ownerCompanyId === req.user?.companyId);
-            console.log('🏢 Company Owner Filter:', {
-                userCompanyId: req.user.companyId,
+            // Získaj company access pre používateľa
+            const userCompanyAccess = await postgres_database_1.postgresDatabase.getUserCompanyAccess(user.id);
+            const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+            // Filter vozidlá len pre firmy, ku ktorým má používateľ prístup
+            // ✅ Všetky vozidlá majú teraz owner_company_id - používame len to
+            vehicles = vehicles.filter(v => {
+                return v.ownerCompanyId && allowedCompanyIds.includes(v.ownerCompanyId);
+            });
+            console.log('🔐 Company Permission Filter:', {
+                userId: user.id,
+                allowedCompanyIds,
+                userCompanyAccess: userCompanyAccess.map(a => ({ id: a.companyId, name: a.companyName })),
                 originalCount,
                 filteredCount: vehicles.length,
-                sampleVehicleOwners: vehicles.slice(0, 3).map(v => ({ id: v.id, ownerCompanyId: v.ownerCompanyId }))
+                sampleResults: vehicles.slice(0, 3).map(v => ({
+                    licensePlate: v.licensePlate,
+                    company: v.company,
+                    ownerCompanyId: v.ownerCompanyId
+                }))
             });
         }
         res.json({
@@ -112,7 +126,7 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('v
 router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'update', { getContext: getVehicleContext }), async (req, res) => {
     try {
         const { id } = req.params;
-        const { brand, model, licensePlate, company, pricing, commission, status } = req.body;
+        const { brand, model, licensePlate, company, pricing, commission, status, year, stk } = req.body;
         // Skontroluj, či vozidlo existuje
         const existingVehicle = await postgres_database_1.postgresDatabase.getVehicle(id);
         if (!existingVehicle) {
@@ -129,7 +143,12 @@ router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
             company: company || existingVehicle.company,
             pricing: pricing || existingVehicle.pricing,
             commission: commission || existingVehicle.commission,
-            status: status || existingVehicle.status
+            status: status || existingVehicle.status,
+            year: year !== undefined ? year : existingVehicle.year,
+            stk: stk !== undefined ? (stk ? new Date(stk) : undefined) : existingVehicle.stk,
+            ownerCompanyId: existingVehicle.ownerCompanyId,
+            assignedMechanicId: existingVehicle.assignedMechanicId,
+            createdAt: existingVehicle.createdAt
         };
         await postgres_database_1.postgresDatabase.updateVehicle(updatedVehicle);
         res.json({

@@ -27,20 +27,27 @@ router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('ex
         let expenses = await postgres_database_1.postgresDatabase.getExpenses();
         console.log('💰 Expenses GET - user:', {
             role: req.user?.role,
-            companyId: req.user?.companyId,
+            userId: req.user?.id,
             totalExpenses: expenses.length
         });
-        // 🏢 COMPANY OWNER - filter len náklady vlastných vozidiel
-        if (req.user?.role === 'company_owner' && req.user.companyId) {
-            const vehicles = await postgres_database_1.postgresDatabase.getVehicles();
-            const companyVehicleIds = vehicles
-                .filter(v => v.ownerCompanyId === req.user?.companyId)
-                .map(v => v.id);
+        // 🔐 NON-ADMIN USERS - filter podľa company permissions
+        if (req.user?.role !== 'admin' && req.user) {
+            const user = req.user; // TypeScript safe assignment
             const originalCount = expenses.length;
-            expenses = expenses.filter(e => e.vehicleId && companyVehicleIds.includes(e.vehicleId));
-            console.log('🏢 Company Owner Expenses Filter:', {
-                userCompanyId: req.user.companyId,
-                companyVehicleIds,
+            // Získaj company access pre používateľa
+            const userCompanyAccess = await postgres_database_1.postgresDatabase.getUserCompanyAccess(user.id);
+            const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+            // Získaj názvy firiem pre mapping
+            const companies = await postgres_database_1.postgresDatabase.getCompanies();
+            const allowedCompanyNames = companies
+                .filter(c => allowedCompanyIds.includes(c.id))
+                .map(c => c.name);
+            // Filter expenses len pre povolené firmy
+            expenses = expenses.filter(e => e.company && allowedCompanyNames.includes(e.company));
+            console.log('🔐 Expenses Company Permission Filter:', {
+                userId: user.id,
+                allowedCompanyIds,
+                allowedCompanyNames,
                 originalCount,
                 filteredCount: expenses.length
             });

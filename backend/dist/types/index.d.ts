@@ -5,12 +5,12 @@ export interface Vehicle {
     year?: number;
     licensePlate: string;
     company: string;
-    ownerName?: string;
     pricing: PricingTier[];
     commission: Commission;
     status: VehicleStatus;
     ownerCompanyId?: string;
     assignedMechanicId?: string;
+    stk?: Date;
     createdAt?: Date;
 }
 export interface PricingTier {

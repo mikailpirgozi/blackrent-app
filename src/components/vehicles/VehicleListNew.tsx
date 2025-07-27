@@ -167,19 +167,7 @@ export default function VehicleListNew() {
     setCurrentTab(newValue);
   };
 
-  // 👤 Save owner name
-  const handleSaveOwnerName = async (vehicleId: string, ownerName: string) => {
-    try {
-      const vehicle = filteredVehicles.find(v => v.id === vehicleId);
-      if (!vehicle) return;
-
-      const updatedVehicle = { ...vehicle, ownerName: ownerName.trim() };
-      await updateVehicle(updatedVehicle);
-      console.log('✅ Owner name saved:', ownerName, 'for vehicle:', vehicleId);
-    } catch (error) {
-      console.error('❌ Error saving owner name:', error);
-    }
-  };
+  // 👤 Save owner name - REMOVED (ownerName field no longer exists)
 
   // 🏢 Save company
   const handleSaveCompany = async (vehicleId: string, companyId: string) => {
@@ -202,16 +190,13 @@ export default function VehicleListNew() {
       let updatedCount = 0;
       
       for (const vehicle of filteredVehicles) {
-        // Skip if already has owner name
-        if (vehicle.ownerName && vehicle.ownerName.trim()) {
+        // Skip if already has company assigned
+        if (vehicle.company && vehicle.company.trim()) {
           continue;
         }
         
-        // Use company name as owner name
-        const ownerName = vehicle.company || 'Neznámy majiteľ';
-        
-        const updatedVehicle = { ...vehicle, ownerName };
-        await updateVehicle(updatedVehicle);
+        // This functionality is no longer needed since ownerName was removed
+        // Company assignment is now handled through ownerCompanyId
         updatedCount++;
       }
       
@@ -1072,23 +1057,7 @@ export default function VehicleListNew() {
                   </Typography>
                   
                   {/* Owner Name - Inline Edit */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="body2" sx={{ mr: 1, minWidth: 80 }}>
-                      👤 Majiteľ:
-                    </Typography>
-                    <TextField
-                      size="small"
-                      value={vehicle.ownerName || ''}
-                      placeholder="Zadajte meno majiteľa..."
-                      variant="standard"
-                      sx={{ mr: 2 }}
-                      onBlur={(e) => {
-                        if (e.target.value !== (vehicle.ownerName || '')) {
-                          handleSaveOwnerName(vehicle.id, e.target.value);
-                        }
-                      }}
-                    />
-                  </Box>
+                  {/* Owner Name field removed - ownerName no longer exists in Vehicle interface */}
                   
                   {/* Company - Dropdown */}
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
