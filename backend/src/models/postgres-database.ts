@@ -4968,6 +4968,92 @@ export class PostgresDatabase {
     }
   }
 
+  // 📝 Úprava transferu vlastníctva
+  async updateVehicleOwnershipHistory(historyId: string, updates: {
+    ownerCompanyId: string;
+    transferReason: string;
+    transferNotes?: string;
+    validFrom: Date;
+  }): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      // Najprv získaj informácie o firme
+      const companyResult = await client.query(
+        'SELECT name FROM companies WHERE id = $1',
+        [updates.ownerCompanyId]
+      );
+
+      if (companyResult.rows.length === 0) {
+        throw new Error(`Company with ID ${updates.ownerCompanyId} not found`);
+      }
+
+      const companyName = companyResult.rows[0].name;
+
+      // Aktualizuj ownership history
+      const result = await client.query(`
+        UPDATE vehicle_ownership_history 
+        SET 
+          owner_company_id = $1,
+          owner_company_name = $2,
+          transfer_reason = $3,
+          transfer_notes = $4,
+          valid_from = $5,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $6
+      `, [
+        updates.ownerCompanyId,
+        companyName, 
+        updates.transferReason,
+        updates.transferNotes || null,
+        updates.validFrom,
+        historyId
+      ]);
+
+      if (result.rowCount === 0) {
+        throw new Error(`Ownership history record ${historyId} not found`);
+      }
+
+      console.log(`✅ Updated ownership history ${historyId}`);
+
+    } finally {
+      client.release();
+    }
+  }
+
+  // 🔍 Overenie existencie ownership history záznamu
+  async checkOwnershipHistoryExists(historyId: string): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        'SELECT 1 FROM vehicle_ownership_history WHERE id = $1',
+        [historyId]
+      );
+      return result.rows.length > 0;
+    } finally {
+      client.release();
+    }
+  }
+
+  // 🗑️ Vymazanie transferu vlastníctva
+  async deleteVehicleOwnershipHistory(historyId: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        'DELETE FROM vehicle_ownership_history WHERE id = $1',
+        [historyId]
+      );
+
+      if (result.rowCount === 0) {
+        throw new Error(`Ownership history record ${historyId} not found`);
+      }
+
+      console.log(`✅ Deleted ownership history ${historyId}`);
+
+    } finally {
+      client.release();
+    }
+  }
+
 }
 
 export const postgresDatabase = new PostgresDatabase(); 
