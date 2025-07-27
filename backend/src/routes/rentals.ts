@@ -47,24 +47,38 @@ router.get('/',
         const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
         
         // Získaj všetky vehicles pre mapping
-        const vehicles = await postgresDatabase.getVehicles();
-        
-        // Filter prenájmy len pre vozidlá firiem, ku ktorým má používateľ prístup  
-        // ✅ Všetky vozidlá majú teraz owner_company_id - používame len to
-        rentals = rentals.filter(r => {
-          if (!r.vehicleId) return false;
+        // Filter prenájmy len pre vozidlá firiem, ku ktorým mal používateľ prístup V ČASE PRENÁJMU
+        // 🏗️ HISTORICAL OWNERSHIP - Používame ownership history pre správne filtrovanie
+        const filteredRentals = [];
+        for (const rental of rentals) {
+          if (!rental.vehicleId || !rental.startDate) {
+            continue; // Skip rentals without vehicle or start date
+          }
           
-          const vehicle = vehicles.find(v => v.id === r.vehicleId);
-          if (!vehicle) return false;
-          
-          return vehicle.ownerCompanyId && allowedCompanyIds.includes(vehicle.ownerCompanyId);
-        });
+          try {
+            // Získaj vlastníka vozidla v čase začiatku prenájmu
+            const ownerAtTime = await postgresDatabase.getVehicleOwnerAtTime(
+              rental.vehicleId, 
+              new Date(rental.startDate)
+            );
+            
+            if (ownerAtTime && allowedCompanyIds.includes(ownerAtTime.ownerCompanyId)) {
+              filteredRentals.push(rental);
+            }
+          } catch (error) {
+            console.error(`Error getting vehicle owner for rental ${rental.id}:`, error);
+            // V prípade chyby, preskočíme rental
+          }
+        }
         
-        console.log('🔐 Rentals Company Permission Filter:', {
+        rentals = filteredRentals;
+        
+        console.log('🔐 Rentals Historical Ownership Filter:', {
           userId: user!.id,
           allowedCompanyIds,
           originalCount,
-          filteredCount: rentals.length
+          filteredCount: rentals.length,
+          filterType: 'historical_ownership'
         });
       }
       

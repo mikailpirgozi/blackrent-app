@@ -42,6 +42,7 @@ import {
   LightMode,
   DarkMode,
   CalendarToday,
+  SwapHoriz,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -62,6 +63,7 @@ const allMenuItems = [
   { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'finances' as const },
   { text: 'Poistky/STK/Dialničné', icon: <SecurityOutlined />, path: '/insurances', resource: 'insurances' as const },
   { text: 'Správa používateľov', icon: <AdminPanelSettingsOutlined />, path: '/users', resource: 'users' as const },
+  { text: 'Transfer vlastníctva', icon: <SwapHoriz />, path: '/admin/vehicle-ownership', resource: 'admin' as const },
   { text: 'Štatistiky', icon: <DashboardOutlined />, path: '/statistics', resource: 'finances' as const }, // statistics need finance access
 ];
 
