@@ -43,7 +43,7 @@ router.get('/',
         const originalCount = rentals.length;
         
         // Získaj company access pre používateľa
-        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user.id);
+        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
         const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
         
         // Získaj všetky vehicles pre mapping
@@ -61,7 +61,7 @@ router.get('/',
         });
         
         console.log('🔐 Rentals Company Permission Filter:', {
-          userId: user.id,
+          userId: user!.id,
           allowedCompanyIds,
           originalCount,
           filteredCount: rentals.length

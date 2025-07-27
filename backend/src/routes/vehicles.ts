@@ -39,7 +39,7 @@ router.get('/',
         const originalCount = vehicles.length;
         
         // Získaj company access pre používateľa
-        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user.id);
+        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
         const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
         
         // Filter vozidlá len pre firmy, ku ktorým má používateľ prístup
@@ -49,7 +49,7 @@ router.get('/',
         });
         
         console.log('🔐 Company Permission Filter:', {
-          userId: user.id,
+          userId: user!.id,
           allowedCompanyIds,
           userCompanyAccess: userCompanyAccess.map(a => ({ id: a.companyId, name: a.companyName })),
           originalCount,

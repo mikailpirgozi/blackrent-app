@@ -1305,7 +1305,7 @@ export class PostgresDatabase {
         id: row.id?.toString() || '',
         licensePlate: row.license_plate, // Mapovanie column názvu
         ownerName: row.owner_name, // 👤 Mapovanie owner_name z databázy
-        ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
+        ownerCompanyId: row.owner_company_id?.toString(), // Mapovanie owner_company_id na ownerCompanyId
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
         createdAt: new Date(row.created_at)
@@ -1345,7 +1345,7 @@ export class PostgresDatabase {
             
             // Aktualizuj vozidlo
             await client.query(
-              'UPDATE vehicles SET company_id = $1 WHERE id = $2',
+              'UPDATE vehicles SET owner_company_id = $1 WHERE id = $2',
               [companyId, vehicle.id]
             );
             
@@ -1378,7 +1378,7 @@ export class PostgresDatabase {
         id: row.id.toString(),
         licensePlate: row.license_plate, // Mapovanie column názvu
         ownerName: row.owner_name, // 👤 Mapovanie owner_name z databázy
-        ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
+        ownerCompanyId: row.owner_company_id?.toString(), // Mapovanie owner_company_id na ownerCompanyId
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
         createdAt: new Date(row.created_at)
@@ -1436,7 +1436,7 @@ export class PostgresDatabase {
       let result;
       try {
         result = await client.query(
-          'INSERT INTO vehicles (brand, model, year, license_plate, company, company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, company_id, pricing, commission, status, created_at',
+          'INSERT INTO vehicles (brand, model, year, license_plate, company, owner_company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, owner_company_id, pricing, commission, status, created_at',
           [
             vehicleData.brand, 
             vehicleData.model, 
@@ -1475,7 +1475,7 @@ export class PostgresDatabase {
         year: row.year,
         licensePlate: row.license_plate,
         company: row.company,
-        ownerCompanyId: row.company_id?.toString() || companyId?.toString(), // 🆕 Mapovanie company_id na ownerCompanyId (fallback na companyId)
+        ownerCompanyId: row.owner_company_id?.toString() || companyId?.toString(), // 🆕 Mapovanie owner_company_id na ownerCompanyId (fallback na companyId)
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing,
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission,
         status: row.status,
@@ -1505,14 +1505,14 @@ export class PostgresDatabase {
       }
 
       await client.query(
-        'UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, owner_name = $5, company_id = $6, pricing = $7, commission = $8, status = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10',
+        'UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, owner_name = $5, owner_company_id = $6, pricing = $7, commission = $8, status = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10',
         [
           vehicle.brand, 
           vehicle.model, 
           vehicle.licensePlate, 
           vehicle.company,
           vehicle.ownerName, // 👤 Owner name
-          vehicle.ownerCompanyId ? parseInt(vehicle.ownerCompanyId) : null, // 🏢 Company ID as integer
+          vehicle.ownerCompanyId || null, // 🏢 Company ID as UUID string
           JSON.stringify(vehicle.pricing), // Konverzia na JSON string
           JSON.stringify(vehicle.commission), // Konverzia na JSON string
           vehicle.status, 
@@ -4161,8 +4161,8 @@ export class PostgresDatabase {
     try {
       for (const vehicleId of vehicleIds) {
         await client.query(
-          'UPDATE vehicles SET company_id = $1 WHERE id = $2',
-          [parseInt(companyId), parseInt(vehicleId)]
+          'UPDATE vehicles SET owner_company_id = $1 WHERE id = $2',
+          [companyId, vehicleId]
         );
       }
     } finally {
