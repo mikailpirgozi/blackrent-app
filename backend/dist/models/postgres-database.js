@@ -819,7 +819,7 @@ class PostgresDatabase {
                 userData.role,
                 userData.firstName,
                 userData.lastName,
-                userData.companyId ? parseInt(userData.companyId) : null, // Convert to integer for database consistency
+                userData.companyId && !isNaN(parseInt(userData.companyId)) ? parseInt(userData.companyId) : null, // Convert to integer for database consistency, handle invalid values
                 userData.employeeNumber,
                 userData.hireDate,
                 userData.isActive ?? true,
@@ -846,6 +846,10 @@ class PostgresDatabase {
                 updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
             };
         }
+        catch (error) {
+            console.error('❌ Database createUser error:', error);
+            throw error;
+        }
         finally {
             client.release();
         }
@@ -859,7 +863,7 @@ class PostgresDatabase {
                 user.email,
                 hashedPassword,
                 user.role,
-                user.companyId ? parseInt(user.companyId) : null, // Convert to integer for database
+                user.companyId && !isNaN(parseInt(user.companyId)) ? parseInt(user.companyId) : null, // Convert to integer for database, handle invalid values
                 user.employeeNumber,
                 user.hireDate,
                 user.isActive,
