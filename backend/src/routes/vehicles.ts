@@ -748,6 +748,73 @@ router.delete('/ownership-history/:historyId',
   }
 );
 
+// ⚡ GET /api/vehicles/bulk-ownership-history - História vlastníctva všetkých vozidiel NARAZ
+router.get('/bulk-ownership-history',
+  authenticateToken,
+  requireRole(['admin']),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      console.log('🚀 BULK: Loading ownership history for all vehicles...');
+      const startTime = Date.now();
+
+      // Získaj všetky vozidlá
+      const vehicles = await postgresDatabase.getVehicles();
+      
+      // Získaj históriu pre všetky vozidlá PARALELNE
+      const historyPromises = vehicles.map(async (vehicle) => {
+        try {
+          const history = await postgresDatabase.getVehicleOwnershipHistory(vehicle.id);
+          return {
+            vehicleId: vehicle.id,
+            vehicle: {
+              id: vehicle.id,
+              brand: vehicle.brand,
+              model: vehicle.model,
+              licensePlate: vehicle.licensePlate,
+              ownerCompanyId: vehicle.ownerCompanyId
+            },
+            history: history
+          };
+        } catch (error) {
+          console.error(`Failed to get history for vehicle ${vehicle.id}:`, error);
+          return {
+            vehicleId: vehicle.id,
+            vehicle: {
+              id: vehicle.id,
+              brand: vehicle.brand,
+              model: vehicle.model,
+              licensePlate: vehicle.licensePlate,
+              ownerCompanyId: vehicle.ownerCompanyId
+            },
+            history: []
+          };
+        }
+      });
+
+      const allHistories = await Promise.all(historyPromises);
+      
+      const loadTime = Date.now() - startTime;
+      console.log(`✅ BULK: Loaded ownership history for ${vehicles.length} vehicles in ${loadTime}ms`);
+
+      res.json({
+        success: true,
+        data: {
+          vehicleHistories: allHistories,
+          totalVehicles: vehicles.length,
+          loadTimeMs: loadTime
+        }
+      });
+
+    } catch (error) {
+      console.error('Bulk ownership history error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Failed to load bulk ownership history: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  }
+);
+
 // GET /api/vehicles/:id/ownership-history - História vlastníctva vozidla
 router.get('/:id/ownership-history',
   authenticateToken,
