@@ -552,6 +552,50 @@ class ApiService {
     
     console.log('👤 API deleteUser - user deleted successfully');
   }
+
+  // 🔐 PERMISSIONS API METHODS
+  async getUserCompanyAccess(userId: string): Promise<any[]> {
+    console.log('🔐 API getUserCompanyAccess - fetching user company access:', userId);
+    
+    const response = await this.request<any>(`/permissions/user/${userId}/access`);
+    console.log('🔐 API getUserCompanyAccess - response:', response);
+    
+    return Array.isArray(response) ? response : [];
+  }
+
+  async setUserPermission(userId: string, companyId: string, permissions: any): Promise<any> {
+    console.log('🔐 API setUserPermission - setting permissions:', { userId, companyId, permissions });
+    
+    const response = await this.request<any>(`/permissions/user/${userId}/company/${companyId}`, {
+      method: 'POST',
+      body: JSON.stringify({ permissions }),
+    });
+    
+    console.log('🔐 API setUserPermission - response:', response);
+    return response;
+  }
+
+  async removeUserPermission(userId: string, companyId: string): Promise<void> {
+    console.log('🔐 API removeUserPermission - removing permissions:', { userId, companyId });
+    
+    await this.request<void>(`/permissions/user/${userId}/company/${companyId}`, {
+      method: 'DELETE',
+    });
+    
+    console.log('🔐 API removeUserPermission - permissions removed successfully');
+  }
+
+  async setUserPermissionsBulk(assignments: Array<{ userId: string; companyId: string; permissions: any }>): Promise<any> {
+    console.log('🔐 API setUserPermissionsBulk - bulk setting permissions:', assignments);
+    
+    const response = await this.request<any>('/permissions/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ assignments }),
+    });
+    
+    console.log('🔐 API setUserPermissionsBulk - response:', response);
+    return response;
+  }
 }
 
 export const apiService = new ApiService();
