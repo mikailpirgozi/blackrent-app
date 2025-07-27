@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, ReactNode, useEffect } fr
 import { Vehicle, Rental, Expense, Insurance, Settlement, Customer, Company, Insurer, VehicleDocument, InsuranceClaim } from '../types';
 import { apiService } from '../services/api';
 import { useAuth } from './AuthContext';
+import { usePermissionsContext } from './PermissionsContext';
 
 interface AppState {
   vehicles: Vehicle[];
@@ -305,29 +306,87 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { state: authState } = useAuth();
+  const { userCompanyAccess } = usePermissionsContext();
+
+  // Helper funkcia na získanie povolených company names
+  const getAccessibleCompanyNames = (): string[] => {
+    if (!authState.user || authState.user.role === 'admin') {
+      // Admin vidí všetky firmy
+      return state.companies.map(c => c.name);
+    }
+    
+    // Ostatní používatelia vidia len firmy, na ktoré majú oprávnenia
+    return userCompanyAccess.map(access => access.companyName);
+  };
 
   const getFilteredVehicles = (): Vehicle[] => {
-    return state.vehicles || [];
+    if (!authState.user || authState.user.role === 'admin') {
+      return state.vehicles || [];
+    }
+    
+    const accessibleCompanyNames = getAccessibleCompanyNames();
+    return (state.vehicles || []).filter(vehicle => 
+      accessibleCompanyNames.includes(vehicle.company)
+    );
   };
 
   const getFilteredRentals = (): Rental[] => {
-    return state.rentals || [];
+    if (!authState.user || authState.user.role === 'admin') {
+      return state.rentals || [];
+    }
+    
+    const accessibleCompanyNames = getAccessibleCompanyNames();
+    return (state.rentals || []).filter(rental => {
+      // Filtruj podľa vehicle.company
+      if (rental.vehicle && rental.vehicle.company) {
+        return accessibleCompanyNames.includes(rental.vehicle.company);
+      }
+      return false; // Ak nemá vehicle alebo company, nezobrazuj
+    });
   };
 
   const getFilteredExpenses = (): Expense[] => {
-    return state.expenses || [];
+    if (!authState.user || authState.user.role === 'admin') {
+      return state.expenses || [];
+    }
+    
+    const accessibleCompanyNames = getAccessibleCompanyNames();
+    return (state.expenses || []).filter(expense => 
+      accessibleCompanyNames.includes(expense.company)
+    );
   };
 
   const getFilteredInsurances = (): Insurance[] => {
-    return state.insurances || [];
+    if (!authState.user || authState.user.role === 'admin') {
+      return state.insurances || [];
+    }
+    
+    const accessibleCompanyNames = getAccessibleCompanyNames();
+    return (state.insurances || []).filter(insurance => 
+      accessibleCompanyNames.includes(insurance.company)
+    );
   };
 
   const getFilteredSettlements = (): Settlement[] => {
-    return state.settlements || [];
+    if (!authState.user || authState.user.role === 'admin') {
+      return state.settlements || [];
+    }
+    
+    const accessibleCompanyNames = getAccessibleCompanyNames();
+    return (state.settlements || []).filter(settlement => 
+      accessibleCompanyNames.includes(settlement.company || '')
+    );
   };
 
   const getFilteredCompanies = (): Company[] => {
-    return state.companies || [];
+    if (!authState.user || authState.user.role === 'admin') {
+      return state.companies || [];
+    }
+    
+    const accessibleCompanyNames = getAccessibleCompanyNames();
+    return (state.companies || []).filter(company => 
+      accessibleCompanyNames.includes(company.name)
+    );
   };
 
   // Funkcia na načítanie dát z API - OPTIMALIZOVANÁ
