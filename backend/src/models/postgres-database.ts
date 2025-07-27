@@ -4331,6 +4331,42 @@ export class PostgresDatabase {
     }
   }
 
+  // 🗑️ ADMIN FUNCTIONS
+  async resetDatabase(): Promise<number> {
+    const client = await this.pool.connect();
+    try {
+      // Vypnúť foreign key constraints
+      await client.query('SET session_replication_role = replica');
+      
+      // Zmazať všetky tabuľky
+      const tables = [
+        'settlements',
+        'user_permissions', 
+        'insurance_claims',
+        'insurances',
+        'expenses',
+        'rentals',
+        'customers',
+        'vehicles',
+        'users',
+        'companies',
+        'insurers'
+      ];
+      
+      for (const table of tables) {
+        await client.query(`DROP TABLE IF EXISTS ${table} CASCADE`);
+        console.log(`🗑️ Dropped table: ${table}`);
+      }
+      
+      // Zapnúť foreign key constraints
+      await client.query('SET session_replication_role = DEFAULT');
+      
+      return tables.length;
+    } finally {
+      client.release();
+    }
+  }
+
   // 🔄 COMPANY MAPPING FUNCTIONS
   async getCompanyIdByName(companyName: string): Promise<string | null> {
     const client = await this.pool.connect();
