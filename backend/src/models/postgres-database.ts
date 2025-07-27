@@ -1724,46 +1724,15 @@ export class PostgresDatabase {
         } : undefined
       }));
 
-      // 🔧 AUTO-FIX: Oprav prenájmy bez vehicle (ako getVehicles) ✅
-      const rentalsToFix = rentals.filter(r => r.vehicleId && !r.vehicle);
+      // ⚠️ AUTO-FIX DISABLED - Nebezpečné, menilo vehicle_id v databáze!
+      // Namiesto toho len logujeme problém
+      const rentalsWithMissingVehicle = rentals.filter(r => r.vehicleId && !r.vehicle);
       
-      if (rentalsToFix.length > 0) {
-        console.log(`🔧 AUTO-FIX: Found ${rentalsToFix.length} rentals with invalid vehicle_id, fixing...`);
-        
-        // Získaj dostupné vozidlá pre mapping
-        const availableVehicles = await client.query('SELECT id, brand, model, license_plate, company FROM vehicles LIMIT 10');
-        
-        if (availableVehicles.rows.length > 0) {
-          // Oprav každý prenájom s neplatným vehicle_id
-          for (const rental of rentalsToFix) {
-            try {
-              const randomVehicle = availableVehicles.rows[Math.floor(Math.random() * availableVehicles.rows.length)];
-              
-              await client.query(
-                'UPDATE rentals SET vehicle_id = $1 WHERE id = $2',
-                [randomVehicle.id, rental.id]
-              );
-              
-              // Aktualizuj rental v pamäti
-              rental.vehicleId = randomVehicle.id.toString();
-              rental.vehicle = {
-                id: randomVehicle.id,
-                brand: randomVehicle.brand,
-                model: randomVehicle.model,
-                licensePlate: randomVehicle.license_plate,
-                company: randomVehicle.company || 'N/A',
-                pricing: [],
-                commission: { type: 'percentage', value: 0 },
-                status: 'available'
-              };
-              
-              console.log(`✅ AUTO-FIX: Rental ${rental.customerName} → Vehicle ${randomVehicle.brand} ${randomVehicle.model} (${randomVehicle.license_plate})`);
-              
-            } catch (fixError) {
-              console.error(`❌ AUTO-FIX error for rental ${rental.id}:`, fixError);
-            }
-          }
-        }
+      if (rentalsWithMissingVehicle.length > 0) {
+        console.warn(`⚠️ Found ${rentalsWithMissingVehicle.length} rentals with missing vehicle data (not auto-fixing):`);
+        rentalsWithMissingVehicle.forEach(rental => {
+          console.warn(`  - Rental ${rental.id} (${rental.customerName}) has vehicle_id ${rental.vehicleId} but no vehicle data`);
+        });
       }
 
       return rentals;
