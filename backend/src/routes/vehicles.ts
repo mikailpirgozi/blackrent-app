@@ -43,23 +43,9 @@ router.get('/',
         const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
         
         // Filter vozidlá len pre firmy, ku ktorým má používateľ prístup
+        // ✅ Všetky vozidlá majú teraz owner_company_id - používame len to
         vehicles = vehicles.filter(v => {
-          // Ak má vozidlo nastavené owner_company_id, skontroluj to
-          if (v.ownerCompanyId && allowedCompanyIds.includes(v.ownerCompanyId)) {
-            return true;
-          }
-          
-          // Ak nemá owner_company_id, pokús sa namapovať podľa textového company názvu
-          // (temporary fallback - neskôr opravíme data mapping)
-          if (!v.ownerCompanyId && v.company) {
-            return userCompanyAccess.some(access => 
-              access.companyName === v.company || 
-              access.companyName.includes(v.company) ||
-              v.company.includes(access.companyName)
-            );
-          }
-          
-          return false;
+          return v.ownerCompanyId && allowedCompanyIds.includes(v.ownerCompanyId);
         });
         
         console.log('🔐 Company Permission Filter:', {

@@ -49,28 +49,15 @@ router.get('/',
         // Získaj všetky vehicles pre mapping
         const vehicles = await postgresDatabase.getVehicles();
         
-        // Filter prenájmy len pre vozidlá firiem, ku ktorým má používateľ prístup
+        // Filter prenájmy len pre vozidlá firiem, ku ktorým má používateľ prístup  
+        // ✅ Všetky vozidlá majú teraz owner_company_id - používame len to
         rentals = rentals.filter(r => {
           if (!r.vehicleId) return false;
           
           const vehicle = vehicles.find(v => v.id === r.vehicleId);
           if (!vehicle) return false;
           
-          // Ak má vozidlo nastavené owner_company_id, skontroluj to
-          if (vehicle.ownerCompanyId && allowedCompanyIds.includes(vehicle.ownerCompanyId)) {
-            return true;
-          }
-          
-          // Fallback - textový matching company názvu
-          if (!vehicle.ownerCompanyId && vehicle.company) {
-            return userCompanyAccess.some(access => 
-              access.companyName === vehicle.company || 
-              access.companyName.includes(vehicle.company) ||
-              vehicle.company.includes(access.companyName)
-            );
-          }
-          
-          return false;
+          return vehicle.ownerCompanyId && allowedCompanyIds.includes(vehicle.ownerCompanyId);
         });
         
         console.log('🔐 Rentals Company Permission Filter:', {
