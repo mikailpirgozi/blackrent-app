@@ -48,7 +48,7 @@ router.get('/',
         
         // Získaj všetky vehicles pre mapping
         // Filter prenájmy len pre vozidlá firiem, ku ktorým mal používateľ prístup V ČASE PRENÁJMU
-        // 🏗️ HISTORICAL OWNERSHIP - Používame ownership history pre správne filtrovanie
+        // 🏗️ HISTORICAL OWNERSHIP s FALLBACK na súčasný ownership
         const filteredRentals = [];
         for (const rental of rentals) {
           if (!rental.vehicleId || !rental.startDate) {
@@ -56,7 +56,7 @@ router.get('/',
           }
           
           try {
-            // Získaj vlastníka vozidla v čase začiatku prenájmu
+            // Získaj vlastníka vozidla v čase začiatku prenájmu (HISTORICAL)
             const ownerAtTime = await postgresDatabase.getVehicleOwnerAtTime(
               rental.vehicleId, 
               new Date(rental.startDate)
@@ -64,10 +64,41 @@ router.get('/',
             
             if (ownerAtTime && allowedCompanyIds.includes(ownerAtTime.ownerCompanyId)) {
               filteredRentals.push(rental);
+            } else {
+              // 🔄 FALLBACK: Ak historical ownership neexistuje, použij súčasný ownership
+              const currentOwner = await postgresDatabase.getCurrentVehicleOwner(rental.vehicleId);
+              if (currentOwner && allowedCompanyIds.includes(currentOwner.ownerCompanyId)) {
+                console.log(`📝 Using current ownership for rental ${rental.id} (historical not found)`);
+                filteredRentals.push(rental);
+              } else {
+                // 🔄 FALLBACK 2: Použij vehicle.company zo starého systému
+                if (rental.vehicle?.company) {
+                  const companyNames = await Promise.all(
+                    allowedCompanyIds.map(async (companyId) => {
+                      try {
+                        const company = await postgresDatabase.getCompany(companyId);
+                        return company?.name;
+                      } catch (error) {
+                        return null;
+                      }
+                    })
+                  );
+                  
+                  if (companyNames.includes(rental.vehicle.company)) {
+                    console.log(`📝 Using legacy company matching for rental ${rental.id}`);
+                    filteredRentals.push(rental);
+                  }
+                }
+              }
             }
           } catch (error) {
             console.error(`Error getting vehicle owner for rental ${rental.id}:`, error);
-            // V prípade chyby, preskočíme rental
+            
+            // 🔄 EMERGENCY FALLBACK: Zachovaj rental ak je chyba
+            if (rental.vehicle?.company) {
+              console.log(`🚨 Emergency fallback for rental ${rental.id}`);
+              filteredRentals.push(rental);
+            }
           }
         }
         

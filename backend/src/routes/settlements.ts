@@ -118,7 +118,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
     console.log(`📊 Total rentals in DB: ${rentals.length}`);
     console.log(`📊 Total expenses in DB: ${expenses.length}`);
     
-    // Filtruj prenájmy pre dané obdobie a firmu HISTORICAL OWNERSHIP
+    // Filtruj prenájmy pre dané obdobie a firmu HISTORICAL OWNERSHIP s FALLBACK
     const filteredRentals = [];
     for (const rental of rentals) {
       const rentalStart = new Date(rental.startDate);
@@ -144,9 +144,30 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
         
         if (hasMatchingCompany) {
           filteredRentals.push(rental);
+        } else {
+          // 🔄 FALLBACK: Ak historical ownership neexistuje, použij súčasný ownership
+          const currentOwner = await postgresDatabase.getCurrentVehicleOwner(rental.vehicleId);
+          if (currentOwner && currentOwner.ownerCompanyName === company) {
+            console.log(`📝 Using current ownership for rental ${rental.id} in settlement`);
+            filteredRentals.push(rental);
+          } else {
+            // 🔄 FALLBACK 2: Použij vehicle.company zo starého systému
+            const legacyMatch = rental.vehicle?.company === company;
+            if (legacyMatch) {
+              console.log(`📝 Using legacy company matching for rental ${rental.id} in settlement`);
+              filteredRentals.push(rental);
+            }
+          }
         }
       } catch (error) {
         console.error(`Error getting historical owner for rental ${rental.id}:`, error);
+        
+        // 🔄 EMERGENCY FALLBACK: Použij legacy matching ak je chyba
+        const legacyMatch = rental.vehicle?.company === company;
+        if (legacyMatch) {
+          console.log(`🚨 Emergency fallback for rental ${rental.id} in settlement`);
+          filteredRentals.push(rental);
+        }
       }
     }
     
