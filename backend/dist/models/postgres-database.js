@@ -341,6 +341,8 @@ class PostgresDatabase {
             await this.runMigrations(client);
             // Vytvorenie testovacích dát ak databáza je prázdna
             await this.createSampleDataIfEmpty(client);
+            // DATA INTEGRITY VALIDATION - Kompletná kontrola dát
+            await this.validateDataIntegrity(client);
             console.log('✅ PostgreSQL tabuľky inicializované');
         }
         catch (error) {
@@ -671,17 +673,34 @@ class PostgresDatabase {
                 }
             }
             console.log('✅ Databázové migrácie úspešne dokončené');
+            // MIGRATION TRACKING SYSTEM - Vytvor tabuľku pre tracking migrácií
+            await client.query(`
+        CREATE TABLE IF NOT EXISTS migration_history (
+          id SERIAL PRIMARY KEY,
+          migration_name VARCHAR(255) UNIQUE NOT NULL,
+          executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          success BOOLEAN DEFAULT true
+        )
+      `);
             // Migrácia 13: COMPANY SYSTEM CLEANUP - Oprava celého company systému
-            try {
-                console.log('📋 Migrácia 13: Company System Cleanup...');
-                // 13.1: Backup existujúcich dát
-                console.log('📋 13.1: Backup company dát...');
-                const existingCompanies = await client.query('SELECT id, name FROM companies ORDER BY id');
-                console.log(`📊 Našiel som ${existingCompanies.rows.length} firiem na migráciu`);
-                // 13.2: Vytvor novú companies tabuľku s UUID
-                console.log('📋 13.2: Vytváram novú companies tabuľku s UUID...');
-                await client.query('DROP TABLE IF EXISTS companies_new');
-                await client.query(`
+            const migration13Executed = await client.query(`
+        SELECT COUNT(*) as count FROM migration_history 
+        WHERE migration_name = 'migration_13_company_cleanup'
+      `);
+            if (migration13Executed.rows[0].count > 0 || true) { // DEAKTIVOVANÉ
+                console.log('🛑 Migrácia 13: DEAKTIVOVANÁ pre stabilitu systému');
+            }
+            else {
+                try {
+                    console.log('📋 Migrácia 13: Company System Cleanup...');
+                    // 13.1: Backup existujúcich dát
+                    console.log('📋 13.1: Backup company dát...');
+                    const existingCompanies = await client.query('SELECT id, name FROM companies ORDER BY id');
+                    console.log(`📊 Našiel som ${existingCompanies.rows.length} firiem na migráciu`);
+                    // 13.2: Vytvor novú companies tabuľku s UUID
+                    console.log('📋 13.2: Vytváram novú companies tabuľku s UUID...');
+                    await client.query('DROP TABLE IF EXISTS companies_new');
+                    await client.query(`
           CREATE TABLE companies_new (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             name VARCHAR(255) NOT NULL,
@@ -699,100 +718,107 @@ class PostgresDatabase {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `);
-                // 13.3: Migruj dáta s novými UUID
-                console.log('📋 13.3: Migrujem company dáta s novými UUID...');
-                const companyMapping = new Map(); // old_id -> new_uuid
-                for (const company of existingCompanies.rows) {
-                    const result = await client.query(`
+                    // 13.3: Migruj dáta s novými UUID
+                    console.log('📋 13.3: Migrujem company dáta s novými UUID...');
+                    const companyMapping = new Map(); // old_id -> new_uuid
+                    for (const company of existingCompanies.rows) {
+                        const result = await client.query(`
             INSERT INTO companies_new (name, is_active, created_at)
             VALUES ($1, true, CURRENT_TIMESTAMP)
             RETURNING id
           `, [company.name]);
-                    const newUuid = result.rows[0].id;
-                    companyMapping.set(company.id, newUuid);
-                    console.log(`   ${company.id} (${company.name}) -> ${newUuid}`);
-                }
-                // 13.4: Aktualizuj user_permissions s novými UUID
-                console.log('📋 13.4: Aktualizujem user_permissions...');
-                const permissions = await client.query('SELECT id, company_id FROM user_permissions');
-                for (const perm of permissions.rows) {
-                    const newUuid = companyMapping.get(parseInt(perm.company_id));
-                    if (newUuid) {
-                        await client.query('UPDATE user_permissions SET company_id = $1 WHERE id = $2', [newUuid, perm.id]);
+                        const newUuid = result.rows[0].id;
+                        companyMapping.set(company.id, newUuid);
+                        console.log(`   ${company.id} (${company.name}) -> ${newUuid}`);
                     }
-                }
-                // 13.5: Aktualizuj users.company_id s novými UUID
-                console.log('📋 13.5: Aktualizujem users.company_id...');
-                const users = await client.query('SELECT id, company_id FROM users WHERE company_id IS NOT NULL');
-                for (const user of users.rows) {
-                    const newUuid = companyMapping.get(parseInt(user.company_id));
-                    if (newUuid) {
-                        await client.query('UPDATE users SET company_id = $1 WHERE id = $2', [newUuid, user.id]);
+                    // 13.4: Aktualizuj user_permissions s novými UUID
+                    console.log('📋 13.4: Aktualizujem user_permissions...');
+                    const permissions = await client.query('SELECT id, company_id FROM user_permissions');
+                    for (const perm of permissions.rows) {
+                        const newUuid = companyMapping.get(parseInt(perm.company_id));
+                        if (newUuid) {
+                            await client.query('UPDATE user_permissions SET company_id = $1 WHERE id = $2', [newUuid, perm.id]);
+                        }
                     }
+                    // 13.5: Aktualizuj users.company_id s novými UUID
+                    console.log('📋 13.5: Aktualizujem users.company_id...');
+                    const users = await client.query('SELECT id, company_id FROM users WHERE company_id IS NOT NULL');
+                    for (const user of users.rows) {
+                        const newUuid = companyMapping.get(parseInt(user.company_id));
+                        if (newUuid) {
+                            await client.query('UPDATE users SET company_id = $1 WHERE id = $2', [newUuid, user.id]);
+                        }
+                    }
+                    // 13.6: Nahraď starú companies tabuľku
+                    console.log('📋 13.6: Nahrádzam starú companies tabuľku...');
+                    // Najprv odstráň všetky FK constraints na companies
+                    try {
+                        await client.query('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_company_id_fkey');
+                        await client.query('ALTER TABLE user_permissions DROP CONSTRAINT IF EXISTS user_permissions_company_id_fkey');
+                        await client.query('ALTER TABLE vehicles DROP CONSTRAINT IF EXISTS vehicles_company_id_fkey');
+                        console.log('   ✅ FK constraints odstránené');
+                    }
+                    catch (e) {
+                        console.log('   ⚠️ FK constraints už neexistujú');
+                    }
+                    await client.query('DROP TABLE companies');
+                    await client.query('ALTER TABLE companies_new RENAME TO companies');
+                    // Pridaj nové FK constraints
+                    try {
+                        await client.query('ALTER TABLE users ADD CONSTRAINT users_company_id_fkey FOREIGN KEY (company_id) REFERENCES companies(id)');
+                        await client.query('ALTER TABLE user_permissions ADD CONSTRAINT user_permissions_company_id_fkey FOREIGN KEY (company_id) REFERENCES companies(id)');
+                        console.log('   ✅ Nové FK constraints pridané');
+                    }
+                    catch (e) {
+                        console.log('   ⚠️ FK constraints sa nepodarilo pridať:', e.message);
+                    }
+                    // 13.7: Odstráň duplicitné company_id polia
+                    console.log('📋 13.7: Odstraňujem duplicitné company_id polia...');
+                    try {
+                        await client.query('ALTER TABLE vehicles DROP COLUMN IF EXISTS company_id');
+                        console.log('   ✅ vehicles.company_id odstránené');
+                    }
+                    catch (e) {
+                        console.log('   ⚠️ vehicles.company_id už neexistuje');
+                    }
+                    try {
+                        await client.query('ALTER TABLE settlements DROP COLUMN IF EXISTS company_id');
+                        console.log('   ✅ settlements.company_id odstránené');
+                    }
+                    catch (e) {
+                        console.log('   ⚠️ settlements.company_id už neexistuje');
+                    }
+                    // 13.8: Pridaj chýbajúce company polia
+                    console.log('📋 13.8: Pridávam chýbajúce company polia...');
+                    // Expenses
+                    try {
+                        await client.query('ALTER TABLE expenses ADD COLUMN IF NOT EXISTS company VARCHAR(255) DEFAULT \'Unknown\'');
+                        console.log('   ✅ expenses.company pridané');
+                    }
+                    catch (e) {
+                        console.log('   ⚠️ expenses.company už existuje');
+                    }
+                    // Insurances
+                    try {
+                        await client.query('ALTER TABLE insurances ADD COLUMN IF NOT EXISTS company VARCHAR(255) DEFAULT \'Unknown\'');
+                        console.log('   ✅ insurances.company pridané');
+                    }
+                    catch (e) {
+                        console.log('   ⚠️ insurances.company už existuje');
+                    }
+                    // Rentals - nepridávame company pole, lebo sa filtruje cez vehicle.company
+                    console.log('   ℹ️ rentals.company nie je potrebné - filtruje sa cez vehicle.company');
+                    console.log('✅ Migrácia 13: Company System Cleanup dokončená');
+                    // Mark migration as completed
+                    await client.query(`
+          INSERT INTO migration_history (migration_name) 
+          VALUES ('migration_13_company_cleanup') 
+          ON CONFLICT (migration_name) DO NOTHING
+        `);
                 }
-                // 13.6: Nahraď starú companies tabuľku
-                console.log('📋 13.6: Nahrádzam starú companies tabuľku...');
-                // Najprv odstráň všetky FK constraints na companies
-                try {
-                    await client.query('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_company_id_fkey');
-                    await client.query('ALTER TABLE user_permissions DROP CONSTRAINT IF EXISTS user_permissions_company_id_fkey');
-                    await client.query('ALTER TABLE vehicles DROP CONSTRAINT IF EXISTS vehicles_company_id_fkey');
-                    console.log('   ✅ FK constraints odstránené');
+                catch (error) {
+                    console.log('⚠️ Migrácia 13 chyba:', error.message);
                 }
-                catch (e) {
-                    console.log('   ⚠️ FK constraints už neexistujú');
-                }
-                await client.query('DROP TABLE companies');
-                await client.query('ALTER TABLE companies_new RENAME TO companies');
-                // Pridaj nové FK constraints
-                try {
-                    await client.query('ALTER TABLE users ADD CONSTRAINT users_company_id_fkey FOREIGN KEY (company_id) REFERENCES companies(id)');
-                    await client.query('ALTER TABLE user_permissions ADD CONSTRAINT user_permissions_company_id_fkey FOREIGN KEY (company_id) REFERENCES companies(id)');
-                    console.log('   ✅ Nové FK constraints pridané');
-                }
-                catch (e) {
-                    console.log('   ⚠️ FK constraints sa nepodarilo pridať:', e.message);
-                }
-                // 13.7: Odstráň duplicitné company_id polia
-                console.log('📋 13.7: Odstraňujem duplicitné company_id polia...');
-                try {
-                    await client.query('ALTER TABLE vehicles DROP COLUMN IF EXISTS company_id');
-                    console.log('   ✅ vehicles.company_id odstránené');
-                }
-                catch (e) {
-                    console.log('   ⚠️ vehicles.company_id už neexistuje');
-                }
-                try {
-                    await client.query('ALTER TABLE settlements DROP COLUMN IF EXISTS company_id');
-                    console.log('   ✅ settlements.company_id odstránené');
-                }
-                catch (e) {
-                    console.log('   ⚠️ settlements.company_id už neexistuje');
-                }
-                // 13.8: Pridaj chýbajúce company polia
-                console.log('📋 13.8: Pridávam chýbajúce company polia...');
-                // Expenses
-                try {
-                    await client.query('ALTER TABLE expenses ADD COLUMN IF NOT EXISTS company VARCHAR(255) DEFAULT \'Unknown\'');
-                    console.log('   ✅ expenses.company pridané');
-                }
-                catch (e) {
-                    console.log('   ⚠️ expenses.company už existuje');
-                }
-                // Insurances
-                try {
-                    await client.query('ALTER TABLE insurances ADD COLUMN IF NOT EXISTS company VARCHAR(255) DEFAULT \'Unknown\'');
-                    console.log('   ✅ insurances.company pridané');
-                }
-                catch (e) {
-                    console.log('   ⚠️ insurances.company už existuje');
-                }
-                // Rentals - nepridávame company pole, lebo sa filtruje cez vehicle.company
-                console.log('   ℹ️ rentals.company nie je potrebné - filtruje sa cez vehicle.company');
-                console.log('✅ Migrácia 13: Company System Cleanup dokončená');
-            }
-            catch (error) {
-                console.log('⚠️ Migrácia 13 chyba:', error.message);
             }
             // Migrácia 14: FINAL COMPANY CLEANUP - Odstránenie owner_name a priradenie company všetkým
             try {
@@ -832,48 +858,63 @@ class PostgresDatabase {
                 console.log('⚠️ Migrácia 14 chyba:', error.message);
             }
             // Migrácia 15: Oprava vehicle_id v rentals
-            try {
-                console.log('📋 Migrácia 15: Oprava vehicle_id v rentals...');
-                // Získaj všetky rentals s neexistujúcimi vehicle_id
-                const invalidRentals = await client.query(`
+            const migration15Executed = await client.query(`
+        SELECT COUNT(*) as count FROM migration_history 
+        WHERE migration_name = 'migration_15_vehicle_id_fix'
+      `);
+            if (migration15Executed.rows[0].count > 0 || true) { // DEAKTIVOVANÉ
+                console.log('🛑 Migrácia 15: DEAKTIVOVANÁ pre stabilitu systému');
+            }
+            else {
+                try {
+                    console.log('📋 Migrácia 15: Oprava vehicle_id v rentals...');
+                    // Získaj všetky rentals s neexistujúcimi vehicle_id
+                    const invalidRentals = await client.query(`
           SELECT r.id, r.vehicle_id, r.customer_name 
           FROM rentals r 
           LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
           WHERE r.vehicle_id IS NOT NULL AND v.id IS NULL
         `);
-                console.log(`🔍 Našiel som ${invalidRentals.rows.length} rentals s neexistujúcimi vehicle_id`);
-                if (invalidRentals.rows.length > 0) {
-                    // Získaj prvé 3 existujúce vozidlá pre mapping
-                    const existingVehicles = await client.query(`
+                    console.log(`🔍 Našiel som ${invalidRentals.rows.length} rentals s neexistujúcimi vehicle_id`);
+                    if (invalidRentals.rows.length > 0) {
+                        // Získaj prvé 3 existujúce vozidlá pre mapping
+                        const existingVehicles = await client.query(`
             SELECT id, brand, model, license_plate 
             FROM vehicles 
             WHERE id IS NOT NULL 
             ORDER BY brand ASC 
             LIMIT 3
           `);
-                    console.log(`🚗 Použijem ${existingVehicles.rows.length} existujúcich vozidiel pre mapping`);
-                    if (existingVehicles.rows.length > 0) {
-                        // Mapuj každý rental na existujúce vozidlo
-                        for (let i = 0; i < invalidRentals.rows.length; i++) {
-                            const rental = invalidRentals.rows[i];
-                            const vehicleIndex = i % existingVehicles.rows.length; // Rotuj medzi vozidlami
-                            const newVehicleId = existingVehicles.rows[vehicleIndex].id;
-                            await client.query(`
+                        console.log(`🚗 Použijem ${existingVehicles.rows.length} existujúcich vozidiel pre mapping`);
+                        if (existingVehicles.rows.length > 0) {
+                            // Mapuj každý rental na existujúce vozidlo
+                            for (let i = 0; i < invalidRentals.rows.length; i++) {
+                                const rental = invalidRentals.rows[i];
+                                const vehicleIndex = i % existingVehicles.rows.length; // Rotuj medzi vozidlami
+                                const newVehicleId = existingVehicles.rows[vehicleIndex].id;
+                                await client.query(`
                 UPDATE rentals 
                 SET vehicle_id = $1 
                 WHERE id = $2
               `, [newVehicleId, rental.id]);
-                            console.log(`   ✅ Rental ${rental.id} (${rental.customer_name}) -> Vehicle ${existingVehicles.rows[vehicleIndex].license_plate}`);
+                                console.log(`   ✅ Rental ${rental.id} (${rental.customer_name}) -> Vehicle ${existingVehicles.rows[vehicleIndex].license_plate}`);
+                            }
+                        }
+                        else {
+                            console.log('   ⚠️ Žiadne existujúce vozidlá pre mapping');
                         }
                     }
-                    else {
-                        console.log('   ⚠️ Žiadne existujúce vozidlá pre mapping');
-                    }
+                    console.log('✅ Migrácia 15: Vehicle_id v rentals opravené');
+                    // Mark migration as completed
+                    await client.query(`
+          INSERT INTO migration_history (migration_name) 
+          VALUES ('migration_15_vehicle_id_fix') 
+          ON CONFLICT (migration_name) DO NOTHING
+        `);
                 }
-                console.log('✅ Migrácia 15: Vehicle_id v rentals opravené');
-            }
-            catch (error) {
-                console.log('⚠️ Migrácia 15 chyba:', error.message);
+                catch (error) {
+                    console.log('⚠️ Migrácia 15 chyba:', error.message);
+                }
             }
             // Migrácia 16: Pridanie STK stĺpca do vehicles
             try {
@@ -903,6 +944,71 @@ class PostgresDatabase {
         }
         catch (error) {
             console.log('⚠️ Migrácie celkovo preskočené:', error.message);
+        }
+    }
+    // DATA INTEGRITY VALIDATION
+    async validateDataIntegrity(client) {
+        console.log('🔍 Spúšťam data integrity validation...');
+        try {
+            // 1. Kontrola orphaned rentals (rentals bez platných vehicles)
+            const orphanedRentals = await client.query(`
+        SELECT r.id, r.customer_name, r.vehicle_id 
+        FROM rentals r 
+        LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
+        WHERE r.vehicle_id IS NOT NULL AND v.id IS NULL
+      `);
+            if (orphanedRentals.rows.length > 0) {
+                console.log(`⚠️ PROBLÉM: ${orphanedRentals.rows.length} rentals má neplatné vehicle_id`);
+                for (const rental of orphanedRentals.rows) {
+                    console.log(`   ❌ Rental ${rental.id} (${rental.customer_name}) -> neexistujúce vehicle_id: ${rental.vehicle_id}`);
+                }
+            }
+            else {
+                console.log('✅ Všetky rentals majú platné vehicle_id');
+            }
+            // 2. Kontrola vehicles bez owner_company_id
+            const vehiclesWithoutCompany = await client.query(`
+        SELECT id, brand, model, license_plate, company 
+        FROM vehicles 
+        WHERE owner_company_id IS NULL
+      `);
+            if (vehiclesWithoutCompany.rows.length > 0) {
+                console.log(`⚠️ PROBLÉM: ${vehiclesWithoutCompany.rows.length} vozidiel nemá owner_company_id`);
+            }
+            else {
+                console.log('✅ Všetky vozidlá majú owner_company_id');
+            }
+            // 3. Kontrola users bez company_id
+            const usersWithoutCompany = await client.query(`
+        SELECT id, username, role 
+        FROM users 
+        WHERE company_id IS NULL AND role = 'company_owner'
+      `);
+            if (usersWithoutCompany.rows.length > 0) {
+                console.log(`⚠️ PROBLÉM: ${usersWithoutCompany.rows.length} company_owner users nemá company_id`);
+            }
+            else {
+                console.log('✅ Všetci company_owner users majú company_id');
+            }
+            // 4. Kontrola UUID konzistentnosti
+            const uuidConsistency = await client.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM vehicles WHERE id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') as valid_vehicle_uuids,
+          (SELECT COUNT(*) FROM vehicles) as total_vehicles,
+          (SELECT COUNT(*) FROM users WHERE id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') as valid_user_uuids,
+          (SELECT COUNT(*) FROM users) as total_users
+      `);
+            const uuidData = uuidConsistency.rows[0];
+            if (uuidData.valid_vehicle_uuids == uuidData.total_vehicles && uuidData.valid_user_uuids == uuidData.total_users) {
+                console.log('✅ UUID formát je konzistentný');
+            }
+            else {
+                console.log(`⚠️ PROBLÉM: UUID formát nie je konzistentný - Vehicles: ${uuidData.valid_vehicle_uuids}/${uuidData.total_vehicles}, Users: ${uuidData.valid_user_uuids}/${uuidData.total_users}`);
+            }
+            console.log('✅ Data integrity validation dokončená');
+        }
+        catch (error) {
+            console.log('⚠️ Data integrity validation chyba:', error.message);
         }
     }
     async createDefaultAdmin(client) {
