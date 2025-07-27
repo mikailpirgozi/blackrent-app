@@ -942,6 +942,34 @@ export class PostgresDatabase {
       } catch (error: any) {
         console.log('⚠️ Migrácia 15 chyba:', error.message);
       }
+      
+      // Migrácia 16: Pridanie STK stĺpca do vehicles
+      try {
+        console.log('📋 Migrácia 16: Pridávanie STK stĺpca do vehicles...');
+        
+        // Skontroluj či stĺpec už existuje
+        const columnExists = await client.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'vehicles' AND column_name = 'stk'
+        `);
+        
+        if (columnExists.rows.length === 0) {
+          // Pridaj STK stĺpec
+          await client.query(`
+            ALTER TABLE vehicles 
+            ADD COLUMN stk DATE
+          `);
+          console.log('   ✅ STK stĺpec pridaný do vehicles tabuľky');
+        } else {
+          console.log('   ℹ️ STK stĺpec už existuje');
+        }
+        
+        console.log('✅ Migrácia 16: STK stĺpec úspešne pridaný');
+        
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 16 chyba:', error.message);
+      }
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
     }
@@ -1359,6 +1387,7 @@ export class PostgresDatabase {
         ownerCompanyId: row.owner_company_id?.toString(), // Mapovanie owner_company_id na ownerCompanyId
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
+        stk: row.stk ? new Date(row.stk) : undefined, // 📋 STK date mapping
         createdAt: new Date(row.created_at)
       }));
 
@@ -1432,6 +1461,7 @@ export class PostgresDatabase {
         ownerCompanyId: row.owner_company_id?.toString(), // Mapovanie owner_company_id na ownerCompanyId
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
+        stk: row.stk ? new Date(row.stk) : undefined, // 📋 STK date mapping
         createdAt: new Date(row.created_at)
       };
     } finally {
@@ -1556,7 +1586,7 @@ export class PostgresDatabase {
       }
 
       await client.query(
-        'UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, owner_name = $5, owner_company_id = $6, pricing = $7, commission = $8, status = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10',
+        'UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, owner_name = $5, owner_company_id = $6, pricing = $7, commission = $8, status = $9, year = $10, stk = $11, updated_at = CURRENT_TIMESTAMP WHERE id = $12',
         [
           vehicle.brand, 
           vehicle.model, 
@@ -1566,7 +1596,9 @@ export class PostgresDatabase {
           vehicle.ownerCompanyId || null, // 🏢 Company ID as UUID string
           JSON.stringify(vehicle.pricing), // Konverzia na JSON string
           JSON.stringify(vehicle.commission), // Konverzia na JSON string
-          vehicle.status, 
+          vehicle.status,
+          vehicle.year || null, // 📅 Year
+          vehicle.stk || null, // 📋 STK date
           vehicle.id // UUID as string, not parseInt
         ]
       );
