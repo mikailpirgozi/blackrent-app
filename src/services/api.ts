@@ -167,12 +167,7 @@ class ApiService {
     return this.request<void>(`/vehicles/${id}`, { method: 'DELETE' });
   }
 
-  // 🗑️ DELETE ALL VEHICLES
-  async deleteAllVehicles(): Promise<any> {
-    return this.request('/vehicles/delete-all', {
-      method: 'DELETE'
-    });
-  }
+
 
   // CSV Export/Import pre vozidlá
   async exportVehiclesCSV(): Promise<Blob> {

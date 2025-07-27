@@ -317,47 +317,7 @@ export default function VehicleListNew() {
     }
   };
 
-  // 🗑️ DELETE ALL VEHICLES funkcionalita
-  const handleDeleteAllVehicles = async () => {
-    const confirmed = window.confirm(
-      '⚠️ POZOR: Toto zmaže VŠETKY vozidlá z databázy!\n\n' +
-      'Táto akcia je NEVRATNÁ a zmaže aj všetky súvisiace prenájmy, náklady a poistenia.\n\n' +
-      'Ste si istý, že chcete pokračovať?'
-    );
 
-    if (!confirmed) return;
-
-    const doubleConfirmed = window.confirm(
-      '🚨 POSLEDNÉ VAROVANIE!\n\n' +
-      `Zmaže sa ${state.vehicles.length} vozidiel a všetky súvisiace dáta.\n\n` +
-      'Napíšte "DELETE ALL" pre potvrdenie:'
-    );
-
-    if (!doubleConfirmed) return;
-
-    const userInput = prompt('Napíšte "DELETE ALL" pre potvrdenie:');
-    if (userInput !== 'DELETE ALL') {
-      alert('Akcia zrušená - nesprávne potvrdenie');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const result = await apiService.deleteAllVehicles();
-      
-      if (result.success) {
-        alert(`✅ Úspešne zmazané: ${result.data.deletedCount} vozidiel`);
-        window.location.reload();
-      } else {
-        alert(`❌ Chyba: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('❌ Delete all vehicles error:', error);
-      alert('Chyba pri mazaní vozidiel');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -642,22 +602,7 @@ export default function VehicleListNew() {
             />
           </Button>
 
-          <Button
-            variant="outlined"
-            onClick={handleDeleteAllVehicles}
-            disabled={loading}
-            sx={{
-              borderColor: '#d32f2f',
-              color: '#d32f2f',
-              '&:hover': { borderColor: '#c62828', bgcolor: 'rgba(211, 47, 47, 0.04)' },
-              '&:disabled': { borderColor: '#ccc', color: '#ccc' },
-              borderRadius: 2,
-              px: 3,
-              py: 1
-            }}
-          >
-            🗑️ Vymazať všetky
-          </Button>
+
         </Box>
       </Box>
 
