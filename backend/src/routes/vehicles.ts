@@ -388,7 +388,7 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
         if (!line) continue;
 
         // Parsuj CSV riadok (jednoduché parsovanie)
-        const fields = line.split(',').map(field => field.replace(/^"|"$/g, '').trim());
+        const fields = line.split(',').map((field: string) => field.replace(/^"|"$/g, '').trim());
         
         if (fields.length < 4) {
           errors.push({ row: i + 2, error: 'Nedostatok stĺpcov' });
