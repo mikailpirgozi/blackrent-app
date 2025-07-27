@@ -122,7 +122,7 @@ class PostgresDatabase {
             await client.query(`
         CREATE TABLE IF NOT EXISTS rentals (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
+          vehicle_id UUID,
           customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
           customer_name VARCHAR(100) NOT NULL,
           start_date TIMESTAMP NOT NULL,
@@ -166,7 +166,7 @@ class PostgresDatabase {
           description TEXT NOT NULL,
           amount DECIMAL(10,2) NOT NULL,
           date TIMESTAMP NOT NULL,
-          vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
+          vehicle_id UUID,
           company VARCHAR(100) NOT NULL,
           category VARCHAR(50) NOT NULL,
           note TEXT,
@@ -178,7 +178,7 @@ class PostgresDatabase {
             await client.query(`
         CREATE TABLE IF NOT EXISTS insurances (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          vehicle_id UUID NOT NULL,
           type VARCHAR(50) NOT NULL,
           policy_number VARCHAR(100) NOT NULL DEFAULT '',
           valid_from TIMESTAMP NOT NULL,
@@ -238,7 +238,7 @@ class PostgresDatabase {
             await client.query(`
         CREATE TABLE IF NOT EXISTS vehicle_documents (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          vehicle_id UUID NOT NULL,
           document_type VARCHAR(20) NOT NULL,
           valid_from DATE,
           valid_to DATE NOT NULL,
@@ -254,8 +254,8 @@ class PostgresDatabase {
             await client.query(`
         CREATE TABLE IF NOT EXISTS insurance_claims (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
-          insurance_id UUID REFERENCES insurances(id) ON DELETE SET NULL,
+          vehicle_id UUID NOT NULL,
+          insurance_id UUID,
           
           -- Základné info o udalosti
           incident_date TIMESTAMP NOT NULL,
@@ -300,7 +300,7 @@ class PostgresDatabase {
             await client.query(`
         CREATE TABLE IF NOT EXISTS vehicle_unavailability (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          vehicle_id UUID NOT NULL,
           start_date DATE NOT NULL,
           end_date DATE NOT NULL,
           reason TEXT NOT NULL,
