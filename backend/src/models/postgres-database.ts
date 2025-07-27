@@ -4377,31 +4377,7 @@ export class PostgresDatabase {
     }
   }
 
-  // 🗑️ DELETE ALL VEHICLES - Pre re-import
-  async deleteAllVehicles(): Promise<number> {
-    const client = await this.pool.connect();
-    try {
-      // 1. Najprv zmaž všetky rentals ktoré odkazujú na vozidlá (CASCADE)
-      const rentalsResult = await client.query('DELETE FROM rentals WHERE vehicle_id IS NOT NULL');
-      console.log(`🗑️ Deleted ${rentalsResult.rowCount} rentals`);
 
-      // 2. Zmaž všetky expenses pre vozidlá
-      const expensesResult = await client.query('DELETE FROM expenses WHERE vehicle_id IS NOT NULL');
-      console.log(`🗑️ Deleted ${expensesResult.rowCount} expenses`);
-
-      // 3. Zmaž všetky insurances pre vozidlá
-      const insurancesResult = await client.query('DELETE FROM insurances WHERE vehicle_id IS NOT NULL');
-      console.log(`🗑️ Deleted ${insurancesResult.rowCount} insurances`);
-
-      // 4. Nakoniec zmaž všetky vozidlá
-      const vehiclesResult = await client.query('DELETE FROM vehicles');
-      console.log(`🗑️ Deleted ${vehiclesResult.rowCount} vehicles`);
-
-      return vehiclesResult.rowCount || 0;
-    } finally {
-      client.release();
-    }
-  }
 }
 
 export const postgresDatabase = new PostgresDatabase(); 

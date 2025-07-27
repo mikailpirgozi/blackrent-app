@@ -560,39 +560,6 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
   }
 });
 
-// 🗑️ DELETE ALL VEHICLES - Pre re-import
-router.delete('/delete-all', authenticateToken, async (req: Request, res: Response) => {
-  try {
-    console.log('🗑️ Starting DELETE ALL VEHICLES...');
-    
-    // Skontroluj admin permissions
-    if (req.user?.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Iba admin môže zmazať všetky vozidlá'
-      });
-    }
 
-    const deletedCount = await postgresDatabase.deleteAllVehicles();
-    
-    console.log(`✅ DELETE ALL VEHICLES completed: ${deletedCount} vozidiel zmazaných`);
-
-    res.json({
-      success: true,
-      message: `Všetky vozidlá zmazané: ${deletedCount} záznamov`,
-      data: {
-        deletedCount
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ DELETE ALL VEHICLES error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Chyba pri mazaní všetkých vozidiel',
-      details: error instanceof Error ? error.message : 'Neznáma chyba'
-    });
-  }
-});
 
 export default router; 
