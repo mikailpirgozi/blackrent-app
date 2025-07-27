@@ -720,10 +720,12 @@ export default function InsuranceList() {
                           <CarIcon sx={{ color: '#1976d2', fontSize: 18 }} />
                           <Box>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'N/A'}
+                              {vehicle ? `${vehicle.brand} ${vehicle.model}` : 
+                                <span style={{ color: '#f44336' }}>⚠️ Vozidlo nenájdené</span>
+                              }
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {vehicle?.licensePlate}
+                              {vehicle?.licensePlate || (doc.vehicleId ? `ID: ${doc.vehicleId.slice(0, 8)}...` : 'Chýba ID')}
                             </Typography>
                           </Box>
                         </Box>
