@@ -34,25 +34,34 @@ router.get('/',
       
       console.log('💰 Expenses GET - user:', { 
         role: req.user?.role, 
-        companyId: req.user?.companyId, 
+        userId: req.user?.id, 
         totalExpenses: expenses.length 
       });
       
-      // 🏢 COMPANY OWNER - filter len náklady vlastných vozidiel
-      if (req.user?.role === 'company_owner' && req.user.companyId) {
+      // 🔐 NON-ADMIN USERS - filter podľa company permissions
+      if (req.user?.role !== 'admin' && req.user) {
+        const user = req.user; // TypeScript safe assignment
+        const originalCount = expenses.length;
+        
+        // Získaj company access pre používateľa
+        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
+        const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+        
+        // Získaj všetky vozidlá pre mapping
         const vehicles = await postgresDatabase.getVehicles();
-        const companyVehicleIds = vehicles
-          .filter(v => v.ownerCompanyId === req.user?.companyId)
+        const allowedVehicleIds = vehicles
+          .filter(v => v.ownerCompanyId && allowedCompanyIds.includes(v.ownerCompanyId))
           .map(v => v.id);
         
-        const originalCount = expenses.length;
+        // Filter expenses len pre povolené vozidlá
         expenses = expenses.filter(e => 
-          e.vehicleId && companyVehicleIds.includes(e.vehicleId)
+          e.vehicleId && allowedVehicleIds.includes(e.vehicleId)
         );
         
-        console.log('🏢 Company Owner Expenses Filter:', {
-          userCompanyId: req.user.companyId,
-          companyVehicleIds,
+        console.log('🔐 Expenses Company Permission Filter:', {
+          userId: user!.id,
+          allowedCompanyIds,
+          allowedVehicleIds: allowedVehicleIds.slice(0, 5), // Show first 5 for brevity
           originalCount,
           filteredCount: expenses.length
         });
