@@ -4935,6 +4935,39 @@ export class PostgresDatabase {
     }
   }
 
+  // Získanie majiteľa vozidla k určitému dátumu
+  async getVehicleOwnerAtDate(vehicleId: string, date: Date): Promise<{
+    ownerCompanyId: string,
+    ownerCompanyName: string
+  } | null> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT 
+          owner_company_id,
+          owner_company_name
+        FROM vehicle_ownership_history
+        WHERE vehicle_id = $1
+          AND valid_from <= $2
+          AND (valid_to IS NULL OR valid_to > $2)
+        ORDER BY valid_from DESC
+        LIMIT 1
+      `, [vehicleId, date]);
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      const row = result.rows[0];
+      return {
+        ownerCompanyId: row.owner_company_id,
+        ownerCompanyName: row.owner_company_name
+      };
+    } finally {
+      client.release();
+    }
+  }
+
 }
 
 export const postgresDatabase = new PostgresDatabase(); 

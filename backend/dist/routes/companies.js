@@ -41,14 +41,20 @@ router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('co
 // POST /api/companies - Vytvorenie novej firmy
 router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('companies', 'create'), async (req, res) => {
     try {
+        console.log('🏢 POST /api/companies - Creating company');
+        console.log('🏢 Request body:', req.body);
+        console.log('🏢 User:', req.user);
         const { name } = req.body;
         if (!name) {
+            console.log('❌ Company name is missing');
             return res.status(400).json({
                 success: false,
                 error: 'Názov firmy je povinný'
             });
         }
+        console.log('🏢 Creating company with name:', name);
         const createdCompany = await postgres_database_1.postgresDatabase.createCompany({ name });
+        console.log('🏢 Company created:', createdCompany);
         res.status(201).json({
             success: true,
             message: 'Firma úspešne vytvorená',
@@ -56,10 +62,10 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('c
         });
     }
     catch (error) {
-        console.error('Create company error:', error);
+        console.error('❌ Create company error:', error);
         res.status(500).json({
             success: false,
-            error: 'Chyba pri vytváraní firmy'
+            error: `Chyba pri vytváraní firmy: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
         });
     }
 });

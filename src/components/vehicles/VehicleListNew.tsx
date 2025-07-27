@@ -129,11 +129,34 @@ export default function VehicleListNew() {
   const [showRented, setShowRented] = useState(true);
   const [showMaintenance, setShowMaintenance] = useState(true);
   const [showOther, setShowOther] = useState(true);
+  const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false);
+  const [selectedVehicleHistory, setSelectedVehicleHistory] = useState<Vehicle | null>(null);
+  const [ownershipHistory, setOwnershipHistory] = useState<any[]>([]);
 
   // Handlers
   const handleEdit = (vehicle: Vehicle) => {
     setEditingVehicle(vehicle);
     setOpenDialog(true);
+  };
+
+  const handleShowOwnershipHistory = async (vehicle: Vehicle) => {
+    try {
+      setSelectedVehicleHistory(vehicle);
+      // Použijem fetch API namiesto private request metódy
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/vehicles/${vehicle.id}/ownership-history`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      setOwnershipHistory(data.data.ownershipHistory || []);
+      setOwnershipHistoryDialog(true);
+    } catch (error) {
+      console.error('Error fetching ownership history:', error);
+      alert('Chyba pri načítaní histórie transferov');
+    }
   };
 
   const handleDelete = async (vehicleId: string) => {
@@ -916,13 +939,13 @@ export default function VehicleListNew() {
                         </IconButton>
                       </Can>
                       
-                      {/* History Button */}
+                      {/* Ownership History Button */}
                       <IconButton
                         size="small"
-                        title="História vozidla"
+                        title="História transferov vlastníctva"
                         onClick={(e) => {
                           e.stopPropagation();
-                          // TODO: Implement history view
+                          handleShowOwnershipHistory(vehicle);
                         }}
                         sx={{ 
                           bgcolor: '#9c27b0', 
@@ -1424,6 +1447,57 @@ export default function VehicleListNew() {
             onSave={handleSubmit}
             onCancel={handleCloseDialog}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Ownership History Dialog */}
+      <Dialog 
+        open={ownershipHistoryDialog} 
+        onClose={() => setOwnershipHistoryDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          História transferov vlastníctva
+          {selectedVehicleHistory && (
+            <Typography variant="subtitle2" color="text.secondary">
+              {selectedVehicleHistory.brand} {selectedVehicleHistory.model} ({selectedVehicleHistory.licensePlate})
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent>
+          {ownershipHistory.length === 0 ? (
+            <Typography>Žiadna história transferov</Typography>
+          ) : (
+            <Box sx={{ mt: 2 }}>
+              {ownershipHistory.map((record, index) => (
+                <Card key={record.id} sx={{ mb: 2, bgcolor: index === 0 ? 'primary.50' : 'background.paper' }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Typography variant="h6" color={index === 0 ? 'primary.main' : 'text.primary'}>
+                        {record.ownerCompanyName}
+                        {index === 0 && <Chip label="Aktuálny majiteľ" size="small" sx={{ ml: 1 }} />}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {format(new Date(record.validFrom), 'dd.MM.yyyy', { locale: sk })}
+                        {record.validTo && ` - ${format(new Date(record.validTo), 'dd.MM.yyyy', { locale: sk })}`}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Dôvod: {record.transferReason === 'initial_setup' ? 'Počiatočné nastavenie' : 
+                              record.transferReason === 'sale' ? 'Predaj' :
+                              record.transferReason === 'transfer' ? 'Transfer' : record.transferReason}
+                    </Typography>
+                    {record.transferNotes && (
+                      <Typography variant="body2" color="text.secondary">
+                        Poznámka: {record.transferNotes}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          )}
         </DialogContent>
       </Dialog>
     </Box>

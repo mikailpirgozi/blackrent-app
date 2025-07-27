@@ -696,4 +696,62 @@ router.get('/:id/ownership-history',
   }
 );
 
+// GET /api/vehicles/:id/owner-at-date - Získanie majiteľa vozidla k dátumu
+router.get('/:id/owner-at-date',
+  authenticateToken,
+  checkPermission('vehicles', 'read', { getContext: getVehicleContext }),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { id: vehicleId } = req.params;
+      const { date } = req.query;
+
+      if (!date || typeof date !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: 'Date parameter is required'
+        });
+      }
+
+      const targetDate = new Date(date);
+      if (isNaN(targetDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid date format'
+        });
+      }
+
+      // Overenie, že vozidlo existuje
+      const vehicle = await postgresDatabase.getVehicle(vehicleId);
+      if (!vehicle) {
+        return res.status(404).json({
+          success: false,
+          error: 'Vehicle not found'
+        });
+      }
+
+      // Získanie majiteľa k dátumu
+      const owner = await postgresDatabase.getVehicleOwnerAtDate(vehicleId, targetDate);
+
+      res.json({
+        success: true,
+        data: {
+          vehicleId,
+          date: targetDate.toISOString(),
+          owner: owner || {
+            ownerCompanyId: null,
+            ownerCompanyName: 'Neznámy majiteľ'
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Get vehicle owner at date error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Failed to get vehicle owner: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  }
+);
+
 export default router; 

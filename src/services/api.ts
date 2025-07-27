@@ -673,6 +673,26 @@ class ApiService {
     console.log('🔐 API setUserPermissionsBulk - response:', response);
     return response;
   }
+
+  // Získanie majiteľa vozidla k dátumu
+  async getVehicleOwnerAtDate(vehicleId: string, date: Date): Promise<{
+    vehicleId: string;
+    date: string;
+    owner: {
+      ownerCompanyId: string | null;
+      ownerCompanyName: string;
+    };
+  }> {
+    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    return this.request<{
+      vehicleId: string;
+      date: string;
+      owner: {
+        ownerCompanyId: string | null;
+        ownerCompanyName: string;
+      };
+    }>(`/vehicles/${vehicleId}/owner-at-date?date=${dateStr}`);
+  }
 }
 
 export const apiService = new ApiService();

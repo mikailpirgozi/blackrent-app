@@ -128,17 +128,52 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
         console.log(`🔍 Settlement for company: ${company} from ${fromDate} to ${toDate}`);
         console.log(`📊 Total rentals in DB: ${rentals.length}`);
         console.log(`📊 Total expenses in DB: ${expenses.length}`);
-        // Filtruj prenájmy pre dané obdobie a firmu
-        const filteredRentals = rentals.filter(rental => {
+        // Filtruj prenájmy pre dané obdobie a firmu HISTORICAL OWNERSHIP s FALLBACK
+        const filteredRentals = [];
+        for (const rental of rentals) {
             const rentalStart = new Date(rental.startDate);
             const rentalEnd = new Date(rental.endDate);
             const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) ||
                 (rentalEnd >= fromDate && rentalEnd <= toDate) ||
                 (rentalStart <= fromDate && rentalEnd >= toDate);
-            const hasMatchingCompany = rental.vehicle?.company === company;
-            console.log(`🏠 Rental ${rental.id} - Vehicle company: "${rental.vehicle?.company}", Looking for: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
-            return isInPeriod && hasMatchingCompany;
-        });
+            if (!isInPeriod || !rental.vehicleId) {
+                continue;
+            }
+            try {
+                // 🏗️ HISTORICAL OWNERSHIP - Získaj vlastníka v čase prenájmu
+                const ownerAtTime = await postgres_database_1.postgresDatabase.getVehicleOwnerAtTime(rental.vehicleId, rentalStart);
+                const hasMatchingCompany = ownerAtTime && ownerAtTime.ownerCompanyName === company;
+                console.log(`🏠 Rental ${rental.id} - Historical owner: "${ownerAtTime?.ownerCompanyName}", Looking for: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
+                if (hasMatchingCompany) {
+                    filteredRentals.push(rental);
+                }
+                else {
+                    // 🔄 FALLBACK: Ak historical ownership neexistuje, použij súčasný ownership
+                    const currentOwner = await postgres_database_1.postgresDatabase.getCurrentVehicleOwner(rental.vehicleId);
+                    if (currentOwner && currentOwner.ownerCompanyName === company) {
+                        console.log(`📝 Using current ownership for rental ${rental.id} in settlement`);
+                        filteredRentals.push(rental);
+                    }
+                    else {
+                        // 🔄 FALLBACK 2: Použij vehicle.company zo starého systému
+                        const legacyMatch = rental.vehicle?.company === company;
+                        if (legacyMatch) {
+                            console.log(`📝 Using legacy company matching for rental ${rental.id} in settlement`);
+                            filteredRentals.push(rental);
+                        }
+                    }
+                }
+            }
+            catch (error) {
+                console.error(`Error getting historical owner for rental ${rental.id}:`, error);
+                // 🔄 EMERGENCY FALLBACK: Použij legacy matching ak je chyba
+                const legacyMatch = rental.vehicle?.company === company;
+                if (legacyMatch) {
+                    console.log(`🚨 Emergency fallback for rental ${rental.id} in settlement`);
+                    filteredRentals.push(rental);
+                }
+            }
+        }
         console.log(`✅ Filtered rentals: ${filteredRentals.length}`);
         // Filtruj náklady pre dané obdobie a firmu
         const filteredExpenses = expenses.filter(expense => {

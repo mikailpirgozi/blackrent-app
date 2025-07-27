@@ -117,5 +117,23 @@ router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
         });
     }
 });
+// DELETE /api/insurances/:id - Zmazanie poistky
+router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('insurances', 'delete', { getContext: getInsuranceContext }), async (req, res) => {
+    try {
+        const { id } = req.params;
+        await postgres_database_1.postgresDatabase.deleteInsurance(id);
+        res.json({
+            success: true,
+            message: 'Poistka úspešne zmazaná'
+        });
+    }
+    catch (error) {
+        console.error('Delete insurance error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri mazaní poistky'
+        });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=insurances.js.map
