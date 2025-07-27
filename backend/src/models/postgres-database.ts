@@ -712,8 +712,17 @@ export class PostgresDatabase {
       console.log('✅ Databázové migrácie úspešne dokončené');
       
       // Migrácia 13: COMPANY SYSTEM CLEANUP - Oprava celého company systému
-      try {
-        console.log('📋 Migrácia 13: Company System Cleanup...');
+      // KONTROLA: Spustiť len ak nebola už spustená
+      const migration13Check = await client.query(`
+        SELECT COUNT(*) as count FROM information_schema.tables 
+        WHERE table_name = 'companies_new'
+      `);
+      
+      if (migration13Check.rows[0].count > 0) {
+        console.log('📋 Migrácia 13: Už bola spustená, preskakujem...');
+      } else {
+        try {
+          console.log('📋 Migrácia 13: Company System Cleanup...');
         
         // 13.1: Backup existujúcich dát
         console.log('📋 13.1: Backup company dát...');
@@ -843,8 +852,9 @@ export class PostgresDatabase {
         
         console.log('✅ Migrácia 13: Company System Cleanup dokončená');
         
-      } catch (error: any) {
-        console.log('⚠️ Migrácia 13 chyba:', error.message);
+        } catch (error: any) {
+          console.log('⚠️ Migrácia 13 chyba:', error.message);
+        }
       }
 
       // Migrácia 14: FINAL COMPANY CLEANUP - Odstránenie owner_name a priradenie company všetkým
@@ -892,8 +902,18 @@ export class PostgresDatabase {
       }
       
       // Migrácia 15: Oprava vehicle_id v rentals
-      try {
-        console.log('📋 Migrácia 15: Oprava vehicle_id v rentals...');
+      // KONTROLA: Spustiť len ak sú skutočne neplatné vehicle_id
+      const invalidRentalsCheck = await client.query(`
+        SELECT COUNT(*) as count FROM rentals r 
+        LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
+        WHERE r.vehicle_id IS NOT NULL AND v.id IS NULL
+      `);
+      
+      if (invalidRentalsCheck.rows[0].count == 0) {
+        console.log('📋 Migrácia 15: Všetky vehicle_id sú platné, preskakujem...');
+      } else {
+        try {
+          console.log('📋 Migrácia 15: Oprava vehicle_id v rentals...');
         
         // Získaj všetky rentals s neexistujúcimi vehicle_id
         const invalidRentals = await client.query(`
@@ -939,8 +959,9 @@ export class PostgresDatabase {
         
         console.log('✅ Migrácia 15: Vehicle_id v rentals opravené');
         
-      } catch (error: any) {
-        console.log('⚠️ Migrácia 15 chyba:', error.message);
+        } catch (error: any) {
+          console.log('⚠️ Migrácia 15 chyba:', error.message);
+        }
       }
       
       // Migrácia 16: Pridanie STK stĺpca do vehicles
