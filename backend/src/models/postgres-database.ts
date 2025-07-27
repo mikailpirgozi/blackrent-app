@@ -1587,7 +1587,7 @@ export class PostgresDatabase {
   async getRentals(): Promise<Rental[]> {
     const client = await this.pool.connect();
     try {
-      // Najprv jednoduchý dotaz bez JOIN pre debugging
+      // Load rentals and vehicles separately to avoid JOIN issues
       console.log('🔍 Loading rentals...');
       const result = await client.query(`
         SELECT id, customer_id, vehicle_id, start_date, end_date, 
@@ -1599,27 +1599,31 @@ export class PostgresDatabase {
       `);
       console.log(`📊 Found ${result.rows.length} rentals`);
       
-      // Načítaj vehicles separately pre company info
+      // Load vehicles separately
       const vehiclesResult = await client.query(`
         SELECT id, brand, model, license_plate, company 
         FROM vehicles
       `);
       console.log(`🚗 Found ${vehiclesResult.rows.length} vehicles`);
       
-      // Create vehicles map for quick lookup
+      // Create vehicles map with proper UUID handling
       const vehiclesMap = new Map();
       vehiclesResult.rows.forEach(v => {
-        vehiclesMap.set(v.id, {
-          id: v.id,
-          brand: v.brand,
-          model: v.model, 
-          licensePlate: v.license_plate,
-          company: v.company || 'N/A',
-          pricing: [],
-          commission: { type: 'percentage', value: 0 },
-          status: 'available'
-        });
+        if (v.id) {
+          vehiclesMap.set(v.id, {
+            id: v.id,
+            brand: v.brand,
+            model: v.model, 
+            licensePlate: v.license_plate,
+            company: v.company || 'N/A',
+            pricing: [],
+            commission: { type: 'percentage', value: 0 },
+            status: 'available'
+          });
+        }
       });
+      
+      console.log('🗺️ VehiclesMap size:', vehiclesMap.size, 'Sample keys:', Array.from(vehiclesMap.keys()).slice(0, 2));
       
       if (result.rows.length === 0) {
         return [];
@@ -1647,7 +1651,13 @@ export class PostgresDatabase {
             dailyKilometers: row.daily_kilometers || undefined,
             handoverPlace: row.handover_place || undefined,
             // Pridaj vehicle informácie z mapy
-            vehicle: row.vehicle_id ? vehiclesMap.get(row.vehicle_id) : undefined
+            vehicle: row.vehicle_id ? (() => {
+              const vehicleData = vehiclesMap.get(row.vehicle_id);
+              if (!vehicleData && row.vehicle_id) {
+                console.log('⚠️ Vehicle not found:', row.vehicle_id, 'Type:', typeof row.vehicle_id);
+              }
+              return vehicleData;
+            })() : undefined
           };
           
           return rental;
