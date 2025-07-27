@@ -5054,6 +5054,116 @@ export class PostgresDatabase {
     }
   }
 
+  // ⚡ BULK OWNERSHIP CHECKING - pre rýchle filtrovanie rentals/settlements
+  async getBulkVehicleOwnersAtTime(vehicleTimeChecks: Array<{vehicleId: string, timestamp: Date}>): Promise<Array<{
+    vehicleId: string;
+    timestamp: Date;
+    owner: {ownerCompanyId: string, ownerCompanyName: string} | null;
+  }>> {
+    const client = await this.pool.connect();
+    try {
+      console.log(`🚀 BULK: Checking ownership for ${vehicleTimeChecks.length} vehicle-time pairs...`);
+      const startTime = Date.now();
+
+      // Build complex query for all checks at once
+      const queries = vehicleTimeChecks.map((check, index) => `
+        (
+          SELECT 
+            '${check.vehicleId}' as vehicle_id,
+            '${check.timestamp.toISOString()}' as check_timestamp,
+            owner_company_id,
+            owner_company_name
+          FROM vehicle_ownership_history
+          WHERE vehicle_id = $${index * 2 + 1}
+            AND valid_from <= $${index * 2 + 2}
+            AND (valid_to IS NULL OR valid_to > $${index * 2 + 2})
+          ORDER BY valid_from DESC
+          LIMIT 1
+        )`
+      ).join(' UNION ALL ');
+
+      // Flatten parameters
+      const params = vehicleTimeChecks.flatMap(check => [check.vehicleId, check.timestamp]);
+
+      const result = await client.query(queries, params);
+
+      // Process results back to original format
+      const ownershipMap = new Map();
+      result.rows.forEach(row => {
+        const key = `${row.vehicle_id}-${row.check_timestamp}`;
+        ownershipMap.set(key, {
+          ownerCompanyId: row.owner_company_id,
+          ownerCompanyName: row.owner_company_name
+        });
+      });
+
+      const results = vehicleTimeChecks.map(check => {
+        const key = `${check.vehicleId}-${check.timestamp.toISOString()}`;
+        return {
+          vehicleId: check.vehicleId,
+          timestamp: check.timestamp,
+          owner: ownershipMap.get(key) || null
+        };
+      });
+
+      const loadTime = Date.now() - startTime;
+      console.log(`✅ BULK: Checked ${vehicleTimeChecks.length} ownership records in ${loadTime}ms`);
+
+      return results;
+
+    } finally {
+      client.release();
+    }
+  }
+
+  // ⚡ BULK CURRENT OWNERSHIP - pre rýchle získanie súčasných vlastníkov
+  async getBulkCurrentVehicleOwners(vehicleIds: string[]): Promise<Array<{
+    vehicleId: string;
+    owner: {ownerCompanyId: string, ownerCompanyName: string} | null;
+  }>> {
+    const client = await this.pool.connect();
+    try {
+      console.log(`🚀 BULK: Getting current owners for ${vehicleIds.length} vehicles...`);
+      const startTime = Date.now();
+
+      if (vehicleIds.length === 0) return [];
+
+      // Single query to get all current owners
+      const result = await client.query(`
+        SELECT DISTINCT ON (vehicle_id) 
+          vehicle_id,
+          owner_company_id,
+          owner_company_name
+        FROM vehicle_ownership_history
+        WHERE vehicle_id = ANY($1)
+          AND valid_to IS NULL
+        ORDER BY vehicle_id, valid_from DESC
+      `, [vehicleIds]);
+
+      // Map results
+      const ownershipMap = new Map();
+      result.rows.forEach(row => {
+        ownershipMap.set(row.vehicle_id, {
+          ownerCompanyId: row.owner_company_id,
+          ownerCompanyName: row.owner_company_name
+        });
+      });
+
+      const results = vehicleIds.map(vehicleId => ({
+        vehicleId,
+        owner: ownershipMap.get(vehicleId) || null
+      }));
+
+      const loadTime = Date.now() - startTime;
+      console.log(`✅ BULK: Got current owners for ${vehicleIds.length} vehicles in ${loadTime}ms`);
+
+      return results;
+
+    } finally {
+      client.release();
+    }
+  }
+
 }
 
 export const postgresDatabase = new PostgresDatabase(); 

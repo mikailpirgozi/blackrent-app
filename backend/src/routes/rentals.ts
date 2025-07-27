@@ -47,59 +47,87 @@ router.get('/',
         const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
         
         // Získaj všetky vehicles pre mapping
-        // Filter prenájmy len pre vozidlá firiem, ku ktorým mal používateľ prístup V ČASE PRENÁJMU
-        // 🏗️ HISTORICAL OWNERSHIP s FALLBACK na súčasný ownership
-        const filteredRentals = [];
-        for (const rental of rentals) {
-          if (!rental.vehicleId || !rental.startDate) {
-            continue; // Skip rentals without vehicle or start date
-          }
+        // ⚡⚡ SUPER OPTIMIZED: Bulk ownership checking pre rental filtering
+        console.log(`🚀 BULK: Filtering ${rentals.length} rentals with historical ownership...`);
+        const rentalBulkStartTime = Date.now();
+        
+        // 1. Filter rentals with valid vehicle and date first
+        const validRentals = rentals.filter(rental => rental.vehicleId && rental.startDate);
+        console.log(`📊 Valid rentals for ownership check: ${validRentals.length}/${rentals.length}`);
+        
+        let filteredRentals = [];
+        
+        if (validRentals.length === 0) {
+          console.log(`✅ No valid rentals for ownership checking`);
+        } else {
+          // 2. Bulk ownership checking
+          const ownershipChecks = validRentals.map(rental => ({
+            vehicleId: rental.vehicleId!,
+            timestamp: new Date(rental.startDate)
+          }));
           
-          try {
-            // Získaj vlastníka vozidla v čase začiatku prenájmu (HISTORICAL)
-            const ownerAtTime = await postgresDatabase.getVehicleOwnerAtTime(
-              rental.vehicleId, 
-              new Date(rental.startDate)
-            );
+          // 3. Get allowed company names once
+          const allowedCompanyNames = await Promise.all(
+            allowedCompanyIds.map(async (companyId) => {
+              try {
+                return await postgresDatabase.getCompanyNameById(companyId);
+              } catch (error) {
+                return null;
+              }
+            })
+          );
+          const validCompanyNames = allowedCompanyNames.filter(name => name !== null);
+          
+          const [historicalOwners, currentOwners] = await Promise.all([
+            postgresDatabase.getBulkVehicleOwnersAtTime(ownershipChecks),
+            postgresDatabase.getBulkCurrentVehicleOwners(validRentals.map(r => r.vehicleId!))
+          ]);
+          
+          // 4. Create lookup maps
+          const historicalOwnerMap = new Map();
+          historicalOwners.forEach(result => {
+            const key = `${result.vehicleId}-${result.timestamp.toISOString()}`;
+            historicalOwnerMap.set(key, result.owner);
+          });
+          
+          const currentOwnerMap = new Map();
+          currentOwners.forEach(result => {
+            currentOwnerMap.set(result.vehicleId, result.owner);
+          });
+          
+          // 5. Filter rentals using bulk data
+          for (const rental of validRentals) {
+            const rentalStart = new Date(rental.startDate);
+            const historicalKey = `${rental.vehicleId}-${rentalStart.toISOString()}`;
+            const historicalOwner = historicalOwnerMap.get(historicalKey);
             
-            if (ownerAtTime && allowedCompanyIds.includes(ownerAtTime.ownerCompanyId)) {
+            if (historicalOwner && allowedCompanyIds.includes(historicalOwner.ownerCompanyId)) {
               filteredRentals.push(rental);
             } else {
-              // 🔄 FALLBACK: Ak historical ownership neexistuje, použij súčasný ownership
-              const currentOwner = await postgresDatabase.getCurrentVehicleOwner(rental.vehicleId);
+              // FALLBACK: Current ownership
+              const currentOwner = currentOwnerMap.get(rental.vehicleId);
               if (currentOwner && allowedCompanyIds.includes(currentOwner.ownerCompanyId)) {
                 console.log(`📝 Using current ownership for rental ${rental.id} (historical not found)`);
                 filteredRentals.push(rental);
               } else {
-                // 🔄 FALLBACK 2: Použij vehicle.company zo starého systému
-                if (rental.vehicle?.company) {
-                  const companyNames = await Promise.all(
-                    allowedCompanyIds.map(async (companyId) => {
-                      try {
-                        const companyName = await postgresDatabase.getCompanyNameById(companyId);
-                        return companyName;
-                      } catch (error) {
-                        return null;
-                      }
-                    })
-                  );
-                  
-                  if (companyNames.includes(rental.vehicle.company)) {
-                    console.log(`📝 Using legacy company matching for rental ${rental.id}`);
-                    filteredRentals.push(rental);
-                  }
+                // FALLBACK 2: Legacy company matching
+                if (rental.vehicle?.company && validCompanyNames.includes(rental.vehicle.company)) {
+                  console.log(`📝 Using legacy company matching for rental ${rental.id}`);
+                  filteredRentals.push(rental);
                 }
               }
             }
-          } catch (error) {
-            console.error(`Error getting vehicle owner for rental ${rental.id}:`, error);
-            
-            // 🔄 EMERGENCY FALLBACK: Zachovaj rental ak je chyba
-            if (rental.vehicle?.company) {
-              console.log(`🚨 Emergency fallback for rental ${rental.id}`);
-              filteredRentals.push(rental);
-            }
           }
+          
+          const rentalBulkTime = Date.now() - rentalBulkStartTime;
+          console.log(`⚡ BULK: Filtered ${filteredRentals.length} rentals in ${rentalBulkTime}ms (vs ~${validRentals.length * 100}ms individually)`);
+        }
+        
+        // Include invalid rentals without ownership checking (emergency fallback)
+        const invalidRentals = rentals.filter(rental => !rental.vehicleId || !rental.startDate);
+        if (invalidRentals.length > 0) {
+          console.log(`🚨 Including ${invalidRentals.length} invalid rentals as emergency fallback`);
+          filteredRentals = [...filteredRentals, ...invalidRentals];
         }
         
         rentals = filteredRentals;
