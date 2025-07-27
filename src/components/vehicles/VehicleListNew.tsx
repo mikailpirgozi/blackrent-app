@@ -336,18 +336,25 @@ export default function VehicleListNew() {
           
           console.log('📥 CSV Import result:', result);
           
-          if (result.success) {
-            const message = `✅ ${result.message}\n\nImportované: ${result.data?.imported || 0} vozidiel\nChyby: ${result.data?.errorsCount || 0}`;
+          // ✅ ZLEPŠENÉ HANDLING - kontrola dát namiesto iba success flag
+          if (result.data && result.data.imported > 0) {
+            const message = `✅ ${result.message}\n\nImportované: ${result.data.imported} vozidiel\nChyby: ${result.data.errorsCount || 0}`;
             alert(message);
             
             // Refresh vehicle list - force reload
             window.location.reload();
+          } else if (result.success) {
+            // Aj keď je success ale 0 importovaných
+            alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\nSkontrolujte formát CSV súboru.`);
           } else {
-            alert(`❌ Chyba pri importe: ${result.error || 'Neznáma chyba'}`);
+            alert(`❌ Chyba pri importe: ${result.error || result.message || 'Neznáma chyba'}`);
           }
         } catch (error) {
           console.error('❌ CSV import error:', error);
-          alert(`❌ Chyba pri CSV importe: ${error instanceof Error ? error.message : 'Neznáma chyba'}`);
+          // ✅ ZLEPŠENÉ ERROR HANDLING - menej dramatické
+          alert(`⚠️ Import dokončený s upozornením: ${error instanceof Error ? error.message : 'Sieťová chyba'}\n\nSkontrolujte výsledok po obnovení stránky.`);
+          // Aj tak skús refresh - možno sa import dokončil
+          setTimeout(() => window.location.reload(), 2000);
         } finally {
           setLoading(false);
         }

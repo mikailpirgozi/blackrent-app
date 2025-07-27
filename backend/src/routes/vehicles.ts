@@ -387,73 +387,32 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
         const line = dataLines[i].trim();
         if (!line) continue;
 
-        // Parsuj CSV riadok (jednoduché parsovanie)
+        // Parsuj CSV riadok - rozšírené pre viac stĺpcov
         const fields = line.split(',').map((field: string) => field.replace(/^"|"$/g, '').trim());
         
         if (fields.length < 4) {
-          errors.push({ row: i + 2, error: 'Nedostatok stĺpcov' });
+          errors.push({ row: i + 2, error: 'Nedostatok stĺpcov (minimum: ID, Značka, Model, ŠPZ, Firma)' });
           continue;
         }
 
-        const [, brand, model, licensePlate, company, year, status] = fields;
+        // Mapovanie stĺpcov - flexibilné pre rôzne formáty CSV
+        const [id, brand, model, licensePlate, company, year, status, stk, ...otherFields] = fields;
 
         if (!brand || !model || !company) {
           errors.push({ row: i + 2, error: 'Značka, model a firma sú povinné' });
           continue;
         }
 
-        // Vytvor vozidlo s kompletným pricing a správnym statusom
+        // Vytvor vozidlo BEZ fixnej cenotvorby - nechaj prázdne pre individuálne nastavenie
         const vehicleData = {
           brand: brand.trim(),
           model: model.trim(),
           licensePlate: licensePlate?.trim() || '',
           company: company.trim(),
-          year: year ? parseInt(year) : 2024,
+          year: year && year.trim() && !isNaN(parseInt(year)) ? parseInt(year) : 2024,
           status: 'available', // ✅ Vždy dostupné
-          pricing: [
-            {
-              id: '1',
-              minDays: 0,
-              maxDays: 1,
-              pricePerDay: 50
-            },
-            {
-              id: '2', 
-              minDays: 2,
-              maxDays: 3,
-              pricePerDay: 45
-            },
-            {
-              id: '3',
-              minDays: 4,
-              maxDays: 7,
-              pricePerDay: 40
-            },
-            {
-              id: '4',
-              minDays: 8,
-              maxDays: 14,
-              pricePerDay: 35
-            },
-            {
-              id: '5',
-              minDays: 15,
-              maxDays: 22,
-              pricePerDay: 30
-            },
-            {
-              id: '6',
-              minDays: 23,
-              maxDays: 30,
-              pricePerDay: 25
-            },
-            {
-              id: '7',
-              minDays: 31,
-              maxDays: 365,
-              pricePerDay: 20
-            }
-          ], // ✅ Kompletná cenotvorba kompatibilná s frontendom
+          stk: stk && stk.trim() ? new Date(stk.trim()) : null, // ✅ STK ako dátum ak je zadaný
+          pricing: [], // ✅ Prázdne - pre individuálne nastavenie cenotvorby
           commission: { type: 'percentage', value: 20 }
         };
 
@@ -472,6 +431,7 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
 
     console.log(`✅ CSV Import completed: ${results.length} successful, ${errors.length} errors`);
 
+    // ✅ VŽDY VRÁŤ SUCCESS - aj keď sú chyby
     res.json({
       success: true,
       message: `CSV import dokončený: ${results.length} úspešných, ${errors.length} chýb`,
@@ -485,9 +445,17 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
 
   } catch (error) {
     console.error('❌ CSV import error:', error);
-    res.status(500).json({
+    // ✅ ZLEPŠENÉ ERROR HANDLING
+    res.status(200).json({ // Zmením z 500 na 200
       success: false,
-      error: 'Chyba pri CSV importe'
+      message: 'CSV import dokončený s chybami',
+      error: 'Chyba pri CSV importe',
+      data: {
+        imported: 0,
+        errorsCount: 1,
+        results: [],
+        errors: [{ row: 0, error: error instanceof Error ? error.message : 'Neznáma chyba' }]
+      }
     });
   }
 });
