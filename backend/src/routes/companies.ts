@@ -76,14 +76,13 @@ router.post('/',
       data: createdCompany
     });
 
-  } catch (error) {
-    console.error('❌ Create company error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Chyba pri vytváraní firmy',
-      details: error instanceof Error ? error.message : 'Neznáma chyba'
-    });
-  }
+      } catch (error) {
+      console.error('❌ Create company error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Chyba pri vytváraní firmy: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
+      });
+    }
 });
 
 // DELETE /api/companies/:id - Vymazanie firmy
