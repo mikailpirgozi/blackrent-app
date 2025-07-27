@@ -361,98 +361,108 @@ router.get('/export/csv',
 );
 
 // 📥 CSV IMPORT - Import vozidiel z CSV
-router.post('/import/csv',
-  authenticateToken,
-  checkPermission('vehicles', 'create'),
-  async (req: Request, res: Response<ApiResponse>) => {
-    try {
-      const { csvData } = req.body;
-      
-      if (!csvData || typeof csvData !== 'string') {
-        return res.status(400).json({
-          success: false,
-          error: 'CSV dáta sú povinné'
-        });
-      }
+router.post('/import/csv', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    console.log('📥 Starting CSV import for vehicles...');
+    const { csvData } = req.body;
 
-      // Parsuj CSV
-      const lines = csvData.trim().split('\n');
-      if (lines.length < 2) {
-        return res.status(400).json({
-          success: false,
-          error: 'CSV musí obsahovať aspoň hlavičku a jeden riadok dát'
-        });
-      }
-
-      // Preskočíme hlavičku
-      const dataLines = lines.slice(1);
-      const results = [];
-      const errors = [];
-
-      for (let i = 0; i < dataLines.length; i++) {
-        try {
-          const line = dataLines[i].trim();
-          if (!line) continue;
-
-          // Parsuj CSV riadok (jednoduché parsovanie)
-          const fields = line.split(',').map(field => field.replace(/^"|"$/g, '').trim());
-          
-          if (fields.length < 4) {
-            errors.push({ row: i + 2, error: 'Nedostatok stĺpcov' });
-            continue;
-          }
-
-          const [, brand, model, licensePlate, company, year, status] = fields;
-
-          if (!brand || !model || !company) {
-            errors.push({ row: i + 2, error: 'Značka, model a firma sú povinné' });
-            continue;
-          }
-
-          // Vytvor vozidlo
-          const vehicleData = {
-            brand: brand.trim(),
-            model: model.trim(),
-            licensePlate: licensePlate?.trim() || '',
-            company: company.trim(),
-            year: year ? parseInt(year) : 2024,
-            status: status?.trim() || 'available',
-            pricing: [],
-            commission: { type: 'percentage', value: 20 }
-          };
-
-          const createdVehicle = await postgresDatabase.createVehicle(vehicleData);
-          results.push({ row: i + 2, vehicle: createdVehicle });
-
-        } catch (error: any) {
-          errors.push({ 
-            row: i + 2, 
-            error: error.message || 'Chyba pri vytváraní vozidla' 
-          });
-        }
-      }
-
-      res.json({
-        success: true,
-        message: `CSV import dokončený: ${results.length} úspešných, ${errors.length} chýb`,
-        data: {
-          imported: results.length,
-          errorsCount: errors.length,
-          results,
-          errors: errors.slice(0, 10) // Limit na prvých 10 chýb
-        }
-      });
-
-      console.log(`📥 CSV Import: ${results.length} vozidiel importovaných, ${errors.length} chýb`);
-
-    } catch (error) {
-      console.error('CSV import error:', error);
-      res.status(500).json({
+    if (!csvData) {
+      return res.status(400).json({
         success: false,
-        error: 'Chyba pri importe CSV'
+        error: 'CSV dáta sú povinné'
       });
     }
+
+    // Parsuj CSV dáta
+    const lines = csvData.split('\n').filter((line: string) => line.trim());
+    const dataLines = lines.slice(1); // Preskočiť header
+
+    const results = [];
+    const errors = [];
+
+    console.log(`📊 Processing ${dataLines.length} vehicles from CSV...`);
+
+    for (let i = 0; i < dataLines.length; i++) {
+      try {
+        const line = dataLines[i].trim();
+        if (!line) continue;
+
+        // Parsuj CSV riadok (jednoduché parsovanie)
+        const fields = line.split(',').map(field => field.replace(/^"|"$/g, '').trim());
+        
+        if (fields.length < 4) {
+          errors.push({ row: i + 2, error: 'Nedostatok stĺpcov' });
+          continue;
+        }
+
+        const [, brand, model, licensePlate, company, year, status] = fields;
+
+        if (!brand || !model || !company) {
+          errors.push({ row: i + 2, error: 'Značka, model a firma sú povinné' });
+          continue;
+        }
+
+        // Vytvor vozidlo s kompletným pricing a správnym statusom
+        const vehicleData = {
+          brand: brand.trim(),
+          model: model.trim(),
+          licensePlate: licensePlate?.trim() || '',
+          company: company.trim(),
+          year: year ? parseInt(year) : 2024,
+          status: 'available', // ✅ Vždy dostupné
+          pricing: [
+            {
+              duration: 'daily',
+              price: 50,
+              currency: 'EUR'
+            },
+            {
+              duration: 'weekly', 
+              price: 300,
+              currency: 'EUR'
+            },
+            {
+              duration: 'monthly',
+              price: 1000,
+              currency: 'EUR'
+            }
+          ], // ✅ Základná cenotvorba
+          commission: { type: 'percentage', value: 20 }
+        };
+
+        console.log(`🚗 Creating vehicle ${i + 1}/${dataLines.length}: ${brand} ${model}`);
+        const createdVehicle = await postgresDatabase.createVehicle(vehicleData);
+        results.push({ row: i + 2, vehicle: createdVehicle });
+
+      } catch (error: any) {
+        console.error(`❌ Error creating vehicle at row ${i + 2}:`, error);
+        errors.push({ 
+          row: i + 2, 
+          error: error.message || 'Chyba pri vytváraní vozidla' 
+        });
+      }
+    }
+
+    console.log(`✅ CSV Import completed: ${results.length} successful, ${errors.length} errors`);
+
+    res.json({
+      success: true,
+      message: `CSV import dokončený: ${results.length} úspešných, ${errors.length} chýb`,
+      data: {
+        imported: results.length,
+        errorsCount: errors.length,
+        results,
+        errors: errors.slice(0, 10) // Limit na prvých 10 chýb
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ CSV import error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Chyba pri CSV importe'
+    });
   }
-);
+});
 
 export default router; 

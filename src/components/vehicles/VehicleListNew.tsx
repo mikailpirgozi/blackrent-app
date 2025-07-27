@@ -316,28 +316,49 @@ export default function VehicleListNew() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Zobraz loading state
+    setLoading(true);
+
     Papa.parse(file, {
       complete: async (results: any) => {
         try {
+          // Zobraz počet riadkov na spracovanie
+          const rowCount = results.data.length - 1; // -1 for header
+          console.log(`📊 Spracovávam ${rowCount} vozidiel z CSV...`);
+          
           // Konvertuj parsované dáta späť na CSV string
           const csvString = Papa.unparse(results.data);
           
+          // Zobraz progress message
+          alert(`Spracovávam ${rowCount} vozidiel... Prosím čakajte.`);
+          
           const result = await apiService.importVehiclesCSV(csvString);
           
+          console.log('📥 CSV Import result:', result);
+          
           if (result.success) {
-            alert(result.message);
+            const message = `✅ ${result.message}\n\nImportované: ${result.data?.imported || 0} vozidiel\nChyby: ${result.data?.errorsCount || 0}`;
+            alert(message);
+            
             // Refresh vehicle list - force reload
             window.location.reload();
           } else {
-            alert(result.error || 'Chyba pri importe');
+            alert(`❌ Chyba pri importe: ${result.error || 'Neznáma chyba'}`);
           }
         } catch (error) {
-          console.error('CSV import error:', error);
-          alert('Chyba pri CSV importe');
+          console.error('❌ CSV import error:', error);
+          alert(`❌ Chyba pri CSV importe: ${error instanceof Error ? error.message : 'Neznáma chyba'}`);
+        } finally {
+          setLoading(false);
         }
       },
       header: false,
-      skipEmptyLines: true
+      skipEmptyLines: true,
+      error: (error: any) => {
+        console.error('❌ Papa Parse error:', error);
+        alert(`❌ Chyba pri čítaní CSV súboru: ${error.message}`);
+        setLoading(false);
+      }
     });
     
     // Reset input
