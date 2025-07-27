@@ -2272,8 +2272,8 @@ export class PostgresDatabase {
       console.log('🏢 Creating company:', companyData.name);
       
       const result = await client.query(
-        'INSERT INTO companies (name, is_active) VALUES ($1, $2) RETURNING id, name, business_id, tax_id, address, contact_person, email, phone, contract_start_date, contract_end_date, commission_rate, is_active, created_at, updated_at', 
-        [companyData.name, true]
+        'INSERT INTO companies (name) VALUES ($1) RETURNING id, name, business_id, tax_id, address, contact_person, email, phone, contract_start_date, contract_end_date, commission_rate, is_active, created_at, updated_at', 
+        [companyData.name]
       );
       
       console.log('🏢 Company created successfully:', result.rows[0]);
