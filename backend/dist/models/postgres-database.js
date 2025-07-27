@@ -4144,13 +4144,47 @@ class PostgresDatabase {
                 throw new Error(`Company with ID ${newOwnerCompanyId} not found`);
             }
             const newOwnerCompanyName = companyResult.rows[0].name;
-            // 2. Ukončí súčasné vlastníctvo
-            await client.query(`
+            // 2. OPRAVA: Skontroluj či existuje ownership historia pre toto vozidlo
+            const existingHistoryResult = await client.query(`
+        SELECT COUNT(*) as count FROM vehicle_ownership_history WHERE vehicle_id = $1
+      `, [vehicleId]);
+            const hasHistory = parseInt(existingHistoryResult.rows[0].count) > 0;
+            // 3. OPRAVA: Ak neexistuje historia, vytvor počiatočný záznam pre aktuálneho majiteľa
+            if (!hasHistory) {
+                console.log(`🔄 Creating initial ownership record for vehicle ${vehicleId}`);
+                // Získaj aktuálneho majiteľa z vehicles tabuľky
+                const vehicleResult = await client.query(`
+          SELECT owner_company_id, company, created_at FROM vehicles WHERE id = $1
+        `, [vehicleId]);
+                if (vehicleResult.rows.length === 0) {
+                    throw new Error(`Vehicle with ID ${vehicleId} not found`);
+                }
+                const currentOwner = vehicleResult.rows[0];
+                const currentOwnerCompanyId = currentOwner.owner_company_id;
+                const currentOwnerCompanyName = currentOwner.company;
+                // OPRAVA: Použij veľmi starý dátum pre initial ownership, nie created_at
+                const vehicleCreatedAt = new Date('2024-01-01'); // Safe past date for initial ownership
+                // Vytvor počiatočný ownership záznam pre súčasného majiteľa
+                await client.query(`
+          INSERT INTO vehicle_ownership_history (
+            vehicle_id, 
+            owner_company_id, 
+            owner_company_name,
+            valid_from, 
+            transfer_reason, 
+            transfer_notes
+          ) VALUES ($1, $2, $3, $4, $5, $6)
+        `, [vehicleId, currentOwnerCompanyId, currentOwnerCompanyName, vehicleCreatedAt, 'initial_setup', 'Initial ownership record created during transfer']);
+                console.log(`✅ Created initial ownership record for ${currentOwnerCompanyName} from ${vehicleCreatedAt.toISOString()}`);
+            }
+            // 4. Ukončí súčasné vlastníctvo (teraz určite existuje záznam)
+            const updateResult = await client.query(`
         UPDATE vehicle_ownership_history 
         SET valid_to = $1, updated_at = CURRENT_TIMESTAMP
         WHERE vehicle_id = $2 AND valid_to IS NULL
       `, [transferDate, vehicleId]);
-            // 3. Vytvor nový ownership záznam
+            console.log(`🔄 Ended current ownership for vehicle ${vehicleId}, affected rows: ${updateResult.rowCount}`);
+            // 5. Vytvor nový ownership záznam
             await client.query(`
         INSERT INTO vehicle_ownership_history (
           vehicle_id, 
@@ -4161,12 +4195,13 @@ class PostgresDatabase {
           transfer_notes
         ) VALUES ($1, $2, $3, $4, $5, $6)
       `, [vehicleId, newOwnerCompanyId, newOwnerCompanyName, transferDate, transferReason, transferNotes]);
-            // 4. Aktualizuj vehicles tabuľku pre súčasný stav
+            console.log(`✅ Created new ownership record for ${newOwnerCompanyName} from ${transferDate.toISOString()}`);
+            // 6. Aktualizuj vehicles tabuľku pre súčasný stav (oba stĺpce!)
             await client.query(`
         UPDATE vehicles 
-        SET owner_company_id = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $2
-      `, [newOwnerCompanyId, vehicleId]);
+        SET owner_company_id = $1, company = $2, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3
+      `, [newOwnerCompanyId, newOwnerCompanyName, vehicleId]);
             await client.query('COMMIT');
             return true;
         }
@@ -4384,6 +4419,157 @@ class PostgresDatabase {
                 ownerCompanyId: row.owner_company_id,
                 ownerCompanyName: row.owner_company_name
             };
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 📝 Úprava transferu vlastníctva
+    async updateVehicleOwnershipHistory(historyId, updates) {
+        const client = await this.pool.connect();
+        try {
+            // Najprv získaj informácie o firme
+            const companyResult = await client.query('SELECT name FROM companies WHERE id = $1', [updates.ownerCompanyId]);
+            if (companyResult.rows.length === 0) {
+                throw new Error(`Company with ID ${updates.ownerCompanyId} not found`);
+            }
+            const companyName = companyResult.rows[0].name;
+            // Aktualizuj ownership history
+            const result = await client.query(`
+        UPDATE vehicle_ownership_history 
+        SET 
+          owner_company_id = $1,
+          owner_company_name = $2,
+          transfer_reason = $3,
+          transfer_notes = $4,
+          valid_from = $5,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $6
+      `, [
+                updates.ownerCompanyId,
+                companyName,
+                updates.transferReason,
+                updates.transferNotes || null,
+                updates.validFrom,
+                historyId
+            ]);
+            if (result.rowCount === 0) {
+                throw new Error(`Ownership history record ${historyId} not found`);
+            }
+            console.log(`✅ Updated ownership history ${historyId}`);
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🔍 Overenie existencie ownership history záznamu
+    async checkOwnershipHistoryExists(historyId) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT 1 FROM vehicle_ownership_history WHERE id = $1', [historyId]);
+            return result.rows.length > 0;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🗑️ Vymazanie transferu vlastníctva
+    async deleteVehicleOwnershipHistory(historyId) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('DELETE FROM vehicle_ownership_history WHERE id = $1', [historyId]);
+            if (result.rowCount === 0) {
+                throw new Error(`Ownership history record ${historyId} not found`);
+            }
+            console.log(`✅ Deleted ownership history ${historyId}`);
+        }
+        finally {
+            client.release();
+        }
+    }
+    // ⚡ BULK OWNERSHIP CHECKING - pre rýchle filtrovanie rentals/settlements
+    async getBulkVehicleOwnersAtTime(vehicleTimeChecks) {
+        const client = await this.pool.connect();
+        try {
+            console.log(`🚀 BULK: Checking ownership for ${vehicleTimeChecks.length} vehicle-time pairs...`);
+            const startTime = Date.now();
+            // Build complex query for all checks at once
+            const queries = vehicleTimeChecks.map((check, index) => `
+        (
+          SELECT 
+            '${check.vehicleId}' as vehicle_id,
+            '${check.timestamp.toISOString()}' as check_timestamp,
+            owner_company_id,
+            owner_company_name
+          FROM vehicle_ownership_history
+          WHERE vehicle_id = $${index * 2 + 1}
+            AND valid_from <= $${index * 2 + 2}
+            AND (valid_to IS NULL OR valid_to > $${index * 2 + 2})
+          ORDER BY valid_from DESC
+          LIMIT 1
+        )`).join(' UNION ALL ');
+            // Flatten parameters
+            const params = vehicleTimeChecks.flatMap(check => [check.vehicleId, check.timestamp]);
+            const result = await client.query(queries, params);
+            // Process results back to original format
+            const ownershipMap = new Map();
+            result.rows.forEach(row => {
+                const key = `${row.vehicle_id}-${row.check_timestamp}`;
+                ownershipMap.set(key, {
+                    ownerCompanyId: row.owner_company_id,
+                    ownerCompanyName: row.owner_company_name
+                });
+            });
+            const results = vehicleTimeChecks.map(check => {
+                const key = `${check.vehicleId}-${check.timestamp.toISOString()}`;
+                return {
+                    vehicleId: check.vehicleId,
+                    timestamp: check.timestamp,
+                    owner: ownershipMap.get(key) || null
+                };
+            });
+            const loadTime = Date.now() - startTime;
+            console.log(`✅ BULK: Checked ${vehicleTimeChecks.length} ownership records in ${loadTime}ms`);
+            return results;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // ⚡ BULK CURRENT OWNERSHIP - pre rýchle získanie súčasných vlastníkov
+    async getBulkCurrentVehicleOwners(vehicleIds) {
+        const client = await this.pool.connect();
+        try {
+            console.log(`🚀 BULK: Getting current owners for ${vehicleIds.length} vehicles...`);
+            const startTime = Date.now();
+            if (vehicleIds.length === 0)
+                return [];
+            // Single query to get all current owners
+            const result = await client.query(`
+        SELECT DISTINCT ON (vehicle_id) 
+          vehicle_id,
+          owner_company_id,
+          owner_company_name
+        FROM vehicle_ownership_history
+        WHERE vehicle_id = ANY($1)
+          AND valid_to IS NULL
+        ORDER BY vehicle_id, valid_from DESC
+      `, [vehicleIds]);
+            // Map results
+            const ownershipMap = new Map();
+            result.rows.forEach(row => {
+                ownershipMap.set(row.vehicle_id, {
+                    ownerCompanyId: row.owner_company_id,
+                    ownerCompanyName: row.owner_company_name
+                });
+            });
+            const results = vehicleIds.map(vehicleId => ({
+                vehicleId,
+                owner: ownershipMap.get(vehicleId) || null
+            }));
+            const loadTime = Date.now() - startTime;
+            console.log(`✅ BULK: Got current owners for ${vehicleIds.length} vehicles in ${loadTime}ms`);
+            return results;
         }
         finally {
             client.release();

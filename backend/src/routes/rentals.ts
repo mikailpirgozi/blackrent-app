@@ -37,7 +37,67 @@ router.get('/',
         totalRentals: rentals.length 
       });
       
-      // 🔐 NON-ADMIN USERS - filter podľa company permissions
+      // 🔄 HISTORICAL OWNERSHIP LOGIC - Applied for ALL USERS (including admins)
+      // This ensures that rental statistics show the correct historical owner
+      console.log('🚀 BULK: Enriching all rentals with historical ownership data...');
+      const enrichmentStartTime = Date.now();
+      
+      // 1. Filter rentals with valid vehicle and date
+      const validRentals = rentals.filter(rental => rental.vehicleId && rental.startDate);
+      console.log(`📊 Valid rentals for ownership enrichment: ${validRentals.length}/${rentals.length}`);
+      
+      if (validRentals.length > 0) {
+        // 2. Bulk historical ownership checking for all rentals
+        const ownershipChecks = validRentals.map(rental => ({
+          vehicleId: rental.vehicleId!,
+          timestamp: new Date(rental.startDate)
+        }));
+        
+        const [historicalOwners, currentOwners] = await Promise.all([
+          postgresDatabase.getBulkVehicleOwnersAtTime(ownershipChecks),
+          postgresDatabase.getBulkCurrentVehicleOwners(validRentals.map(r => r.vehicleId!))
+        ]);
+        
+        // 3. Create lookup maps
+        const historicalOwnerMap = new Map();
+        historicalOwners.forEach(result => {
+          const key = `${result.vehicleId}-${result.timestamp.toISOString()}`;
+          historicalOwnerMap.set(key, result.owner);
+        });
+        
+        const currentOwnerMap = new Map();
+        currentOwners.forEach(result => {
+          currentOwnerMap.set(result.vehicleId, result.owner);
+        });
+        
+        // 4. Enrich all rentals with correct historical ownership data
+        for (const rental of validRentals) {
+          const rentalStart = new Date(rental.startDate);
+          const historicalKey = `${rental.vehicleId}-${rentalStart.toISOString()}`;
+          const historicalOwner = historicalOwnerMap.get(historicalKey);
+          
+          if (historicalOwner) {
+            // Use historical owner from the time of rental
+            if (rental.vehicle) {
+              rental.vehicle.company = historicalOwner.ownerCompanyName;
+              rental.vehicle.ownerCompanyId = historicalOwner.ownerCompanyId;
+            }
+          } else {
+            // FALLBACK: Use current owner if historical not found
+            const currentOwner = currentOwnerMap.get(rental.vehicleId);
+            if (currentOwner && rental.vehicle) {
+              console.log(`📝 Using current ownership for rental ${rental.id} (historical not found)`);
+              rental.vehicle.company = currentOwner.ownerCompanyName;
+              rental.vehicle.ownerCompanyId = currentOwner.ownerCompanyId;
+            }
+          }
+        }
+        
+        const enrichmentTime = Date.now() - enrichmentStartTime;
+        console.log(`✅ BULK: Enriched ${validRentals.length} rentals with historical ownership in ${enrichmentTime}ms`);
+      }
+      
+      // 🔐 PERMISSION FILTERING - Apply company-based filtering for non-admin users
       if (req.user?.role !== 'admin' && req.user) {
         const user = req.user; // TypeScript safe assignment
         const originalCount = rentals.length;
@@ -46,99 +106,34 @@ router.get('/',
         const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
         const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
         
-        // Získaj všetky vehicles pre mapping
-        // ⚡⚡ SUPER OPTIMIZED: Bulk ownership checking pre rental filtering
-        console.log(`🚀 BULK: Filtering ${rentals.length} rentals with historical ownership...`);
-        const rentalBulkStartTime = Date.now();
-        
-        // 1. Filter rentals with valid vehicle and date first
-        const validRentals = rentals.filter(rental => rental.vehicleId && rental.startDate);
-        console.log(`📊 Valid rentals for ownership check: ${validRentals.length}/${rentals.length}`);
-        
-        let filteredRentals = [];
-        
-        if (validRentals.length === 0) {
-          console.log(`✅ No valid rentals for ownership checking`);
-        } else {
-          // 2. Bulk ownership checking
-          const ownershipChecks = validRentals.map(rental => ({
-            vehicleId: rental.vehicleId!,
-            timestamp: new Date(rental.startDate)
-          }));
-          
-          // 3. Get allowed company names once
-          const allowedCompanyNames = await Promise.all(
-            allowedCompanyIds.map(async (companyId) => {
-              try {
-                return await postgresDatabase.getCompanyNameById(companyId);
-              } catch (error) {
-                return null;
-              }
-            })
-          );
-          const validCompanyNames = allowedCompanyNames.filter(name => name !== null);
-          
-          const [historicalOwners, currentOwners] = await Promise.all([
-            postgresDatabase.getBulkVehicleOwnersAtTime(ownershipChecks),
-            postgresDatabase.getBulkCurrentVehicleOwners(validRentals.map(r => r.vehicleId!))
-          ]);
-          
-          // 4. Create lookup maps
-          const historicalOwnerMap = new Map();
-          historicalOwners.forEach(result => {
-            const key = `${result.vehicleId}-${result.timestamp.toISOString()}`;
-            historicalOwnerMap.set(key, result.owner);
-          });
-          
-          const currentOwnerMap = new Map();
-          currentOwners.forEach(result => {
-            currentOwnerMap.set(result.vehicleId, result.owner);
-          });
-          
-          // 5. Filter rentals using bulk data
-          for (const rental of validRentals) {
-            const rentalStart = new Date(rental.startDate);
-            const historicalKey = `${rental.vehicleId}-${rentalStart.toISOString()}`;
-            const historicalOwner = historicalOwnerMap.get(historicalKey);
-            
-            if (historicalOwner && allowedCompanyIds.includes(historicalOwner.ownerCompanyId)) {
-              filteredRentals.push(rental);
-            } else {
-              // FALLBACK: Current ownership
-              const currentOwner = currentOwnerMap.get(rental.vehicleId);
-              if (currentOwner && allowedCompanyIds.includes(currentOwner.ownerCompanyId)) {
-                console.log(`📝 Using current ownership for rental ${rental.id} (historical not found)`);
-                filteredRentals.push(rental);
-              } else {
-                // FALLBACK 2: Legacy company matching
-                const vehicleCompany = rental.vehicle?.company;
-                if (vehicleCompany && validCompanyNames.includes(vehicleCompany)) {
-                  console.log(`📝 Using legacy company matching for rental ${rental.id}`);
-                  filteredRentals.push(rental);
-                }
-              }
+        // Get allowed company names once
+        const allowedCompanyNames = await Promise.all(
+          allowedCompanyIds.map(async (companyId) => {
+            try {
+              return await postgresDatabase.getCompanyNameById(companyId);
+            } catch (error) {
+              return null;
             }
+          })
+        );
+        const validCompanyNames = allowedCompanyNames.filter(name => name !== null);
+        
+        // Filter rentals based on (now corrected) historical ownership
+        rentals = rentals.filter(rental => {
+          if (rental.vehicle && rental.vehicle.ownerCompanyId) {
+            return allowedCompanyIds.includes(rental.vehicle.ownerCompanyId);
+          } else if (rental.vehicle && rental.vehicle.company) {
+            return validCompanyNames.includes(rental.vehicle.company);
           }
-          
-          const rentalBulkTime = Date.now() - rentalBulkStartTime;
-          console.log(`⚡ BULK: Filtered ${filteredRentals.length} rentals in ${rentalBulkTime}ms (vs ~${validRentals.length * 100}ms individually)`);
-        }
+          return false; // If no vehicle or company info, don't show
+        });
         
-        // Include invalid rentals without ownership checking (emergency fallback)
-        const invalidRentals = rentals.filter(rental => !rental.vehicleId || !rental.startDate);
-        if (invalidRentals.length > 0) {
-          console.log(`🚨 Including ${invalidRentals.length} invalid rentals as emergency fallback`);
-          filteredRentals = [...filteredRentals, ...invalidRentals];
-        }
-        
-        rentals = filteredRentals;
-        
-        console.log('🔐 Rentals Historical Ownership Filter:', {
+        console.log('🔐 Rentals Permission Filter:', {
           userId: user!.id,
           allowedCompanyIds,
           originalCount,
           filteredCount: rentals.length,
-          filterType: 'historical_ownership'
+          filterType: 'historical_ownership_based'
         });
       }
       
@@ -150,10 +145,11 @@ router.get('/',
       console.error('Get rentals error:', error);
       res.status(500).json({
         success: false,
-      error: 'Chyba pri získavaní prenájmov'
-    });
+        error: 'Chyba pri získavaní prenájmov'
+      });
+    }
   }
-});
+);
 
 // GET /api/rentals/:id - Získanie konkrétneho prenájmu
 router.get('/:id', 

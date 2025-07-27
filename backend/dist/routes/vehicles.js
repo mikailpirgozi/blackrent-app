@@ -71,6 +71,87 @@ router.get('/test-csv', auth_1.authenticateToken, async (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+// ⚡ GET /api/vehicles/bulk-ownership-history - História vlastníctva všetkých vozidiel NARAZ
+router.get('/bulk-ownership-history', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), async (req, res) => {
+    try {
+        console.log('🚀 BULK: Loading ownership history for all vehicles...');
+        const startTime = Date.now();
+        // ⚡⚡ SKUTOČNÝ BULK: Jeden SQL query pre všetky vehicle histories naraz
+        const client = await postgres_database_1.postgresDatabase.pool.connect();
+        try {
+            // 1. Získaj všetky vozidlá
+            const vehiclesResult = await client.query(`
+          SELECT id, brand, model, license_plate, owner_company_id 
+          FROM vehicles 
+          ORDER BY brand, model
+        `);
+            const vehicles = vehiclesResult.rows;
+            console.log(`📊 Loading history for ${vehicles.length} vehicles...`);
+            // 2. Získaj všetky ownership histories jedným query
+            const historiesResult = await client.query(`
+          SELECT 
+            vehicle_id,
+            id,
+            owner_company_id,
+            owner_company_name,
+            valid_from,
+            valid_to,
+            transfer_reason,
+            transfer_notes
+          FROM vehicle_ownership_history
+          ORDER BY vehicle_id, valid_from DESC
+        `);
+            // 3. Group histories by vehicle_id
+            const historiesByVehicle = new Map();
+            historiesResult.rows.forEach((row) => {
+                if (!historiesByVehicle.has(row.vehicle_id)) {
+                    historiesByVehicle.set(row.vehicle_id, []);
+                }
+                historiesByVehicle.get(row.vehicle_id).push({
+                    id: row.id,
+                    ownerCompanyId: row.owner_company_id,
+                    ownerCompanyName: row.owner_company_name,
+                    validFrom: row.valid_from,
+                    validTo: row.valid_to,
+                    transferReason: row.transfer_reason,
+                    transferNotes: row.transfer_notes
+                });
+            });
+            // 4. Combine vehicle data with histories
+            const allHistories = vehicles.map((vehicle) => ({
+                vehicleId: vehicle.id,
+                vehicle: {
+                    id: vehicle.id,
+                    brand: vehicle.brand,
+                    model: vehicle.model,
+                    licensePlate: vehicle.license_plate,
+                    ownerCompanyId: vehicle.owner_company_id
+                },
+                history: historiesByVehicle.get(vehicle.id) || []
+            }));
+            const loadTime = Date.now() - startTime;
+            console.log(`✅ BULK: Loaded ownership history for ${vehicles.length} vehicles in ${loadTime}ms using 2 SQL queries instead of ${vehicles.length + 1}`);
+            res.json({
+                success: true,
+                data: {
+                    vehicleHistories: allHistories,
+                    totalVehicles: vehicles.length,
+                    loadTimeMs: loadTime
+                }
+            });
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (error) {
+        console.error('Bulk ownership history error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Failed to load bulk ownership history: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+    }
+});
 // GET /api/vehicles/:id - Získanie konkrétneho vozidla
 router.get('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'read', { getContext: getVehicleContext }), async (req, res) => {
     try {
@@ -528,6 +609,76 @@ async (req, res) => {
         res.status(500).json({
             success: false,
             error: `Transfer failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+    }
+});
+// PUT /api/vehicles/ownership-history/:historyId - Úprava transferu vlastníctva
+router.put('/ownership-history/:historyId', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), async (req, res) => {
+    try {
+        const { historyId } = req.params;
+        const { ownerCompanyId, transferReason, transferNotes, validFrom } = req.body;
+        console.log('📝 Editing ownership transfer:', {
+            historyId,
+            ownerCompanyId,
+            transferReason,
+            validFrom,
+            requestedBy: req.user?.username
+        });
+        // Validácia
+        if (!ownerCompanyId || !transferReason || !validFrom) {
+            return res.status(400).json({
+                success: false,
+                error: 'Required fields: ownerCompanyId, transferReason, validFrom'
+            });
+        }
+        await postgres_database_1.postgresDatabase.updateVehicleOwnershipHistory(historyId, {
+            ownerCompanyId,
+            transferReason,
+            transferNotes,
+            validFrom: new Date(validFrom)
+        });
+        console.log('✅ Ownership transfer updated successfully:', historyId);
+        res.json({
+            success: true,
+            message: 'Transfer vlastníctva úspešne upravený'
+        });
+    }
+    catch (error) {
+        console.error('Update ownership transfer error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+    }
+});
+// DELETE /api/vehicles/ownership-history/:historyId - Vymazanie transferu vlastníctva
+router.delete('/ownership-history/:historyId', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), async (req, res) => {
+    try {
+        const { historyId } = req.params;
+        console.log('🗑️ Deleting ownership transfer:', {
+            historyId,
+            requestedBy: req.user?.username
+        });
+        // Overenie, že transfer existuje
+        const exists = await postgres_database_1.postgresDatabase.checkOwnershipHistoryExists(historyId);
+        if (!exists) {
+            return res.status(404).json({
+                success: false,
+                error: 'Ownership transfer not found'
+            });
+        }
+        await postgres_database_1.postgresDatabase.deleteVehicleOwnershipHistory(historyId);
+        console.log('✅ Ownership transfer deleted successfully:', historyId);
+        res.json({
+            success: true,
+            message: 'Transfer vlastníctva úspešne vymazaný'
+        });
+    }
+    catch (error) {
+        console.error('Delete ownership transfer error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         });
     }
 });
