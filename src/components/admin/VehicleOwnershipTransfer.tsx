@@ -107,13 +107,15 @@ const VehicleOwnershipTransfer: React.FC = () => {
     { value: 'manual_transfer', label: 'Manuálny transfer' }
   ];
 
-  // Načítanie histórie len pre vozidlá s transfermi
+  // ⚡ OPTIMALIZOVANÉ: Paralelné načítanie histórie všetkých vozidiel
   const loadAllVehicleHistories = async () => {
     setHistoryLoading(true);
+    console.log(`🚀 Loading histories for ${vehicles.length} vehicles in parallel...`);
+    const startTime = Date.now();
+    
     try {
-      const vehiclesWithHistoryData: VehicleWithHistory[] = [];
-      
-      for (const vehicle of vehicles) {
+      // ⚡ PARALLEL REQUESTS: Všetky požiadavky naraz namiesto sekvenčne
+      const historyPromises = vehicles.map(async (vehicle) => {
         try {
           const response = await fetch(`${API_BASE_URL}/vehicles/${vehicle.id}/ownership-history`, {
             headers: {
@@ -133,24 +135,32 @@ const VehicleOwnershipTransfer: React.FC = () => {
               (history.length === 1 && history[0].transferReason !== 'initial_setup');
             
             if (hasRealTransfers) {
-              vehiclesWithHistoryData.push({
+              return {
                 id: vehicle.id,
                 brand: vehicle.brand,
                 model: vehicle.model,
                 licensePlate: vehicle.licensePlate,
                 ownerCompanyId: vehicle.ownerCompanyId || '',
                 history: history
-              });
+              };
             }
           }
+          return null; // No transfers
         } catch (error) {
           console.error(`Failed to load history for vehicle ${vehicle.id}:`, error);
+          return null;
         }
-      }
+      });
+
+      // ⚡ Počkaj na všetky požiadavky a odfiltruj null hodnoty
+      const results = await Promise.all(historyPromises);
+      const vehiclesWithHistoryData = results.filter((vehicle): vehicle is VehicleWithHistory => vehicle !== null);
       
       // SORTING: Zoraď podľa počtu transferov (viac transferov = vyššie v zozname)
-      // Toto zlepšuje UX - používateľ najprv uvidí vozidlá s najviac aktivitou
       vehiclesWithHistoryData.sort((a, b) => b.history.length - a.history.length);
+      
+      const loadTime = Date.now() - startTime;
+      console.log(`✅ Loaded ${vehiclesWithHistoryData.length} vehicles with transfers in ${loadTime}ms`);
       
       setVehiclesWithHistory(vehiclesWithHistoryData);
     } catch (error) {
@@ -461,8 +471,14 @@ const VehicleOwnershipTransfer: React.FC = () => {
               </Box>
 
               {historyLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                  <CircularProgress />
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 4 }}>
+                  <CircularProgress size={40} />
+                  <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+                    Načítavam históriu transferov pre {vehicles.length} vozidiel...
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>
+                    ⚡ Paralelné spracovanie pre maximálnu rýchlosť
+                  </Typography>
                 </Box>
               ) : (
                 <Stack spacing={2} sx={{ maxHeight: '600px', overflow: 'auto' }}>
