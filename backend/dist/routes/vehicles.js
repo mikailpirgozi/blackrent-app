@@ -231,5 +231,138 @@ router.post('/assign-to-company', auth_1.authenticateToken, (0, auth_1.requireRo
         });
     }
 });
+// 📊 CSV EXPORT - Export vozidiel do CSV
+router.get('/export/csv', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'read'), async (req, res) => {
+    try {
+        let vehicles = await postgres_database_1.postgresDatabase.getVehicles();
+        // 🔐 NON-ADMIN USERS - filter podľa company permissions
+        if (req.user?.role !== 'admin' && req.user) {
+            const userCompanyAccess = await postgres_database_1.postgresDatabase.getUserCompanyAccess(req.user.id);
+            const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+            vehicles = vehicles.filter(v => v.ownerCompanyId && allowedCompanyIds.includes(v.ownerCompanyId));
+        }
+        // Vytvor CSV hlavičky
+        const csvHeaders = [
+            'ID',
+            'Značka',
+            'Model',
+            'ŠPZ',
+            'Firma',
+            'Rok',
+            'Status',
+            'STK',
+            'Vytvorené'
+        ];
+        // Konvertuj vozidlá na CSV riadky
+        const csvRows = vehicles.map(vehicle => [
+            vehicle.id,
+            vehicle.brand,
+            vehicle.model,
+            vehicle.licensePlate,
+            vehicle.company,
+            vehicle.year || '',
+            vehicle.status,
+            vehicle.stk ? vehicle.stk.toISOString().split('T')[0] : '',
+            vehicle.createdAt ? vehicle.createdAt.toISOString().split('T')[0] : ''
+        ]);
+        // Vytvor CSV obsah
+        const csvContent = [csvHeaders, ...csvRows]
+            .map(row => row.map(field => `"${field}"`).join(','))
+            .join('\n');
+        // Nastav response headers pre CSV download
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="vozidla-${new Date().toISOString().split('T')[0]}.csv"`);
+        res.setHeader('Cache-Control', 'no-cache');
+        // Pridaj BOM pre správne zobrazenie diakritiky v Exceli
+        res.send('\ufeff' + csvContent);
+        console.log(`📊 CSV Export: ${vehicles.length} vozidiel exportovaných pre používateľa ${req.user?.username}`);
+    }
+    catch (error) {
+        console.error('CSV export error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri exporte CSV'
+        });
+    }
+});
+// 📥 CSV IMPORT - Import vozidiel z CSV
+router.post('/import/csv', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'create'), async (req, res) => {
+    try {
+        const { csvData } = req.body;
+        if (!csvData || typeof csvData !== 'string') {
+            return res.status(400).json({
+                success: false,
+                error: 'CSV dáta sú povinné'
+            });
+        }
+        // Parsuj CSV
+        const lines = csvData.trim().split('\n');
+        if (lines.length < 2) {
+            return res.status(400).json({
+                success: false,
+                error: 'CSV musí obsahovať aspoň hlavičku a jeden riadok dát'
+            });
+        }
+        // Preskočíme hlavičku
+        const dataLines = lines.slice(1);
+        const results = [];
+        const errors = [];
+        for (let i = 0; i < dataLines.length; i++) {
+            try {
+                const line = dataLines[i].trim();
+                if (!line)
+                    continue;
+                // Parsuj CSV riadok (jednoduché parsovanie)
+                const fields = line.split(',').map(field => field.replace(/^"|"$/g, '').trim());
+                if (fields.length < 4) {
+                    errors.push({ row: i + 2, error: 'Nedostatok stĺpcov' });
+                    continue;
+                }
+                const [, brand, model, licensePlate, company, year, status] = fields;
+                if (!brand || !model || !company) {
+                    errors.push({ row: i + 2, error: 'Značka, model a firma sú povinné' });
+                    continue;
+                }
+                // Vytvor vozidlo
+                const vehicleData = {
+                    brand: brand.trim(),
+                    model: model.trim(),
+                    licensePlate: licensePlate?.trim() || '',
+                    company: company.trim(),
+                    year: year ? parseInt(year) : 2024,
+                    status: status?.trim() || 'available',
+                    pricing: [],
+                    commission: { type: 'percentage', value: 20 }
+                };
+                const createdVehicle = await postgres_database_1.postgresDatabase.createVehicle(vehicleData);
+                results.push({ row: i + 2, vehicle: createdVehicle });
+            }
+            catch (error) {
+                errors.push({
+                    row: i + 2,
+                    error: error.message || 'Chyba pri vytváraní vozidla'
+                });
+            }
+        }
+        res.json({
+            success: true,
+            message: `CSV import dokončený: ${results.length} úspešných, ${errors.length} chýb`,
+            data: {
+                imported: results.length,
+                errorsCount: errors.length,
+                results,
+                errors: errors.slice(0, 10) // Limit na prvých 10 chýb
+            }
+        });
+        console.log(`📥 CSV Import: ${results.length} vozidiel importovaných, ${errors.length} chýb`);
+    }
+    catch (error) {
+        console.error('CSV import error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri importe CSV'
+        });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=vehicles.js.map
