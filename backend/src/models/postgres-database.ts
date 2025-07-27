@@ -1810,7 +1810,7 @@ export class PostgresDatabase {
       const result = await client.query(`
         SELECT r.*, v.brand, v.model, v.license_plate, v.company 
         FROM rentals r 
-        LEFT JOIN vehicles v ON r.vehicle_id = v.id 
+        LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
         WHERE r.id = $1
       `, [id]);
       
