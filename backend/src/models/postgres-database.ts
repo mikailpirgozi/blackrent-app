@@ -937,7 +937,8 @@ export class PostgresDatabase {
       
       console.log('📊 Počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
       
-      if (rentalCount.rows[0].count === '0' && vehicleCount.rows[0].count === '0') {
+      // VYPNUTÉ: Automatické vytváranie testových dát
+      if (false && rentalCount.rows[0].count === '0' && vehicleCount.rows[0].count === '0') {
         console.log('📋 Vytváranie testovacích dát...');
         
         // Vytvorenie firiem - jednoducho bez duplicitov
