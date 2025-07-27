@@ -2561,4 +2561,111 @@ router.post('/migrate-vehicle-companies', authenticateToken, requireRole(['admin
   }
 );
 
+// 🤖 AUTO-ASSIGN - Automatically assign companyId to users based on their name
+router.post('/auto-assign-user-companies', 
+  authenticateToken, 
+  requireRole(['admin']),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      console.log('🤖 AUTO-ASSIGN: Starting user-company assignment...');
+
+      // Get all users and companies
+      const users = await postgresDatabase.getUsers();
+      const companies = await postgresDatabase.getCompanies();
+
+      console.log(`👥 Found ${users.length} users, ${companies.length} companies`);
+
+      let assignedUsers = 0;
+      let createdCompanies = 0;
+      let skippedUsers = 0;
+      const results: string[] = [];
+      const errors: string[] = [];
+
+      for (const user of users) {
+        try {
+          // Skip if user already has companyId
+          if (user.companyId) {
+            skippedUsers++;
+            continue;
+          }
+
+          // Skip admin and employee roles
+          if (user.role === 'admin' || user.role === 'employee') {
+            skippedUsers++;
+            continue;
+          }
+
+          // Extract company name from username or firstName/lastName
+          let companyName = '';
+          
+          if (user.username.toLowerCase().includes('vincursky')) {
+            companyName = 'Vincursky';
+          } else if (user.username.toLowerCase().includes('lubka') || user.firstName?.toLowerCase().includes('lubka')) {
+            companyName = 'Lubka';
+          } else if (user.firstName || user.lastName) {
+            // Use first name as company name for company_owner
+            companyName = user.firstName || user.lastName || user.username;
+          } else {
+            // Fallback to username
+            companyName = user.username;
+          }
+
+          if (!companyName.trim()) {
+            errors.push(`User ${user.username}: No company name could be determined`);
+            continue;
+          }
+
+          // Find or create company
+          let company = companies.find(c => c.name.toLowerCase() === companyName.toLowerCase());
+          
+          if (!company) {
+            // Create new company
+            company = await postgresDatabase.createCompany({
+              name: companyName.trim()
+            });
+            companies.push(company);
+            createdCompanies++;
+            results.push(`🆕 Created company: ${companyName} (ID: ${company.id})`);
+          }
+
+          // Update user with companyId
+          const updatedUser = {
+            ...user,
+            companyId: company.id
+          };
+          
+          await postgresDatabase.updateUser(updatedUser);
+          assignedUsers++;
+          results.push(`✅ ${user.username} → ${companyName} (${company.id})`);
+
+        } catch (userError: unknown) {
+          const errorMsg = userError instanceof Error ? userError.message : String(userError);
+          errors.push(`User ${user.username}: ${errorMsg}`);
+        }
+      }
+
+      console.log(`🤖 AUTO-ASSIGN completed: ${assignedUsers} assigned, ${createdCompanies} companies created, ${skippedUsers} skipped`);
+
+      res.json({
+        success: true,
+        message: 'User-company assignment completed',
+        data: {
+          assignedUsers,
+          createdCompanies,
+          skippedUsers,
+          results,
+          errors
+        }
+      });
+
+    } catch (error: unknown) {
+      console.error('❌ Auto-assign user companies error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Auto-assign error: ${error instanceof Error ? error.message : String(error)}`
+      });
+    }
+  }
+);
+
 export default router; 
