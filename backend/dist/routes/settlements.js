@@ -40,7 +40,28 @@ const router = (0, express_1.Router)();
 // GET /api/settlements - Získanie všetkých vyúčtovaní
 router.get('/', auth_1.authenticateToken, async (req, res) => {
     try {
-        const settlements = await postgres_database_1.postgresDatabase.getSettlements();
+        let settlements = await postgres_database_1.postgresDatabase.getSettlements();
+        console.log('💰 Settlements GET - user:', {
+            role: req.user?.role,
+            companyId: req.user?.companyId,
+            totalSettlements: settlements.length
+        });
+        // 🏢 COMPANY OWNER - filter len vyúčtovania vlastnej firmy
+        if (req.user?.role === 'company_owner' && req.user.companyId) {
+            // Získaj názov firmy používateľa
+            const companies = await postgres_database_1.postgresDatabase.getCompanies();
+            const userCompany = companies.find(c => c.id === req.user?.companyId);
+            if (userCompany) {
+                const originalCount = settlements.length;
+                settlements = settlements.filter(s => s.company === userCompany.name);
+                console.log('🏢 Company Owner Settlements Filter:', {
+                    userCompanyId: req.user.companyId,
+                    userCompanyName: userCompany.name,
+                    originalCount,
+                    filteredCount: settlements.length
+                });
+            }
+        }
         res.json({
             success: true,
             data: settlements
