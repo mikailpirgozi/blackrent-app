@@ -915,24 +915,7 @@ export class PostgresDatabase {
         };
       }
 
-      // Ak sa nenájde, skús v users_new tabuľke (fallback)
-      const resultNew = await this.pool.query(
-        'SELECT id, username, email, password, role, created_at FROM users_new WHERE username = $1',
-        [username]
-      );
 
-      if (resultNew.rows.length > 0) {
-        const row = resultNew.rows[0];
-        return {
-          id: row.id,
-          username: row.username,
-          email: row.email,
-          password: row.password,
-          role: row.role,
-          isActive: true, // default pre starých používateľov
-          createdAt: new Date(row.created_at)
-        };
-      }
 
       return null;
     } catch (error) {
