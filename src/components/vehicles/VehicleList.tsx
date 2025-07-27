@@ -17,6 +17,8 @@ import {
   MenuItem,
   Collapse,
   Fab,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import {
@@ -123,10 +125,34 @@ function exportVehiclesToCSV(vehicles: Vehicle[]) {
   saveAs(blob, 'vozidla.csv');
 }
 
+// Tab panel komponent
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`vehicle-tabpanel-${index}`}
+      aria-labelledby={`vehicle-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+    </div>
+  );
+}
+
 export default function VehicleList() {
   const { state, createVehicle, updateVehicle, deleteVehicle, getFilteredVehicles } = useApp();
   const [openDialog, setOpenDialog] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [currentTab, setCurrentTab] = useState(0); // 🆕 Tab state
   const [filterBrand, setFilterBrand] = useState('');
   const [filterModel, setFilterModel] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
@@ -471,6 +497,38 @@ export default function VehicleList() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setCurrentTab(newValue);
+  };
+
+  // 👤 Save owner name
+  const handleSaveOwnerName = async (vehicleId: string, ownerName: string) => {
+    try {
+      const vehicle = getFilteredVehicles().find(v => v.id === vehicleId);
+      if (!vehicle) return;
+
+      const updatedVehicle = { ...vehicle, ownerName: ownerName.trim() };
+      await updateVehicle(updatedVehicle);
+      console.log('✅ Owner name saved:', ownerName, 'for vehicle:', vehicleId);
+    } catch (error) {
+      console.error('❌ Error saving owner name:', error);
+    }
+  };
+
+  // 🏢 Save company
+  const handleSaveCompany = async (vehicleId: string, companyId: string) => {
+    try {
+      const vehicle = getFilteredVehicles().find(v => v.id === vehicleId);
+      if (!vehicle) return;
+
+      const updatedVehicle = { ...vehicle, ownerCompanyId: companyId };
+      await updateVehicle(updatedVehicle);
+      console.log('✅ Company saved:', companyId, 'for vehicle:', vehicleId);
+    } catch (error) {
+      console.error('❌ Error saving company:', error);
+    }
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -527,7 +585,17 @@ export default function VehicleList() {
         <Box sx={{ color: 'error.main', mb: 2 }}>{importError}</Box>
       )}
 
-      {/* Filtre */}
+      {/* 🎯 TABS NAVIGATION */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={currentTab} onChange={handleTabChange} aria-label="vehicle tabs">
+          <Tab label="Vozidlá" id="vehicle-tab-0" aria-controls="vehicle-tabpanel-0" />
+          <Tab label="👤 Majitelia" id="vehicle-tab-1" aria-controls="vehicle-tabpanel-1" />
+        </Tabs>
+      </Box>
+
+      {/* TAB 0 - VOZIDLÁ */}
+      <TabPanel value={currentTab} index={0}>
+        {/* Filtre */}
       {isMobile ? (
         <Box sx={{ mb: 2 }}>
           <Button
@@ -703,6 +771,110 @@ export default function VehicleList() {
           </Button>
         </Box>
       )}
+      </TabPanel>
+
+      {/* TAB 1 - MAJITELIA */}
+      <TabPanel value={currentTab} index={1}>
+        <Typography variant="h6" sx={{ mb: 3 }}>
+          👤 Správa majiteľov vozidiel
+        </Typography>
+        
+        {/* Owners Table */}
+        <Card>
+          <CardContent>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Kliknite na meno majiteľa alebo firmu pre úpravu. Hlavný identifikátor je meno majiteľa.
+              </Typography>
+            </Box>
+            
+            {filteredVehicles.map((vehicle) => (
+              <Box
+                key={vehicle.id}
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  p: 2,
+                  mb: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  '&:hover': {
+                    backgroundColor: 'action.hover'
+                  }
+                }}
+              >
+                {/* Vehicle Info */}
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h6" sx={{ mb: 1 }}>
+                    {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
+                  </Typography>
+                  
+                  {/* Owner Name - Inline Edit */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="body2" sx={{ mr: 1, minWidth: 80 }}>
+                      👤 Majiteľ:
+                    </Typography>
+                    <TextField
+                      size="small"
+                      value={vehicle.ownerName || ''}
+                      placeholder="Zadajte meno majiteľa..."
+                      variant="standard"
+                      sx={{ mr: 2 }}
+                      onBlur={(e) => {
+                        if (e.target.value !== (vehicle.ownerName || '')) {
+                          handleSaveOwnerName(vehicle.id, e.target.value);
+                        }
+                      }}
+                    />
+                  </Box>
+                  
+                  {/* Company - Dropdown */}
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body2" sx={{ mr: 1, minWidth: 80 }}>
+                      🏢 Firma:
+                    </Typography>
+                    <FormControl size="small" variant="standard" sx={{ minWidth: 200 }}>
+                      <Select
+                        value={vehicle.ownerCompanyId || ''}
+                        displayEmpty
+                        onChange={(e) => {
+                          if (e.target.value !== (vehicle.ownerCompanyId || '')) {
+                            handleSaveCompany(vehicle.id, e.target.value);
+                          }
+                        }}
+                      >
+                        <MenuItem value="">
+                          <em>Vyberte firmu...</em>
+                        </MenuItem>
+                        {state.companies?.map((company) => (
+                          <MenuItem key={company.id} value={company.id}>
+                            {company.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                </Box>
+                
+                {/* Status */}
+                <Chip
+                  label={getStatusText(vehicle.status)}
+                  color={getStatusColor(vehicle.status)}
+                  size="small"
+                />
+              </Box>
+            ))}
+            
+            {filteredVehicles.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                Žiadne vozidlá na zobrazenie
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      </TabPanel>
 
       <Dialog
         open={openDialog}
