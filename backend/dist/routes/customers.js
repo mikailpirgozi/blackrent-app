@@ -152,5 +152,138 @@ router.delete('/:id', auth_1.authenticateToken, async (req, res) => {
         });
     }
 });
+// 📊 CSV EXPORT - Export zákazníkov do CSV
+router.get('/export/csv', auth_1.authenticateToken, async (req, res) => {
+    try {
+        let customers = await postgres_database_1.postgresDatabase.getCustomers();
+        // 🔐 NON-ADMIN USERS - filter podľa company permissions
+        if (req.user?.role !== 'admin' && req.user) {
+            const userCompanyAccess = await postgres_database_1.postgresDatabase.getUserCompanyAccess(req.user.id);
+            const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+            const rentals = await postgres_database_1.postgresDatabase.getRentals();
+            const vehicles = await postgres_database_1.postgresDatabase.getVehicles();
+            const allowedCustomerIds = new Set();
+            rentals.forEach(rental => {
+                if (!rental.customerId || !rental.vehicleId)
+                    return;
+                const vehicle = vehicles.find(v => v.id === rental.vehicleId);
+                if (!vehicle || !vehicle.ownerCompanyId)
+                    return;
+                if (allowedCompanyIds.includes(vehicle.ownerCompanyId)) {
+                    allowedCustomerIds.add(rental.customerId);
+                }
+            });
+            customers = customers.filter(c => allowedCustomerIds.has(c.id));
+        }
+        // Vytvor CSV hlavičky
+        const csvHeaders = [
+            'ID',
+            'Meno',
+            'Email',
+            'Telefón',
+            'Vytvorené'
+        ];
+        // Konvertuj zákazníkov na CSV riadky
+        const csvRows = customers.map(customer => [
+            customer.id,
+            customer.name,
+            customer.email || '',
+            customer.phone || '',
+            customer.createdAt ? customer.createdAt.toISOString().split('T')[0] : ''
+        ]);
+        // Vytvor CSV obsah
+        const csvContent = [csvHeaders, ...csvRows]
+            .map(row => row.map(field => `"${field}"`).join(','))
+            .join('\n');
+        // Nastav response headers pre CSV download
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="zakaznici-${new Date().toISOString().split('T')[0]}.csv"`);
+        res.setHeader('Cache-Control', 'no-cache');
+        // Pridaj BOM pre správne zobrazenie diakritiky v Exceli
+        res.send('\ufeff' + csvContent);
+        console.log(`📊 CSV Export: ${customers.length} zákazníkov exportovaných pre používateľa ${req.user?.username}`);
+    }
+    catch (error) {
+        console.error('CSV export error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri exporte CSV'
+        });
+    }
+});
+// 📥 CSV IMPORT - Import zákazníkov z CSV
+router.post('/import/csv', auth_1.authenticateToken, async (req, res) => {
+    try {
+        const { csvData } = req.body;
+        if (!csvData || typeof csvData !== 'string') {
+            return res.status(400).json({
+                success: false,
+                error: 'CSV dáta sú povinné'
+            });
+        }
+        // Parsuj CSV
+        const lines = csvData.trim().split('\n');
+        if (lines.length < 2) {
+            return res.status(400).json({
+                success: false,
+                error: 'CSV musí obsahovať aspoň hlavičku a jeden riadok dát'
+            });
+        }
+        // Preskočíme hlavičku
+        const dataLines = lines.slice(1);
+        const results = [];
+        const errors = [];
+        for (let i = 0; i < dataLines.length; i++) {
+            try {
+                const line = dataLines[i].trim();
+                if (!line)
+                    continue;
+                // Parsuj CSV riadok
+                const fields = line.split(',').map(field => field.replace(/^"|"$/g, '').trim());
+                if (fields.length < 2) {
+                    errors.push({ row: i + 2, error: 'Nedostatok stĺpcov' });
+                    continue;
+                }
+                const [, name, email, phone] = fields;
+                if (!name) {
+                    errors.push({ row: i + 2, error: 'Meno zákazníka je povinné' });
+                    continue;
+                }
+                // Vytvor zákazníka
+                const customerData = {
+                    name: name.trim(),
+                    email: email?.trim() || '',
+                    phone: phone?.trim() || ''
+                };
+                const createdCustomer = await postgres_database_1.postgresDatabase.createCustomer(customerData);
+                results.push({ row: i + 2, customer: createdCustomer });
+            }
+            catch (error) {
+                errors.push({
+                    row: i + 2,
+                    error: error.message || 'Chyba pri vytváraní zákazníka'
+                });
+            }
+        }
+        res.json({
+            success: true,
+            message: `CSV import dokončený: ${results.length} úspešných, ${errors.length} chýb`,
+            data: {
+                imported: results.length,
+                errorsCount: errors.length,
+                results,
+                errors: errors.slice(0, 10) // Limit na prvých 10 chýb
+            }
+        });
+        console.log(`📥 CSV Import: ${results.length} zákazníkov importovaných, ${errors.length} chýb`);
+    }
+    catch (error) {
+        console.error('CSV import error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri importe CSV'
+        });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=customers.js.map

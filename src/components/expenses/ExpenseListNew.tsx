@@ -188,20 +188,52 @@ const ExpenseListNew: React.FC = () => {
     }
   };
 
-  const handleExportCSV = () => {
-    const csvData = filteredExpenses.map((expense: Expense) => ({
-      'Dátum': format(new Date(expense.date), 'dd.MM.yyyy'),
-      'Popis': expense.description,
-      'Kategória': getCategoryText(expense.category),
-      'Suma': expense.amount,
-      'Firma': expense.company,
-      'Vozidlo': expense.vehicleId ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId)?.licensePlate || expense.vehicleId : '',
-      'Poznámka': expense.note || ''
-    }));
+  // CSV funkcionalita
+  const handleExportCSV = async () => {
+    try {
+      const { apiService } = await import('../../services/api');
+      const blob = await apiService.exportExpensesCSV();
+      const filename = `naklady-${new Date().toISOString().split('T')[0]}.csv`;
+      saveAs(blob, filename);
+      
+      alert('CSV export úspešný');
+    } catch (error) {
+      console.error('CSV export error:', error);
+      alert('Chyba pri CSV exporte');
+    }
+  };
 
-    const csv = Papa.unparse(csvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    saveAs(blob, `naklady-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      complete: async (results: any) => {
+        try {
+          // Konvertuj parsované dáta späť na CSV string
+          const csvString = Papa.unparse(results.data);
+          
+          const { apiService } = await import('../../services/api');
+          const result = await apiService.importExpensesCSV(csvString);
+          
+          if (result.success) {
+            alert(result.message);
+            // Refresh expense list - force reload
+            window.location.reload();
+          } else {
+            alert(result.error || 'Chyba pri importe');
+          }
+        } catch (error) {
+          console.error('CSV import error:', error);
+          alert('Chyba pri CSV importe');
+        }
+      },
+      header: false,
+      skipEmptyLines: true
+    });
+    
+    // Reset input
+    event.target.value = '';
   };
 
   const clearFilters = () => {
@@ -243,7 +275,25 @@ const ExpenseListNew: React.FC = () => {
                 onClick={handleExportCSV}
                 disabled={filteredExpenses.length === 0}
               >
-                Export CSV
+                📊 Export CSV
+              </Button>
+              
+              <Button
+                variant="outlined"
+                component="label"
+                sx={{
+                  borderColor: '#1976d2',
+                  color: '#1976d2',
+                  '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' }
+                }}
+              >
+                📥 Import CSV
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportCSV}
+                  style={{ display: 'none' }}
+                />
               </Button>
             </Box>
           </Box>

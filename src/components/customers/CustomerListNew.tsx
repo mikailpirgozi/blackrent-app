@@ -111,6 +111,54 @@ export default function CustomerListNew() {
     }
   };
 
+  // CSV funkcionalita
+  const handleExportCSV = async () => {
+    try {
+      const { apiService } = await import('../../services/api');
+      const blob = await apiService.exportCustomersCSV();
+      const filename = `zakaznici-${new Date().toISOString().split('T')[0]}.csv`;
+      saveAs(blob, filename);
+      
+      alert('CSV export úspešný');
+    } catch (error) {
+      console.error('CSV export error:', error);
+      alert('Chyba pri CSV exporte');
+    }
+  };
+
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      complete: async (results: any) => {
+        try {
+          // Konvertuj parsované dáta späť na CSV string
+          const csvString = Papa.unparse(results.data);
+          
+          const { apiService } = await import('../../services/api');
+          const result = await apiService.importCustomersCSV(csvString);
+          
+          if (result.success) {
+            alert(result.message);
+            // Refresh customer list - force reload
+            window.location.reload();
+          } else {
+            alert(result.error || 'Chyba pri importe');
+          }
+        } catch (error) {
+          console.error('CSV import error:', error);
+          alert('Chyba pri CSV importe');
+        }
+      },
+      header: false,
+      skipEmptyLines: true
+    });
+    
+    // Reset input
+    event.target.value = '';
+  };
+
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingCustomer(null);
@@ -184,19 +232,6 @@ export default function CustomerListNew() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleExportCSV = () => {
-    const csvData = state.customers.map(customer => ({
-      'Meno': customer.name,
-      'Email': customer.email,
-      'Telefón': customer.phone,
-      'Vytvorené': format(new Date(customer.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })
-    }));
-    
-    const csv = Papa.unparse(csvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    saveAs(blob, `zakaznici-${format(new Date(), 'yyyy-MM-dd')}.csv`);
   };
 
   // Filtered customers
@@ -291,8 +326,29 @@ export default function CustomerListNew() {
             onClick={handleExportCSV}
             size="small"
           >
-            Export CSV
+            📊 Export CSV
           </Button>
+          
+          <Button
+            variant="outlined"
+            component="label"
+            startIcon={<UploadIcon />}
+            size="small"
+            sx={{
+              borderColor: '#1976d2',
+              color: '#1976d2',
+              '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' }
+            }}
+          >
+            📥 Import CSV
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleImportCSV}
+              style={{ display: 'none' }}
+            />
+          </Button>
+          
           <Button
             variant="contained"
             startIcon={<AddIcon />}

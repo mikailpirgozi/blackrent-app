@@ -63,6 +63,14 @@ router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('ve
         });
     }
 });
+// 🧪 TEST endpoint pre CSV funkcionalitu
+router.get('/test-csv', auth_1.authenticateToken, async (req, res) => {
+    res.json({
+        success: true,
+        message: 'CSV endpointy sú dostupné',
+        timestamp: new Date().toISOString()
+    });
+});
 // GET /api/vehicles/:id - Získanie konkrétneho vozidla
 router.get('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'read', { getContext: getVehicleContext }), async (req, res) => {
     try {
