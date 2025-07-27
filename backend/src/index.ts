@@ -87,6 +87,7 @@ import vehicleUnavailabilityRoutes from './routes/vehicle-unavailability';
 import vehicleDocumentRoutes from './routes/vehicle-documents';
 import insuranceClaimRoutes from './routes/insurance-claims';
 import permissionRoutes from './routes/permissions';
+import adminRoutes from './routes/admin';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -106,6 +107,7 @@ app.use('/api/vehicle-unavailability', vehicleUnavailabilityRoutes);
 app.use('/api/vehicle-documents', vehicleDocumentRoutes);
 app.use('/api/insurance-claims', insuranceClaimRoutes);
 app.use('/api/permissions', permissionRoutes);
+app.use('/api/admin', adminRoutes);
 
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {
