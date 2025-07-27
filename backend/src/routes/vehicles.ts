@@ -412,21 +412,48 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
           status: 'available', // ✅ Vždy dostupné
           pricing: [
             {
-              duration: 'daily',
-              price: 50,
-              currency: 'EUR'
+              id: '1',
+              minDays: 0,
+              maxDays: 1,
+              pricePerDay: 50
             },
             {
-              duration: 'weekly', 
-              price: 300,
-              currency: 'EUR'
+              id: '2', 
+              minDays: 2,
+              maxDays: 3,
+              pricePerDay: 45
             },
             {
-              duration: 'monthly',
-              price: 1000,
-              currency: 'EUR'
+              id: '3',
+              minDays: 4,
+              maxDays: 7,
+              pricePerDay: 40
+            },
+            {
+              id: '4',
+              minDays: 8,
+              maxDays: 14,
+              pricePerDay: 35
+            },
+            {
+              id: '5',
+              minDays: 15,
+              maxDays: 22,
+              pricePerDay: 30
+            },
+            {
+              id: '6',
+              minDays: 23,
+              maxDays: 30,
+              pricePerDay: 25
+            },
+            {
+              id: '7',
+              minDays: 31,
+              maxDays: 365,
+              pricePerDay: 20
             }
-          ], // ✅ Základná cenotvorba
+          ], // ✅ Kompletná cenotvorba kompatibilná s frontendom
           commission: { type: 'percentage', value: 20 }
         };
 
