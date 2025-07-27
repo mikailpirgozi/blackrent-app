@@ -25,7 +25,9 @@ import {
   FormControlLabel,
   Grid,
   Divider,
-  FormGroup
+  FormGroup,
+  Tabs,
+  Tab
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -49,7 +51,19 @@ import { Vehicle, VehicleStatus } from '../../types';
 import { Can } from '../common/PermissionGuard';
 import VehicleForm from './VehicleForm';
 
-const getStatusColor = (status: VehicleStatus) => {
+const getStatusColor = (status: VehicleStatus): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+  switch (status) {
+    case 'available': return 'success';
+    case 'rented': return 'warning';
+    case 'maintenance': return 'error';
+    case 'temporarily_removed': return 'info';
+    case 'removed': return 'default';
+    case 'transferred': return 'secondary';
+    default: return 'default';
+  }
+};
+
+const getStatusBgColor = (status: VehicleStatus) => {
   switch (status) {
     case 'available': return '#4caf50';
     case 'rented': return '#ff9800';
@@ -91,6 +105,7 @@ export default function VehicleListNew() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   // States
+  const [currentTab, setCurrentTab] = useState(0); // 🆕 Tab state
   const [searchQuery, setSearchQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -142,6 +157,69 @@ export default function VehicleListNew() {
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving vehicle:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🆕 Tab handlers
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setCurrentTab(newValue);
+  };
+
+  // 👤 Save owner name
+  const handleSaveOwnerName = async (vehicleId: string, ownerName: string) => {
+    try {
+      const vehicle = filteredVehicles.find(v => v.id === vehicleId);
+      if (!vehicle) return;
+
+      const updatedVehicle = { ...vehicle, ownerName: ownerName.trim() };
+      await updateVehicle(updatedVehicle);
+      console.log('✅ Owner name saved:', ownerName, 'for vehicle:', vehicleId);
+    } catch (error) {
+      console.error('❌ Error saving owner name:', error);
+    }
+  };
+
+  // 🏢 Save company
+  const handleSaveCompany = async (vehicleId: string, companyId: string) => {
+    try {
+      const vehicle = filteredVehicles.find(v => v.id === vehicleId);
+      if (!vehicle) return;
+
+      const updatedVehicle = { ...vehicle, ownerCompanyId: companyId };
+      await updateVehicle(updatedVehicle);
+      console.log('✅ Company saved:', companyId, 'for vehicle:', vehicleId);
+    } catch (error) {
+      console.error('❌ Error saving company:', error);
+    }
+  };
+
+  // 🤖 Auto-assign owners based on company names
+  const handleAutoAssignOwners = async () => {
+    try {
+      setLoading(true);
+      let updatedCount = 0;
+      
+      for (const vehicle of filteredVehicles) {
+        // Skip if already has owner name
+        if (vehicle.ownerName && vehicle.ownerName.trim()) {
+          continue;
+        }
+        
+        // Use company name as owner name
+        const ownerName = vehicle.company || 'Neznámy majiteľ';
+        
+        const updatedVehicle = { ...vehicle, ownerName };
+        await updateVehicle(updatedVehicle);
+        updatedCount++;
+      }
+      
+      console.log(`✅ Automaticky priradených ${updatedCount} majiteľov vozidiel`);
+      alert(`Úspešne priradených ${updatedCount} majiteľov vozidiel na základe názvu firmy.`);
+    } catch (error) {
+      console.error('❌ Error auto-assigning owners:', error);
+      alert('Chyba pri automatickom priradzovaní majiteľov');
     } finally {
       setLoading(false);
     }
@@ -208,6 +286,29 @@ export default function VehicleListNew() {
   const uniqueBrands = [...new Set(state.vehicles.map(v => v.brand))].sort();
   const uniqueModels = [...new Set(state.vehicles.map(v => v.model))].sort();
   const uniqueCompanies = [...new Set(state.vehicles.map(v => v.company))].sort();
+
+  // 🆕 TabPanel component
+  interface TabPanelProps {
+    children?: React.ReactNode;
+    index: number;
+    value: number;
+  }
+
+  function TabPanel(props: TabPanelProps) {
+    const { children, value, index, ...other } = props;
+
+    return (
+      <div
+        role="tabpanel"
+        hidden={value !== index}
+        id={`vehicle-tabpanel-${index}`}
+        aria-labelledby={`vehicle-tab-${index}`}
+        {...other}
+      >
+        {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+      </div>
+    );
+  }
 
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
@@ -371,7 +472,17 @@ export default function VehicleListNew() {
         </CardContent>
       </Card>
 
-      {/* Results Count */}
+      {/* 🎯 TABS NAVIGATION */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={currentTab} onChange={handleTabChange} aria-label="vehicle tabs">
+          <Tab label="Vozidlá" id="vehicle-tab-0" aria-controls="vehicle-tabpanel-0" />
+          <Tab label="👤 Majitelia" id="vehicle-tab-1" aria-controls="vehicle-tabpanel-1" />
+        </Tabs>
+      </Box>
+
+      {/* TAB 0 - VOZIDLÁ */}
+      <TabPanel value={currentTab} index={0}>
+        {/* Results Count */}
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Typography variant="body2" color="text.secondary">
           Zobrazených {filteredVehicles.length} z {state.vehicles.length} vozidiel
@@ -437,7 +548,7 @@ export default function VehicleListNew() {
                       sx={{
                         height: { xs: 18, sm: 20 },
                         fontSize: { xs: '0.55rem', sm: '0.6rem' },
-                        bgcolor: getStatusColor(vehicle.status),
+                        bgcolor: getStatusBgColor(vehicle.status),
                         color: 'white',
                         fontWeight: 700,
                         minWidth: 'auto',
@@ -767,7 +878,7 @@ export default function VehicleListNew() {
                       sx={{
                         height: 24,
                         fontSize: '0.7rem',
-                        bgcolor: getStatusColor(vehicle.status),
+                        bgcolor: getStatusBgColor(vehicle.status),
                         color: 'white',
                         fontWeight: 700,
                         '& .MuiChip-icon': {
@@ -903,6 +1014,127 @@ export default function VehicleListNew() {
           </CardContent>
         </Card>
       )}
+      </TabPanel>
+
+      {/* TAB 1 - MAJITELIA */}
+      <TabPanel value={currentTab} index={1}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6">
+            👤 Správa majiteľov vozidiel
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleAutoAssignOwners}
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={16} /> : undefined}
+            sx={{
+              bgcolor: '#2196f3',
+              '&:hover': { bgcolor: '#1976d2' },
+              borderRadius: 2,
+              px: 3
+            }}
+          >
+            🤖 Automaticky priradiť majiteľov
+          </Button>
+        </Box>
+        
+        {/* Owners Table */}
+        <Card>
+          <CardContent>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Kliknite na meno majiteľa alebo firmu pre úpravu. Hlavný identifikátor je meno majiteľa.
+              </Typography>
+            </Box>
+            
+            {filteredVehicles.map((vehicle) => (
+              <Box
+                key={vehicle.id}
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  p: 2,
+                  mb: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  '&:hover': {
+                    backgroundColor: 'action.hover'
+                  }
+                }}
+              >
+                {/* Vehicle Info */}
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h6" sx={{ mb: 1 }}>
+                    {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
+                  </Typography>
+                  
+                  {/* Owner Name - Inline Edit */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="body2" sx={{ mr: 1, minWidth: 80 }}>
+                      👤 Majiteľ:
+                    </Typography>
+                    <TextField
+                      size="small"
+                      value={vehicle.ownerName || ''}
+                      placeholder="Zadajte meno majiteľa..."
+                      variant="standard"
+                      sx={{ mr: 2 }}
+                      onBlur={(e) => {
+                        if (e.target.value !== (vehicle.ownerName || '')) {
+                          handleSaveOwnerName(vehicle.id, e.target.value);
+                        }
+                      }}
+                    />
+                  </Box>
+                  
+                  {/* Company - Dropdown */}
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body2" sx={{ mr: 1, minWidth: 80 }}>
+                      🏢 Firma:
+                    </Typography>
+                    <FormControl size="small" variant="standard" sx={{ minWidth: 200 }}>
+                      <Select
+                        value={vehicle.ownerCompanyId || ''}
+                        displayEmpty
+                        onChange={(e) => {
+                          if (e.target.value !== (vehicle.ownerCompanyId || '')) {
+                            handleSaveCompany(vehicle.id, e.target.value);
+                          }
+                        }}
+                      >
+                        <MenuItem value="">
+                          <em>Vyberte firmu...</em>
+                        </MenuItem>
+                        {state.companies?.map((company) => (
+                          <MenuItem key={company.id} value={company.id}>
+                            {company.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                </Box>
+                
+                {/* Status */}
+                <Chip
+                  label={getStatusText(vehicle.status)}
+                  color={getStatusColor(vehicle.status)}
+                  size="small"
+                />
+              </Box>
+            ))}
+            
+            {filteredVehicles.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                Žiadne vozidlá na zobrazenie
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      </TabPanel>
 
       {/* Vehicle Form Dialog */}
       <Dialog 
