@@ -11,6 +11,7 @@ export interface Vehicle {
   status: VehicleStatus;
   ownerCompanyId?: string; // 🏢 ID vlastníckej firmy
   assignedMechanicId?: string; // 🔨 ID priradeného mechanika
+  stk?: Date; // 📋 STK platnosť do
   createdAt?: Date;
 }
 
