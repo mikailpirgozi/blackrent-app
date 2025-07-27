@@ -255,6 +255,35 @@ export interface PermissionResult {
     requiresApproval: boolean;
     reason?: string;
 }
+export interface UserPermission {
+    id: string;
+    userId: string;
+    companyId: string;
+    permissions: CompanyPermissions;
+    createdAt: Date;
+    updatedAt?: Date;
+}
+export interface CompanyPermissions {
+    vehicles: ResourcePermission;
+    rentals: ResourcePermission;
+    expenses: ResourcePermission;
+    settlements: ResourcePermission;
+    customers: ResourcePermission;
+    insurances: ResourcePermission;
+    maintenance: ResourcePermission;
+    protocols: ResourcePermission;
+}
+export interface ResourcePermission {
+    read: boolean;
+    write: boolean;
+    delete: boolean;
+    approve?: boolean;
+}
+export interface UserCompanyAccess {
+    companyId: string;
+    companyName: string;
+    permissions: CompanyPermissions;
+}
 export interface LoginCredentials {
     username: string;
     password: string;

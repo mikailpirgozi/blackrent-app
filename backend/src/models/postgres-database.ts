@@ -1,5 +1,5 @@
 import { Pool, PoolClient } from 'pg';
-import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim } from '../types';
+import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions } from '../types';
 import bcrypt from 'bcryptjs';
 import { r2Storage } from '../utils/r2-storage';
 
@@ -332,6 +332,23 @@ export class PostgresDatabase {
       await client.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_unavailability_vehicle_id ON vehicle_unavailability(vehicle_id)`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_unavailability_dates ON vehicle_unavailability(start_date, end_date)`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_unavailability_type ON vehicle_unavailability(type)`);
+
+      // Tabuľka pre práva používateľov na firmy
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS user_permissions (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL,
+          company_id UUID NOT NULL,
+          permissions JSONB NOT NULL DEFAULT '{}',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(user_id, company_id)
+        )
+      `);
+
+      // Indexy pre user_permissions
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions(user_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_user_permissions_company_id ON user_permissions(company_id)`);
 
       // Vytvorenie admin používateľa ak neexistuje
       await this.createDefaultAdmin(client);
@@ -2039,8 +2056,8 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'INSERT INTO companies (name, commission_rate, is_active) VALUES ($1, $2, $3) RETURNING id, name, business_id, tax_id, address, contact_person, email, phone, contract_start_date, contract_end_date, commission_rate, is_active, created_at, updated_at', 
-        [companyData.name, 20.00, true]
+        'INSERT INTO companies (name, is_active) VALUES ($1, $2) RETURNING id, name, business_id, tax_id, address, contact_person, email, phone, contract_start_date, contract_end_date, is_active, created_at, updated_at', 
+        [companyData.name, true]
       );
       
       const row = result.rows[0];
@@ -3967,6 +3984,119 @@ export class PostgresDatabase {
           [parseInt(companyId), parseInt(vehicleId)]
         );
       }
+    } finally {
+      client.release();
+    }
+  }
+
+  // Nové metódy pre správu práv používateľov
+  async getUserPermissions(userId: string): Promise<UserPermission[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT up.*, c.name as company_name
+        FROM user_permissions up
+        JOIN companies c ON up.company_id = c.id
+        WHERE up.user_id = $1
+        ORDER BY c.name
+      `, [userId]);
+
+      return result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        companyId: row.company_id,
+        permissions: row.permissions,
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+      }));
+    } finally {
+      client.release();
+    }
+  }
+
+  async getUserCompanyAccess(userId: string): Promise<UserCompanyAccess[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT up.company_id, c.name as company_name, up.permissions
+        FROM user_permissions up
+        JOIN companies c ON up.company_id = c.id
+        WHERE up.user_id = $1
+        ORDER BY c.name
+        `, [userId]);
+
+      return result.rows.map(row => ({
+        companyId: row.company_id,
+        companyName: row.company_name,
+        permissions: row.permissions
+      }));
+    } finally {
+      client.release();
+    }
+  }
+
+  async setUserPermission(userId: string, companyId: string, permissions: CompanyPermissions): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(`
+        INSERT INTO user_permissions (user_id, company_id, permissions)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (user_id, company_id)
+        DO UPDATE SET 
+          permissions = $3,
+          updated_at = CURRENT_TIMESTAMP
+      `, [userId, companyId, JSON.stringify(permissions)]);
+    } finally {
+      client.release();
+    }
+  }
+
+  async removeUserPermission(userId: string, companyId: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        'DELETE FROM user_permissions WHERE user_id = $1 AND company_id = $2',
+        [userId, companyId]
+      );
+    } finally {
+      client.release();
+    }
+  }
+
+  async hasPermission(userId: string, companyId: string, resource: string, action: string): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT permissions->$3->$4 as permission
+        FROM user_permissions
+        WHERE user_id = $1 AND company_id = $2
+      `, [userId, companyId, resource, action]);
+
+      if (result.rows.length === 0) return false;
+      
+      const permission = result.rows[0].permission;
+      return permission === true;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getUsersWithCompanyAccess(companyId: string): Promise<{userId: string, username: string, permissions: CompanyPermissions}[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT up.user_id, u.username, up.permissions
+        FROM user_permissions up
+        JOIN users u ON up.user_id = u.id
+        WHERE up.company_id = $1
+        ORDER BY u.username
+      `, [companyId]);
+
+      return result.rows.map(row => ({
+        userId: row.user_id,
+        username: row.username,
+        permissions: row.permissions
+      }));
     } finally {
       client.release();
     }

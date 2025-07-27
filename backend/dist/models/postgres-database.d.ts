@@ -1,5 +1,5 @@
 import { PoolClient } from 'pg';
-import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim } from '../types';
+import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions } from '../types';
 export declare class PostgresDatabase {
     private pool;
     constructor();
@@ -253,6 +253,16 @@ export declare class PostgresDatabase {
     }): Promise<InsuranceClaim>;
     deleteInsuranceClaim(id: string): Promise<void>;
     assignVehiclesToCompany(vehicleIds: string[], companyId: string): Promise<void>;
+    getUserPermissions(userId: string): Promise<UserPermission[]>;
+    getUserCompanyAccess(userId: string): Promise<UserCompanyAccess[]>;
+    setUserPermission(userId: string, companyId: string, permissions: CompanyPermissions): Promise<void>;
+    removeUserPermission(userId: string, companyId: string): Promise<void>;
+    hasPermission(userId: string, companyId: string, resource: string, action: string): Promise<boolean>;
+    getUsersWithCompanyAccess(companyId: string): Promise<{
+        userId: string;
+        username: string;
+        permissions: CompanyPermissions;
+    }[]>;
 }
 export declare const postgresDatabase: PostgresDatabase;
 //# sourceMappingURL=postgres-database.d.ts.map
