@@ -107,7 +107,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
     { value: 'manual_transfer', label: 'Manuálny transfer' }
   ];
 
-  // Načítanie histórie pre všetky vozidlá
+  // Načítanie histórie len pre vozidlá s transfermi
   const loadAllVehicleHistories = async () => {
     setHistoryLoading(true);
     try {
@@ -123,19 +123,34 @@ const VehicleOwnershipTransfer: React.FC = () => {
 
           if (response.ok) {
             const data = await response.json();
-            vehiclesWithHistoryData.push({
-              id: vehicle.id,
-              brand: vehicle.brand,
-              model: vehicle.model,
-              licensePlate: vehicle.licensePlate,
-              ownerCompanyId: vehicle.ownerCompanyId || '',
-              history: data.data.ownershipHistory || []
-            });
+            const history = data.data.ownershipHistory || [];
+            
+            // FILTER LOGIC: Zobrazuj len vozidlá s reálnymi transfermi
+            // 1. Vozidlá s viac ako 1 záznamom = mali aspoň 1 transfer
+            // 2. Vozidlá s 1 záznamom, ale nie je to initial_setup
+            // 3. Vylúč vozidlá len s initial_setup (žiadny skutočný transfer)
+            const hasRealTransfers = history.length > 1 || 
+              (history.length === 1 && history[0].transferReason !== 'initial_setup');
+            
+            if (hasRealTransfers) {
+              vehiclesWithHistoryData.push({
+                id: vehicle.id,
+                brand: vehicle.brand,
+                model: vehicle.model,
+                licensePlate: vehicle.licensePlate,
+                ownerCompanyId: vehicle.ownerCompanyId || '',
+                history: history
+              });
+            }
           }
         } catch (error) {
           console.error(`Failed to load history for vehicle ${vehicle.id}:`, error);
         }
       }
+      
+      // SORTING: Zoraď podľa počtu transferov (viac transferov = vyššie v zozname)
+      // Toto zlepšuje UX - používateľ najprv uvidí vozidlá s najviac aktivitou
+      vehiclesWithHistoryData.sort((a, b) => b.history.length - a.history.length);
       
       setVehiclesWithHistory(vehiclesWithHistoryData);
     } catch (error) {
@@ -436,7 +451,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <HistoryIcon />
-                  História transferov vlastníctva
+                  Vozidlá s transfermi vlastníctva
                 </Typography>
                 <Tooltip title="Obnoviť históriu">
                   <IconButton onClick={loadAllVehicleHistories} disabled={historyLoading}>
@@ -453,7 +468,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
                 <Stack spacing={2} sx={{ maxHeight: '600px', overflow: 'auto' }}>
                   {vehiclesWithHistory.length === 0 ? (
                     <Typography color="textSecondary">
-                      Žiadne vozidlá s históriou nenájdené.
+                      Žiadne vozidlá s transfermi vlastníctva nenájdené.
                     </Typography>
                   ) : (
                     vehiclesWithHistory.map((vehicle) => (
