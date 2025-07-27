@@ -467,6 +467,12 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       return;
     }
 
+    // Validácia - vozidlo musí byť vybrané
+    if (!formData.vehicleId?.trim()) {
+      alert('Výber vozidla je povinný');
+      return;
+    }
+
     // Ak máme customerName ale nemáme customerId, vytvorím nového zákazníka
     let finalCustomer = selectedCustomer;
     let finalCustomerId = formData.customerId;
@@ -551,7 +557,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
               }
             }}
             renderInput={(params) => (
-              <TextField {...params} label={!formData.vehicleId ? "Vozidlo (voliteľné)" : undefined} fullWidth />
+              <TextField {...params} label="Vozidlo" fullWidth required />
             )}
           />
         </FormControl>
