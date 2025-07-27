@@ -375,7 +375,10 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
 
     // Parsuj CSV dáta
     const lines = csvData.split('\n').filter((line: string) => line.trim());
+    const header = lines[0].split(',').map((h: string) => h.replace(/^"|"$/g, '').trim());
     const dataLines = lines.slice(1); // Preskočiť header
+
+    console.log('📊 CSV Header:', header);
 
     const results = [];
     const errors = [];
@@ -387,51 +390,101 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
         const line = dataLines[i].trim();
         if (!line) continue;
 
-        // Parsuj CSV riadok - rozšírené pre viac stĺpcov
+        // Parsuj CSV riadok
         const fields = line.split(',').map((field: string) => field.replace(/^"|"$/g, '').trim());
         
         if (fields.length < 4) {
-          errors.push({ row: i + 2, error: 'Nedostatok stĺpcov (minimum: ID, Značka, Model, ŠPZ, Firma)' });
+          errors.push({ row: i + 2, error: 'Nedostatok stĺpcov' });
           continue;
         }
 
-        // Mapovanie stĺpcov - flexibilné pre rôzne formáty CSV
-        const [id, brand, model, licensePlate, company, year, status, stk, ...otherFields] = fields;
+        // Mapovanie základných stĺpcov
+        const fieldMap: { [key: string]: string } = {};
+        header.forEach((headerName: string, index: number) => {
+          fieldMap[headerName] = fields[index] || '';
+        });
+
+        const brand = fieldMap['brand'];
+        const model = fieldMap['model'];
+        const licensePlate = fieldMap['licensePlate'];
+        const company = fieldMap['company'];
+        const year = fieldMap['year'];
+        const status = fieldMap['status'];
+        const stk = fieldMap['stk'];
 
         if (!brand || !model || !company) {
           errors.push({ row: i + 2, error: 'Značka, model a firma sú povinné' });
           continue;
         }
 
-        // Vytvor vozidlo BEZ fixnej cenotvorby - nechaj prázdne pre individuálne nastavenie
+        // ✅ PARSOVANIE CENOTVORBY Z CSV
+        const pricing: Array<{
+          id: string;
+          minDays: number;
+          maxDays: number;
+          pricePerDay: number;
+        }> = [];
+        
+        // Mapovanie cenových stĺpcov na pricing formát
+        const priceColumns = [
+          { column: 'cena_0_1', minDays: 0, maxDays: 1 },
+          { column: 'cena_2_3', minDays: 2, maxDays: 3 },
+          { column: 'cena_4_7', minDays: 4, maxDays: 7 },
+          { column: 'cena_8_14', minDays: 8, maxDays: 14 },
+          { column: 'cena_15_22', minDays: 15, maxDays: 22 },
+          { column: 'cena_23_30', minDays: 23, maxDays: 30 },
+          { column: 'cena_31_9999', minDays: 31, maxDays: 9999 }
+        ];
+
+        priceColumns.forEach((priceCol, index) => {
+          const priceValue = fieldMap[priceCol.column];
+          if (priceValue && !isNaN(parseFloat(priceValue))) {
+            pricing.push({
+              id: (index + 1).toString(),
+              minDays: priceCol.minDays,
+              maxDays: priceCol.maxDays,
+              pricePerDay: parseFloat(priceValue)
+            });
+          }
+        });
+
+        // Parsovanie commission
+        const commissionType = fieldMap['commissionType'] || 'percentage';
+        const commissionValue = fieldMap['commissionValue'] ? parseFloat(fieldMap['commissionValue']) : 20;
+
+        // Vytvor vozidlo s cenotvorbu z CSV
         const vehicleData = {
           brand: brand.trim(),
           model: model.trim(),
           licensePlate: licensePlate?.trim() || '',
           company: company.trim(),
           year: year && year.trim() && !isNaN(parseInt(year)) ? parseInt(year) : 2024,
-          status: 'available', // ✅ Vždy dostupné
-          stk: stk && stk.trim() ? new Date(stk.trim()) : null, // ✅ STK ako dátum ak je zadaný
-          pricing: [], // ✅ Prázdne - pre individuálne nastavenie cenotvorby
-          commission: { type: 'percentage', value: 20 }
+          status: status?.trim() || 'available',
+          stk: stk && stk.trim() ? new Date(stk.trim()) : null,
+          pricing: pricing, // ✅ Cenotvorba z CSV
+          commission: { 
+            type: commissionType, 
+            value: commissionValue 
+          }
         };
 
-        console.log(`🚗 Creating vehicle ${i + 1}/${dataLines.length}: ${brand} ${model}`);
+        console.log(`🚗 Creating vehicle ${i + 1}/${dataLines.length}: ${brand} ${model} with ${pricing.length} price tiers`);
+        console.log('💰 Pricing:', pricing);
+        
         const createdVehicle = await postgresDatabase.createVehicle(vehicleData);
-        results.push({ row: i + 2, vehicle: createdVehicle });
+        results.push(createdVehicle);
 
-      } catch (error: any) {
-        console.error(`❌ Error creating vehicle at row ${i + 2}:`, error);
+      } catch (error) {
+        console.error(`❌ Error processing row ${i + 2}:`, error);
         errors.push({ 
           row: i + 2, 
-          error: error.message || 'Chyba pri vytváraní vozidla' 
+          error: error instanceof Error ? error.message : 'Neznáma chyba' 
         });
       }
     }
 
-    console.log(`✅ CSV Import completed: ${results.length} successful, ${errors.length} errors`);
+    console.log(`✅ CSV import completed: ${results.length} successful, ${errors.length} errors`);
 
-    // ✅ VŽDY VRÁŤ SUCCESS - aj keď sú chyby
     res.json({
       success: true,
       message: `CSV import dokončený: ${results.length} úspešných, ${errors.length} chýb`,
@@ -445,8 +498,7 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
 
   } catch (error) {
     console.error('❌ CSV import error:', error);
-    // ✅ ZLEPŠENÉ ERROR HANDLING
-    res.status(200).json({ // Zmením z 500 na 200
+    res.status(200).json({
       success: false,
       message: 'CSV import dokončený s chybami',
       error: 'Chyba pri CSV importe',
