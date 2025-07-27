@@ -2318,7 +2318,7 @@ router.post('/auto-assign-vehicles',
               createdCompanies++;
             } catch (createError) {
               console.error(`❌ Chyba pri vytváraní firmy ${companyName}:`, createError);
-              errors.push(`Nemôžem vytvoriť firmu ${companyName}: ${createError.message}`);
+              errors.push(`Nemôžem vytvoriť firmu ${companyName}: ${createError instanceof Error ? createError.message : String(createError)}`);
               continue;
             }
           }
@@ -2332,12 +2332,12 @@ router.post('/auto-assign-vehicles',
             assignedCount++;
           } catch (assignError) {
             console.error(`❌ Chyba pri priradzovaní vozidla ${vehicle.id}:`, assignError);
-            errors.push(`Nemôžem priradiť ${vehicle.brand} ${vehicle.model}: ${assignError.message}`);
+            errors.push(`Nemôžem priradiť ${vehicle.brand} ${vehicle.model}: ${assignError instanceof Error ? assignError.message : String(assignError)}`);
           }
           
         } catch (vehicleError) {
           console.error(`❌ Chyba pri spracovaní vozidla ${vehicle.id}:`, vehicleError);
-          errors.push(`Chyba pri spracovaní ${vehicle.brand} ${vehicle.model}: ${vehicleError.message}`);
+          errors.push(`Chyba pri spracovaní ${vehicle.brand} ${vehicle.model}: ${vehicleError instanceof Error ? vehicleError.message : String(vehicleError)}`);
         }
       }
       
@@ -2357,8 +2357,7 @@ router.post('/auto-assign-vehicles',
       console.error('❌ Auto-assign vehicles critical error:', error);
       res.status(500).json({
         success: false,
-        error: `Kritická chyba pri automatickom priradzovaní: ${error.message}`,
-        details: error.stack
+        error: `Kritická chyba pri automatickom priradzovaní: ${error instanceof Error ? error.message : String(error)}`
       });
     }
   }

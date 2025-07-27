@@ -554,6 +554,18 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 7 chyba:', error.message);
       }
       
+      // Migrácia 8: Pridanie owner_name stĺpca do vehicles tabuľky
+      try {
+        console.log('📋 Migrácia 8: Pridávanie owner_name stĺpca do vehicles...');
+        await client.query(`
+          ALTER TABLE vehicles 
+          ADD COLUMN IF NOT EXISTS owner_name VARCHAR(255);
+        `);
+        console.log('✅ Migrácia 8: owner_name stĺpec pridaný do vehicles tabuľky');
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 8 chyba:', error.message);
+      }
+      
       console.log('✅ Databázové migrácie úspešne dokončené');
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
@@ -969,6 +981,7 @@ export class PostgresDatabase {
         ...row,
         id: row.id?.toString() || '',
         licensePlate: row.license_plate, // Mapovanie column názvu
+        ownerName: row.owner_name, // 👤 Mapovanie owner_name z databázy
         ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
@@ -991,6 +1004,7 @@ export class PostgresDatabase {
         ...row,
         id: row.id.toString(),
         licensePlate: row.license_plate, // Mapovanie column názvu
+        ownerName: row.owner_name, // 👤 Mapovanie owner_name z databázy
         ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
@@ -1091,12 +1105,14 @@ export class PostgresDatabase {
       }
 
       await client.query(
-        'UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, pricing = $5, commission = $6, status = $7, updated_at = CURRENT_TIMESTAMP WHERE id = $8',
+        'UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, owner_name = $5, company_id = $6, pricing = $7, commission = $8, status = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10',
         [
           vehicle.brand, 
           vehicle.model, 
           vehicle.licensePlate, 
-          vehicle.company, 
+          vehicle.company,
+          vehicle.ownerName, // 👤 Owner name
+          vehicle.ownerCompanyId ? parseInt(vehicle.ownerCompanyId) : null, // 🏢 Company ID as integer
           JSON.stringify(vehicle.pricing), // Konverzia na JSON string
           JSON.stringify(vehicle.commission), // Konverzia na JSON string
           vehicle.status, 
