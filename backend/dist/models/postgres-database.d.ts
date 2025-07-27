@@ -5,6 +5,7 @@ export declare class PostgresDatabase {
     constructor();
     private initTables;
     private runMigrations;
+    private validateDataIntegrity;
     private createDefaultAdmin;
     private createSampleDataIfEmpty;
     getUserByUsername(username: string): Promise<User | null>;
