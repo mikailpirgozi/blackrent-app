@@ -1806,12 +1806,20 @@ export class PostgresDatabase {
   async getRental(id: string): Promise<Rental | null> {
     const client = await this.pool.connect();
     try {
+      console.log('🔍 getRental called for ID:', id);
       const result = await client.query(`
         SELECT r.*, v.brand, v.model, v.license_plate, v.company 
         FROM rentals r 
-        LEFT JOIN vehicles v ON (r.vehicle_id IS NOT NULL AND r.vehicle_id ~ '^[0-9a-f-]{36}$' AND r.vehicle_id::uuid = v.id) 
+        LEFT JOIN vehicles v ON r.vehicle_id = v.id 
         WHERE r.id = $1
       `, [id]);
+      
+      console.log('📊 getRental result:', {
+        found: result.rows.length > 0,
+        vehicleId: result.rows[0]?.vehicle_id,
+        vehicleBrand: result.rows[0]?.brand,
+        vehicleModel: result.rows[0]?.model
+      });
       
       if (result.rows.length === 0) return null;
       

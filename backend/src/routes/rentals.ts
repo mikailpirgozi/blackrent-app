@@ -216,14 +216,30 @@ router.put('/:id',
     const { id } = req.params;
     const updateData = req.body;
 
+    console.log('🔄 Rental UPDATE request:', {
+      rentalId: id,
+      userId: req.user?.id,
+      updateFields: Object.keys(updateData),
+      vehicleId: updateData.vehicleId,
+      customerName: updateData.customerName
+    });
+
     // Skontroluj, či prenájom existuje
     const existingRental = await postgresDatabase.getRental(id);
     if (!existingRental) {
+      console.log('❌ Rental not found:', id);
       return res.status(404).json({
         success: false,
         error: 'Prenájom nenájdený'
       });
     }
+
+    console.log('📋 Existing rental data:', {
+      id: existingRental.id,
+      vehicleId: existingRental.vehicleId,
+      customerName: existingRental.customerName,
+      hasVehicle: !!existingRental.vehicle
+    });
 
     const updatedRental: Rental = {
       ...existingRental,
@@ -233,12 +249,26 @@ router.put('/:id',
       endDate: updateData.endDate ? new Date(updateData.endDate) : existingRental.endDate
     };
 
+    console.log('💾 Saving updated rental:', {
+      id: updatedRental.id,
+      vehicleId: updatedRental.vehicleId,
+      customerName: updatedRental.customerName
+    });
+
     await postgresDatabase.updateRental(updatedRental);
+
+    // Znovu načítaj prenájom z databázy pre overenie
+    const savedRental = await postgresDatabase.getRental(id);
+    console.log('✅ Rental saved successfully:', {
+      id: savedRental?.id,
+      vehicleId: savedRental?.vehicleId,
+      hasVehicle: !!savedRental?.vehicle
+    });
 
     res.json({
       success: true,
       message: 'Prenájom úspešne aktualizovaný',
-      data: updatedRental
+      data: savedRental || updatedRental
     });
 
   } catch (error) {
