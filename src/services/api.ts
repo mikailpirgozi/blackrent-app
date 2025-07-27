@@ -190,6 +190,52 @@ class ApiService {
     });
   }
 
+  // CSV Export/Import pre zákazníkov
+  async exportCustomersCSV(): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/customers/export/csv`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.getAuthToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
+  async importCustomersCSV(csvData: string): Promise<any> {
+    return this.request<any>('/customers/import/csv', {
+      method: 'POST',
+      body: JSON.stringify({ csvData }),
+    });
+  }
+
+  // CSV Export/Import pre náklady
+  async exportExpensesCSV(): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/expenses/export/csv`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.getAuthToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
+  async importExpensesCSV(csvData: string): Promise<any> {
+    return this.request<any>('/expenses/import/csv', {
+      method: 'POST',
+      body: JSON.stringify({ csvData }),
+    });
+  }
+
   // Prenájmy
   async getRentals(): Promise<Rental[]> {
     return this.request<Rental[]>('/rentals');
