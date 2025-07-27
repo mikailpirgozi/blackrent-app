@@ -1955,63 +1955,149 @@ export class PostgresDatabase {
     }
   }
 
+  // 🛡️ PROTECTED UPDATE with 6-level safety system
   async updateRental(rental: Rental): Promise<void> {
     const client = await this.pool.connect();
+    
     try {
-      await client.query(`
-        UPDATE rentals SET 
-          vehicle_id = $1, customer_id = $2, customer_name = $3, start_date = $4, end_date = $5,
-          total_price = $6, commission = $7, payment_method = $8, discount = $9, custom_commission = $10,
-          extra_km_charge = $11, paid = $12, status = $13, handover_place = $14, confirmed = $15,
-          payments = $16, history = $17, order_number = $18,
-          deposit = $19, allowed_kilometers = $20, daily_kilometers = $21, extra_kilometer_rate = $22, return_conditions = $23,
-          fuel_level = $24, odometer = $25, return_fuel_level = $26, return_odometer = $27,
-          actual_kilometers = $28, fuel_refill_cost = $29, handover_protocol_id = $30, 
-          return_protocol_id = $31, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $32
-      `, [
-        rental.vehicleId || null, // UUID as string, not parseInt
-        rental.customerId || null, // UUID as string, not parseInt
-        rental.customerName, 
-        rental.startDate, 
-        rental.endDate,
-        rental.totalPrice, 
-        rental.commission, 
-        rental.paymentMethod, 
-        rental.discount ? JSON.stringify(rental.discount) : null,
-        rental.customCommission ? JSON.stringify(rental.customCommission) : null,
-        rental.extraKmCharge, 
-        rental.paid, 
-        rental.status, 
-        rental.handoverPlace, 
-        rental.confirmed,
-        rental.payments ? JSON.stringify(rental.payments) : null,
-        rental.history ? JSON.stringify(rental.history) : null,
-        rental.orderNumber,
-        rental.deposit || null,
-        rental.allowedKilometers || null,
-        rental.dailyKilometers || null,
-        rental.extraKilometerRate || null,
-        rental.returnConditions || null,
-        rental.fuelLevel || null,
-        rental.odometer || null,
-        rental.returnFuelLevel || null,
-        rental.returnOdometer || null,
-        rental.actualKilometers || null,
-        rental.fuelRefillCost || null,
-        rental.handoverProtocolId || null,
-        rental.returnProtocolId || null,
-        rental.id // UUID as string, not parseInt
-      ]);
+      // 🛡️ OCHRANA LEVEL 1: Validácia pred zmenou
+      const validation = await this.validateRentalUpdate(rental.id, rental);
+      if (!validation.valid) {
+        throw new Error(`RENTAL UPDATE BLOCKED: ${validation.errors.join(', ')}`);
+      }
+      
+      // 🛡️ OCHRANA LEVEL 2: Backup pôvodných dát
+      await this.createRentalBackup(rental.id);
+      
+      // 🛡️ OCHRANA LEVEL 3: Transaction protection
+      await client.query('BEGIN');
+      
+      try {
+        // 🛡️ OCHRANA LEVEL 4: Log každú zmenu
+        console.log(`🛡️ RENTAL UPDATE START: ${rental.id}`, {
+          customer: rental.customerName,
+          vehicle: rental.vehicleId,
+          dateRange: `${rental.startDate} - ${rental.endDate}`,
+          price: rental.totalPrice
+        });
+        
+        // 🛡️ OCHRANA LEVEL 5: Controlled UPDATE s row counting
+        const result = await client.query(`
+          UPDATE rentals SET 
+            vehicle_id = $1, customer_id = $2, customer_name = $3, start_date = $4, end_date = $5,
+            total_price = $6, commission = $7, payment_method = $8, discount = $9, custom_commission = $10,
+            extra_km_charge = $11, paid = $12, status = $13, handover_place = $14, confirmed = $15,
+            payments = $16, history = $17, order_number = $18,
+            deposit = $19, allowed_kilometers = $20, daily_kilometers = $21, extra_kilometer_rate = $22, return_conditions = $23,
+            fuel_level = $24, odometer = $25, return_fuel_level = $26, return_odometer = $27,
+            actual_kilometers = $28, fuel_refill_cost = $29, handover_protocol_id = $30, 
+            return_protocol_id = $31, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $32
+        `, [
+          rental.vehicleId || null, // UUID as string, not parseInt
+          rental.customerId || null, // UUID as string, not parseInt
+          rental.customerName, 
+          rental.startDate, 
+          rental.endDate,
+          rental.totalPrice, 
+          rental.commission, 
+          rental.paymentMethod, 
+          rental.discount ? JSON.stringify(rental.discount) : null,
+          rental.customCommission ? JSON.stringify(rental.customCommission) : null,
+          rental.extraKmCharge, 
+          rental.paid, 
+          rental.status, 
+          rental.handoverPlace, 
+          rental.confirmed,
+          rental.payments ? JSON.stringify(rental.payments) : null,
+          rental.history ? JSON.stringify(rental.history) : null,
+          rental.orderNumber,
+          rental.deposit || null,
+          rental.allowedKilometers || null,
+          rental.dailyKilometers || null,
+          rental.extraKilometerRate || null,
+          rental.returnConditions || null,
+          rental.fuelLevel || null,
+          rental.odometer || null,
+          rental.returnFuelLevel || null,
+          rental.returnOdometer || null,
+          rental.actualKilometers || null,
+          rental.fuelRefillCost || null,
+          rental.handoverProtocolId || null,
+          rental.returnProtocolId || null,
+          rental.id // UUID as string, not parseInt
+        ]);
+        
+        // 🛡️ OCHRANA LEVEL 6: Verify update success
+        if (result.rowCount === null || result.rowCount === 0) {
+          throw new Error(`RENTAL UPDATE FAILED: No rows affected for ID ${rental.id}`);
+        }
+        
+        if (result.rowCount > 1) {
+          throw new Error(`RENTAL UPDATE ERROR: Multiple rows affected (${result.rowCount}) for ID ${rental.id}`);
+        }
+        
+        await client.query('COMMIT');
+        console.log(`✅ RENTAL UPDATE SUCCESS: ${rental.id} (${result.rowCount} row updated)`);
+        
+      } catch (updateError) {
+        await client.query('ROLLBACK');
+        console.error(`❌ RENTAL UPDATE FAILED, ROLLED BACK:`, updateError);
+        throw updateError;
+      }
+      
     } finally {
       client.release();
     }
   }
 
+  // 🛡️ PROTECTED DELETE with safety checks
   async deleteRental(id: string): Promise<void> {
     const client = await this.pool.connect();
+    
     try {
-      await client.query('DELETE FROM rentals WHERE id = $1', [id]); // Removed parseInt for UUID
+      // 🛡️ OCHRANA LEVEL 1: Verificaj že prenájom existuje
+      const existing = await this.getRental(id);
+      if (!existing) {
+        throw new Error(`RENTAL DELETE BLOCKED: Rental ${id} does not exist`);
+      }
+      
+      // 🛡️ OCHRANA LEVEL 2: Backup pred vymazaním
+      await this.createRentalBackup(id);
+      
+      // 🛡️ OCHRANA LEVEL 3: Transaction protection
+      await client.query('BEGIN');
+      
+      try {
+        // 🛡️ OCHRANA LEVEL 4: Log delete pokus
+        console.log(`🛡️ RENTAL DELETE START: ${id}`, {
+          customer: existing.customerName,
+          vehicle: existing.vehicleId,
+          totalPrice: existing.totalPrice,
+          dateRange: `${existing.startDate} - ${existing.endDate}`
+        });
+        
+        // 🛡️ OCHRANA LEVEL 5: Controlled DELETE s row counting
+        const result = await client.query('DELETE FROM rentals WHERE id = $1', [id]);
+        
+        // 🛡️ OCHRANA LEVEL 6: Verify delete success
+        if (result.rowCount === null || result.rowCount === 0) {
+          throw new Error(`RENTAL DELETE FAILED: No rows affected for ID ${id}`);
+        }
+        
+        if (result.rowCount > 1) {
+          throw new Error(`RENTAL DELETE ERROR: Multiple rows affected (${result.rowCount}) for ID ${id}`);
+        }
+        
+        await client.query('COMMIT');
+        console.log(`✅ RENTAL DELETE SUCCESS: ${id} (${result.rowCount} row deleted)`);
+        
+      } catch (deleteError) {
+        await client.query('ROLLBACK');
+        console.error(`❌ RENTAL DELETE FAILED, ROLLED BACK:`, deleteError);
+        throw deleteError;
+      }
+      
     } finally {
       client.release();
     }
@@ -4668,6 +4754,182 @@ export class PostgresDatabase {
         createdAt: row.created_at,
         updatedAt: row.updated_at
       }));
+    } finally {
+      client.release();
+    }
+  }
+
+  // ====================================
+  // 🛡️ RENTAL DATA PROTECTION SYSTEM 🛡️
+  // ====================================
+  
+  // Ochrana Level 1: Validácia pred UPDATE
+  private async validateRentalUpdate(id: string, newData: Partial<Rental>): Promise<{valid: boolean, errors: string[]}> {
+    const errors: string[] = [];
+    
+    // Skontroluj či prenájom existuje
+    const existing = await this.getRental(id);
+    if (!existing) {
+      errors.push(`Rental ${id} does not exist`);
+      return {valid: false, errors};
+    }
+    
+    // Ochrana critical fields
+    const criticalFields = ['customerName', 'startDate', 'endDate'];
+    for (const field of criticalFields) {
+      if (field in newData && !newData[field as keyof Rental]) {
+        errors.push(`Critical field ${field} cannot be empty`);
+      }
+    }
+    
+    // Validácia dátumov
+    if (newData.startDate && newData.endDate) {
+      if (new Date(newData.startDate) >= new Date(newData.endDate)) {
+        errors.push('Start date must be before end date');
+      }
+    }
+    
+    // Log každý update pokus
+    console.log(`🛡️ RENTAL UPDATE VALIDATION: ${id}`, {
+      existingCustomer: existing.customerName,
+      newCustomer: newData.customerName,
+      vehicleId: newData.vehicleId,
+      validationErrors: errors.length
+    });
+    
+    return {valid: errors.length === 0, errors};
+  }
+  
+  // Ochrana Level 2: Backup before UPDATE
+  private async createRentalBackup(id: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      // Create backup table if not exists
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS rental_backups (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          original_rental_id UUID NOT NULL,
+          backup_data JSONB NOT NULL,
+          backup_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          backup_reason VARCHAR(100) DEFAULT 'pre_update'
+        )
+      `);
+      
+      // Get current rental data
+      const rental = await this.getRental(id);
+      if (rental) {
+        await client.query(`
+          INSERT INTO rental_backups (original_rental_id, backup_data, backup_reason)
+          VALUES ($1, $2, $3)
+        `, [id, JSON.stringify(rental), 'pre_update']);
+        
+        console.log(`✅ RENTAL BACKUP created for ${id}`);
+      }
+    } catch (error) {
+      console.error(`❌ RENTAL BACKUP failed for ${id}:`, error);
+    } finally {
+      client.release();
+    }
+  }
+
+  // 🛡️ OCHRANA LEVEL 7: Recovery function pre obnovenie dát
+  async recoverRentalFromBackup(rentalId: string, backupId?: string): Promise<Rental | null> {
+    const client = await this.pool.connect();
+    try {
+      // Nájdi najnovší backup alebo konkrétny backup
+      const backupQuery = backupId 
+        ? 'SELECT * FROM rental_backups WHERE id = $1'
+        : 'SELECT * FROM rental_backups WHERE original_rental_id = $1 ORDER BY backup_timestamp DESC LIMIT 1';
+        
+      const backupResult = await client.query(backupQuery, [backupId || rentalId]);
+      
+      if (backupResult.rows.length === 0) {
+        console.error(`❌ No backup found for rental ${rentalId}`);
+        return null;
+      }
+      
+      const backup = backupResult.rows[0];
+      const rentalData = backup.backup_data;
+      
+      console.log(`🔄 RECOVERING RENTAL: ${rentalId} from backup ${backup.id}`);
+      console.log(`   Backup timestamp: ${backup.backup_timestamp}`);
+      console.log(`   Customer: ${rentalData.customerName}`);
+      
+      // Restore rental from backup
+      await this.updateRental(rentalData);
+      
+      console.log(`✅ RENTAL RECOVERED: ${rentalId}`);
+      return rentalData;
+      
+    } catch (error) {
+      console.error(`❌ RENTAL RECOVERY FAILED for ${rentalId}:`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+  
+  // 🛡️ OCHRANA LEVEL 8: Monitoring rental integrity  
+  async checkRentalIntegrity(): Promise<{
+    totalRentals: number;
+    missingVehicles: number;
+    missingCustomers: number;
+    invalidDates: number;
+    backupsAvailable: number;
+    issues: string[];
+  }> {
+    const client = await this.pool.connect();
+    try {
+      const issues: string[] = [];
+      
+      // Count total rentals
+      const totalResult = await client.query('SELECT COUNT(*) as count FROM rentals');
+      const totalRentals = parseInt(totalResult.rows[0].count);
+      
+      // Count rentals with missing vehicles
+      const missingVehiclesResult = await client.query(`
+        SELECT COUNT(*) as count FROM rentals r 
+        WHERE r.vehicle_id IS NOT NULL 
+        AND r.vehicle_id NOT IN (SELECT id FROM vehicles)
+      `);
+      const missingVehicles = parseInt(missingVehiclesResult.rows[0].count);
+      
+      // Count rentals with missing customers  
+      const missingCustomersResult = await client.query(`
+        SELECT COUNT(*) as count FROM rentals r
+        WHERE r.customer_id IS NOT NULL 
+        AND r.customer_id NOT IN (SELECT id FROM customers)
+      `);
+      const missingCustomers = parseInt(missingCustomersResult.rows[0].count);
+      
+      // Count rentals with invalid dates
+      const invalidDatesResult = await client.query(`
+        SELECT COUNT(*) as count FROM rentals 
+        WHERE start_date >= end_date OR start_date IS NULL OR end_date IS NULL
+      `);
+      const invalidDates = parseInt(invalidDatesResult.rows[0].count);
+      
+      // Count available backups
+      const backupsResult = await client.query('SELECT COUNT(*) as count FROM rental_backups');
+      const backupsAvailable = parseInt(backupsResult.rows[0].count);
+      
+      // Identify issues
+      if (missingVehicles > 0) issues.push(`${missingVehicles} rentals have invalid vehicle_id`);
+      if (missingCustomers > 0) issues.push(`${missingCustomers} rentals have invalid customer_id`);
+      if (invalidDates > 0) issues.push(`${invalidDates} rentals have invalid dates`);
+      
+      const report = {
+        totalRentals,
+        missingVehicles,
+        missingCustomers,
+        invalidDates,
+        backupsAvailable,
+        issues
+      };
+      
+      console.log('🛡️ RENTAL INTEGRITY CHECK:', report);
+      return report;
+      
     } finally {
       client.release();
     }
