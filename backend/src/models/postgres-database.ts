@@ -2270,7 +2270,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'INSERT INTO companies (name, is_active) VALUES ($1, $2) RETURNING id, name, business_id, tax_id, address, contact_person, email, phone, contract_start_date, contract_end_date, is_active, created_at, updated_at', 
+        'INSERT INTO companies (name, is_active) VALUES ($1, $2) RETURNING id, name, business_id, tax_id, address, contact_person, email, phone, contract_start_date, contract_end_date, commission_rate, is_active, created_at, updated_at', 
         [companyData.name, true]
       );
       
