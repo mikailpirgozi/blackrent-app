@@ -3546,7 +3546,7 @@ class PostgresDatabase {
             const result = await client.query(`
         SELECT up.*, c.name as company_name
         FROM user_permissions up
-        JOIN companies c ON up.company_id = c.id
+        JOIN companies c ON up.company_id::text = c.id::text
         WHERE up.user_id = $1
         ORDER BY c.name
       `, [userId]);
@@ -3569,7 +3569,7 @@ class PostgresDatabase {
             const result = await client.query(`
         SELECT up.company_id, c.name as company_name, up.permissions
         FROM user_permissions up
-        JOIN companies c ON up.company_id = c.id
+        JOIN companies c ON up.company_id::text = c.id::text
         WHERE up.user_id = $1
         ORDER BY c.name
         `, [userId]);
@@ -3632,7 +3632,7 @@ class PostgresDatabase {
         SELECT up.user_id, u.username, up.permissions
         FROM user_permissions up
         JOIN users u ON up.user_id = u.id
-        WHERE up.company_id = $1
+        WHERE up.company_id::text = $1::text
         ORDER BY u.username
       `, [companyId]);
             return result.rows.map(row => ({
