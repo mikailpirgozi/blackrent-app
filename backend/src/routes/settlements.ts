@@ -9,7 +9,33 @@ const router = Router();
 // GET /api/settlements - Získanie všetkých vyúčtovaní
 router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<Settlement[]>>) => {
   try {
-    const settlements = await postgresDatabase.getSettlements();
+    let settlements = await postgresDatabase.getSettlements();
+    
+    console.log('💰 Settlements GET - user:', { 
+      role: req.user?.role, 
+      companyId: req.user?.companyId, 
+      totalSettlements: settlements.length 
+    });
+    
+    // 🏢 COMPANY OWNER - filter len vyúčtovania vlastnej firmy
+    if (req.user?.role === 'company_owner' && req.user.companyId) {
+      // Získaj názov firmy používateľa
+      const companies = await postgresDatabase.getCompanies();
+      const userCompany = companies.find(c => c.id === req.user?.companyId);
+      
+      if (userCompany) {
+        const originalCount = settlements.length;
+        settlements = settlements.filter(s => s.company === userCompany.name);
+        
+        console.log('🏢 Company Owner Settlements Filter:', {
+          userCompanyId: req.user.companyId,
+          userCompanyName: userCompany.name,
+          originalCount,
+          filteredCount: settlements.length
+        });
+      }
+    }
+    
     res.json({
       success: true,
       data: settlements
