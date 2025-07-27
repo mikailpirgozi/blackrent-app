@@ -667,6 +667,30 @@ export class PostgresDatabase {
           console.log('⚠️ Migrácia 11 retry chyba:', retryError.message);
         }
       }
+
+      // Migrácia 12: Oprava users.id typu z INTEGER na UUID
+      try {
+        console.log('📋 Migrácia 12: Opravujem users.id typ z INTEGER na UUID...');
+        
+        // Zmeň typ stĺpca z INTEGER na UUID
+        await client.query(`
+          ALTER TABLE users ALTER COLUMN id TYPE UUID USING id::text::uuid;
+        `);
+        
+        console.log('✅ Migrácia 12: users.id typ opravený na UUID');
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 12 chyba:', error.message);
+        // Ak zlyhá konverzia, skús pridať stĺpec nanovo
+        try {
+          await client.query(`
+            ALTER TABLE users DROP COLUMN IF EXISTS id;
+            ALTER TABLE users ADD COLUMN id UUID PRIMARY KEY DEFAULT gen_random_uuid();
+          `);
+          console.log('✅ Migrácia 12: users.id stĺpec znovu vytvorený ako UUID');
+        } catch (retryError: any) {
+          console.log('⚠️ Migrácia 12 retry chyba:', retryError.message);
+        }
+      }
       
       console.log('✅ Databázové migrácie úspešne dokončené');
     } catch (error: any) {
