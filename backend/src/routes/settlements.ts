@@ -33,7 +33,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response<ApiRespons
         .map(c => c.name);
       
       // Filter settlements len pre povolené firmy
-      settlements = settlements.filter(s => s.company && allowedCompanyNames.includes(s.company));
+      settlements = settlements.filter(s => s.company && allowedCompanyNames.includes(s.company!));
       
       console.log('🔐 Settlements Company Permission Filter:', {
         userId: user!.id,
