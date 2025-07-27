@@ -78,6 +78,14 @@ const VehicleOwnerDisplay: React.FC<{
   const [ownerName, setOwnerName] = useState<string>('Načítava...');
   
   useEffect(() => {
+    // 🔧 OPRAVA: Používaj rental.vehicle.company namiesto API volania
+    // Rentals API už obsahuje správne historical ownership data
+    if (rental.vehicle?.company) {
+      setOwnerName(rental.vehicle.company);
+      return;
+    }
+    
+    // Fallback na API len ak rental nemá company údaje
     if (rental.vehicleId) {
       getVehicleOwnerAtDate(rental.vehicleId, new Date(rental.startDate))
         .then(setOwnerName)
@@ -85,7 +93,7 @@ const VehicleOwnerDisplay: React.FC<{
     } else {
       setOwnerName('N/A');
     }
-  }, [rental.vehicleId, rental.startDate, getVehicleOwnerAtDate]);
+  }, [rental.vehicle?.company, rental.vehicleId, rental.startDate, getVehicleOwnerAtDate]);
 
   return (
     <Typography variant="body2" color="text.secondary">
@@ -134,23 +142,7 @@ export default function RentalList() {
       
       return ownerName;
     } catch (error) {
-      console.error('Error fetching vehicle owner, using rental data fallback:', error);
-      
-      // 🔧 OPRAVA: Použij historické údaje z rental namiesto aktuálneho majiteľa
-      const rental = state.rentals.find(r => r.vehicleId === vehicleId);
-      if (rental?.vehicle?.company) {
-        // Rentals API už obsahuje správne historické údaje vďaka našej backend oprave
-        const historicalOwner = rental.vehicle.company;
-        
-        setVehicleOwners(prev => ({
-          ...prev,
-          [cacheKey]: historicalOwner
-        }));
-        
-        return historicalOwner;
-      }
-      
-      // Ak ani rental dáta nie sú dostupné, vráť current vehicle company
+      console.error('Error fetching vehicle owner:', error);
       const vehicle = state.vehicles.find(v => v.id === vehicleId);
       return vehicle?.company || 'N/A';
     }
