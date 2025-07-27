@@ -134,6 +134,7 @@ export default function InsuranceList() {
     dispatch, 
     createInsurance, 
     updateInsurance,
+    deleteInsurance,
     createVehicleDocument,
     updateVehicleDocument,
     deleteVehicleDocument
@@ -273,7 +274,7 @@ export default function InsuranceList() {
     if (window.confirm('Naozaj chcete vymazať tento dokument?')) {
       try {
         if (doc.type === 'insurance') {
-          dispatch({ type: 'DELETE_INSURANCE', payload: doc.id });
+          await deleteInsurance(doc.id);
         } else {
           await deleteVehicleDocument(doc.id);
         }
