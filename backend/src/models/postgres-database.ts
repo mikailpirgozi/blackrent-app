@@ -566,6 +566,18 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 8 chyba:', error.message);
       }
       
+      // Migrácia 9: Pridanie company_id stĺpca do vehicles tabuľky
+      try {
+        console.log('📋 Migrácia 9: Pridávanie company_id stĺpca do vehicles...');
+        await client.query(`
+          ALTER TABLE vehicles 
+          ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id);
+        `);
+        console.log('✅ Migrácia 9: company_id stĺpec pridaný do vehicles tabuľky');
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 9 chyba:', error.message);
+      }
+      
       console.log('✅ Databázové migrácie úspešne dokončené');
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
@@ -922,8 +934,21 @@ export class PostgresDatabase {
     try {
       const hashedPassword = await bcrypt.hash(user.password, 12);
       await client.query(
-        'UPDATE users SET username = $1, email = $2, password_hash = $3, role = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5',
-        [user.username, user.email, hashedPassword, user.role, user.id] // Removed parseInt for UUID
+        'UPDATE users SET username = $1, email = $2, password_hash = $3, role = $4, company_id = $5, employee_number = $6, hire_date = $7, is_active = $8, first_name = $9, last_name = $10, signature_template = $11, updated_at = CURRENT_TIMESTAMP WHERE id = $12',
+        [
+          user.username, 
+          user.email, 
+          hashedPassword, 
+          user.role, 
+          user.companyId ? parseInt(user.companyId) : null, // Convert to integer for database
+          user.employeeNumber,
+          user.hireDate,
+          user.isActive,
+          user.firstName,
+          user.lastName,
+          user.signatureTemplate,
+          user.id
+        ]
       );
     } finally {
       client.release();
@@ -1041,27 +1066,33 @@ export class PostgresDatabase {
         }
       }
 
-      // Automaticky vytvoriť company záznam ak neexistuje - bez ON CONFLICT
+      // Automaticky vytvoriť company záznam ak neexistuje a získaj company_id
+      let companyId = null;
       if (vehicleData.company && vehicleData.company.trim()) {
         try {
-          const existingCompany = await client.query('SELECT name FROM companies WHERE name = $1', [vehicleData.company.trim()]);
+          const existingCompany = await client.query('SELECT id FROM companies WHERE name = $1', [vehicleData.company.trim()]);
           if (existingCompany.rows.length === 0) {
-            await client.query('INSERT INTO companies (name) VALUES ($1)', [vehicleData.company.trim()]);
-            console.log('✅ Company vytvorená:', vehicleData.company.trim());
+            const newCompany = await client.query('INSERT INTO companies (name) VALUES ($1) RETURNING id', [vehicleData.company.trim()]);
+            companyId = newCompany.rows[0].id;
+            console.log('✅ Company vytvorená:', vehicleData.company.trim(), 'ID:', companyId);
+          } else {
+            companyId = existingCompany.rows[0].id;
+            console.log('✅ Company existuje:', vehicleData.company.trim(), 'ID:', companyId);
           }
         } catch (companyError: any) {
-          console.log('⚠️ Company už existuje:', companyError.message);
+          console.log('⚠️ Company error:', companyError.message);
         }
       }
 
       const result = await client.query(
-        'INSERT INTO vehicles (brand, model, year, license_plate, company, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, brand, model, year, license_plate, company, pricing, commission, status, created_at',
+        'INSERT INTO vehicles (brand, model, year, license_plate, company, company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, company_id, pricing, commission, status, created_at',
         [
           vehicleData.brand, 
           vehicleData.model, 
           vehicleData.year || 2024, // Default rok ak nie je zadaný
           vehicleData.licensePlate, 
-          vehicleData.company, 
+          vehicleData.company,
+          companyId, // 🆕 Automaticky nastavené company_id
           JSON.stringify(vehicleData.pricing),
           JSON.stringify(vehicleData.commission),
           vehicleData.status
@@ -1076,6 +1107,7 @@ export class PostgresDatabase {
         year: row.year,
         licensePlate: row.license_plate,
         company: row.company,
+        ownerCompanyId: row.company_id?.toString(), // 🆕 Mapovanie company_id na ownerCompanyId
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing,
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission,
         status: row.status,
