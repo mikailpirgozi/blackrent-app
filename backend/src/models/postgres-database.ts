@@ -4296,6 +4296,8 @@ export class PostgresDatabase {
   async getUserCompanyAccess(userId: string): Promise<UserCompanyAccess[]> {
     const client = await this.pool.connect();
     try {
+      console.log('🔍 getUserCompanyAccess called for userId:', userId);
+      
       const result = await client.query(`
         SELECT up.company_id, c.name as company_name, up.permissions
         FROM user_permissions up
@@ -4303,6 +4305,12 @@ export class PostgresDatabase {
         WHERE up.user_id = $1
         ORDER BY c.name
         `, [userId]);
+
+      console.log('🔍 getUserCompanyAccess result:', {
+        userId,
+        rowCount: result.rows.length,
+        companies: result.rows.map(r => ({ companyId: r.company_id, companyName: r.company_name }))
+      });
 
       return result.rows.map(row => ({
         companyId: row.company_id,
