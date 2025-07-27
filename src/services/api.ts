@@ -149,6 +149,38 @@ class ApiService {
     return this.request<Vehicle>(`/vehicles/${id}`);
   }
 
+  // ⚡ BULK: História vlastníctva všetkých vozidiel naraz
+  async getBulkVehicleOwnershipHistory(): Promise<{
+    vehicleHistories: Array<{
+      vehicleId: string;
+      vehicle: {
+        id: string;
+        brand: string;
+        model: string;
+        licensePlate: string;
+        ownerCompanyId?: string;
+      };
+      history: Array<{
+        id: string;
+        ownerCompanyId: string;
+        ownerCompanyName: string;
+        validFrom: string;
+        validTo: string | null;
+        transferReason: string;
+        transferNotes: string | null;
+      }>;
+    }>;
+    totalVehicles: number;
+    loadTimeMs: number;
+  }> {
+    const response = await this.request<{
+      vehicleHistories: any[];
+      totalVehicles: number;
+      loadTimeMs: number;
+    }>('/vehicles/bulk-ownership-history');
+    return response;
+  }
+
   async createVehicle(vehicle: Vehicle): Promise<void> {
     return this.request<void>('/vehicles', {
       method: 'POST',
