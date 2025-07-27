@@ -1,7 +1,7 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { UserRole, Permission, PermissionResult, UserCompanyAccess, CompanyPermissions, ResourcePermission } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { apiService } from '../services/api';
+import { usePermissionsContext } from '../context/PermissionsContext';
 
 // 🔐 FRONTEND ROLE PERMISSIONS MATRIX (fallback pre admin)
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -113,34 +113,7 @@ export function hasLegacyPermission(
 export function usePermissions() {
   const { state } = useAuth();
   const user = state.user;
-  const [userCompanyAccess, setUserCompanyAccess] = useState<UserCompanyAccess[]>([]);
-  const [permissionsLoading, setPermissionsLoading] = useState(false);
-  const [permissionsError, setPermissionsError] = useState<string | null>(null);
-
-  // Načítaj company permissions pre používateľa
-  useEffect(() => {
-    if (!user || user.role === 'admin') {
-      setUserCompanyAccess([]);
-      return;
-    }
-
-    const fetchUserPermissions = async () => {
-      try {
-        setPermissionsLoading(true);
-        setPermissionsError(null);
-        const accessData = await apiService.getUserCompanyAccess(user.id);
-        setUserCompanyAccess(accessData);
-      } catch (error) {
-        console.error('Error fetching user permissions:', error);
-        setPermissionsError('Chyba pri načítavaní oprávnení');
-        setUserCompanyAccess([]);
-      } finally {
-        setPermissionsLoading(false);
-      }
-    };
-
-    fetchUserPermissions();
-  }, [user]);
+  const { userCompanyAccess, permissionsLoading, permissionsError } = usePermissionsContext();
 
   const permissions = useMemo(() => {
     if (!user) {
