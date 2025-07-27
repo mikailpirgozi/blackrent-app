@@ -115,6 +115,11 @@ export default function VehicleListNew() {
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   
+  // ✅ NOVÉ: State pre hromadné mazanie
+  const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set());
+  const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
+  const [showBulkActions, setShowBulkActions] = useState(false);
+
   // Filters
   const [filterBrand, setFilterBrand] = useState('');
   const [filterModel, setFilterModel] = useState('');
@@ -372,6 +377,79 @@ export default function VehicleListNew() {
     event.target.value = '';
   };
 
+  // ✅ NOVÉ: Funkcie pre hromadné mazanie
+  const handleVehicleSelect = (vehicleId: string, checked: boolean) => {
+    const newSelected = new Set(selectedVehicles);
+    if (checked) {
+      newSelected.add(vehicleId);
+    } else {
+      newSelected.delete(vehicleId);
+    }
+    setSelectedVehicles(newSelected);
+    setShowBulkActions(newSelected.size > 0);
+    
+    // Update select all checkbox
+    setIsSelectAllChecked(newSelected.size === filteredVehicles.length && filteredVehicles.length > 0);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(filteredVehicles.map(v => v.id));
+      setSelectedVehicles(allIds);
+      setShowBulkActions(true);
+    } else {
+      setSelectedVehicles(new Set());
+      setShowBulkActions(false);
+    }
+    setIsSelectAllChecked(checked);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedVehicles.size === 0) return;
+    
+    const confirmed = window.confirm(
+      `Naozaj chcete zmazať ${selectedVehicles.size} vozidiel?\n\nTáto akcia sa nedá vrátiť späť.`
+    );
+    
+    if (!confirmed) return;
+    
+    setLoading(true);
+    let deletedCount = 0;
+    let errorCount = 0;
+    
+    try {
+      // Mazanie po jednom - pre lepšiu kontrolu
+      for (const vehicleId of selectedVehicles) {
+        try {
+          await deleteVehicle(vehicleId);
+          deletedCount++;
+          console.log(`✅ Deleted vehicle: ${vehicleId}`);
+        } catch (error) {
+          errorCount++;
+          console.error(`❌ Failed to delete vehicle: ${vehicleId}`, error);
+        }
+      }
+      
+      // Reset výber
+      setSelectedVehicles(new Set());
+      setShowBulkActions(false);
+      setIsSelectAllChecked(false);
+      
+      // Zobraz výsledok
+      if (errorCount === 0) {
+        alert(`✅ Úspešne zmazaných ${deletedCount} vozidiel.`);
+      } else {
+        alert(`⚠️ Zmazaných ${deletedCount} vozidiel.\nChyby: ${errorCount} vozidiel sa nepodarilo zmazať.`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Bulk delete error:', error);
+      alert('❌ Chyba pri hromadnom mazaní vozidiel.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header */}
@@ -390,7 +468,74 @@ export default function VehicleListNew() {
         }}>
           🚗 Databáza vozidiel
         </Typography>
+        
+        {/* ✅ NOVÉ: Bulk Actions */}
+        {showBulkActions && (
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 2,
+            bgcolor: '#fff3cd',
+            border: '1px solid #ffeaa7',
+            borderRadius: 1,
+            px: 2,
+            py: 1
+          }}>
+            <Typography variant="body2" sx={{ color: '#856404' }}>
+              Vybraných: {selectedVehicles.size}
+            </Typography>
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
+              startIcon={<DeleteIcon />}
+              onClick={handleBulkDelete}
+              disabled={loading}
+              sx={{ minWidth: 120 }}
+            >
+              {loading ? 'Mažem...' : 'Zmazať vybrané'}
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setSelectedVehicles(new Set());
+                setShowBulkActions(false);
+                setIsSelectAllChecked(false);
+              }}
+            >
+              Zrušiť výber
+            </Button>
+          </Box>
+        )}
+        
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          {/* ✅ NOVÉ: Select All Checkbox */}
+          {filteredVehicles.length > 0 && (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={isSelectAllChecked}
+                  indeterminate={selectedVehicles.size > 0 && selectedVehicles.size < filteredVehicles.length}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  sx={{ '& .MuiSvgIcon-root': { fontSize: 20 } }}
+                />
+              }
+              label={
+                <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                  Vybrať všetky ({filteredVehicles.length})
+                </Typography>
+              }
+              sx={{ 
+                bgcolor: '#f5f5f5',
+                borderRadius: 1,
+                px: 1,
+                py: 0.5,
+                mr: 1
+              }}
+            />
+          )}
+          
           <Can create="vehicles">
             <Button
               variant="contained"
@@ -598,10 +743,12 @@ export default function VehicleListNew() {
           <CardContent sx={{ p: 0 }}>
             <Box>
               {filteredVehicles.map((vehicle, index) => (
-                <Box 
+                <Box
                   key={vehicle.id}
-                  sx={{ 
+                  sx={{
                     display: 'flex',
+                    alignItems: 'center',
+                    p: 0,
                     borderBottom: index < filteredVehicles.length - 1 ? '1px solid #e0e0e0' : 'none',
                     '&:hover': { backgroundColor: '#f8f9fa' },
                     minHeight: 80,
@@ -609,6 +756,29 @@ export default function VehicleListNew() {
                   }}
                   onClick={() => handleEdit(vehicle)}
                 >
+                  {/* ✅ NOVÉ: Checkbox pre výber vozidla */}
+                  <Box sx={{ 
+                    width: 50,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRight: '1px solid #e0e0e0',
+                    backgroundColor: '#fafafa'
+                  }}>
+                    <Checkbox
+                      size="small"
+                      checked={selectedVehicles.has(vehicle.id)}
+                      onChange={(e) => {
+                        e.stopPropagation(); // Zabráni kliknutiu na celý riadok
+                        handleVehicleSelect(vehicle.id, e.target.checked);
+                      }}
+                      sx={{ 
+                        p: 0.5,
+                        '& .MuiSvgIcon-root': { fontSize: 18 }
+                      }}
+                    />
+                  </Box>
+                  
                   {/* Vehicle Info - sticky left */}
                   <Box sx={{ 
                     width: { xs: 140, sm: 160 },
@@ -894,6 +1064,8 @@ export default function VehicleListNew() {
                   key={vehicle.id}
                   sx={{ 
                     display: 'flex',
+                    alignItems: 'center',
+                    p: 0,
                     borderBottom: index < filteredVehicles.length - 1 ? '1px solid #e0e0e0' : 'none',
                     '&:hover': { backgroundColor: '#f8f9fa' },
                     minHeight: 72,
