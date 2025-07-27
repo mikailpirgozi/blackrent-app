@@ -2251,6 +2251,15 @@ export class PostgresDatabase {
     }
   }
 
+  async deleteInsurance(id: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('DELETE FROM insurances WHERE id = $1', [id]);
+    } finally {
+      client.release();
+    }
+  }
+
   // Metódy pre firmy
   async getCompanies(): Promise<Company[]> {
     const client = await this.pool.connect();

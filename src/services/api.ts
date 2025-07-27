@@ -330,6 +330,12 @@ class ApiService {
     });
   }
 
+  async deleteInsurance(id: string): Promise<void> {
+    return this.request<void>(`/insurances/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Vehicle Documents
   async getVehicleDocuments(vehicleId?: string): Promise<VehicleDocument[]> {
     const url = vehicleId ? `/vehicle-documents?vehicleId=${vehicleId}` : '/vehicle-documents';
