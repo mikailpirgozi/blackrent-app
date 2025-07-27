@@ -88,6 +88,100 @@ router.get('/test-csv',
   }
 );
 
+// ⚡ GET /api/vehicles/bulk-ownership-history - História vlastníctva všetkých vozidiel NARAZ
+router.get('/bulk-ownership-history',
+  authenticateToken,
+  requireRole(['admin']),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      console.log('🚀 BULK: Loading ownership history for all vehicles...');
+      const startTime = Date.now();
+
+      // ⚡⚡ SKUTOČNÝ BULK: Jeden SQL query pre všetky vehicle histories naraz
+      const client = await (postgresDatabase as any).pool.connect();
+      
+      try {
+        // 1. Získaj všetky vozidlá
+        const vehiclesResult = await client.query(`
+          SELECT id, brand, model, license_plate, owner_company_id 
+          FROM vehicles 
+          ORDER BY brand, model
+        `);
+        const vehicles = vehiclesResult.rows;
+        
+        console.log(`📊 Loading history for ${vehicles.length} vehicles...`);
+        
+        // 2. Získaj všetky ownership histories jedným query
+        const historiesResult = await client.query(`
+          SELECT 
+            vehicle_id,
+            id,
+            owner_company_id,
+            owner_company_name,
+            valid_from,
+            valid_to,
+            transfer_reason,
+            transfer_notes
+          FROM vehicle_ownership_history
+          ORDER BY vehicle_id, valid_from DESC
+        `);
+        
+        // 3. Group histories by vehicle_id
+        const historiesByVehicle = new Map();
+        historiesResult.rows.forEach((row: any) => {
+          if (!historiesByVehicle.has(row.vehicle_id)) {
+            historiesByVehicle.set(row.vehicle_id, []);
+          }
+          historiesByVehicle.get(row.vehicle_id).push({
+            id: row.id,
+            ownerCompanyId: row.owner_company_id,
+            ownerCompanyName: row.owner_company_name,
+            validFrom: row.valid_from,
+            validTo: row.valid_to,
+            transferReason: row.transfer_reason,
+            transferNotes: row.transfer_notes
+          });
+        });
+        
+        // 4. Combine vehicle data with histories
+        const allHistories = vehicles.map((vehicle: any) => ({
+          vehicleId: vehicle.id,
+          vehicle: {
+            id: vehicle.id,
+            brand: vehicle.brand,
+            model: vehicle.model,
+            licensePlate: vehicle.license_plate,
+            ownerCompanyId: vehicle.owner_company_id
+          },
+          history: historiesByVehicle.get(vehicle.id) || []
+        }));
+        
+        const loadTime = Date.now() - startTime;
+        console.log(`✅ BULK: Loaded ownership history for ${vehicles.length} vehicles in ${loadTime}ms using 2 SQL queries instead of ${vehicles.length + 1}`);
+
+        res.json({
+          success: true,
+          data: {
+            vehicleHistories: allHistories,
+            totalVehicles: vehicles.length,
+            loadTimeMs: loadTime
+          }
+        });
+        
+      } finally {
+        client.release();
+      }
+
+    } catch (error) {
+      console.error('Bulk ownership history error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Failed to load bulk ownership history: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  }
+);
+
 // GET /api/vehicles/:id - Získanie konkrétneho vozidla
 router.get('/:id', 
   authenticateToken,
@@ -743,100 +837,6 @@ router.delete('/ownership-history/:historyId',
       res.status(500).json({
         success: false,
         error: `Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    }
-  }
-);
-
-// ⚡ GET /api/vehicles/bulk-ownership-history - História vlastníctva všetkých vozidiel NARAZ
-router.get('/bulk-ownership-history',
-  authenticateToken,
-  requireRole(['admin']),
-  async (req: Request, res: Response<ApiResponse>) => {
-    try {
-      console.log('🚀 BULK: Loading ownership history for all vehicles...');
-      const startTime = Date.now();
-
-      // ⚡⚡ SKUTOČNÝ BULK: Jeden SQL query pre všetky vehicle histories naraz
-      const client = await (postgresDatabase as any).pool.connect();
-      
-      try {
-        // 1. Získaj všetky vozidlá
-        const vehiclesResult = await client.query(`
-          SELECT id, brand, model, license_plate, owner_company_id 
-          FROM vehicles 
-          ORDER BY brand, model
-        `);
-        const vehicles = vehiclesResult.rows;
-        
-        console.log(`📊 Loading history for ${vehicles.length} vehicles...`);
-        
-        // 2. Získaj všetky ownership histories jedným query
-        const historiesResult = await client.query(`
-          SELECT 
-            vehicle_id,
-            id,
-            owner_company_id,
-            owner_company_name,
-            valid_from,
-            valid_to,
-            transfer_reason,
-            transfer_notes
-          FROM vehicle_ownership_history
-          ORDER BY vehicle_id, valid_from DESC
-        `);
-        
-        // 3. Group histories by vehicle_id
-        const historiesByVehicle = new Map();
-        historiesResult.rows.forEach((row: any) => {
-          if (!historiesByVehicle.has(row.vehicle_id)) {
-            historiesByVehicle.set(row.vehicle_id, []);
-          }
-          historiesByVehicle.get(row.vehicle_id).push({
-            id: row.id,
-            ownerCompanyId: row.owner_company_id,
-            ownerCompanyName: row.owner_company_name,
-            validFrom: row.valid_from,
-            validTo: row.valid_to,
-            transferReason: row.transfer_reason,
-            transferNotes: row.transfer_notes
-          });
-        });
-        
-        // 4. Combine vehicle data with histories
-        const allHistories = vehicles.map((vehicle: any) => ({
-          vehicleId: vehicle.id,
-          vehicle: {
-            id: vehicle.id,
-            brand: vehicle.brand,
-            model: vehicle.model,
-            licensePlate: vehicle.license_plate,
-            ownerCompanyId: vehicle.owner_company_id
-          },
-          history: historiesByVehicle.get(vehicle.id) || []
-        }));
-        
-        const loadTime = Date.now() - startTime;
-        console.log(`✅ BULK: Loaded ownership history for ${vehicles.length} vehicles in ${loadTime}ms using 2 SQL queries instead of ${vehicles.length + 1}`);
-
-        res.json({
-          success: true,
-          data: {
-            vehicleHistories: allHistories,
-            totalVehicles: vehicles.length,
-            loadTimeMs: loadTime
-          }
-        });
-        
-      } finally {
-        client.release();
-      }
-
-    } catch (error) {
-      console.error('Bulk ownership history error:', error);
-      res.status(500).json({
-        success: false,
-        error: `Failed to load bulk ownership history: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
     }
   }
