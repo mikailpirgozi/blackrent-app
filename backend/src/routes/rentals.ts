@@ -111,7 +111,8 @@ router.get('/',
                 filteredRentals.push(rental);
               } else {
                 // FALLBACK 2: Legacy company matching
-                if (rental.vehicle?.company && validCompanyNames.includes(rental.vehicle.company)) {
+                const vehicleCompany = rental.vehicle?.company;
+                if (vehicleCompany && validCompanyNames.includes(vehicleCompany)) {
                   console.log(`📝 Using legacy company matching for rental ${rental.id}`);
                   filteredRentals.push(rental);
                 }
