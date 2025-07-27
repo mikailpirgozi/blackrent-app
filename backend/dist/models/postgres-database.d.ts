@@ -306,6 +306,32 @@ export declare class PostgresDatabase {
         ownerCompanyId: string;
         ownerCompanyName: string;
     } | null>;
+    updateVehicleOwnershipHistory(historyId: string, updates: {
+        ownerCompanyId: string;
+        transferReason: string;
+        transferNotes?: string;
+        validFrom: Date;
+    }): Promise<void>;
+    checkOwnershipHistoryExists(historyId: string): Promise<boolean>;
+    deleteVehicleOwnershipHistory(historyId: string): Promise<void>;
+    getBulkVehicleOwnersAtTime(vehicleTimeChecks: Array<{
+        vehicleId: string;
+        timestamp: Date;
+    }>): Promise<Array<{
+        vehicleId: string;
+        timestamp: Date;
+        owner: {
+            ownerCompanyId: string;
+            ownerCompanyName: string;
+        } | null;
+    }>>;
+    getBulkCurrentVehicleOwners(vehicleIds: string[]): Promise<Array<{
+        vehicleId: string;
+        owner: {
+            ownerCompanyId: string;
+            ownerCompanyName: string;
+        } | null;
+    }>>;
 }
 export declare const postgresDatabase: PostgresDatabase;
 //# sourceMappingURL=postgres-database.d.ts.map

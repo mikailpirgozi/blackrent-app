@@ -4687,14 +4687,57 @@ export class PostgresDatabase {
 
       const newOwnerCompanyName = companyResult.rows[0].name;
 
-      // 2. Ukončí súčasné vlastníctvo
-      await client.query(`
+      // 2. OPRAVA: Skontroluj či existuje ownership historia pre toto vozidlo
+      const existingHistoryResult = await client.query(`
+        SELECT COUNT(*) as count FROM vehicle_ownership_history WHERE vehicle_id = $1
+      `, [vehicleId]);
+
+      const hasHistory = parseInt(existingHistoryResult.rows[0].count) > 0;
+
+      // 3. OPRAVA: Ak neexistuje historia, vytvor počiatočný záznam pre aktuálneho majiteľa
+      if (!hasHistory) {
+        console.log(`🔄 Creating initial ownership record for vehicle ${vehicleId}`);
+        
+        // Získaj aktuálneho majiteľa z vehicles tabuľky
+        const vehicleResult = await client.query(`
+          SELECT owner_company_id, company, created_at FROM vehicles WHERE id = $1
+        `, [vehicleId]);
+
+        if (vehicleResult.rows.length === 0) {
+          throw new Error(`Vehicle with ID ${vehicleId} not found`);
+        }
+
+        const currentOwner = vehicleResult.rows[0];
+        const currentOwnerCompanyId = currentOwner.owner_company_id;
+        const currentOwnerCompanyName = currentOwner.company;
+        // OPRAVA: Použij veľmi starý dátum pre initial ownership, nie created_at
+        const vehicleCreatedAt = new Date('2024-01-01'); // Safe past date for initial ownership
+
+        // Vytvor počiatočný ownership záznam pre súčasného majiteľa
+        await client.query(`
+          INSERT INTO vehicle_ownership_history (
+            vehicle_id, 
+            owner_company_id, 
+            owner_company_name,
+            valid_from, 
+            transfer_reason, 
+            transfer_notes
+          ) VALUES ($1, $2, $3, $4, $5, $6)
+        `, [vehicleId, currentOwnerCompanyId, currentOwnerCompanyName, vehicleCreatedAt, 'initial_setup', 'Initial ownership record created during transfer']);
+
+        console.log(`✅ Created initial ownership record for ${currentOwnerCompanyName} from ${vehicleCreatedAt.toISOString()}`);
+      }
+
+      // 4. Ukončí súčasné vlastníctvo (teraz určite existuje záznam)
+      const updateResult = await client.query(`
         UPDATE vehicle_ownership_history 
         SET valid_to = $1, updated_at = CURRENT_TIMESTAMP
         WHERE vehicle_id = $2 AND valid_to IS NULL
       `, [transferDate, vehicleId]);
 
-      // 3. Vytvor nový ownership záznam
+      console.log(`🔄 Ended current ownership for vehicle ${vehicleId}, affected rows: ${updateResult.rowCount}`);
+
+      // 5. Vytvor nový ownership záznam
       await client.query(`
         INSERT INTO vehicle_ownership_history (
           vehicle_id, 
@@ -4706,7 +4749,9 @@ export class PostgresDatabase {
         ) VALUES ($1, $2, $3, $4, $5, $6)
       `, [vehicleId, newOwnerCompanyId, newOwnerCompanyName, transferDate, transferReason, transferNotes]);
 
-      // 4. Aktualizuj vehicles tabuľku pre súčasný stav (oba stĺpce!)
+      console.log(`✅ Created new ownership record for ${newOwnerCompanyName} from ${transferDate.toISOString()}`);
+
+      // 6. Aktualizuj vehicles tabuľku pre súčasný stav (oba stĺpce!)
       await client.query(`
         UPDATE vehicles 
         SET owner_company_id = $1, company = $2, updated_at = CURRENT_TIMESTAMP
