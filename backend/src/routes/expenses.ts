@@ -47,21 +47,21 @@ router.get('/',
         const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
         const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
         
-        // Získaj všetky vozidlá pre mapping
-        const vehicles = await postgresDatabase.getVehicles();
-        const allowedVehicleIds = vehicles
-          .filter(v => v.ownerCompanyId && allowedCompanyIds.includes(v.ownerCompanyId))
-          .map(v => v.id);
+        // Získaj názvy firiem pre mapping
+        const companies = await postgresDatabase.getCompanies();
+        const allowedCompanyNames = companies
+          .filter(c => allowedCompanyIds.includes(c.id))
+          .map(c => c.name);
         
-        // Filter expenses len pre povolené vozidlá
+        // Filter expenses len pre povolené firmy
         expenses = expenses.filter(e => 
-          e.vehicleId && allowedVehicleIds.includes(e.vehicleId)
+          e.company && allowedCompanyNames.includes(e.company)
         );
         
         console.log('🔐 Expenses Company Permission Filter:', {
           userId: user!.id,
           allowedCompanyIds,
-          allowedVehicleIds: allowedVehicleIds.slice(0, 5), // Show first 5 for brevity
+          allowedCompanyNames,
           originalCount,
           filteredCount: expenses.length
         });
