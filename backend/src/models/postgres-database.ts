@@ -4706,12 +4706,12 @@ export class PostgresDatabase {
         ) VALUES ($1, $2, $3, $4, $5, $6)
       `, [vehicleId, newOwnerCompanyId, newOwnerCompanyName, transferDate, transferReason, transferNotes]);
 
-      // 4. Aktualizuj vehicles tabuľku pre súčasný stav
+      // 4. Aktualizuj vehicles tabuľku pre súčasný stav (oba stĺpce!)
       await client.query(`
         UPDATE vehicles 
-        SET owner_company_id = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $2
-      `, [newOwnerCompanyId, vehicleId]);
+        SET owner_company_id = $1, company = $2, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3
+      `, [newOwnerCompanyId, newOwnerCompanyName, vehicleId]);
 
       await client.query('COMMIT');
       return true;
