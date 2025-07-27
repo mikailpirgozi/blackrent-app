@@ -1017,17 +1017,35 @@ class PostgresDatabase {
                     console.log('⚠️ Company error:', companyError.message);
                 }
             }
-            const result = await client.query('INSERT INTO vehicles (brand, model, year, license_plate, company, company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, company_id, pricing, commission, status, created_at', [
-                vehicleData.brand,
-                vehicleData.model,
-                vehicleData.year || 2024, // Default rok ak nie je zadaný
-                vehicleData.licensePlate,
-                vehicleData.company,
-                companyId, // 🆕 Automaticky nastavené company_id
-                JSON.stringify(vehicleData.pricing),
-                JSON.stringify(vehicleData.commission),
-                vehicleData.status
-            ]);
+            // Skús najprv s company_id, ak zlyhá, skús bez neho (pre kompatibilitu)
+            let result;
+            try {
+                result = await client.query('INSERT INTO vehicles (brand, model, year, license_plate, company, company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, company_id, pricing, commission, status, created_at', [
+                    vehicleData.brand,
+                    vehicleData.model,
+                    vehicleData.year || 2024, // Default rok ak nie je zadaný
+                    vehicleData.licensePlate,
+                    vehicleData.company,
+                    companyId, // 🆕 Automaticky nastavené company_id
+                    JSON.stringify(vehicleData.pricing),
+                    JSON.stringify(vehicleData.commission),
+                    vehicleData.status
+                ]);
+            }
+            catch (insertError) {
+                console.log('⚠️ Insert with company_id failed, trying without:', insertError.message);
+                // Fallback - vytvor bez company_id ak stĺpec neexistuje
+                result = await client.query('INSERT INTO vehicles (brand, model, year, license_plate, company, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, brand, model, year, license_plate, company, pricing, commission, status, created_at', [
+                    vehicleData.brand,
+                    vehicleData.model,
+                    vehicleData.year || 2024,
+                    vehicleData.licensePlate,
+                    vehicleData.company,
+                    JSON.stringify(vehicleData.pricing),
+                    JSON.stringify(vehicleData.commission),
+                    vehicleData.status
+                ]);
+            }
             const row = result.rows[0];
             return {
                 id: row.id.toString(),
@@ -1036,7 +1054,7 @@ class PostgresDatabase {
                 year: row.year,
                 licensePlate: row.license_plate,
                 company: row.company,
-                ownerCompanyId: row.company_id?.toString(), // 🆕 Mapovanie company_id na ownerCompanyId
+                ownerCompanyId: row.company_id?.toString() || companyId?.toString(), // 🆕 Mapovanie company_id na ownerCompanyId (fallback na companyId)
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing,
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission,
                 status: row.status,
