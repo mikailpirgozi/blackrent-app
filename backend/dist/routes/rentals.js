@@ -24,13 +24,36 @@ const getRentalContext = async (req) => {
 router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'read'), async (req, res) => {
     try {
         let rentals = await postgres_database_1.postgresDatabase.getRentals();
-        // 🏢 COMPANY OWNER - filter len prenájmy vlastných vozidiel
-        if (req.user?.role === 'company_owner' && req.user.companyId) {
+        console.log('🚗 Rentals GET - user:', {
+            role: req.user?.role,
+            userId: req.user?.id,
+            totalRentals: rentals.length
+        });
+        // 🔐 NON-ADMIN USERS - filter podľa company permissions
+        if (req.user?.role !== 'admin' && req.user) {
+            const user = req.user; // TypeScript safe assignment
+            const originalCount = rentals.length;
+            // Získaj company access pre používateľa
+            const userCompanyAccess = await postgres_database_1.postgresDatabase.getUserCompanyAccess(user.id);
+            const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+            // Získaj všetky vehicles pre mapping
             const vehicles = await postgres_database_1.postgresDatabase.getVehicles();
-            const companyVehicleIds = vehicles
-                .filter(v => v.ownerCompanyId === req.user?.companyId)
-                .map(v => v.id);
-            rentals = rentals.filter(r => r.vehicleId && companyVehicleIds.includes(r.vehicleId));
+            // Filter prenájmy len pre vozidlá firiem, ku ktorým má používateľ prístup  
+            // ✅ Všetky vozidlá majú teraz owner_company_id - používame len to
+            rentals = rentals.filter(r => {
+                if (!r.vehicleId)
+                    return false;
+                const vehicle = vehicles.find(v => v.id === r.vehicleId);
+                if (!vehicle)
+                    return false;
+                return vehicle.ownerCompanyId && allowedCompanyIds.includes(vehicle.ownerCompanyId);
+            });
+            console.log('🔐 Rentals Company Permission Filter:', {
+                userId: user.id,
+                allowedCompanyIds,
+                originalCount,
+                filteredCount: rentals.length
+            });
         }
         res.json({
             success: true,
@@ -132,14 +155,28 @@ router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
     try {
         const { id } = req.params;
         const updateData = req.body;
+        console.log('🔄 Rental UPDATE request:', {
+            rentalId: id,
+            userId: req.user?.id,
+            updateFields: Object.keys(updateData),
+            vehicleId: updateData.vehicleId,
+            customerName: updateData.customerName
+        });
         // Skontroluj, či prenájom existuje
         const existingRental = await postgres_database_1.postgresDatabase.getRental(id);
         if (!existingRental) {
+            console.log('❌ Rental not found:', id);
             return res.status(404).json({
                 success: false,
                 error: 'Prenájom nenájdený'
             });
         }
+        console.log('📋 Existing rental data:', {
+            id: existingRental.id,
+            vehicleId: existingRental.vehicleId,
+            customerName: existingRental.customerName,
+            hasVehicle: !!existingRental.vehicle
+        });
         const updatedRental = {
             ...existingRental,
             ...updateData,
@@ -147,11 +184,23 @@ router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
             startDate: updateData.startDate ? new Date(updateData.startDate) : existingRental.startDate,
             endDate: updateData.endDate ? new Date(updateData.endDate) : existingRental.endDate
         };
+        console.log('💾 Saving updated rental:', {
+            id: updatedRental.id,
+            vehicleId: updatedRental.vehicleId,
+            customerName: updatedRental.customerName
+        });
         await postgres_database_1.postgresDatabase.updateRental(updatedRental);
+        // Znovu načítaj prenájom z databázy pre overenie
+        const savedRental = await postgres_database_1.postgresDatabase.getRental(id);
+        console.log('✅ Rental saved successfully:', {
+            id: savedRental?.id,
+            vehicleId: savedRental?.vehicleId,
+            hasVehicle: !!savedRental?.vehicle
+        });
         res.json({
             success: true,
             message: 'Prenájom úspešne aktualizovaný',
-            data: updatedRental
+            data: savedRental || updatedRental
         });
     }
     catch (error) {

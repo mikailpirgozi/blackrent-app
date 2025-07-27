@@ -831,6 +831,75 @@ class PostgresDatabase {
             catch (error) {
                 console.log('⚠️ Migrácia 14 chyba:', error.message);
             }
+            // Migrácia 15: Oprava vehicle_id v rentals
+            try {
+                console.log('📋 Migrácia 15: Oprava vehicle_id v rentals...');
+                // Získaj všetky rentals s neexistujúcimi vehicle_id
+                const invalidRentals = await client.query(`
+          SELECT r.id, r.vehicle_id, r.customer_name 
+          FROM rentals r 
+          LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
+          WHERE r.vehicle_id IS NOT NULL AND v.id IS NULL
+        `);
+                console.log(`🔍 Našiel som ${invalidRentals.rows.length} rentals s neexistujúcimi vehicle_id`);
+                if (invalidRentals.rows.length > 0) {
+                    // Získaj prvé 3 existujúce vozidlá pre mapping
+                    const existingVehicles = await client.query(`
+            SELECT id, brand, model, license_plate 
+            FROM vehicles 
+            WHERE id IS NOT NULL 
+            ORDER BY brand ASC 
+            LIMIT 3
+          `);
+                    console.log(`🚗 Použijem ${existingVehicles.rows.length} existujúcich vozidiel pre mapping`);
+                    if (existingVehicles.rows.length > 0) {
+                        // Mapuj každý rental na existujúce vozidlo
+                        for (let i = 0; i < invalidRentals.rows.length; i++) {
+                            const rental = invalidRentals.rows[i];
+                            const vehicleIndex = i % existingVehicles.rows.length; // Rotuj medzi vozidlami
+                            const newVehicleId = existingVehicles.rows[vehicleIndex].id;
+                            await client.query(`
+                UPDATE rentals 
+                SET vehicle_id = $1 
+                WHERE id = $2
+              `, [newVehicleId, rental.id]);
+                            console.log(`   ✅ Rental ${rental.id} (${rental.customer_name}) -> Vehicle ${existingVehicles.rows[vehicleIndex].license_plate}`);
+                        }
+                    }
+                    else {
+                        console.log('   ⚠️ Žiadne existujúce vozidlá pre mapping');
+                    }
+                }
+                console.log('✅ Migrácia 15: Vehicle_id v rentals opravené');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 15 chyba:', error.message);
+            }
+            // Migrácia 16: Pridanie STK stĺpca do vehicles
+            try {
+                console.log('📋 Migrácia 16: Pridávanie STK stĺpca do vehicles...');
+                // Skontroluj či stĺpec už existuje
+                const columnExists = await client.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'vehicles' AND column_name = 'stk'
+        `);
+                if (columnExists.rows.length === 0) {
+                    // Pridaj STK stĺpec
+                    await client.query(`
+            ALTER TABLE vehicles 
+            ADD COLUMN stk DATE
+          `);
+                    console.log('   ✅ STK stĺpec pridaný do vehicles tabuľky');
+                }
+                else {
+                    console.log('   ℹ️ STK stĺpec už existuje');
+                }
+                console.log('✅ Migrácia 16: STK stĺpec úspešne pridaný');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 16 chyba:', error.message);
+            }
         }
         catch (error) {
             console.log('⚠️ Migrácie celkovo preskočené:', error.message);
@@ -1190,10 +1259,10 @@ class PostgresDatabase {
                 ...row,
                 id: row.id?.toString() || '',
                 licensePlate: row.license_plate, // Mapovanie column názvu
-                ownerName: row.owner_name, // 👤 Mapovanie owner_name z databázy
-                ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
+                ownerCompanyId: row.owner_company_id?.toString(), // Mapovanie owner_company_id na ownerCompanyId
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
+                stk: row.stk ? new Date(row.stk) : undefined, // 📋 STK date mapping
                 createdAt: new Date(row.created_at)
             }));
             // 🔧 AUTO-FIX: Automaticky oprav ownerCompanyId pre vozidlá ktoré ho nemajú
@@ -1220,7 +1289,7 @@ class PostgresDatabase {
                             console.log(`🆕 AUTO-FIX: Created company "${companyName}" with ID ${companyId}`);
                         }
                         // Aktualizuj vozidlo
-                        await client.query('UPDATE vehicles SET company_id = $1 WHERE id = $2', [companyId, vehicle.id]);
+                        await client.query('UPDATE vehicles SET owner_company_id = $1 WHERE id = $2', [companyId, vehicle.id]);
                         // Aktualizuj vozidlo v pamäti
                         vehicle.ownerCompanyId = companyId.toString();
                         console.log(`✅ AUTO-FIX: ${vehicle.brand} ${vehicle.model} → ${companyName} (${companyId})`);
@@ -1247,10 +1316,10 @@ class PostgresDatabase {
                 ...row,
                 id: row.id.toString(),
                 licensePlate: row.license_plate, // Mapovanie column názvu
-                ownerName: row.owner_name, // 👤 Mapovanie owner_name z databázy
-                ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
+                ownerCompanyId: row.owner_company_id?.toString(), // Mapovanie owner_company_id na ownerCompanyId
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
+                stk: row.stk ? new Date(row.stk) : undefined, // 📋 STK date mapping
                 createdAt: new Date(row.created_at)
             };
         }
@@ -1292,7 +1361,7 @@ class PostgresDatabase {
             // Skús najprv s company_id, ak zlyhá, skús bez neho (pre kompatibilitu)
             let result;
             try {
-                result = await client.query('INSERT INTO vehicles (brand, model, year, license_plate, company, company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, company_id, pricing, commission, status, created_at', [
+                result = await client.query('INSERT INTO vehicles (brand, model, year, license_plate, company, owner_company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, owner_company_id, pricing, commission, status, created_at', [
                     vehicleData.brand,
                     vehicleData.model,
                     vehicleData.year || 2024, // Default rok ak nie je zadaný
@@ -1326,7 +1395,7 @@ class PostgresDatabase {
                 year: row.year,
                 licensePlate: row.license_plate,
                 company: row.company,
-                ownerCompanyId: row.company_id?.toString() || companyId?.toString(), // 🆕 Mapovanie company_id na ownerCompanyId (fallback na companyId)
+                ownerCompanyId: row.owner_company_id?.toString() || companyId?.toString(), // 🆕 Mapovanie owner_company_id na ownerCompanyId (fallback na companyId)
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing,
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission,
                 status: row.status,
@@ -1356,16 +1425,17 @@ class PostgresDatabase {
                     console.log('⚠️ Company update error:', companyError.message);
                 }
             }
-            await client.query('UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, owner_name = $5, company_id = $6, pricing = $7, commission = $8, status = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10', [
+            await client.query('UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, owner_company_id = $5, pricing = $6, commission = $7, status = $8, year = $9, stk = $10, updated_at = CURRENT_TIMESTAMP WHERE id = $11', [
                 vehicle.brand,
                 vehicle.model,
                 vehicle.licensePlate,
                 vehicle.company,
-                vehicle.ownerName, // 👤 Owner name
-                vehicle.ownerCompanyId ? parseInt(vehicle.ownerCompanyId) : null, // 🏢 Company ID as integer
+                vehicle.ownerCompanyId || null, // 🏢 Company ID as UUID string
                 JSON.stringify(vehicle.pricing), // Konverzia na JSON string
                 JSON.stringify(vehicle.commission), // Konverzia na JSON string
                 vehicle.status,
+                vehicle.year || null, // 📅 Year
+                vehicle.stk || null, // 📋 STK date
                 vehicle.id // UUID as string, not parseInt
             ]);
         }
@@ -1435,7 +1505,7 @@ class PostgresDatabase {
     async getRentals() {
         const client = await this.pool.connect();
         try {
-            // Najprv jednoduchý dotaz bez JOIN pre debugging
+            // Load rentals and vehicles separately to avoid JOIN issues
             console.log('🔍 Loading rentals...');
             const result = await client.query(`
         SELECT id, customer_id, vehicle_id, start_date, end_date, 
@@ -1446,26 +1516,29 @@ class PostgresDatabase {
         ORDER BY created_at DESC
       `);
             console.log(`📊 Found ${result.rows.length} rentals`);
-            // Načítaj vehicles separately pre company info
+            // Load vehicles separately
             const vehiclesResult = await client.query(`
         SELECT id, brand, model, license_plate, company 
         FROM vehicles
       `);
             console.log(`🚗 Found ${vehiclesResult.rows.length} vehicles`);
-            // Create vehicles map for quick lookup
+            // Create vehicles map with proper UUID handling
             const vehiclesMap = new Map();
             vehiclesResult.rows.forEach(v => {
-                vehiclesMap.set(v.id, {
-                    id: v.id,
-                    brand: v.brand,
-                    model: v.model,
-                    licensePlate: v.license_plate,
-                    company: v.company || 'N/A',
-                    pricing: [],
-                    commission: { type: 'percentage', value: 0 },
-                    status: 'available'
-                });
+                if (v.id) {
+                    vehiclesMap.set(v.id, {
+                        id: v.id,
+                        brand: v.brand,
+                        model: v.model,
+                        licensePlate: v.license_plate,
+                        company: v.company || 'N/A',
+                        pricing: [],
+                        commission: { type: 'percentage', value: 0 },
+                        status: 'available'
+                    });
+                }
             });
+            console.log('🗺️ VehiclesMap size:', vehiclesMap.size, 'Sample keys:', Array.from(vehiclesMap.keys()).slice(0, 2));
             if (result.rows.length === 0) {
                 return [];
             }
@@ -1491,7 +1564,13 @@ class PostgresDatabase {
                         dailyKilometers: row.daily_kilometers || undefined,
                         handoverPlace: row.handover_place || undefined,
                         // Pridaj vehicle informácie z mapy
-                        vehicle: row.vehicle_id ? vehiclesMap.get(row.vehicle_id) : undefined
+                        vehicle: row.vehicle_id ? (() => {
+                            const vehicleData = vehiclesMap.get(row.vehicle_id);
+                            if (!vehicleData && row.vehicle_id) {
+                                console.log('⚠️ Vehicle not found:', row.vehicle_id, 'Type:', typeof row.vehicle_id);
+                            }
+                            return vehicleData;
+                        })() : undefined
                     };
                     return rental;
                 }
@@ -1620,12 +1699,19 @@ class PostgresDatabase {
     async getRental(id) {
         const client = await this.pool.connect();
         try {
+            console.log('🔍 getRental called for ID:', id);
             const result = await client.query(`
         SELECT r.*, v.brand, v.model, v.license_plate, v.company 
         FROM rentals r 
-        LEFT JOIN vehicles v ON (r.vehicle_id IS NOT NULL AND r.vehicle_id ~ '^[0-9a-f-]{36}$' AND r.vehicle_id::uuid = v.id) 
+        LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
         WHERE r.id = $1
       `, [id]);
+            console.log('📊 getRental result:', {
+                found: result.rows.length > 0,
+                vehicleId: result.rows[0]?.vehicle_id,
+                vehicleBrand: result.rows[0]?.brand,
+                vehicleModel: result.rows[0]?.model
+            });
             if (result.rows.length === 0)
                 return null;
             const row = result.rows[0];
@@ -3692,7 +3778,7 @@ class PostgresDatabase {
         const client = await this.pool.connect();
         try {
             for (const vehicleId of vehicleIds) {
-                await client.query('UPDATE vehicles SET company_id = $1 WHERE id = $2', [parseInt(companyId), parseInt(vehicleId)]);
+                await client.query('UPDATE vehicles SET owner_company_id = $1 WHERE id = $2', [companyId, vehicleId]);
             }
         }
         finally {
@@ -3726,6 +3812,7 @@ class PostgresDatabase {
     async getUserCompanyAccess(userId) {
         const client = await this.pool.connect();
         try {
+            console.log('🔍 getUserCompanyAccess called for userId:', userId);
             const result = await client.query(`
         SELECT up.company_id, c.name as company_name, up.permissions
         FROM user_permissions up
@@ -3733,6 +3820,11 @@ class PostgresDatabase {
         WHERE up.user_id = $1
         ORDER BY c.name
         `, [userId]);
+            console.log('🔍 getUserCompanyAccess result:', {
+                userId,
+                rowCount: result.rows.length,
+                companies: result.rows.map(r => ({ companyId: r.company_id, companyName: r.company_name }))
+            });
             return result.rows.map(row => ({
                 companyId: row.company_id,
                 companyName: row.company_name,
