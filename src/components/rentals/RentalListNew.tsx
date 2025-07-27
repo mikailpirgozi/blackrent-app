@@ -134,11 +134,27 @@ export default function RentalList() {
       
       return ownerName;
     } catch (error) {
-      console.error('Error fetching vehicle owner:', error);
+      console.error('Error fetching vehicle owner, using rental data fallback:', error);
+      
+      // 🔧 OPRAVA: Použij historické údaje z rental namiesto aktuálneho majiteľa
+      const rental = state.rentals.find(r => r.vehicleId === vehicleId);
+      if (rental?.vehicle?.company) {
+        // Rentals API už obsahuje správne historické údaje vďaka našej backend oprave
+        const historicalOwner = rental.vehicle.company;
+        
+        setVehicleOwners(prev => ({
+          ...prev,
+          [cacheKey]: historicalOwner
+        }));
+        
+        return historicalOwner;
+      }
+      
+      // Ak ani rental dáta nie sú dostupné, vráť current vehicle company
       const vehicle = state.vehicles.find(v => v.id === vehicleId);
       return vehicle?.company || 'N/A';
     }
-  }, [vehicleOwners, state.vehicles]);
+  }, [vehicleOwners, state.vehicles, state.rentals]);
   
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
