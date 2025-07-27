@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
-import { Vehicle, ApiResponse } from '../types';
+import { Vehicle, ApiResponse, VehicleStatus } from '../types';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
@@ -360,7 +360,7 @@ router.get('/export/csv',
   }
 );
 
-// 📥 CSV IMPORT - Import vozidiel z CSV
+// 📥 CSV IMPORT - Import vozidiel z CSV s kontrolou duplicít a update
 router.post('/import/csv', authenticateToken, async (req: Request, res: Response) => {
   try {
     console.log('📥 Starting CSV import for vehicles...');
@@ -382,8 +382,16 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
 
     const results = [];
     const errors = [];
+    const updated = [];
+    const skipped = [];
 
     console.log(`📊 Processing ${dataLines.length} vehicles from CSV...`);
+
+    // Získaj existujúce vozidlá pre kontrolu duplicít
+    const existingVehicles = await postgresDatabase.getVehicles();
+    const existingByLicensePlate = new Map(
+      existingVehicles.map(v => [v.licensePlate?.toLowerCase(), v])
+    );
 
     for (let i = 0; i < dataLines.length; i++) {
       try {
@@ -449,30 +457,67 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
         });
 
         // Parsovanie commission
-        const commissionType = fieldMap['commissionType'] || 'percentage';
+        const commissionType = (fieldMap['commissionType'] || 'percentage') as 'percentage' | 'fixed';
         const commissionValue = fieldMap['commissionValue'] ? parseFloat(fieldMap['commissionValue']) : 20;
 
-        // Vytvor vozidlo s cenotvorbu z CSV
+        // Vytvor vehicle data
         const vehicleData = {
           brand: brand.trim(),
           model: model.trim(),
           licensePlate: licensePlate?.trim() || '',
           company: company.trim(),
           year: year && year.trim() && !isNaN(parseInt(year)) ? parseInt(year) : 2024,
-          status: status?.trim() || 'available',
-          stk: stk && stk.trim() ? new Date(stk.trim()) : null,
-          pricing: pricing, // ✅ Cenotvorba z CSV
+          status: (status?.trim() || 'available') as VehicleStatus,
+          stk: stk && stk.trim() ? new Date(stk.trim()) : undefined,
+          pricing: pricing,
           commission: { 
             type: commissionType, 
             value: commissionValue 
           }
         };
 
-        console.log(`🚗 Creating vehicle ${i + 1}/${dataLines.length}: ${brand} ${model} with ${pricing.length} price tiers`);
-        console.log('💰 Pricing:', pricing);
-        
-        const createdVehicle = await postgresDatabase.createVehicle(vehicleData);
-        results.push(createdVehicle);
+        // 🔍 KONTROLA DUPLICÍT - Ak existuje vozidlo s rovnakou ŠPZ
+        const licensePlateLower = vehicleData.licensePlate.toLowerCase();
+        const existingVehicle = existingByLicensePlate.get(licensePlateLower);
+
+        if (existingVehicle) {
+          // ✅ UPDATE EXISTUJÚCEHO ZÁZNAMU
+          console.log(`🔄 Updating existing vehicle ${i + 1}/${dataLines.length}: ${brand} ${model} (${licensePlate})`);
+          
+          const updatedVehicle = {
+            ...existingVehicle,
+            brand: vehicleData.brand,
+            model: vehicleData.model,
+            company: vehicleData.company,
+            year: vehicleData.year,
+            status: vehicleData.status,
+            stk: vehicleData.stk,
+            pricing: vehicleData.pricing,
+            commission: vehicleData.commission
+          };
+
+          await postgresDatabase.updateVehicle(updatedVehicle);
+          updated.push({
+            id: existingVehicle.id,
+            brand: vehicleData.brand,
+            model: vehicleData.model,
+            licensePlate: vehicleData.licensePlate,
+            action: 'updated'
+          });
+        } else {
+          // ✅ VYTVOR NOVÉ VOZIDLO
+          console.log(`🚗 Creating new vehicle ${i + 1}/${dataLines.length}: ${brand} ${model} with ${pricing.length} price tiers`);
+          console.log('💰 Pricing:', pricing);
+          
+          const createdVehicle = await postgresDatabase.createVehicle(vehicleData);
+          results.push({
+            id: createdVehicle.id,
+            brand: vehicleData.brand,
+            model: vehicleData.model,
+            licensePlate: vehicleData.licensePlate,
+            action: 'created'
+          });
+        }
 
       } catch (error) {
         console.error(`❌ Error processing row ${i + 2}:`, error);
@@ -483,31 +528,61 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
       }
     }
 
-    console.log(`✅ CSV import completed: ${results.length} successful, ${errors.length} errors`);
+    console.log(`✅ CSV import completed: ${results.length} created, ${updated.length} updated, ${errors.length} errors`);
 
     res.json({
       success: true,
-      message: `CSV import dokončený: ${results.length} úspešných, ${errors.length} chýb`,
+      message: `CSV import dokončený: ${results.length} vytvorených, ${updated.length} aktualizovaných, ${errors.length} chýb`,
       data: {
         imported: results.length,
+        updated: updated.length,
         errorsCount: errors.length,
-        results,
+        results: [...results, ...updated],
         errors: errors.slice(0, 10) // Limit na prvých 10 chýb
       }
     });
 
   } catch (error) {
     console.error('❌ CSV import error:', error);
-    res.status(200).json({
+    res.status(500).json({
       success: false,
-      message: 'CSV import dokončený s chybami',
       error: 'Chyba pri CSV importe',
+      details: error instanceof Error ? error.message : 'Neznáma chyba'
+    });
+  }
+});
+
+// 🗑️ DELETE ALL VEHICLES - Pre re-import
+router.delete('/delete-all', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    console.log('🗑️ Starting DELETE ALL VEHICLES...');
+    
+    // Skontroluj admin permissions
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Iba admin môže zmazať všetky vozidlá'
+      });
+    }
+
+    const deletedCount = await postgresDatabase.deleteAllVehicles();
+    
+    console.log(`✅ DELETE ALL VEHICLES completed: ${deletedCount} vozidiel zmazaných`);
+
+    res.json({
+      success: true,
+      message: `Všetky vozidlá zmazané: ${deletedCount} záznamov`,
       data: {
-        imported: 0,
-        errorsCount: 1,
-        results: [],
-        errors: [{ row: 0, error: error instanceof Error ? error.message : 'Neznáma chyba' }]
+        deletedCount
       }
+    });
+
+  } catch (error) {
+    console.error('❌ DELETE ALL VEHICLES error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Chyba pri mazaní všetkých vozidiel',
+      details: error instanceof Error ? error.message : 'Neznáma chyba'
     });
   }
 });

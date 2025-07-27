@@ -1430,22 +1430,10 @@ export class PostgresDatabase {
         }
       }
 
-      // Automaticky vytvoriť company záznam ak neexistuje a získaj company_id
-      let companyId = null;
+      // Nájdi alebo vytvor company
+      let companyId: string | null = null;
       if (vehicleData.company && vehicleData.company.trim()) {
-        try {
-          const existingCompany = await client.query('SELECT id FROM companies WHERE name = $1', [vehicleData.company.trim()]);
-          if (existingCompany.rows.length === 0) {
-            const newCompany = await client.query('INSERT INTO companies (name) VALUES ($1) RETURNING id', [vehicleData.company.trim()]);
-            companyId = newCompany.rows[0].id;
-            console.log('✅ Company vytvorená:', vehicleData.company.trim(), 'ID:', companyId);
-          } else {
-            companyId = existingCompany.rows[0].id;
-            console.log('✅ Company existuje:', vehicleData.company.trim(), 'ID:', companyId);
-          }
-        } catch (companyError: any) {
-          console.log('⚠️ Company error:', companyError.message);
-        }
+        companyId = await this.getCompanyIdByName(vehicleData.company.trim());
       }
 
       // Skús najprv s company_id, ak zlyhá, skús bez neho (pre kompatibilitu)
@@ -4340,8 +4328,27 @@ export class PostgresDatabase {
   async getCompanyIdByName(companyName: string): Promise<string | null> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query('SELECT id FROM companies WHERE name = $1', [companyName]);
-      return result.rows.length > 0 ? result.rows[0].id : null;
+      // 1. Skús najprv presný názov
+      const exactResult = await client.query('SELECT id FROM companies WHERE name = $1', [companyName]);
+      if (exactResult.rows.length > 0) {
+        console.log(`✅ Company found (exact): "${companyName}" ID: ${exactResult.rows[0].id}`);
+        return exactResult.rows[0].id;
+      }
+
+      // 2. Ak nenájdem presný názov, vytvor novú firmu
+      console.log(`⚠️ Company "${companyName}" not found, creating new one...`);
+      const insertResult = await client.query(
+        'INSERT INTO companies (name, created_at, updated_at) VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id',
+        [companyName]
+      );
+      
+      const newCompanyId = insertResult.rows[0].id;
+      console.log(`✅ Company created: "${companyName}" ID: ${newCompanyId}`);
+      return newCompanyId;
+      
+    } catch (error) {
+      console.error(`❌ Error getting/creating company "${companyName}":`, error);
+      return null;
     } finally {
       client.release();
     }
@@ -4365,6 +4372,32 @@ export class PostgresDatabase {
         id: row.id,
         name: row.name
       }));
+    } finally {
+      client.release();
+    }
+  }
+
+  // 🗑️ DELETE ALL VEHICLES - Pre re-import
+  async deleteAllVehicles(): Promise<number> {
+    const client = await this.pool.connect();
+    try {
+      // 1. Najprv zmaž všetky rentals ktoré odkazujú na vozidlá (CASCADE)
+      const rentalsResult = await client.query('DELETE FROM rentals WHERE vehicle_id IS NOT NULL');
+      console.log(`🗑️ Deleted ${rentalsResult.rowCount} rentals`);
+
+      // 2. Zmaž všetky expenses pre vozidlá
+      const expensesResult = await client.query('DELETE FROM expenses WHERE vehicle_id IS NOT NULL');
+      console.log(`🗑️ Deleted ${expensesResult.rowCount} expenses`);
+
+      // 3. Zmaž všetky insurances pre vozidlá
+      const insurancesResult = await client.query('DELETE FROM insurances WHERE vehicle_id IS NOT NULL');
+      console.log(`🗑️ Deleted ${insurancesResult.rowCount} insurances`);
+
+      // 4. Nakoniec zmaž všetky vozidlá
+      const vehiclesResult = await client.query('DELETE FROM vehicles');
+      console.log(`🗑️ Deleted ${vehiclesResult.rowCount} vehicles`);
+
+      return vehiclesResult.rowCount || 0;
     } finally {
       client.release();
     }
