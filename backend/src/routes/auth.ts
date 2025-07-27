@@ -2363,4 +2363,88 @@ router.post('/auto-assign-vehicles',
   }
 );
 
+// 🔍 DEBUG - Vincursky account analysis
+router.get('/debug-vincursky', authenticateToken, requireRole(['admin']), 
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      console.log('🔍 DEBUG: Analyzing Vincursky account...');
+      
+      // 1. Find Vincursky user
+      const vincurskyUser = await postgresDatabase.getUserByUsername('vincursky');
+      console.log('👤 Vincursky user:', vincurskyUser ? {
+        id: vincurskyUser.id,
+        username: vincurskyUser.username,
+        role: vincurskyUser.role,
+        companyId: vincurskyUser.companyId
+      } : 'NOT FOUND');
+      
+      // 2. Find all companies
+      const companies = await postgresDatabase.getCompanies();
+      console.log('🏢 All companies:', companies.map(c => ({ id: c.id, name: c.name })));
+      
+      // 3. Find Vincursky company
+      const vincurskyCompany = companies.find(c => c.name.toLowerCase().includes('vincursky'));
+      console.log('🏢 Vincursky company:', vincurskyCompany || 'NOT FOUND');
+      
+      // 4. Find all vehicles
+      const allVehicles = await postgresDatabase.getVehicles();
+      console.log('🚗 Total vehicles:', allVehicles.length);
+      
+      // 5. Find vehicles with Vincursky company
+      const vincurskyVehicles = allVehicles.filter(v => 
+        v.company?.toLowerCase().includes('vincursky') || 
+        (vincurskyCompany && v.ownerCompanyId === vincurskyCompany.id)
+      );
+      console.log('🚗 Vincursky vehicles:', vincurskyVehicles.map(v => ({
+        id: v.id,
+        brand: v.brand,
+        model: v.model,
+        licensePlate: v.licensePlate,
+        company: v.company,
+        ownerCompanyId: v.ownerCompanyId
+      })));
+      
+      // 6. Test filtering logic
+      let filteredVehicles = allVehicles;
+      if (vincurskyUser?.role === 'company_owner' && vincurskyUser.companyId) {
+        filteredVehicles = allVehicles.filter(v => v.ownerCompanyId === vincurskyUser.companyId);
+        console.log('🔍 Filtered vehicles for Vincursky:', filteredVehicles.length);
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          user: vincurskyUser ? {
+            id: vincurskyUser.id,
+            username: vincurskyUser.username,
+            role: vincurskyUser.role,
+            companyId: vincurskyUser.companyId
+          } : null,
+          companies: companies.map(c => ({ id: c.id, name: c.name })),
+          vincurskyCompany,
+          allVehiclesCount: allVehicles.length,
+          vincurskyVehicles: vincurskyVehicles.map(v => ({
+            id: v.id,
+            brand: v.brand,
+            model: v.model,
+            licensePlate: v.licensePlate,
+            company: v.company,
+            ownerCompanyId: v.ownerCompanyId
+          })),
+          filteredVehiclesCount: filteredVehicles.length,
+          filteringWorks: vincurskyUser?.role === 'company_owner' && vincurskyUser.companyId ? 
+            filteredVehicles.length > 0 : 'N/A - not company_owner or no companyId'
+        }
+      });
+
+    } catch (error: unknown) {
+      console.error('❌ Debug Vincursky error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Debug error: ${error instanceof Error ? error.message : String(error)}`
+      });
+    }
+  }
+);
+
 export default router; 
