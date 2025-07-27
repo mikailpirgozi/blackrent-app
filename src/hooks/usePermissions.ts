@@ -86,7 +86,7 @@ export function hasCompanyPermission(
 }
 
 // 🛡️ LEGACY PERMISSION CHECK FUNCTION (pre spätnú kompatibilitu)
-export function hasPermission(
+export function hasLegacyPermission(
   userRole: UserRole, 
   resource: Permission['resource'], 
   action: Permission['actions'][0],
@@ -181,12 +181,35 @@ export function usePermissions() {
         hasCompanyPermission(userCompanyAccess, user.role, resource, 'delete', context).hasAccess,
 
       // 🛡️ FULL PERMISSION CHECK
-      hasPermission: (resource: Permission['resource'], action: Permission['actions'][0], context?: any): PermissionResult =>
-        hasPermission(user.role, resource, action, {
-          userId: user.id,
-          companyId: user.companyId,
-          ...context
-        }),
+      hasPermission: (resource: Permission['resource'], action: Permission['actions'][0], context?: any): PermissionResult => {
+        // Pre admin používame legacy funkciu, pre ostatných company-based
+        if (user.role === 'admin') {
+          return hasLegacyPermission(user.role, resource, action, {
+            userId: user.id,
+            companyId: user.companyId,
+            ...context
+          });
+        } else {
+          // Pre ostatných používame company-based permissions
+          const actionMap = {
+            'read': 'read',
+            'create': 'write',
+            'update': 'write',
+            'delete': 'delete'
+          } as const;
+          
+          const mappedAction = actionMap[action as keyof typeof actionMap];
+          if (!mappedAction) {
+            return { hasAccess: false, requiresApproval: false, reason: 'Neznáma akcia' };
+          }
+          
+          return hasCompanyPermission(userCompanyAccess, user.role, resource, mappedAction, {
+            userId: user.id,
+            companyId: user.companyId,
+            ...context
+          });
+        }
+      },
 
       // 🏢 COMPANY-BASED PERMISSION CHECK
       hasCompanyPermission: (resource: string, action: 'read' | 'write' | 'delete', context?: { companyId?: string }): PermissionResult =>
@@ -233,7 +256,7 @@ export function canUserAccess(
   resource: Permission['resource'], 
   action: Permission['actions'][0]
 ): boolean {
-  return hasPermission(userRole, resource, action).hasAccess;
+  return hasLegacyPermission(userRole, resource, action).hasAccess;
 }
 
 export function getUserRoleDisplayName(role: UserRole): string {
