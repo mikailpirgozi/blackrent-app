@@ -780,6 +780,85 @@ class PostgresDatabase {
             catch (error) {
                 console.log('⚠️ Migrácia 17 chyba:', error.message);
             }
+            // Migrácia 18: Vehicle Ownership History - Pre tracking zmien vlastníctva vozidiel
+            try {
+                console.log('📋 Migrácia 18: Vytváram vehicle ownership history tabuľku...');
+                // Skontroluj či tabuľka už existuje
+                const tableExists = await client.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_name = 'vehicle_ownership_history'
+        `);
+                if (tableExists.rows.length === 0) {
+                    // Vytvor vehicle ownership history tabuľku
+                    await client.query(`
+            CREATE TABLE vehicle_ownership_history (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+              owner_company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+              owner_company_name VARCHAR(255) NOT NULL, -- cached pre performance
+              valid_from TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              valid_to TIMESTAMP, -- NULL = aktívny vlastník
+              transfer_reason VARCHAR(255) DEFAULT 'initial_setup', -- 'sale', 'acquisition', 'lease_end', etc.
+              transfer_notes TEXT,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+                    console.log('   ✅ vehicle_ownership_history tabuľka vytvorená');
+                    // Vytvor indexy pre performance
+                    await client.query(`
+            CREATE INDEX idx_vehicle_ownership_history_vehicle_id 
+            ON vehicle_ownership_history(vehicle_id)
+          `);
+                    await client.query(`
+            CREATE INDEX idx_vehicle_ownership_history_owner_company_id 
+            ON vehicle_ownership_history(owner_company_id)
+          `);
+                    await client.query(`
+            CREATE INDEX idx_vehicle_ownership_history_valid_period 
+            ON vehicle_ownership_history(valid_from, valid_to)
+          `);
+                    await client.query(`
+            CREATE UNIQUE INDEX idx_vehicle_ownership_one_active 
+            ON vehicle_ownership_history(vehicle_id) 
+            WHERE valid_to IS NULL
+          `);
+                    console.log('   ✅ Indexy pre ownership history vytvorené');
+                    // Migrácia existujúcich dát - vytvor historický záznam pre každé vozidlo
+                    const migratedRows = await client.query(`
+            INSERT INTO vehicle_ownership_history (
+              vehicle_id, 
+              owner_company_id, 
+              owner_company_name, 
+              valid_from, 
+              transfer_reason
+            )
+            SELECT 
+              v.id as vehicle_id,
+              v.owner_company_id,
+              c.name as owner_company_name,
+              COALESCE(v.created_at, CURRENT_TIMESTAMP - INTERVAL '1 year') as valid_from,
+              'initial_setup' as transfer_reason
+            FROM vehicles v
+            JOIN companies c ON v.owner_company_id = c.id
+            WHERE v.owner_company_id IS NOT NULL
+            AND NOT EXISTS (
+              SELECT 1 FROM vehicle_ownership_history voh 
+              WHERE voh.vehicle_id = v.id
+            )
+            RETURNING id
+          `);
+                    console.log(`   ✅ ${migratedRows.rowCount} existujúcich vozidiel migrovanych do ownership history`);
+                }
+                else {
+                    console.log('   ℹ️ vehicle_ownership_history tabuľka už existuje');
+                }
+                console.log('✅ Migrácia 18: Vehicle Ownership History úspešne vytvorená');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 18 chyba:', error.message);
+            }
         }
         catch (error) {
             console.log('⚠️ Migrácie celkovo preskočené:', error.message);
@@ -870,7 +949,8 @@ class PostgresDatabase {
             const customerCount = await client.query('SELECT COUNT(*) FROM customers');
             const rentalCount = await client.query('SELECT COUNT(*) FROM rentals');
             console.log('📊 Počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
-            if (rentalCount.rows[0].count === '0' && vehicleCount.rows[0].count === '0') {
+            // VYPNUTÉ: Automatické vytváranie testových dát
+            if (false && rentalCount.rows[0].count === '0' && vehicleCount.rows[0].count === '0') {
                 console.log('📋 Vytváranie testovacích dát...');
                 // Vytvorenie firiem - jednoducho bez duplicitov
                 try {
@@ -1284,24 +1364,10 @@ class PostgresDatabase {
                     throw new Error(`Vozidlo s ŠPZ ${vehicleData.licensePlate} už existuje v databáze`);
                 }
             }
-            // Automaticky vytvoriť company záznam ak neexistuje a získaj company_id
+            // Nájdi alebo vytvor company
             let companyId = null;
             if (vehicleData.company && vehicleData.company.trim()) {
-                try {
-                    const existingCompany = await client.query('SELECT id FROM companies WHERE name = $1', [vehicleData.company.trim()]);
-                    if (existingCompany.rows.length === 0) {
-                        const newCompany = await client.query('INSERT INTO companies (name) VALUES ($1) RETURNING id', [vehicleData.company.trim()]);
-                        companyId = newCompany.rows[0].id;
-                        console.log('✅ Company vytvorená:', vehicleData.company.trim(), 'ID:', companyId);
-                    }
-                    else {
-                        companyId = existingCompany.rows[0].id;
-                        console.log('✅ Company existuje:', vehicleData.company.trim(), 'ID:', companyId);
-                    }
-                }
-                catch (companyError) {
-                    console.log('⚠️ Company error:', companyError.message);
-                }
+                companyId = await this.getCompanyIdByName(vehicleData.company.trim());
             }
             // Skús najprv s company_id, ak zlyhá, skús bez neho (pre kompatibilitu)
             let result;
@@ -1494,37 +1560,14 @@ class PostgresDatabase {
                     status: row.v_status || 'available'
                 } : undefined
             }));
-            // 🔧 AUTO-FIX: Oprav prenájmy bez vehicle (ako getVehicles) ✅
-            const rentalsToFix = rentals.filter(r => r.vehicleId && !r.vehicle);
-            if (rentalsToFix.length > 0) {
-                console.log(`🔧 AUTO-FIX: Found ${rentalsToFix.length} rentals with invalid vehicle_id, fixing...`);
-                // Získaj dostupné vozidlá pre mapping
-                const availableVehicles = await client.query('SELECT id, brand, model, license_plate, company FROM vehicles LIMIT 10');
-                if (availableVehicles.rows.length > 0) {
-                    // Oprav každý prenájom s neplatným vehicle_id
-                    for (const rental of rentalsToFix) {
-                        try {
-                            const randomVehicle = availableVehicles.rows[Math.floor(Math.random() * availableVehicles.rows.length)];
-                            await client.query('UPDATE rentals SET vehicle_id = $1 WHERE id = $2', [randomVehicle.id, rental.id]);
-                            // Aktualizuj rental v pamäti
-                            rental.vehicleId = randomVehicle.id.toString();
-                            rental.vehicle = {
-                                id: randomVehicle.id,
-                                brand: randomVehicle.brand,
-                                model: randomVehicle.model,
-                                licensePlate: randomVehicle.license_plate,
-                                company: randomVehicle.company || 'N/A',
-                                pricing: [],
-                                commission: { type: 'percentage', value: 0 },
-                                status: 'available'
-                            };
-                            console.log(`✅ AUTO-FIX: Rental ${rental.customerName} → Vehicle ${randomVehicle.brand} ${randomVehicle.model} (${randomVehicle.license_plate})`);
-                        }
-                        catch (fixError) {
-                            console.error(`❌ AUTO-FIX error for rental ${rental.id}:`, fixError);
-                        }
-                    }
-                }
+            // ⚠️ AUTO-FIX DISABLED - Nebezpečné, menilo vehicle_id v databáze!
+            // Namiesto toho len logujeme problém
+            const rentalsWithMissingVehicle = rentals.filter(r => r.vehicleId && !r.vehicle);
+            if (rentalsWithMissingVehicle.length > 0) {
+                console.warn(`⚠️ Found ${rentalsWithMissingVehicle.length} rentals with missing vehicle data (not auto-fixing):`);
+                rentalsWithMissingVehicle.forEach(rental => {
+                    console.warn(`  - Rental ${rental.id} (${rental.customerName}) has vehicle_id ${rental.vehicleId} but no vehicle data`);
+                });
             }
             return rentals;
         }
@@ -1714,63 +1757,131 @@ class PostgresDatabase {
             client.release();
         }
     }
+    // 🛡️ PROTECTED UPDATE with 6-level safety system
     async updateRental(rental) {
         const client = await this.pool.connect();
         try {
-            await client.query(`
-        UPDATE rentals SET 
-          vehicle_id = $1, customer_id = $2, customer_name = $3, start_date = $4, end_date = $5,
-          total_price = $6, commission = $7, payment_method = $8, discount = $9, custom_commission = $10,
-          extra_km_charge = $11, paid = $12, status = $13, handover_place = $14, confirmed = $15,
-          payments = $16, history = $17, order_number = $18,
-          deposit = $19, allowed_kilometers = $20, daily_kilometers = $21, extra_kilometer_rate = $22, return_conditions = $23,
-          fuel_level = $24, odometer = $25, return_fuel_level = $26, return_odometer = $27,
-          actual_kilometers = $28, fuel_refill_cost = $29, handover_protocol_id = $30, 
-          return_protocol_id = $31, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $32
-      `, [
-                rental.vehicleId || null, // UUID as string, not parseInt
-                rental.customerId || null, // UUID as string, not parseInt
-                rental.customerName,
-                rental.startDate,
-                rental.endDate,
-                rental.totalPrice,
-                rental.commission,
-                rental.paymentMethod,
-                rental.discount ? JSON.stringify(rental.discount) : null,
-                rental.customCommission ? JSON.stringify(rental.customCommission) : null,
-                rental.extraKmCharge,
-                rental.paid,
-                rental.status,
-                rental.handoverPlace,
-                rental.confirmed,
-                rental.payments ? JSON.stringify(rental.payments) : null,
-                rental.history ? JSON.stringify(rental.history) : null,
-                rental.orderNumber,
-                rental.deposit || null,
-                rental.allowedKilometers || null,
-                rental.dailyKilometers || null,
-                rental.extraKilometerRate || null,
-                rental.returnConditions || null,
-                rental.fuelLevel || null,
-                rental.odometer || null,
-                rental.returnFuelLevel || null,
-                rental.returnOdometer || null,
-                rental.actualKilometers || null,
-                rental.fuelRefillCost || null,
-                rental.handoverProtocolId || null,
-                rental.returnProtocolId || null,
-                rental.id // UUID as string, not parseInt
-            ]);
+            // 🛡️ OCHRANA LEVEL 1: Validácia pred zmenou
+            const validation = await this.validateRentalUpdate(rental.id, rental);
+            if (!validation.valid) {
+                throw new Error(`RENTAL UPDATE BLOCKED: ${validation.errors.join(', ')}`);
+            }
+            // 🛡️ OCHRANA LEVEL 2: Backup pôvodných dát
+            await this.createRentalBackup(rental.id);
+            // 🛡️ OCHRANA LEVEL 3: Transaction protection
+            await client.query('BEGIN');
+            try {
+                // 🛡️ OCHRANA LEVEL 4: Log každú zmenu
+                console.log(`🛡️ RENTAL UPDATE START: ${rental.id}`, {
+                    customer: rental.customerName,
+                    vehicle: rental.vehicleId,
+                    dateRange: `${rental.startDate} - ${rental.endDate}`,
+                    price: rental.totalPrice
+                });
+                // 🛡️ OCHRANA LEVEL 5: Controlled UPDATE s row counting
+                const result = await client.query(`
+          UPDATE rentals SET 
+            vehicle_id = $1, customer_id = $2, customer_name = $3, start_date = $4, end_date = $5,
+            total_price = $6, commission = $7, payment_method = $8, discount = $9, custom_commission = $10,
+            extra_km_charge = $11, paid = $12, status = $13, handover_place = $14, confirmed = $15,
+            payments = $16, history = $17, order_number = $18,
+            deposit = $19, allowed_kilometers = $20, daily_kilometers = $21, extra_kilometer_rate = $22, return_conditions = $23,
+            fuel_level = $24, odometer = $25, return_fuel_level = $26, return_odometer = $27,
+            actual_kilometers = $28, fuel_refill_cost = $29, handover_protocol_id = $30, 
+            return_protocol_id = $31, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $32
+        `, [
+                    rental.vehicleId || null, // UUID as string, not parseInt
+                    rental.customerId || null, // UUID as string, not parseInt
+                    rental.customerName,
+                    rental.startDate,
+                    rental.endDate,
+                    rental.totalPrice,
+                    rental.commission,
+                    rental.paymentMethod,
+                    rental.discount ? JSON.stringify(rental.discount) : null,
+                    rental.customCommission ? JSON.stringify(rental.customCommission) : null,
+                    rental.extraKmCharge,
+                    rental.paid,
+                    rental.status,
+                    rental.handoverPlace,
+                    rental.confirmed,
+                    rental.payments ? JSON.stringify(rental.payments) : null,
+                    rental.history ? JSON.stringify(rental.history) : null,
+                    rental.orderNumber,
+                    rental.deposit || null,
+                    rental.allowedKilometers || null,
+                    rental.dailyKilometers || null,
+                    rental.extraKilometerRate || null,
+                    rental.returnConditions || null,
+                    rental.fuelLevel || null,
+                    rental.odometer || null,
+                    rental.returnFuelLevel || null,
+                    rental.returnOdometer || null,
+                    rental.actualKilometers || null,
+                    rental.fuelRefillCost || null,
+                    rental.handoverProtocolId || null,
+                    rental.returnProtocolId || null,
+                    rental.id // UUID as string, not parseInt
+                ]);
+                // 🛡️ OCHRANA LEVEL 6: Verify update success
+                if (result.rowCount === null || result.rowCount === 0) {
+                    throw new Error(`RENTAL UPDATE FAILED: No rows affected for ID ${rental.id}`);
+                }
+                if (result.rowCount > 1) {
+                    throw new Error(`RENTAL UPDATE ERROR: Multiple rows affected (${result.rowCount}) for ID ${rental.id}`);
+                }
+                await client.query('COMMIT');
+                console.log(`✅ RENTAL UPDATE SUCCESS: ${rental.id} (${result.rowCount} row updated)`);
+            }
+            catch (updateError) {
+                await client.query('ROLLBACK');
+                console.error(`❌ RENTAL UPDATE FAILED, ROLLED BACK:`, updateError);
+                throw updateError;
+            }
         }
         finally {
             client.release();
         }
     }
+    // 🛡️ PROTECTED DELETE with safety checks
     async deleteRental(id) {
         const client = await this.pool.connect();
         try {
-            await client.query('DELETE FROM rentals WHERE id = $1', [id]); // Removed parseInt for UUID
+            // 🛡️ OCHRANA LEVEL 1: Verificaj že prenájom existuje
+            const existing = await this.getRental(id);
+            if (!existing) {
+                throw new Error(`RENTAL DELETE BLOCKED: Rental ${id} does not exist`);
+            }
+            // 🛡️ OCHRANA LEVEL 2: Backup pred vymazaním
+            await this.createRentalBackup(id);
+            // 🛡️ OCHRANA LEVEL 3: Transaction protection
+            await client.query('BEGIN');
+            try {
+                // 🛡️ OCHRANA LEVEL 4: Log delete pokus
+                console.log(`🛡️ RENTAL DELETE START: ${id}`, {
+                    customer: existing.customerName,
+                    vehicle: existing.vehicleId,
+                    totalPrice: existing.totalPrice,
+                    dateRange: `${existing.startDate} - ${existing.endDate}`
+                });
+                // 🛡️ OCHRANA LEVEL 5: Controlled DELETE s row counting
+                const result = await client.query('DELETE FROM rentals WHERE id = $1', [id]);
+                // 🛡️ OCHRANA LEVEL 6: Verify delete success
+                if (result.rowCount === null || result.rowCount === 0) {
+                    throw new Error(`RENTAL DELETE FAILED: No rows affected for ID ${id}`);
+                }
+                if (result.rowCount > 1) {
+                    throw new Error(`RENTAL DELETE ERROR: Multiple rows affected (${result.rowCount}) for ID ${id}`);
+                }
+                await client.query('COMMIT');
+                console.log(`✅ RENTAL DELETE SUCCESS: ${id} (${result.rowCount} row deleted)`);
+            }
+            catch (deleteError) {
+                await client.query('ROLLBACK');
+                console.error(`❌ RENTAL DELETE FAILED, ROLLED BACK:`, deleteError);
+                throw deleteError;
+            }
         }
         finally {
             client.release();
@@ -2008,6 +2119,15 @@ class PostgresDatabase {
             client.release();
         }
     }
+    async deleteInsurance(id) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('DELETE FROM insurances WHERE id = $1', [id]);
+        }
+        finally {
+            client.release();
+        }
+    }
     // Metódy pre firmy
     async getCompanies() {
         const client = await this.pool.connect();
@@ -2026,7 +2146,9 @@ class PostgresDatabase {
     async createCompany(companyData) {
         const client = await this.pool.connect();
         try {
-            const result = await client.query('INSERT INTO companies (name, is_active) VALUES ($1, $2) RETURNING id, name, business_id, tax_id, address, contact_person, email, phone, contract_start_date, contract_end_date, is_active, created_at, updated_at', [companyData.name, true]);
+            console.log('🏢 Creating company:', companyData.name);
+            const result = await client.query('INSERT INTO companies (name) VALUES ($1) RETURNING id, name, business_id, tax_id, address, contact_person, email, phone, contract_start_date, contract_end_date, commission_rate, is_active, created_at, updated_at', [companyData.name]);
+            console.log('🏢 Company created successfully:', result.rows[0]);
             const row = result.rows[0];
             return {
                 id: row.id.toString(),
@@ -2044,6 +2166,10 @@ class PostgresDatabase {
                 createdAt: new Date(row.created_at),
                 updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
             };
+        }
+        catch (error) {
+            console.error('❌ Error creating company:', error);
+            throw error;
         }
         finally {
             client.release();
@@ -3845,12 +3971,58 @@ class PostgresDatabase {
             client.release();
         }
     }
+    // 🗑️ ADMIN FUNCTIONS
+    async resetDatabase() {
+        const client = await this.pool.connect();
+        try {
+            // Vypnúť foreign key constraints
+            await client.query('SET session_replication_role = replica');
+            // Zmazať všetky tabuľky
+            const tables = [
+                'settlements',
+                'user_permissions',
+                'insurance_claims',
+                'insurances',
+                'expenses',
+                'rentals',
+                'customers',
+                'vehicles',
+                'users',
+                'companies',
+                'insurers'
+            ];
+            for (const table of tables) {
+                await client.query(`DROP TABLE IF EXISTS ${table} CASCADE`);
+                console.log(`🗑️ Dropped table: ${table}`);
+            }
+            // Zapnúť foreign key constraints
+            await client.query('SET session_replication_role = DEFAULT');
+            return tables.length;
+        }
+        finally {
+            client.release();
+        }
+    }
     // 🔄 COMPANY MAPPING FUNCTIONS
     async getCompanyIdByName(companyName) {
         const client = await this.pool.connect();
         try {
-            const result = await client.query('SELECT id FROM companies WHERE name = $1', [companyName]);
-            return result.rows.length > 0 ? result.rows[0].id : null;
+            // 1. Skús najprv presný názov
+            const exactResult = await client.query('SELECT id FROM companies WHERE name = $1', [companyName]);
+            if (exactResult.rows.length > 0) {
+                console.log(`✅ Company found (exact): "${companyName}" ID: ${exactResult.rows[0].id}`);
+                return exactResult.rows[0].id;
+            }
+            // 2. Ak nenájdem presný názov, vytvor novú firmu
+            console.log(`⚠️ Company "${companyName}" not found, creating new one...`);
+            const insertResult = await client.query('INSERT INTO companies (name, created_at, updated_at) VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id', [companyName]);
+            const newCompanyId = insertResult.rows[0].id;
+            console.log(`✅ Company created: "${companyName}" ID: ${newCompanyId}`);
+            return newCompanyId;
+        }
+        catch (error) {
+            console.error(`❌ Error getting/creating company "${companyName}":`, error);
+            return null;
         }
         finally {
             client.release();
@@ -3874,6 +4046,344 @@ class PostgresDatabase {
                 id: row.id,
                 name: row.name
             }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🏗️ VEHICLE OWNERSHIP HISTORY FUNCTIONS
+    // Získanie aktuálneho vlastníka vozidla
+    async getCurrentVehicleOwner(vehicleId) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        SELECT owner_company_id, owner_company_name
+        FROM vehicle_ownership_history
+        WHERE vehicle_id = $1 AND valid_to IS NULL
+        ORDER BY valid_from DESC
+        LIMIT 1
+      `, [vehicleId]);
+            if (result.rows.length === 0) {
+                return null;
+            }
+            return {
+                ownerCompanyId: result.rows[0].owner_company_id,
+                ownerCompanyName: result.rows[0].owner_company_name
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    // Získanie vlastníka vozidla v konkrétnom čase
+    async getVehicleOwnerAtTime(vehicleId, timestamp) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        SELECT owner_company_id, owner_company_name
+        FROM vehicle_ownership_history
+        WHERE vehicle_id = $1 
+          AND valid_from <= $2
+          AND (valid_to IS NULL OR valid_to > $2)
+        ORDER BY valid_from DESC
+        LIMIT 1
+      `, [vehicleId, timestamp]);
+            if (result.rows.length === 0) {
+                return null;
+            }
+            return {
+                ownerCompanyId: result.rows[0].owner_company_id,
+                ownerCompanyName: result.rows[0].owner_company_name
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    // Získanie histórie vlastníctva vozidla
+    async getVehicleOwnershipHistory(vehicleId) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        SELECT 
+          id,
+          owner_company_id,
+          owner_company_name,
+          valid_from,
+          valid_to,
+          transfer_reason,
+          transfer_notes
+        FROM vehicle_ownership_history
+        WHERE vehicle_id = $1
+        ORDER BY valid_from DESC
+      `, [vehicleId]);
+            return result.rows.map(row => ({
+                id: row.id,
+                ownerCompanyId: row.owner_company_id,
+                ownerCompanyName: row.owner_company_name,
+                validFrom: row.valid_from,
+                validTo: row.valid_to,
+                transferReason: row.transfer_reason,
+                transferNotes: row.transfer_notes
+            }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    // Transfer vlastníctva vozidla
+    async transferVehicleOwnership(vehicleId, newOwnerCompanyId, transferReason = 'manual_transfer', transferNotes = null, transferDate = new Date()) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+            // 1. Získaj názov novej firmy
+            const companyResult = await client.query(`
+        SELECT name FROM companies WHERE id = $1
+      `, [newOwnerCompanyId]);
+            if (companyResult.rows.length === 0) {
+                throw new Error(`Company with ID ${newOwnerCompanyId} not found`);
+            }
+            const newOwnerCompanyName = companyResult.rows[0].name;
+            // 2. Ukončí súčasné vlastníctvo
+            await client.query(`
+        UPDATE vehicle_ownership_history 
+        SET valid_to = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE vehicle_id = $2 AND valid_to IS NULL
+      `, [transferDate, vehicleId]);
+            // 3. Vytvor nový ownership záznam
+            await client.query(`
+        INSERT INTO vehicle_ownership_history (
+          vehicle_id, 
+          owner_company_id, 
+          owner_company_name,
+          valid_from, 
+          transfer_reason, 
+          transfer_notes
+        ) VALUES ($1, $2, $3, $4, $5, $6)
+      `, [vehicleId, newOwnerCompanyId, newOwnerCompanyName, transferDate, transferReason, transferNotes]);
+            // 4. Aktualizuj vehicles tabuľku pre súčasný stav
+            await client.query(`
+        UPDATE vehicles 
+        SET owner_company_id = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2
+      `, [newOwnerCompanyId, vehicleId]);
+            await client.query('COMMIT');
+            return true;
+        }
+        catch (error) {
+            await client.query('ROLLBACK');
+            console.error('Transfer ownership error:', error);
+            throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // Získanie vozidiel firmy v konkrétnom čase
+    async getCompanyVehiclesAtTime(companyId, timestamp) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        SELECT DISTINCT v.*
+        FROM vehicles v
+        JOIN vehicle_ownership_history voh ON v.id = voh.vehicle_id
+        WHERE voh.owner_company_id = $1
+          AND voh.valid_from <= $2
+          AND (voh.valid_to IS NULL OR voh.valid_to > $2)
+        ORDER BY v.brand, v.model, v.license_plate
+      `, [companyId, timestamp]);
+            return result.rows.map(row => ({
+                id: row.id,
+                brand: row.brand,
+                model: row.model,
+                year: row.year,
+                licensePlate: row.license_plate,
+                company: row.company,
+                ownerCompanyId: row.owner_company_id?.toString(),
+                pricing: row.pricing,
+                commission: row.commission,
+                status: row.status,
+                stk: row.stk,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at
+            }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    // ====================================
+    // 🛡️ RENTAL DATA PROTECTION SYSTEM 🛡️
+    // ====================================
+    // Ochrana Level 1: Validácia pred UPDATE
+    async validateRentalUpdate(id, newData) {
+        const errors = [];
+        // Skontroluj či prenájom existuje
+        const existing = await this.getRental(id);
+        if (!existing) {
+            errors.push(`Rental ${id} does not exist`);
+            return { valid: false, errors };
+        }
+        // Ochrana critical fields
+        const criticalFields = ['customerName', 'startDate', 'endDate'];
+        for (const field of criticalFields) {
+            if (field in newData && !newData[field]) {
+                errors.push(`Critical field ${field} cannot be empty`);
+            }
+        }
+        // Validácia dátumov
+        if (newData.startDate && newData.endDate) {
+            if (new Date(newData.startDate) >= new Date(newData.endDate)) {
+                errors.push('Start date must be before end date');
+            }
+        }
+        // Log každý update pokus
+        console.log(`🛡️ RENTAL UPDATE VALIDATION: ${id}`, {
+            existingCustomer: existing.customerName,
+            newCustomer: newData.customerName,
+            vehicleId: newData.vehicleId,
+            validationErrors: errors.length
+        });
+        return { valid: errors.length === 0, errors };
+    }
+    // Ochrana Level 2: Backup before UPDATE
+    async createRentalBackup(id) {
+        const client = await this.pool.connect();
+        try {
+            // Create backup table if not exists
+            await client.query(`
+        CREATE TABLE IF NOT EXISTS rental_backups (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          original_rental_id UUID NOT NULL,
+          backup_data JSONB NOT NULL,
+          backup_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          backup_reason VARCHAR(100) DEFAULT 'pre_update'
+        )
+      `);
+            // Get current rental data
+            const rental = await this.getRental(id);
+            if (rental) {
+                await client.query(`
+          INSERT INTO rental_backups (original_rental_id, backup_data, backup_reason)
+          VALUES ($1, $2, $3)
+        `, [id, JSON.stringify(rental), 'pre_update']);
+                console.log(`✅ RENTAL BACKUP created for ${id}`);
+            }
+        }
+        catch (error) {
+            console.error(`❌ RENTAL BACKUP failed for ${id}:`, error);
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🛡️ OCHRANA LEVEL 7: Recovery function pre obnovenie dát
+    async recoverRentalFromBackup(rentalId, backupId) {
+        const client = await this.pool.connect();
+        try {
+            // Nájdi najnovší backup alebo konkrétny backup
+            const backupQuery = backupId
+                ? 'SELECT * FROM rental_backups WHERE id = $1'
+                : 'SELECT * FROM rental_backups WHERE original_rental_id = $1 ORDER BY backup_timestamp DESC LIMIT 1';
+            const backupResult = await client.query(backupQuery, [backupId || rentalId]);
+            if (backupResult.rows.length === 0) {
+                console.error(`❌ No backup found for rental ${rentalId}`);
+                return null;
+            }
+            const backup = backupResult.rows[0];
+            const rentalData = backup.backup_data;
+            console.log(`🔄 RECOVERING RENTAL: ${rentalId} from backup ${backup.id}`);
+            console.log(`   Backup timestamp: ${backup.backup_timestamp}`);
+            console.log(`   Customer: ${rentalData.customerName}`);
+            // Restore rental from backup
+            await this.updateRental(rentalData);
+            console.log(`✅ RENTAL RECOVERED: ${rentalId}`);
+            return rentalData;
+        }
+        catch (error) {
+            console.error(`❌ RENTAL RECOVERY FAILED for ${rentalId}:`, error);
+            throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🛡️ OCHRANA LEVEL 8: Monitoring rental integrity  
+    async checkRentalIntegrity() {
+        const client = await this.pool.connect();
+        try {
+            const issues = [];
+            // Count total rentals
+            const totalResult = await client.query('SELECT COUNT(*) as count FROM rentals');
+            const totalRentals = parseInt(totalResult.rows[0].count);
+            // Count rentals with missing vehicles
+            const missingVehiclesResult = await client.query(`
+        SELECT COUNT(*) as count FROM rentals r 
+        WHERE r.vehicle_id IS NOT NULL 
+        AND r.vehicle_id NOT IN (SELECT id FROM vehicles)
+      `);
+            const missingVehicles = parseInt(missingVehiclesResult.rows[0].count);
+            // Count rentals with missing customers  
+            const missingCustomersResult = await client.query(`
+        SELECT COUNT(*) as count FROM rentals r
+        WHERE r.customer_id IS NOT NULL 
+        AND r.customer_id NOT IN (SELECT id FROM customers)
+      `);
+            const missingCustomers = parseInt(missingCustomersResult.rows[0].count);
+            // Count rentals with invalid dates
+            const invalidDatesResult = await client.query(`
+        SELECT COUNT(*) as count FROM rentals 
+        WHERE start_date >= end_date OR start_date IS NULL OR end_date IS NULL
+      `);
+            const invalidDates = parseInt(invalidDatesResult.rows[0].count);
+            // Count available backups
+            const backupsResult = await client.query('SELECT COUNT(*) as count FROM rental_backups');
+            const backupsAvailable = parseInt(backupsResult.rows[0].count);
+            // Identify issues
+            if (missingVehicles > 0)
+                issues.push(`${missingVehicles} rentals have invalid vehicle_id`);
+            if (missingCustomers > 0)
+                issues.push(`${missingCustomers} rentals have invalid customer_id`);
+            if (invalidDates > 0)
+                issues.push(`${invalidDates} rentals have invalid dates`);
+            const report = {
+                totalRentals,
+                missingVehicles,
+                missingCustomers,
+                invalidDates,
+                backupsAvailable,
+                issues
+            };
+            console.log('🛡️ RENTAL INTEGRITY CHECK:', report);
+            return report;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // Získanie majiteľa vozidla k určitému dátumu
+    async getVehicleOwnerAtDate(vehicleId, date) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        SELECT 
+          owner_company_id,
+          owner_company_name
+        FROM vehicle_ownership_history
+        WHERE vehicle_id = $1
+          AND valid_from <= $2
+          AND (valid_to IS NULL OR valid_to > $2)
+        ORDER BY valid_from DESC
+        LIMIT 1
+      `, [vehicleId, date]);
+            if (result.rows.length === 0) {
+                return null;
+            }
+            const row = result.rows[0];
+            return {
+                ownerCompanyId: row.owner_company_id,
+                ownerCompanyName: row.owner_company_name
+            };
         }
         finally {
             client.release();

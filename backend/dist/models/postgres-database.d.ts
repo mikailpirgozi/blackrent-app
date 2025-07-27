@@ -122,6 +122,7 @@ export declare class PostgresDatabase {
         paymentFrequency?: string;
         filePath?: string;
     }): Promise<Insurance>;
+    deleteInsurance(id: string): Promise<void>;
     getCompanies(): Promise<Company[]>;
     createCompany(companyData: {
         name: string;
@@ -264,12 +265,47 @@ export declare class PostgresDatabase {
         username: string;
         permissions: CompanyPermissions;
     }[]>;
+    resetDatabase(): Promise<number>;
     getCompanyIdByName(companyName: string): Promise<string | null>;
     getCompanyNameById(companyId: string): Promise<string | null>;
     getAllCompanies(): Promise<{
         id: string;
         name: string;
     }[]>;
+    getCurrentVehicleOwner(vehicleId: string): Promise<{
+        ownerCompanyId: string;
+        ownerCompanyName: string;
+    } | null>;
+    getVehicleOwnerAtTime(vehicleId: string, timestamp: Date): Promise<{
+        ownerCompanyId: string;
+        ownerCompanyName: string;
+    } | null>;
+    getVehicleOwnershipHistory(vehicleId: string): Promise<{
+        id: string;
+        ownerCompanyId: string;
+        ownerCompanyName: string;
+        validFrom: Date;
+        validTo: Date | null;
+        transferReason: string;
+        transferNotes: string | null;
+    }[]>;
+    transferVehicleOwnership(vehicleId: string, newOwnerCompanyId: string, transferReason?: string, transferNotes?: string | null, transferDate?: Date): Promise<boolean>;
+    getCompanyVehiclesAtTime(companyId: string, timestamp: Date): Promise<Vehicle[]>;
+    private validateRentalUpdate;
+    private createRentalBackup;
+    recoverRentalFromBackup(rentalId: string, backupId?: string): Promise<Rental | null>;
+    checkRentalIntegrity(): Promise<{
+        totalRentals: number;
+        missingVehicles: number;
+        missingCustomers: number;
+        invalidDates: number;
+        backupsAvailable: number;
+        issues: string[];
+    }>;
+    getVehicleOwnerAtDate(vehicleId: string, date: Date): Promise<{
+        ownerCompanyId: string;
+        ownerCompanyName: string;
+    } | null>;
 }
 export declare const postgresDatabase: PostgresDatabase;
 //# sourceMappingURL=postgres-database.d.ts.map

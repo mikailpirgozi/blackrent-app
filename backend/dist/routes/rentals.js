@@ -37,22 +37,62 @@ router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('re
             const userCompanyAccess = await postgres_database_1.postgresDatabase.getUserCompanyAccess(user.id);
             const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
             // Získaj všetky vehicles pre mapping
-            const vehicles = await postgres_database_1.postgresDatabase.getVehicles();
-            // Filter prenájmy len pre vozidlá firiem, ku ktorým má používateľ prístup  
-            // ✅ Všetky vozidlá majú teraz owner_company_id - používame len to
-            rentals = rentals.filter(r => {
-                if (!r.vehicleId)
-                    return false;
-                const vehicle = vehicles.find(v => v.id === r.vehicleId);
-                if (!vehicle)
-                    return false;
-                return vehicle.ownerCompanyId && allowedCompanyIds.includes(vehicle.ownerCompanyId);
-            });
-            console.log('🔐 Rentals Company Permission Filter:', {
+            // Filter prenájmy len pre vozidlá firiem, ku ktorým mal používateľ prístup V ČASE PRENÁJMU
+            // 🏗️ HISTORICAL OWNERSHIP s FALLBACK na súčasný ownership
+            const filteredRentals = [];
+            for (const rental of rentals) {
+                if (!rental.vehicleId || !rental.startDate) {
+                    continue; // Skip rentals without vehicle or start date
+                }
+                try {
+                    // Získaj vlastníka vozidla v čase začiatku prenájmu (HISTORICAL)
+                    const ownerAtTime = await postgres_database_1.postgresDatabase.getVehicleOwnerAtTime(rental.vehicleId, new Date(rental.startDate));
+                    if (ownerAtTime && allowedCompanyIds.includes(ownerAtTime.ownerCompanyId)) {
+                        filteredRentals.push(rental);
+                    }
+                    else {
+                        // 🔄 FALLBACK: Ak historical ownership neexistuje, použij súčasný ownership
+                        const currentOwner = await postgres_database_1.postgresDatabase.getCurrentVehicleOwner(rental.vehicleId);
+                        if (currentOwner && allowedCompanyIds.includes(currentOwner.ownerCompanyId)) {
+                            console.log(`📝 Using current ownership for rental ${rental.id} (historical not found)`);
+                            filteredRentals.push(rental);
+                        }
+                        else {
+                            // 🔄 FALLBACK 2: Použij vehicle.company zo starého systému
+                            if (rental.vehicle?.company) {
+                                const companyNames = await Promise.all(allowedCompanyIds.map(async (companyId) => {
+                                    try {
+                                        const companyName = await postgres_database_1.postgresDatabase.getCompanyNameById(companyId);
+                                        return companyName;
+                                    }
+                                    catch (error) {
+                                        return null;
+                                    }
+                                }));
+                                if (companyNames.includes(rental.vehicle.company)) {
+                                    console.log(`📝 Using legacy company matching for rental ${rental.id}`);
+                                    filteredRentals.push(rental);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (error) {
+                    console.error(`Error getting vehicle owner for rental ${rental.id}:`, error);
+                    // 🔄 EMERGENCY FALLBACK: Zachovaj rental ak je chyba
+                    if (rental.vehicle?.company) {
+                        console.log(`🚨 Emergency fallback for rental ${rental.id}`);
+                        filteredRentals.push(rental);
+                    }
+                }
+            }
+            rentals = filteredRentals;
+            console.log('🔐 Rentals Historical Ownership Filter:', {
                 userId: user.id,
                 allowedCompanyIds,
                 originalCount,
-                filteredCount: rentals.length
+                filteredCount: rentals.length,
+                filterType: 'historical_ownership'
             });
         }
         res.json({

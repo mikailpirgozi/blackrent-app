@@ -293,82 +293,325 @@ router.get('/export/csv', auth_1.authenticateToken, (0, permissions_1.checkPermi
         });
     }
 });
-// 📥 CSV IMPORT - Import vozidiel z CSV
-router.post('/import/csv', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'create'), async (req, res) => {
+// 📥 CSV IMPORT - Import vozidiel z CSV s kontrolou duplicít a update
+router.post('/import/csv', auth_1.authenticateToken, async (req, res) => {
     try {
+        console.log('📥 Starting CSV import for vehicles...');
         const { csvData } = req.body;
-        if (!csvData || typeof csvData !== 'string') {
+        if (!csvData) {
             return res.status(400).json({
                 success: false,
                 error: 'CSV dáta sú povinné'
             });
         }
-        // Parsuj CSV
-        const lines = csvData.trim().split('\n');
-        if (lines.length < 2) {
-            return res.status(400).json({
-                success: false,
-                error: 'CSV musí obsahovať aspoň hlavičku a jeden riadok dát'
-            });
-        }
-        // Preskočíme hlavičku
-        const dataLines = lines.slice(1);
+        // Parsuj CSV dáta
+        const lines = csvData.split('\n').filter((line) => line.trim());
+        const header = lines[0].split(',').map((h) => h.replace(/^"|"$/g, '').trim());
+        const dataLines = lines.slice(1); // Preskočiť header
+        console.log('📊 CSV Header:', header);
         const results = [];
         const errors = [];
+        const updated = [];
+        const skipped = [];
+        console.log(`📊 Processing ${dataLines.length} vehicles from CSV...`);
+        // Získaj existujúce vozidlá pre kontrolu duplicít
+        const existingVehicles = await postgres_database_1.postgresDatabase.getVehicles();
+        const existingByLicensePlate = new Map(existingVehicles.map(v => [v.licensePlate?.toLowerCase(), v]));
+        // Progress tracking
+        const progressInterval = Math.max(1, Math.floor(dataLines.length / 10)); // Log každých 10% alebo každý záznam ak je menej ako 10
         for (let i = 0; i < dataLines.length; i++) {
+            // Progress logging
+            if (i % progressInterval === 0 || i === dataLines.length - 1) {
+                const progress = Math.round(((i + 1) / dataLines.length) * 100);
+                console.log(`📊 CSV Import Progress: ${progress}% (${i + 1}/${dataLines.length})`);
+            }
             try {
                 const line = dataLines[i].trim();
                 if (!line)
                     continue;
-                // Parsuj CSV riadok (jednoduché parsovanie)
-                const fields = line.split(',').map(field => field.replace(/^"|"$/g, '').trim());
+                // Parsuj CSV riadok
+                const fields = line.split(',').map((field) => field.replace(/^"|"$/g, '').trim());
                 if (fields.length < 4) {
                     errors.push({ row: i + 2, error: 'Nedostatok stĺpcov' });
                     continue;
                 }
-                const [, brand, model, licensePlate, company, year, status] = fields;
+                // Mapovanie základných stĺpcov
+                const fieldMap = {};
+                header.forEach((headerName, index) => {
+                    fieldMap[headerName] = fields[index] || '';
+                });
+                const brand = fieldMap['brand'];
+                const model = fieldMap['model'];
+                const licensePlate = fieldMap['licensePlate'];
+                const company = fieldMap['company'];
+                const year = fieldMap['year'];
+                const status = fieldMap['status'];
+                const stk = fieldMap['stk'];
                 if (!brand || !model || !company) {
                     errors.push({ row: i + 2, error: 'Značka, model a firma sú povinné' });
                     continue;
                 }
-                // Vytvor vozidlo
+                // ✅ PARSOVANIE CENOTVORBY Z CSV
+                const pricing = [];
+                // Mapovanie cenových stĺpcov na pricing formát
+                const priceColumns = [
+                    { column: 'cena_0_1', minDays: 0, maxDays: 1 },
+                    { column: 'cena_2_3', minDays: 2, maxDays: 3 },
+                    { column: 'cena_4_7', minDays: 4, maxDays: 7 },
+                    { column: 'cena_8_14', minDays: 8, maxDays: 14 },
+                    { column: 'cena_15_22', minDays: 15, maxDays: 22 },
+                    { column: 'cena_23_30', minDays: 23, maxDays: 30 },
+                    { column: 'cena_31_9999', minDays: 31, maxDays: 9999 }
+                ];
+                priceColumns.forEach((priceCol, index) => {
+                    const priceValue = fieldMap[priceCol.column];
+                    if (priceValue && !isNaN(parseFloat(priceValue))) {
+                        pricing.push({
+                            id: (index + 1).toString(),
+                            minDays: priceCol.minDays,
+                            maxDays: priceCol.maxDays,
+                            pricePerDay: parseFloat(priceValue)
+                        });
+                    }
+                });
+                // Parsovanie commission
+                const commissionType = (fieldMap['commissionType'] || 'percentage');
+                const commissionValue = fieldMap['commissionValue'] ? parseFloat(fieldMap['commissionValue']) : 20;
+                // Vytvor vehicle data
                 const vehicleData = {
                     brand: brand.trim(),
                     model: model.trim(),
                     licensePlate: licensePlate?.trim() || '',
                     company: company.trim(),
-                    year: year ? parseInt(year) : 2024,
-                    status: status?.trim() || 'available',
-                    pricing: [],
-                    commission: { type: 'percentage', value: 20 }
+                    year: year && year.trim() && !isNaN(parseInt(year)) ? parseInt(year) : 2024,
+                    status: (status?.trim() || 'available'),
+                    stk: stk && stk.trim() ? new Date(stk.trim()) : undefined,
+                    pricing: pricing,
+                    commission: {
+                        type: commissionType,
+                        value: commissionValue
+                    }
                 };
-                const createdVehicle = await postgres_database_1.postgresDatabase.createVehicle(vehicleData);
-                results.push({ row: i + 2, vehicle: createdVehicle });
+                // 🔍 KONTROLA DUPLICÍT - Ak existuje vozidlo s rovnakou ŠPZ
+                const licensePlateLower = vehicleData.licensePlate.toLowerCase();
+                const existingVehicle = existingByLicensePlate.get(licensePlateLower);
+                if (existingVehicle) {
+                    // ✅ UPDATE EXISTUJÚCEHO ZÁZNAMU
+                    console.log(`🔄 Updating existing vehicle ${i + 1}/${dataLines.length}: ${brand} ${model} (${licensePlate})`);
+                    const updatedVehicle = {
+                        ...existingVehicle,
+                        brand: vehicleData.brand,
+                        model: vehicleData.model,
+                        company: vehicleData.company,
+                        year: vehicleData.year,
+                        status: vehicleData.status,
+                        stk: vehicleData.stk,
+                        pricing: vehicleData.pricing,
+                        commission: vehicleData.commission
+                    };
+                    await postgres_database_1.postgresDatabase.updateVehicle(updatedVehicle);
+                    updated.push({
+                        id: existingVehicle.id,
+                        brand: vehicleData.brand,
+                        model: vehicleData.model,
+                        licensePlate: vehicleData.licensePlate,
+                        action: 'updated'
+                    });
+                }
+                else {
+                    // ✅ VYTVOR NOVÉ VOZIDLO
+                    console.log(`🚗 Creating new vehicle ${i + 1}/${dataLines.length}: ${brand} ${model} with ${pricing.length} price tiers`);
+                    console.log('💰 Pricing:', pricing);
+                    const createdVehicle = await postgres_database_1.postgresDatabase.createVehicle(vehicleData);
+                    results.push({
+                        id: createdVehicle.id,
+                        brand: vehicleData.brand,
+                        model: vehicleData.model,
+                        licensePlate: vehicleData.licensePlate,
+                        action: 'created'
+                    });
+                }
             }
             catch (error) {
+                console.error(`❌ Error processing row ${i + 2}:`, error);
                 errors.push({
                     row: i + 2,
-                    error: error.message || 'Chyba pri vytváraní vozidla'
+                    error: error instanceof Error ? error.message : 'Neznáma chyba'
                 });
             }
         }
+        console.log(`✅ CSV import completed: ${results.length} created, ${updated.length} updated, ${errors.length} errors`);
         res.json({
             success: true,
-            message: `CSV import dokončený: ${results.length} úspešných, ${errors.length} chýb`,
+            message: `CSV import dokončený: ${results.length} vytvorených, ${updated.length} aktualizovaných, ${errors.length} chýb`,
             data: {
                 imported: results.length,
+                updated: updated.length,
                 errorsCount: errors.length,
-                results,
+                results: [...results, ...updated],
                 errors: errors.slice(0, 10) // Limit na prvých 10 chýb
             }
         });
-        console.log(`📥 CSV Import: ${results.length} vozidiel importovaných, ${errors.length} chýb`);
     }
     catch (error) {
-        console.error('CSV import error:', error);
+        console.error('❌ CSV import error:', error);
         res.status(500).json({
             success: false,
-            error: 'Chyba pri importe CSV'
+            error: 'Chyba pri CSV importe',
+            details: error instanceof Error ? error.message : 'Neznáma chyba'
+        });
+    }
+});
+// POST /api/vehicles/:id/transfer-ownership - Transfer vlastníctva vozidla
+router.post('/:id/transfer-ownership', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), // Len admin môže robiť transfer
+async (req, res) => {
+    try {
+        const { id: vehicleId } = req.params;
+        const { newOwnerCompanyId, transferReason = 'manual_transfer', transferNotes = null, transferDate } = req.body;
+        console.log('🔄 Vehicle Ownership Transfer:', {
+            vehicleId,
+            newOwnerCompanyId,
+            transferReason,
+            transferDate: transferDate || 'now',
+            requestedBy: req.user?.username
+        });
+        // Validácia
+        if (!newOwnerCompanyId) {
+            return res.status(400).json({
+                success: false,
+                error: 'New owner company ID is required'
+            });
+        }
+        // Overenie, že vozidlo existuje
+        const vehicle = await postgres_database_1.postgresDatabase.getVehicle(vehicleId);
+        if (!vehicle) {
+            return res.status(404).json({
+                success: false,
+                error: 'Vehicle not found'
+            });
+        }
+        // Získanie súčasného vlastníka pre logovanie
+        const currentOwner = await postgres_database_1.postgresDatabase.getCurrentVehicleOwner(vehicleId);
+        // Transfer ownership
+        const transferDate_parsed = transferDate ? new Date(transferDate) : new Date();
+        await postgres_database_1.postgresDatabase.transferVehicleOwnership(vehicleId, newOwnerCompanyId, transferReason, transferNotes, transferDate_parsed);
+        // Získanie nového vlastníka pre response
+        const newOwner = await postgres_database_1.postgresDatabase.getCurrentVehicleOwner(vehicleId);
+        console.log('✅ Vehicle ownership transferred successfully:', {
+            vehicleId,
+            vehicle: `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`,
+            fromCompany: currentOwner?.ownerCompanyName || 'Unknown',
+            toCompany: newOwner?.ownerCompanyName || 'Unknown',
+            transferDate: transferDate_parsed,
+            reason: transferReason
+        });
+        res.json({
+            success: true,
+            message: `Vehicle ownership transferred successfully from ${currentOwner?.ownerCompanyName || 'Unknown'} to ${newOwner?.ownerCompanyName || 'Unknown'}`,
+            data: {
+                vehicleId,
+                vehicle: {
+                    brand: vehicle.brand,
+                    model: vehicle.model,
+                    licensePlate: vehicle.licensePlate
+                },
+                previousOwner: currentOwner,
+                newOwner: newOwner,
+                transferDate: transferDate_parsed,
+                transferReason,
+                transferNotes
+            }
+        });
+    }
+    catch (error) {
+        console.error('Vehicle ownership transfer error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Transfer failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+    }
+});
+// GET /api/vehicles/:id/ownership-history - História vlastníctva vozidla
+router.get('/:id/ownership-history', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), // Len admin môže vidieť históriu
+async (req, res) => {
+    try {
+        const { id: vehicleId } = req.params;
+        // Overenie, že vozidlo existuje
+        const vehicle = await postgres_database_1.postgresDatabase.getVehicle(vehicleId);
+        if (!vehicle) {
+            return res.status(404).json({
+                success: false,
+                error: 'Vehicle not found'
+            });
+        }
+        // Získanie ownership history
+        const history = await postgres_database_1.postgresDatabase.getVehicleOwnershipHistory(vehicleId);
+        res.json({
+            success: true,
+            data: {
+                vehicle: {
+                    id: vehicle.id,
+                    brand: vehicle.brand,
+                    model: vehicle.model,
+                    licensePlate: vehicle.licensePlate
+                },
+                ownershipHistory: history
+            }
+        });
+    }
+    catch (error) {
+        console.error('Get ownership history error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Failed to get ownership history: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+    }
+});
+// GET /api/vehicles/:id/owner-at-date - Získanie majiteľa vozidla k dátumu
+router.get('/:id/owner-at-date', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'read', { getContext: getVehicleContext }), async (req, res) => {
+    try {
+        const { id: vehicleId } = req.params;
+        const { date } = req.query;
+        if (!date || typeof date !== 'string') {
+            return res.status(400).json({
+                success: false,
+                error: 'Date parameter is required'
+            });
+        }
+        const targetDate = new Date(date);
+        if (isNaN(targetDate.getTime())) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid date format'
+            });
+        }
+        // Overenie, že vozidlo existuje
+        const vehicle = await postgres_database_1.postgresDatabase.getVehicle(vehicleId);
+        if (!vehicle) {
+            return res.status(404).json({
+                success: false,
+                error: 'Vehicle not found'
+            });
+        }
+        // Získanie majiteľa k dátumu
+        const owner = await postgres_database_1.postgresDatabase.getVehicleOwnerAtDate(vehicleId, targetDate);
+        res.json({
+            success: true,
+            data: {
+                vehicleId,
+                date: targetDate.toISOString(),
+                owner: owner || {
+                    ownerCompanyId: null,
+                    ownerCompanyName: 'Neznámy majiteľ'
+                }
+            }
+        });
+    }
+    catch (error) {
+        console.error('Get vehicle owner at date error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Failed to get vehicle owner: ${error instanceof Error ? error.message : 'Unknown error'}`
         });
     }
 });
