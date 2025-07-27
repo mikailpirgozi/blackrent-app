@@ -173,4 +173,30 @@ router.post('/fix-schema',
   }
 );
 
+// 🛡️ RENTAL INTEGRITY MONITORING endpoint
+router.get('/rental-integrity', 
+  authenticateToken,
+  requireRole(['admin']),
+  async (req: Request, res: Response) => {
+    try {
+      console.log('🛡️ ADMIN: Checking rental integrity...');
+      
+      const integrityReport = await postgresDatabase.checkRentalIntegrity();
+      
+      res.json({
+        success: true,
+        message: 'Rental integrity check completed',
+        data: integrityReport
+      });
+      
+    } catch (error) {
+      console.error('❌ Rental integrity check failed:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to check rental integrity'
+      });
+    }
+  }
+);
+
 export default router; 
