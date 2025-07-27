@@ -5,9 +5,12 @@ export interface Vehicle {
     year?: number;
     licensePlate: string;
     company: string;
+    ownerName?: string;
     pricing: PricingTier[];
     commission: Commission;
     status: VehicleStatus;
+    ownerCompanyId?: string;
+    assignedMechanicId?: string;
     createdAt?: Date;
 }
 export interface PricingTier {
@@ -76,6 +79,7 @@ export interface Rental {
     orderNumber?: string;
     deposit?: number;
     allowedKilometers?: number;
+    dailyKilometers?: number;
     extraKilometerRate?: number;
     returnConditions?: string;
     fuelLevel?: number;
@@ -86,6 +90,10 @@ export interface Rental {
     fuelRefillCost?: number;
     handoverProtocolId?: string;
     returnProtocolId?: string;
+    pickupLocation?: string;
+    returnLocation?: string;
+    vehicleCode?: string;
+    vehicleName?: string;
 }
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';
 export interface Expense {
@@ -99,6 +107,42 @@ export interface Expense {
     note?: string;
 }
 export type ExpenseCategory = 'service' | 'insurance' | 'fuel' | 'other';
+export type PaymentFrequency = 'monthly' | 'quarterly' | 'biannual' | 'yearly';
+export type DocumentType = 'stk' | 'ek' | 'vignette';
+export interface VehicleDocument {
+    id: string;
+    vehicleId: string;
+    documentType: DocumentType;
+    validFrom?: Date;
+    validTo: Date;
+    documentNumber?: string;
+    price?: number;
+    notes?: string;
+    filePath?: string;
+    createdAt: Date;
+    updatedAt?: Date;
+}
+export interface InsuranceClaim {
+    id: string;
+    vehicleId: string;
+    insuranceId?: string;
+    incidentDate: Date;
+    reportedDate: Date;
+    claimNumber?: string;
+    description: string;
+    location?: string;
+    incidentType: 'accident' | 'theft' | 'vandalism' | 'weather' | 'other';
+    estimatedDamage?: number;
+    deductible?: number;
+    payoutAmount?: number;
+    status: 'reported' | 'investigating' | 'approved' | 'rejected' | 'closed';
+    filePaths?: string[];
+    policeReportNumber?: string;
+    otherPartyInfo?: string;
+    notes?: string;
+    createdAt: Date;
+    updatedAt?: Date;
+}
 export interface Insurance {
     id: string;
     vehicleId: string;
@@ -108,6 +152,8 @@ export interface Insurance {
     validTo: Date;
     price: number;
     company: string;
+    paymentFrequency: PaymentFrequency;
+    filePath?: string;
 }
 export interface Settlement {
     id: string;
@@ -124,17 +170,31 @@ export interface Settlement {
     company?: string;
     vehicleId?: string;
 }
-export interface Company {
+export interface VehicleUnavailability {
     id: string;
-    name: string;
-    createdAt?: Date;
+    vehicleId: string;
+    vehicle?: Vehicle;
+    startDate: Date;
+    endDate: Date;
+    reason: string;
+    type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection';
+    notes?: string;
+    priority: 1 | 2 | 3;
+    recurring: boolean;
+    recurringConfig?: {
+        interval: 'days' | 'weeks' | 'months' | 'years';
+        value: number;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy: string;
 }
 export interface Insurer {
     id: string;
     name: string;
     createdAt?: Date;
 }
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'employee' | 'temp_worker' | 'mechanic' | 'sales_rep' | 'company_owner';
 export interface User {
     id: string;
     username: string;
@@ -143,10 +203,58 @@ export interface User {
     lastName?: string;
     password: string;
     role: UserRole;
+    companyId?: string;
+    employeeNumber?: string;
+    hireDate?: Date;
+    isActive: boolean;
+    lastLogin?: Date;
+    permissions?: Permission[];
     signatureTemplate?: string;
     createdAt: Date;
+    updatedAt?: Date;
 }
 export type UserWithoutPassword = Omit<User, 'password'>;
+export interface Company {
+    id: string;
+    name: string;
+    businessId?: string;
+    taxId?: string;
+    address?: string;
+    contactPerson?: string;
+    email?: string;
+    phone?: string;
+    contractStartDate?: Date;
+    contractEndDate?: Date;
+    commissionRate: number;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt?: Date;
+}
+export interface Permission {
+    resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | 'expenses' | 'insurances' | '*';
+    actions: ('read' | 'create' | 'update' | 'delete')[];
+    conditions?: {
+        ownOnly?: boolean;
+        companyOnly?: boolean;
+        maxAmount?: number;
+        approvalRequired?: boolean;
+        readOnlyFields?: string[];
+    };
+}
+export interface PermissionCheck {
+    userId: string;
+    userRole: UserRole;
+    companyId?: string;
+    resource: string;
+    action: string;
+    targetCompanyId?: string;
+    amount?: number;
+}
+export interface PermissionResult {
+    hasAccess: boolean;
+    requiresApproval: boolean;
+    reason?: string;
+}
 export interface LoginCredentials {
     username: string;
     password: string;

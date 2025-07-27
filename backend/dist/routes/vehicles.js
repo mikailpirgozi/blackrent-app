@@ -3,11 +3,39 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
+const permissions_1 = require("../middleware/permissions");
 const router = (0, express_1.Router)();
+// 🔍 CONTEXT FUNCTIONS
+const getVehicleContext = async (req) => {
+    const vehicleId = req.params.id;
+    if (!vehicleId)
+        return {};
+    const vehicle = await postgres_database_1.postgresDatabase.getVehicle(vehicleId);
+    return {
+        resourceOwnerId: vehicle?.assignedMechanicId,
+        resourceCompanyId: vehicle?.ownerCompanyId
+    };
+};
 // GET /api/vehicles - Získanie všetkých vozidiel
-router.get('/', auth_1.authenticateToken, async (req, res) => {
+router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'read'), async (req, res) => {
     try {
-        const vehicles = await postgres_database_1.postgresDatabase.getVehicles();
+        let vehicles = await postgres_database_1.postgresDatabase.getVehicles();
+        console.log('🚗 Vehicles GET - user:', {
+            role: req.user?.role,
+            companyId: req.user?.companyId,
+            totalVehicles: vehicles.length
+        });
+        // 🏢 COMPANY OWNER - filter len vlastné vozidlá
+        if (req.user?.role === 'company_owner' && req.user.companyId) {
+            const originalCount = vehicles.length;
+            vehicles = vehicles.filter(v => v.ownerCompanyId === req.user?.companyId);
+            console.log('🏢 Company Owner Filter:', {
+                userCompanyId: req.user.companyId,
+                originalCount,
+                filteredCount: vehicles.length,
+                sampleVehicleOwners: vehicles.slice(0, 3).map(v => ({ id: v.id, ownerCompanyId: v.ownerCompanyId }))
+            });
+        }
         res.json({
             success: true,
             data: vehicles
@@ -22,7 +50,7 @@ router.get('/', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // GET /api/vehicles/:id - Získanie konkrétneho vozidla
-router.get('/:id', auth_1.authenticateToken, async (req, res) => {
+router.get('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'read', { getContext: getVehicleContext }), async (req, res) => {
     try {
         const { id } = req.params;
         const vehicle = await postgres_database_1.postgresDatabase.getVehicle(id);
@@ -46,7 +74,7 @@ router.get('/:id', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // POST /api/vehicles - Vytvorenie nového vozidla
-router.post('/', auth_1.authenticateToken, async (req, res) => {
+router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'create'), async (req, res) => {
     try {
         const { brand, model, licensePlate, company, pricing, commission, status, year } = req.body;
         if (!brand || !model || !company) {
@@ -81,7 +109,7 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // PUT /api/vehicles/:id - Aktualizácia vozidla
-router.put('/:id', auth_1.authenticateToken, async (req, res) => {
+router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'update', { getContext: getVehicleContext }), async (req, res) => {
     try {
         const { id } = req.params;
         const { brand, model, licensePlate, company, pricing, commission, status } = req.body;
@@ -119,7 +147,7 @@ router.put('/:id', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // DELETE /api/vehicles/:id - Vymazanie vozidla
-router.delete('/:id', auth_1.authenticateToken, async (req, res) => {
+router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'delete', { getContext: getVehicleContext }), async (req, res) => {
     try {
         const { id } = req.params;
         // Skontroluj, či vozidlo existuje
@@ -141,6 +169,46 @@ router.delete('/:id', auth_1.authenticateToken, async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Chyba pri vymazávaní vozidla'
+        });
+    }
+});
+// 🔧 ADMIN TOOL - Priradenie vozidiel k firme
+router.post('/assign-to-company', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), async (req, res) => {
+    try {
+        const { vehicleIds, companyId } = req.body;
+        if (!vehicleIds || !Array.isArray(vehicleIds) || !companyId) {
+            return res.status(400).json({
+                success: false,
+                error: 'vehicleIds (array) a companyId sú povinné'
+            });
+        }
+        // Verify company exists
+        const companies = await postgres_database_1.postgresDatabase.getCompanies();
+        const company = companies.find(c => c.id === companyId);
+        if (!company) {
+            return res.status(404).json({
+                success: false,
+                error: 'Firma nenájdená'
+            });
+        }
+        // Update vehicles using database method
+        await postgres_database_1.postgresDatabase.assignVehiclesToCompany(vehicleIds, companyId);
+        console.log(`🏢 Assigned ${vehicleIds.length} vehicles to company ${company.name}`);
+        res.json({
+            success: true,
+            message: `${vehicleIds.length} vozidiel úspešne priradených k firme ${company.name}`,
+            data: {
+                companyId,
+                companyName: company.name,
+                assignedVehicleIds: vehicleIds
+            }
+        });
+    }
+    catch (error) {
+        console.error('Assign vehicles to company error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri priradzovaní vozidiel'
         });
     }
 });

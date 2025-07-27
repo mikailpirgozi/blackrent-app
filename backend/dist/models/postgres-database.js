@@ -14,9 +14,11 @@ class PostgresDatabase {
             this.pool = new pg_1.Pool({
                 connectionString: process.env.DATABASE_URL,
                 ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-                max: 20,
-                idleTimeoutMillis: 30000,
-                connectionTimeoutMillis: 10000,
+                // OPTIMALIZÁCIA: Lepšie connection pooling pre availability API
+                max: 25, // Zvýšené z 20 na 25
+                idleTimeoutMillis: 60000, // Zvýšené z 30s na 60s
+                connectionTimeoutMillis: 5000, // Znížené z 10s na 5s
+                allowExitOnIdle: true, // Povolenie exit na idle
             });
         }
         else {
@@ -27,9 +29,11 @@ class PostgresDatabase {
                 database: process.env.DB_NAME || 'blackrent',
                 password: process.env.DB_PASSWORD || 'password',
                 port: parseInt(process.env.DB_PORT || '5432'),
-                max: 20,
-                idleTimeoutMillis: 30000,
-                connectionTimeoutMillis: 10000,
+                // OPTIMALIZÁCIA: Lepšie connection pooling pre availability API
+                max: 25, // Zvýšené z 20 na 25
+                idleTimeoutMillis: 60000, // Zvýšené z 30s na 60s
+                connectionTimeoutMillis: 5000, // Znížené z 10s na 5s
+                allowExitOnIdle: true, // Povolenie exit na idle
             });
         }
         this.initTables().catch(console.error); // Spustenie pre aktualizáciu schémy
@@ -37,6 +41,25 @@ class PostgresDatabase {
     async initTables() {
         const client = await this.pool.connect();
         try {
+            // FÁZA 1: ROLE-BASED PERMISSIONS - Vytvorenie companies tabuľky
+            await client.query(`
+        CREATE TABLE IF NOT EXISTS companies (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name VARCHAR(255) NOT NULL,
+          business_id VARCHAR(50),
+          tax_id VARCHAR(50),
+          address TEXT,
+          contact_person VARCHAR(255),
+          email VARCHAR(255),
+          phone VARCHAR(50),
+          contract_start_date DATE,
+          contract_end_date DATE,
+          commission_rate DECIMAL(5,2) DEFAULT 20.00,
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
             // Tabuľka používateľov s hashovanými heslami
             await client.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -44,11 +67,28 @@ class PostgresDatabase {
           username VARCHAR(50) UNIQUE NOT NULL,
           email VARCHAR(100) UNIQUE NOT NULL,
           password_hash VARCHAR(255) NOT NULL,
-          role VARCHAR(30) DEFAULT 'user',
+          role VARCHAR(30) DEFAULT 'admin',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+            // FÁZA 1: Rozšírenie users tabuľky o nové stĺpce (bez company_id foreign key kvôli type mismatch)
+            try {
+                await client.query(`
+          ALTER TABLE users 
+          ADD COLUMN IF NOT EXISTS company_id INTEGER,
+          ADD COLUMN IF NOT EXISTS employee_number VARCHAR(20),
+          ADD COLUMN IF NOT EXISTS hire_date DATE,
+          ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+          ADD COLUMN IF NOT EXISTS last_login TIMESTAMP,
+          ADD COLUMN IF NOT EXISTS first_name VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS last_name VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS signature_template TEXT
+        `);
+            }
+            catch (error) {
+                console.log('ℹ️ Users table columns already exist or error occurred:', error);
+            }
             // Tabuľka vozidiel
             await client.query(`
         CREATE TABLE IF NOT EXISTS vehicles (
@@ -64,6 +104,9 @@ class PostgresDatabase {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+            // FÁZA 1: Rozšírenie vehicles tabuľky o company ownership a mechanic assignment
+            // Poznámka: Skipped - vehicles už má company_id (integer) foreign key na companies(id)
+            console.log('ℹ️ Vehicles table - using existing company_id column (integer type)');
             // Tabuľka zákazníkov
             await client.query(`
         CREATE TABLE IF NOT EXISTS customers (
@@ -100,6 +143,7 @@ class PostgresDatabase {
           -- Rozšírené polia pre kompletný rental systém
           deposit DECIMAL(10,2),
           allowed_kilometers INTEGER,
+          daily_kilometers INTEGER, -- NEW: Denné km pre automatický prepočet
           extra_kilometer_rate DECIMAL(10,2),
           return_conditions TEXT,
           fuel_level INTEGER,
@@ -154,6 +198,24 @@ class PostgresDatabase {
             catch (error) {
                 console.log('ℹ️ Policy number column already exists or error occurred:', error);
             }
+            // Pridáme stĺpec payment_frequency ak neexistuje (migrácia existujúcich tabuliek)
+            try {
+                await client.query(`
+          ALTER TABLE insurances ADD COLUMN IF NOT EXISTS payment_frequency VARCHAR(20) NOT NULL DEFAULT 'yearly'
+        `);
+            }
+            catch (error) {
+                console.log('ℹ️ Payment frequency column already exists or error occurred:', error);
+            }
+            // Pridáme stĺpec file_path ak neexistuje (migrácia pre file uploads)
+            try {
+                await client.query(`
+          ALTER TABLE insurances ADD COLUMN IF NOT EXISTS file_path TEXT
+        `);
+            }
+            catch (error) {
+                console.log('ℹ️ Insurance file_path column already exists or error occurred:', error);
+            }
             // Tabuľka firiem
             await client.query(`
         CREATE TABLE IF NOT EXISTS companies (
@@ -172,6 +234,92 @@ class PostgresDatabase {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+            // Tabuľka evidencie platnosti vozidiel (STK, EK, dialničné známky)
+            await client.query(`
+        CREATE TABLE IF NOT EXISTS vehicle_documents (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          document_type VARCHAR(20) NOT NULL,
+          valid_from DATE,
+          valid_to DATE NOT NULL,
+          document_number VARCHAR(100),
+          price DECIMAL(10,2),
+          notes TEXT,
+          file_path TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+            // Tabuľka poistných udalostí
+            await client.query(`
+        CREATE TABLE IF NOT EXISTS insurance_claims (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          insurance_id UUID REFERENCES insurances(id) ON DELETE SET NULL,
+          
+          -- Základné info o udalosti
+          incident_date TIMESTAMP NOT NULL,
+          reported_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          claim_number VARCHAR(100),
+          
+          -- Popis udalosti
+          description TEXT NOT NULL,
+          location VARCHAR(255),
+          incident_type VARCHAR(50) NOT NULL DEFAULT 'other',
+          
+          -- Finančné údaje
+          estimated_damage DECIMAL(10,2),
+          deductible DECIMAL(10,2),
+          payout_amount DECIMAL(10,2),
+          
+          -- Stav
+          status VARCHAR(50) NOT NULL DEFAULT 'reported',
+          
+          -- Súbory a dokumenty
+          file_paths TEXT[],
+          
+          -- Dodatočné info
+          police_report_number VARCHAR(100),
+          other_party_info TEXT,
+          notes TEXT,
+          
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+            // Pridáme stĺpec file_path ak neexistuje (migrácia existujúcich tabuliek)
+            try {
+                await client.query(`
+          ALTER TABLE vehicle_documents ADD COLUMN IF NOT EXISTS file_path TEXT
+        `);
+            }
+            catch (error) {
+                console.log('ℹ️ Vehicle documents file_path column already exists or error occurred:', error);
+            }
+            // Tabuľka nedostupností vozidiel (servis, údržba, blokovanie)
+            await client.query(`
+        CREATE TABLE IF NOT EXISTS vehicle_unavailability (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+          start_date DATE NOT NULL,
+          end_date DATE NOT NULL,
+          reason TEXT NOT NULL,
+          type VARCHAR(50) NOT NULL DEFAULT 'maintenance',
+          notes TEXT,
+          priority INTEGER DEFAULT 2,
+          recurring BOOLEAN DEFAULT FALSE,
+          recurring_config JSONB,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          created_by VARCHAR(100) DEFAULT 'system',
+          CONSTRAINT unique_vehicle_period UNIQUE (vehicle_id, start_date, end_date, type),
+          CONSTRAINT valid_date_range CHECK (end_date >= start_date)
+        )
+      `);
+            // Indexy pre optimálny výkon vehicle_unavailability tabuľky
+            await client.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_unavailability_vehicle_id ON vehicle_unavailability(vehicle_id)`);
+            await client.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_unavailability_dates ON vehicle_unavailability(start_date, end_date)`);
+            await client.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_unavailability_type ON vehicle_unavailability(type)`);
             // Vytvorenie admin používateľa ak neexistuje
             await this.createDefaultAdmin(client);
             // Migrácie pre existujúce databázy - aktualizácia varchar limitov
@@ -301,6 +449,7 @@ class PostgresDatabase {
           ALTER TABLE rentals 
           ADD COLUMN IF NOT EXISTS deposit DECIMAL(10,2),
           ADD COLUMN IF NOT EXISTS allowed_kilometers INTEGER,
+          ADD COLUMN IF NOT EXISTS daily_kilometers INTEGER,
           ADD COLUMN IF NOT EXISTS extra_kilometer_rate DECIMAL(10,2),
           ADD COLUMN IF NOT EXISTS return_conditions TEXT,
           ADD COLUMN IF NOT EXISTS fuel_level INTEGER,
@@ -374,6 +523,18 @@ class PostgresDatabase {
             }
             catch (error) {
                 console.log('⚠️ Migrácia 7 chyba:', error.message);
+            }
+            // Migrácia 8: Pridanie owner_name stĺpca do vehicles tabuľky
+            try {
+                console.log('📋 Migrácia 8: Pridávanie owner_name stĺpca do vehicles...');
+                await client.query(`
+          ALTER TABLE vehicles 
+          ADD COLUMN IF NOT EXISTS owner_name VARCHAR(255);
+        `);
+                console.log('✅ Migrácia 8: owner_name stĺpec pridaný do vehicles tabuľky');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 8 chyba:', error.message);
             }
             console.log('✅ Databázové migrácie úspešne dokončené');
         }
@@ -556,7 +717,7 @@ class PostgresDatabase {
     async getUserByUsername(username) {
         try {
             // Najprv skús v hlavnej users tabuľke
-            const result = await this.pool.query('SELECT id, username, email, password_hash as password, role, first_name, last_name, signature_template, created_at FROM users WHERE username = $1', [username]);
+            const result = await this.pool.query('SELECT id, username, email, password_hash as password, role, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE username = $1', [username]);
             if (result.rows.length > 0) {
                 const row = result.rows[0];
                 return {
@@ -567,11 +728,17 @@ class PostgresDatabase {
                     firstName: row.first_name,
                     lastName: row.last_name,
                     role: row.role,
+                    companyId: row.company_id,
+                    employeeNumber: row.employee_number,
+                    hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
+                    isActive: row.is_active ?? true,
+                    lastLogin: row.last_login ? new Date(row.last_login) : undefined,
                     signatureTemplate: row.signature_template,
-                    createdAt: row.created_at
+                    createdAt: new Date(row.created_at),
+                    updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
                 };
             }
-            // Ak sa nenájde, skús v users_new tabuľke
+            // Ak sa nenájde, skús v users_new tabuľke (fallback)
             const resultNew = await this.pool.query('SELECT id, username, email, password, role, created_at FROM users_new WHERE username = $1', [username]);
             if (resultNew.rows.length > 0) {
                 const row = resultNew.rows[0];
@@ -581,7 +748,8 @@ class PostgresDatabase {
                     email: row.email,
                     password: row.password,
                     role: row.role,
-                    createdAt: row.created_at
+                    isActive: true, // default pre starých používateľov
+                    createdAt: new Date(row.created_at)
                 };
             }
             return null;
@@ -593,7 +761,7 @@ class PostgresDatabase {
     }
     async getUserById(id) {
         try {
-            const result = await this.pool.query('SELECT id, username, email, password_hash as password, role, first_name, last_name, signature_template, created_at FROM users WHERE id = $1', [id]);
+            const result = await this.pool.query('SELECT id, username, email, password_hash as password, role, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE id = $1', [id]);
             if (result.rows.length > 0) {
                 const row = result.rows[0];
                 return {
@@ -604,8 +772,14 @@ class PostgresDatabase {
                     firstName: row.first_name,
                     lastName: row.last_name,
                     role: row.role,
+                    companyId: row.company_id,
+                    employeeNumber: row.employee_number,
+                    hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
+                    isActive: row.is_active ?? true,
+                    lastLogin: row.last_login ? new Date(row.last_login) : undefined,
                     signatureTemplate: row.signature_template,
-                    createdAt: row.created_at
+                    createdAt: new Date(row.created_at),
+                    updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
                 };
             }
             return null;
@@ -618,16 +792,46 @@ class PostgresDatabase {
     async createUser(userData) {
         const client = await this.pool.connect();
         try {
+            console.log('🗄️ Database createUser - userData:', userData);
             const hashedPassword = await bcryptjs_1.default.hash(userData.password, 12);
-            const result = await client.query('INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, password_hash, role, created_at', [userData.username, userData.email, hashedPassword, userData.role]);
+            const result = await client.query(`INSERT INTO users (
+          username, email, password_hash, role, first_name, last_name, 
+          company_id, employee_number, hire_date, is_active, signature_template
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+        RETURNING id, username, email, password_hash, role, first_name, last_name,
+                  company_id, employee_number, hire_date, is_active, last_login,
+                  signature_template, created_at, updated_at`, [
+                userData.username,
+                userData.email,
+                hashedPassword,
+                userData.role,
+                userData.firstName,
+                userData.lastName,
+                userData.companyId,
+                userData.employeeNumber,
+                userData.hireDate,
+                userData.isActive ?? true,
+                userData.signatureTemplate
+            ]);
             const row = result.rows[0];
+            console.log('🗄️ Database createUser - result row:', row);
             return {
                 id: row.id.toString(),
                 username: row.username,
                 email: row.email,
                 password: row.password_hash,
                 role: row.role,
-                createdAt: new Date(row.created_at)
+                firstName: row.first_name,
+                lastName: row.last_name,
+                companyId: row.company_id,
+                employeeNumber: row.employee_number,
+                hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
+                isActive: row.is_active ?? true,
+                lastLogin: row.last_login ? new Date(row.last_login) : undefined,
+                permissions: [], // Default empty permissions
+                signatureTemplate: row.signature_template,
+                createdAt: new Date(row.created_at),
+                updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
             };
         }
         finally {
@@ -657,14 +861,24 @@ class PostgresDatabase {
     async getUsers() {
         const client = await this.pool.connect();
         try {
-            const result = await client.query('SELECT id, username, email, password_hash as password, role, created_at FROM users ORDER BY created_at DESC');
+            const result = await client.query('SELECT id, username, email, password_hash as password, role, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users ORDER BY created_at DESC');
             return result.rows.map(row => ({
                 id: row.id?.toString(),
                 username: row.username,
                 email: row.email,
-                password: row.password_hash,
+                password: row.password, // using alias from SELECT
+                firstName: row.first_name,
+                lastName: row.last_name,
                 role: row.role,
-                createdAt: row.created_at
+                companyId: row.company_id,
+                employeeNumber: row.employee_number,
+                hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
+                isActive: row.is_active ?? true,
+                lastLogin: row.last_login ? new Date(row.last_login) : undefined,
+                permissions: [], // Default empty permissions
+                signatureTemplate: row.signature_template,
+                createdAt: new Date(row.created_at),
+                updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
             }));
         }
         finally {
@@ -680,6 +894,8 @@ class PostgresDatabase {
                 ...row,
                 id: row.id?.toString() || '',
                 licensePlate: row.license_plate, // Mapovanie column názvu
+                ownerName: row.owner_name, // 👤 Mapovanie owner_name z databázy
+                ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
                 createdAt: new Date(row.created_at)
@@ -700,6 +916,8 @@ class PostgresDatabase {
                 ...row,
                 id: row.id.toString(),
                 licensePlate: row.license_plate, // Mapovanie column názvu
+                ownerName: row.owner_name, // 👤 Mapovanie owner_name z databázy
+                ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
                 createdAt: new Date(row.created_at)
@@ -781,11 +999,13 @@ class PostgresDatabase {
                     console.log('⚠️ Company update error:', companyError.message);
                 }
             }
-            await client.query('UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, pricing = $5, commission = $6, status = $7, updated_at = CURRENT_TIMESTAMP WHERE id = $8', [
+            await client.query('UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, owner_name = $5, company_id = $6, pricing = $7, commission = $8, status = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10', [
                 vehicle.brand,
                 vehicle.model,
                 vehicle.licensePlate,
                 vehicle.company,
+                vehicle.ownerName, // 👤 Owner name
+                vehicle.ownerCompanyId ? parseInt(vehicle.ownerCompanyId) : null, // 🏢 Company ID as integer
                 JSON.stringify(vehicle.pricing), // Konverzia na JSON string
                 JSON.stringify(vehicle.commission), // Konverzia na JSON string
                 vehicle.status,
@@ -806,48 +1026,95 @@ class PostgresDatabase {
         }
     }
     // Metódy pre prenájmy
+    // OPTIMALIZÁCIA: Nová metóda pre načítanie len prenájmov v danom období
+    async getRentalsForDateRange(startDate, endDate) {
+        const client = await this.pool.connect();
+        try {
+            // Načítaj len prenájmy ktoré sa prekrývajú s daným obdobím
+            const result = await client.query(`
+        SELECT id, customer_id, vehicle_id, start_date, end_date, 
+               total_price, commission, payment_method, paid, status, 
+               customer_name, created_at, order_number, deposit, 
+               allowed_kilometers, daily_kilometers, handover_place
+        FROM rentals 
+        WHERE (start_date <= $2 AND end_date >= $1)
+        ORDER BY start_date ASC
+      `, [startDate, endDate]);
+            if (result.rows.length === 0) {
+                return [];
+            }
+            return result.rows.map((row) => {
+                try {
+                    return {
+                        id: row.id?.toString() || '',
+                        vehicleId: row.vehicle_id?.toString(),
+                        customerId: row.customer_id?.toString(),
+                        customerName: row.customer_name || 'Neznámy zákazník',
+                        startDate: new Date(row.start_date),
+                        endDate: new Date(row.end_date),
+                        totalPrice: parseFloat(row.total_price) || 0,
+                        commission: parseFloat(row.commission) || 0,
+                        paymentMethod: row.payment_method || 'cash',
+                        paid: Boolean(row.paid),
+                        status: row.status || 'active',
+                        createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+                        orderNumber: row.order_number || undefined,
+                        deposit: row.deposit ? parseFloat(row.deposit) : undefined,
+                        allowedKilometers: row.allowed_kilometers || undefined,
+                        dailyKilometers: row.daily_kilometers || undefined,
+                        handoverPlace: row.handover_place || undefined
+                    };
+                }
+                catch (error) {
+                    console.error('❌ Chyba pri spracovaní rental:', error);
+                    throw error;
+                }
+            });
+        }
+        finally {
+            client.release();
+        }
+    }
     async getRentals() {
         const client = await this.pool.connect();
         try {
-            console.log('🔍 Spúšťam getRentals() query...');
+            // Najprv jednoduchý dotaz bez JOIN pre debugging
+            console.log('🔍 Loading rentals...');
             const result = await client.query(`
-        SELECT r.id, r.customer_id, r.vehicle_id, r.start_date, r.end_date, 
-               r.total_price, r.commission, r.payment_method, r.discount, 
-               r.custom_commission, r.extra_km_charge, r.paid, r.status, r.handover_place, 
-               r.confirmed, r.payments, r.history, r.order_number, r.customer_name, r.created_at,
-               r.deposit, r.allowed_kilometers, r.extra_kilometer_rate, r.return_conditions,
-               r.fuel_level, r.odometer, r.return_fuel_level, r.return_odometer,
-               r.actual_kilometers, r.fuel_refill_cost, r.handover_protocol_id, r.return_protocol_id,
-               v.brand, v.model, v.license_plate, v.company as company_name
-        FROM rentals r 
-        LEFT JOIN vehicles v ON (r.vehicle_id IS NOT NULL AND r.vehicle_id ~ '^[0-9a-f-]{36}$' AND r.vehicle_id::uuid = v.id)
-        ORDER BY r.created_at DESC
+        SELECT id, customer_id, vehicle_id, start_date, end_date, 
+               total_price, commission, payment_method, paid, status, 
+               customer_name, created_at, order_number, deposit, 
+               allowed_kilometers, daily_kilometers, handover_place
+        FROM rentals 
+        ORDER BY created_at DESC
       `);
-            console.log('📊 getRentals() - Nájdené záznamy:', result.rows.length);
+            console.log(`📊 Found ${result.rows.length} rentals`);
+            // Načítaj vehicles separately pre company info
+            const vehiclesResult = await client.query(`
+        SELECT id, brand, model, license_plate, company 
+        FROM vehicles
+      `);
+            console.log(`🚗 Found ${vehiclesResult.rows.length} vehicles`);
+            // Create vehicles map for quick lookup
+            const vehiclesMap = new Map();
+            vehiclesResult.rows.forEach(v => {
+                vehiclesMap.set(v.id, {
+                    id: v.id,
+                    brand: v.brand,
+                    model: v.model,
+                    licensePlate: v.license_plate,
+                    company: v.company || 'N/A',
+                    pricing: [],
+                    commission: { type: 'percentage', value: 0 },
+                    status: 'available'
+                });
+            });
             if (result.rows.length === 0) {
-                console.log('⚠️ getRentals() - Žiadne prenájmy v databáze');
                 return [];
             }
-            // Bezpečné parsovanie JSON polí
-            const safeJsonParse = (value, fallback = undefined) => {
-                if (!value)
-                    return fallback;
-                if (typeof value === 'object')
-                    return value;
-                if (typeof value === 'string') {
-                    try {
-                        return JSON.parse(value);
-                    }
-                    catch (e) {
-                        console.warn('⚠️ JSON parse chyba:', e, 'value:', value);
-                        return fallback;
-                    }
-                }
-                return fallback;
-            };
-            return result.rows.map((row, index) => {
+            // OPTIMALIZÁCIA: Rýchlejšie mapovanie bez debug logov
+            return result.rows.map((row) => {
                 try {
-                    console.log(`🔄 Spracovávam rental ${index + 1}/${result.rows.length}:`, row.id);
                     const rental = {
                         id: row.id?.toString() || '',
                         vehicleId: row.vehicle_id?.toString(),
@@ -858,47 +1125,21 @@ class PostgresDatabase {
                         totalPrice: parseFloat(row.total_price) || 0,
                         commission: parseFloat(row.commission) || 0,
                         paymentMethod: row.payment_method || 'cash',
-                        discount: safeJsonParse(row.discount),
-                        customCommission: safeJsonParse(row.custom_commission),
-                        extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
                         paid: Boolean(row.paid),
                         status: row.status || 'active',
-                        handoverPlace: row.handover_place,
-                        confirmed: Boolean(row.confirmed),
-                        payments: safeJsonParse(row.payments),
-                        history: safeJsonParse(row.history),
-                        orderNumber: row.order_number,
                         createdAt: row.created_at ? new Date(row.created_at) : new Date(),
-                        // Rozšírené polia
+                        orderNumber: row.order_number || undefined,
                         deposit: row.deposit ? parseFloat(row.deposit) : undefined,
                         allowedKilometers: row.allowed_kilometers || undefined,
-                        extraKilometerRate: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
-                        returnConditions: row.return_conditions || undefined,
-                        fuelLevel: row.fuel_level || undefined,
-                        odometer: row.odometer || undefined,
-                        returnFuelLevel: row.return_fuel_level || undefined,
-                        returnOdometer: row.return_odometer || undefined,
-                        actualKilometers: row.actual_kilometers || undefined,
-                        fuelRefillCost: row.fuel_refill_cost ? parseFloat(row.fuel_refill_cost) : undefined,
-                        // Protokoly
-                        handoverProtocolId: row.handover_protocol_id || undefined,
-                        returnProtocolId: row.return_protocol_id || undefined,
-                        // Vehicle objekt z JOIN
-                        vehicle: row.vehicle_id ? {
-                            id: row.vehicle_id?.toString() || '',
-                            brand: row.brand || 'Neznáma značka',
-                            model: row.model || 'Neznámy model',
-                            licensePlate: row.license_plate || 'N/A',
-                            company: row.company_name || 'N/A',
-                            pricing: [], // Nedostupné z tohto JOIN
-                            commission: { type: 'percentage', value: 20 }, // Default
-                            status: 'available' // Default
-                        } : undefined
+                        dailyKilometers: row.daily_kilometers || undefined,
+                        handoverPlace: row.handover_place || undefined,
+                        // Pridaj vehicle informácie z mapy
+                        vehicle: row.vehicle_id ? vehiclesMap.get(row.vehicle_id) : undefined
                     };
                     return rental;
                 }
                 catch (error) {
-                    console.error('❌ Chyba pri spracovaní rental:', error, 'row:', row);
+                    console.error('❌ Chyba pri spracovaní rental:', error);
                     throw error;
                 }
             });
@@ -936,13 +1177,13 @@ class PostgresDatabase {
           vehicle_id, customer_id, customer_name, start_date, end_date, 
           total_price, commission, payment_method, discount, custom_commission, 
           extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
-          deposit, allowed_kilometers, extra_kilometer_rate, return_conditions, 
+          deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
           handover_protocol_id, return_protocol_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
         RETURNING id, vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
-          deposit, allowed_kilometers, extra_kilometer_rate, return_conditions, 
+          deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
           handover_protocol_id, return_protocol_id, created_at
       `, [
@@ -966,6 +1207,7 @@ class PostgresDatabase {
                 rentalData.orderNumber || null,
                 rentalData.deposit || null,
                 rentalData.allowedKilometers || null,
+                rentalData.dailyKilometers || null,
                 rentalData.extraKilometerRate || null,
                 rentalData.returnConditions || null,
                 rentalData.fuelLevel || null,
@@ -1000,6 +1242,7 @@ class PostgresDatabase {
                 orderNumber: row.order_number,
                 deposit: row.deposit ? parseFloat(row.deposit) : undefined,
                 allowedKilometers: row.allowed_kilometers || undefined,
+                dailyKilometers: row.daily_kilometers || undefined,
                 extraKilometerRate: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
                 returnConditions: row.return_conditions || undefined,
                 fuelLevel: row.fuel_level || undefined,
@@ -1089,11 +1332,11 @@ class PostgresDatabase {
           total_price = $6, commission = $7, payment_method = $8, discount = $9, custom_commission = $10,
           extra_km_charge = $11, paid = $12, status = $13, handover_place = $14, confirmed = $15,
           payments = $16, history = $17, order_number = $18,
-          deposit = $19, allowed_kilometers = $20, extra_kilometer_rate = $21, return_conditions = $22,
-          fuel_level = $23, odometer = $24, return_fuel_level = $25, return_odometer = $26,
-          actual_kilometers = $27, fuel_refill_cost = $28, handover_protocol_id = $29, 
-          return_protocol_id = $30, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $31
+          deposit = $19, allowed_kilometers = $20, daily_kilometers = $21, extra_kilometer_rate = $22, return_conditions = $23,
+          fuel_level = $24, odometer = $25, return_fuel_level = $26, return_odometer = $27,
+          actual_kilometers = $28, fuel_refill_cost = $29, handover_protocol_id = $30, 
+          return_protocol_id = $31, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $32
       `, [
                 rental.vehicleId || null, // UUID as string, not parseInt
                 rental.customerId || null, // UUID as string, not parseInt
@@ -1115,6 +1358,7 @@ class PostgresDatabase {
                 rental.orderNumber,
                 rental.deposit || null,
                 rental.allowedKilometers || null,
+                rental.dailyKilometers || null,
                 rental.extraKilometerRate || null,
                 rental.returnConditions || null,
                 rental.fuelLevel || null,
@@ -1317,7 +1561,9 @@ class PostgresDatabase {
                 validFrom: new Date(row.valid_from),
                 validTo: new Date(row.valid_to),
                 price: parseFloat(row.price) || 0,
-                company: row.company
+                company: row.company,
+                paymentFrequency: row.payment_frequency || 'yearly',
+                filePath: row.file_path || undefined
             }));
         }
         finally {
@@ -1327,7 +1573,7 @@ class PostgresDatabase {
     async createInsurance(insuranceData) {
         const client = await this.pool.connect();
         try {
-            const result = await client.query('INSERT INTO insurances (vehicle_id, type, policy_number, valid_from, valid_to, price, company) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, created_at', [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company]);
+            const result = await client.query('INSERT INTO insurances (vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency, file_path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency, file_path, created_at', [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null]);
             const row = result.rows[0];
             return {
                 id: row.id.toString(),
@@ -1337,7 +1583,34 @@ class PostgresDatabase {
                 validFrom: new Date(row.valid_from),
                 validTo: new Date(row.valid_to),
                 price: parseFloat(row.price) || 0,
-                company: row.company
+                company: row.company,
+                paymentFrequency: row.payment_frequency || 'yearly',
+                filePath: row.file_path || undefined
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async updateInsurance(id, insuranceData) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('UPDATE insurances SET vehicle_id = $1, type = $2, policy_number = $3, valid_from = $4, valid_to = $5, price = $6, company = $7, payment_frequency = $8, file_path = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10 RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency, file_path', [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, id]);
+            if (result.rows.length === 0) {
+                throw new Error('Poistka nebola nájdená');
+            }
+            const row = result.rows[0];
+            return {
+                id: row.id.toString(),
+                vehicleId: row.vehicle_id,
+                type: row.type,
+                policyNumber: row.policy_number || '',
+                validFrom: new Date(row.valid_from),
+                validTo: new Date(row.valid_to),
+                price: parseFloat(row.price) || 0,
+                company: row.company,
+                paymentFrequency: row.payment_frequency || 'yearly',
+                filePath: row.file_path || undefined
             };
         }
         finally {
@@ -1362,12 +1635,23 @@ class PostgresDatabase {
     async createCompany(companyData) {
         const client = await this.pool.connect();
         try {
-            const result = await client.query('INSERT INTO companies (name) VALUES ($1) RETURNING id, name, created_at', [companyData.name]);
+            const result = await client.query('INSERT INTO companies (name, commission_rate, is_active) VALUES ($1, $2, $3) RETURNING id, name, business_id, tax_id, address, contact_person, email, phone, contract_start_date, contract_end_date, commission_rate, is_active, created_at, updated_at', [companyData.name, 20.00, true]);
             const row = result.rows[0];
             return {
                 id: row.id.toString(),
                 name: row.name,
-                createdAt: new Date(row.created_at)
+                businessId: row.business_id,
+                taxId: row.tax_id,
+                address: row.address,
+                contactPerson: row.contact_person,
+                email: row.email,
+                phone: row.phone,
+                contractStartDate: row.contract_start_date ? new Date(row.contract_start_date) : undefined,
+                contractEndDate: row.contract_end_date ? new Date(row.contract_end_date) : undefined,
+                commissionRate: parseFloat(row.commission_rate) || 20.00,
+                isActive: row.is_active ?? true,
+                createdAt: new Date(row.created_at),
+                updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
             };
         }
         finally {
@@ -1461,22 +1745,49 @@ class PostgresDatabase {
         ORDER BY created_at DESC
       `);
             console.log(`📊 Found ${result.rows.length} settlements`);
+            // Load rentals and expenses for filtering
+            const allRentals = await this.getRentals();
+            const allExpenses = await this.getExpenses();
             // Map to Settlement interface format
-            return result.rows.map((row) => ({
-                id: row.id?.toString() || '',
-                period: {
-                    from: new Date(row.from_date || new Date()),
-                    to: new Date(row.to_date || new Date())
-                },
-                rentals: [], // Empty array - will be loaded separately if needed
-                expenses: [], // Empty array - will be loaded separately if needed
-                totalIncome: parseFloat(row.total_income) || 0,
-                totalExpenses: parseFloat(row.total_expenses) || 0,
-                totalCommission: parseFloat(row.commission) || 0,
-                profit: parseFloat(row.profit) || 0,
-                company: row.company || 'Default Company',
-                vehicleId: undefined
-            }));
+            return result.rows.map((row) => {
+                const fromDate = new Date(row.from_date || new Date());
+                const toDate = new Date(row.to_date || new Date());
+                const company = row.company || 'Default Company';
+                // Filter rentals for this settlement
+                const filteredRentals = allRentals.filter(rental => {
+                    const rentalStart = new Date(rental.startDate);
+                    const rentalEnd = new Date(rental.endDate);
+                    const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) ||
+                        (rentalEnd >= fromDate && rentalEnd <= toDate) ||
+                        (rentalStart <= fromDate && rentalEnd >= toDate);
+                    const hasMatchingCompany = rental.vehicle?.company === company;
+                    if (row.id && (isInPeriod || hasMatchingCompany)) {
+                        console.log(`🏠 Settlement ${row.id} - Rental ${rental.id}: Vehicle company: "${rental.vehicle?.company}", Settlement company: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
+                    }
+                    return isInPeriod && hasMatchingCompany;
+                });
+                // Filter expenses for this settlement
+                const filteredExpenses = allExpenses.filter(expense => {
+                    const expenseDate = new Date(expense.date);
+                    const isInPeriod = expenseDate >= fromDate && expenseDate <= toDate;
+                    return isInPeriod && expense.company === company;
+                });
+                return {
+                    id: row.id?.toString() || '',
+                    period: {
+                        from: fromDate,
+                        to: toDate
+                    },
+                    rentals: filteredRentals,
+                    expenses: filteredExpenses,
+                    totalIncome: parseFloat(row.total_income) || 0,
+                    totalExpenses: parseFloat(row.total_expenses) || 0,
+                    totalCommission: parseFloat(row.commission) || 0,
+                    profit: parseFloat(row.profit) || 0,
+                    company: company,
+                    vehicleId: undefined
+                };
+            });
         }
         catch (error) {
             console.error('❌ getSettlements error:', error);
@@ -1564,8 +1875,8 @@ class PostgresDatabase {
                     from: new Date(row.from_date),
                     to: new Date(row.to_date)
                 },
-                rentals: [], // Empty array - will be populated separately if needed
-                expenses: [], // Empty array - will be populated separately if needed
+                rentals: settlementData.rentals || [],
+                expenses: settlementData.expenses || [],
                 totalIncome: parseFloat(row.total_income) || 0,
                 totalExpenses: parseFloat(row.total_expenses) || 0,
                 totalCommission: parseFloat(row.commission) || 0,
@@ -2519,6 +2830,513 @@ class PostgresDatabase {
         catch (error) {
             console.error('❌ Error updating handover protocol:', error);
             throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // ========================================
+    // VEHICLE UNAVAILABILITY CRUD METHODS
+    // ========================================
+    async getVehicleUnavailabilities(vehicleId, startDate, endDate) {
+        const client = await this.pool.connect();
+        try {
+            let query = `
+        SELECT vu.*, v.brand, v.model, v.license_plate 
+        FROM vehicle_unavailability vu
+        LEFT JOIN vehicles v ON vu.vehicle_id = v.id
+        WHERE 1=1
+      `;
+            const params = [];
+            let paramIndex = 1;
+            // Filter by vehicle ID
+            if (vehicleId) {
+                query += ` AND vu.vehicle_id = $${paramIndex}`;
+                params.push(vehicleId);
+                paramIndex++;
+            }
+            // Filter by date range
+            if (startDate && endDate) {
+                query += ` AND vu.start_date <= $${paramIndex} AND vu.end_date >= $${paramIndex + 1}`;
+                params.push(endDate, startDate);
+                paramIndex += 2;
+            }
+            query += ` ORDER BY vu.start_date ASC, vu.priority ASC`;
+            const result = await client.query(query, params);
+            return result.rows.map(row => ({
+                id: row.id,
+                vehicleId: row.vehicle_id,
+                vehicle: row.brand ? {
+                    brand: row.brand,
+                    model: row.model,
+                    licensePlate: row.license_plate
+                } : undefined,
+                startDate: new Date(row.start_date),
+                endDate: new Date(row.end_date),
+                reason: row.reason,
+                type: row.type,
+                notes: row.notes,
+                priority: row.priority,
+                recurring: row.recurring,
+                recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at),
+                createdBy: row.created_by
+            }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    async getVehicleUnavailability(id) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        SELECT vu.*, v.brand, v.model, v.license_plate 
+        FROM vehicle_unavailability vu
+        LEFT JOIN vehicles v ON vu.vehicle_id = v.id
+        WHERE vu.id = $1
+      `, [id]);
+            if (result.rows.length === 0)
+                return null;
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                vehicleId: row.vehicle_id,
+                vehicle: row.brand ? {
+                    brand: row.brand,
+                    model: row.model,
+                    licensePlate: row.license_plate
+                } : undefined,
+                startDate: new Date(row.start_date),
+                endDate: new Date(row.end_date),
+                reason: row.reason,
+                type: row.type,
+                notes: row.notes,
+                priority: row.priority,
+                recurring: row.recurring,
+                recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at),
+                createdBy: row.created_by
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async createVehicleUnavailability(data) {
+        const client = await this.pool.connect();
+        try {
+            // Validate dates
+            if (data.endDate < data.startDate) {
+                throw new Error('Dátum ukončenia nemôže byť skorší ako dátum začiatku');
+            }
+            // Check for conflicts
+            const conflictCheck = await client.query(`
+        SELECT id, reason, type FROM vehicle_unavailability 
+        WHERE vehicle_id = $1 
+        AND start_date < $3 
+        AND end_date > $2
+      `, [data.vehicleId, data.startDate, data.endDate]);
+            if (conflictCheck.rows.length > 0) {
+                const conflict = conflictCheck.rows[0];
+                console.warn(`⚠️ Prekrývanie s existujúcou nedostupnosťou: ${conflict.reason} (${conflict.type})`);
+                // Len warning, nie error - môžu sa prekrývať
+            }
+            const result = await client.query(`
+        INSERT INTO vehicle_unavailability (
+          vehicle_id, start_date, end_date, reason, type, notes, 
+          priority, recurring, recurring_config, created_by
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+        RETURNING *
+      `, [
+                data.vehicleId,
+                data.startDate,
+                data.endDate,
+                data.reason,
+                data.type || 'maintenance',
+                data.notes,
+                data.priority || 2,
+                data.recurring || false,
+                data.recurringConfig ? JSON.stringify(data.recurringConfig) : null,
+                data.createdBy || 'system'
+            ]);
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                vehicleId: row.vehicle_id,
+                startDate: new Date(row.start_date),
+                endDate: new Date(row.end_date),
+                reason: row.reason,
+                type: row.type,
+                notes: row.notes,
+                priority: row.priority,
+                recurring: row.recurring,
+                recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at),
+                createdBy: row.created_by
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async updateVehicleUnavailability(id, data) {
+        const client = await this.pool.connect();
+        try {
+            // Build dynamic update query
+            const setFields = [];
+            const values = [];
+            let paramIndex = 1;
+            for (const [key, value] of Object.entries(data)) {
+                if (value !== undefined) {
+                    const dbField = key === 'startDate' ? 'start_date' :
+                        key === 'endDate' ? 'end_date' :
+                            key === 'recurringConfig' ? 'recurring_config' :
+                                key.replace(/([A-Z])/g, '_$1').toLowerCase();
+                    setFields.push(`${dbField} = $${paramIndex}`);
+                    if (key === 'recurringConfig') {
+                        values.push(JSON.stringify(value));
+                    }
+                    else {
+                        values.push(value);
+                    }
+                    paramIndex++;
+                }
+            }
+            if (setFields.length === 0) {
+                throw new Error('Žiadne polia na aktualizáciu');
+            }
+            setFields.push('updated_at = CURRENT_TIMESTAMP');
+            const query = `
+        UPDATE vehicle_unavailability 
+        SET ${setFields.join(', ')}
+        WHERE id = $${paramIndex}
+        RETURNING *
+      `;
+            const result = await client.query(query, [...values, id]);
+            if (result.rows.length === 0) {
+                throw new Error('Nedostupnosť vozidla nenájdená');
+            }
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                vehicleId: row.vehicle_id,
+                startDate: new Date(row.start_date),
+                endDate: new Date(row.end_date),
+                reason: row.reason,
+                type: row.type,
+                notes: row.notes,
+                priority: row.priority,
+                recurring: row.recurring,
+                recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at),
+                createdBy: row.created_by
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async deleteVehicleUnavailability(id) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('DELETE FROM vehicle_unavailability WHERE id = $1', [id]);
+            return (result.rowCount || 0) > 0;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // Get unavailabilities for specific date range (for calendar)
+    async getUnavailabilitiesForDateRange(startDate, endDate) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        SELECT vu.*, v.brand, v.model, v.license_plate 
+        FROM vehicle_unavailability vu
+        LEFT JOIN vehicles v ON vu.vehicle_id = v.id
+        WHERE vu.start_date <= $2 AND vu.end_date >= $1
+        ORDER BY vu.start_date ASC, v.brand ASC, v.model ASC
+      `, [startDate, endDate]);
+            return result.rows.map(row => ({
+                id: row.id,
+                vehicleId: row.vehicle_id,
+                vehicle: row.brand ? {
+                    brand: row.brand,
+                    model: row.model,
+                    licensePlate: row.license_plate
+                } : undefined,
+                startDate: new Date(row.start_date),
+                endDate: new Date(row.end_date),
+                reason: row.reason,
+                type: row.type,
+                notes: row.notes,
+                priority: row.priority,
+                recurring: row.recurring,
+                recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at),
+                createdBy: row.created_by
+            }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    // Metódy pre evidenciu platnosti vozidiel
+    async getVehicleDocuments(vehicleId) {
+        const client = await this.pool.connect();
+        try {
+            let query = 'SELECT * FROM vehicle_documents';
+            let params = [];
+            if (vehicleId) {
+                query += ' WHERE vehicle_id = $1';
+                params.push(vehicleId);
+            }
+            query += ' ORDER BY valid_to ASC';
+            const result = await client.query(query, params);
+            return result.rows.map(row => ({
+                id: row.id?.toString() || '',
+                vehicleId: row.vehicle_id?.toString() || '',
+                documentType: row.document_type,
+                validFrom: row.valid_from ? new Date(row.valid_from) : undefined,
+                validTo: new Date(row.valid_to),
+                documentNumber: row.document_number || undefined,
+                price: row.price ? parseFloat(row.price) : undefined,
+                notes: row.notes || undefined,
+                filePath: row.file_path || undefined,
+                createdAt: new Date(row.created_at),
+                updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+            }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    async createVehicleDocument(documentData) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`INSERT INTO vehicle_documents (vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, created_at`, [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null]);
+            const row = result.rows[0];
+            return {
+                id: row.id.toString(),
+                vehicleId: row.vehicle_id,
+                documentType: row.document_type,
+                validFrom: row.valid_from ? new Date(row.valid_from) : undefined,
+                validTo: new Date(row.valid_to),
+                documentNumber: row.document_number || undefined,
+                price: row.price ? parseFloat(row.price) : undefined,
+                notes: row.notes || undefined,
+                filePath: row.file_path || undefined,
+                createdAt: new Date(row.created_at),
+                updatedAt: undefined
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async updateVehicleDocument(id, documentData) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`UPDATE vehicle_documents 
+         SET vehicle_id = $1, document_type = $2, valid_from = $3, valid_to = $4, document_number = $5, price = $6, notes = $7, file_path = $8, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $9 
+         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, created_at, updated_at`, [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, id]);
+            if (result.rows.length === 0) {
+                throw new Error('Dokument nebol nájdený');
+            }
+            const row = result.rows[0];
+            return {
+                id: row.id.toString(),
+                vehicleId: row.vehicle_id,
+                documentType: row.document_type,
+                validFrom: row.valid_from ? new Date(row.valid_from) : undefined,
+                validTo: new Date(row.valid_to),
+                documentNumber: row.document_number || undefined,
+                price: row.price ? parseFloat(row.price) : undefined,
+                notes: row.notes || undefined,
+                filePath: row.file_path || undefined,
+                createdAt: new Date(row.created_at),
+                updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async deleteVehicleDocument(id) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('DELETE FROM vehicle_documents WHERE id = $1', [id]);
+        }
+        finally {
+            client.release();
+        }
+    }
+    // Metódy pre poistné udalosti
+    async getInsuranceClaims(vehicleId) {
+        const client = await this.pool.connect();
+        try {
+            let query = 'SELECT * FROM insurance_claims';
+            let params = [];
+            if (vehicleId) {
+                query += ' WHERE vehicle_id = $1';
+                params.push(vehicleId);
+            }
+            query += ' ORDER BY incident_date DESC';
+            const result = await client.query(query, params);
+            return result.rows.map(row => ({
+                id: row.id?.toString() || '',
+                vehicleId: row.vehicle_id?.toString() || '',
+                insuranceId: row.insurance_id?.toString() || undefined,
+                incidentDate: new Date(row.incident_date),
+                reportedDate: new Date(row.reported_date),
+                claimNumber: row.claim_number || undefined,
+                description: row.description,
+                location: row.location || undefined,
+                incidentType: row.incident_type,
+                estimatedDamage: row.estimated_damage ? parseFloat(row.estimated_damage) : undefined,
+                deductible: row.deductible ? parseFloat(row.deductible) : undefined,
+                payoutAmount: row.payout_amount ? parseFloat(row.payout_amount) : undefined,
+                status: row.status,
+                filePaths: row.file_paths || [],
+                policeReportNumber: row.police_report_number || undefined,
+                otherPartyInfo: row.other_party_info || undefined,
+                notes: row.notes || undefined,
+                createdAt: new Date(row.created_at),
+                updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+            }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    async createInsuranceClaim(claimData) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`INSERT INTO insurance_claims (vehicle_id, insurance_id, incident_date, description, location, incident_type, estimated_damage, deductible, payout_amount, status, claim_number, file_paths, police_report_number, other_party_info, notes) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
+         RETURNING id, vehicle_id, insurance_id, incident_date, reported_date, claim_number, description, location, incident_type, estimated_damage, deductible, payout_amount, status, file_paths, police_report_number, other_party_info, notes, created_at`, [
+                claimData.vehicleId,
+                claimData.insuranceId || null,
+                claimData.incidentDate,
+                claimData.description,
+                claimData.location || null,
+                claimData.incidentType,
+                claimData.estimatedDamage || null,
+                claimData.deductible || null,
+                claimData.payoutAmount || null,
+                claimData.status || 'reported',
+                claimData.claimNumber || null,
+                claimData.filePaths || [],
+                claimData.policeReportNumber || null,
+                claimData.otherPartyInfo || null,
+                claimData.notes || null
+            ]);
+            const row = result.rows[0];
+            return {
+                id: row.id.toString(),
+                vehicleId: row.vehicle_id,
+                insuranceId: row.insurance_id?.toString() || undefined,
+                incidentDate: new Date(row.incident_date),
+                reportedDate: new Date(row.reported_date),
+                claimNumber: row.claim_number || undefined,
+                description: row.description,
+                location: row.location || undefined,
+                incidentType: row.incident_type,
+                estimatedDamage: row.estimated_damage ? parseFloat(row.estimated_damage) : undefined,
+                deductible: row.deductible ? parseFloat(row.deductible) : undefined,
+                payoutAmount: row.payout_amount ? parseFloat(row.payout_amount) : undefined,
+                status: row.status,
+                filePaths: row.file_paths || [],
+                policeReportNumber: row.police_report_number || undefined,
+                otherPartyInfo: row.other_party_info || undefined,
+                notes: row.notes || undefined,
+                createdAt: new Date(row.created_at),
+                updatedAt: undefined
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async updateInsuranceClaim(id, claimData) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`UPDATE insurance_claims 
+         SET vehicle_id = $1, insurance_id = $2, incident_date = $3, description = $4, location = $5, incident_type = $6, estimated_damage = $7, deductible = $8, payout_amount = $9, status = $10, claim_number = $11, file_paths = $12, police_report_number = $13, other_party_info = $14, notes = $15, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $16 
+         RETURNING id, vehicle_id, insurance_id, incident_date, reported_date, claim_number, description, location, incident_type, estimated_damage, deductible, payout_amount, status, file_paths, police_report_number, other_party_info, notes, created_at, updated_at`, [
+                claimData.vehicleId,
+                claimData.insuranceId || null,
+                claimData.incidentDate,
+                claimData.description,
+                claimData.location || null,
+                claimData.incidentType,
+                claimData.estimatedDamage || null,
+                claimData.deductible || null,
+                claimData.payoutAmount || null,
+                claimData.status || 'reported',
+                claimData.claimNumber || null,
+                claimData.filePaths || [],
+                claimData.policeReportNumber || null,
+                claimData.otherPartyInfo || null,
+                claimData.notes || null,
+                id
+            ]);
+            if (result.rows.length === 0) {
+                throw new Error('Poistná udalosť nebola nájdená');
+            }
+            const row = result.rows[0];
+            return {
+                id: row.id.toString(),
+                vehicleId: row.vehicle_id,
+                insuranceId: row.insurance_id?.toString() || undefined,
+                incidentDate: new Date(row.incident_date),
+                reportedDate: new Date(row.reported_date),
+                claimNumber: row.claim_number || undefined,
+                description: row.description,
+                location: row.location || undefined,
+                incidentType: row.incident_type,
+                estimatedDamage: row.estimated_damage ? parseFloat(row.estimated_damage) : undefined,
+                deductible: row.deductible ? parseFloat(row.deductible) : undefined,
+                payoutAmount: row.payout_amount ? parseFloat(row.payout_amount) : undefined,
+                status: row.status,
+                filePaths: row.file_paths || [],
+                policeReportNumber: row.police_report_number || undefined,
+                otherPartyInfo: row.other_party_info || undefined,
+                notes: row.notes || undefined,
+                createdAt: new Date(row.created_at),
+                updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async deleteInsuranceClaim(id) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('DELETE FROM insurance_claims WHERE id = $1', [id]);
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🔧 ADMIN UTILITY - Assign vehicles to company
+    async assignVehiclesToCompany(vehicleIds, companyId) {
+        const client = await this.pool.connect();
+        try {
+            for (const vehicleId of vehicleIds) {
+                await client.query('UPDATE vehicles SET company_id = $1 WHERE id = $2', [parseInt(companyId), parseInt(vehicleId)]);
+            }
         }
         finally {
             client.release();

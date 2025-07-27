@@ -1,5 +1,5 @@
 import { PoolClient } from 'pg';
-import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement } from '../types';
+import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim } from '../types';
 export declare class PostgresDatabase {
     private pool;
     constructor();
@@ -14,6 +14,13 @@ export declare class PostgresDatabase {
         email: string;
         password: string;
         role: string;
+        firstName?: string | null;
+        lastName?: string | null;
+        companyId?: string | null;
+        employeeNumber?: string | null;
+        hireDate?: Date | null;
+        isActive?: boolean;
+        signatureTemplate?: string | null;
     }): Promise<User>;
     updateUser(user: User): Promise<void>;
     deleteUser(id: string): Promise<void>;
@@ -32,6 +39,7 @@ export declare class PostgresDatabase {
     }): Promise<Vehicle>;
     updateVehicle(vehicle: Vehicle): Promise<void>;
     deleteVehicle(id: string): Promise<void>;
+    getRentalsForDateRange(startDate: Date, endDate: Date): Promise<Rental[]>;
     getRentals(): Promise<Rental[]>;
     private safeJsonParse;
     createRental(rentalData: {
@@ -55,6 +63,7 @@ export declare class PostgresDatabase {
         orderNumber?: string;
         deposit?: number;
         allowedKilometers?: number;
+        dailyKilometers?: number;
         extraKilometerRate?: number;
         returnConditions?: string;
         fuelLevel?: number;
@@ -98,6 +107,19 @@ export declare class PostgresDatabase {
         validTo: Date;
         price: number;
         company: string;
+        paymentFrequency?: string;
+        filePath?: string;
+    }): Promise<Insurance>;
+    updateInsurance(id: string, insuranceData: {
+        vehicleId: string;
+        type: string;
+        policyNumber: string;
+        validFrom: Date;
+        validTo: Date;
+        price: number;
+        company: string;
+        paymentFrequency?: string;
+        filePath?: string;
     }): Promise<Insurance>;
     getCompanies(): Promise<Company[]>;
     createCompany(companyData: {
@@ -121,6 +143,8 @@ export declare class PostgresDatabase {
         commission?: number;
         profit?: number;
         summary?: string;
+        rentals?: any[];
+        expenses?: any[];
     }): Promise<Settlement>;
     updateSettlement(id: string, updateData: any): Promise<Settlement>;
     deleteSettlement(id: string): Promise<void>;
@@ -144,6 +168,91 @@ export declare class PostgresDatabase {
     getClient(): Promise<PoolClient>;
     close(): Promise<void>;
     updateHandoverProtocol(id: string, updateData: any): Promise<any>;
+    getVehicleUnavailabilities(vehicleId?: string, startDate?: Date, endDate?: Date): Promise<any[]>;
+    getVehicleUnavailability(id: string): Promise<any | null>;
+    createVehicleUnavailability(data: {
+        vehicleId: string;
+        startDate: Date;
+        endDate: Date;
+        reason: string;
+        type?: string;
+        notes?: string;
+        priority?: number;
+        recurring?: boolean;
+        recurringConfig?: any;
+        createdBy?: string;
+    }): Promise<any>;
+    updateVehicleUnavailability(id: string, data: Partial<{
+        startDate: Date;
+        endDate: Date;
+        reason: string;
+        type: string;
+        notes: string;
+        priority: number;
+        recurring: boolean;
+        recurringConfig: any;
+    }>): Promise<any>;
+    deleteVehicleUnavailability(id: string): Promise<boolean>;
+    getUnavailabilitiesForDateRange(startDate: Date, endDate: Date): Promise<any[]>;
+    getVehicleDocuments(vehicleId?: string): Promise<VehicleDocument[]>;
+    createVehicleDocument(documentData: {
+        vehicleId: string;
+        documentType: string;
+        validFrom?: Date;
+        validTo: Date;
+        documentNumber?: string;
+        price?: number;
+        notes?: string;
+        filePath?: string;
+    }): Promise<VehicleDocument>;
+    updateVehicleDocument(id: string, documentData: {
+        vehicleId: string;
+        documentType: string;
+        validFrom?: Date;
+        validTo: Date;
+        documentNumber?: string;
+        price?: number;
+        notes?: string;
+        filePath?: string;
+    }): Promise<VehicleDocument>;
+    deleteVehicleDocument(id: string): Promise<void>;
+    getInsuranceClaims(vehicleId?: string): Promise<InsuranceClaim[]>;
+    createInsuranceClaim(claimData: {
+        vehicleId: string;
+        insuranceId?: string;
+        incidentDate: Date;
+        description: string;
+        location?: string;
+        incidentType: string;
+        estimatedDamage?: number;
+        deductible?: number;
+        payoutAmount?: number;
+        status?: string;
+        claimNumber?: string;
+        filePaths?: string[];
+        policeReportNumber?: string;
+        otherPartyInfo?: string;
+        notes?: string;
+    }): Promise<InsuranceClaim>;
+    updateInsuranceClaim(id: string, claimData: {
+        vehicleId: string;
+        insuranceId?: string;
+        incidentDate: Date;
+        description: string;
+        location?: string;
+        incidentType: string;
+        estimatedDamage?: number;
+        deductible?: number;
+        payoutAmount?: number;
+        status?: string;
+        claimNumber?: string;
+        filePaths?: string[];
+        policeReportNumber?: string;
+        otherPartyInfo?: string;
+        notes?: string;
+    }): Promise<InsuranceClaim>;
+    deleteInsuranceClaim(id: string): Promise<void>;
+    assignVehiclesToCompany(vehicleIds: string[], companyId: string): Promise<void>;
 }
 export declare const postgresDatabase: PostgresDatabase;
 //# sourceMappingURL=postgres-database.d.ts.map

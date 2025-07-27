@@ -1,4 +1,4 @@
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
 export declare class PuppeteerPDFGeneratorV2 {
     private browser;
     constructor();
@@ -9,6 +9,11 @@ export declare class PuppeteerPDFGeneratorV2 {
     private generateHandoverHTML;
     private generateReturnHTML;
     private getStatusText;
+    /**
+     * Generovanie PDF vyúčtovania
+     */
+    generateSettlementPDF(settlement: Settlement): Promise<Buffer>;
+    private generateSettlementHTML;
     cleanup(): Promise<void>;
 }
 //# sourceMappingURL=puppeteer-pdf-generator-v2.d.ts.map

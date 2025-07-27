@@ -3,11 +3,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
+const permissions_1 = require("../middleware/permissions");
 const router = (0, express_1.Router)();
+// 🔍 CONTEXT FUNCTIONS
+const getRentalContext = async (req) => {
+    const rentalId = req.params.id;
+    if (!rentalId)
+        return {};
+    const rental = await postgres_database_1.postgresDatabase.getRental(rentalId);
+    if (!rental || !rental.vehicleId)
+        return {};
+    // Získaj vehicle pre company context
+    const vehicle = await postgres_database_1.postgresDatabase.getVehicle(rental.vehicleId);
+    return {
+        resourceCompanyId: vehicle?.ownerCompanyId,
+        amount: rental.totalPrice
+    };
+};
 // GET /api/rentals - Získanie všetkých prenájmov
-router.get('/', auth_1.authenticateToken, async (req, res) => {
+router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'read'), async (req, res) => {
     try {
-        const rentals = await postgres_database_1.postgresDatabase.getRentals();
+        let rentals = await postgres_database_1.postgresDatabase.getRentals();
+        // 🏢 COMPANY OWNER - filter len prenájmy vlastných vozidiel
+        if (req.user?.role === 'company_owner' && req.user.companyId) {
+            const vehicles = await postgres_database_1.postgresDatabase.getVehicles();
+            const companyVehicleIds = vehicles
+                .filter(v => v.ownerCompanyId === req.user?.companyId)
+                .map(v => v.id);
+            rentals = rentals.filter(r => r.vehicleId && companyVehicleIds.includes(r.vehicleId));
+        }
         res.json({
             success: true,
             data: rentals
@@ -22,7 +46,7 @@ router.get('/', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // GET /api/rentals/:id - Získanie konkrétneho prenájmu
-router.get('/:id', auth_1.authenticateToken, async (req, res) => {
+router.get('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'read', { getContext: getRentalContext }), async (req, res) => {
     try {
         const { id } = req.params;
         const rental = await postgres_database_1.postgresDatabase.getRental(id);
@@ -46,9 +70,9 @@ router.get('/:id', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // POST /api/rentals - Vytvorenie nového prenájmu
-router.post('/', auth_1.authenticateToken, async (req, res) => {
+router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'create'), async (req, res) => {
     try {
-        const { vehicleId, customerId, customerName, startDate, endDate, totalPrice, commission, paymentMethod, discount, customCommission, extraKmCharge, paid, status, handoverPlace, confirmed, payments, history, orderNumber, deposit, allowedKilometers, extraKilometerRate, returnConditions, fuelLevel, odometer, returnFuelLevel, returnOdometer, actualKilometers, fuelRefillCost, handoverProtocolId, returnProtocolId } = req.body;
+        const { vehicleId, customerId, customerName, startDate, endDate, totalPrice, commission, paymentMethod, discount, customCommission, extraKmCharge, paid, status, handoverPlace, confirmed, payments, history, orderNumber, deposit, allowedKilometers, dailyKilometers, extraKilometerRate, returnConditions, fuelLevel, odometer, returnFuelLevel, returnOdometer, actualKilometers, fuelRefillCost, handoverProtocolId, returnProtocolId } = req.body;
         if (!customerName || !startDate || !endDate) {
             return res.status(400).json({
                 success: false,
@@ -76,6 +100,7 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
             orderNumber,
             deposit,
             allowedKilometers,
+            dailyKilometers,
             extraKilometerRate,
             returnConditions,
             fuelLevel,
@@ -103,7 +128,7 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // PUT /api/rentals/:id - Aktualizácia prenájmu
-router.put('/:id', auth_1.authenticateToken, async (req, res) => {
+router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'update', { getContext: getRentalContext }), async (req, res) => {
     try {
         const { id } = req.params;
         const updateData = req.body;
@@ -138,7 +163,7 @@ router.put('/:id', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // DELETE /api/rentals/:id - Vymazanie prenájmu
-router.delete('/:id', auth_1.authenticateToken, async (req, res) => {
+router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'delete', { getContext: getRentalContext }), async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;

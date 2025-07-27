@@ -48,8 +48,18 @@ const authenticateToken = async (req, res, next) => {
             id: user.id,
             username: user.username,
             email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
             role: user.role,
-            createdAt: user.createdAt
+            companyId: user.companyId,
+            employeeNumber: user.employeeNumber,
+            hireDate: user.hireDate,
+            isActive: user.isActive,
+            lastLogin: user.lastLogin,
+            permissions: user.permissions,
+            signatureTemplate: user.signatureTemplate,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
         };
         console.log('✅ AUTH MIDDLEWARE - Authentication successful');
         next();
