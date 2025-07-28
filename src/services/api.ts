@@ -199,30 +199,60 @@ class ApiService {
     handoverCreatedAt?: Date;
     returnCreatedAt?: Date;
   }[]> {
-    const response = await this.request<{
-      success: boolean;
-      data: {
-        rentalId: string;
-        hasHandoverProtocol: boolean;
-        hasReturnProtocol: boolean;
-        handoverProtocolId?: string;
-        returnProtocolId?: string;
-        handoverCreatedAt?: string;
-        returnCreatedAt?: string;
-      }[];
-      metadata: {
-        loadTimeMs: number;
-        totalRentals: number;
-        timestamp: string;
-      };
-    }>('/protocols/bulk-status');
-    
-    // Convert date strings back to Date objects
-    return response.data.map(item => ({
-      ...item,
-      handoverCreatedAt: item.handoverCreatedAt ? new Date(item.handoverCreatedAt) : undefined,
-      returnCreatedAt: item.returnCreatedAt ? new Date(item.returnCreatedAt) : undefined
-    }));
+    try {
+      const response = await this.request<{
+        success: boolean;
+        data: {
+          rentalId: string;
+          hasHandoverProtocol: boolean;
+          hasReturnProtocol: boolean;
+          handoverProtocolId?: string;
+          returnProtocolId?: string;
+          handoverCreatedAt?: string;
+          returnCreatedAt?: string;
+        }[];
+        metadata: {
+          loadTimeMs: number;
+          totalRentals: number;
+          timestamp: string;
+        };
+      }>('/protocols/bulk-status');
+      
+      console.log('🔍 DEBUG: getBulkProtocolStatus raw response:', response);
+      
+      // Check if response has expected structure
+      if (!response || typeof response !== 'object') {
+        console.error('❌ Invalid response structure:', response);
+        throw new Error('Invalid API response structure');
+      }
+      
+      // Handle different response formats
+      let protocolData;
+      if (response.data && Array.isArray(response.data)) {
+        // Standard ApiResponse format: { success: true, data: [...] }
+        protocolData = response.data;
+      } else if (Array.isArray(response)) {
+        // Direct array response
+        protocolData = response;
+      } else {
+        console.error('❌ Unexpected response format:', response);
+        throw new Error('Protocol data not found in response');
+      }
+      
+      console.log('✅ Protocol data extracted:', protocolData.length, 'items');
+      
+      // Convert date strings back to Date objects
+      return protocolData.map(item => ({
+        ...item,
+        handoverCreatedAt: item.handoverCreatedAt ? new Date(item.handoverCreatedAt) : undefined,
+        returnCreatedAt: item.returnCreatedAt ? new Date(item.returnCreatedAt) : undefined
+      }));
+      
+    } catch (error) {
+      console.error('❌ getBulkProtocolStatus error:', error);
+      console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    }
   }
 
   // ⚡ BULK: História vlastníctva všetkých vozidiel naraz
