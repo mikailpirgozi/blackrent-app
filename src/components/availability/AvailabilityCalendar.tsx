@@ -1245,14 +1245,27 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 
                 <Box sx={{ 
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  gridTemplateColumns: {
+                    xs: mobileViewMode === 'week' ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)',
+                    sm: mobileViewMode === 'week' ? 'repeat(4, 1fr)' : 'repeat(6, 1fr)', 
+                    md: mobileViewMode === 'week' ? 'repeat(5, 1fr)' : 'repeat(7, 1fr)',
+                    lg: 'repeat(7, 1fr)'
+                  },
                   gridTemplateRows: mobileViewMode === 'month' ? 'repeat(5, 1fr)' : '1fr',
                   gap: 0.5,
                   mb: 2
                 }}>
                   {(mobileViewMode === 'week' 
-                    ? generateCalendarDays(currentWeekOffset, 7)
-                    : generateCalendarDays(currentMonthOffset, 30)
+                    ? generateCalendarDays(currentWeekOffset, 
+                        isSmallMobile ? 3 : 
+                        isMobile ? 4 :
+                        7
+                      )
+                    : generateCalendarDays(currentMonthOffset, 
+                        isSmallMobile ? 15 : 
+                        isMobile ? 20 :
+                        30
+                      )
                   ).map((day) => {
                     const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
                     const isAvailable = !vehicleStatus || vehicleStatus.status === 'available';
@@ -1539,7 +1552,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               
               <Box sx={{ 
                 display: 'grid',
-                gridTemplateColumns: 'repeat(7, 1fr)',
+                gridTemplateColumns: {
+                  xs: getVehicleViewMode(vehicle.id) === 'week' ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)',
+                  sm: getVehicleViewMode(vehicle.id) === 'week' ? 'repeat(4, 1fr)' : 'repeat(6, 1fr)',
+                  md: getVehicleViewMode(vehicle.id) === 'week' ? 'repeat(5, 1fr)' : 'repeat(7, 1fr)',
+                  lg: 'repeat(7, 1fr)'
+                },
                 gridTemplateRows: getVehicleViewMode(vehicle.id) === 'month' ? 'repeat(5, 1fr)' : '1fr',
                 gap: 0.75,
                 mb: 3,
@@ -1550,7 +1568,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 {(() => {
                   const vehicleMode = getVehicleViewMode(vehicle.id);
                   const vehicleOffset = getVehicleOffset(vehicle.id, vehicleMode);
-                  const daysCount = vehicleMode === 'week' ? 7 : 30;
+                  const daysCount = vehicleMode === 'week' ? 
+                    (isSmallMobile ? 3 : isMobile ? 4 : 7) : 
+                    (isSmallMobile ? 15 : isMobile ? 20 : 30);
                   return generateCalendarDays(vehicleOffset, daysCount);
                 })().map((day) => {
                   const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
