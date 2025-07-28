@@ -208,18 +208,29 @@ class ApiService {
       console.log('🔍 TEMP DEBUG: Response data:', response?.data);
       console.log('🔍 TEMP DEBUG: Response success:', response?.success);
       
-      // Robustné spracovanie response - chránime sa pred TypeError
-      if (!response || !response.data) {
-        console.error('❌ getBulkProtocolStatus: Prázdna alebo neplatná odpoveď');
+      // 🚀 SMART RESPONSE HANDLING - Backend môže vrátiť Array alebo API wrapper
+      let protocolData;
+      
+      if (Array.isArray(response)) {
+        // Backend vracia priamy Array: [...]
+        protocolData = response;
+        console.log('✅ Using direct array response');
+      } else if (response && Array.isArray(response.data)) {
+        // Backend vracia API wrapper: { success: true, data: [...] }
+        protocolData = response.data;
+        console.log('✅ Using wrapped response.data');
+      } else {
+        console.error('❌ getBulkProtocolStatus: Nerozpoznaný formát odpovede');
+        console.error('Raw response:', response);
         throw new Error('Neplatná odpoveď zo servera');
       }
-      
-      const protocolData = Array.isArray(response.data) ? response.data : [];
       
       if (protocolData.length === 0) {
         console.warn('⚠️ getBulkProtocolStatus: Žiadne protocol data nenájdené');
         return [];
       }
+      
+      console.log(`✅ Processing ${protocolData.length} protocol records`);
       
       // Transformuj dáta s bezpečným pristupom
       return protocolData.map((item: any) => ({
