@@ -1,4 +1,12 @@
 import { Vehicle, Rental, Customer, Expense, Insurance, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim } from '../types';
+import { 
+  getProtocolCache, 
+  setProtocolCache, 
+  clearProtocolCache, 
+  isCacheFresh, 
+  getCacheInfo,
+  type CachedProtocolStatus 
+} from '../utils/protocolCache';
 
 const getApiBaseUrl = () => {
   // V produkcii používame Railway URL
@@ -189,7 +197,7 @@ class ApiService {
     return response;
   }
 
-  // ⚡ BULK PROTOCOL STATUS - Získa protocol status pre všetky rentals naraz
+  // ⚡ BULK PROTOCOL STATUS - Získa protocol status pre všetky rentals naraz s SMART CACHE
   async getBulkProtocolStatus(): Promise<{ 
     rentalId: string; 
     hasHandoverProtocol: boolean; 
@@ -199,6 +207,25 @@ class ApiService {
     handoverCreatedAt?: Date;
     returnCreatedAt?: Date;
   }[]> {
+    
+    // 📦 1. CACHE FIRST - skús načítať z cache
+    const cached = getProtocolCache();
+    if (cached && isCacheFresh()) {
+      console.log('⚡ Using cached protocol status');
+      
+      // 🔄 Background refresh - aktualizuj cache na pozadí
+      this.refreshProtocolCacheInBackground();
+      
+      return cached;
+    }
+    
+    // 🌐 2. API CALL - cache chýba alebo expired
+    console.log('🌐 Loading protocol status from API...');
+    const cacheInfo = getCacheInfo();
+    if (cacheInfo.exists) {
+      console.log(`📊 Cache info: age=${cacheInfo.age}s, records=${cacheInfo.records}, fresh=${cacheInfo.fresh}`);
+    }
+    
     try {
       const response = await this.request<any>('/protocols/bulk-status');
       
@@ -223,7 +250,7 @@ class ApiService {
       }
       
       // Transformuj dáta s bezpečným pristupom
-      return protocolData.map((item: any) => ({
+      const transformedData = protocolData.map((item: any) => ({
         rentalId: item?.rentalId || '',
         hasHandoverProtocol: Boolean(item?.hasHandoverProtocol),
         hasReturnProtocol: Boolean(item?.hasReturnProtocol),
@@ -233,10 +260,58 @@ class ApiService {
         returnCreatedAt: item.returnCreatedAt ? new Date(item.returnCreatedAt) : undefined
       }));
       
+      // 💾 3. SAVE TO CACHE
+      setProtocolCache(transformedData);
+      
+      return transformedData;
+      
     } catch (error: any) {
       console.error('❌ getBulkProtocolStatus error:', error);
       console.error('❌ Error details:', error.message);
+      
+      // 🔄 FALLBACK - použiť starý cache ak existuje
+      if (cached) {
+        console.log('🔄 Using stale cache as fallback');
+        return cached;
+      }
+      
       throw error;
+    }
+  }
+
+  /**
+   * 🔄 Background refresh cache - neblokuje UI
+   */
+  private async refreshProtocolCacheInBackground(): Promise<void> {
+    try {
+      console.log('🔄 Refreshing protocol cache in background...');
+      
+      const response = await this.request<any>('/protocols/bulk-status');
+      
+      let protocolData;
+      if (Array.isArray(response)) {
+        protocolData = response;
+      } else if (response && Array.isArray(response.data)) {
+        protocolData = response.data;
+      } else {
+        throw new Error('Invalid response format');
+      }
+      
+      const transformedData = protocolData.map((item: any) => ({
+        rentalId: item?.rentalId || '',
+        hasHandoverProtocol: Boolean(item?.hasHandoverProtocol),
+        hasReturnProtocol: Boolean(item?.hasReturnProtocol),
+        handoverProtocolId: item?.handoverProtocolId || undefined,
+        returnProtocolId: item?.returnProtocolId || undefined,
+        handoverCreatedAt: item.handoverCreatedAt ? new Date(item.handoverCreatedAt) : undefined,
+        returnCreatedAt: item.returnCreatedAt ? new Date(item.returnCreatedAt) : undefined
+      }));
+      
+      setProtocolCache(transformedData);
+      console.log('✅ Background cache refresh completed');
+      
+    } catch (error) {
+      console.warn('⚠️ Background cache refresh failed:', error);
     }
   }
 
@@ -642,10 +717,21 @@ class ApiService {
     
     console.log('🔄 API createHandoverProtocol - complete data:', JSON.stringify(completeProtocolData, null, 2));
     
-    return this.request<any>('/protocols/handover', {
-      method: 'POST',
-      body: JSON.stringify(completeProtocolData),
-    });
+    try {
+      const result = await this.request<any>('/protocols/handover', {
+        method: 'POST',
+        body: JSON.stringify(completeProtocolData),
+      });
+      
+      // 🗑️ CACHE INVALIDATION - protokol sa zmenil
+      clearProtocolCache();
+      console.log('🔄 Protocol cache invalidated after handover protocol creation');
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to create handover protocol:', error);
+      throw error;
+    }
   }
 
   async createReturnProtocol(protocolData: any): Promise<any> {
@@ -660,18 +746,40 @@ class ApiService {
     
     console.log('🔄 API createReturnProtocol - complete data:', JSON.stringify(completeProtocolData, null, 2));
     
-    return this.request<any>('/protocols/return', {
-      method: 'POST',
-      body: JSON.stringify(completeProtocolData),
-    });
+    try {
+      const result = await this.request<any>('/protocols/return', {
+        method: 'POST',
+        body: JSON.stringify(completeProtocolData),
+      });
+      
+      // 🗑️ CACHE INVALIDATION - protokol sa zmenil
+      clearProtocolCache();
+      console.log('🔄 Protocol cache invalidated after return protocol creation');
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to create return protocol:', error);
+      throw error;
+    }
   }
 
   async deleteProtocol(protocolId: string, type: 'handover' | 'return'): Promise<void> {
     console.log(`🗑️ API deleteProtocol - deleting ${type} protocol:`, protocolId);
     
-    return this.request<void>(`/protocols/${type}/${protocolId}`, {
-      method: 'DELETE',
-    });
+    try {
+      const result = await this.request<void>(`/protocols/${type}/${protocolId}`, {
+        method: 'DELETE',
+      });
+      
+      // 🗑️ CACHE INVALIDATION - protokol sa zmazal
+      clearProtocolCache();
+      console.log('🔄 Protocol cache invalidated after protocol deletion');
+      
+      return result;
+    } catch (error) {
+      console.error(`❌ Failed to delete ${type} protocol:`, error);
+      throw error;
+    }
   }
 
   // Signature template management
