@@ -1419,17 +1419,24 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 mb: 2,
                 pb: 2,
-                borderBottom: '2px solid #f0f0f0'
+                borderBottom: '2px solid #f0f0f0',
+                minHeight: '80px'
               }}>
-                <Box>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  minHeight: '60px'
+                }}>
                   <Typography variant="h6" sx={{ 
                     fontWeight: 600, 
                     fontSize: '1.1rem',
                     color: '#1976d2',
-                    mb: 0.5
+                    mb: 0.5,
+                    lineHeight: 1.2
                   }}>
                     {vehicle.brand} {vehicle.model}
                   </Typography>
@@ -1437,9 +1444,18 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     color: '#666', 
                     fontSize: '0.9rem',
                     fontFamily: 'monospace',
-                    fontWeight: 600
+                    fontWeight: 600,
+                    lineHeight: 1.2
                   }}>
                     {vehicle.licensePlate}
+                  </Typography>
+                  <Typography variant="body2" sx={{ 
+                    color: '#999', 
+                    fontSize: '0.8rem',
+                    lineHeight: 1.2,
+                    mt: 0.5
+                  }}>
+                    {vehicle.company || '\u00A0'}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1537,7 +1553,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 gridTemplateRows: getVehicleViewMode(vehicle.id) === 'month' ? 'repeat(5, 1fr)' : '1fr',
                 gap: 0.75,
                 mb: 3,
-                minHeight: getVehicleViewMode(vehicle.id) === 'month' ? '320px' : { xs: '80px', md: '50px' }
+                minHeight: getVehicleViewMode(vehicle.id) === 'month' ? '320px' : { xs: '80px', md: '40px' }
               }}>
                 {(() => {
                   const vehicleMode = getVehicleViewMode(vehicle.id);
@@ -1565,7 +1581,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        minHeight: { xs: '60px', md: '40px' },
+                        minHeight: { xs: '60px', md: '35px' },
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'center',
