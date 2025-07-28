@@ -1979,7 +1979,6 @@ export class PostgresDatabase {
         rentalData.fuelRefillCost || null,
         rentalData.handoverProtocolId || null,
         rentalData.returnProtocolId || null,
-        company,  // 🎯 CLEAN SOLUTION hodnota
         company  // 🎯 CLEAN SOLUTION hodnota
       ]);
 
