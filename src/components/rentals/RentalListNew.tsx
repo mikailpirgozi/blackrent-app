@@ -106,6 +106,16 @@ export default function RentalList() {
   const [, setImportError] = useState<string>('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
+  // ⚡ BACKGROUND PROTOCOL LOADING STATE
+  const [protocolStatusMap, setProtocolStatusMap] = useState<Record<string, {
+    hasHandoverProtocol: boolean;
+    hasReturnProtocol: boolean;
+    handoverProtocolId?: string;
+    returnProtocolId?: string;
+  }>>({});
+  const [isLoadingProtocolStatus, setIsLoadingProtocolStatus] = useState(false);
+  const [protocolStatusLoaded, setProtocolStatusLoaded] = useState(false);
+  
   // Helper function to get vehicle data by vehicleId
   const getVehicleByRental = useCallback((rental: Rental) => {
     return rental.vehicleId ? state.vehicles.find(v => v.id === rental.vehicleId) : null;
@@ -2133,6 +2143,64 @@ export default function RentalList() {
     );
   }, [handleEdit, handleCreateHandover, handleCreateReturn, handleDelete, protocols, handleOpenGallery, handleViewProtocols, loadingProtocols]);
 
+  // ⚡ BACKGROUND PROTOCOL LOADING - načíta protocol status na pozadí bez spomalenia
+  const loadProtocolStatusInBackground = useCallback(async () => {
+    if (isLoadingProtocolStatus || protocolStatusLoaded) {
+      return; // Už sa načítava alebo je načítané
+    }
+
+    console.log('🚀 BACKGROUND: Starting protocol status loading...');
+    setIsLoadingProtocolStatus(true);
+    
+    try {
+      const startTime = Date.now();
+      const bulkProtocolStatus = await apiService.getBulkProtocolStatus();
+      const loadTime = Date.now() - startTime;
+      
+      console.log(`✅ BACKGROUND: Protocol status loaded in ${loadTime}ms for ${bulkProtocolStatus.length} rentals`);
+      
+      // Konvertuj array na map pre rýchly lookup
+      const statusMap: Record<string, {
+        hasHandoverProtocol: boolean;
+        hasReturnProtocol: boolean;
+        handoverProtocolId?: string;
+        returnProtocolId?: string;
+      }> = {};
+      
+      bulkProtocolStatus.forEach(status => {
+        statusMap[status.rentalId] = {
+          hasHandoverProtocol: status.hasHandoverProtocol,
+          hasReturnProtocol: status.hasReturnProtocol,
+          handoverProtocolId: status.handoverProtocolId,
+          returnProtocolId: status.returnProtocolId
+        };
+      });
+      
+      setProtocolStatusMap(statusMap);
+      setProtocolStatusLoaded(true);
+      
+      console.log('🎉 BACKGROUND: Protocol status icons will now appear in rental list!');
+      
+    } catch (error) {
+      console.error('❌ BACKGROUND: Failed to load protocol status:', error);
+      // Fallback na pôvodný systém - nezrušime funkčnosť
+    } finally {
+      setIsLoadingProtocolStatus(false);
+    }
+  }, [isLoadingProtocolStatus, protocolStatusLoaded]);
+
+  // ⚡ TRIGGER BACKGROUND LOADING po načítaní rentals
+  React.useEffect(() => {
+    if (state.rentals.length > 0 && !protocolStatusLoaded && !isLoadingProtocolStatus) {
+      // Spusti na pozadí za 100ms aby sa nestratila rýchlosť UI
+      const timer = setTimeout(() => {
+        loadProtocolStatusInBackground();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [state.rentals.length, protocolStatusLoaded, isLoadingProtocolStatus, loadProtocolStatusInBackground]);
+
   return (
     <Box>
       {/* Enhanced Header */}
@@ -2887,8 +2955,17 @@ export default function RentalList() {
             <Box>
               {filteredRentals.map((rental, index) => {
                 const vehicle = getVehicleByRental(rental);
-                const hasHandover = !!protocols[rental.id]?.handover;
-                const hasReturn = !!protocols[rental.id]?.return;
+                
+                // ⚡ BACKGROUND PROTOCOL STATUS - použije background loaded data alebo fallback na starý systém
+                const backgroundStatus = protocolStatusMap[rental.id];
+                const fallbackProtocols = protocols[rental.id];
+                
+                const hasHandover = backgroundStatus 
+                  ? backgroundStatus.hasHandoverProtocol 
+                  : !!fallbackProtocols?.handover;
+                const hasReturn = backgroundStatus 
+                  ? backgroundStatus.hasReturnProtocol 
+                  : !!fallbackProtocols?.return;
                 
                 return (
                                      <Box 
@@ -3071,33 +3148,55 @@ export default function RentalList() {
                             transition: 'all 0.2s ease'
                           }}
                         />
-                        <Chip
-                          size="small"
-                          label="🔍"
-                          title="Skontrolovať protokoly"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCheckProtocols(rental);
-                          }}
-                          sx={{
-                            height: { xs: 32, sm: 28 },
-                            fontSize: { xs: '0.8rem', sm: '0.75rem' },
-                            bgcolor: '#9c27b0',
-                            color: 'white',
-                            fontWeight: 700,
-                            minWidth: { xs: 44, sm: 42 },
-                            maxWidth: { xs: 60, sm: 60 },
-                            cursor: 'pointer',
-                            borderRadius: { xs: 2, sm: 2.5 },
-                            boxShadow: '0 2px 8px rgba(156,39,176,0.3)',
-                            '&:hover': {
-                              bgcolor: '#7b1fa2',
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
-                            },
-                            transition: 'all 0.2s ease'
-                          }}
-                        />
+                        {/* ⚡ SMART PROTOCOL CHECK BUTTON - zobrazuje sa len ak je potrebné */}
+                        {isLoadingProtocolStatus ? (
+                          <Chip
+                            size="small"
+                            label="⏳"
+                            title="Načítavam protocol status..."
+                            sx={{
+                              height: { xs: 32, sm: 28 },
+                              fontSize: { xs: '0.8rem', sm: '0.75rem' },
+                              bgcolor: '#ff9800',
+                              color: 'white',
+                              fontWeight: 700,
+                              minWidth: { xs: 44, sm: 42 },
+                              maxWidth: { xs: 60, sm: 60 },
+                              borderRadius: { xs: 2, sm: 2.5 },
+                              boxShadow: '0 2px 8px rgba(255,152,0,0.3)',
+                              animation: 'pulse 2s infinite'
+                            }}
+                          />
+                        ) : (!protocolStatusLoaded && (
+                          <Chip
+                            size="small"
+                            label="🔍"
+                            title="Skontrolovať protokoly"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCheckProtocols(rental);
+                            }}
+                            sx={{
+                              height: { xs: 32, sm: 28 },
+                              fontSize: { xs: '0.8rem', sm: '0.75rem' },
+                              bgcolor: '#9c27b0',
+                              color: 'white',
+                              fontWeight: 700,
+                              minWidth: { xs: 44, sm: 42 },
+                              maxWidth: { xs: 60, sm: 60 },
+                              cursor: 'pointer',
+                              borderRadius: { xs: 2, sm: 2.5 },
+                              boxShadow: '0 2px 8px rgba(156,39,176,0.3)',
+                              '&:hover': {
+                                bgcolor: '#7b1fa2',
+                                transform: 'scale(1.1)',
+                                boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          />
+                        ))}
+                        
                         <Chip
                           size="small"
                           label={rental.paid ? '💰' : '⏰'}
@@ -3315,8 +3414,17 @@ export default function RentalList() {
             <Box>
               {filteredRentals.map((rental, index) => {
                 const vehicle = getVehicleByRental(rental);
-                const hasHandover = !!protocols[rental.id]?.handover;
-                const hasReturn = !!protocols[rental.id]?.return;
+                
+                // ⚡ BACKGROUND PROTOCOL STATUS - použije background loaded data alebo fallback na starý systém
+                const backgroundStatus = protocolStatusMap[rental.id];
+                const fallbackProtocols = protocols[rental.id];
+                
+                const hasHandover = backgroundStatus 
+                  ? backgroundStatus.hasHandoverProtocol 
+                  : !!fallbackProtocols?.handover;
+                const hasReturn = backgroundStatus 
+                  ? backgroundStatus.hasReturnProtocol 
+                  : !!fallbackProtocols?.return;
                 
                 return (
                   <Box 

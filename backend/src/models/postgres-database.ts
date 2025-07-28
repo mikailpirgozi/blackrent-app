@@ -5557,6 +5557,71 @@ export class PostgresDatabase {
     console.log('🧹 ALL permission cache CLEARED');
   }
 
+  // ⚡ BULK PROTOCOL STATUS - Získa protocol status pre všetky rentals naraz
+  async getBulkProtocolStatus(): Promise<Array<{
+    rentalId: string;
+    hasHandoverProtocol: boolean;
+    hasReturnProtocol: boolean;
+    handoverProtocolId?: string;
+    returnProtocolId?: string;
+    handoverCreatedAt?: Date;
+    returnCreatedAt?: Date;
+  }>> {
+    const client = await this.pool.connect();
+    try {
+      console.log('🚀 BULK: Loading protocol status for all rentals...');
+      const startTime = Date.now();
+
+      // Ensure protocol tables exist
+      await this.initProtocolTables();
+
+      // Single efficient query using LEFT JOINs to get protocol status for all rentals
+      const result = await client.query(`
+        SELECT 
+          r.id as rental_id,
+          hp.id as handover_protocol_id,
+          hp.created_at as handover_created_at,
+          rp.id as return_protocol_id,
+          rp.created_at as return_created_at
+        FROM rentals r
+        LEFT JOIN (
+          SELECT DISTINCT ON (rental_id) 
+            id, rental_id, created_at
+          FROM handover_protocols 
+          ORDER BY rental_id, created_at DESC
+        ) hp ON r.id = hp.rental_id
+        LEFT JOIN (
+          SELECT DISTINCT ON (rental_id) 
+            id, rental_id, created_at
+          FROM return_protocols 
+          ORDER BY rental_id, created_at DESC
+        ) rp ON r.id = rp.rental_id
+        ORDER BY r.created_at DESC
+      `);
+
+      const protocolStatus = result.rows.map(row => ({
+        rentalId: row.rental_id,
+        hasHandoverProtocol: !!row.handover_protocol_id,
+        hasReturnProtocol: !!row.return_protocol_id,
+        handoverProtocolId: row.handover_protocol_id || undefined,
+        returnProtocolId: row.return_protocol_id || undefined,
+        handoverCreatedAt: row.handover_created_at ? new Date(row.handover_created_at) : undefined,
+        returnCreatedAt: row.return_created_at ? new Date(row.return_created_at) : undefined
+      }));
+
+      const loadTime = Date.now() - startTime;
+      console.log(`✅ BULK: Protocol status loaded for ${protocolStatus.length} rentals in ${loadTime}ms`);
+
+      return protocolStatus;
+
+    } catch (error) {
+      console.error('❌ Error fetching bulk protocol status:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
 }
 
 export const postgresDatabase = new PostgresDatabase(); 

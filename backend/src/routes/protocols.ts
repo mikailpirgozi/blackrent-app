@@ -42,6 +42,36 @@ router.get('/rental/:rentalId', async (req, res) => {
   }
 });
 
+// ⚡ BULK PROTOCOL STATUS - Get protocol status for all rentals at once
+router.get('/bulk-status', authenticateToken, async (req, res) => {
+  try {
+    console.log('📋 Fetching bulk protocol status for all rentals...');
+    const startTime = Date.now();
+    
+    // Single efficient query to get protocol status for all rentals
+    const protocolStatus = await postgresDatabase.getBulkProtocolStatus();
+    
+    const loadTime = Date.now() - startTime;
+    console.log(`✅ Bulk protocol status loaded in ${loadTime}ms`);
+    
+    res.json({
+      success: true,
+      data: protocolStatus,
+      metadata: {
+        loadTimeMs: loadTime,
+        totalRentals: protocolStatus.length,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching bulk protocol status:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Chyba pri načítaní protocol statusu' 
+    });
+  }
+});
+
 // PDF Proxy endpoint
 router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
   try {
