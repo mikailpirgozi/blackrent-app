@@ -1248,8 +1248,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   gridTemplateColumns: {
                     xs: mobileViewMode === 'week' ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)',
                     sm: mobileViewMode === 'week' ? 'repeat(4, 1fr)' : 'repeat(6, 1fr)', 
-                    md: mobileViewMode === 'week' ? 'repeat(5, 1fr)' : 'repeat(7, 1fr)',
-                    lg: 'repeat(7, 1fr)'
+                    md: 'repeat(7, 1fr)'
                   },
                   gridTemplateRows: mobileViewMode === 'month' ? 'repeat(5, 1fr)' : '1fr',
                   gap: 0.5,
@@ -1258,12 +1257,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   {(mobileViewMode === 'week' 
                     ? generateCalendarDays(currentWeekOffset, 
                         isSmallMobile ? 3 : 
-                        isMobile ? 4 :
+                        isMobile && !useMediaQuery(theme.breakpoints.up('md'), { noSsr: true }) ? 4 :
                         7
                       )
                     : generateCalendarDays(currentMonthOffset, 
                         isSmallMobile ? 15 : 
-                        isMobile ? 20 :
+                        isMobile && !useMediaQuery(theme.breakpoints.up('md'), { noSsr: true }) ? 20 :
                         30
                       )
                   ).map((day) => {
@@ -1555,8 +1554,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 gridTemplateColumns: {
                   xs: getVehicleViewMode(vehicle.id) === 'week' ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)',
                   sm: getVehicleViewMode(vehicle.id) === 'week' ? 'repeat(4, 1fr)' : 'repeat(6, 1fr)',
-                  md: getVehicleViewMode(vehicle.id) === 'week' ? 'repeat(5, 1fr)' : 'repeat(7, 1fr)',
-                  lg: 'repeat(7, 1fr)'
+                  md: 'repeat(7, 1fr)'
                 },
                 gridTemplateRows: getVehicleViewMode(vehicle.id) === 'month' ? 'repeat(5, 1fr)' : '1fr',
                 gap: 0.75,
@@ -1568,9 +1566,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 {(() => {
                   const vehicleMode = getVehicleViewMode(vehicle.id);
                   const vehicleOffset = getVehicleOffset(vehicle.id, vehicleMode);
+                  const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
                   const daysCount = vehicleMode === 'week' ? 
-                    (isSmallMobile ? 3 : isMobile ? 4 : 7) : 
-                    (isSmallMobile ? 15 : isMobile ? 20 : 30);
+                    (isSmallMobile ? 3 : !isDesktop && isMobile ? 4 : 7) : 
+                    (isSmallMobile ? 15 : !isDesktop && isMobile ? 20 : 30);
                   return generateCalendarDays(vehicleOffset, daysCount);
                 })().map((day) => {
                   const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
