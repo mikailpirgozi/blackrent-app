@@ -189,6 +189,42 @@ class ApiService {
     return response;
   }
 
+  // ⚡ BULK PROTOCOL STATUS - Získa protocol status pre všetky rentals naraz
+  async getBulkProtocolStatus(): Promise<{
+    rentalId: string;
+    hasHandoverProtocol: boolean;
+    hasReturnProtocol: boolean;
+    handoverProtocolId?: string;
+    returnProtocolId?: string;
+    handoverCreatedAt?: Date;
+    returnCreatedAt?: Date;
+  }[]> {
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        rentalId: string;
+        hasHandoverProtocol: boolean;
+        hasReturnProtocol: boolean;
+        handoverProtocolId?: string;
+        returnProtocolId?: string;
+        handoverCreatedAt?: string;
+        returnCreatedAt?: string;
+      }[];
+      metadata: {
+        loadTimeMs: number;
+        totalRentals: number;
+        timestamp: string;
+      };
+    }>('/protocols/bulk-status');
+    
+    // Convert date strings back to Date objects
+    return response.data.map(item => ({
+      ...item,
+      handoverCreatedAt: item.handoverCreatedAt ? new Date(item.handoverCreatedAt) : undefined,
+      returnCreatedAt: item.returnCreatedAt ? new Date(item.returnCreatedAt) : undefined
+    }));
+  }
+
   // ⚡ BULK: História vlastníctva všetkých vozidiel naraz
   async getBulkVehicleOwnershipHistory(): Promise<{
     vehicleHistories: Array<{
