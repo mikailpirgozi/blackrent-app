@@ -70,30 +70,12 @@ import RentalAdvancedFilters, { FilterState } from './RentalAdvancedFilters';
 import RentalViewToggle, { ViewMode } from './RentalViewToggle';
 import RentalCardView, { CardViewMode } from './RentalCardView';
 
-// Komponent pre zobrazenie majiteľa vozidla k dátumu prenájmu
+// 🎯 SNAPSHOT: Komponent pre zobrazenie majiteľa vozidla (ZAMRAZENÝ k dátumu prenájmu)
 const VehicleOwnerDisplay: React.FC<{
   rental: Rental;
-  getVehicleOwnerAtDate: (vehicleId: string, date: Date) => Promise<string>;
-}> = ({ rental, getVehicleOwnerAtDate }) => {
-  const [ownerName, setOwnerName] = useState<string>('Načítava...');
-  
-  useEffect(() => {
-    // 🔧 OPRAVA: Používaj rental.vehicle.company namiesto API volania
-    // Rentals API už obsahuje správne historical ownership data
-    if (rental.vehicle?.company) {
-      setOwnerName(rental.vehicle.company);
-      return;
-    }
-    
-    // Fallback na API len ak rental nemá company údaje
-    if (rental.vehicleId) {
-      getVehicleOwnerAtDate(rental.vehicleId, new Date(rental.startDate))
-        .then(setOwnerName)
-        .catch(() => setOwnerName('N/A'));
-    } else {
-      setOwnerName('N/A');
-    }
-  }, [rental.vehicle?.company, rental.vehicleId, rental.startDate, getVehicleOwnerAtDate]);
+}> = ({ rental }) => {
+  // 🚀 CLEAN SOLUTION: Používaj priamo company field!
+  const ownerName = rental.company || rental.vehicle?.company || 'N/A';
 
   return (
     <Typography variant="body2" color="text.secondary">
@@ -121,32 +103,7 @@ export default function RentalList() {
     return rental.vehicleId ? state.vehicles.find(v => v.id === rental.vehicleId) : null;
   }, [state.vehicles]);
   
-  // Helper function to get historical vehicle owner at rental date
-  const [vehicleOwners, setVehicleOwners] = useState<Record<string, string>>({});
-  
-  const getVehicleOwnerAtDate = useCallback(async (vehicleId: string, date: Date) => {
-    const cacheKey = `${vehicleId}-${date.toISOString().split('T')[0]}`;
-    
-    if (vehicleOwners[cacheKey]) {
-      return vehicleOwners[cacheKey];
-    }
-
-    try {
-      const response = await apiService.getVehicleOwnerAtDate(vehicleId, date);
-      const ownerName = response.owner.ownerCompanyName;
-      
-      setVehicleOwners(prev => ({
-        ...prev,
-        [cacheKey]: ownerName
-      }));
-      
-      return ownerName;
-    } catch (error) {
-      console.error('Error fetching vehicle owner:', error);
-      const vehicle = state.vehicles.find(v => v.id === vehicleId);
-      return vehicle?.company || 'N/A';
-    }
-  }, [vehicleOwners, state.vehicles, state.rentals]);
+  // 🎯 SNAPSHOT LOGIC: Už nepotrebujeme getVehicleOwnerAtDate - všetko je v rental.vehicleCompanySnapshot!
   
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -1814,7 +1771,7 @@ export default function RentalList() {
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <BusinessIcon color="action" fontSize="small" />
-              <VehicleOwnerDisplay rental={rental} getVehicleOwnerAtDate={getVehicleOwnerAtDate} />
+              <VehicleOwnerDisplay rental={rental} />
             
             </Box>
           </Box>

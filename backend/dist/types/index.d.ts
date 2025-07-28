@@ -94,6 +94,7 @@ export interface Rental {
     returnLocation?: string;
     vehicleCode?: string;
     vehicleName?: string;
+    company?: string;
 }
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';
 export interface Expense {

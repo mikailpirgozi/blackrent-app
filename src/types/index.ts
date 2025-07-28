@@ -115,6 +115,8 @@ export interface Rental {
   reservationTime?: string;
   vehicleCode?: string; // ŠPZ z emailu
   vehicleName?: string; // Názov vozidla z emailu
+  // 🎯 SNAPSHOT: Zamrazený majiteľ vozidla k dátumu prenájmu
+  company?: string;
 }
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';
