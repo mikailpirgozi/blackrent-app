@@ -327,7 +327,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     const accessibleCompanyNames = getAccessibleCompanyNames();
     return (state.vehicles || []).filter(vehicle => 
-      accessibleCompanyNames.includes(vehicle.company)
+      vehicle.company && accessibleCompanyNames.includes(vehicle.company)
     );
   };
 
