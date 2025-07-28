@@ -1398,14 +1398,20 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       {/* Desktop kalendár - card layout pre vozidlá */}
       <Box sx={{ 
         display: 'grid',
-        gridTemplateColumns: { md: 'repeat(3, 1fr)' },
-        gap: 2
+        gridTemplateColumns: { 
+          xs: '1fr',
+          sm: '1fr', 
+          md: 'repeat(2, 1fr)',
+          lg: 'repeat(3, 1fr)',
+          xl: 'repeat(4, 1fr)'
+        },
+        gap: { xs: 1.5, sm: 2 }
       }}>
         {filteredVehicles.map((vehicle) => (
           <Card key={vehicle.id} sx={{ 
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             borderRadius: 3,
-            minHeight: '350px',
+            minHeight: { xs: '300px', sm: '320px', md: '340px', lg: '350px' },
             display: 'flex',
             flexDirection: 'column',
             transition: 'transform 0.2s ease, box-shadow 0.2s ease',
@@ -1537,7 +1543,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 gridTemplateRows: getVehicleViewMode(vehicle.id) === 'month' ? 'repeat(5, 1fr)' : '1fr',
                 gap: 0.75,
                 mb: 3,
-                minHeight: getVehicleViewMode(vehicle.id) === 'month' ? '240px' : '60px'
+                minHeight: getVehicleViewMode(vehicle.id) === 'month' ? 
+                  { xs: '200px', sm: '220px', md: '240px' } : 
+                  { xs: '50px', sm: '55px', md: '60px' }
               }}>
                 {(() => {
                   const vehicleMode = getVehicleViewMode(vehicle.id);
@@ -1565,7 +1573,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        minHeight: '45px',
+                        minHeight: { xs: '35px', sm: '40px', md: '45px' },
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'center',
