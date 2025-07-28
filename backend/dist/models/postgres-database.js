@@ -9,6 +9,9 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const r2_storage_1 = require("../utils/r2-storage");
 class PostgresDatabase {
     constructor() {
+        // ⚡ PERFORMANCE CACHE: Permission caching pre getUserCompanyAccess
+        this.permissionCache = new Map();
+        this.PERMISSION_CACHE_TTL = 5 * 60 * 1000; // 5 minút
         // Railway.app provides DATABASE_URL
         if (process.env.DATABASE_URL) {
             this.pool = new pg_1.Pool({
@@ -993,6 +996,44 @@ class PostgresDatabase {
             }
             catch (error) {
                 console.log('⚠️ Migrácia 21 chyba:', error.message);
+            }
+            // Migrácia 22: ⚡ PERFORMANCE INDEXY - Optimalizácia rýchlosti načítavania dát
+            try {
+                console.log('📋 Migrácia 22: ⚡ Pridávanie performance indexov pre rýchlejšie načítanie...');
+                // 🚀 INDEX 1: rentals.vehicle_id - Pre rýchlejší JOIN v getRentals()
+                await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_rentals_vehicle_id ON rentals(vehicle_id)
+        `);
+                console.log('   ✅ Index idx_rentals_vehicle_id pridaný');
+                // 🚀 INDEX 2: vehicles.owner_company_id - Pre rýchlejšie permission filtering
+                await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_vehicles_owner_company_id ON vehicles(owner_company_id)
+        `);
+                console.log('   ✅ Index idx_vehicles_owner_company_id pridaný');
+                // 🚀 INDEX 3: rentals.created_at DESC - Pre rýchlejšie ORDER BY v getRentals()
+                await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_rentals_created_at_desc ON rentals(created_at DESC)
+        `);
+                console.log('   ✅ Index idx_rentals_created_at_desc pridaný');
+                // 🚀 INDEX 4: vehicles.created_at DESC - Pre rýchlejšie ORDER BY v getVehicles()
+                await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_vehicles_created_at_desc ON vehicles(created_at DESC)
+        `);
+                console.log('   ✅ Index idx_vehicles_created_at_desc pridaný');
+                // 🚀 INDEX 5: expenses.vehicle_id - Pre rýchlejšie queries v expense API
+                await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_expenses_vehicle_id ON expenses(vehicle_id)
+        `);
+                console.log('   ✅ Index idx_expenses_vehicle_id pridaný');
+                // 🚀 INDEX 6: expenses.date DESC - Pre rýchlejšie date filtering
+                await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_expenses_date_desc ON expenses(date DESC)
+        `);
+                console.log('   ✅ Index idx_expenses_date_desc pridaný');
+                console.log('✅ Migrácia 22: ⚡ Performance indexy úspešne pridané (očakávaná úspora: 30-50% rýchlosť)');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 22 chyba:', error.message);
             }
         }
         catch (error) {
@@ -4093,9 +4134,26 @@ class PostgresDatabase {
         }
     }
     async getUserCompanyAccess(userId) {
+        // ⚡ CACHE CHECK: Skontroluj cache najprv
+        const cacheKey = `permissions:${userId}`;
+        const cached = this.permissionCache.get(cacheKey);
+        if (cached) {
+            const now = Date.now();
+            const isValid = (now - cached.timestamp) < this.PERMISSION_CACHE_TTL;
+            if (isValid) {
+                console.log('⚡ getUserCompanyAccess CACHE HIT for userId:', userId, '(saved SQL query)');
+                return cached.data;
+            }
+            else {
+                // Cache expired, remove it
+                this.permissionCache.delete(cacheKey);
+                console.log('🕒 getUserCompanyAccess cache EXPIRED for userId:', userId);
+            }
+        }
+        // ⚡ CACHE MISS: Load from database
         const client = await this.pool.connect();
         try {
-            console.log('🔍 getUserCompanyAccess called for userId:', userId);
+            console.log('🔍 getUserCompanyAccess CACHE MISS - loading from DB for userId:', userId);
             const result = await client.query(`
         SELECT up.company_id, c.name as company_name, up.permissions
         FROM user_permissions up
@@ -4103,16 +4161,21 @@ class PostgresDatabase {
         WHERE up.user_id = $1
         ORDER BY c.name
         `, [userId]);
-            console.log('🔍 getUserCompanyAccess result:', {
-                userId,
-                rowCount: result.rows.length,
-                companies: result.rows.map(r => ({ companyId: r.company_id, companyName: r.company_name }))
-            });
-            return result.rows.map(row => ({
+            const data = result.rows.map(row => ({
                 companyId: row.company_id,
                 companyName: row.company_name,
                 permissions: row.permissions
             }));
+            // ⚡ CACHE STORE: Ulož do cache
+            this.permissionCache.set(cacheKey, {
+                data: data,
+                timestamp: Date.now()
+            });
+            console.log('⚡ getUserCompanyAccess CACHED for userId:', userId, {
+                rowCount: result.rows.length,
+                companies: result.rows.map(r => ({ companyId: r.company_id, companyName: r.company_name }))
+            });
+            return data;
         }
         finally {
             client.release();
@@ -4129,6 +4192,10 @@ class PostgresDatabase {
           permissions = $3,
           updated_at = CURRENT_TIMESTAMP
       `, [userId, companyId, JSON.stringify(permissions)]);
+            // ⚡ CACHE INVALIDATION: Vymaž cache pre tohoto používateľa
+            const cacheKey = `permissions:${userId}`;
+            this.permissionCache.delete(cacheKey);
+            console.log('🧹 Permission cache INVALIDATED for userId:', userId);
         }
         finally {
             client.release();
@@ -4137,7 +4204,12 @@ class PostgresDatabase {
     async removeUserPermission(userId, companyId) {
         const client = await this.pool.connect();
         try {
-            await client.query('DELETE FROM user_permissions WHERE user_id = $1 AND company_id = $2', [userId, companyId]);
+            await client.query(`
+        DELETE FROM user_permissions 
+        WHERE user_id = $1 AND company_id = $2
+      `, [userId, companyId]);
+            // ⚡ CACHE INVALIDATION: Vymaž cache pre tohoto používateľa
+            this.clearPermissionCache(userId);
         }
         finally {
             client.release();
@@ -4779,6 +4851,68 @@ class PostgresDatabase {
             const loadTime = Date.now() - startTime;
             console.log(`✅ BULK: Got current owners for ${vehicleIds.length} vehicles in ${loadTime}ms`);
             return results;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // ⚡ CACHE HELPER METHODS
+    clearPermissionCache(userId) {
+        const cacheKey = `permissions:${userId}`;
+        this.permissionCache.delete(cacheKey);
+        console.log('🧹 Permission cache CLEARED for userId:', userId);
+    }
+    clearAllPermissionCache() {
+        this.permissionCache.clear();
+        console.log('🧹 ALL permission cache CLEARED');
+    }
+    // ⚡ BULK PROTOCOL STATUS - Získa protocol status pre všetky rentals naraz
+    async getBulkProtocolStatus() {
+        const client = await this.pool.connect();
+        try {
+            console.log('🚀 BULK: Loading protocol status for all rentals...');
+            const startTime = Date.now();
+            // Ensure protocol tables exist
+            await this.initProtocolTables();
+            // Single efficient query using LEFT JOINs to get protocol status for all rentals
+            const result = await client.query(`
+        SELECT 
+          r.id as rental_id,
+          hp.id as handover_protocol_id,
+          hp.created_at as handover_created_at,
+          rp.id as return_protocol_id,
+          rp.created_at as return_created_at
+        FROM rentals r
+        LEFT JOIN (
+          SELECT DISTINCT ON (rental_id) 
+            id, rental_id, created_at
+          FROM handover_protocols 
+          ORDER BY rental_id, created_at DESC
+        ) hp ON r.id = hp.rental_id
+        LEFT JOIN (
+          SELECT DISTINCT ON (rental_id) 
+            id, rental_id, created_at
+          FROM return_protocols 
+          ORDER BY rental_id, created_at DESC
+        ) rp ON r.id = rp.rental_id
+        ORDER BY r.created_at DESC
+      `);
+            const protocolStatus = result.rows.map(row => ({
+                rentalId: row.rental_id,
+                hasHandoverProtocol: !!row.handover_protocol_id,
+                hasReturnProtocol: !!row.return_protocol_id,
+                handoverProtocolId: row.handover_protocol_id || undefined,
+                returnProtocolId: row.return_protocol_id || undefined,
+                handoverCreatedAt: row.handover_created_at ? new Date(row.handover_created_at) : undefined,
+                returnCreatedAt: row.return_created_at ? new Date(row.return_created_at) : undefined
+            }));
+            const loadTime = Date.now() - startTime;
+            console.log(`✅ BULK: Protocol status loaded for ${protocolStatus.length} rentals in ${loadTime}ms`);
+            return protocolStatus;
+        }
+        catch (error) {
+            console.error('❌ Error fetching bulk protocol status:', error);
+            throw error;
         }
         finally {
             client.release();

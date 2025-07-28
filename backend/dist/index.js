@@ -79,6 +79,7 @@ const vehicle_documents_1 = __importDefault(require("./routes/vehicle-documents"
 const insurance_claims_1 = __importDefault(require("./routes/insurance-claims"));
 const permissions_1 = __importDefault(require("./routes/permissions"));
 const admin_1 = __importDefault(require("./routes/admin"));
+const bulk_1 = __importDefault(require("./routes/bulk"));
 // API routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/vehicles', vehicles_1.default);
@@ -91,13 +92,14 @@ app.use('/api/insurers', insurers_1.default);
 app.use('/api/protocols', protocols_1.default);
 app.use('/api/files', files_1.default);
 app.use('/api/settlements', settlements_1.default);
-app.use('/api/migration', migration_1.default);
+app.use('/api/migrations', migration_1.default);
 app.use('/api/availability', availability_1.default);
 app.use('/api/vehicle-unavailability', vehicle_unavailability_1.default);
 app.use('/api/vehicle-documents', vehicle_documents_1.default);
 app.use('/api/insurance-claims', insurance_claims_1.default);
 app.use('/api/permissions', permissions_1.default);
 app.use('/api/admin', admin_1.default);
+app.use('/api/bulk', bulk_1.default);
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {
     console.log('🧪 Simple test endpoint called');

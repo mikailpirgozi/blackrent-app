@@ -2,6 +2,8 @@ import { PoolClient } from 'pg';
 import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions } from '../types';
 export declare class PostgresDatabase {
     private pool;
+    private permissionCache;
+    private readonly PERMISSION_CACHE_TTL;
     constructor();
     private initTables;
     private runMigrations;
@@ -331,6 +333,17 @@ export declare class PostgresDatabase {
             ownerCompanyId: string;
             ownerCompanyName: string;
         } | null;
+    }>>;
+    private clearPermissionCache;
+    private clearAllPermissionCache;
+    getBulkProtocolStatus(): Promise<Array<{
+        rentalId: string;
+        hasHandoverProtocol: boolean;
+        hasReturnProtocol: boolean;
+        handoverProtocolId?: string;
+        returnProtocolId?: string;
+        handoverCreatedAt?: Date;
+        returnCreatedAt?: Date;
     }>>;
 }
 export declare const postgresDatabase: PostgresDatabase;

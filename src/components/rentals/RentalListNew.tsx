@@ -2180,7 +2180,6 @@ export default function RentalList() {
       setProtocolStatusLoaded(true);
       
       console.log('🎉 BACKGROUND: Protocol status icons will now appear in rental list!');
-      console.log('🔍 DEBUG: protocolStatusLoaded set to TRUE');
       
     } catch (error) {
       console.error('❌ BACKGROUND: Failed to load protocol status:', error);
@@ -3168,9 +3167,8 @@ export default function RentalList() {
                               animation: 'pulse 2s infinite'
                             }}
                           />
-                        ) : (!protocolStatusLoaded && (
-                          <>
-                            {console.log('🔍 DEBUG MOBILE: Showing protocol check button', { isLoadingProtocolStatus, protocolStatusLoaded, rentalId: rental.id })}
+                        ) : (
+                          !protocolStatusLoaded && (
                             <Chip
                               size="small"
                               label="🔍"
@@ -3198,8 +3196,8 @@ export default function RentalList() {
                                 transition: 'all 0.2s ease'
                               }}
                             />
-                          </>
-                        ))}
+                          )
+                        )}
                         
                         <Chip
                           size="small"
@@ -3703,32 +3701,29 @@ export default function RentalList() {
                           <SearchIcon fontSize="small" />
                         </IconButton>
                       ) : (!protocolStatusLoaded && (
-                        <>
-                          {console.log('🔍 DEBUG DESKTOP: Showing protocol check button', { isLoadingProtocolStatus, protocolStatusLoaded, rentalId: rental.id })}
-                          <IconButton
-                            size="small"
-                            title="Skontrolovať protokoly"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCheckProtocols(rental);
-                            }}
-                            sx={{ 
-                              bgcolor: '#9c27b0', 
-                              color: 'white',
-                              width: 28,
-                              height: 28,
-                              mt: 0.5,
-                              '&:hover': { 
-                                bgcolor: '#7b1fa2',
-                                transform: 'scale(1.1)',
-                                boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
-                              },
-                              transition: 'all 0.2s ease'
-                            }}
-                          >
-                            <SearchIcon fontSize="small" />
-                          </IconButton>
-                        </>
+                        <IconButton
+                          size="small"
+                          title="Skontrolovať protokoly"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCheckProtocols(rental);
+                          }}
+                          sx={{ 
+                            bgcolor: '#9c27b0', 
+                            color: 'white',
+                            width: 28,
+                            height: 28,
+                            mt: 0.5,
+                            '&:hover': { 
+                              bgcolor: '#7b1fa2',
+                              transform: 'scale(1.1)',
+                              boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <SearchIcon fontSize="small" />
+                        </IconButton>
                       ))}
                     </Box>
 
