@@ -202,23 +202,15 @@ class ApiService {
     try {
       const response = await this.request<any>('/protocols/bulk-status');
       
-      // 🔍 TEMPORARY DEBUG - pozriem si response
-      console.log('🔍 TEMP DEBUG: Raw response:', response);
-      console.log('🔍 TEMP DEBUG: Response type:', typeof response);
-      console.log('🔍 TEMP DEBUG: Response data:', response?.data);
-      console.log('🔍 TEMP DEBUG: Response success:', response?.success);
-      
       // 🚀 SMART RESPONSE HANDLING - Backend môže vrátiť Array alebo API wrapper
       let protocolData;
       
       if (Array.isArray(response)) {
         // Backend vracia priamy Array: [...]
         protocolData = response;
-        console.log('✅ Using direct array response');
       } else if (response && Array.isArray(response.data)) {
         // Backend vracia API wrapper: { success: true, data: [...] }
         protocolData = response.data;
-        console.log('✅ Using wrapped response.data');
       } else {
         console.error('❌ getBulkProtocolStatus: Nerozpoznaný formát odpovede');
         console.error('Raw response:', response);
@@ -229,8 +221,6 @@ class ApiService {
         console.warn('⚠️ getBulkProtocolStatus: Žiadne protocol data nenájdené');
         return [];
       }
-      
-      console.log(`✅ Processing ${protocolData.length} protocol records`);
       
       // Transformuj dáta s bezpečným pristupom
       return protocolData.map((item: any) => ({
