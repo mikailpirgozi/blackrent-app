@@ -3232,8 +3232,8 @@ export default function RentalList() {
               zIndex: 1000
             }}>
               <Box sx={{ 
-                width: 200,
-                maxWidth: 200,
+                width: 260,
+                maxWidth: 260,
                 p: 2,
                 borderRight: '2px solid #e0e0e0',
                 backgroundColor: '#ffffff',
@@ -3299,7 +3299,8 @@ export default function RentalList() {
                 </Typography>
               </Box>
               <Box sx={{ 
-                flex: 1,
+                width: 180,
+                maxWidth: 180,
                 p: 2,
                 textAlign: 'center',
                 backgroundColor: '#f8f9fa'
@@ -3336,8 +3337,8 @@ export default function RentalList() {
                   >
                     {/* Vozidlo & Status - sticky left - FIXED WIDTH */}
                     <Box sx={{ 
-                      width: 200, // FIXED WIDTH instead of minWidth
-                      maxWidth: 200,
+                      width: 260, // FIXED WIDTH instead of minWidth
+                      maxWidth: 260,
                       p: 2,
                       borderRight: '2px solid #e0e0e0',
                       display: 'flex',
@@ -3600,7 +3601,8 @@ export default function RentalList() {
 
                     {/* Akcie */}
                     <Box sx={{ 
-                      flex: 1,
+                      width: 180,
+                      maxWidth: 180,
                       p: 2,
                       display: 'flex',
                       justifyContent: 'center',
