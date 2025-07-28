@@ -37,65 +37,8 @@ router.get('/',
         totalRentals: rentals.length 
       });
       
-      // 🔄 HISTORICAL OWNERSHIP LOGIC - Applied for ALL USERS (including admins)
-      // This ensures that rental statistics show the correct historical owner
-      console.log('🚀 BULK: Enriching all rentals with historical ownership data...');
-      const enrichmentStartTime = Date.now();
-      
-      // 1. Filter rentals with valid vehicle and date
-      const validRentals = rentals.filter(rental => rental.vehicleId && rental.startDate);
-      console.log(`📊 Valid rentals for ownership enrichment: ${validRentals.length}/${rentals.length}`);
-      
-      if (validRentals.length > 0) {
-        // 2. Bulk historical ownership checking for all rentals
-        const ownershipChecks = validRentals.map(rental => ({
-          vehicleId: rental.vehicleId!,
-          timestamp: new Date(rental.startDate)
-        }));
-        
-        const [historicalOwners, currentOwners] = await Promise.all([
-          postgresDatabase.getBulkVehicleOwnersAtTime(ownershipChecks),
-          postgresDatabase.getBulkCurrentVehicleOwners(validRentals.map(r => r.vehicleId!))
-        ]);
-        
-        // 3. Create lookup maps
-        const historicalOwnerMap = new Map();
-        historicalOwners.forEach(result => {
-          const key = `${result.vehicleId}-${result.timestamp.toISOString()}`;
-          historicalOwnerMap.set(key, result.owner);
-        });
-        
-        const currentOwnerMap = new Map();
-        currentOwners.forEach(result => {
-          currentOwnerMap.set(result.vehicleId, result.owner);
-        });
-        
-        // 4. Enrich all rentals with correct historical ownership data
-        for (const rental of validRentals) {
-          const rentalStart = new Date(rental.startDate);
-          const historicalKey = `${rental.vehicleId}-${rentalStart.toISOString()}`;
-          const historicalOwner = historicalOwnerMap.get(historicalKey);
-          
-          if (historicalOwner) {
-            // Use historical owner from the time of rental
-            if (rental.vehicle) {
-              rental.vehicle.company = historicalOwner.ownerCompanyName;
-              rental.vehicle.ownerCompanyId = historicalOwner.ownerCompanyId;
-            }
-          } else {
-            // FALLBACK: Use current owner if historical not found
-            const currentOwner = currentOwnerMap.get(rental.vehicleId);
-            if (currentOwner && rental.vehicle) {
-              console.log(`📝 Using current ownership for rental ${rental.id} (historical not found)`);
-              rental.vehicle.company = currentOwner.ownerCompanyName;
-              rental.vehicle.ownerCompanyId = currentOwner.ownerCompanyId;
-            }
-          }
-        }
-        
-        const enrichmentTime = Date.now() - enrichmentStartTime;
-        console.log(`✅ BULK: Enriched ${validRentals.length} rentals with historical ownership in ${enrichmentTime}ms`);
-      }
+      // 🎯 CLEAN SOLUTION: Rental má svoj company field - žiadny enrichment potrebný! ✅
+      console.log('🚀 CLEAN: Rentals already have company field from database');
       
       // 🔐 PERMISSION FILTERING - Apply company-based filtering for non-admin users
       if (req.user?.role !== 'admin' && req.user) {

@@ -109,6 +109,8 @@ export interface Rental {
   returnLocation?: string;
   vehicleCode?: string;
   vehicleName?: string;
+  // 🎯 SNAPSHOT: Zamrazený majiteľ vozidla k dátumu prenájmu
+  company?: string;
 }
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';

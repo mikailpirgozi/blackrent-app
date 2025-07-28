@@ -859,6 +859,98 @@ class PostgresDatabase {
             catch (error) {
                 console.log('⚠️ Migrácia 18 chyba:', error.message);
             }
+            // Migrácia 19: Vehicle Company Snapshot - Zamrazenie historických prenájmov 🎯
+            try {
+                console.log('📋 Migrácia 19: Pridávanie vehicle_company_snapshot do rentals...');
+                // Pridaj stĺpec pre snapshot company name
+                await client.query(`
+          ALTER TABLE rentals 
+          ADD COLUMN IF NOT EXISTS vehicle_company_snapshot VARCHAR(255)
+        `);
+                console.log('   ✅ vehicle_company_snapshot stĺpec pridaný');
+                // Migrácia existujúcich prenájmov - nastav historical ownership
+                console.log('   🔄 Nastavujem historical ownership pre existujúce prenájmy...');
+                const existingRentals = await client.query(`
+          SELECT r.id, r.vehicle_id, r.start_date, r.vehicle_company_snapshot
+          FROM rentals r 
+          WHERE r.vehicle_company_snapshot IS NULL
+        `);
+                console.log(`   📊 Našiel som ${existingRentals.rows.length} prenájmov na migráciu`);
+                let migratedCount = 0;
+                for (const rental of existingRentals.rows) {
+                    // Skús najsť historical owner z ownership history
+                    const historicalOwner = await client.query(`
+            SELECT owner_company_name
+            FROM vehicle_ownership_history
+            WHERE vehicle_id = $1
+              AND valid_from <= $2
+              AND (valid_to IS NULL OR valid_to > $2)
+            ORDER BY valid_from DESC
+            LIMIT 1
+          `, [rental.vehicle_id, rental.start_date]);
+                    let companyName = null;
+                    if (historicalOwner.rows.length > 0) {
+                        companyName = historicalOwner.rows[0].owner_company_name;
+                    }
+                    else {
+                        // Fallback - aktuálny owner z vehicles
+                        const currentOwner = await client.query(`
+              SELECT company FROM vehicles WHERE id = $1
+            `, [rental.vehicle_id]);
+                        if (currentOwner.rows.length > 0) {
+                            companyName = currentOwner.rows[0].company;
+                        }
+                    }
+                    if (companyName) {
+                        await client.query(`
+              UPDATE rentals 
+              SET vehicle_company_snapshot = $1 
+              WHERE id = $2
+            `, [companyName, rental.id]);
+                        migratedCount++;
+                    }
+                }
+                console.log(`   ✅ Migrácia dokončená pre ${migratedCount} prenájmov`);
+                console.log('✅ Migrácia 19: Vehicle Company Snapshot úspešne vytvorená');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 19 chyba:', error.message);
+            }
+            // Migrácia 20: CLEAN SOLUTION - Nahradiť komplikovaný snapshot jednoduchým company field 🎯
+            try {
+                console.log('📋 Migrácia 20: CLEAN SOLUTION - Jednoduchý company field...');
+                // Pridaj jednoduchý company stĺpec
+                await client.query(`
+          ALTER TABLE rentals 
+          ADD COLUMN IF NOT EXISTS company VARCHAR(255)
+        `);
+                console.log('   ✅ company stĺpec pridaný');
+                // Migrácia dát z vehicle_company_snapshot do company
+                console.log('   🔄 Kopírujem dáta z vehicle_company_snapshot do company...');
+                const migrateResult = await client.query(`
+          UPDATE rentals 
+          SET company = COALESCE(vehicle_company_snapshot, (
+            SELECT v.company 
+            FROM vehicles v 
+            WHERE v.id = rentals.vehicle_id
+          ))
+          WHERE company IS NULL
+        `);
+                console.log(`   📊 Migrovaných ${migrateResult.rowCount} prenájmov`);
+                // Po úspešnej migrácii môžeme odstrániť starý komplikovaný stĺpec
+                console.log('   🧹 Odstraňujem starý vehicle_company_snapshot stĺpec...');
+                try {
+                    await client.query(`ALTER TABLE rentals DROP COLUMN IF EXISTS vehicle_company_snapshot`);
+                    console.log('   ✅ vehicle_company_snapshot stĺpec odstránený');
+                }
+                catch (dropError) {
+                    console.log('   ⚠️ Nemožno odstrániť vehicle_company_snapshot:', dropError.message);
+                }
+                console.log('✅ Migrácia 20: CLEAN SOLUTION úspešne dokončená');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 20 chyba:', error.message);
+            }
         }
         catch (error) {
             console.log('⚠️ Migrácie celkovo preskočené:', error.message);
@@ -1536,8 +1628,8 @@ class PostgresDatabase {
           r.id, r.customer_id, r.vehicle_id, r.start_date, r.end_date, 
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.created_at, r.order_number, r.deposit, 
-          r.allowed_kilometers, r.daily_kilometers, r.handover_place,
-          v.brand, v.model, v.license_plate, v.company, v.pricing, v.commission as v_commission, v.status as v_status
+          r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
+          v.brand, v.model, v.license_plate, v.company as vehicle_company, v.pricing, v.commission as v_commission, v.status as v_status
         FROM rentals r
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
         ORDER BY r.created_at DESC
@@ -1561,13 +1653,14 @@ class PostgresDatabase {
                 allowedKilometers: row.allowed_kilometers || undefined,
                 dailyKilometers: row.daily_kilometers || undefined,
                 handoverPlace: row.handover_place || undefined,
+                company: row.company || undefined, // 🎯 CLEAN SOLUTION field
                 // 🚗 PRIAMO MAPOVANÉ VEHICLE DATA (ako getVehicles) ✅
                 vehicle: row.brand ? {
                     id: row.vehicle_id,
                     brand: row.brand,
                     model: row.model,
                     licensePlate: row.license_plate,
-                    company: row.company || 'N/A',
+                    company: row.vehicle_company || 'N/A',
                     pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing || [],
                     commission: typeof row.v_commission === 'string' ? JSON.parse(row.v_commission) : row.v_commission || { type: 'percentage', value: 0 },
                     status: row.v_status || 'available'
@@ -1612,6 +1705,16 @@ class PostgresDatabase {
     async createRental(rentalData) {
         const client = await this.pool.connect();
         try {
+            // 🎯 CLEAN SOLUTION: Rental vlastní svoj company field - JEDNODUCHO!
+            let company = null;
+            if (rentalData.vehicleId) {
+                const vehicleResult = await client.query(`
+          SELECT company FROM vehicles WHERE id = $1
+        `, [rentalData.vehicleId]);
+                if (vehicleResult.rows.length > 0) {
+                    company = vehicleResult.rows[0].company;
+                }
+            }
             const result = await client.query(`
         INSERT INTO rentals (
           vehicle_id, customer_id, customer_name, start_date, end_date, 
@@ -1619,13 +1722,13 @@ class PostgresDatabase {
           extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
-          handover_protocol_id, return_protocol_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
+          handover_protocol_id, return_protocol_id, company
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)
         RETURNING id, vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
-          handover_protocol_id, return_protocol_id, created_at
+          handover_protocol_id, return_protocol_id, company, created_at
       `, [
                 rentalData.vehicleId || null,
                 rentalData.customerId || null,
@@ -1657,7 +1760,9 @@ class PostgresDatabase {
                 rentalData.actualKilometers || null,
                 rentalData.fuelRefillCost || null,
                 rentalData.handoverProtocolId || null,
-                rentalData.returnProtocolId || null
+                rentalData.returnProtocolId || null,
+                company, // 🎯 CLEAN SOLUTION hodnota
+                company // 🎯 CLEAN SOLUTION hodnota
             ]);
             const row = result.rows[0];
             return {
@@ -1693,6 +1798,7 @@ class PostgresDatabase {
                 fuelRefillCost: row.fuel_refill_cost ? parseFloat(row.fuel_refill_cost) : undefined,
                 handoverProtocolId: row.handover_protocol_id || undefined,
                 returnProtocolId: row.return_protocol_id || undefined,
+                company: row.company || undefined, // 🎯 CLEAN SOLUTION field
                 createdAt: new Date(row.created_at)
             };
         }
