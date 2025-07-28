@@ -115,7 +115,7 @@ export default function ExpenseForm({ expense, onSave, onCancel }: ExpenseFormPr
               ...state.companies.map(c => c.name),
               ...state.vehicles.map(v => v.company),
               ...state.expenses.map(e => e.company)
-            ])).filter(Boolean).sort((a, b) => a.localeCompare(b)).map((company) => (
+            ])).filter(Boolean).sort((a, b) => a!.localeCompare(b!)).map((company) => (
               <MenuItem key={company} value={company}>
                 {company}
               </MenuItem>

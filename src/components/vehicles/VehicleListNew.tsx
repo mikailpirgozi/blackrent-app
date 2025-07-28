@@ -251,7 +251,7 @@ export default function VehicleListNew() {
           !vehicle.brand.toLowerCase().includes(query) &&
           !vehicle.model.toLowerCase().includes(query) &&
           !vehicle.licensePlate.toLowerCase().includes(query) &&
-          !vehicle.company.toLowerCase().includes(query)
+          !vehicle.company?.toLowerCase().includes(query)
         ) {
           return false;
         }

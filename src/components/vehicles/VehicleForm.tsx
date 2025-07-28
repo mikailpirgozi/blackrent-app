@@ -118,7 +118,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
   const allCompanies = Array.from(new Set([
     ...state.companies.map(c => c.name),
     ...state.vehicles.map(v => v.company)
-  ])).filter(Boolean).sort((a, b) => a.localeCompare(b));
+  ])).filter(Boolean).sort((a, b) => a!.localeCompare(b!));
 
   // Helper funkcie pre dokumenty
   const handleAddDocument = async (docData: Partial<VehicleDocument>) => {
