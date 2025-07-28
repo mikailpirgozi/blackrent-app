@@ -122,6 +122,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const fallbackIsMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
   const isMobile = propIsMobile !== undefined ? propIsMobile : fallbackIsMobile;
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'), { noSsr: true });
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
   const [calendarData, setCalendarData] = useState<CalendarDay[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [unavailabilities, setUnavailabilities] = useState<VehicleUnavailability[]>([]);
@@ -1257,12 +1258,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   {(mobileViewMode === 'week' 
                     ? generateCalendarDays(currentWeekOffset, 
                         isSmallMobile ? 3 : 
-                        isMobile && !useMediaQuery(theme.breakpoints.up('md'), { noSsr: true }) ? 4 :
+                        isMobile && !isDesktop ? 4 :
                         7
                       )
                     : generateCalendarDays(currentMonthOffset, 
                         isSmallMobile ? 15 : 
-                        isMobile && !useMediaQuery(theme.breakpoints.up('md'), { noSsr: true }) ? 20 :
+                        isMobile && !isDesktop ? 20 :
                         30
                       )
                   ).map((day) => {
@@ -1566,7 +1567,6 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 {(() => {
                   const vehicleMode = getVehicleViewMode(vehicle.id);
                   const vehicleOffset = getVehicleOffset(vehicle.id, vehicleMode);
-                  const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
                   const daysCount = vehicleMode === 'week' ? 
                     (isSmallMobile ? 3 : !isDesktop && isMobile ? 4 : 7) : 
                     (isSmallMobile ? 15 : !isDesktop && isMobile ? 20 : 30);
