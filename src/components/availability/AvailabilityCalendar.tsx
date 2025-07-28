@@ -1398,14 +1398,14 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       {/* Desktop kalendár - card layout pre vozidlá */}
       <Box sx={{ 
         display: 'grid',
-        gridTemplateColumns: { md: '1fr', lg: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' },
+        gridTemplateColumns: { md: 'repeat(3, 1fr)' },
         gap: 2
       }}>
         {filteredVehicles.map((vehicle) => (
           <Card key={vehicle.id} sx={{ 
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             borderRadius: 3,
-            minHeight: '500px',
+            minHeight: '350px',
             display: 'flex',
             flexDirection: 'column',
             transition: 'transform 0.2s ease, box-shadow 0.2s ease',
@@ -1537,7 +1537,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 gridTemplateRows: getVehicleViewMode(vehicle.id) === 'month' ? 'repeat(5, 1fr)' : '1fr',
                 gap: 0.75,
                 mb: 3,
-                minHeight: getVehicleViewMode(vehicle.id) === 'month' ? '320px' : '80px'
+                minHeight: getVehicleViewMode(vehicle.id) === 'month' ? '240px' : '60px'
               }}>
                 {(() => {
                   const vehicleMode = getVehicleViewMode(vehicle.id);
@@ -1565,7 +1565,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        minHeight: '60px',
+                        minHeight: '45px',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'center',
