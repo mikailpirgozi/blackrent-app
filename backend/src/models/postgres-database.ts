@@ -1032,6 +1032,59 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 20 chyba:', error.message);
       }
 
+      // Migrácia 21: 🛡️ BULLETPROOF - Historický backfill company (NIKDY sa nezmení!) ✅
+      try {
+        console.log('📋 Migrácia 21: 🛡️ BULLETPROOF - Historické company pre prenájmy...');
+        
+        // Reset všetkých company na NULL pre rebackfill
+        console.log('   🧹 Resetujem company stĺpce pre rebackfill...');
+        await client.query(`UPDATE rentals SET company = NULL`);
+        
+        // Backfill pomocou HISTORICKEJ ownership na základe rental.startDate
+        console.log('   📅 Backfillujem historické company na základe startDate...');
+        
+        const backfillResult = await client.query(`
+          UPDATE rentals 
+          SET company = (
+            SELECT voh.owner_company_name
+            FROM vehicle_ownership_history voh
+            WHERE voh.vehicle_id = rentals.vehicle_id
+              AND voh.valid_from <= rentals.start_date
+              AND (voh.valid_to IS NULL OR voh.valid_to > rentals.start_date)
+            LIMIT 1
+          )
+          WHERE company IS NULL
+        `);
+        
+        console.log(`   📊 Backfillované ${backfillResult.rowCount} prenájmov s historickou company`);
+        
+        // Fallback pre prenájmy bez ownership history - použij aktuálnu company
+        console.log('   🔄 Fallback pre prenájmy bez ownership history...');
+        
+        const fallbackResult = await client.query(`
+          UPDATE rentals 
+          SET company = (
+            SELECT v.company 
+            FROM vehicles v 
+            WHERE v.id = rentals.vehicle_id
+          )
+          WHERE company IS NULL
+        `);
+        
+        console.log(`   📊 Fallback ${fallbackResult.rowCount} prenájmov s aktuálnou company`);
+        
+        // Overenie výsledku
+        const nullCompanyCount = await client.query(`
+          SELECT COUNT(*) as count FROM rentals WHERE company IS NULL
+        `);
+        
+        console.log(`   ✅ Zostáva ${nullCompanyCount.rows[0].count} prenájmov bez company`);
+        console.log('✅ Migrácia 21: 🛡️ BULLETPROOF historické company FIX dokončený');
+        
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 21 chyba:', error.message);
+      }
+
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
     }
@@ -1812,7 +1865,7 @@ export class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
-          v.brand, v.model, v.license_plate, v.company as vehicle_company, v.pricing, v.commission as v_commission, v.status as v_status
+          v.brand, v.model, v.license_plate, v.pricing, v.commission as v_commission, v.status as v_status
         FROM rentals r
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
         ORDER BY r.created_at DESC
@@ -1844,7 +1897,7 @@ export class PostgresDatabase {
           brand: row.brand,
           model: row.model,
           licensePlate: row.license_plate,
-          company: row.vehicle_company || 'N/A',
+          // 🛡️ BULLETPROOF: ŽIADNA company - zabráni fallback na aktuálnu company!
           pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing || [],
           commission: typeof row.v_commission === 'string' ? JSON.parse(row.v_commission) : row.v_commission || { type: 'percentage', value: 0 },
           status: row.v_status || 'available'
@@ -1860,6 +1913,18 @@ export class PostgresDatabase {
         rentalsWithMissingVehicle.forEach(rental => {
           console.warn(`  - Rental ${rental.id} (${rental.customerName}) has vehicle_id ${rental.vehicleId} but no vehicle data`);
         });
+      }
+
+      // 🛡️ BULLETPROOF VALIDÁCIA: Kontrola že všetky rentals majú company
+      const rentalsWithoutCompany = rentals.filter(r => !r.company);
+      
+      if (rentalsWithoutCompany.length > 0) {
+        console.error(`🚨 CRITICAL: ${rentalsWithoutCompany.length} rentals BEZ company - BULLETPROOF NARUŠENÉ!`);
+        rentalsWithoutCompany.forEach(rental => {
+          console.error(`  ❌ Rental ${rental.id} (${rental.customerName}) - ŽIADNA company! StartDate: ${rental.startDate.toISOString()}`);
+        });
+      } else {
+        console.log(`✅ BULLETPROOF VALIDÁCIA: Všetkých ${rentals.length} prenájmov má company`);
       }
 
       return rentals;
