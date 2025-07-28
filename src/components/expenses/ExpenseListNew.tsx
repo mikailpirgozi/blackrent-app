@@ -270,31 +270,36 @@ const ExpenseListNew: React.FC = () => {
               >
                 Pridať
               </Button>
-              <Button
-                variant="outlined"
-                onClick={handleExportCSV}
-                disabled={filteredExpenses.length === 0}
-              >
-                📊 Export CSV
-              </Button>
-              
-              <Button
-                variant="outlined"
-                component="label"
-                sx={{
-                  borderColor: '#1976d2',
-                  color: '#1976d2',
-                  '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' }
-                }}
-              >
-                📥 Import CSV
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleImportCSV}
-                  style={{ display: 'none' }}
-                />
-              </Button>
+              {/* CSV tlačidlá - len na desktope */}
+              {!isMobile && (
+                <>
+                  <Button
+                    variant="outlined"
+                    onClick={handleExportCSV}
+                    disabled={filteredExpenses.length === 0}
+                  >
+                    📊 Export CSV
+                  </Button>
+                  
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    sx={{
+                      borderColor: '#1976d2',
+                      color: '#1976d2',
+                      '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' }
+                    }}
+                  >
+                    📥 Import CSV
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleImportCSV}
+                      style={{ display: 'none' }}
+                    />
+                  </Button>
+                </>
+              )}
             </Box>
           </Box>
         </CardContent>

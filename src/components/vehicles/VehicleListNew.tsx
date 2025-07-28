@@ -588,42 +588,46 @@ export default function VehicleListNew() {
             </Button>
           </Can>
           
-          {/* CSV Export/Import tlačidlá */}
-          <Button
-            variant="outlined"
-            onClick={handleExportCSV}
-            sx={{
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' },
-              borderRadius: 2,
-              px: 3,
-              py: 1
-            }}
-          >
-            📊 Export CSV
-          </Button>
-          
-          <Button
-            variant="outlined"
-            component="label"
-            sx={{
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' },
-              borderRadius: 2,
-              px: 3,
-              py: 1
-            }}
-          >
-            📥 Import CSV
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleImportCSV}
-              style={{ display: 'none' }}
-            />
-          </Button>
+          {/* CSV Export/Import tlačidlá - len na desktope */}
+          {!isMobile && (
+            <>
+              <Button
+                variant="outlined"
+                onClick={handleExportCSV}
+                sx={{
+                  borderColor: '#1976d2',
+                  color: '#1976d2',
+                  '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' },
+                  borderRadius: 2,
+                  px: 3,
+                  py: 1
+                }}
+              >
+                📊 Export CSV
+              </Button>
+              
+              <Button
+                variant="outlined"
+                component="label"
+                sx={{
+                  borderColor: '#1976d2',
+                  color: '#1976d2',
+                  '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' },
+                  borderRadius: 2,
+                  px: 3,
+                  py: 1
+                }}
+              >
+                📥 Import CSV
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportCSV}
+                  style={{ display: 'none' }}
+                />
+              </Button>
+            </>
+          )}
 
 
         </Box>

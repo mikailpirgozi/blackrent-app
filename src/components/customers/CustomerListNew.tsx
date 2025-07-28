@@ -320,34 +320,39 @@ export default function CustomerListNew() {
           >
             Import z prenájmov
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={<DownloadIcon />}
-            onClick={handleExportCSV}
-            size="small"
-          >
-            📊 Export CSV
-          </Button>
-          
-          <Button
-            variant="outlined"
-            component="label"
-            startIcon={<UploadIcon />}
-            size="small"
-            sx={{
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' }
-            }}
-          >
-            📥 Import CSV
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleImportCSV}
-              style={{ display: 'none' }}
-            />
-          </Button>
+          {/* CSV tlačidlá - len na desktope */}
+          {!isMobile && (
+            <>
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={handleExportCSV}
+                size="small"
+              >
+                📊 Export CSV
+              </Button>
+              
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<UploadIcon />}
+                size="small"
+                sx={{
+                  borderColor: '#1976d2',
+                  color: '#1976d2',
+                  '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' }
+                }}
+              >
+                📥 Import CSV
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportCSV}
+                  style={{ display: 'none' }}
+                />
+              </Button>
+            </>
+          )}
           
           <Button
             variant="contained"
