@@ -80,6 +80,19 @@ router.get('/',
         });
       }
       
+      // 🔧 DEBUG: Log final response data (first rental)
+      console.log('🔍 FINAL RESPONSE DATA (first rental):');
+      if (rentals.length > 0) {
+        console.log('  Response:', {
+          customer: rentals[0].customerName,
+          company: rentals[0].company,
+          vehicleId: rentals[0].vehicleId,
+          vehicle_exists: !!rentals[0].vehicle,
+          vehicle_brand: rentals[0].vehicle?.brand || 'NULL',
+          vehicle_json: JSON.stringify(rentals[0].vehicle, null, 2)
+        });
+      }
+
       res.json({
         success: true,
         data: rentals

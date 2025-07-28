@@ -1152,22 +1152,31 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               borderRadius: 2
             }}>
-              <CardContent sx={{ p: 2 }}>
+              <CardContent sx={{ p: 1.5 }}>
                 {/* Vozidlo header */}
                 <Box sx={{ 
                   display: 'flex', 
                   justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  mb: 2,
+                  alignItems: 'flex-start',
+                  mb: 1.5,
                   pb: 1,
-                  borderBottom: '1px solid #e0e0e0'
+                  borderBottom: '1px solid #e0e0e0',
+                  minHeight: '50px'
                 }}>
-                  <Box>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'flex-start',
+                    minHeight: '40px',
+                    flex: 1,
+                    pt: 0.5
+                  }}>
                     <Typography variant="h6" sx={{ 
                       fontWeight: 600, 
                       fontSize: '1rem',
                       color: '#1976d2',
-                      mb: 0.5
+                      mb: 0.5,
+                      lineHeight: 1.2
                     }}>
                       {vehicle.brand} {vehicle.model}
                     </Typography>
@@ -1180,13 +1189,15 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       {vehicle.licensePlate}
                     </Typography>
                   </Box>
-                  <Chip 
-                    label={vehicle.status}
-                    size="small"
-                    color={vehicle.status === 'available' ? 'success' : 
-                           vehicle.status === 'rented' ? 'primary' : 'warning'}
-                    sx={{ fontWeight: 600 }}
-                  />
+                  <Box sx={{ pt: 0.5 }}>
+                    <Chip 
+                      label={vehicle.status}
+                      size="small"
+                      color={vehicle.status === 'available' ? 'success' : 
+                             vehicle.status === 'rented' ? 'primary' : 'warning'}
+                      sx={{ fontWeight: 600 }}
+                    />
+                  </Box>
                 </Box>
 
                 {/* Status pre aktuálny týždeň/mesiac s navigáciou */}
@@ -1194,7 +1205,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   alignItems: 'center',
-                  mb: 1
+                  mb: 1,
+                  minHeight: '32px'
                 }}>
                   <Typography variant="subtitle2" sx={{ 
                     fontWeight: 600,
@@ -1247,8 +1259,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   display: 'grid',
                   gridTemplateColumns: 'repeat(7, 1fr)',
                   gridTemplateRows: mobileViewMode === 'month' ? 'repeat(5, 1fr)' : '1fr',
-                  gap: 0.5,
-                  mb: 2
+                  gap: 0.25,
+                  mb: 1.5,
+                  minHeight: mobileViewMode === 'month' ? '140px' : '35px'
                 }}>
                   {(mobileViewMode === 'week' 
                     ? generateCalendarDays(currentWeekOffset, 7)
@@ -1265,8 +1278,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         key={day.date}
                         sx={{ 
                           textAlign: 'center',
-                          p: 0.5,
-                          borderRadius: 1,
+                          p: 0.25,
+                          borderRadius: 0.5,
                           backgroundColor: 
                             dayIsToday ? '#e3f2fd' :
                             isRented ? '#ffebee' :
@@ -1308,39 +1321,65 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 {/* Akcie pre vozidlo */}
                 <Box sx={{ 
                   display: 'flex',
-                  gap: 1,
-                  flexWrap: 'wrap'
+                  flexDirection: 'column',
+                  gap: 0.75
                 }}>
-                  <Button
-                    size="small"
-                    variant={mobileViewMode === 'week' ? 'contained' : 'outlined'}
-                    onClick={() => {
-                      setMobileViewMode('week');
-                      setCurrentWeekOffset(0);
-                    }}
-                    sx={{ fontSize: '0.75rem' }}
-                  >
-                    Tento týždeň
-                  </Button>
-                  <Button
-                    size="small"
-                    variant={mobileViewMode === 'month' ? 'contained' : 'outlined'}
-                    onClick={() => setMobileViewMode('month')}
-                    sx={{ fontSize: '0.75rem' }}
-                  >
-                    30 dní
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => {
-                      setEditingMaintenance(null);
-                      setMaintenanceDialogOpen(true);
-                    }}
-                    sx={{ fontSize: '0.75rem' }}
-                  >
-                    Blokovať
-                  </Button>
+                  {/* Hlavné akcie */}
+                  <Box sx={{ 
+                    display: 'flex',
+                    gap: 0.5,
+                    justifyContent: 'center'
+                  }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => {
+                        setEditingMaintenance(null);
+                        setMaintenanceDialogOpen(true);
+                      }}
+                      sx={{ fontSize: '0.75rem', flex: 1 }}
+                    >
+                      Blokovať
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => {
+                        // Otvorenie detailu vozidla
+                        console.log('Detail vozidla:', vehicle);
+                      }}
+                      sx={{ fontSize: '0.75rem', flex: 1 }}
+                    >
+                      Detail
+                    </Button>
+                  </Box>
+                  
+                  {/* Prepínače pre zobrazenie */}
+                  <Box sx={{ 
+                    display: 'flex',
+                    gap: 0.5,
+                    justifyContent: 'center'
+                  }}>
+                    <Button
+                      size="small"
+                      variant={mobileViewMode === 'week' ? 'contained' : 'outlined'}
+                      onClick={() => {
+                        setMobileViewMode('week');
+                        setCurrentWeekOffset(0);
+                      }}
+                      sx={{ fontSize: '0.7rem', flex: 1 }}
+                    >
+                      Týždeň
+                    </Button>
+                    <Button
+                      size="small"
+                      variant={mobileViewMode === 'month' ? 'contained' : 'outlined'}
+                      onClick={() => setMobileViewMode('month')}
+                      sx={{ fontSize: '0.7rem', flex: 1 }}
+                    >
+                      30 dní
+                    </Button>
+                  </Box>
                 </Box>
               </CardContent>
             </Card>
@@ -1398,14 +1437,13 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       {/* Desktop kalendár - card layout pre vozidlá */}
       <Box sx={{ 
         display: 'grid',
-        gridTemplateColumns: { md: '1fr', lg: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' },
-        gap: 2
+        gridTemplateColumns: { md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)', xl: 'repeat(4, 1fr)' },
+        gap: 1.5
       }}>
         {filteredVehicles.map((vehicle) => (
           <Card key={vehicle.id} sx={{ 
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             borderRadius: 3,
-            minHeight: '500px',
             display: 'flex',
             flexDirection: 'column',
             transition: 'transform 0.2s ease, box-shadow 0.2s ease',
@@ -1414,22 +1452,30 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
             }
           }}>
-            <CardContent sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
               {/* Vozidlo header */}
               <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
-                alignItems: 'center',
-                mb: 2,
-                pb: 2,
-                borderBottom: '2px solid #f0f0f0'
+                alignItems: 'flex-start',
+                mb: 1.5,
+                pb: 1.5,
+                borderBottom: '2px solid #f0f0f0',
+                minHeight: '60px'
               }}>
-                <Box>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  justifyContent: 'flex-start',
+                  minHeight: '45px',
+                  pt: 0.5
+                }}>
                   <Typography variant="h6" sx={{ 
                     fontWeight: 600, 
                     fontSize: '1.1rem',
                     color: '#1976d2',
-                    mb: 0.5
+                    mb: 0.5,
+                    lineHeight: 1.2
                   }}>
                     {vehicle.brand} {vehicle.model}
                   </Typography>
@@ -1442,42 +1488,21 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     {vehicle.licensePlate}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'flex-start', 
+                  gap: 1,
+                  pt: 0.5
+                }}>
                   <Chip 
                     label={vehicle.status}
                     size="small"
-                    color={vehicle.status === 'available' ? 'success' : 
-                           vehicle.status === 'rented' ? 'primary' : 'warning'}
+                    color={
+                      vehicle.status === 'available' ? 'success' : 
+                      vehicle.status === 'rented' ? 'primary' : 'warning'
+                    }
                     sx={{ fontWeight: 600 }}
                   />
-                  
-                  {/* Individual prepínače pre vozidlo */}
-                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <Button
-                      size="small"
-                      variant={getVehicleViewMode(vehicle.id) === 'week' ? 'contained' : 'outlined'}
-                      onClick={() => setVehicleViewMode(vehicle.id, 'week')}
-                      sx={{ 
-                        minWidth: 60, 
-                        fontSize: '0.7rem',
-                        height: 28
-                      }}
-                    >
-                      Týždeň
-                    </Button>
-                    <Button
-                      size="small"
-                      variant={getVehicleViewMode(vehicle.id) === 'month' ? 'contained' : 'outlined'}
-                      onClick={() => setVehicleViewMode(vehicle.id, 'month')}
-                      sx={{ 
-                        minWidth: 60, 
-                        fontSize: '0.7rem',
-                        height: 28
-                      }}
-                    >
-                      30 dní
-                    </Button>
-                  </Box>
                   
                   {/* Navigation pre individual vozidlo */}
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -1517,9 +1542,13 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
               {/* Dostupnosť kalendár */}
               <Typography variant="subtitle2" sx={{ 
-                mb: 2, 
+                mb: 1, 
                 fontWeight: 600,
-                color: '#333'
+                color: '#333',
+                minHeight: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                lineHeight: 1.3
               }}>
                 {(() => {
                   const vehicleMode = getVehicleViewMode(vehicle.id);
@@ -1535,9 +1564,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 display: 'grid',
                 gridTemplateColumns: 'repeat(7, 1fr)',
                 gridTemplateRows: getVehicleViewMode(vehicle.id) === 'month' ? 'repeat(5, 1fr)' : '1fr',
-                gap: 0.75,
-                mb: 3,
-                minHeight: getVehicleViewMode(vehicle.id) === 'month' ? '320px' : '80px'
+                gap: 0.5,
+                mb: 1.5,
+                minHeight: getVehicleViewMode(vehicle.id) === 'month' ? '200px' : '50px'
               }}>
                 {(() => {
                   const vehicleMode = getVehicleViewMode(vehicle.id);
@@ -1556,8 +1585,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       key={day.date}
                       sx={{ 
                         textAlign: 'center',
-                        p: 1.5,
-                        borderRadius: 2,
+                        p: 1,
+                        borderRadius: 1,
                         backgroundColor: 
                           dayIsToday ? '#e3f2fd' :
                           isRented ? '#ffebee' :
@@ -1565,7 +1594,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        minHeight: '60px',
+                        minHeight: '40px',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'center',
@@ -1611,32 +1640,72 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               {/* Akcie pre vozidlo */}
               <Box sx={{ 
                 display: 'flex',
+                flexDirection: 'column',
                 gap: 1,
-                flexWrap: 'wrap',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                mt: 'auto'
               }}>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => {
-                    setEditingMaintenance(null);
-                    setMaintenanceDialogOpen(true);
-                  }}
-                  sx={{ minWidth: 100 }}
-                >
-                  Blokovať
-                </Button>
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={() => {
-                    // Otvorenie detailu vozidla
-                    console.log('Detail vozidla:', vehicle);
-                  }}
-                  sx={{ minWidth: 100 }}
-                >
-                  Detail
-                </Button>
+                {/* Hlavné akcie */}
+                <Box sx={{ 
+                  display: 'flex',
+                  gap: 0.5,
+                  justifyContent: 'center'
+                }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setEditingMaintenance(null);
+                      setMaintenanceDialogOpen(true);
+                    }}
+                    sx={{ minWidth: 100 }}
+                  >
+                    Blokovať
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="text"
+                    onClick={() => {
+                      // Otvorenie detailu vozidla
+                      console.log('Detail vozidla:', vehicle);
+                    }}
+                    sx={{ minWidth: 100 }}
+                  >
+                    Detail
+                  </Button>
+                </Box>
+                
+                {/* Prepínače pre zobrazenie */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: 0.5,
+                  justifyContent: 'center'
+                }}>
+                  <Button
+                    size="small"
+                    variant={getVehicleViewMode(vehicle.id) === 'week' ? 'contained' : 'outlined'}
+                    onClick={() => setVehicleViewMode(vehicle.id, 'week')}
+                    sx={{ 
+                      minWidth: 70, 
+                      fontSize: '0.7rem',
+                      height: 28
+                    }}
+                  >
+                    Týždeň
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={getVehicleViewMode(vehicle.id) === 'month' ? 'contained' : 'outlined'}
+                    onClick={() => setVehicleViewMode(vehicle.id, 'month')}
+                    sx={{ 
+                      minWidth: 70, 
+                      fontSize: '0.7rem',
+                      height: 28
+                    }}
+                  >
+                    30 dní
+                  </Button>
+                </Box>
               </Box>
             </CardContent>
           </Card>

@@ -951,6 +951,49 @@ class PostgresDatabase {
             catch (error) {
                 console.log('⚠️ Migrácia 20 chyba:', error.message);
             }
+            // Migrácia 21: 🛡️ BULLETPROOF - Historický backfill company (NIKDY sa nezmení!) ✅
+            try {
+                console.log('📋 Migrácia 21: 🛡️ BULLETPROOF - Historické company pre prenájmy...');
+                // Reset všetkých company na NULL pre rebackfill
+                console.log('   🧹 Resetujem company stĺpce pre rebackfill...');
+                await client.query(`UPDATE rentals SET company = NULL`);
+                // Backfill pomocou HISTORICKEJ ownership na základe rental.startDate
+                console.log('   📅 Backfillujem historické company na základe startDate...');
+                const backfillResult = await client.query(`
+          UPDATE rentals 
+          SET company = (
+            SELECT voh.owner_company_name
+            FROM vehicle_ownership_history voh
+            WHERE voh.vehicle_id = rentals.vehicle_id
+              AND voh.valid_from <= rentals.start_date
+              AND (voh.valid_to IS NULL OR voh.valid_to > rentals.start_date)
+            LIMIT 1
+          )
+          WHERE company IS NULL
+        `);
+                console.log(`   📊 Backfillované ${backfillResult.rowCount} prenájmov s historickou company`);
+                // Fallback pre prenájmy bez ownership history - použij aktuálnu company
+                console.log('   🔄 Fallback pre prenájmy bez ownership history...');
+                const fallbackResult = await client.query(`
+          UPDATE rentals 
+          SET company = (
+            SELECT v.company 
+            FROM vehicles v 
+            WHERE v.id = rentals.vehicle_id
+          )
+          WHERE company IS NULL
+        `);
+                console.log(`   📊 Fallback ${fallbackResult.rowCount} prenájmov s aktuálnou company`);
+                // Overenie výsledku
+                const nullCompanyCount = await client.query(`
+          SELECT COUNT(*) as count FROM rentals WHERE company IS NULL
+        `);
+                console.log(`   ✅ Zostáva ${nullCompanyCount.rows[0].count} prenájmov bez company`);
+                console.log('✅ Migrácia 21: 🛡️ BULLETPROOF historické company FIX dokončený');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 21 chyba:', error.message);
+            }
         }
         catch (error) {
             console.log('⚠️ Migrácie celkovo preskočené:', error.message);
@@ -1629,12 +1672,36 @@ class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
-          v.brand, v.model, v.license_plate, v.company as vehicle_company, v.pricing, v.commission as v_commission, v.status as v_status
+          v.brand, v.model, v.license_plate, v.pricing, v.commission as v_commission, v.status as v_status
         FROM rentals r
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
         ORDER BY r.created_at DESC
       `);
             console.log(`📊 Found ${result.rows.length} rentals`);
+            // 🔧 DEBUG: Log first 2 raw SQL results
+            console.log('🔍 RAW SQL RESULTS (first 2 rows):');
+            result.rows.slice(0, 2).forEach((row, i) => {
+                console.log(`  Row ${i}:`, {
+                    customer_name: row.customer_name,
+                    vehicle_id: row.vehicle_id,
+                    brand: row.brand,
+                    model: row.model,
+                    license_plate: row.license_plate,
+                    company: row.company,
+                    has_brand: !!row.brand
+                });
+            });
+            // 🔧 DIAGNOSTIC: Check for missing vehicle data in JOIN
+            const missingVehicleData = result.rows.filter(row => row.vehicle_id && !row.brand);
+            if (missingVehicleData.length > 0) {
+                console.error(`🚨 CRITICAL: ${missingVehicleData.length} rentals have vehicle_id but no vehicle data from JOIN!`);
+                console.error('🔍 Missing vehicle IDs:', missingVehicleData.map(r => r.vehicle_id).slice(0, 3));
+                // Check if these vehicle_ids exist in vehicles table
+                for (const rental of missingVehicleData.slice(0, 2)) { // Check first 2
+                    const vehicleCheck = await client.query('SELECT id, brand, model FROM vehicles WHERE id = $1', [rental.vehicle_id]);
+                    console.error(`🔍 Vehicle ${rental.vehicle_id} exists in vehicles:`, vehicleCheck.rows.length > 0 ? vehicleCheck.rows[0] : 'NOT FOUND');
+                }
+            }
             const rentals = result.rows.map(row => ({
                 id: row.id?.toString() || '',
                 vehicleId: row.vehicle_id?.toString(),
@@ -1660,7 +1727,7 @@ class PostgresDatabase {
                     brand: row.brand,
                     model: row.model,
                     licensePlate: row.license_plate,
-                    company: row.vehicle_company || 'N/A',
+                    // 🛡️ BULLETPROOF: ŽIADNA company - zabráni fallback na aktuálnu company!
                     pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing || [],
                     commission: typeof row.v_commission === 'string' ? JSON.parse(row.v_commission) : row.v_commission || { type: 'percentage', value: 0 },
                     status: row.v_status || 'available'
@@ -1674,6 +1741,30 @@ class PostgresDatabase {
                 rentalsWithMissingVehicle.forEach(rental => {
                     console.warn(`  - Rental ${rental.id} (${rental.customerName}) has vehicle_id ${rental.vehicleId} but no vehicle data`);
                 });
+            }
+            // 🔧 DEBUG: Log mapped rentals (first 2)
+            console.log('🔍 MAPPED RENTALS (first 2):');
+            rentals.slice(0, 2).forEach((rental, i) => {
+                console.log(`  Mapped ${i}:`, {
+                    customer: rental.customerName,
+                    company: rental.company,
+                    vehicleId: rental.vehicleId,
+                    vehicle_exists: !!rental.vehicle,
+                    vehicle_brand: rental.vehicle?.brand || 'NULL',
+                    vehicle_model: rental.vehicle?.model || 'NULL',
+                    vehicle_licensePlate: rental.vehicle?.licensePlate || 'NULL'
+                });
+            });
+            // 🛡️ BULLETPROOF VALIDÁCIA: Kontrola že všetky rentals majú company
+            const rentalsWithoutCompany = rentals.filter(r => !r.company);
+            if (rentalsWithoutCompany.length > 0) {
+                console.error(`🚨 CRITICAL: ${rentalsWithoutCompany.length} rentals BEZ company - BULLETPROOF NARUŠENÉ!`);
+                rentalsWithoutCompany.forEach(rental => {
+                    console.error(`  ❌ Rental ${rental.id} (${rental.customerName}) - ŽIADNA company! StartDate: ${rental.startDate.toISOString()}`);
+                });
+            }
+            else {
+                console.log(`✅ BULLETPROOF VALIDÁCIA: Všetkých ${rentals.length} prenájmov má company`);
             }
             return rentals;
         }
@@ -1723,7 +1814,7 @@ class PostgresDatabase {
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
           handover_protocol_id, return_protocol_id, company
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
         RETURNING id, vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
@@ -1761,7 +1852,6 @@ class PostgresDatabase {
                 rentalData.fuelRefillCost || null,
                 rentalData.handoverProtocolId || null,
                 rentalData.returnProtocolId || null,
-                company, // 🎯 CLEAN SOLUTION hodnota
                 company // 🎯 CLEAN SOLUTION hodnota
             ]);
             const row = result.rows[0];

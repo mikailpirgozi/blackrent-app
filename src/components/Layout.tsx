@@ -43,6 +43,12 @@ import {
   DarkMode,
   CalendarToday,
   SwapHoriz,
+  HomeOutlined,
+  TimeToLeave,
+  PersonOutlined,
+  BarChartOutlined,
+  MoreHorizOutlined,
+  NotificationsNoneOutlined,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -550,16 +556,9 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </Box>
 
-        {/* Mobile Bottom Navigation */}
+        {/* Mobile Bottom Navigation - Booking/Airbnb Style */}
         {isMobile && (
-          <BottomNavigation
-            value={bottomNavValue}
-            onChange={(event, newValue) => {
-              setBottomNavValue(newValue);
-              if (menuItems[newValue]) {
-                handleNavigate(menuItems[newValue].path);
-              }
-            }}
+          <Box
             sx={{
               position: 'fixed',
               bottom: 0,
@@ -569,29 +568,323 @@ export default function Layout({ children }: LayoutProps) {
               backgroundColor: 'background.paper',
               borderTop: '1px solid',
               borderColor: 'divider',
-              boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.1)',
-              '& .MuiBottomNavigationAction-root': {
-                color: 'text.secondary',
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                },
-              },
+              boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.12)',
+              backdropFilter: 'blur(20px)',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: isDarkMode 
+                  ? 'rgba(18, 18, 18, 0.95)'
+                  : 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(20px)',
+              }
             }}
           >
-            {menuItems.slice(0, 5).map((item, index) => (
-              <BottomNavigationAction
-                key={item.text}
-                label={item.text}
-                icon={item.icon}
+            <Box
+              sx={{
+                position: 'relative',
+                zIndex: 1,
+                display: 'flex',
+                justifyContent: 'space-around',
+                alignItems: 'center',
+                py: 1.5,
+                px: 1,
+                minHeight: 70,
+              }}
+            >
+              {/* Prenájmy */}
+              <Box
+                onClick={() => handleNavigate('/rentals')}
                 sx={{
-                  fontSize: '0.75rem',
-                  '& .MuiSvgIcon-root': {
-                    fontSize: 20,
-                  },
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  py: 0.5,
+                  px: 0.5,
+                  borderRadius: 2,
+                  '&:active': { transform: 'scale(0.95)' }
                 }}
-              />
-            ))}
-          </BottomNavigation>
+              >
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    backgroundColor: location.pathname === '/rentals' 
+                      ? 'primary.main' 
+                      : 'transparent',
+                    mb: 0.5,
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <HomeOutlined 
+                    sx={{ 
+                      fontSize: 20,
+                      color: location.pathname === '/rentals' 
+                        ? 'white' 
+                        : 'text.secondary'
+                    }} 
+                  />
+                </Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: location.pathname === '/rentals' ? 600 : 400,
+                    color: location.pathname === '/rentals' 
+                      ? 'primary.main' 
+                      : 'text.secondary',
+                    lineHeight: 1,
+                  }}
+                >
+                  Prenájmy
+                </Typography>
+              </Box>
+
+              {/* Vozidlá */}
+              <Box
+                onClick={() => handleNavigate('/availability')}
+                sx={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  py: 0.5,
+                  px: 0.5,
+                  borderRadius: 2,
+                  '&:active': { transform: 'scale(0.95)' }
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    backgroundColor: location.pathname === '/availability' 
+                      ? 'primary.main' 
+                      : 'transparent',
+                    mb: 0.5,
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <TimeToLeave 
+                    sx={{ 
+                      fontSize: 20,
+                      color: location.pathname === '/availability' 
+                        ? 'white' 
+                        : 'text.secondary'
+                    }} 
+                  />
+                </Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: location.pathname === '/availability' ? 600 : 400,
+                    color: location.pathname === '/availability' 
+                      ? 'primary.main' 
+                      : 'text.secondary',
+                    lineHeight: 1,
+                  }}
+                >
+                  Vozidlá
+                </Typography>
+              </Box>
+
+              {/* Náklady */}
+              <Box
+                onClick={() => handleNavigate('/expenses')}
+                sx={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  py: 0.5,
+                  px: 0.5,
+                  borderRadius: 2,
+                  '&:active': { transform: 'scale(0.95)' }
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    backgroundColor: location.pathname === '/expenses' 
+                      ? 'primary.main' 
+                      : 'transparent',
+                    mb: 0.5,
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <AttachMoney 
+                    sx={{ 
+                      fontSize: 20,
+                      color: location.pathname === '/expenses' 
+                        ? 'white' 
+                        : 'text.secondary'
+                    }} 
+                  />
+                </Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: location.pathname === '/expenses' ? 600 : 400,
+                    color: location.pathname === '/expenses' 
+                      ? 'primary.main' 
+                      : 'text.secondary',
+                    lineHeight: 1,
+                  }}
+                >
+                  Náklady
+                </Typography>
+              </Box>
+
+              {/* Štatistiky */}
+              <Box
+                onClick={() => handleNavigate('/statistics')}
+                sx={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  py: 0.5,
+                  px: 0.5,
+                  borderRadius: 2,
+                  '&:active': { transform: 'scale(0.95)' }
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    backgroundColor: location.pathname === '/statistics' 
+                      ? 'primary.main' 
+                      : 'transparent',
+                    mb: 0.5,
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <BarChartOutlined 
+                    sx={{ 
+                      fontSize: 20,
+                      color: location.pathname === '/statistics' 
+                        ? 'white' 
+                        : 'text.secondary'
+                    }} 
+                  />
+                </Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: location.pathname === '/statistics' ? 600 : 400,
+                    color: location.pathname === '/statistics' 
+                      ? 'primary.main' 
+                      : 'text.secondary',
+                    lineHeight: 1,
+                  }}
+                >
+                  Prehľad
+                </Typography>
+              </Box>
+
+              {/* Viac */}
+              <Box
+                onClick={() => setMobileOpen(true)}
+                sx={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  py: 0.5,
+                  px: 0.5,
+                  borderRadius: 2,
+                  '&:active': { transform: 'scale(0.95)' }
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    backgroundColor: mobileOpen 
+                      ? 'primary.main' 
+                      : 'transparent',
+                    mb: 0.5,
+                    transition: 'all 0.2s ease',
+                    position: 'relative',
+                  }}
+                >
+                  <MoreHorizOutlined 
+                    sx={{ 
+                      fontSize: 20,
+                      color: mobileOpen 
+                        ? 'white' 
+                        : 'text.secondary'
+                    }} 
+                  />
+                  {/* Notifikačný badge pre demo */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: -2,
+                      right: -2,
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      backgroundColor: 'error.main',
+                    }}
+                  />
+                </Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: mobileOpen ? 600 : 400,
+                    color: mobileOpen 
+                      ? 'primary.main' 
+                      : 'text.secondary',
+                    lineHeight: 1,
+                  }}
+                >
+                  Viac
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
         )}
       </Box>
 
