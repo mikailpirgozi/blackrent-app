@@ -190,67 +190,51 @@ class ApiService {
   }
 
   // ⚡ BULK PROTOCOL STATUS - Získa protocol status pre všetky rentals naraz
-  async getBulkProtocolStatus(): Promise<{
-    rentalId: string;
-    hasHandoverProtocol: boolean;
-    hasReturnProtocol: boolean;
-    handoverProtocolId?: string;
+  async getBulkProtocolStatus(): Promise<{ 
+    rentalId: string; 
+    hasHandoverProtocol: boolean; 
+    hasReturnProtocol: boolean; 
+    handoverProtocolId?: string; 
     returnProtocolId?: string;
     handoverCreatedAt?: Date;
     returnCreatedAt?: Date;
   }[]> {
     try {
-      const response = await this.request<{
-        success: boolean;
-        data: {
-          rentalId: string;
-          hasHandoverProtocol: boolean;
-          hasReturnProtocol: boolean;
-          handoverProtocolId?: string;
-          returnProtocolId?: string;
-          handoverCreatedAt?: string;
-          returnCreatedAt?: string;
-        }[];
-        metadata: {
-          loadTimeMs: number;
-          totalRentals: number;
-          timestamp: string;
-        };
-      }>('/protocols/bulk-status');
+      const response = await this.request<any>('/protocols/bulk-status');
       
-      console.log('🔍 DEBUG: getBulkProtocolStatus raw response:', response);
+      // 🔍 TEMPORARY DEBUG - pozriem si response
+      console.log('🔍 TEMP DEBUG: Raw response:', response);
+      console.log('🔍 TEMP DEBUG: Response type:', typeof response);
+      console.log('🔍 TEMP DEBUG: Response data:', response?.data);
+      console.log('🔍 TEMP DEBUG: Response success:', response?.success);
       
-      // Check if response has expected structure
-      if (!response || typeof response !== 'object') {
-        console.error('❌ Invalid response structure:', response);
-        throw new Error('Invalid API response structure');
+      // Robustné spracovanie response - chránime sa pred TypeError
+      if (!response || !response.data) {
+        console.error('❌ getBulkProtocolStatus: Prázdna alebo neplatná odpoveď');
+        throw new Error('Neplatná odpoveď zo servera');
       }
       
-      // Handle different response formats
-      let protocolData;
-      if (response.data && Array.isArray(response.data)) {
-        // Standard ApiResponse format: { success: true, data: [...] }
-        protocolData = response.data;
-      } else if (Array.isArray(response)) {
-        // Direct array response
-        protocolData = response;
-      } else {
-        console.error('❌ Unexpected response format:', response);
-        throw new Error('Protocol data not found in response');
+      const protocolData = Array.isArray(response.data) ? response.data : [];
+      
+      if (protocolData.length === 0) {
+        console.warn('⚠️ getBulkProtocolStatus: Žiadne protocol data nenájdené');
+        return [];
       }
       
-      console.log('✅ Protocol data extracted:', protocolData.length, 'items');
-      
-      // Convert date strings back to Date objects
-      return protocolData.map(item => ({
-        ...item,
+      // Transformuj dáta s bezpečným pristupom
+      return protocolData.map((item: any) => ({
+        rentalId: item?.rentalId || '',
+        hasHandoverProtocol: Boolean(item?.hasHandoverProtocol),
+        hasReturnProtocol: Boolean(item?.hasReturnProtocol),
+        handoverProtocolId: item?.handoverProtocolId || undefined,
+        returnProtocolId: item?.returnProtocolId || undefined,
         handoverCreatedAt: item.handoverCreatedAt ? new Date(item.handoverCreatedAt) : undefined,
         returnCreatedAt: item.returnCreatedAt ? new Date(item.returnCreatedAt) : undefined
       }));
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ getBulkProtocolStatus error:', error);
-      console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('❌ Error details:', error.message);
       throw error;
     }
   }
