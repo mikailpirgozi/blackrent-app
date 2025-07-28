@@ -1941,7 +1941,7 @@ export class PostgresDatabase {
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
           handover_protocol_id, return_protocol_id, company
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
         RETURNING id, vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
