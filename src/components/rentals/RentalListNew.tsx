@@ -74,8 +74,16 @@ import RentalCardView, { CardViewMode } from './RentalCardView';
 const VehicleOwnerDisplay: React.FC<{
   rental: Rental;
 }> = ({ rental }) => {
-  // 🚀 CLEAN SOLUTION: Používaj priamo company field!
-  const ownerName = rental.company || rental.vehicle?.company || 'N/A';
+  // 🛡️ BULLETPROOF: Iba rental.company - ŽIADNY fallback na vehicle.company!
+  if (!rental.company) {
+    return (
+      <Typography variant="body2" color="error">
+        ⚠️ CHYBA: Bez majiteľa
+      </Typography>
+    );
+  }
+  
+  const ownerName = rental.company;
 
   return (
     <Typography variant="body2" color="text.secondary">

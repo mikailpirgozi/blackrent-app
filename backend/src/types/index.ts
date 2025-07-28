@@ -4,7 +4,7 @@ export interface Vehicle {
   model: string;
   year?: number;
   licensePlate: string;
-  company: string;
+  company?: string;  // 🛡️ BULLETPROOF: Optional pre zabránenie fallback
   pricing: PricingTier[];
   commission: Commission;
   status: VehicleStatus;
