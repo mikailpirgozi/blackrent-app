@@ -159,12 +159,14 @@ router.get('/data',
 
         res.json({
           success: true,
-          data: filteredData,
-          metadata: {
-            loadTimeMs: totalTime,
-            userRole: user.role,
-            isFiltered: user.role !== 'admin',
-            timestamp: new Date().toISOString()
+          data: {
+            ...filteredData,
+            metadata: {
+              loadTimeMs: totalTime,
+              userRole: user.role,
+              isFiltered: user.role !== 'admin',
+              timestamp: new Date().toISOString()
+            }
           }
         });
 
@@ -178,7 +180,7 @@ router.get('/data',
       res.status(500).json({
         success: false,
         error: 'Chyba pri načítaní dát',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
