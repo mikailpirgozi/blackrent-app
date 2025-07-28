@@ -6,6 +6,13 @@ import { r2Storage } from '../utils/r2-storage';
 export class PostgresDatabase {
   private pool: Pool;
 
+  // ⚡ PERFORMANCE CACHE: Permission caching pre getUserCompanyAccess
+  private permissionCache = new Map<string, {
+    data: UserCompanyAccess[];
+    timestamp: number;
+  }>();
+  private readonly PERMISSION_CACHE_TTL = 5 * 60 * 1000; // 5 minút
+
   constructor() {
     // Railway.app provides DATABASE_URL
     if (process.env.DATABASE_URL) {
@@ -1085,6 +1092,52 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 21 chyba:', error.message);
       }
 
+      // Migrácia 22: ⚡ PERFORMANCE INDEXY - Optimalizácia rýchlosti načítavania dát
+      try {
+        console.log('📋 Migrácia 22: ⚡ Pridávanie performance indexov pre rýchlejšie načítanie...');
+        
+        // 🚀 INDEX 1: rentals.vehicle_id - Pre rýchlejší JOIN v getRentals()
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_rentals_vehicle_id ON rentals(vehicle_id)
+        `);
+        console.log('   ✅ Index idx_rentals_vehicle_id pridaný');
+
+        // 🚀 INDEX 2: vehicles.owner_company_id - Pre rýchlejšie permission filtering
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_vehicles_owner_company_id ON vehicles(owner_company_id)
+        `);
+        console.log('   ✅ Index idx_vehicles_owner_company_id pridaný');
+
+        // 🚀 INDEX 3: rentals.created_at DESC - Pre rýchlejšie ORDER BY v getRentals()
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_rentals_created_at_desc ON rentals(created_at DESC)
+        `);
+        console.log('   ✅ Index idx_rentals_created_at_desc pridaný');
+
+        // 🚀 INDEX 4: vehicles.created_at DESC - Pre rýchlejšie ORDER BY v getVehicles()
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_vehicles_created_at_desc ON vehicles(created_at DESC)
+        `);
+        console.log('   ✅ Index idx_vehicles_created_at_desc pridaný');
+
+        // 🚀 INDEX 5: expenses.vehicle_id - Pre rýchlejšie queries v expense API
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_expenses_vehicle_id ON expenses(vehicle_id)
+        `);
+        console.log('   ✅ Index idx_expenses_vehicle_id pridaný');
+
+        // 🚀 INDEX 6: expenses.date DESC - Pre rýchlejšie date filtering
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_expenses_date_desc ON expenses(date DESC)
+        `);
+        console.log('   ✅ Index idx_expenses_date_desc pridaný');
+
+        console.log('✅ Migrácia 22: ⚡ Performance indexy úspešne pridané (očakávaná úspora: 30-50% rýchlosť)');
+        
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 22 chyba:', error.message);
+      }
+
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
     }
@@ -1872,6 +1925,33 @@ export class PostgresDatabase {
       `);
       console.log(`📊 Found ${result.rows.length} rentals`);
       
+      // 🔧 DEBUG: Log first 2 raw SQL results
+      console.log('🔍 RAW SQL RESULTS (first 2 rows):');
+      result.rows.slice(0, 2).forEach((row, i) => {
+        console.log(`  Row ${i}:`, {
+          customer_name: row.customer_name,
+          vehicle_id: row.vehicle_id,
+          brand: row.brand,
+          model: row.model,
+          license_plate: row.license_plate,
+          company: row.company,
+          has_brand: !!row.brand
+        });
+      });
+      
+      // 🔧 DIAGNOSTIC: Check for missing vehicle data in JOIN
+      const missingVehicleData = result.rows.filter(row => row.vehicle_id && !row.brand);
+      if (missingVehicleData.length > 0) {
+        console.error(`🚨 CRITICAL: ${missingVehicleData.length} rentals have vehicle_id but no vehicle data from JOIN!`);
+        console.error('🔍 Missing vehicle IDs:', missingVehicleData.map(r => r.vehicle_id).slice(0, 3));
+        
+        // Check if these vehicle_ids exist in vehicles table
+        for (const rental of missingVehicleData.slice(0, 2)) {  // Check first 2
+          const vehicleCheck = await client.query('SELECT id, brand, model FROM vehicles WHERE id = $1', [rental.vehicle_id]);
+          console.error(`🔍 Vehicle ${rental.vehicle_id} exists in vehicles:`, vehicleCheck.rows.length > 0 ? vehicleCheck.rows[0] : 'NOT FOUND');
+        }
+      }
+      
       const rentals = result.rows.map(row => ({
         id: row.id?.toString() || '',
         vehicleId: row.vehicle_id?.toString(),
@@ -1914,6 +1994,20 @@ export class PostgresDatabase {
           console.warn(`  - Rental ${rental.id} (${rental.customerName}) has vehicle_id ${rental.vehicleId} but no vehicle data`);
         });
       }
+
+      // 🔧 DEBUG: Log mapped rentals (first 2)
+      console.log('🔍 MAPPED RENTALS (first 2):');
+      rentals.slice(0, 2).forEach((rental, i) => {
+        console.log(`  Mapped ${i}:`, {
+          customer: rental.customerName,
+          company: rental.company,
+          vehicleId: rental.vehicleId,
+          vehicle_exists: !!rental.vehicle,
+          vehicle_brand: rental.vehicle?.brand || 'NULL',
+          vehicle_model: rental.vehicle?.model || 'NULL',
+          vehicle_licensePlate: rental.vehicle?.licensePlate || 'NULL'
+        });
+      });
 
       // 🛡️ BULLETPROOF VALIDÁCIA: Kontrola že všetky rentals majú company
       const rentalsWithoutCompany = rentals.filter(r => !r.company);
@@ -4592,9 +4686,28 @@ export class PostgresDatabase {
   }
 
   async getUserCompanyAccess(userId: string): Promise<UserCompanyAccess[]> {
+    // ⚡ CACHE CHECK: Skontroluj cache najprv
+    const cacheKey = `permissions:${userId}`;
+    const cached = this.permissionCache.get(cacheKey);
+    
+    if (cached) {
+      const now = Date.now();
+      const isValid = (now - cached.timestamp) < this.PERMISSION_CACHE_TTL;
+      
+      if (isValid) {
+        console.log('⚡ getUserCompanyAccess CACHE HIT for userId:', userId, '(saved SQL query)');
+        return cached.data;
+      } else {
+        // Cache expired, remove it
+        this.permissionCache.delete(cacheKey);
+        console.log('🕒 getUserCompanyAccess cache EXPIRED for userId:', userId);
+      }
+    }
+
+    // ⚡ CACHE MISS: Load from database
     const client = await this.pool.connect();
     try {
-      console.log('🔍 getUserCompanyAccess called for userId:', userId);
+      console.log('🔍 getUserCompanyAccess CACHE MISS - loading from DB for userId:', userId);
       
       const result = await client.query(`
         SELECT up.company_id, c.name as company_name, up.permissions
@@ -4604,17 +4717,24 @@ export class PostgresDatabase {
         ORDER BY c.name
         `, [userId]);
 
-      console.log('🔍 getUserCompanyAccess result:', {
-        userId,
-        rowCount: result.rows.length,
-        companies: result.rows.map(r => ({ companyId: r.company_id, companyName: r.company_name }))
-      });
-
-      return result.rows.map(row => ({
+      const data = result.rows.map(row => ({
         companyId: row.company_id,
         companyName: row.company_name,
         permissions: row.permissions
       }));
+
+      // ⚡ CACHE STORE: Ulož do cache
+      this.permissionCache.set(cacheKey, {
+        data: data,
+        timestamp: Date.now()
+      });
+
+      console.log('⚡ getUserCompanyAccess CACHED for userId:', userId, {
+        rowCount: result.rows.length,
+        companies: result.rows.map(r => ({ companyId: r.company_id, companyName: r.company_name }))
+      });
+
+      return data;
     } finally {
       client.release();
     }
@@ -4631,6 +4751,12 @@ export class PostgresDatabase {
           permissions = $3,
           updated_at = CURRENT_TIMESTAMP
       `, [userId, companyId, JSON.stringify(permissions)]);
+
+      // ⚡ CACHE INVALIDATION: Vymaž cache pre tohoto používateľa
+      const cacheKey = `permissions:${userId}`;
+      this.permissionCache.delete(cacheKey);
+      console.log('🧹 Permission cache INVALIDATED for userId:', userId);
+      
     } finally {
       client.release();
     }
@@ -4639,10 +4765,14 @@ export class PostgresDatabase {
   async removeUserPermission(userId: string, companyId: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query(
-        'DELETE FROM user_permissions WHERE user_id = $1 AND company_id = $2',
-        [userId, companyId]
-      );
+      await client.query(`
+        DELETE FROM user_permissions 
+        WHERE user_id = $1 AND company_id = $2
+      `, [userId, companyId]);
+
+      // ⚡ CACHE INVALIDATION: Vymaž cache pre tohoto používateľa
+      this.clearPermissionCache(userId);
+      
     } finally {
       client.release();
     }
@@ -5413,6 +5543,18 @@ export class PostgresDatabase {
     } finally {
       client.release();
     }
+  }
+
+  // ⚡ CACHE HELPER METHODS
+  private clearPermissionCache(userId: string): void {
+    const cacheKey = `permissions:${userId}`;
+    this.permissionCache.delete(cacheKey);
+    console.log('🧹 Permission cache CLEARED for userId:', userId);
+  }
+
+  private clearAllPermissionCache(): void {
+    this.permissionCache.clear();
+    console.log('🧹 ALL permission cache CLEARED');
   }
 
 }
