@@ -390,69 +390,59 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  // Funkcia na načítanie dát z API - OPTIMALIZOVANÁ
+  // Funkcia na načítanie dát z API - OPTIMALIZOVANÁ s BULK endpointom
   const loadData = async (): Promise<void> => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
       
-      console.log('🚀 Načítavam dáta z API (optimalizované)...');
+      console.log('🚀 Načítavam dáta z BULK API (najrýchlejšie riešenie)...');
+      const startTime = Date.now();
       
-      // OPTIMALIZÁCIA: Načítaj najdôležitejšie dáta PRVÉ
-      console.log('📦 1. Načítavam kľúčové dáta (vehicles, customers)...');
-      const [vehicles, customers] = await Promise.all([
-        apiService.getVehicles(),
-        apiService.getCustomers()
-      ]);
+      // ⚡ PHASE 3: SINGLE BULK API CALL - všetky dáta jedným requestom
+      console.log('📦 BULK: Vykonávam jediný API request...');
+      const bulkData = await apiService.getBulkData();
       
-      // OKAMŽITE dispatch kľúčových dát
-      dispatch({ type: 'SET_VEHICLES', payload: vehicles });
-      dispatch({ type: 'SET_CUSTOMERS', payload: customers });
-      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'vehicles', loaded: true } });
-      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'customers', loaded: true } });
+      const bulkTime = Date.now() - startTime;
+      console.log(`✅ BULK: Všetky dáta načítané v ${bulkTime}ms jedným requestom!`);
+      console.log('📊 BULK: Metadata:', bulkData.metadata);
       
-      // OPTIMALIZÁCIA: Načítaj ostatné dáta PARALELNE
-      console.log('📦 2. Načítavam ostatné dáta paralelne...');
-      const [rentals, expenses, insurances, companies, insurers, settlements, vehicleDocuments, insuranceClaims] = await Promise.all([
-        apiService.getRentals(),
-        apiService.getExpenses(),
-        apiService.getInsurances(),
-        apiService.getCompanies(),
-        apiService.getInsurers(),
-        apiService.getSettlements(),
-        apiService.getVehicleDocuments(),
-        apiService.getInsuranceClaims()
-      ]);
-      
-      console.log('✅ Dáta úspešne načítané:', { 
-        vehicles: vehicles.length, 
-        rentals: rentals.length, 
-        expenses: expenses.length,
-        insurances: insurances.length,
-        customers: customers.length,
-        companies: companies.length,
-        insurers: insurers.length,
-        settlements: settlements.length,
-        vehicleDocuments: vehicleDocuments.length,
-        insuranceClaims: insuranceClaims.length
+      console.log('✅ Dáta úspešne načítané cez BULK:', { 
+        vehicles: bulkData.vehicles.length, 
+        rentals: bulkData.rentals.length, 
+        expenses: bulkData.expenses.length,
+        insurances: bulkData.insurances.length,
+        customers: bulkData.customers.length,
+        companies: bulkData.companies.length,
+        insurers: bulkData.insurers.length,
+        settlements: bulkData.settlements.length,
+        vehicleDocuments: bulkData.vehicleDocuments.length,
+        insuranceClaims: bulkData.insuranceClaims.length,
+        totalTime: `${bulkTime}ms`,
+        userRole: bulkData.metadata.userRole,
+        isFiltered: bulkData.metadata.isFiltered
       });
       
       // Dispatch všetkých dát naraz
-      dispatch({ type: 'SET_RENTALS', payload: rentals });
-      dispatch({ type: 'SET_EXPENSES', payload: expenses });
-      dispatch({ type: 'SET_INSURANCES', payload: insurances });
-      dispatch({ type: 'SET_COMPANIES', payload: companies });
-      dispatch({ type: 'SET_INSURERS', payload: insurers });
-      dispatch({ type: 'SET_SETTLEMENTS', payload: settlements });
-      dispatch({ type: 'SET_VEHICLE_DOCUMENTS', payload: vehicleDocuments });
-      dispatch({ type: 'SET_INSURANCE_CLAIMS', payload: insuranceClaims });
+      dispatch({ type: 'SET_VEHICLES', payload: bulkData.vehicles });
+      dispatch({ type: 'SET_RENTALS', payload: bulkData.rentals });
+      dispatch({ type: 'SET_CUSTOMERS', payload: bulkData.customers });
+      dispatch({ type: 'SET_COMPANIES', payload: bulkData.companies });
+      dispatch({ type: 'SET_INSURERS', payload: bulkData.insurers });
+      dispatch({ type: 'SET_EXPENSES', payload: bulkData.expenses });
+      dispatch({ type: 'SET_INSURANCES', payload: bulkData.insurances });
+      dispatch({ type: 'SET_SETTLEMENTS', payload: bulkData.settlements });
+      dispatch({ type: 'SET_VEHICLE_DOCUMENTS', payload: bulkData.vehicleDocuments });
+      dispatch({ type: 'SET_INSURANCE_CLAIMS', payload: bulkData.insuranceClaims });
       
       // Označ všetky dáta ako načítané
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'vehicles', loaded: true } });
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'rentals', loaded: true } });
-      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'expenses', loaded: true } });
-      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insurances', loaded: true } });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'customers', loaded: true } });
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'companies', loaded: true } });
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insurers', loaded: true } });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'expenses', loaded: true } });
+      dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insurances', loaded: true } });
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'settlements', loaded: true } });
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'vehicleDocuments', loaded: true } });
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insuranceClaims', loaded: true } });
@@ -461,11 +451,75 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_LAST_LOAD_TIME', payload: Date.now() });
       
     } catch (error: any) {
-      console.error('Chyba pri načítavaní dát:', error);
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Chyba pri načítavaní dát' });
+      console.error('Chyba pri načítavaní BULK dát:', error);
+      
+      // FALLBACK: Ak BULK API zlyhá, použij starý spôsob
+      console.log('🔄 FALLBACK: Bulk API zlyhal, používam individuálne API calls...');
+      try {
+        await loadDataFallback();
+      } catch (fallbackError) {
+        console.error('❌ FALLBACK tiež zlyhal:', fallbackError);
+        dispatch({ type: 'SET_ERROR', payload: error.message || 'Chyba pri načítavaní dát' });
+      }
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
+  };
+
+  // FALLBACK funkcia - pôvodný spôsob načítania
+  const loadDataFallback = async (): Promise<void> => {
+    console.log('📦 FALLBACK: Načítavam dáta individuálnymi API calls...');
+    
+    // OPTIMALIZÁCIA: Načítaj najdôležitejšie dáta PRVÉ
+    console.log('📦 1. Načítavam kľúčové dáta (vehicles, customers)...');
+    const [vehicles, customers] = await Promise.all([
+      apiService.getVehicles(),
+      apiService.getCustomers()
+    ]);
+    
+    // OKAMŽITE dispatch kľúčových dát
+    dispatch({ type: 'SET_VEHICLES', payload: vehicles });
+    dispatch({ type: 'SET_CUSTOMERS', payload: customers });
+    dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'vehicles', loaded: true } });
+    dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'customers', loaded: true } });
+    
+    // OPTIMALIZÁCIA: Načítaj ostatné dáta PARALELNE
+    console.log('📦 2. Načítavam ostatné dáta paralelne...');
+    const [rentals, expenses, insurances, companies, insurers, settlements, vehicleDocuments, insuranceClaims] = await Promise.all([
+      apiService.getRentals(),
+      apiService.getExpenses(),
+      apiService.getInsurances(),
+      apiService.getCompanies(),
+      apiService.getInsurers(),
+      apiService.getSettlements(),
+      apiService.getVehicleDocuments(),
+      apiService.getInsuranceClaims()
+    ]);
+    
+    console.log('✅ FALLBACK: Dáta úspešne načítané individuálne:', { 
+      vehicles: vehicles.length, 
+      rentals: rentals.length
+    });
+    
+    // Dispatch všetkých dát naraz
+    dispatch({ type: 'SET_RENTALS', payload: rentals });
+    dispatch({ type: 'SET_EXPENSES', payload: expenses });
+    dispatch({ type: 'SET_INSURANCES', payload: insurances });
+    dispatch({ type: 'SET_COMPANIES', payload: companies });
+    dispatch({ type: 'SET_INSURERS', payload: insurers });
+    dispatch({ type: 'SET_SETTLEMENTS', payload: settlements });
+    dispatch({ type: 'SET_VEHICLE_DOCUMENTS', payload: vehicleDocuments });
+    dispatch({ type: 'SET_INSURANCE_CLAIMS', payload: insuranceClaims });
+    
+    // Označ všetky dáta ako načítané
+    dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'rentals', loaded: true } });
+    dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'expenses', loaded: true } });
+    dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insurances', loaded: true } });
+    dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'companies', loaded: true } });
+    dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insurers', loaded: true } });
+    dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'settlements', loaded: true } });
+    dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'vehicleDocuments', loaded: true } });
+    dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insuranceClaims', loaded: true } });
   };
 
   // OPTIMALIZÁCIA: Načítaj dáta len keď je používateľ prihlásený a nie je loading

@@ -149,6 +149,46 @@ class ApiService {
     return this.request<Vehicle>(`/vehicles/${id}`);
   }
 
+  // ⚡ BULK DATA ENDPOINT - Načíta všetky dáta jedným requestom
+  async getBulkData(): Promise<{
+    vehicles: Vehicle[];
+    rentals: Rental[];
+    customers: Customer[];
+    companies: Company[];
+    insurers: Insurer[];
+    expenses: Expense[];
+    insurances: Insurance[];
+    settlements: Settlement[];
+    vehicleDocuments: VehicleDocument[];
+    insuranceClaims: InsuranceClaim[];
+    metadata: {
+      loadTimeMs: number;
+      userRole: string;
+      isFiltered: boolean;
+      timestamp: string;
+    };
+  }> {
+    const response = await this.request<{
+      vehicles: Vehicle[];
+      rentals: Rental[];
+      customers: Customer[];
+      companies: Company[];
+      insurers: Insurer[];
+      expenses: Expense[];
+      insurances: Insurance[];
+      settlements: Settlement[];
+      vehicleDocuments: VehicleDocument[];
+      insuranceClaims: InsuranceClaim[];
+      metadata: {
+        loadTimeMs: number;
+        userRole: string;
+        isFiltered: boolean;
+        timestamp: string;
+      };
+    }>('/bulk/data');
+    return response;
+  }
+
   // ⚡ BULK: História vlastníctva všetkých vozidiel naraz
   async getBulkVehicleOwnershipHistory(): Promise<{
     vehicleHistories: Array<{
