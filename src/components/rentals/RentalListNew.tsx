@@ -2817,12 +2817,7 @@ export default function RentalList() {
         </CardContent>
       </Card>
 
-      {/* Workflow Instructions */}
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
-          <strong>Workflow protokolov:</strong> Najprv vytvorte odovzdávací protokol (🔄), potom preberací protokol (↩️). Kliknite "Zobraziť protokoly" pre zobrazenie existujúcich protokolov.
-        </Typography>
-      </Alert>
+
 
       {/* Content based on view mode */}
       {isMobile ? (
