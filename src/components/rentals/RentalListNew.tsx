@@ -3682,29 +3682,47 @@ export default function RentalList() {
                       </Typography>
                       
                       {/* Protocol Check Button - in protocols column */}
-                      <IconButton
-                        size="small"
-                        title="Skontrolovať protokoly"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCheckProtocols(rental);
-                        }}
-                        sx={{ 
-                          bgcolor: '#9c27b0', 
-                          color: 'white',
-                          width: 28,
-                          height: 28,
-                          mt: 0.5,
-                          '&:hover': { 
-                            bgcolor: '#7b1fa2',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
-                          },
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <SearchIcon fontSize="small" />
-                      </IconButton>
+                      {isLoadingProtocolStatus ? (
+                        <IconButton
+                          size="small"
+                          title="Načítavam protocol status..."
+                          disabled
+                          sx={{ 
+                            bgcolor: '#ff9800', 
+                            color: 'white',
+                            width: 28,
+                            height: 28,
+                            mt: 0.5,
+                            animation: 'pulse 2s infinite'
+                          }}
+                        >
+                          <SearchIcon fontSize="small" />
+                        </IconButton>
+                      ) : (!protocolStatusLoaded && (
+                        <IconButton
+                          size="small"
+                          title="Skontrolovať protokoly"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCheckProtocols(rental);
+                          }}
+                          sx={{ 
+                            bgcolor: '#9c27b0', 
+                            color: 'white',
+                            width: 28,
+                            height: 28,
+                            mt: 0.5,
+                            '&:hover': { 
+                              bgcolor: '#7b1fa2',
+                              transform: 'scale(1.1)',
+                              boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <SearchIcon fontSize="small" />
+                        </IconButton>
+                      ))}
                     </Box>
 
                     {/* Akcie */}
