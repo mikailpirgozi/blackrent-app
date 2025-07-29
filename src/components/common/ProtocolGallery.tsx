@@ -24,6 +24,7 @@ import {
   ZoomIn,
 } from '@mui/icons-material';
 import { ProtocolImage, ProtocolVideo } from '../../types';
+import logger from '../../utils/logger';
 
 interface ProtocolGalleryProps {
   open: boolean;
@@ -46,19 +47,25 @@ export default function ProtocolGallery({
   
   // Debugovanie - zobraz čo galéria dostáva
   useEffect(() => {
-    console.log('🔍 ProtocolGallery received:', {
+    // 🐛 Debug len v development mode
+    logger.debug('🔍 ProtocolGallery received:', {
       open,
       imagesCount: images?.length || 0,
       videosCount: videos?.length || 0,
       title,
       images: images?.slice(0, 3).map(img => ({
         id: img.id,
-        url: img.url,
         type: img.type,
-        description: img.description
-      })) || []
+        url: img.url?.substring(0, 50) + '...'
+      })),
+      videos: videos?.slice(0, 2).map(vid => ({
+        id: vid.id,
+        type: vid.type,
+        url: vid.url?.substring(0, 50) + '...'
+      }))
     });
-    console.log('🔍 ProtocolGallery state:', {
+    
+    logger.debug('🔍 ProtocolGallery state:', {
       open,
       isFullscreen,
       dialogShouldOpen: open && !isFullscreen

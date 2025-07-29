@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, ReactNode, useEffect } fr
 import { User, AuthState, LoginCredentials, UserCompanyAccess } from '../types';
 import { apiService, API_BASE_URL } from '../services/api';
 import { StorageManager } from '../utils/storage';
+import logger from '../utils/logger';
 
 interface AuthContextType {
   state: AuthState;
@@ -128,16 +129,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const restoreSession = React.useCallback(async () => {
     try {
-      console.log('🔄 Spúšťam session restore...');
-      console.log('📍 Location:', window.location.href);
-      console.log('🔗 API Base URL:', API_BASE_URL);
+      logger.auth('🔄 Spúšťam session restore...');
+      logger.info('📍 Location:', window.location.href);
+      logger.info('🔗 API Base URL:', API_BASE_URL);
       
       // Otestuj storage schopnosti
       StorageManager.testStorage();
       
       const { token, user } = getAuthData();
       
-      console.log('🔍 Auth data check:', {
+      logger.auth('🔍 Auth data check:', {
         hasToken: !!token,
         hasUser: !!user,
         userRole: user?.role || 'undefined',
@@ -146,16 +147,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       
       if (token && user) {
-        console.log('✅ Session data found for user:', user.username);
-        console.log('🔐 Token preview:', token.substring(0, 20) + '...');
+        logger.auth('✅ Session data found for user:', user.username);
+        logger.debug('🔐 Token preview:', token.substring(0, 20) + '...');
         
         // OPTIMISTIC RESTORE - obnoviť session OKAMŽITE bez čakania na validáciu
-        console.log('🚀 Optimistic session restore - obnovujem okamžite');
+        logger.auth('🚀 Optimistic session restore - obnovujem okamžite');
         dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
         
         // SKIPPED ASYNC VALIDÁCIA - môže spôsobovať auto-logout
-        console.log('⚠️ SKIPPING background token validation to prevent auto-logout');
-        console.log('🔧 Token validation disabled temporarily for debugging');
+        logger.warn('⚠️ SKIPPING background token validation to prevent auto-logout');
+        logger.debug('🔧 Token validation disabled temporarily for debugging');
         
         // ORIGINAL VALIDATION CODE (DISABLED):
         // validateToken(token).then((isValid) => {
