@@ -28,7 +28,7 @@ const getApiBaseUrl = () => {
   }
   
   // V developmente používame localhost port 3001
-  return process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  return process.env.REACT_APP_API_URL || 'http://localhost:3002/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

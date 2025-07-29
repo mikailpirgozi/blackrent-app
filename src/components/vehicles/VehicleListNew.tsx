@@ -47,7 +47,7 @@ import {
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { useApp } from '../../context/AppContext';
-import { Vehicle, VehicleStatus } from '../../types';
+import { Vehicle, VehicleStatus, VehicleCategory } from '../../types';
 import { Can } from '../common/PermissionGuard';
 import VehicleForm from './VehicleForm';
 import { apiService } from '../../services/api';
@@ -103,7 +103,7 @@ const getStatusIcon = (status: VehicleStatus) => {
 };
 
 export default function VehicleListNew() {
-  const { state, createVehicle, updateVehicle, deleteVehicle } = useApp();
+  const { state, createVehicle, updateVehicle, deleteVehicle, getFullyFilteredVehicles } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -125,6 +125,7 @@ export default function VehicleListNew() {
   const [filterModel, setFilterModel] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterCategory, setFilterCategory] = useState<VehicleCategory | 'all'>('all'); // 🚗 Category filter
   const [showAvailable, setShowAvailable] = useState(true);
   const [showRented, setShowRented] = useState(true);
   const [showMaintenance, setShowMaintenance] = useState(true);
@@ -241,67 +242,40 @@ export default function VehicleListNew() {
     }
   };
 
-  // Filtered vehicles
+  // 🚀 ENHANCED: Filtered vehicles using new unified filter system
   const filteredVehicles = useMemo(() => {
-    return state.vehicles.filter(vehicle => {
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        if (
-          !vehicle.brand.toLowerCase().includes(query) &&
-          !vehicle.model.toLowerCase().includes(query) &&
-          !vehicle.licensePlate.toLowerCase().includes(query) &&
-          !vehicle.company?.toLowerCase().includes(query)
-        ) {
-          return false;
-        }
-      }
-
-      // Brand filter
-      if (filterBrand && !vehicle.brand.toLowerCase().includes(filterBrand.toLowerCase())) {
-        return false;
-      }
-
-      // Model filter
-      if (filterModel && !vehicle.model.toLowerCase().includes(filterModel.toLowerCase())) {
-        return false;
-      }
-
-      // Company filter
-      if (filterCompany && vehicle.company !== filterCompany) {
-        return false;
-      }
-
-      // Status filter
-      if (filterStatus && vehicle.status !== filterStatus) {
-        return false;
-      }
-
-      // Status group filters
-      if (!showAvailable && vehicle.status === 'available') return false;
-      if (!showRented && vehicle.status === 'rented') return false;
-      if (!showMaintenance && vehicle.status === 'maintenance') return false;
-      if (!showOther && !['available', 'rented', 'maintenance'].includes(vehicle.status)) return false;
-
-      return true;
+    return getFullyFilteredVehicles({
+      search: searchQuery,
+      brand: filterBrand,
+      model: filterModel,
+      company: filterCompany,
+      status: filterStatus as any, // Type casting for backwards compatibility
+      category: filterCategory,
+      // Status group filters (backwards compatibility)
+      showAvailable,
+      showRented,
+      showMaintenance,
+      showOther
     });
   }, [
-    state.vehicles,
     searchQuery,
     filterBrand,
     filterModel,
     filterCompany,
     filterStatus,
+    filterCategory,
     showAvailable,
     showRented,
     showMaintenance,
-    showOther
+    showOther,
+    getFullyFilteredVehicles // 🎯 Enhanced filter function
   ]);
 
   // Get unique values for filters
   const uniqueBrands = [...new Set(state.vehicles.map(v => v.brand))].sort();
   const uniqueModels = [...new Set(state.vehicles.map(v => v.model))].sort();
   const uniqueCompanies = [...new Set(state.vehicles.map(v => v.company))].sort();
+  const uniqueCategories = [...new Set(state.vehicles.map(v => v.category).filter(Boolean))].sort() as VehicleCategory[]; // 🚗 Unique categories
 
   // 🆕 TabPanel component
   interface TabPanelProps {
@@ -726,6 +700,26 @@ export default function VehicleListNew() {
                     <MenuItem value="temporarily_removed">Dočasne vyradené</MenuItem>
                     <MenuItem value="removed">Vyradené</MenuItem>
                     <MenuItem value="transferred">Prepisané</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Kategória</InputLabel>
+                  <Select
+                    value={filterCategory}
+                    label="Kategória"
+                    onChange={(e) => setFilterCategory(e.target.value as VehicleCategory | 'all')}
+                  >
+                    <MenuItem value="all">Všetky kategórie</MenuItem>
+                    <MenuItem value="nizka-trieda">🚗 Nízka trieda</MenuItem>
+                    <MenuItem value="stredna-trieda">🚙 Stredná trieda</MenuItem>
+                    <MenuItem value="vyssia-stredna">🚘 Vyššia stredná</MenuItem>
+                    <MenuItem value="luxusne">💎 Luxusné</MenuItem>
+                    <MenuItem value="sportove">🏎️ Športové</MenuItem>
+                    <MenuItem value="suv">🚜 SUV</MenuItem>
+                    <MenuItem value="viacmiestne">👨‍👩‍👧‍👦 Viacmiestne</MenuItem>
+                    <MenuItem value="dodavky">📦 Dodávky</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
