@@ -54,10 +54,23 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
     endDate: new Date(),
     paymentMethod: 'cash',
     orderNumber: '',
+    // 🔄 NOVÉ: Flexibilné prenájmy
+    rentalType: 'standard',
+    isFlexible: false,
+    flexibleEndDate: undefined,
+    flexibleSettings: {
+      canBeOverridden: false,
+      overridePriority: 5,
+      notificationThreshold: 3,
+      autoExtend: false,
+    },
   });
 
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [calculatedCommission, setCalculatedCommission] = useState(0);
+  // 🔄 NOVÉ: Manuálna cenotvorba pre flexibilné prenájmy
+  const [manualPrice, setManualPrice] = useState<number | undefined>(undefined);
+  const [useManualPricing, setUseManualPricing] = useState(false);
   const [extraKmCharge, setExtraKmCharge] = useState<number>(0);
   const [allowedKilometers, setAllowedKilometers] = useState<number>(0);
   const [dailyKilometers, setDailyKilometers] = useState<number>(0); // NEW: Daily km input
@@ -103,9 +116,27 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
   useEffect(() => {
     if (rental) {
-      setFormData(rental);
+      setFormData({
+        ...rental,
+        // 🔄 NOVÉ: Nastavenie flexibilných polí z existujúceho prenájmu
+        rentalType: rental.rentalType || 'standard',
+        isFlexible: rental.isFlexible || false,
+        flexibleEndDate: rental.flexibleEndDate,
+        flexibleSettings: rental.flexibleSettings || {
+          canBeOverridden: false,
+          overridePriority: 5,
+          notificationThreshold: 3,
+          autoExtend: false,
+        },
+      });
       setCalculatedPrice(rental.totalPrice);
       setCalculatedCommission(rental.commission);
+      
+      // 🔄 NOVÉ: Nastavenie manuálnej ceny pre flexibilné prenájmy
+      if (rental.isFlexible) {
+        setUseManualPricing(true);
+        setManualPrice(rental.totalPrice);
+      }
       if (rental.extraKmCharge) {
         setExtraKmCharge(rental.extraKmCharge);
       }
@@ -473,6 +504,26 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       return;
     }
 
+    // 🔄 NOVÁ VALIDÁCIA: Pre flexibilné prenájmy
+    if (formData.isFlexible) {
+      if (!formData.flexibleEndDate) {
+        alert('Pre flexibilný prenájom je potrebné zadať odhadovaný dátum vrátenia');
+        return;
+      }
+      // Pre flexibilné prenájmy nastavíme endDate na flexibleEndDate + 1 rok
+      if (!formData.endDate) {
+        const flexEndDate = new Date(formData.flexibleEndDate);
+        const oneYearLater = new Date(flexEndDate.getTime() + 365 * 24 * 60 * 60 * 1000);
+        formData.endDate = oneYearLater;
+      }
+    } else {
+      // Pre štandardné prenájmy je endDate povinné
+      if (!formData.endDate) {
+        alert('Dátum ukončenia je povinný pre štandardný prenájom');
+        return;
+      }
+    }
+
     // Ak máme customerName ale nemáme customerId, vytvorím nového zákazníka
     let finalCustomer = selectedCustomer;
     let finalCustomerId = formData.customerId;
@@ -507,7 +558,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       customerName: formData.customerName || '',
       startDate: formData.startDate || new Date(),
       endDate: formData.endDate || new Date(),
-      totalPrice: calculatedPrice,
+      totalPrice: (formData.isFlexible && useManualPricing && manualPrice !== undefined) ? manualPrice : calculatedPrice,
       commission: calculatedCommission,
       paymentMethod: formData.paymentMethod || 'cash',
       createdAt: rental?.createdAt || new Date(),
@@ -522,6 +573,12 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       handoverPlace: handoverPlace.trim() || undefined,
       payments: payments,
       orderNumber: formData.orderNumber || '',
+      // 🔄 NOVÉ: Flexibilné prenájmy
+      rentalType: formData.rentalType || 'standard',
+      isFlexible: formData.isFlexible || false,
+      flexibleEndDate: formData.flexibleEndDate,
+      flexibleSettings: formData.flexibleSettings,
+      overrideHistory: formData.overrideHistory || [],
     };
     onSave(completeRental);
   };
@@ -741,7 +798,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
         <TextField
           fullWidth
-          label="Dátum do"
+          label={formData.isFlexible ? "Dátum do (voliteľné)" : "Dátum do"}
           type="date"
           value={formData.endDate ? (() => {
             const date = new Date(formData.endDate);
@@ -757,11 +814,194 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
               const [year, month, day] = dateValue.split('-').map(Number);
               const date = new Date(year, month - 1, day); // mesiac je 0-indexovaný
               handleInputChange('endDate', date);
+            } else {
+              // 🔄 NOVÉ: Umožniť vymazanie dátumu pre flexibilné prenájmy
+              if (formData.isFlexible) {
+                handleInputChange('endDate', undefined);
+              }
             }
           }}
           InputLabelProps={{ shrink: true }}
-          required
+          required={!formData.isFlexible}
+          helperText={formData.isFlexible ? "Pre flexibilný prenájom môžete nechať prázdne" : undefined}
         />
+
+        {/* 🔄 NOVÉ: Flexibilné prenájmy sekcia */}
+        <Box sx={{ gridColumn: '1 / -1', mt: 2, mb: 2 }}>
+          <Card 
+            variant="outlined" 
+            sx={{ 
+              p: 2, 
+              bgcolor: formData.isFlexible ? 'warning.light' : 'background.paper',
+              border: formData.isFlexible ? '2px solid' : '1px solid',
+              borderColor: formData.isFlexible ? 'warning.main' : 'divider',
+              boxShadow: formData.isFlexible ? 3 : 1,
+            }}
+          >
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              🔄 Flexibilný prenájom
+              <Chip 
+                label={formData.isFlexible ? 'AKTÍVNY' : 'ŠTANDARDNÝ'} 
+                color={formData.isFlexible ? 'warning' : 'default'}
+                size="small"
+              />
+            </Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Typ prenájmu</InputLabel>
+                  <Select
+                    value={formData.rentalType || 'standard'}
+                    onChange={(e) => {
+                      const rentalType = e.target.value as 'standard' | 'flexible' | 'priority';
+                      handleInputChange('rentalType', rentalType);
+                      const isFlexible = rentalType === 'flexible';
+                      handleInputChange('isFlexible', isFlexible);
+                      
+                      // 🔄 NOVÉ: Automaticky zapnúť manuálnu cenotvorbu pre flexibilné prenájmy
+                      if (isFlexible) {
+                        setUseManualPricing(true);
+                        if (manualPrice === undefined) {
+                          setManualPrice(calculatedPrice || 0);
+                        }
+                        // 🔄 NOVÉ: Automaticky vyčistiť pole "Dátum do"
+                        handleInputChange('endDate', undefined);
+                      } else {
+                        setUseManualPricing(false);
+                      }
+                    }}
+                    label="Typ prenájmu"
+                  >
+                    <MenuItem value="standard">🔒 Štandardný prenájom</MenuItem>
+                    <MenuItem value="flexible">🔄 Flexibilný prenájom</MenuItem>
+                    <MenuItem value="priority">⭐ Prioritný prenájom</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {formData.isFlexible && (
+                <>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Odhadovaný dátum vrátenia"
+                      type="date"
+                      value={formData.flexibleEndDate ? (() => {
+                        const date = new Date(formData.flexibleEndDate);
+                        const year = date.getFullYear();
+                        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                        const day = date.getDate().toString().padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                      })() : ''}
+                      onChange={(e) => {
+                        const dateValue = e.target.value;
+                        if (dateValue) {
+                          const [year, month, day] = dateValue.split('-').map(Number);
+                          const date = new Date(year, month - 1, day);
+                          handleInputChange('flexibleEndDate', date);
+                        } else {
+                          handleInputChange('flexibleEndDate', undefined);
+                        }
+                      }}
+                      InputLabelProps={{ shrink: true }}
+                      helperText="🎯 Orientačný dátum pre plánovanie - pomáha pri rezerváciách a upozorneniach"
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Priorita prepísania</InputLabel>
+                      <Select
+                        value={formData.flexibleSettings?.overridePriority || 5}
+                        onChange={(e) => {
+                          const newSettings = {
+                            ...formData.flexibleSettings,
+                            overridePriority: Number(e.target.value)
+                          };
+                          handleInputChange('flexibleSettings', newSettings);
+                        }}
+                        label="Priorita prepísania"
+                      >
+                        <MenuItem value={1}>1 - Najvyššia (ťažko prepísateľné)</MenuItem>
+                        <MenuItem value={3}>3 - Vysoká</MenuItem>
+                        <MenuItem value={5}>5 - Stredná (odporúčané)</MenuItem>
+                        <MenuItem value={7}>7 - Nízka</MenuItem>
+                        <MenuItem value={10}>10 - Najnižšia (ľahko prepísateľné)</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Card variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
+                      <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+                        💰 Cenotvorba pre flexibilný prenájom
+                      </Typography>
+                      
+                      <FormControl fullWidth sx={{ mb: 2 }}>
+                        <InputLabel>Typ cenotvorby</InputLabel>
+                        <Select
+                          value={useManualPricing ? 'manual' : 'automatic'}
+                          onChange={(e) => {
+                            const isManual = e.target.value === 'manual';
+                            setUseManualPricing(isManual);
+                            if (isManual && manualPrice === undefined) {
+                              setManualPrice(calculatedPrice || 0);
+                            }
+                          }}
+                          label="Typ cenotvorby"
+                        >
+                          <MenuItem value="automatic">🤖 Automatická (štandardná)</MenuItem>
+                          <MenuItem value="manual">✋ Manuálna (individuálna)</MenuItem>
+                        </Select>
+                      </FormControl>
+
+                      {useManualPricing && (
+                        <TextField
+                          fullWidth
+                          label="Manuálna cena"
+                          type="number"
+                          value={manualPrice || ''}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value) || 0;
+                            setManualPrice(value);
+                          }}
+                          InputProps={{
+                            endAdornment: '€'
+                          }}
+                          helperText="Zadajte individuálnu cenu pre tento flexibilný prenájom"
+                        />
+                      )}
+
+                      {!useManualPricing && (
+                        <Typography variant="body2" color="text.secondary">
+                          Automatická cena: <strong>{calculatedPrice}€</strong>
+                        </Typography>
+                      )}
+                    </Card>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="info.main" sx={{ 
+                      p: 1.5, 
+                      bgcolor: 'info.light', 
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: 'info.main'
+                    }}>
+                      💡 <strong>Flexibilný prenájom:</strong> Vozidlo sa nezobrazí ako blokované v kalendári. 
+                      Môže byť prepísané iným prenájmom podľa nastavenej priority. 
+                      Zákazník bude upozornený pri konflikte.
+                      <br/><br/>
+                      🎯 <strong>Predpokladané vrátenie:</strong> Orientačný dátum na plánovanie ďalších prenájmov. 
+                      Systém vás upozorní X dní vopred (podľa nastavení) aby ste sa skontaktovali so zákazníkom.
+                    </Typography>
+                  </Grid>
+                </>
+              )}
+            </Grid>
+          </Card>
+        </Box>
 
         <FormControl fullWidth>
           <InputLabel>Spôsob platby</InputLabel>

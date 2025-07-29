@@ -117,6 +117,22 @@ export interface Rental {
   vehicleName?: string; // Názov vozidla z emailu
   // 🎯 SNAPSHOT: Zamrazený majiteľ vozidla k dátumu prenájmu
   company?: string;
+  // 🔄 NOVÉ: Flexibilné prenájmy
+  rentalType?: 'standard' | 'flexible' | 'priority';
+  isFlexible?: boolean;
+  flexibleEndDate?: Date; // Odhadovaný koniec pre flexibilné prenájmy
+  flexibleSettings?: {
+    canBeOverridden: boolean;
+    overridePriority: number; // 1-10 (1 = najvyššia priorita)
+    notificationThreshold: number; // Dni vopred na upozornenie
+    autoExtend: boolean;
+  };
+  overrideHistory?: {
+    date: Date;
+    reason: string;
+    newRentalId: string;
+    userId: string;
+  }[];
 }
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';

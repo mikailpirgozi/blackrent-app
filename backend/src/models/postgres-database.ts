@@ -1138,6 +1138,55 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 22 chyba:', error.message);
       }
 
+      // Migrácia 23: 🔄 FLEXIBILNÉ PRENÁJMY - Pridanie stĺpcov pre hybridný prístup
+      try {
+        console.log('📋 Migrácia 23: 🔄 Pridávanie stĺpcov pre flexibilné prenájmy...');
+        
+        await client.query(`
+          ALTER TABLE rentals 
+          ADD COLUMN IF NOT EXISTS rental_type VARCHAR(20) DEFAULT 'standard',
+          ADD COLUMN IF NOT EXISTS is_flexible BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS flexible_end_date DATE,
+          ADD COLUMN IF NOT EXISTS can_be_overridden BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS override_priority INTEGER DEFAULT 5,
+          ADD COLUMN IF NOT EXISTS notification_threshold INTEGER DEFAULT 3,
+          ADD COLUMN IF NOT EXISTS auto_extend BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS override_history JSONB DEFAULT '[]'::jsonb;
+        `);
+        
+        console.log('   ✅ Flexibilné prenájmy stĺpce pridané do rentals tabuľky');
+        
+        // Vytvorenie indexu pre rýchlejšie vyhľadávanie flexibilných prenájmov
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_rentals_flexible ON rentals(is_flexible, rental_type) 
+          WHERE is_flexible = true;
+        `);
+        
+        console.log('   ✅ Index pre flexibilné prenájmy vytvorený');
+        
+        // Vytvorenie indexu pre override priority
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_rentals_override_priority ON rentals(override_priority, can_be_overridden) 
+          WHERE can_be_overridden = true;
+        `);
+        
+        console.log('   ✅ Index pre override priority vytvorený');
+        
+        console.log('✅ Migrácia 23: 🔄 Flexibilné prenájmy úspešne implementované!');
+        console.log('   📝 Nové funkcie:');
+        console.log('   • rental_type: standard | flexible | priority');
+        console.log('   • is_flexible: true/false flag');
+        console.log('   • flexible_end_date: odhadovaný koniec');
+        console.log('   • can_be_overridden: možnosť prepísania');
+        console.log('   • override_priority: priorita (1-10)');
+        console.log('   • notification_threshold: dni vopred na upozornenie');
+        console.log('   • auto_extend: automatické predĺženie');
+        console.log('   • override_history: história zmien');
+        
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 23 chyba:', error.message);
+      }
+
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
     }
@@ -1918,6 +1967,9 @@ export class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
+          -- 🔄 NOVÉ: Flexibilné prenájmy polia
+          r.rental_type, r.is_flexible, r.flexible_end_date, r.can_be_overridden,
+          r.override_priority, r.notification_threshold, r.auto_extend, r.override_history,
           v.brand, v.model, v.license_plate, v.pricing, v.commission as v_commission, v.status as v_status
         FROM rentals r
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
@@ -1971,6 +2023,17 @@ export class PostgresDatabase {
         dailyKilometers: row.daily_kilometers || undefined,
         handoverPlace: row.handover_place || undefined,
         company: row.company || undefined,  // 🎯 CLEAN SOLUTION field
+        // 🔄 NOVÉ: Flexibilné prenájmy polia
+        rentalType: row.rental_type || 'standard',
+        isFlexible: Boolean(row.is_flexible),
+        flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
+        flexibleSettings: {
+          canBeOverridden: Boolean(row.can_be_overridden),
+          overridePriority: row.override_priority || 5,
+          notificationThreshold: row.notification_threshold || 3,
+          autoExtend: Boolean(row.auto_extend),
+        },
+        overrideHistory: this.safeJsonParse(row.override_history) || [],
         // 🚗 PRIAMO MAPOVANÉ VEHICLE DATA (ako getVehicles) ✅
         vehicle: row.brand ? {
           id: row.vehicle_id,
@@ -2077,6 +2140,15 @@ export class PostgresDatabase {
     fuelRefillCost?: number;
     handoverProtocolId?: string;
     returnProtocolId?: string;
+    // 🔄 NOVÉ: Flexibilné prenájmy
+    rentalType?: string;
+    isFlexible?: boolean;
+    flexibleEndDate?: Date;
+    canBeOverridden?: boolean;
+    overridePriority?: number;
+    notificationThreshold?: number;
+    autoExtend?: boolean;
+    overrideHistory?: any;
   }): Promise<Rental> {
     const client = await this.pool.connect();
     try {
@@ -2099,13 +2171,17 @@ export class PostgresDatabase {
           extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
-          handover_protocol_id, return_protocol_id, company
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
+          handover_protocol_id, return_protocol_id, company,
+          rental_type, is_flexible, flexible_end_date, can_be_overridden, override_priority, 
+          notification_threshold, auto_extend, override_history
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40)
         RETURNING id, vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
-          handover_protocol_id, return_protocol_id, company, created_at
+          handover_protocol_id, return_protocol_id, company, created_at,
+          rental_type, is_flexible, flexible_end_date, can_be_overridden, override_priority, 
+          notification_threshold, auto_extend, override_history
       `, [
         rentalData.vehicleId || null, 
         rentalData.customerId || null, 
@@ -2138,7 +2214,16 @@ export class PostgresDatabase {
         rentalData.fuelRefillCost || null,
         rentalData.handoverProtocolId || null,
         rentalData.returnProtocolId || null,
-        company  // 🎯 CLEAN SOLUTION hodnota
+        company,  // 🎯 CLEAN SOLUTION hodnota
+        // 🔄 NOVÉ: Flexibilné prenájmy parametre
+        rentalData.rentalType || 'standard',
+        rentalData.isFlexible || false,
+        rentalData.flexibleEndDate || null,
+        rentalData.canBeOverridden || false,
+        rentalData.overridePriority || 5,
+        rentalData.notificationThreshold || 3,
+        rentalData.autoExtend || false,
+        rentalData.overrideHistory ? JSON.stringify(rentalData.overrideHistory) : '[]'
       ]);
 
       const row = result.rows[0];
@@ -2176,7 +2261,18 @@ export class PostgresDatabase {
         handoverProtocolId: row.handover_protocol_id || undefined,
         returnProtocolId: row.return_protocol_id || undefined,
         company: row.company || undefined,  // 🎯 CLEAN SOLUTION field
-        createdAt: new Date(row.created_at)
+        createdAt: new Date(row.created_at),
+        // 🔄 NOVÉ: Flexibilné prenájmy polia
+        rentalType: row.rental_type || 'standard',
+        isFlexible: Boolean(row.is_flexible),
+        flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
+        flexibleSettings: {
+          canBeOverridden: Boolean(row.can_be_overridden),
+          overridePriority: row.override_priority || 5,
+          notificationThreshold: row.notification_threshold || 3,
+          autoExtend: Boolean(row.auto_extend)
+        },
+        overrideHistory: this.safeJsonParse(row.override_history) || []
       };
     } finally {
       client.release();
