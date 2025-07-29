@@ -618,7 +618,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         vehiclesCount: state?.vehicles?.length || 0
       });
     }
-  }, [fetchCalendarData, state?.dataLoaded?.vehicles, authState?.isAuthenticated]);
+  }, [fetchCalendarData, state?.dataLoaded?.vehicles, authState?.isAuthenticated, currentDate, viewMode]);
 
   // Load unavailabilities on component mount
   useEffect(() => {
