@@ -106,8 +106,8 @@ export default function ProtocolGallery({
         handleNext();
         break;
       case 'Escape':
-        console.log('🚪 Escape pressed - closing gallery');
-        onClose();
+        console.log('🚪 Manual Escape pressed - closing gallery');
+        onClose(); // Direct call, bypass MUI
         break;
       case '+':
       case '=':
@@ -192,13 +192,28 @@ export default function ProtocolGallery({
       {/* Grid Gallery Modal */}
       <Dialog
         open={open && !isFullscreen}
-        onClose={() => {
-          console.log('🚪 Dialog onClose triggered!');
+        onClose={(event, reason) => {
+          console.log('🚪 Dialog onClose triggered with reason:', reason);
           console.trace('🔍 Dialog close stack trace:');
+          
+          // Only allow manual close (via close button), ignore all automatic closes
+          if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+            console.log('🛑 Ignoring automatic close reason:', reason);
+            return; // Block automatic close
+          }
+          
+          // Only allow programmatic close
           onClose();
         }}
         maxWidth="lg"
         fullWidth
+        disableEscapeKeyDown={true}
+        BackdropProps={{
+          onClick: (e) => {
+            console.log('🛑 Backdrop click blocked');
+            e.stopPropagation();
+          }
+        }}
         PaperProps={{
           sx: {
             backgroundColor: 'rgba(0, 0, 0, 0.9)',
