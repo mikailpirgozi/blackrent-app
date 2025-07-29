@@ -1948,7 +1948,7 @@ export class PostgresDatabase {
     try {
       // Načítaj len prenájmy ktoré sa prekrývajú s daným obdobím
       const result = await client.query(`
-        SELECT id, customer_id, vehicle_id, start_date, end_date, 
+        SELECT id, vehicle_id, start_date, end_date, 
                total_price, commission, payment_method, paid, status, 
                customer_name, created_at, order_number, deposit, 
                allowed_kilometers, daily_kilometers, handover_place,
@@ -1968,7 +1968,7 @@ export class PostgresDatabase {
           return {
             id: row.id?.toString() || '',
             vehicleId: row.vehicle_id?.toString(),
-            customerId: row.customer_id?.toString(),
+            customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
             customerName: row.customer_name || 'Neznámy zákazník',
             startDate: new Date(row.start_date),
             endDate: new Date(row.end_date),
@@ -5435,11 +5435,10 @@ export class PostgresDatabase {
       `);
       const missingVehicles = parseInt(missingVehiclesResult.rows[0].count);
       
-      // Count rentals with missing customers  
+      // Count rentals with missing customers (using customer_name since customer_id doesn't exist)
       const missingCustomersResult = await client.query(`
         SELECT COUNT(*) as count FROM rentals r
-        WHERE r.customer_id IS NOT NULL 
-        AND r.customer_id NOT IN (SELECT id FROM customers)
+        WHERE r.customer_name IS NULL OR r.customer_name = ''
       `);
       const missingCustomers = parseInt(missingCustomersResult.rows[0].count);
       
