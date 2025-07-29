@@ -211,10 +211,18 @@ export class StorageManager {
     }
   }
 
+  // 🔧 Tracking či už boli storage testy vykonané
+  private static storageTestDone = false;
+
   /**
    * Testuje či storage funguje správne
    */
   static testStorage(): void {
+    // ⚡ OPTIMALIZÁCIA: Spustiť len raz, alebo vždy v development
+    if (this.storageTestDone && process.env.NODE_ENV === 'production') {
+      return; // Už bolo testované
+    }
+    
     try {
       console.log('🔍 Testing storage capabilities...');
       
@@ -241,6 +249,9 @@ export class StorageManager {
       sessionStorage.removeItem(testKey);
       
       console.log('🗂️ sessionStorage test:', sessionResult === testValue ? '✅ OK' : '❌ FAIL');
+      
+      // Označiť ako dokončené
+      this.storageTestDone = true;
       
     } catch (error) {
       console.error('🔍 Storage test error:', error);

@@ -3,6 +3,7 @@ import { Vehicle, Rental, Expense, Insurance, Settlement, Customer, Company, Ins
 import { apiService } from '../services/api';
 import { useAuth } from './AuthContext';
 import { usePermissionsContext } from './PermissionsContext';
+import logger from '../utils/logger';
 
 interface AppState {
   vehicles: Vehicle[];
@@ -396,18 +397,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
       
-      console.log('🚀 Načítavam dáta z BULK API (najrýchlejšie riešenie)...');
+      logger.perf('🚀 Načítavam dáta z BULK API (najrýchlejšie riešenie)...');
       const startTime = Date.now();
       
       // ⚡ PHASE 3: SINGLE BULK API CALL - všetky dáta jedným requestom
-      console.log('📦 BULK: Vykonávam jediný API request...');
+      logger.debug('📦 BULK: Vykonávam jediný API request...');
       const bulkData = await apiService.getBulkData();
       
       const bulkTime = Date.now() - startTime;
-      console.log(`✅ BULK: Všetky dáta načítané v ${bulkTime}ms jedným requestom!`);
-      console.log('📊 BULK: Metadata:', bulkData.metadata);
+      logger.perf(`✅ BULK: Všetky dáta načítané v ${bulkTime}ms jedným requestom!`);
+      logger.perf('📊 BULK: Metadata:', bulkData.metadata);
       
-      console.log('✅ Dáta úspešne načítané cez BULK:', { 
+      logger.perf('✅ Dáta úspešne načítané cez BULK:', { 
         vehicles: bulkData.vehicles.length, 
         rentals: bulkData.rentals.length, 
         expenses: bulkData.expenses.length,
@@ -418,9 +419,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         settlements: bulkData.settlements.length,
         vehicleDocuments: bulkData.vehicleDocuments.length,
         insuranceClaims: bulkData.insuranceClaims.length,
-        totalTime: `${bulkTime}ms`,
-        userRole: bulkData.metadata.userRole,
-        isFiltered: bulkData.metadata.isFiltered
       });
       
       // Dispatch všetkých dát naraz

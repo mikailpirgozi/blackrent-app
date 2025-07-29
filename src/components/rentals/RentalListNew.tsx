@@ -152,7 +152,9 @@ const VehicleOwnerDisplay: React.FC<{
   );
 };
 
-export default function RentalList() {
+export default function RentalListNew() {
+  console.log('🔄 RentalListNew component render');
+  
   const { state, createRental, updateRental, deleteRental } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -255,8 +257,8 @@ export default function RentalList() {
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState<{ url: string; title: string; type: 'handover' | 'return' } | null>(null);
   
-  // Image gallery
-  const [galleryOpen, setGalleryOpen] = useState(false);
+  // Image gallery - with debug wrapper
+  const [galleryOpen, setGalleryOpenRaw] = useState(false);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [galleryVideos, setGalleryVideos] = useState<any[]>([]);
   const [galleryTitle, setGalleryTitle] = useState('');
@@ -265,6 +267,13 @@ export default function RentalList() {
   const [protocolMenuOpen, setProtocolMenuOpen] = useState(false);
   const [selectedProtocolRental, setSelectedProtocolRental] = useState<Rental | null>(null);
   const [selectedProtocolType, setSelectedProtocolType] = useState<'handover' | 'return' | null>(null);
+
+  // Debug wrapper for setGalleryOpen
+  const setGalleryOpen = (value: boolean) => {
+    console.log(`🎭 setGalleryOpen called with:`, value);
+    console.trace(`🔍 setGalleryOpen stack trace:`);
+    setGalleryOpenRaw(value);
+  };
 
   // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
   const loadProtocolsForRental = useCallback(async (rentalId: string) => {
@@ -1004,8 +1013,9 @@ export default function RentalList() {
       
       // Close protocol menu after gallery is successfully opened - delayed to prevent re-render issues
       setTimeout(() => {
+        console.log('⏰ Delayed protocol menu close executing...');
         handleCloseProtocolMenu();
-      }, 100);
+      }, 500);
       
     } catch (error) {
       console.error('❌ Error opening gallery:', error);
@@ -1039,9 +1049,12 @@ export default function RentalList() {
       selectedProtocolType,
       galleryOpen
     });
+    
+    console.log('📋 About to reset protocol menu state...');
     setProtocolMenuOpen(false);
     setSelectedProtocolRental(null);
     setSelectedProtocolType(null);
+    console.log('📋 Protocol menu state reset completed');
   };
 
   const handleDownloadPDF = () => {
@@ -4113,7 +4126,10 @@ export default function RentalList() {
       {/* New Protocol Gallery */}
       <ProtocolGallery
         open={galleryOpen}
-        onClose={handleCloseGallery}
+        onClose={() => {
+          console.log('🚪 ProtocolGallery onClose callback called - BLOCKED for testing');
+          // Temporarily block: handleCloseGallery();
+        }}
         images={galleryImages}
         videos={galleryVideos}
         title={galleryTitle}
