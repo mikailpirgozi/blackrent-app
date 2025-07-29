@@ -81,7 +81,7 @@ interface VehicleAvailability {
   vehicleId: string;
   vehicleName: string;
   licensePlate: string;
-  status: 'available' | 'rented' | 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection';
+  status: 'available' | 'rented' | 'flexible' | 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection';
   rentalId?: string;
   customerName?: string;
   unavailabilityId?: string;
@@ -168,7 +168,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   }, [propSearchQuery]);
 
 
-  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'rented' | 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'rented' | 'flexible' | 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection'>('all');
   const [brandFilter, setBrandFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -280,8 +280,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
   // Handle click on status chip - different actions based on status
   const handleStatusClick = (vehicleStatus: VehicleAvailability, date: string) => {
-    if (vehicleStatus.status === 'rented' && vehicleStatus.rentalId) {
-      // Show rental details
+    if ((vehicleStatus.status === 'rented' || vehicleStatus.status === 'flexible') && vehicleStatus.rentalId) {
+      // Show rental details for rented and flexible rentals
       fetchRentalDetails(vehicleStatus.rentalId);
     } else if (vehicleStatus.status === 'available') {
       // Add maintenance for available vehicles
@@ -730,6 +730,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     switch (status) {
       case 'available': return 'Dostupné';
       case 'rented': return 'Obsadené';
+      case 'flexible': return 'Flexibilné';
       case 'maintenance': return 'Údržba';
       case 'service': return 'Servis';
       case 'repair': return 'Oprava';
@@ -1022,9 +1023,11 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     sx={{ 
                       border: '2px solid',
                       borderColor: vehicleStatus?.status === 'available' ? '#4caf50' :
-                                 vehicleStatus?.status === 'rented' ? '#f44336' : '#ff9800',
+                                 vehicleStatus?.status === 'rented' ? '#f44336' : 
+                                 vehicleStatus?.status === 'flexible' ? '#ff9800' : '#ff9800',
                       backgroundColor: vehicleStatus?.status === 'available' ? '#e8f5e8' : 
-                                     vehicleStatus?.status === 'rented' ? '#ffebee' : '#fff3e0',
+                                     vehicleStatus?.status === 'rented' ? '#ffebee' :
+                                     vehicleStatus?.status === 'flexible' ? '#fff8f0' : '#fff3e0',
                       borderRadius: 2,
                       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                       transition: 'all 0.2s ease',
@@ -1095,7 +1098,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                             size="medium"
                             sx={{
                               bgcolor: vehicleStatus?.status === 'available' ? '#4caf50' :
-                                     vehicleStatus?.status === 'rented' ? '#f44336' : '#ff9800',
+                                     vehicleStatus?.status === 'rented' ? '#f44336' :
+                                     vehicleStatus?.status === 'flexible' ? '#ff9800' : '#ff9800',
                               color: 'white',
                               fontWeight: 700,
                               fontSize: { xs: '0.7rem', sm: '0.75rem' },
@@ -1270,6 +1274,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
                     const isAvailable = !vehicleStatus || vehicleStatus.status === 'available';
                     const isRented = vehicleStatus?.status === 'rented';
+                    const isFlexible = vehicleStatus?.status === 'flexible';
                     const isMaintenance = vehicleStatus?.status === 'maintenance' || vehicleStatus?.status === 'service' || vehicleStatus?.status === 'blocked';
                     const dayIsToday = isToday(new Date(day.date));
                     
@@ -1283,6 +1288,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                           backgroundColor: 
                             dayIsToday ? '#e3f2fd' :
                             isRented ? '#ffebee' :
+                            isFlexible ? '#fff8f0' :
                             isMaintenance ? '#fff3e0' : '#e8f5e8',
                           border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0'
                         }}
@@ -1309,6 +1315,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                           borderRadius: '50%',
                           backgroundColor: 
                             isRented ? '#f44336' :
+                            isFlexible ? '#ff9800' :
                             isMaintenance ? '#ff9800' : '#4caf50',
                           mx: 'auto',
                           mt: 0.25
@@ -1577,6 +1584,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
                   const isAvailable = !vehicleStatus || vehicleStatus.status === 'available';
                   const isRented = vehicleStatus?.status === 'rented';
+                  const isFlexible = vehicleStatus?.status === 'flexible';
                   const isMaintenance = vehicleStatus?.status === 'maintenance' || vehicleStatus?.status === 'service' || vehicleStatus?.status === 'blocked';
                   const dayIsToday = isToday(new Date(day.date));
                   
@@ -1590,6 +1598,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         backgroundColor: 
                           dayIsToday ? '#e3f2fd' :
                           isRented ? '#ffebee' :
+                          isFlexible ? '#fff8f0' :
                           isMaintenance ? '#fff3e0' : '#e8f5e8',
                         border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0',
                         cursor: 'pointer',
@@ -1629,6 +1638,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         borderRadius: '50%',
                         backgroundColor: 
                           isRented ? '#f44336' :
+                          isFlexible ? '#ff9800' :
                           isMaintenance ? '#ff9800' : '#4caf50',
                         mt: 'auto'
                       }} />
