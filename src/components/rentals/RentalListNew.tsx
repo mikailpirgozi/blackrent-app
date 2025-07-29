@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect, memo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, memo, useRef } from 'react';
 import {
   Box,
   Button,
@@ -257,11 +257,12 @@ export default function RentalListNew() {
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState<{ url: string; title: string; type: 'handover' | 'return' } | null>(null);
   
-  // Image gallery - with debug wrapper
-  const [galleryOpen, setGalleryOpenRaw] = useState(false);
+  // Image gallery - using useRef to survive re-renders
+  const galleryOpenRef = useRef(false);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [galleryVideos, setGalleryVideos] = useState<any[]>([]);
   const [galleryTitle, setGalleryTitle] = useState('');
+  const [, forceUpdate] = useState({});
   
   // Protocol menu state
   const [protocolMenuOpen, setProtocolMenuOpen] = useState(false);
@@ -270,16 +271,19 @@ export default function RentalListNew() {
 
   // Debug wrapper for setGalleryOpen
   const setGalleryOpen = (value: boolean) => {
-    console.log(`🎭 setGalleryOpen called with:`, value);
+    console.log(`🎭 setGalleryOpen called with:`, value, '(using useRef)');
     console.trace(`🔍 setGalleryOpen stack trace:`);
-    setGalleryOpenRaw(value);
+    galleryOpenRef.current = value;
+    forceUpdate({}); // Force re-render to update UI
   };
+  
+  const galleryOpen = galleryOpenRef.current;
 
   // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
   const loadProtocolsForRental = useCallback(async (rentalId: string) => {
     // Ak už sa načítavajú protokoly pre tento rental, počkaj
     if (loadingProtocols.includes(rentalId)) {
-      return;
+      return null;
     }
     
     console.log('🔍 Načítavam protokoly pre:', rentalId);
@@ -307,15 +311,21 @@ export default function RentalListNew() {
       console.log('🔍 Latest handover:', latestHandover);
       console.log('🔍 Latest return:', latestReturn);
       
+      const protocolData = {
+        handover: latestHandover,
+        return: latestReturn,
+      };
+      
       setProtocols(prev => ({
         ...prev,
-        [rentalId]: {
-          handover: latestHandover,
-          return: latestReturn,
-        }
+        [rentalId]: protocolData
       }));
+      
+      // ⚡ RETURN načítané dáta pre okamžité použitie
+      return protocolData;
     } catch (error) {
       console.error('❌ Chyba pri načítaní protokolov:', error);
+      return null;
     } finally {
       setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
     }
@@ -330,6 +340,7 @@ export default function RentalListNew() {
     
     console.log('🔍 Načítavam protokoly pre prenájom:', rental.id);
     await loadProtocolsForRental(rental.id);
+    // Note: loadProtocolsForRental už updatuje protocols state, takže netreba žiadnu dodatočnú logiku
   };
 
   // Funkcia pre skrytie protokolov
@@ -927,12 +938,19 @@ export default function RentalListNew() {
     try {
       console.log('🔍 Opening gallery for protocol:', protocolType, 'rental:', rental.id);
       
-      if (!protocols[rental.id]?.[protocolType]) {
+      // Close protocol menu FIRST to prevent Dialog interference
+      console.log('📋 Closing protocol menu before opening gallery...');
+      handleCloseProtocolMenu();
+      
+      // ⚡ FIX: Získaj protokol priamo z API alebo cache
+      let protocol = protocols[rental.id]?.[protocolType];
+      
+      if (!protocol) {
         console.log('📥 Loading protocol for gallery...');
-        await loadProtocolsForRental(rental.id);
+        const freshProtocolData = await loadProtocolsForRental(rental.id);
+        protocol = freshProtocolData?.[protocolType];
       }
       
-      const protocol = protocols[rental.id]?.[protocolType];
       if (!protocol) {
         alert('Protokol nebol nájdený!');
         return;
@@ -1009,13 +1027,7 @@ export default function RentalListNew() {
       setGalleryTitle(`${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} - ${vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Neznáme vozidlo'}`);
       setGalleryOpen(true);
       
-      console.log('️ Gallery state set, should open now');
-      
-      // Close protocol menu after gallery is successfully opened - delayed to prevent re-render issues
-      setTimeout(() => {
-        console.log('⏰ Delayed protocol menu close executing...');
-        handleCloseProtocolMenu();
-      }, 500);
+      console.log('✅ Gallery opened successfully with protocol data');
       
     } catch (error) {
       console.error('❌ Error opening gallery:', error);
@@ -4126,10 +4138,7 @@ export default function RentalListNew() {
       {/* New Protocol Gallery */}
       <ProtocolGallery
         open={galleryOpen}
-        onClose={() => {
-          console.log('🚪 ProtocolGallery onClose callback called - BLOCKED for testing');
-          // Temporarily block: handleCloseGallery();
-        }}
+        onClose={handleCloseGallery}
         images={galleryImages}
         videos={galleryVideos}
         title={galleryTitle}
