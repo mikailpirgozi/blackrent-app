@@ -1684,7 +1684,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
-                    <Typography><strong>Typ prenájmu:</strong> {selectedRental.rentalType?.toUpperCase() || 'FLEXIBLE'}</Typography>
+                                            <Typography><strong>Typ prenájmu:</strong> {selectedRental.isFlexible ? 'FLEXIBILNÝ' : 'ŠTANDARDNÝ'}</Typography>
                     <Typography><strong>Priorita prepísania:</strong> {selectedRental.flexibleSettings?.overridePriority || 5}/10</Typography>
                   </Grid>
                   <Grid item xs={12} sm={6}>
