@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -16,18 +16,22 @@ import {
   MenuItem,
   useMediaQuery,
   useTheme,
-  Chip
+  Chip,
+  Checkbox,
+  ListItemText
 } from '@mui/material';
 import {
   Search as SearchIcon,
   FilterList as FilterListIcon,
   CalendarToday as CalendarIcon,
   DirectionsCar as CarIcon,
+  Clear as ClearIcon,
   Today as TodayIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
-import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
 import { useApp } from '../context/AppContext';
+import { VehicleCategory } from '../types';
+import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
 
 const AvailabilityPageNew: React.FC = () => {
   const { state, getFilteredVehicles } = useApp();
@@ -38,16 +42,39 @@ const AvailabilityPageNew: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [showAvailable, setShowAvailable] = useState(true);
-  const [showRented, setShowRented] = useState(true);
-  const [showMaintenance, setShowMaintenance] = useState(true);
+  const [availableFromDate, setAvailableFromDate] = useState('');
+  const [availableToDate, setAvailableToDate] = useState('');
+  // 🚗 MULTI-SELECT CATEGORY FILTER: Array of selected categories
+  const [selectedCategories, setSelectedCategories] = useState<VehicleCategory[]>([]);
 
   // Get filtered vehicles based on user permissions
   const filteredVehicles = getFilteredVehicles();
   
   // Get unique companies for filter
   const uniqueCompanies = [...new Set(filteredVehicles.map(v => v.company))].sort();
+
+  // 🚗 VEHICLE CATEGORIES with emoji icons
+  const vehicleCategories: { value: VehicleCategory; label: string; emoji: string }[] = [
+    { value: 'nizka-trieda', label: 'Nízka trieda', emoji: '🚗' },
+    { value: 'stredna-trieda', label: 'Stredná trieda', emoji: '🚙' },
+    { value: 'vyssia-stredna', label: 'Vyššia stredná trieda', emoji: '🚘' },
+    { value: 'luxusne', label: 'Luxusné vozidlá', emoji: '💎' },
+    { value: 'sportove', label: 'Športové vozidlá', emoji: '🏎️' },
+    { value: 'suv', label: 'SUV', emoji: '🚜' },
+    { value: 'viacmiestne', label: 'Viacmiestne vozidlá', emoji: '👨‍👩‍👧‍👦' },
+    { value: 'dodavky', label: 'Dodávky', emoji: '📦' }
+  ];
+
+  // Handle category selection
+  const handleCategoryChange = (event: any) => {
+    const value = event.target.value as VehicleCategory[];
+    setSelectedCategories(value);
+  };
+
+  // Clear all category filters
+  const clearCategoryFilters = () => {
+    setSelectedCategories([]);
+  };
 
   const handleRefresh = () => {
     // Trigger calendar refresh
@@ -156,50 +183,110 @@ const AvailabilityPageNew: React.FC = () => {
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <FormControl fullWidth size="small">
-                  <InputLabel>Status</InputLabel>
+                  <InputLabel>Kategória vozidla</InputLabel>
                   <Select
-                    value={selectedStatus}
-                    label="Status"
-                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    value={selectedCategories}
+                    label="Kategória vozidla"
+                    onChange={handleCategoryChange}
+                    multiple
+                    renderValue={(selected) => (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {selected.map((value) => {
+                          const category = vehicleCategories.find(cat => cat.value === value);
+                          return (
+                            <Chip
+                              key={value}
+                              label={`${category?.emoji} ${category?.label}`}
+                              size="small"
+                              sx={{ bgcolor: '#e0e0e0', color: '#333' }}
+                            />
+                          );
+                        })}
+                      </Box>
+                    )}
                   >
-                    <MenuItem value="">Všetky statusy</MenuItem>
-                    <MenuItem value="available">Dostupné</MenuItem>
-                    <MenuItem value="rented">Prenajaté</MenuItem>
-                    <MenuItem value="maintenance">Údržba</MenuItem>
+                    {vehicleCategories.map((category) => (
+                      <MenuItem key={category.value} value={category.value}>
+                        <Checkbox checked={selectedCategories.indexOf(category.value) > -1} />
+                        <ListItemText primary={category.label} />
+                      </MenuItem>
+                    ))}
                   </Select>
+                  {selectedCategories.length > 0 && (
+                    <Button
+                      size="small"
+                      onClick={clearCategoryFilters}
+                      startIcon={<ClearIcon />}
+                      sx={{ mt: 1 }}
+                    >
+                      Vymazať všetky
+                    </Button>
+                  )}
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={12} md={4}>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <Typography variant="subtitle2" sx={{ color: '#666', minWidth: 'fit-content' }}>
-                    Zobraziť:
-                  </Typography>
-                  <Chip
-                    label="Dostupné"
-                    variant={showAvailable ? 'filled' : 'outlined'}
-                    color={showAvailable ? 'success' : 'default'}
-                    size="small"
-                    onClick={() => setShowAvailable(!showAvailable)}
-                    sx={{ cursor: 'pointer' }}
-                  />
-                  <Chip
-                    label="Prenajaté"
-                    variant={showRented ? 'filled' : 'outlined'}
-                    color={showRented ? 'warning' : 'default'}
-                    size="small"
-                    onClick={() => setShowRented(!showRented)}
-                    sx={{ cursor: 'pointer' }}
-                  />
-                  <Chip
-                    label="Údržba"
-                    variant={showMaintenance ? 'filled' : 'outlined'}
-                    color={showMaintenance ? 'error' : 'default'}
-                    size="small"
-                    onClick={() => setShowMaintenance(!showMaintenance)}
-                    sx={{ cursor: 'pointer' }}
-                  />
-                </Box>
+              
+              {/* Date Range Filtre */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#1976d2' }}>
+                  📅 Filtrovanie podľa dátumu dostupnosti
+                </Typography>
               </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Dostupné od dátumu"
+                  type="date"
+                  size="small"
+                  value={availableFromDate}
+                  onChange={(e) => setAvailableFromDate(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Dostupné do dátumu"
+                  type="date"
+                  size="small"
+                  value={availableToDate}
+                  onChange={(e) => setAvailableToDate(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              {availableFromDate && availableToDate && (
+                <Grid item xs={12}>
+                  <Box sx={{ 
+                    p: 1.5, 
+                    backgroundColor: '#e3f2fd', 
+                    borderRadius: 1, 
+                    border: '1px solid #2196f3',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start'
+                  }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" sx={{ color: '#1976d2', fontWeight: 500 }}>
+                        ℹ️ Zobrazujú sa len vozidlá dostupné v období {availableFromDate} - {availableToDate}
+                        <br />
+                        <span style={{ fontSize: '0.85em' }}>
+                          Zahŕňa: dostupné vozidlá + flexibilné prenájmy (ktoré možno prepísať)
+                        </span>
+                      </Typography>
+                    </Box>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setAvailableFromDate('');
+                        setAvailableToDate('');
+                      }}
+                      sx={{ ml: 2, minWidth: 'auto' }}
+                    >
+                      ✕ Zrušiť
+                    </Button>
+                  </Box>
+                </Grid>
+              )}
             </Grid>
           </Collapse>
         </CardContent>
@@ -218,7 +305,7 @@ const AvailabilityPageNew: React.FC = () => {
                 {filteredVehicles.filter(v => v.status === 'available').length}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Dostupné
+                Dostupné vozidlá
               </Typography>
             </CardContent>
           </Card>
@@ -234,7 +321,7 @@ const AvailabilityPageNew: React.FC = () => {
                 {filteredVehicles.filter(v => v.status === 'rented').length}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Prenajaté
+                Klasicky prenajaté
               </Typography>
             </CardContent>
           </Card>
@@ -276,7 +363,14 @@ const AvailabilityPageNew: React.FC = () => {
       {/* Calendar */}
       <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
         <CardContent sx={{ p: 0 }}>
-          <AvailabilityCalendar searchQuery={searchQuery} isMobile={isMobile} />
+          <AvailabilityCalendar
+            searchQuery={searchQuery}
+            isMobile={isMobile}
+            selectedCompany={selectedCompany}
+            categoryFilter={selectedCategories}
+            availableFromDate={availableFromDate}
+            availableToDate={availableToDate}
+          />
         </CardContent>
       </Card>
     </Box>

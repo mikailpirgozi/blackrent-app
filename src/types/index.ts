@@ -1,9 +1,21 @@
+// 🚗 VEHICLE CATEGORIES: Typy kategórií vozidiel pre lepšie filtrovanie
+export type VehicleCategory = 
+  | 'nizka-trieda'      // 🚗 Nízka trieda (Škoda Fabia, Hyundai i20, Dacia Logan)
+  | 'stredna-trieda'    // 🚙 Stredná trieda (VW Golf, Opel Astra, Ford Focus)
+  | 'vyssia-stredna'    // 🚘 Vyššia stredná (BMW 3, Audi A4, Mercedes C)
+  | 'luxusne'           // 💎 Luxusné (BMW 7, Mercedes S, Audi A8)
+  | 'sportove'          // 🏎️ Športové (BMW M, AMG, Audi RS)
+  | 'suv'               // 🚜 SUV (BMW X5, Audi Q7, Mercedes GLE)
+  | 'viacmiestne'       // 👨‍👩‍👧‍👦 Viacmiestne (VW Sharan, Ford Galaxy, 7+ sedadiel)  
+  | 'dodavky';          // 📦 Dodávky (Sprinter, Transit, Crafter)
+
 export interface Vehicle {
   id: string;
   brand: string;
   model: string;
   licensePlate: string;
   company?: string;  // 🛡️ BULLETPROOF: Optional pre zabránenie fallback
+  category?: VehicleCategory; // 🚗 Kategória vozidla pre filtrovanie (OPTIONAL počas migrácie)
   pricing: PricingTier[];
   commission: Commission;
   status: VehicleStatus;

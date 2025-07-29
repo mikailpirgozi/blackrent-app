@@ -28,7 +28,7 @@ import {
   Delete as DeleteIcon,
   Assignment as DocumentIcon,
 } from '@mui/icons-material';
-import { Vehicle, PricingTier, VehicleDocument, DocumentType } from '../../types';
+import { Vehicle, PricingTier, VehicleDocument, DocumentType, VehicleCategory } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -57,6 +57,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
     pricing: defaultPricing,
     commission: { type: 'percentage', value: 20 },
     status: 'available',
+    category: 'stredna-trieda' as VehicleCategory, // Default kategória
   });
   const [addingCompany, setAddingCompany] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
@@ -111,14 +112,15 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
       pricing: formData.pricing || [],
       commission: formData.commission || { type: 'percentage', value: 20 },
       status: formData.status || 'available',
+      category: formData.category || 'stredna-trieda',
     };
     onSave(completeVehicle);
   };
 
   const allCompanies = Array.from(new Set([
     ...state.companies.map(c => c.name),
-    ...state.vehicles.map(v => v.company)
-  ])).filter(Boolean).sort((a, b) => a!.localeCompare(b!));
+    ...state.vehicles.map(v => v.company).filter((c): c is string => Boolean(c))
+  ])).sort();
 
   // Helper funkcie pre dokumenty
   const handleAddDocument = async (docData: Partial<VehicleDocument>) => {
@@ -192,6 +194,26 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
     }
   };
 
+  const handleAddCompany = async () => {
+    if (!newCompanyName.trim()) return;
+    try {
+      const id = uuidv4();
+      await createCompany({ 
+        id, 
+        name: newCompanyName.trim(),
+        commissionRate: 20.00,
+        isActive: true,
+        createdAt: new Date()
+      });
+      setFormData((prev) => ({ ...prev, company: newCompanyName.trim() }));
+      setNewCompanyName('');
+      setAddingCompany(false);
+    } catch (error) {
+      console.error('Chyba pri vytváraní firmy:', error);
+      alert('Chyba pri vytváraní firmy');
+    }
+  };
+
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
@@ -238,44 +260,44 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
             <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
               <TextField
                 autoFocus
+                fullWidth
                 size="small"
-                label="Nová firma"
+                label="Názov novej firmy"
                 value={newCompanyName}
                 onChange={(e) => setNewCompanyName(e.target.value)}
-              />
-              <Button
-                variant="contained"
-                size="small"
-                disabled={!newCompanyName.trim()}
-                onClick={async () => {
-                  try {
-                    const id = uuidv4();
-                    await createCompany({ 
-  id, 
-  name: newCompanyName.trim(),
-  commissionRate: 20.00,
-  isActive: true,
-  createdAt: new Date()
-});
-                    setFormData((prev) => ({ ...prev, company: newCompanyName.trim() }));
-                    setNewCompanyName('');
-                    setAddingCompany(false);
-                  } catch (error) {
-                    console.error('Chyba pri vytváraní firmy:', error);
-                    alert('Chyba pri vytváraní firmy');
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddCompany();
                   }
                 }}
-              >Pridať</Button>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => {
-                  setAddingCompany(false);
-                  setNewCompanyName('');
-                }}
-              >Zrušiť</Button>
+              />
+              <Button size="small" onClick={handleAddCompany}>
+                <AddIcon />
+              </Button>
+              <Button size="small" onClick={() => setAddingCompany(false)}>
+                Zrušiť
+              </Button>
             </Box>
           )}
+        </FormControl>
+
+        {/* 🚗 CATEGORY SELECT - Kategória vozidla */}
+        <FormControl fullWidth>
+          <InputLabel>Kategória vozidla</InputLabel>
+          <Select
+            value={formData.category || 'stredna-trieda'}
+            onChange={(e) => handleInputChange('category', e.target.value as VehicleCategory)}
+            label="Kategória vozidla"
+          >
+            <MenuItem value="nizka-trieda">🚗 Nízka trieda</MenuItem>
+            <MenuItem value="stredna-trieda">🚙 Stredná trieda</MenuItem>
+            <MenuItem value="vyssia-stredna">🚘 Vyššia stredná trieda</MenuItem>
+            <MenuItem value="luxusne">💎 Luxusné vozidlá</MenuItem>
+            <MenuItem value="sportove">🏎️ Športové vozidlá</MenuItem>
+            <MenuItem value="suv">🚜 SUV</MenuItem>
+            <MenuItem value="viacmiestne">👨‍👩‍👧‍👦 Viacmiestne vozidlá</MenuItem>
+            <MenuItem value="dodavky">📦 Dodávky</MenuItem>
+          </Select>
         </FormControl>
         <FormControl fullWidth>
           <InputLabel>Stav</InputLabel>

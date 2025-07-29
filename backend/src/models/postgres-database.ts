@@ -1187,6 +1187,57 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 23 chyba:', error.message);
       }
 
+      // Migrácia 24: 🚗 VEHICLE CATEGORIES - Pridanie kategórií vozidiel pre lepšie filtrovanie
+      try {
+        console.log('📋 Migrácia 24: 🚗 Pridávanie kategórií vozidiel...');
+        
+        // Skontroluj či category stĺpec už existuje
+        const columnExists = await client.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'vehicles' AND column_name = 'category'
+        `);
+        
+        if (columnExists.rows.length === 0) {
+          // Vytvor ENUM pre kategórie vozidiel
+          await client.query(`
+            DO $$ BEGIN
+              CREATE TYPE vehicle_category AS ENUM (
+                'nizka-trieda',    -- 🚗 Nízka trieda (Škoda Fabia, Hyundai i20)
+                'stredna-trieda',  -- 🚙 Stredná trieda (VW Golf, Opel Astra)
+                'vyssia-stredna',  -- 🚘 Vyššia stredná (BMW 3, Audi A4)
+                'luxusne',         -- 💎 Luxusné (BMW 7, Mercedes S)
+                'sportove',        -- 🏎️ Športové (BMW M, AMG)
+                'suv',             -- 🚜 SUV (BMW X5, Audi Q7)
+                'viacmiestne',     -- 👨‍👩‍👧‍👦 Viacmiestne (VW Sharan, 7+ sedadiel)
+                'dodavky'          -- 📦 Dodávky (Sprinter, Transit)
+              );
+            EXCEPTION
+              WHEN duplicate_object THEN null;
+            END $$;
+          `);
+          
+          // Pridaj category stĺpec do vehicles tabuľky
+          await client.query(`
+            ALTER TABLE vehicles 
+            ADD COLUMN category vehicle_category DEFAULT 'stredna-trieda'
+          `);
+          
+          console.log('   ✅ ENUM vehicle_category vytvorený');
+          console.log('   ✅ category stĺpec pridaný do vehicles tabuľky');
+          console.log('   📋 8 kategórií dostupných: nizka-trieda, stredna-trieda, vyssia-stredna, luxusne, sportove, suv, viacmiestne, dodavky');
+        } else {
+          console.log('   ℹ️ category stĺpec už existuje');
+        }
+        
+        console.log('✅ Migrácia 24: 🚗 Vehicle Categories úspešne implementované!');
+        console.log('   🎯 Vozidlá teraz môžu byť kategorizované pre lepšie filtrovanie');
+        console.log('   🔍 Frontend môže používať multi-select category filter');
+        
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 24 chyba:', error.message);
+      }
+
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
     }
