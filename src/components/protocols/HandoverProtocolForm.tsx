@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useMemo, useCallback, memo } from 'react';
 import {
   Box,
   Button,
@@ -34,6 +34,7 @@ import SignaturePad from '../common/SignaturePad';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
+import { getSmartDefaults, cacheFormDefaults, cacheCompanyDefaults } from '../../utils/protocolFormCache';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -42,37 +43,92 @@ interface HandoverProtocolFormProps {
   onSave: (protocol: HandoverProtocol) => void;
 }
 
-export default function HandoverProtocolForm({ open, onClose, rental, onSave }: HandoverProtocolFormProps) {
+// 🚀 OPTIMALIZÁCIA: Photo capture button component
+const PhotoCaptureButton = memo<{
+  mediaType: string;
+  label: string;
+  icon: React.ReactNode;
+  onCapture: (mediaType: string) => void;
+}>(({ mediaType, label, icon, onCapture }) => {
+  const handleClick = useCallback(() => {
+    onCapture(mediaType);
+  }, [mediaType, onCapture]);
+
+  return (
+    <Button
+      variant="outlined"
+      startIcon={icon}
+      onClick={handleClick}
+      fullWidth
+      sx={{ mb: 1 }}
+    >
+      {label}
+    </Button>
+  );
+});
+
+// 🚀 OPTIMALIZÁCIA: Signature display component
+const SignatureDisplay = memo<{
+  signature: ProtocolSignature;
+  onRemove: (id: string) => void;
+}>(({ signature, onRemove }) => {
+  const handleRemove = useCallback(() => {
+    onRemove(signature.id);
+  }, [signature.id, onRemove]);
+
+  return (
+    <Chip
+      key={signature.id}
+      label={`${signature.signerName} (${signature.signerRole === 'customer' ? 'Zákazník' : 'Zamestnanec'})`}
+      onDelete={handleRemove}
+      color={signature.signerRole === 'customer' ? 'primary' : 'secondary'}
+      sx={{ mr: 1, mb: 1 }}
+    />
+  );
+});
+
+const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, rental, onSave }) => {
   const { state } = useAuth();
   const { state: appState } = useApp();
   const [loading, setLoading] = useState(false);
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [currentSigner, setCurrentSigner] = useState<{name: string, role: 'customer' | 'employee'} | null>(null);
-  const [vehicleData, setVehicleData] = useState<Vehicle | null>(null);
   
-  // Load vehicle data if not available in rental
-  useEffect(() => {
+  // 🚀 OPTIMALIZÁCIA: Vehicle indexing pre rýchle vyhľadávanie
+  const vehicleIndex = useMemo(() => {
+    const index = new Map<string, Vehicle>();
+    appState.vehicles.forEach(vehicle => {
+      index.set(vehicle.id, vehicle);
+    });
+    return index;
+  }, [appState.vehicles]);
+  
+  // 🚀 OPTIMALIZÁCIA: Okamžité získanie vehicle data bez useEffect
+  const currentVehicle = useMemo(() => {
+    // Priorita: rental.vehicle > indexované vozidlo > null
     if (rental?.vehicle) {
-      setVehicleData(rental.vehicle);
-    } else if (rental?.vehicleId && appState.vehicles.length > 0) {
-      const vehicle = appState.vehicles.find(v => v.id === rental.vehicleId);
-      if (vehicle) {
-        setVehicleData(vehicle);
-      }
+      return rental.vehicle;
     }
-  }, [rental, appState.vehicles]);
-  
-  // Get the current vehicle (from rental or loaded separately)
-  const currentVehicle = rental?.vehicle || vehicleData;
-  
-  // Zjednodušený state - iba základné polia
-  const [formData, setFormData] = useState({
-    location: rental.pickupLocation || rental.handoverPlace || '',
+    if (rental?.vehicleId) {
+      return vehicleIndex.get(rental.vehicleId) || null;
+    }
+    return null;
+  }, [rental, vehicleIndex]);
+
+  // 🔄 SMART CACHING: Načítanie cached hodnôt pre rýchlejšie vyplnenie
+  const smartDefaults = useMemo(() => {
+    const companyName = currentVehicle?.company;
+    return getSmartDefaults(companyName);
+  }, [currentVehicle?.company]);
+
+  // 🚀 OPTIMALIZÁCIA: Memoized form data initialization s smart defaults
+  const initialFormData = useMemo(() => ({
+    location: rental.pickupLocation || rental.handoverPlace || smartDefaults.location || '',
     odometer: rental.odometer || undefined,
-    fuelLevel: rental.fuelLevel || 100,
-    depositPaymentMethod: 'cash' as 'cash' | 'bank_transfer' | 'card',
-    notes: '',
+    fuelLevel: rental.fuelLevel || smartDefaults.fuelLevel || 100,
+    depositPaymentMethod: smartDefaults.depositPaymentMethod || 'cash' as 'cash' | 'bank_transfer' | 'card',
+    notes: smartDefaults.notes || '',
     vehicleImages: [] as ProtocolImage[],
     documentImages: [] as ProtocolImage[],
     damageImages: [] as ProtocolImage[],
@@ -84,57 +140,69 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
     odometerVideos: [] as ProtocolVideo[],
     fuelVideos: [] as ProtocolVideo[],
     signatures: [] as ProtocolSignature[],
-  });
+  }), [rental, smartDefaults]);
+  
+  // Zjednodušený state - iba základné polia
+  const [formData, setFormData] = useState(initialFormData);
 
   if (!open) return null;
 
-  const handleInputChange = (field: string, value: any) => {
+  // 🚀 OPTIMALIZÁCIA: Memoized input change handler
+  const handleInputChange = useCallback((field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
-  const handlePhotoCaptureSuccess = (mediaType: string, images: ProtocolImage[], videos: ProtocolVideo[]) => {
+  // 🚀 OPTIMALIZÁCIA: Memoized photo capture handler  
+  const handlePhotoCapture = useCallback((mediaType: string) => {
+    setActivePhotoCapture(mediaType);
+  }, []);
+
+  // 🚀 OPTIMALIZÁCIA: Memoized photo capture success handler
+  const handlePhotoCaptureSuccess = useCallback((mediaType: string, images: ProtocolImage[], videos: ProtocolVideo[]) => {
     setFormData(prev => ({
       ...prev,
       [`${mediaType}Images`]: images,
       [`${mediaType}Videos`]: videos,
     }));
     setActivePhotoCapture(null);
-  };
+  }, []);
 
-  const handleAddSignature = (signerName: string, signerRole: 'customer' | 'employee') => {
+  // 🚀 OPTIMALIZÁCIA: Memoized signature handlers
+  const handleAddSignature = useCallback((signerName: string, signerRole: 'customer' | 'employee') => {
     console.log('🖊️ Adding signature:', { signerName, signerRole, rentalCustomer: rental.customer?.name, rentalCustomerName: rental.customerName });
     setCurrentSigner({ name: signerName, role: signerRole });
     setShowSignaturePad(true);
-  };
+  }, [rental.customer?.name, rental.customerName]);
 
-  const handleSignatureSave = (signatureData: ProtocolSignature) => {
+  const handleSignatureSave = useCallback((signatureData: ProtocolSignature) => {
     setFormData(prev => ({
       ...prev,
       signatures: [...prev.signatures, signatureData]
     }));
     setShowSignaturePad(false);
     setCurrentSigner(null);
-  };
+  }, []);
 
-  const handleRemoveSignature = (signatureId: string) => {
+  const handleRemoveSignature = useCallback((signatureId: string) => {
     setFormData(prev => ({
       ...prev,
       signatures: prev.signatures.filter(sig => sig.id !== signatureId)
     }));
-  };
+  }, []);
 
-  // Pomocné funkcie pre formátovanie dát
-  const formatDate = (date: Date | string) => {
+  // 🚀 OPTIMALIZÁCIA: Memoized format functions
+  const formatDate = useCallback((date: Date | string) => {
     if (!date) return 'Neuvedené';
     const d = new Date(date);
     return d.toLocaleDateString('sk-SK') + ' ' + d.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
-  };
+  }, []);
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = useCallback((amount: number) => {
     return amount ? `${amount.toFixed(2)} €` : '0,00 €';
-  };
+  }, []);
 
-  const handleSave = async () => {
+  // 🚀 OPTIMALIZÁCIA: Quick Save - najprv uloží protokol, PDF na pozadí
+  const handleSave = useCallback(async () => {
     // Validácia povinných polí
     const errors: string[] = [];
     
@@ -273,11 +341,14 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
 
       console.log('🧹 Cleaned handover protocol for DB:', cleanedProtocol);
 
-      // API call
+      // 🚀 QUICK SAVE: Uloženie protokolu s flag-om pre background PDF
       const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
-      const response = await fetch(`${apiBaseUrl}/protocols/handover`, {
+      console.log('⚡ QUICK SAVE: Sending protocol data...');
+      const quickSaveStart = Date.now();
+      
+      const response = await fetch(`${apiBaseUrl}/protocols/handover?mode=quick`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -291,29 +362,56 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
       }
       
       const result = await response.json();
+      const quickSaveTime = Date.now() - quickSaveStart;
       
-      // Stiahnutie PDF ak je dostupné
-      if (result.protocol?.pdfProxyUrl) {
-        try {
-          const pdfResponse = await fetch(`${apiBaseUrl}${result.protocol.pdfProxyUrl}`);
-          if (pdfResponse.ok) {
-            const pdfBlob = await pdfResponse.blob();
-            const url = URL.createObjectURL(pdfBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `odovzdavaci_protokol_${currentVehicle?.licensePlate || 'vozidlo'}_${new Date().toISOString().split('T')[0]}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-          }
-        } catch (pdfError) {
-          console.warn('PDF download failed:', pdfError);
-        }
+      console.log(`✅ QUICK SAVE: Protocol saved in ${quickSaveTime}ms`);
+      console.log('📄 PDF will be generated in background');
+      
+      // 🔄 SMART CACHING: Uloženie často používaných hodnôt pre budúce použitie
+      const cacheData = {
+        location: formData.location,
+        fuelLevel: formData.fuelLevel,
+        depositPaymentMethod: formData.depositPaymentMethod,
+        notes: formData.notes,
+      };
+      
+      // Global cache
+      cacheFormDefaults(cacheData);
+      
+      // Company-specific cache ak máme company
+      if (currentVehicle?.company) {
+        cacheCompanyDefaults(currentVehicle.company, cacheData);
       }
       
+      console.log('🔄 Form defaults cached for future use');
+      
+      // ⚡ OKAMŽITÉ ZATVORENIE - bez čakania na PDF
       onSave(result.protocol);
       onClose();
+      
+      // 🎯 BACKGROUND PDF DOWNLOAD - na pozadí (neblokuje UI)
+      if (result.protocol?.pdfProxyUrl) {
+        setTimeout(async () => {
+          try {
+            console.log('📄 Background PDF download starting...');
+            const pdfResponse = await fetch(`${apiBaseUrl}${result.protocol.pdfProxyUrl}`);
+            if (pdfResponse.ok) {
+              const pdfBlob = await pdfResponse.blob();
+              const url = URL.createObjectURL(pdfBlob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `odovzdavaci_protokol_${currentVehicle?.licensePlate || 'vozidlo'}_${new Date().toISOString().split('T')[0]}.pdf`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              console.log('✅ Background PDF download completed');
+            }
+          } catch (pdfError) {
+            console.warn('PDF background download failed:', pdfError);
+          }
+        }, 100); // Start po 100ms pre smooth UX
+      }
       
     } catch (error) {
       console.error('Error saving protocol:', error);
@@ -321,7 +419,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
     } finally {
       setLoading(false);
     }
-  };
+  }, [formData, rental, currentVehicle, onSave, onClose]);
 
   return (
     <Box sx={{ 
@@ -338,7 +436,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" color="text.primary">
-                      Odovzdávací protokol - {currentVehicle?.licensePlate || 'Vozidlo'}
+          Odovzdávací protokol - {currentVehicle?.licensePlate || 'Vozidlo'}
         </Typography>
         <IconButton onClick={onClose} size="large">
           <Close />
@@ -348,8 +446,8 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
       {loading && (
         <Box sx={{ mb: 2 }}>
           <LinearProgress />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Ukladám protokol a generujem PDF...
+          <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+            ⚡ Rýchle ukladanie protokolu...
           </Typography>
         </Box>
       )}
@@ -627,7 +725,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
             <Button
               variant="outlined"
               startIcon={<PhotoCamera />}
-              onClick={() => setActivePhotoCapture('vehicle')}
+              onClick={() => handlePhotoCapture('vehicle')}
               size="large"
             >
               Fotky vozidla ({formData.vehicleImages.length})
@@ -635,7 +733,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
             <Button
               variant="outlined"
               startIcon={<PhotoCamera />}
-              onClick={() => setActivePhotoCapture('document')}
+              onClick={() => handlePhotoCapture('document')}
               size="large"
             >
               Dokumenty ({formData.documentImages.length})
@@ -643,7 +741,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
             <Button
               variant="outlined"
               startIcon={<PhotoCamera />}
-              onClick={() => setActivePhotoCapture('damage')}
+              onClick={() => handlePhotoCapture('damage')}
               size="large"
             >
               Poškodenia ({formData.damageImages.length})
@@ -651,7 +749,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
             <Button
               variant="outlined"
               startIcon={<PhotoCamera />}
-              onClick={() => setActivePhotoCapture('odometer')}
+              onClick={() => handlePhotoCapture('odometer')}
               size="large"
             >
               Fotka km ({formData.odometerImages.length})
@@ -659,7 +757,7 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
             <Button
               variant="outlined"
               startIcon={<PhotoCamera />}
-              onClick={() => setActivePhotoCapture('fuel')}
+              onClick={() => handlePhotoCapture('fuel')}
               size="large"
             >
               Fotka paliva ({formData.fuelImages.length})
@@ -678,46 +776,12 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
           {/* Existujúce podpisy */}
           {formData.signatures.length > 0 && (
             <Box sx={{ mb: 2 }}>
-              {formData.signatures.map((signature, index) => (
-                <Card key={signature.id} variant="outlined" sx={{ mb: 1, p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box 
-                        component="img" 
-                        src={signature.signature} 
-                        alt={`Podpis ${signature.signerName}`}
-                        sx={{ 
-                          width: 120, 
-                          height: 60, 
-                          border: '1px solid #ddd',
-                          borderRadius: 1,
-                          objectFit: 'contain'
-                        }} 
-                      />
-                      <Box>
-                        <Typography variant="subtitle2" fontWeight="bold">
-                          {signature.signerName}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {signature.signerRole === 'customer' ? 'Zákazník' : 'Zamestnanec'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          📅 {new Date(signature.timestamp).toLocaleString('sk-SK')}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                          📍 {signature.location}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <IconButton 
-                      onClick={() => handleRemoveSignature(signature.id)}
-                      color="error"
-                      size="small"
-                    >
-                      <Close />
-                    </IconButton>
-                  </Box>
-                </Card>
+              {formData.signatures.map((signature) => (
+                <SignatureDisplay
+                  key={signature.id}
+                  signature={signature}
+                  onRemove={handleRemoveSignature}
+                />
               ))}
             </Box>
           )}
@@ -829,4 +893,9 @@ export default function HandoverProtocolForm({ open, onClose, rental, onSave }: 
       )}
     </Box>
   );
-} 
+});
+
+// Set display name for debugging
+HandoverProtocolForm.displayName = 'HandoverProtocolForm';
+
+export default HandoverProtocolForm; 
