@@ -702,6 +702,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     switch (status) {
       case 'available': return 'success';
       case 'rented': return 'error';
+      case 'flexible': return 'warning'; // 🔄 NOVÉ: Oranžová farba pre flexibilné
       case 'maintenance': return 'warning';
       case 'service': return 'primary';
       case 'repair': return 'error';
@@ -716,6 +717,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     switch (status) {
       case 'available': return <AvailableIcon fontSize="small" />;
       case 'rented': return <RentedIcon fontSize="small" />;
+      case 'flexible': return <CarIcon fontSize="small" />; // 🔄 NOVÉ: Ikona pre flexibilné
       case 'maintenance': return <MaintenanceIcon fontSize="small" />;
       case 'service': return <MaintenanceIcon fontSize="small" />;
       case 'repair': return <MaintenanceIcon fontSize="small" />;
@@ -921,13 +923,21 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     onChange={(e) => setStatusFilter(e.target.value as any)}
                     label="Status vozidla"
                   >
-                    <MenuItem value="all">🌐 Všetky</MenuItem>
-                    <MenuItem value="available">🟢 Dostupné</MenuItem>
-                    <MenuItem value="rented">🔴 Obsadené</MenuItem>
-                    <MenuItem value="flexible">🟠 Flexibilné</MenuItem>
+                    <MenuItem value="all">🌐 Všetky stavy</MenuItem>
+                    <MenuItem disabled sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                      ━━━ 📋 PRENÁJMY ━━━
+                    </MenuItem>
+                    <MenuItem value="available">🟢 Voľné vozidlá</MenuItem>
+                    <MenuItem value="rented">🔴 Klasické prenájmy</MenuItem>
+                    <MenuItem value="flexible">🟠 Flexibilné prenájmy</MenuItem>
+                    <MenuItem disabled sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                      ━━━ 🔧 SERVIS ━━━
+                    </MenuItem>
                     <MenuItem value="maintenance">🔧 Údržba</MenuItem>
                     <MenuItem value="service">⚙️ Servis</MenuItem>
                     <MenuItem value="blocked">🚫 Blokované</MenuItem>
+                    <MenuItem value="cleaning">🧽 Čistenie</MenuItem>
+                    <MenuItem value="inspection">🔍 Kontrola</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -969,6 +979,27 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         </Card>
       </Collapse>
 
+      {/* 🔄 NOVÉ: Legenda farieb */}
+      <Box sx={{ mb: { xs: 1, sm: 1.5 }, px: { xs: 0.5, sm: 0 } }}>
+        <Typography variant="caption" sx={{ mb: 0.5, display: 'block', fontWeight: 500 }}>
+          📊 Legenda:
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }} />
+            <Typography variant="caption">Voľné</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'error.main' }} />
+            <Typography variant="caption">Klasické</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#ff9800' }} />
+            <Typography variant="caption">Flexibilné</Typography>
+          </Box>
+        </Box>
+      </Box>
+
             {/* Mobilný kalendár - horizontálne scrollovanie dní */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -1008,6 +1039,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                  const totalVehicles = dayData.vehicles.length;
                  const availableCount = dayData.vehicles.filter(v => v.status === 'available').length;
                  const rentedCount = dayData.vehicles.filter(v => v.status === 'rented').length;
+                 const flexibleCount = dayData.vehicles.filter(v => v.status === 'flexible').length;
 
                 return (
                                        <Button
@@ -1036,10 +1068,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         {format(day, 'MMM')}
                       </Typography>
                      
-                                           {/* Indikátor obsadenosti - OPTIMALIZOVANÝ */}
+                                           {/* Indikátor obsadenosti - ROZŠÍRENÝ */}
                       <Box sx={{ 
                         display: 'flex', 
-                        gap: { xs: 0.2, sm: 0.25 }, 
+                        gap: { xs: 0.15, sm: 0.2 }, 
                         mt: { xs: 0.25, sm: 0.5 },
                         justifyContent: 'center'
                       }}>
@@ -1054,6 +1086,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                           height: { xs: 3, sm: 4 }, 
                           borderRadius: '50%', 
                           bgcolor: rentedCount > 0 ? 'error.main' : 'grey.300' 
+                        }} />
+                        <Box sx={{ 
+                          width: { xs: 3, sm: 4 }, 
+                          height: { xs: 3, sm: 4 }, 
+                          borderRadius: '50%', 
+                          bgcolor: flexibleCount > 0 ? '#ff9800' : 'grey.300' 
                         }} />
                       </Box>
                    </Button>
