@@ -2027,7 +2027,7 @@ export class PostgresDatabase {
       // 🔧 FIX: Remove ::uuid cast - if vehicle_id is already uuid, casting is unnecessary
       const result = await client.query(`
         SELECT 
-          r.id, r.customer_id, r.vehicle_id, r.start_date, r.end_date, 
+          r.id, r.vehicle_id, r.start_date, r.end_date, 
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
@@ -2071,7 +2071,7 @@ export class PostgresDatabase {
       const rentals = result.rows.map(row => ({
         id: row.id?.toString() || '',
         vehicleId: row.vehicle_id?.toString(),
-        customerId: row.customer_id?.toString(),
+        customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
         customerName: row.customer_name || 'Neznámy zákazník',
         startDate: new Date(row.start_date),
         endDate: new Date(row.end_date),
