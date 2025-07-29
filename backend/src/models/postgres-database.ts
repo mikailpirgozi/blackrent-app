@@ -1900,7 +1900,9 @@ export class PostgresDatabase {
         SELECT id, customer_id, vehicle_id, start_date, end_date, 
                total_price, commission, payment_method, paid, status, 
                customer_name, created_at, order_number, deposit, 
-               allowed_kilometers, daily_kilometers, handover_place
+               allowed_kilometers, daily_kilometers, handover_place,
+               rental_type, is_flexible, flexible_end_date, can_be_overridden,
+               override_priority, notification_threshold, auto_extend, override_history
         FROM rentals 
         WHERE (start_date <= $2 AND end_date >= $1)
         ORDER BY start_date ASC
@@ -1929,7 +1931,18 @@ export class PostgresDatabase {
             deposit: row.deposit ? parseFloat(row.deposit) : undefined,
             allowedKilometers: row.allowed_kilometers || undefined,
             dailyKilometers: row.daily_kilometers || undefined,
-            handoverPlace: row.handover_place || undefined
+            handoverPlace: row.handover_place || undefined,
+            // 🔄 NOVÉ: Flexibilné prenájmy polia
+            rentalType: row.rental_type || 'standard',
+            isFlexible: Boolean(row.is_flexible),
+            flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
+            flexibleSettings: {
+              canBeOverridden: Boolean(row.can_be_overridden),
+              overridePriority: row.override_priority || 5,
+              notificationThreshold: row.notification_threshold || 3,
+              autoExtend: Boolean(row.auto_extend),
+            },
+            overrideHistory: this.safeJsonParse(row.override_history) || []
           };
         } catch (error) {
           console.error('❌ Chyba pri spracovaní rental:', error);
