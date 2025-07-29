@@ -67,6 +67,7 @@ import { sk } from 'date-fns/locale';
 import { API_BASE_URL } from '../../services/api';
 import { Rental, VehicleUnavailability, VehicleCategory } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { useDebounce } from '../../utils/performance';
 
 // Custom isToday function to avoid hot reload issues
@@ -125,6 +126,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   availableToDate: propAvailableToDate
 }) => {
   const { state, getFilteredVehicles } = useApp();
+  const { state: authState } = useAuth();
   
   // MOBILNÁ RESPONSIBILITA - používame prop ak je poskytnutý
   const theme = useTheme();
@@ -461,15 +463,30 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       setLoading(true);
       setError(null);
       
-      // OPTIMALIZÁCIA: Cache validation
+      // 🔧 OPRAVA: Cache validation s kontrolou na hard refresh
       const now = Date.now();
       const currentCacheKey = `${viewMode}-${currentDate.getTime()}-${fromDate?.getTime()}-${toDate?.getTime()}`;
-      const cacheValid = lastFetchTime && cacheKey === currentCacheKey && (now - lastFetchTime) < 2 * 60 * 1000; // 2 min cache
       
-      if (cacheValid) {
+      // 🔧 OPRAVA: Nepoužívaj cache pri hard refresh alebo ak nie sú načítané vehicles z AppContext
+      const isHardRefresh = !state.vehicles.length || performance.navigation?.type === 1;
+      const cacheValid = !isHardRefresh && lastFetchTime && cacheKey === currentCacheKey && (now - lastFetchTime) < 2 * 60 * 1000; // 2 min cache
+      
+      if (cacheValid && state.vehicles.length > 0) {
         console.log('⚡ Používam cached availability data...');
         setLoading(false);
         return;
+      }
+      
+      // 🔧 OPRAVA: Čakaj na načítanie vehicles z AppContext pri hard refresh
+      if (isHardRefresh && !state.vehicles.length) {
+        console.log('⏳ Hard refresh detected, čakám na načítanie vehicles z AppContext...');
+        // Krátka pauza aby sa AppContext stihol načítať
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Ak stále nie sú načítané vehicles, pokračuj ale bez cache
+        if (!state.vehicles.length) {
+          console.log('⚠️ Vehicles ešte nie sú načítané z AppContext, pokračujem bez cache...');
+        }
       }
       
       console.log('🚀 Fetching fresh availability data...');
@@ -524,13 +541,25 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       if (data.success) {
         console.log('✅ Calendar data received:', data.data);
         setCalendarData(data.data.calendar || []);
-        // Use filtered vehicles from context instead of API vehicles
-        setVehicles(getFilteredVehicles());
+        
+        // 🔧 OPRAVA: Získaj vehicles z AppContext, ale len ak sú načítané
+        const contextVehicles = getFilteredVehicles();
+        if (contextVehicles.length > 0) {
+          setVehicles(contextVehicles);
+          console.log('✅ Using vehicles from AppContext:', contextVehicles.length);
+        } else {
+          // Fallback na API vehicles ak AppContext ešte nie je ready
+          setVehicles(data.data.vehicles || []);
+          console.log('⚠️ Using vehicles from API as fallback:', data.data.vehicles?.length || 0);
+        }
+        
         setUnavailabilities(data.data.unavailabilities || []);
         
-        // OPTIMALIZÁCIA: Update cache
-        setLastFetchTime(now);
-        setCacheKey(currentCacheKey);
+        // OPTIMALIZÁCIA: Update cache len ak nie je hard refresh
+        if (!isHardRefresh) {
+          setLastFetchTime(now);
+          setCacheKey(currentCacheKey);
+        }
       } else {
         setError(data.error || 'Chyba pri načítaní dát');
       }
@@ -538,42 +567,58 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       console.error('❌ Calendar fetch error:', err);
       setError('Chyba pri načítaní kalendárnych dát');
       
-      // Ak backend nefunguje, zobrazíme aspoň filtrované vozidlá
-      const filteredVehicles = getFilteredVehicles();
-      setVehicles(filteredVehicles);
-      
-      // Mock kalendárne dáta pre celý mesiac
-      const mockCalendar = eachDayOfInterval({
-        start: startOfMonth(currentDate),
-        end: endOfMonth(currentDate)
-      }).map(date => ({
-        date: format(date, 'yyyy-MM-dd'),
-        vehicles: filteredVehicles.map(vehicle => ({
-          vehicleId: vehicle.id,
-          vehicleName: `${vehicle.brand} ${vehicle.model}`,
-          licensePlate: vehicle.licensePlate,
-          status: Math.random() > 0.7 ? 'available' : (Math.random() > 0.5 ? 'rented' : 'maintenance') as 'available' | 'rented' | 'maintenance',
-          customerName: Math.random() > 0.6 ? `Zákazník ${Math.floor(Math.random() * 100)}` : undefined
-        }))
-      }));
-      setCalendarData(mockCalendar);
+      // 🔧 OPRAVA: Pri hard refresh nešuraj mock dáta, namiesto toho zobraz chybu
+      const contextVehicles = getFilteredVehicles();
+      if (contextVehicles.length > 0) {
+        setVehicles(contextVehicles);
+        console.log('⚠️ API error, ale mám vehicles z AppContext:', contextVehicles.length);
+        
+        // Vytvor prázdny kalendár namiesto mock dát
+        const emptyCalendar = eachDayOfInterval({
+          start: startOfMonth(currentDate),
+          end: endOfMonth(currentDate)
+        }).map(date => ({
+          date: format(date, 'yyyy-MM-dd'),
+          vehicles: contextVehicles.map(vehicle => ({
+            vehicleId: vehicle.id,
+            vehicleName: `${vehicle.brand} ${vehicle.model}`,
+            licensePlate: vehicle.licensePlate,
+            status: 'available' as const, // Všetky vozidlá označiť ako dostupné kvôli API chybe
+            customerName: undefined
+          }))
+        }));
+        setCalendarData(emptyCalendar);
+      } else {
+        console.log('❌ API error a žiadne vehicles v AppContext');
+        setVehicles([]);
+        setCalendarData([]);
+      }
     } finally {
       setLoading(false);
     }
   }, [currentDate, viewMode, fromDate, toDate, getFilteredVehicles]);
 
   useEffect(() => {
-    if (viewMode === 'navigation') {
-      const isCurrentMonth = 
-        currentDate.getFullYear() === new Date().getFullYear() && 
-        currentDate.getMonth() === new Date().getMonth();
-      
-      fetchCalendarData(!isCurrentMonth);
+    // 🔧 OPRAVA: Čakaj na načítanie AppContext dát pred fetchovaním calendar data
+    if (state?.dataLoaded?.vehicles && authState?.isAuthenticated) {
+      if (viewMode === 'navigation') {
+        const isCurrentMonth = 
+          currentDate.getFullYear() === new Date().getFullYear() && 
+          currentDate.getMonth() === new Date().getMonth();
+        
+        fetchCalendarData(!isCurrentMonth);
+      } else {
+        // Range mode - fetch when dates change
+        fetchCalendarData();
+      }
     } else {
-      // Range mode - fetch when dates change
-    fetchCalendarData();
+      console.log('⏳ Čakám na AppContext dáta pred načítaním kalendára...', {
+        vehiclesLoaded: state?.dataLoaded?.vehicles,
+        isAuthenticated: authState?.isAuthenticated,
+        vehiclesCount: state?.vehicles?.length || 0
+      });
     }
-  }, [fetchCalendarData]);
+  }, [fetchCalendarData, state?.dataLoaded?.vehicles, authState?.isAuthenticated]);
 
   // Load unavailabilities on component mount
   useEffect(() => {
@@ -847,13 +892,39 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     end: endOfMonth(currentDate)
   });
 
-  if (loading) {
+  // 🔧 OPRAVA: Lepšie loading states pre hard refresh
+  if (loading || (!state?.dataLoaded?.vehicles && authState?.isAuthenticated)) {
     return (
       <Box display="flex" justifyContent="center" p={3}>
         <CircularProgress />
         <Typography variant="body2" sx={{ ml: 2 }}>
-          Načítavam kalendár dostupnosti...
+          {!state?.dataLoaded?.vehicles ? 
+            'Načítavam vozidlá z databázy...' : 
+            'Načítavam kalendár dostupnosti...'
+          }
         </Typography>
+      </Box>
+    );
+  }
+
+  // 🔧 OPRAVA: Ak nie sú načítané žiadne vozidlá, zobraz info správu
+  if (!loading && state?.dataLoaded?.vehicles && (!vehicles || vehicles.length === 0)) {
+    return (
+      <Box display="flex" flexDirection="column" alignItems="center" p={3}>
+        <Typography variant="h6" color="text.secondary" gutterBottom>
+          📋 Žiadne vozidlá na zobrazenie
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', maxWidth: 400 }}>
+          Buď nemáte prístup k žiadnym vozidlám alebo žiadne vozidlá nie sú v systéme zaregistrované.
+        </Typography>
+        <Button 
+          variant="outlined" 
+          onClick={handleRefresh} 
+          sx={{ mt: 2 }}
+          startIcon={<RefreshIcon />}
+        >
+          Skúsiť znova
+        </Button>
       </Box>
     );
   }
@@ -1075,19 +1146,30 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       </Box>
       ) : (
         <>
-          {/* Horizontálne scrollovanie dní - OPTIMALIZOVANÉ */}
-          <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
-            <Typography 
-              variant={isSmallMobile ? "caption" : "subtitle2"} 
-              gutterBottom 
-              sx={{ 
-                px: { xs: 0.5, sm: 1 },
-                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                fontWeight: 500
-              }}
-            >
-              📅 Vyberte dátum:
+                  {/* 🔧 OPRAVA: Zobraziť informáciu ak nie sú filtrované vozidlá */}
+        {filteredVehicles.length === 0 && (
+          <Alert severity="info" sx={{ mb: 2, mx: { xs: 0.5, sm: 0 } }}>
+            <Typography variant="body2">
+              🔍 Žiadne vozidlá nevyhovujú zadaným filtrom. Skúste zmeniť filter alebo vyhľadávanie.
             </Typography>
+          </Alert>
+        )}
+
+                 {/* Horizontálne scrollovanie dní - OPTIMALIZOVANÉ */}
+         {filteredVehicles.length > 0 && (
+         <>
+         <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+          <Typography 
+            variant={isSmallMobile ? "caption" : "subtitle2"} 
+            gutterBottom 
+            sx={{ 
+              px: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              fontWeight: 500
+            }}
+          >
+            📅 Vyberte dátum:
+          </Typography>
             <Box 
               sx={{ 
                 display: 'flex', 
@@ -1328,7 +1410,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
             </Stack>
           </Box>
         </>
-      )}
+        )}
 
 
     </Box>
@@ -1638,7 +1720,17 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       </CardContent>
     </Card>
 
+      {/* 🔧 OPRAVA: Desktop info ak nie sú filtrované vozidlá */}
+      {filteredVehicles.length === 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Typography variant="body2">
+            🔍 Žiadne vozidlá nevyhovujú zadaným filtrom. Skúste zmeniť filter alebo vyhľadávanie.
+          </Typography>
+        </Alert>
+      )}
+
       {/* Desktop kalendár - card layout pre vozidlá */}
+      {filteredVehicles.length > 0 && (
       <Box sx={{ 
         display: 'grid',
         gridTemplateColumns: { md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)', xl: 'repeat(4, 1fr)' },
@@ -1918,6 +2010,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           </Card>
         ))}
       </Box>
+      )}
     </Box>
     )}
 
