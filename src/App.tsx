@@ -204,7 +204,8 @@ const AppContent: React.FC = () => {
                       </ProtectedRoute>
                     } />
                     
-                    <Route path="/admin/vehicle-ownership" element={
+                    {/* DEAKTIVOVANÉ - Transfer vlastníctva sa nepoužíva */}
+                    {/* <Route path="/admin/vehicle-ownership" element={
                       <ProtectedRoute allowedRoles={['admin']}>
                         <Layout>
                           <ErrorBoundary>
@@ -214,7 +215,7 @@ const AppContent: React.FC = () => {
                           </ErrorBoundary>
                         </Layout>
                       </ProtectedRoute>
-                    } />
+                    } /> */}
                   </Routes>
                 </Box>
               </Router>

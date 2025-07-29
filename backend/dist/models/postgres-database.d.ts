@@ -77,6 +77,14 @@ export declare class PostgresDatabase {
         fuelRefillCost?: number;
         handoverProtocolId?: string;
         returnProtocolId?: string;
+        rentalType?: string;
+        isFlexible?: boolean;
+        flexibleEndDate?: Date;
+        canBeOverridden?: boolean;
+        overridePriority?: number;
+        notificationThreshold?: number;
+        autoExtend?: boolean;
+        overrideHistory?: any;
     }): Promise<Rental>;
     getRental(id: string): Promise<Rental | null>;
     updateRental(rental: Rental): Promise<void>;

@@ -118,11 +118,33 @@ router.get('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
 // POST /api/rentals - Vytvorenie nového prenájmu
 router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'create'), async (req, res) => {
     try {
-        const { vehicleId, customerId, customerName, startDate, endDate, totalPrice, commission, paymentMethod, discount, customCommission, extraKmCharge, paid, status, handoverPlace, confirmed, payments, history, orderNumber, deposit, allowedKilometers, dailyKilometers, extraKilometerRate, returnConditions, fuelLevel, odometer, returnFuelLevel, returnOdometer, actualKilometers, fuelRefillCost, handoverProtocolId, returnProtocolId } = req.body;
-        if (!customerName || !startDate || !endDate) {
+        const { vehicleId, customerId, customerName, startDate, endDate, totalPrice, commission, paymentMethod, discount, customCommission, extraKmCharge, paid, status, handoverPlace, confirmed, payments, history, orderNumber, deposit, allowedKilometers, dailyKilometers, extraKilometerRate, returnConditions, fuelLevel, odometer, returnFuelLevel, returnOdometer, actualKilometers, fuelRefillCost, handoverProtocolId, returnProtocolId, 
+        // 🔄 NOVÉ: Flexibilné prenájmy
+        rentalType, isFlexible, flexibleEndDate, canBeOverridden, overridePriority, notificationThreshold, autoExtend, overrideHistory } = req.body;
+        // 🔄 NOVÁ VALIDÁCIA: Pre flexibilné prenájmy endDate nie je povinné
+        if (!customerName || !startDate) {
             return res.status(400).json({
                 success: false,
-                error: 'Všetky povinné polia musia byť vyplnené'
+                error: 'Meno zákazníka a dátum začiatku sú povinné'
+            });
+        }
+        // Pre flexibilné prenájmy nastavíme endDate automaticky ak nie je zadané
+        let finalEndDate = endDate;
+        if (isFlexible && !endDate) {
+            // Pre flexibilné prenájmy nastavíme endDate na flexibleEndDate alebo +365 dní
+            if (flexibleEndDate) {
+                finalEndDate = flexibleEndDate;
+            }
+            else {
+                const oneYearFromStart = new Date(new Date(startDate).getTime() + 365 * 24 * 60 * 60 * 1000);
+                finalEndDate = oneYearFromStart.toISOString();
+            }
+            console.log('🔄 Flexibilný prenájom: Automaticky nastavený endDate na', finalEndDate);
+        }
+        if (!finalEndDate) {
+            return res.status(400).json({
+                success: false,
+                error: 'Dátum ukončenia je povinný pre štandardné prenájmy'
             });
         }
         const createdRental = await postgres_database_1.postgresDatabase.createRental({
@@ -130,7 +152,7 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('r
             customerId,
             customerName,
             startDate: new Date(startDate),
-            endDate: new Date(endDate),
+            endDate: new Date(finalEndDate),
             totalPrice: totalPrice || 0,
             commission: commission || 0,
             paymentMethod: paymentMethod || 'cash',
@@ -156,7 +178,16 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('r
             actualKilometers,
             fuelRefillCost,
             handoverProtocolId,
-            returnProtocolId
+            returnProtocolId,
+            // 🔄 NOVÉ: Flexibilné prenájmy
+            rentalType: rentalType || 'standard',
+            isFlexible: isFlexible || false,
+            flexibleEndDate: flexibleEndDate ? new Date(flexibleEndDate) : undefined,
+            canBeOverridden: canBeOverridden || false,
+            overridePriority: overridePriority || 5,
+            notificationThreshold: notificationThreshold || 3,
+            autoExtend: autoExtend || false,
+            overrideHistory: overrideHistory || []
         });
         res.status(201).json({
             success: true,
