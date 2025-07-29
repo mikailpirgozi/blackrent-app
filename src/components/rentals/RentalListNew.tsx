@@ -269,6 +269,13 @@ export default function RentalListNew() {
   const [selectedProtocolRental, setSelectedProtocolRental] = useState<Rental | null>(null);
   const [selectedProtocolType, setSelectedProtocolType] = useState<'handover' | 'return' | null>(null);
 
+  // 💾 IMAGE PARSING CACHE - cache pre parsed images aby sa neparovali zakaždým
+  const [imageParsingCache] = useState(new Map<string, {
+    images: any[];
+    videos: any[];
+    timestamp: number;
+  }>());
+
   // Debug wrapper for setGalleryOpen
   const setGalleryOpen = (value: boolean) => {
     console.log(`🎭 setGalleryOpen called with:`, value, '(using useRef)');
@@ -933,7 +940,7 @@ export default function RentalListNew() {
     setSelectedPdf(null);
   };
 
-  // Image gallery handlers - NEW IMPLEMENTATION
+  // Image gallery handlers - OPTIMALIZED IMPLEMENTATION
   const handleOpenGallery = async (rental: Rental, protocolType: 'handover' | 'return') => {
     try {
       console.log('🔍 Opening gallery for protocol:', protocolType, 'rental:', rental.id);
@@ -947,7 +954,10 @@ export default function RentalListNew() {
       
       if (!protocol) {
         console.log('📥 Loading protocol for gallery...');
+        const startTime = Date.now();
         const freshProtocolData = await loadProtocolsForRental(rental.id);
+        const loadTime = Date.now() - startTime;
+        console.log(`⚡ Protocol loaded in ${loadTime}ms`);
         protocol = freshProtocolData?.[protocolType];
       }
       
@@ -956,70 +966,95 @@ export default function RentalListNew() {
         return;
       }
 
-      console.log('🔍 Protocol found:', protocol);
-      console.log('🔍 Protocol details:', {
-        id: protocol.id,
-        vehicleImages: protocol.vehicleImages,
-        documentImages: protocol.documentImages,
-        damageImages: protocol.damageImages,
-        vehicleImagesLength: Array.isArray(protocol.vehicleImages) ? protocol.vehicleImages.length : 'not array',
-        documentImagesLength: Array.isArray(protocol.documentImages) ? protocol.documentImages.length : 'not array',
-        damageImagesLength: Array.isArray(protocol.damageImages) ? protocol.damageImages.length : 'not array'
-      });
-
-      // ✅ PRIAMO Z DATABÁZY - žiadne brute-force
-      // Parsovanie JSON stringov pre obrázky
-      const parseImages = (imageData: any): any[] => {
-        if (!imageData) return [];
-        
-        // Ak je to string, skús to parsovať ako JSON
-        if (typeof imageData === 'string') {
-          try {
-            const parsed = JSON.parse(imageData);
-            return Array.isArray(parsed) ? parsed : [];
-          } catch (error) {
-            console.warn('⚠️ Failed to parse image data as JSON:', imageData);
-            return [];
-          }
-        }
-        
-        // Ak je to už pole, vráť ho
-        if (Array.isArray(imageData)) {
-          return imageData;
-        }
-        
-        return [];
-      };
-
-      const images = [
-        ...parseImages(protocol.vehicleImages),
-        ...parseImages(protocol.documentImages),
-        ...parseImages(protocol.damageImages)
-      ];
+      // 🚀 CACHE CHECK: Skontroluj či už máme parsed images v cache
+      const cacheKey = `${protocol.id}_${protocolType}`;
+      const cachedData = imageParsingCache.get(cacheKey);
+      const cacheAge = cachedData ? Date.now() - cachedData.timestamp : Infinity;
       
-      const videos = [
-        ...parseImages(protocol.vehicleVideos),
-        ...parseImages(protocol.documentVideos),
-        ...parseImages(protocol.damageVideos)
-      ];
+      let images: any[] = [];
+      let videos: any[] = [];
+      
+      if (cachedData && cacheAge < 5 * 60 * 1000) { // 5min cache
+        console.log('🎯 CACHE HIT: Using cached parsed images');
+        images = cachedData.images;
+        videos = cachedData.videos;
+      } else {
+        console.log('🔄 CACHE MISS: Parsing images from protocol data');
+        const parseStart = Date.now();
+        
+        // ✅ PRIAMO Z DATABÁZY - žiadne brute-force
+        // Parsovanie JSON stringov pre obrázky
+        const parseImages = (imageData: any): any[] => {
+          if (!imageData) return [];
+          
+          // Ak je to string, skús to parsovať ako JSON
+          if (typeof imageData === 'string') {
+            try {
+              const parsed = JSON.parse(imageData);
+              return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+              console.warn('⚠️ Failed to parse image data as JSON:', imageData);
+              return [];
+            }
+          }
+          
+          // Ak je to už pole, vráť ho
+          if (Array.isArray(imageData)) {
+            return imageData;
+          }
+          
+          return [];
+        };
+
+        images = [
+          ...parseImages(protocol.vehicleImages),
+          ...parseImages(protocol.documentImages),
+          ...parseImages(protocol.damageImages)
+        ];
+        
+        videos = [
+          ...parseImages(protocol.vehicleVideos),
+          ...parseImages(protocol.documentVideos),
+          ...parseImages(protocol.damageVideos)
+        ];
+        
+        // 💾 CACHE PARSED DATA
+        imageParsingCache.set(cacheKey, {
+          images,
+          videos,
+          timestamp: Date.now()
+        });
+        
+        // 🖼️ PRELOAD IMAGES: Preload images do browser cache pre instant zobrazenie
+        if (images.length > 0) {
+          setTimeout(() => {
+            images.forEach((img, index) => {
+              if (img.url && typeof img.url === 'string') {
+                // Pre base64 images preload nie je potrebný
+                if (!img.url.startsWith('data:')) {
+                  const preloadImg = new Image();
+                  preloadImg.src = img.url;
+                  console.log(`🎯 PRELOAD: Image ${index + 1}/${images.length} preloaded`);
+                }
+              }
+            });
+          }, 50); // Krátke delay aby sa main parsing stihol dokončiť
+        }
+        
+        const parseTime = Date.now() - parseStart;
+        console.log(`⚡ Images parsed and cached in ${parseTime}ms`);
+      }
 
       console.log('🖼️ Gallery data prepared:', {
         imagesCount: images.length,
         videosCount: videos.length,
-        images: images.map(img => ({ id: img.id, url: img.url, type: img.type }))
+        cached: cachedData && cacheAge < 5 * 60 * 1000
       });
 
       if (images.length === 0 && videos.length === 0) {
         alert('Nenašli sa žiadne obrázky pre tento protokol!');
         return;
       }
-      
-      console.log('🖼️ Setting gallery data:', { 
-        images, 
-        videos,
-        protocolId: protocol.id, 
-        protocolType 
-      });
       
       setGalleryImages(images);
       setGalleryVideos(videos);
@@ -2318,16 +2353,12 @@ export default function RentalListNew() {
       const statusMap: Record<string, {
         hasHandoverProtocol: boolean;
         hasReturnProtocol: boolean;
-        handoverProtocolId?: string;
-        returnProtocolId?: string;
       }> = {};
       
-      bulkProtocolStatus.forEach(status => {
-        statusMap[status.rentalId] = {
-          hasHandoverProtocol: status.hasHandoverProtocol,
-          hasReturnProtocol: status.hasReturnProtocol,
-          handoverProtocolId: status.handoverProtocolId,
-          returnProtocolId: status.returnProtocolId
+      bulkProtocolStatus.forEach((item: any) => {
+        statusMap[item.rentalId] = {
+          hasHandoverProtocol: item.hasHandoverProtocol,
+          hasReturnProtocol: item.hasReturnProtocol,
         };
       });
       
@@ -2336,13 +2367,67 @@ export default function RentalListNew() {
       
       console.log('🎉 BACKGROUND: Protocol status icons will now appear in rental list!');
       
+      // 🚀 SMART PRELOADING: Preload protokoly pre rentaly ktoré sú viditeľné a majú protokoly
+      setTimeout(() => {
+        preloadVisibleProtocols(statusMap);
+      }, 100); // Krátke delay aby sa UI stihol updatnúť
+      
     } catch (error) {
       console.error('❌ BACKGROUND: Failed to load protocol status:', error);
-      // Fallback na pôvodný systém - nezrušime funkčnosť
     } finally {
       setIsLoadingProtocolStatus(false);
     }
   }, [isLoadingProtocolStatus, protocolStatusLoaded]);
+
+  // 🚀 SMART PROTOCOL PRELOADING - preloaduj protokoly pre viditeľné rentaly
+  const preloadVisibleProtocols = useCallback(async (statusMap: Record<string, {hasHandoverProtocol: boolean, hasReturnProtocol: boolean}>) => {
+    console.log('🎯 PRELOAD: Starting smart protocol preloading...');
+    
+    // Získaj viditeľné rentaly (prvých 10-20)
+    const visibleRentals = filteredRentals.slice(0, 15);
+    
+    let preloadCount = 0;
+    const preloadPromises: Promise<void>[] = [];
+    
+    for (const rental of visibleRentals) {
+      const status = statusMap[rental.id];
+      
+      // Ak rental má protokoly ale nie sú v cache, preloaduj ich
+      if (status && (status.hasHandoverProtocol || status.hasReturnProtocol) && !protocols[rental.id]) {
+        preloadPromises.push(
+          loadProtocolsForRental(rental.id).then(() => {
+            preloadCount++;
+            console.log(`✅ PRELOAD: Protocol preloaded for rental ${rental.id} (${preloadCount})`);
+          }).catch((error) => {
+            console.warn(`⚠️ PRELOAD: Failed to preload protocol for rental ${rental.id}:`, error);
+          })
+        );
+        
+        // Limit na 3 súčasných preload requestov aby sme nezaťažili server
+        if (preloadPromises.length >= 3) {
+          break;
+        }
+      }
+    }
+    
+    if (preloadPromises.length > 0) {
+      console.log(`🚀 PRELOAD: Starting ${preloadPromises.length} protocol preload requests...`);
+      
+      try {
+        // ⚡ Sequencial loading aby sme nezaťažili server
+        for (const promise of preloadPromises) {
+          await promise;
+          // Krátka pauza medzi requestmi
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        console.log(`✅ PRELOAD: Completed ${preloadCount} protocol preloads`);
+      } catch (error) {
+        console.error('❌ PRELOAD: Some preload requests failed:', error);
+      }
+    } else {
+      console.log('💡 PRELOAD: No protocols need preloading (all cached or no protocols exist)');
+    }
+  }, [filteredRentals, protocols, loadProtocolsForRental]);
 
   // ⚡ TRIGGER BACKGROUND LOADING po načítaní rentals
   React.useEffect(() => {
