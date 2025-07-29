@@ -522,22 +522,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // OPTIMALIZÁCIA: Načítaj dáta len keď je používateľ prihlásený a nie je loading
   useEffect(() => {
-    if (authState.isAuthenticated && !authState.isLoading && authState.token) {
-      // OPTIMALIZÁCIA: Kontrola cache - načítaj len ak dáta nie sú aktuálne
-      const now = Date.now();
-      const cacheValid = state.lastLoadTime && (now - state.lastLoadTime) < 5 * 60 * 1000; // 5 minút cache
-      
-      if (!cacheValid) {
-        console.log('🚀 Používateľ je prihlásený, načítavam dáta (cache invalid)...');
-        loadData();
-      } else {
-        console.log('⚡ Používam cached dáta (cache valid)...');
+    const loadDataSafely = async () => {
+      if (authState.isAuthenticated && !authState.isLoading && authState.token) {
+        // OPTIMALIZÁCIA: Kontrola cache - načítaj len ak dáta nie sú aktuálne
+        const now = Date.now();
+        const cacheValid = state.lastLoadTime && (now - state.lastLoadTime) < 5 * 60 * 1000; // 5 minút cache
+        
+        if (!cacheValid) {
+          console.log('🚀 Používateľ je prihlásený, načítavam dáta (cache invalid)...');
+          // 🔧 OPRAVA: Await loadData aby sa dáta načítali pred použitím
+          await loadData();
+        } else {
+          console.log('⚡ Používam cached dáta (cache valid)...');
+        }
+      } else if (!authState.isAuthenticated && !authState.isLoading) {
+        // Vymaž dáta ak sa používateľ odhlásil
+        console.log('Používateľ nie je prihlásený, mažem dáta...');
+        dispatch({ type: 'CLEAR_ALL_DATA' });
       }
-    } else if (!authState.isAuthenticated && !authState.isLoading) {
-      // Vymaž dáta ak sa používateľ odhlásil
-      console.log('Používateľ nie je prihlásený, mažem dáta...');
-      dispatch({ type: 'CLEAR_ALL_DATA' });
-    }
+    };
+
+    loadDataSafely();
   }, [authState.isAuthenticated, authState.isLoading, authState.token, state.lastLoadTime]);
 
   // API helper methods
