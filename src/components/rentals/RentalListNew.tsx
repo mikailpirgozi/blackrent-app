@@ -134,8 +134,10 @@ type CardViewMode = 'compact' | 'detailed';
 const VehicleOwnerDisplay: React.FC<{
   rental: Rental;
 }> = ({ rental }) => {
-  // 🛡️ BULLETPROOF: Iba rental.company - ŽIADNY fallback na vehicle.company!
-  if (!rental.company) {
+  // 🛡️ OPRAVENÉ: Používa vehicle.company pretože rental.company už neexistuje v DB
+  const { state } = useApp();
+  const vehicle = state.vehicles.find(v => v.id === rental.vehicleId);
+  if (!vehicle?.company) {
     return (
       <Typography variant="body2" color="error">
         ⚠️ CHYBA: Bez majiteľa
@@ -143,7 +145,7 @@ const VehicleOwnerDisplay: React.FC<{
     );
   }
   
-  const ownerName = rental.company;
+  const ownerName = vehicle.company;
 
   return (
     <Typography variant="body2" color="text.secondary">
@@ -3197,7 +3199,7 @@ export default function RentalListNew() {
                 const vehicle = getVehicleByRental(rental);
                 
                 // 🔄 NOVÉ: Detekcia flexibilného prenájmu
-                const isFlexible = rental.isFlexible || rental.rentalType === 'flexible';
+                const isFlexible = rental.isFlexible || false;
                 
                 // ⚡ BACKGROUND PROTOCOL STATUS - použije background loaded data alebo fallback na starý systém
                 const backgroundStatus = protocolStatusMap[rental.id];
@@ -3710,7 +3712,7 @@ export default function RentalListNew() {
                 const vehicle = getVehicleByRental(rental);
                 
                 // 🔄 NOVÉ: Detekcia flexibilného prenájmu
-                const isFlexible = rental.isFlexible || rental.rentalType === 'flexible';
+                const isFlexible = rental.isFlexible || false;
                 
                 // ⚡ BACKGROUND PROTOCOL STATUS - použije background loaded data alebo fallback na starý systém
                 const backgroundStatus = protocolStatusMap[rental.id];

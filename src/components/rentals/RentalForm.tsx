@@ -55,7 +55,6 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
     paymentMethod: 'cash',
     orderNumber: '',
     // 🔄 NOVÉ: Flexibilné prenájmy
-    rentalType: 'standard',
     isFlexible: false,
     flexibleEndDate: undefined,
     flexibleSettings: {
@@ -119,7 +118,6 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       setFormData({
         ...rental,
         // 🔄 NOVÉ: Nastavenie flexibilných polí z existujúceho prenájmu
-        rentalType: rental.rentalType || 'standard',
         isFlexible: rental.isFlexible || false,
         flexibleEndDate: rental.flexibleEndDate,
         flexibleSettings: rental.flexibleSettings || {
@@ -574,7 +572,6 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       payments: payments,
       orderNumber: formData.orderNumber || '',
       // 🔄 NOVÉ: Flexibilné prenájmy
-      rentalType: formData.rentalType || 'standard',
       isFlexible: formData.isFlexible || false,
       flexibleEndDate: formData.flexibleEndDate,
       flexibleSettings: formData.flexibleSettings,
@@ -852,11 +849,10 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
                 <FormControl fullWidth>
                   <InputLabel>Typ prenájmu</InputLabel>
                   <Select
-                    value={formData.rentalType || 'standard'}
-                    onChange={(e) => {
-                      const rentalType = e.target.value as 'standard' | 'flexible' | 'priority';
-                      handleInputChange('rentalType', rentalType);
-                      const isFlexible = rentalType === 'flexible';
+                              value={formData.isFlexible ? 'flexible' : 'standard'}
+          onChange={(e) => {
+            const rentalType = e.target.value as 'standard' | 'flexible' | 'priority';
+            const isFlexible = rentalType === 'flexible';
                       handleInputChange('isFlexible', isFlexible);
                       
                       // 🔄 NOVÉ: Automaticky zapnúť manuálnu cenotvorbu pre flexibilné prenájmy
