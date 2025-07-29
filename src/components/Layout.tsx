@@ -57,6 +57,8 @@ import { usePermissions, getUserRoleDisplayName } from '../hooks/usePermissions'
 import { useThemeMode } from '../context/ThemeContext';
 import ChangePasswordForm from './auth/ChangePasswordForm';
 import UserProfile from './users/UserProfile';
+import { ErrorToast } from './common/ErrorToast';
+import { EnhancedError } from '../utils/errorHandling';
 
 const drawerWidth = 280;
 
@@ -83,6 +85,25 @@ export default function Layout({ children }: LayoutProps) {
   const [bottomNavValue, setBottomNavValue] = useState(0);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  
+  // 🛡️ Error handling state
+  const [currentError, setCurrentError] = useState<EnhancedError | null>(null);
+  
+  // Error handling functions
+  const handleError = (error: EnhancedError) => {
+    setCurrentError(error);
+  };
+  
+  const handleErrorClose = () => {
+    setCurrentError(null);
+  };
+  
+  const handleErrorRetry = async () => {
+    // The retry logic is handled by the component that triggered the error
+    // This is just for UI feedback
+    console.log('🔄 Retry requested from ErrorToast');
+  };
+  
   const navigate = useNavigate();
   const location = useLocation();
   const { state, logout } = useAuth();
@@ -898,6 +919,13 @@ export default function Layout({ children }: LayoutProps) {
       <UserProfile
         open={profileDialogOpen}
         onClose={() => setProfileDialogOpen(false)}
+      />
+
+      {/* 🛡️ Global Error Toast */}
+      <ErrorToast
+        error={currentError}
+        onClose={handleErrorClose}
+        onRetry={handleErrorRetry}
       />
     </Box>
   );

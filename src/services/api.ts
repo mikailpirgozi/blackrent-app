@@ -7,6 +7,13 @@ import {
   getCacheInfo,
   type CachedProtocolStatus 
 } from '../utils/protocolCache';
+import { 
+  withRetry, 
+  analyzeError, 
+  EnhancedError, 
+  createNetworkMonitor,
+  type RetryOptions 
+} from '../utils/errorHandling';
 
 const getApiBaseUrl = () => {
   // V produkcii používame Railway URL
@@ -39,38 +46,30 @@ class ApiService {
       ...options,
     };
 
-    // Retry logic for temporary backend issues
-    const maxRetries = 3;
-    let lastError: any;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    // 🛡️ ENHANCED ERROR HANDLING s retry mechanism
+    const operation = async (): Promise<T> => {
       try {
         const response = await fetch(url, config);
         
+        // Special handling pre auth errors
         if (response.status === 401 || response.status === 403) {
           console.warn('🚨 Auth error:', response.status, 'Token validation failed');
           console.warn('🔍 Token debug:', {
             hasToken: !!token,
             tokenPreview: token ? token.substring(0, 20) + '...' : 'NO TOKEN',
-            url: url,
-            attempt: attempt
+            url: url
           });
           
-          // TEMPORARY FIX: Don't redirect, just throw error
-          // This prevents the auto-logout loop
-          console.warn('⚠️ TEMPORARY: Not redirecting to login, just throwing error');
-          
-          if (attempt === maxRetries) {
-            throw new Error(`Auth failed: ${response.status} - Token validation error`);
-          }
-          
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-          continue;
+          // Create error with status for proper retry logic
+          const authError = new Error(`Auth failed: ${response.status} - Token validation error`);
+          (authError as any).status = response.status;
+          throw authError;
         }
 
         if (!response.ok) {
-          throw new Error(`API chyba: ${response.status}`);
+          const error = new Error(`API chyba: ${response.status}`);
+          (error as any).status = response.status;
+          throw error;
         }
 
         const data = await response.json();
@@ -81,21 +80,41 @@ class ApiService {
         }
         
         return data;
-      } catch (error) {
-        lastError = error;
-        console.warn(`⚠️ API attempt ${attempt} failed:`, error);
+      } catch (error: any) {
+        // Analyze error pre user-friendly messages
+        const analysis = analyzeError(error);
+        console.warn(`⚠️ API request failed: ${analysis.userMessage}`);
         
-        if (attempt === maxRetries) {
-          console.error('❌ API chyba:', error);
-          throw error;
-        }
-        
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        // Create enhanced error
+        throw new EnhancedError(error);
       }
+    };
+
+    // 🔄 Execute with retry mechanism
+    try {
+      return await withRetry(operation, {
+        maxRetries: 3,
+        baseDelay: 1000,
+        maxDelay: 8000,
+        // Custom retry condition pre auth errors - tie sa neretryujú
+        retryCondition: (error) => {
+          if (error.originalError?.status === 401 || error.originalError?.status === 403) {
+            console.log('⚠️ Auth error - not retrying');
+            return false;
+          }
+          return error.isRetryable;
+        }
+      });
+    } catch (error: any) {
+      // Final error handling - throw enhanced error pre user feedback
+      if (error instanceof EnhancedError) {
+        console.error('❌ Final API error:', error.userMessage);
+        throw error;
+      }
+      
+      // Fallback pre unexpected errors
+      throw new EnhancedError(error);
     }
-    
-    throw lastError;
   }
 
   async login(username: string, password: string): Promise<{ user: any; token: string }> {
