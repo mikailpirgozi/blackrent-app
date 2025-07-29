@@ -1137,6 +1137,13 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 return (
                   <Card 
                     key={vehicle.id} 
+                    onClick={() => {
+                      if (vehicleStatus?.status === 'rented' || vehicleStatus?.status === 'flexible') {
+                        if (vehicleStatus.rentalId) {
+                          fetchRentalDetails(vehicleStatus.rentalId);
+                        }
+                      }
+                    }}
                     sx={{ 
                       border: '2px solid',
                       borderColor: vehicleStatus?.status === 'available' ? '#4caf50' :
@@ -1148,6 +1155,11 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       borderRadius: 2,
                       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                       transition: 'all 0.2s ease',
+                      cursor: (vehicleStatus?.status === 'rented' || vehicleStatus?.status === 'flexible') ? 'pointer' : 'default',
+                      '&:hover': (vehicleStatus?.status === 'rented' || vehicleStatus?.status === 'flexible') ? {
+                        transform: 'scale(1.02)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                      } : {},
                       '&:active': { transform: 'scale(0.98)' }
                     }}
                   >
