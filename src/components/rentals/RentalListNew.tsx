@@ -3196,6 +3196,9 @@ export default function RentalListNew() {
               {filteredRentals.map((rental, index) => {
                 const vehicle = getVehicleByRental(rental);
                 
+                // 🔄 NOVÉ: Detekcia flexibilného prenájmu
+                const isFlexible = rental.isFlexible || rental.rentalType === 'flexible';
+                
                 // ⚡ BACKGROUND PROTOCOL STATUS - použije background loaded data alebo fallback na starý systém
                 const backgroundStatus = protocolStatusMap[rental.id];
                 const fallbackProtocols = protocols[rental.id];
@@ -3213,9 +3216,13 @@ export default function RentalListNew() {
                      sx={{ 
                        display: 'flex',
                        borderBottom: index < filteredRentals.length - 1 ? '1px solid #e0e0e0' : 'none',
-                       '&:hover': { backgroundColor: '#f8f9fa' },
+                       '&:hover': { backgroundColor: isFlexible ? '#fff3e0' : '#f8f9fa' },
                        minHeight: 80,
-                       cursor: 'pointer'
+                       cursor: 'pointer',
+                       // 🔄 NOVÉ: Štýlovanie pre flexibilné prenájmy
+                       backgroundColor: isFlexible ? '#fff8f0' : 'transparent',
+                       borderLeft: isFlexible ? '4px solid #ff9800' : 'none',
+                       position: 'relative'
                      }}
                      onClick={() => handleEdit(rental)}
                    >
@@ -3254,24 +3261,43 @@ export default function RentalListNew() {
                       }}>
                         {vehicle?.licensePlate}
                       </Typography>
-                      <Chip
-                        size="small"
-                        label={rental.status === 'active' ? 'AKTÍVNY' : 
-                               rental.status === 'finished' ? 'DOKONČENÝ' : 
-                               rental.status === 'pending' ? 'ČAKAJÚCI' : 'NOVÝ'}
-                        sx={{
-                          height: { xs: 18, sm: 20 },
-                          fontSize: { xs: '0.55rem', sm: '0.6rem' },
-                          bgcolor: rental.status === 'active' ? '#4caf50' :
-                                  rental.status === 'finished' ? '#2196f3' :
-                                  rental.status === 'pending' ? '#ff9800' : '#666',
-                          color: 'white',
-                          fontWeight: 700,
-                          minWidth: 'auto',
-                          maxWidth: '100%',
-                          overflow: 'hidden'
-                        }}
-                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Chip
+                          size="small"
+                          label={rental.status === 'active' ? 'AKTÍVNY' : 
+                                 rental.status === 'finished' ? 'DOKONČENÝ' : 
+                                 rental.status === 'pending' ? 'ČAKAJÚCI' : 'NOVÝ'}
+                          sx={{
+                            height: { xs: 18, sm: 20 },
+                            fontSize: { xs: '0.55rem', sm: '0.6rem' },
+                            bgcolor: rental.status === 'active' ? '#4caf50' :
+                                    rental.status === 'finished' ? '#2196f3' :
+                                    rental.status === 'pending' ? '#ff9800' : '#666',
+                            color: 'white',
+                            fontWeight: 700,
+                            minWidth: 'auto',
+                            maxWidth: '100%',
+                            overflow: 'hidden'
+                          }}
+                        />
+                        {/* 🔄 NOVÉ: Flexibilný prenájom indikátor */}
+                        {isFlexible && (
+                          <Chip
+                            size="small"
+                            label="FLEXIBILNÝ"
+                            sx={{
+                              height: { xs: 16, sm: 18 },
+                              fontSize: { xs: '0.5rem', sm: '0.55rem' },
+                              bgcolor: '#ff9800',
+                              color: 'white',
+                              fontWeight: 700,
+                              minWidth: 'auto',
+                              maxWidth: '100%',
+                              overflow: 'hidden'
+                            }}
+                          />
+                        )}
+                      </Box>
                     </Box>
                     
                     {/* Detaily prenájmu - scrollable right - RESPONSIVE */}
@@ -3683,6 +3709,9 @@ export default function RentalListNew() {
               {filteredRentals.map((rental, index) => {
                 const vehicle = getVehicleByRental(rental);
                 
+                // 🔄 NOVÉ: Detekcia flexibilného prenájmu
+                const isFlexible = rental.isFlexible || rental.rentalType === 'flexible';
+                
                 // ⚡ BACKGROUND PROTOCOL STATUS - použije background loaded data alebo fallback na starý systém
                 const backgroundStatus = protocolStatusMap[rental.id];
                 const fallbackProtocols = protocols[rental.id];
@@ -3701,13 +3730,17 @@ export default function RentalListNew() {
                       display: 'flex',
                       borderBottom: index < filteredRentals.length - 1 ? '1px solid #e0e0e0' : 'none',
                       '&:hover': { 
-                        backgroundColor: '#f8f9fa',
+                        backgroundColor: isFlexible ? '#fff3e0' : '#f8f9fa',
                         transform: 'scale(1.002)',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                       },
                       minHeight: 80,
                       transition: 'all 0.2s ease',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      // 🔄 NOVÉ: Štýlovanie pre flexibilné prenájmy
+                      backgroundColor: isFlexible ? '#fff8f0' : 'transparent',
+                      borderLeft: isFlexible ? '4px solid #ff9800' : 'none',
+                      position: 'relative'
                     }}
                     onClick={() => handleEdit(rental)}
                   >
@@ -3749,22 +3782,37 @@ export default function RentalListNew() {
                       }}>
                         📋 {vehicle?.licensePlate} • 🏢 {vehicle?.company}
                       </Typography>
-                      <Chip
-                        size="small"
-                        label={rental.status === 'active' ? 'AKTÍVNY' : 
-                               rental.status === 'finished' ? 'DOKONČENÝ' : 
-                               rental.status === 'pending' ? 'ČAKAJÚCI' : 'NOVÝ'}
-                        sx={{
-                          height: 24,
-                          fontSize: '0.7rem',
-                          bgcolor: rental.status === 'active' ? '#4caf50' :
-                                  rental.status === 'finished' ? '#2196f3' :
-                                  rental.status === 'pending' ? '#ff9800' : '#666',
-                          color: 'white',
-                          fontWeight: 700,
-                          alignSelf: 'flex-start'
-                        }}
-                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'flex-start' }}>
+                        <Chip
+                          size="small"
+                          label={rental.status === 'active' ? 'AKTÍVNY' : 
+                                 rental.status === 'finished' ? 'DOKONČENÝ' : 
+                                 rental.status === 'pending' ? 'ČAKAJÚCI' : 'NOVÝ'}
+                          sx={{
+                            height: 24,
+                            fontSize: '0.7rem',
+                            bgcolor: rental.status === 'active' ? '#4caf50' :
+                                    rental.status === 'finished' ? '#2196f3' :
+                                    rental.status === 'pending' ? '#ff9800' : '#666',
+                            color: 'white',
+                            fontWeight: 700
+                          }}
+                        />
+                        {/* 🔄 NOVÉ: Flexibilný prenájom indikátor */}
+                        {isFlexible && (
+                          <Chip
+                            size="small"
+                            label="FLEXIBILNÝ"
+                            sx={{
+                              height: 22,
+                              fontSize: '0.65rem',
+                              bgcolor: '#ff9800',
+                              color: 'white',
+                              fontWeight: 700
+                            }}
+                          />
+                        )}
+                      </Box>
                     </Box>
                     
                     {/* Zákazník - FIXED WIDTH */}
