@@ -145,8 +145,6 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   // Zjednodušený state - iba základné polia
   const [formData, setFormData] = useState(initialFormData);
 
-  if (!open) return null;
-
   // 🚀 OPTIMALIZÁCIA: Memoized input change handler
   const handleInputChange = useCallback((field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -420,6 +418,9 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       setLoading(false);
     }
   }, [formData, rental, currentVehicle, onSave, onClose]);
+
+  // 🔥 EARLY RETURN - PO všetkých hooks
+  if (!open) return null;
 
   return (
     <Box sx={{ 
