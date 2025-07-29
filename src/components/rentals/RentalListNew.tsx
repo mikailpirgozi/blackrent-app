@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, memo } from 'react';
 import {
   Box,
   Button,
@@ -51,27 +51,36 @@ import {
   Person as PersonIcon,
   DirectionsCar as CarIcon,
   Schedule as ScheduleIcon,
-  FileDownload as FileDownloadIcon,
-  FileUpload as FileUploadIcon
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Clear as ClearIcon,
+  GetApp as ExportIcon,
+  CloudDownload as DownloadIcon,
+  MoreVert as MoreIcon,
+  Close as CloseIcon,
+  Check as CheckIcon,
+  ArrowForward as ArrowForwardIcon,
+  ArrowBack as ArrowBackIcon,
+  PlayArrow as PlayArrowIcon,
+  LocalShipping as LocalShippingIcon,
+  Home as HomeIcon,
+  CreditCard as CreditCardIcon,
+  AccountCircle as AccountIcon,
+  Folder as FolderIcon
 } from '@mui/icons-material';
-import { format } from 'date-fns';
+import { format, parseISO, addDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import { useApp } from '../../context/AppContext';
-import { Rental } from '../../types';
-import { Can } from '../common/PermissionGuard';
 import { apiService } from '../../services/api';
+import { Rental } from '../../types';
+import EmailParser from './EmailParser';
+import RentalAdvancedFilters from './RentalAdvancedFilters';
+import RentalCardView from './RentalCardView';
+import { debounce, measurePerformance } from '../../utils/debounce';
+import { MobileRentalRow } from './MobileRentalRow';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
-import RentalForm from './RentalForm';
-import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
-import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
-import PDFViewer from '../common/PDFViewer';
-import ProtocolGallery from '../common/ProtocolGallery';
-import RentalAdvancedFilters, { FilterState } from './RentalAdvancedFilters';
-import RentalViewToggle, { ViewMode } from './RentalViewToggle';
-import RentalCardView, { CardViewMode } from './RentalCardView';
 
 // 🎯 SNAPSHOT: Komponent pre zobrazenie majiteľa vozidla (ZAMRAZENÝ k dátumu prenájmu)
 const VehicleOwnerDisplay: React.FC<{
@@ -131,11 +140,11 @@ export default function RentalList() {
   const [showFilters, setShowFilters] = useState(false);
   
   // View mode
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
-  const [cardViewMode] = useState<CardViewMode>('compact');
+  const [viewMode, setViewMode] = useState('table');
+  const [cardViewMode] = useState('compact');
   
   // Advanced filters state
-  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+  const [advancedFilters, setAdvancedFilters] = useState({
     // Základné filtre
     status: 'all',
     paymentMethod: 'all',
@@ -2316,7 +2325,7 @@ export default function RentalList() {
                   <Button 
                     variant="outlined" 
                     color="info" 
-                    startIcon={<FileDownloadIcon />}
+                    startIcon={<ExportIcon />}
                     onClick={() => exportRentalsToCSV(filteredRentals)}
                     sx={{ ml: 2 }}
                   >
@@ -2325,7 +2334,7 @@ export default function RentalList() {
                   <Button 
                     variant="outlined" 
                     color="secondary" 
-                    startIcon={<FileUploadIcon />}
+                    startIcon={<DownloadIcon />}
                     component="label"
                     sx={{ ml: 1 }}
                   >

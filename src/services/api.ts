@@ -14,6 +14,12 @@ import {
   createNetworkMonitor,
   type RetryOptions 
 } from '../utils/errorHandling';
+import { 
+  debounce, 
+  RequestDeduplicator, 
+  measurePerformance,
+  type DebounceOptions 
+} from '../utils/debounce';
 
 const getApiBaseUrl = () => {
   // V produkcii používame Railway URL
@@ -30,6 +36,9 @@ export const API_BASE_URL = getApiBaseUrl();
 
 
 class ApiService {
+  // ⚡ Performance optimizations
+  private requestDeduplicator = new RequestDeduplicator();
+  
   private getAuthToken(): string | null {
     return localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
   }
@@ -227,24 +236,44 @@ class ApiService {
     returnCreatedAt?: Date;
   }[]> {
     
-    // 📦 1. CACHE FIRST - skús načítať z cache
-    const cached = getProtocolCache();
-    if (cached && isCacheFresh()) {
-      console.log('⚡ Using cached protocol status');
-      
-      // 🔄 Background refresh - aktualizuj cache na pozadí
-      this.refreshProtocolCacheInBackground();
-      
-      return cached;
-    }
-    
-    // 🌐 2. API CALL - cache chýba alebo expired
-    console.log('🌐 Loading protocol status from API...');
-    const cacheInfo = getCacheInfo();
-    if (cacheInfo.exists) {
-      console.log(`📊 Cache info: age=${cacheInfo.age}s, records=${cacheInfo.records}, fresh=${cacheInfo.fresh}`);
-    }
-    
+    // ⚡ REQUEST DEDUPLICATION - prevent duplicate requests
+    return this.requestDeduplicator.deduplicate(
+      'bulk-protocol-status',
+      async () => {
+        // 📦 1. CACHE FIRST - skús načítať z cache
+        const cached = getProtocolCache();
+        if (cached && isCacheFresh()) {
+          console.log('⚡ Using cached protocol status');
+          
+          // 🔄 Background refresh - aktualizuj cache na pozadí
+          this.refreshProtocolCacheInBackground();
+          
+          return cached;
+        }
+        
+        // 🌐 2. API CALL - cache chýba alebo expired
+        return measurePerformance(() => {
+          console.log('🌐 Loading protocol status from API...');
+          const cacheInfo = getCacheInfo();
+          if (cacheInfo.exists) {
+            console.log(`📊 Cache info: age=${cacheInfo.age}s, records=${cacheInfo.records}, fresh=${cacheInfo.fresh}`);
+          }
+          
+          return this.loadProtocolStatusFromAPI();
+        }, 'Protocol Status API Call');
+      },
+      {
+        ttl: 10000, // 10s deduplication window
+        maxConcurrent: 3,
+        onDuplicate: () => console.log('🔄 Duplicate protocol status request detected')
+      }
+    );
+  }
+
+  /**
+   * 🌐 Load protocol status from API - extracted for reuse
+   */
+  private async loadProtocolStatusFromAPI(): Promise<any[]> {
     try {
       const response = await this.request<any>('/protocols/bulk-status');
       
@@ -289,6 +318,7 @@ class ApiService {
       console.error('❌ Error details:', error.message);
       
       // 🔄 FALLBACK - použiť starý cache ak existuje
+      const cached = getProtocolCache();
       if (cached) {
         console.log('🔄 Using stale cache as fallback');
         return cached;
