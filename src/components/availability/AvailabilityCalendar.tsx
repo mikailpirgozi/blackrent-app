@@ -65,7 +65,7 @@ import {
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { API_BASE_URL } from '../../services/api';
-import { Rental, VehicleUnavailability } from '../../types';
+import { Rental, VehicleUnavailability, VehicleCategory } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { useDebounce } from '../../utils/performance';
 
@@ -109,11 +109,20 @@ interface MaintenanceFormData {
 interface AvailabilityCalendarProps {
   searchQuery?: string;
   isMobile?: boolean;
+  selectedCompany?: string;
+  // 🚗 MULTI-SELECT CATEGORY FILTER: Array of selected categories  
+  categoryFilter?: string | VehicleCategory[]; // Support both single and multi-select
+  availableFromDate?: string;
+  availableToDate?: string;
 }
 
 const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ 
   searchQuery: propSearchQuery = '', 
-  isMobile: propIsMobile 
+  isMobile: propIsMobile,
+  selectedCompany: propSelectedCompany,
+  categoryFilter: propCategoryFilter,
+  availableFromDate: propAvailableFromDate,
+  availableToDate: propAvailableToDate
 }) => {
   const { state, getFilteredVehicles } = useApp();
   
@@ -168,10 +177,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   }, [propSearchQuery]);
 
 
-  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'rented' | 'flexible' | 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection'>('all');
   const [brandFilter, setBrandFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
   
   // Date range availability filter
   const [availableFromDate, setAvailableFromDate] = useState<string>('');
@@ -211,7 +218,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       const dateString = format(currentDate, 'yyyy-MM-dd');
       
       // Nájdeme existujúce dáta pre tento dátum alebo vytvoríme prázdne
-      const existingDay = statusFilteredCalendarData.find(day => day.date === dateString);
+      const existingDay = categoryFilteredCalendarData.find(day => day.date === dateString);
       
       days.push(existingDay || {
         date: dateString,
@@ -610,16 +617,22 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   // Filter functions - memoized
   const handleResetFilters = useCallback(() => {
     setSearchQuery('');
-    setStatusFilter('all');
     setBrandFilter('all');
     setCompanyFilter('all');
     setAvailableFromDate('');
     setAvailableToDate('');
   }, []);
 
+  // Dummy functions pre backward compatibility
   const toggleFilters = useCallback(() => {
-    setShowFilters(!showFilters);
-  }, [showFilters]);
+    // Filter UI je teraz v parent komponente
+  }, []);
+  
+  const [showFilters] = useState(false);
+  const [statusFilter] = useState('all');
+  const setStatusFilter = useCallback((value: any) => {
+    // Status filter je teraz v parent komponente  
+  }, []);
 
   // Get unique values for filter dropdowns - memoized
   const uniqueBrands = useMemo(() => 
@@ -648,37 +661,53 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         if (!matches) return false;
       }
 
+      // Company filter - použiť prop ak je k dispozícii, inak fallback na local state
+      const activeCompanyFilter = propSelectedCompany || companyFilter;
+      if (activeCompanyFilter && activeCompanyFilter !== 'all' && vehicle.company !== activeCompanyFilter) {
+        return false;
+      }
+
       // Brand filter
       if (brandFilter !== 'all' && vehicle.brand !== brandFilter) {
         return false;
       }
 
-      // Company filter
-      if (companyFilter !== 'all' && vehicle.company !== companyFilter) {
-        return false;
-      }
-
-      // Date range availability filter
-      if (availableFromDate && availableToDate) {
-        const fromDate = new Date(availableFromDate);
-        const toDate = new Date(availableToDate);
+      // Date range availability filter - používať prop values ak sú poskytnuté
+      const activeDateFrom = propAvailableFromDate || availableFromDate;
+      const activeDateTo = propAvailableToDate || availableToDate;
+      
+      if (activeDateFrom && activeDateTo) {
+        const fromDate = new Date(activeDateFrom);
+        const toDate = new Date(activeDateTo);
         
-        // Check if vehicle is available for the entire period
-        const isAvailableInPeriod = calendarData.some(dayData => {
-          const dayDate = new Date(dayData.date);
-          if (dayDate >= fromDate && dayDate <= toDate) {
-            const vehicleStatus = dayData.vehicles.find(v => v.vehicleId === vehicle.id);
-            return vehicleStatus?.status === 'available';
-          }
-          return false;
+        // Check if vehicle is available for the ENTIRE period (všetky dni musia byť dostupné)
+        const allDaysInPeriod = [];
+        for (let currentDate = new Date(fromDate); currentDate <= toDate; currentDate.setDate(currentDate.getDate() + 1)) {
+          allDaysInPeriod.push(new Date(currentDate));
+        }
+        
+        const isAvailableForEntirePeriod = allDaysInPeriod.every(dayDate => {
+          const dayString = dayDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+          const dayData = calendarData.find(d => d.date === dayString);
+          
+          // Ak nemáme dáta pre tento deň, predpokladáme že vozidlo je DOSTUPNÉ (nie nedostupné)
+          if (!dayData) return true; 
+          
+          const vehicleStatus = dayData.vehicles.find(v => v.vehicleId === vehicle.id);
+          
+          // Ak nemáme status pre vozidlo v tento deň, predpokladáme dostupnosť
+          if (!vehicleStatus) return true;
+          
+          // Vozidlo je "dostupné" ak je available ALEBO flexible (možno prepísať)
+          return vehicleStatus.status === 'available' || vehicleStatus.status === 'flexible';
         });
         
-        if (!isAvailableInPeriod) return false;
+        if (!isAvailableForEntirePeriod) return false;
       }
 
       return true;
     });
-  }, [vehicles, debouncedSearchQuery, brandFilter, companyFilter, availableFromDate, availableToDate, calendarData]);
+  }, [vehicles, debouncedSearchQuery, brandFilter, companyFilter, propSelectedCompany, availableFromDate, availableToDate, calendarData, propAvailableFromDate, propAvailableToDate]);
 
   // Filter calendar data to show only filtered vehicles - memoized
   const filteredCalendarData = useMemo(() => {
@@ -687,16 +716,55 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       vehicles: dayData.vehicles.filter(v => filteredVehicles.some(fv => fv.id === v.vehicleId))
     }));
   }, [calendarData, filteredVehicles]);
+  
 
-  // Additional status filtering for the status filter - memoized
-  const statusFilteredCalendarData = useMemo(() => {
-    return statusFilter === 'all' 
-      ? filteredCalendarData
-      : filteredCalendarData.map(dayData => ({
-          ...dayData,
-          vehicles: dayData.vehicles.filter(v => v.status === statusFilter)
-        }));
-  }, [filteredCalendarData, statusFilter]);
+
+  // 🚗 MULTI-SELECT CATEGORY FILTER: Apply category filter - memoized
+  const categoryFilteredCalendarData = useMemo(() => {
+    // Ak nie je žiadny filter, vrátime všetky dáta
+    if (!propCategoryFilter) {
+      return filteredCalendarData;
+    }
+    
+    // Support both single string and multi-select array
+    const selectedCategories: VehicleCategory[] = Array.isArray(propCategoryFilter) 
+      ? propCategoryFilter 
+      : propCategoryFilter === 'all' 
+        ? [] 
+        : [propCategoryFilter as VehicleCategory];
+    
+    // Ak nie sú vybrané žiadne kategórie, vrátime všetky dáta
+    if (selectedCategories.length === 0) {
+      return filteredCalendarData;
+    }
+    
+    // Nájdeme vozidlá ktoré spĺňajú vybrané kategórie
+    const eligibleVehicleIds = new Set<string>();
+    
+    filteredVehicles.forEach(vehicle => {
+      // Filtruj podľa vehicle.category property
+      if (vehicle.category && selectedCategories.includes(vehicle.category)) {
+        eligibleVehicleIds.add(vehicle.id);
+      }
+    });
+    
+    console.log('🚗 Category Filter Debug:', {
+      selectedCategories,
+      totalVehicles: filteredVehicles.length,
+      eligibleVehicles: eligibleVehicleIds.size,
+      sampleVehicleCategories: filteredVehicles.slice(0, 3).map(v => ({ id: v.id, category: v.category, licensePlate: v.licensePlate })),
+      allVehicleCategories: filteredVehicles.map(v => v.category).slice(0, 10),
+      eligibleVehicleIdsList: Array.from(eligibleVehicleIds).slice(0, 5)
+    });
+    
+    // Filtrujeme calendar data aby obsahovali len eligible vozidlá
+    return filteredCalendarData.map(dayData => ({
+      ...dayData,
+      vehicles: dayData.vehicles.filter(v => eligibleVehicleIds.has(v.vehicleId))
+    }));
+  }, [filteredCalendarData, propCategoryFilter, filteredVehicles]);
+
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -1031,7 +1099,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 '&::-webkit-scrollbar-thumb': { backgroundColor: 'primary.main', borderRadius: 2 }
               }}
             >
-                             {statusFilteredCalendarData.slice(0, visibleDays).map(dayData => {
+                             {categoryFilteredCalendarData.slice(0, visibleDays).map(dayData => {
                 const day = new Date(dayData.date);
                  const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
                  
@@ -1100,14 +1168,14 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                          </Box>
              
              {/* Load More tlačidlo */}
-             {visibleDays < statusFilteredCalendarData.length && (
+                           {visibleDays < categoryFilteredCalendarData.length && (
                <Box sx={{ textAlign: 'center', mt: 1 }}>
                  <Button
                                 size="small"
                                 variant="outlined"
-                   onClick={() => setVisibleDays(prev => Math.min(prev + 7, statusFilteredCalendarData.length))}
+                                       onClick={() => setVisibleDays(prev => Math.min(prev + 7, categoryFilteredCalendarData.length))}
                  >
-                   Zobraziť viac dní ({statusFilteredCalendarData.length - visibleDays} zostáva)
+                                       Zobraziť viac dní ({categoryFilteredCalendarData.length - visibleDays} zostáva)
                  </Button>
                </Box>
              )}
@@ -1129,7 +1197,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
             
             <Stack spacing={{ xs: 1, sm: 1.5 }}>
               {filteredVehicles.map(vehicle => {
-                const selectedDayData = statusFilteredCalendarData.find(day => 
+                const selectedDayData = categoryFilteredCalendarData.find(day => 
                   day.date === selectedDate
                 );
                 const vehicleStatus = selectedDayData?.vehicles.find(v => v.vehicleId === vehicle.id);
