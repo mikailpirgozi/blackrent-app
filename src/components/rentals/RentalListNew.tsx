@@ -81,6 +81,54 @@ import { MobileRentalRow } from './MobileRentalRow';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
+import RentalForm from './RentalForm';
+import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
+import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
+import PDFViewer from '../common/PDFViewer';
+import ProtocolGallery from '../common/ProtocolGallery';
+import RentalViewToggle from './RentalViewToggle';
+import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
+
+// Types
+interface FilterState {
+  // Základné filtre
+  status: string;
+  paymentMethod: string;
+  company: string;
+  dateFrom: string;
+  dateTo: string;
+  priceMin: string;
+  priceMax: string;
+  protocolStatus: string;
+  
+  // Rozšírené filtre
+  customerName: string;
+  vehicleBrand: string;
+  vehicleModel: string;
+  licensePlate: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerCompany: string;
+  insuranceCompany: string;
+  insuranceType: string;
+  
+  // Časové filtre
+  timeFilter: string;
+  
+  // Cenové filtre
+  priceRange: string;
+  
+  // Stav platby
+  paymentStatus: string;
+  
+  // Zobrazenie
+  showOnlyActive: boolean;
+  showOnlyOverdue: boolean;
+  showOnlyCompleted: boolean;
+}
+
+type ViewMode = 'table' | 'cards' | 'grid' | 'list' | 'compact' | 'detailed';
+type CardViewMode = 'compact' | 'detailed';
 
 // 🎯 SNAPSHOT: Komponent pre zobrazenie majiteľa vozidla (ZAMRAZENÝ k dátumu prenájmu)
 const VehicleOwnerDisplay: React.FC<{
@@ -140,8 +188,8 @@ export default function RentalList() {
   const [showFilters, setShowFilters] = useState(false);
   
   // View mode
-  const [viewMode, setViewMode] = useState('table');
-  const [cardViewMode] = useState('compact');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [cardViewMode] = useState<CardViewMode>('compact');
   
   // Advanced filters state
   const [advancedFilters, setAdvancedFilters] = useState({
@@ -2193,22 +2241,6 @@ export default function RentalList() {
       
       console.log('🎉 BACKGROUND: Protocol status icons will now appear in rental list!');
       
-      // 🎉 SUCCESS TOAST FEEDBACK
-      // Note: Ideally this would be called via a global toast context or prop
-      // For now, using a simple toast that could be implemented later
-      if (typeof window !== 'undefined' && window.dispatchEvent) {
-        const successEvent = new CustomEvent('showSuccessToast', {
-          detail: {
-            message: `✅ Protocol status načítaný`,
-            stats: {
-              count: bulkProtocolStatus.length,
-              duration: loadTime
-            },
-            icon: 'speed'
-          }
-        });
-        window.dispatchEvent(successEvent);
-      }
     } catch (error) {
       console.error('❌ BACKGROUND: Failed to load protocol status:', error);
       // Fallback na pôvodný systém - nezrušime funkčnosť
@@ -2405,7 +2437,7 @@ export default function RentalList() {
               {/* View Mode Toggle */}
               <RentalViewToggle
                 viewMode={viewMode}
-                onViewModeChange={setViewMode}
+                onViewModeChange={(mode: ViewMode) => setViewMode(mode)}
                         totalCount={state.rentals?.length || 0}
         filteredCount={filteredRentals.length}
                 showCounts={false}

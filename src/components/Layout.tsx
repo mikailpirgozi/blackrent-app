@@ -120,20 +120,6 @@ export default function Layout({ children }: LayoutProps) {
     setSuccessStats(undefined);
   };
   
-  // Listen for global success toast events
-  React.useEffect(() => {
-    const handleSuccessEvent = (event: CustomEvent) => {
-      const { message, stats, icon } = event.detail;
-      handleSuccess(message, stats);
-    };
-
-    window.addEventListener('showSuccessToast', handleSuccessEvent as EventListener);
-    
-    return () => {
-      window.removeEventListener('showSuccessToast', handleSuccessEvent as EventListener);
-    };
-  }, []);
-  
   const navigate = useNavigate();
   const location = useLocation();
   const { state, logout } = useAuth();
