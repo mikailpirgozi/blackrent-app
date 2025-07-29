@@ -261,7 +261,7 @@ router.put('/:id',
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const { brand, model, licensePlate, company, pricing, commission, status, year, stk } = req.body;
+    const { brand, model, licensePlate, company, category, pricing, commission, status, year, stk } = req.body;
 
     // Skontroluj, či vozidlo existuje
     const existingVehicle = await postgresDatabase.getVehicle(id);
@@ -278,6 +278,7 @@ router.put('/:id',
       model: model || existingVehicle.model,
       licensePlate: licensePlate || existingVehicle.licensePlate,
       company: company || existingVehicle.company,
+      category: category || existingVehicle.category,
       pricing: pricing || existingVehicle.pricing,
       commission: commission || existingVehicle.commission,
       status: status || existingVehicle.status,

@@ -809,6 +809,30 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     }));
   }, [filteredCalendarData, propCategoryFilter, filteredVehicles]);
 
+  // 🚗 CATEGORY FILTERED VEHICLES: Apply same category filter to vehicles list
+  const categoryFilteredVehicles = useMemo(() => {
+    // Ak nie je žiadny filter, vrátime všetky vozidlá
+    if (!propCategoryFilter) {
+      return filteredVehicles;
+    }
+    
+    // Support both single string and multi-select array
+    const selectedCategories: VehicleCategory[] = Array.isArray(propCategoryFilter) 
+      ? propCategoryFilter 
+      : propCategoryFilter === 'all' 
+        ? [] 
+        : [propCategoryFilter as VehicleCategory];
+    
+    // Ak nie sú vybrané žiadne kategórie, vrátime všetky vozidlá
+    if (selectedCategories.length === 0) {
+      return filteredVehicles;
+    }
+    
+    // Filtrujeme vozidlá podľa kategórie
+    return filteredVehicles.filter(vehicle => 
+      vehicle.category && selectedCategories.includes(vehicle.category)
+    );
+  }, [filteredVehicles, propCategoryFilter]);
 
 
   const getStatusColor = (status: string) => {
@@ -942,7 +966,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           gap: 1,
           px: 1
         }}>
-          {filteredVehicles.map((vehicle) => (
+          {categoryFilteredVehicles.map((vehicle) => (
             <Card key={vehicle.id} sx={{ 
               overflow: 'hidden', 
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -1234,7 +1258,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     </Card>
 
       {/* 🔧 OPRAVA: Desktop info ak nie sú filtrované vozidlá */}
-      {filteredVehicles.length === 0 && (
+      {categoryFilteredVehicles.length === 0 && (
         <Alert severity="info" sx={{ mb: 2 }}>
           <Typography variant="body2">
             🔍 Žiadne vozidlá nevyhovujú zadaným filtrom. Skúste zmeniť filter alebo vyhľadávanie.
@@ -1243,13 +1267,13 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       )}
 
       {/* Desktop kalendár - card layout pre vozidlá */}
-      {filteredVehicles.length > 0 && (
+      {categoryFilteredVehicles.length > 0 && (
       <Box sx={{ 
         display: 'grid',
         gridTemplateColumns: { md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)', xl: 'repeat(4, 1fr)' },
         gap: 1.5
       }}>
-        {filteredVehicles.map((vehicle) => (
+        {categoryFilteredVehicles.map((vehicle) => (
           <Card key={vehicle.id} sx={{ 
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             borderRadius: 3,
@@ -1546,7 +1570,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               onChange={(e) => setMaintenanceFormData(prev => ({ ...prev, vehicleId: e.target.value }))}
               label="Vozidlo"
             >
-              {filteredVehicles.map(vehicle => (
+              {categoryFilteredVehicles.map(vehicle => (
                 <MenuItem key={vehicle.id} value={vehicle.id}>
                   {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
                 </MenuItem>

@@ -1,9 +1,39 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
-import { Vehicle, Rental, Expense, Insurance, Settlement, Customer, Company, Insurer, VehicleDocument, InsuranceClaim } from '../types';
+import { Vehicle, Rental, Expense, Insurance, Settlement, Customer, Company, Insurer, VehicleDocument, InsuranceClaim, VehicleCategory, VehicleStatus } from '../types';
 import { apiService } from '../services/api';
 import { useAuth } from './AuthContext';
 import { usePermissionsContext } from './PermissionsContext';
 import logger from '../utils/logger';
+
+// 🚀 ENHANCED FILTER SYSTEM - TYPES
+interface FilterOptions {
+  // Permission filters (always applied)
+  permissions?: {
+    userRole: string;
+    companyAccess: string[];
+  };
+  
+  // UI filters (optional)
+  search?: string;
+  category?: VehicleCategory | 'all';
+  brand?: string;
+  model?: string;  
+  company?: string;
+  status?: VehicleStatus | 'all';
+  
+  // Advanced filters
+  dateRange?: { start: Date; end: Date };
+  priceRange?: { min: number; max: number };
+  
+  // Status group filters (for backwards compatibility)
+  showAvailable?: boolean;
+  showRented?: boolean;
+  showMaintenance?: boolean;
+  showOther?: boolean;
+  
+  // Meta options
+  includeAll?: boolean; // For admin override
+}
 
 interface AppState {
   vehicles: Vehicle[];
@@ -265,13 +295,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
 interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
-  // Filtered data based on user permissions
+  // 📜 LEGACY: Filtered data based on user permissions (BACKWARDS COMPATIBLE)
   getFilteredVehicles: () => Vehicle[];
   getFilteredRentals: () => Rental[];
   getFilteredExpenses: () => Expense[];
   getFilteredInsurances: () => Insurance[];
   getFilteredSettlements: () => Settlement[];
   getFilteredCompanies: () => Company[];
+  // 🚀 ENHANCED: Advanced filtering with options
+  getEnhancedFilteredVehicles: (options?: FilterOptions) => Vehicle[];
+  getEnhancedFilteredRentals: (options?: FilterOptions) => Rental[];
+  getEnhancedFilteredExpenses: (options?: FilterOptions) => Expense[];
+  // 🎯 HELPERS: Convenience functions for common use cases
+  getFullyFilteredVehicles: (uiFilters: Omit<FilterOptions, 'permissions'>) => Vehicle[];
   // API helper methods
   createVehicle: (vehicle: Vehicle) => Promise<void>;
   updateVehicle: (vehicle: Vehicle) => Promise<void>;
@@ -389,6 +425,137 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return (state.companies || []).filter(company => 
       accessibleCompanyNames.includes(company.name)
     );
+  };
+
+  // 🚀 ENHANCED FILTER SYSTEM - IMPLEMENTATIONS
+  
+  const getEnhancedFilteredVehicles = (options: FilterOptions = {}): Vehicle[] => {
+    let vehicles = state.vehicles || [];
+    
+    // 1️⃣ PERMISSION LAYER (always applied unless admin override)
+    if (!options.includeAll && (!authState.user || authState.user.role !== 'admin')) {
+      const accessibleCompanyNames = getAccessibleCompanyNames();
+      vehicles = vehicles.filter(vehicle => 
+        vehicle.company && accessibleCompanyNames.includes(vehicle.company)
+      );
+    }
+    
+    // 2️⃣ SEARCH LAYER
+    if (options.search) {
+      const query = options.search.toLowerCase();
+      vehicles = vehicles.filter(vehicle =>
+        vehicle.brand.toLowerCase().includes(query) ||
+        vehicle.model.toLowerCase().includes(query) ||
+        vehicle.licensePlate.toLowerCase().includes(query) ||
+        (vehicle.company && vehicle.company.toLowerCase().includes(query))
+      );
+    }
+    
+    // 3️⃣ CATEGORY LAYER  
+    if (options.category && options.category !== 'all') {
+      vehicles = vehicles.filter(vehicle => vehicle.category === options.category);
+    }
+    
+    // 4️⃣ BRAND LAYER
+    if (options.brand) {
+      vehicles = vehicles.filter(vehicle => 
+        vehicle.brand.toLowerCase().includes(options.brand!.toLowerCase())
+      );
+    }
+    
+    // 5️⃣ MODEL LAYER
+    if (options.model) {
+      vehicles = vehicles.filter(vehicle => 
+        vehicle.model.toLowerCase().includes(options.model!.toLowerCase())
+      );
+    }
+    
+    // 6️⃣ STATUS LAYER
+    if (options.status && options.status !== 'all') {
+      vehicles = vehicles.filter(vehicle => vehicle.status === options.status);
+    }
+    
+    // 7️⃣ COMPANY LAYER
+    if (options.company) {
+      vehicles = vehicles.filter(vehicle => vehicle.company === options.company);
+    }
+    
+    // 8️⃣ STATUS GROUP LAYERS (for backwards compatibility)
+    if (options.showAvailable !== undefined && !options.showAvailable) {
+      vehicles = vehicles.filter(vehicle => vehicle.status !== 'available');
+    }
+    if (options.showRented !== undefined && !options.showRented) {
+      vehicles = vehicles.filter(vehicle => vehicle.status !== 'rented');
+    }
+    if (options.showMaintenance !== undefined && !options.showMaintenance) {
+      vehicles = vehicles.filter(vehicle => vehicle.status !== 'maintenance');
+    }
+    if (options.showOther !== undefined && !options.showOther) {
+      vehicles = vehicles.filter(vehicle => ['available', 'rented', 'maintenance'].includes(vehicle.status));
+    }
+    
+    return vehicles;
+  };
+
+  const getEnhancedFilteredRentals = (options: FilterOptions = {}): Rental[] => {
+    let rentals = state.rentals || [];
+    
+    // 1️⃣ PERMISSION LAYER
+    if (!options.includeAll && (!authState.user || authState.user.role !== 'admin')) {
+      const accessibleCompanyNames = getAccessibleCompanyNames();
+      rentals = rentals.filter(rental => {
+        if (rental.vehicle && rental.vehicle.company) {
+          return accessibleCompanyNames.includes(rental.vehicle.company);
+        }
+        return false;
+      });
+    }
+    
+    // 2️⃣ SEARCH LAYER
+    if (options.search) {
+      const query = options.search.toLowerCase();
+      rentals = rentals.filter(rental =>
+        (rental.vehicle && rental.vehicle.brand.toLowerCase().includes(query)) ||
+        (rental.vehicle && rental.vehicle.model.toLowerCase().includes(query)) ||
+        (rental.vehicle && rental.vehicle.licensePlate.toLowerCase().includes(query)) ||
+        (rental.customer && rental.customer.name.toLowerCase().includes(query))
+      );
+    }
+    
+    return rentals;
+  };
+
+  const getEnhancedFilteredExpenses = (options: FilterOptions = {}): Expense[] => {
+    let expenses = state.expenses || [];
+    
+    // 1️⃣ PERMISSION LAYER
+    if (!options.includeAll && (!authState.user || authState.user.role !== 'admin')) {
+      const accessibleCompanyNames = getAccessibleCompanyNames();
+      expenses = expenses.filter(expense => 
+        accessibleCompanyNames.includes(expense.company)
+      );
+    }
+    
+    // 2️⃣ SEARCH LAYER
+    if (options.search) {
+      const query = options.search.toLowerCase();
+      expenses = expenses.filter(expense =>
+        expense.description.toLowerCase().includes(query) ||
+        expense.category.toLowerCase().includes(query) ||
+        expense.company.toLowerCase().includes(query)
+      );
+    }
+    
+    return expenses;
+  };
+
+  // 🎯 HELPER FUNCTIONS for easier usage
+  const getFullyFilteredVehicles = (uiFilters: Omit<FilterOptions, 'permissions'>): Vehicle[] => {
+    return getEnhancedFilteredVehicles({
+      ...uiFilters,
+      // Always apply permissions unless explicitly overridden
+      includeAll: authState.user?.role === 'admin' && uiFilters.includeAll
+    });
   };
 
   // Funkcia na načítanie dát z API - OPTIMALIZOVANÁ s BULK endpointom
@@ -837,6 +1004,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         getFilteredInsurances,
         getFilteredSettlements,
         getFilteredCompanies,
+        // 🚀 ENHANCED FILTER FUNCTIONS
+        getEnhancedFilteredVehicles,
+        getEnhancedFilteredRentals,
+        getEnhancedFilteredExpenses,
+        // 🎯 HELPER FUNCTIONS
+        getFullyFilteredVehicles,
         createVehicle,
         updateVehicle,
         deleteVehicle,
@@ -871,6 +1044,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     </AppContext.Provider>
   );
 }
+
+// 🚀 EXPORT ENHANCED FILTER TYPES for component usage
+export type { FilterOptions };
 
 export function useApp() {
   const context = useContext(AppContext);

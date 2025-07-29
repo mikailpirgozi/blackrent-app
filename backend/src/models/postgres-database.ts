@@ -1723,6 +1723,7 @@ export class PostgresDatabase {
         ...row,
         id: row.id?.toString() || '',
         licensePlate: row.license_plate, // Mapovanie column názvu
+        category: row.category || null, // 🚗 Mapovanie category
         ownerCompanyId: row.owner_company_id?.toString(), // Mapovanie owner_company_id na ownerCompanyId
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
@@ -1796,6 +1797,7 @@ export class PostgresDatabase {
         ...row,
         id: row.id.toString(),
         licensePlate: row.license_plate, // Mapovanie column názvu
+        category: row.category || null, // 🚗 Mapovanie category
         ownerCompanyId: row.owner_company_id?.toString(), // Mapovanie owner_company_id na ownerCompanyId
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
@@ -1912,12 +1914,13 @@ export class PostgresDatabase {
       }
 
       await client.query(
-        'UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, owner_company_id = $5, pricing = $6, commission = $7, status = $8, year = $9, stk = $10, updated_at = CURRENT_TIMESTAMP WHERE id = $11',
+        'UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, category = $5, owner_company_id = $6, pricing = $7, commission = $8, status = $9, year = $10, stk = $11, updated_at = CURRENT_TIMESTAMP WHERE id = $12',
         [
           vehicle.brand, 
           vehicle.model, 
           vehicle.licensePlate, 
           vehicle.company,
+          vehicle.category || null, // 🚗 Category
           vehicle.ownerCompanyId || null, // 🏢 Company ID as UUID string
           JSON.stringify(vehicle.pricing), // Konverzia na JSON string
           JSON.stringify(vehicle.commission), // Konverzia na JSON string
