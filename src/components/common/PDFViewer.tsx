@@ -98,7 +98,7 @@ export default function PDFViewer({
     } else if (window.location.hostname === 'mikailpirgozi.github.io') {
       baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
     } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      baseUrl = 'http://localhost:5001/api';
+      baseUrl = 'http://localhost:3001/api';
     } else {
       baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
     }
@@ -125,7 +125,7 @@ export default function PDFViewer({
     } else if (window.location.hostname === 'mikailpirgozi.github.io') {
       baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
     } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      baseUrl = 'http://localhost:5001/api';
+      baseUrl = 'http://localhost:3001/api';
     } else {
       baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
     }
