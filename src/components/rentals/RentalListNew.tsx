@@ -25,7 +25,10 @@ import {
   FormControlLabel,
   Grid,
   Divider,
-  FormGroup
+  FormGroup,
+  Fade,
+  Grow,
+  Zoom
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -2181,6 +2184,22 @@ export default function RentalList() {
       
       console.log('🎉 BACKGROUND: Protocol status icons will now appear in rental list!');
       
+      // 🎉 SUCCESS TOAST FEEDBACK
+      // Note: Ideally this would be called via a global toast context or prop
+      // For now, using a simple toast that could be implemented later
+      if (typeof window !== 'undefined' && window.dispatchEvent) {
+        const successEvent = new CustomEvent('showSuccessToast', {
+          detail: {
+            message: `✅ Protocol status načítaný`,
+            stats: {
+              count: bulkProtocolStatus.length,
+              duration: loadTime
+            },
+            icon: 'speed'
+          }
+        });
+        window.dispatchEvent(successEvent);
+      }
     } catch (error) {
       console.error('❌ BACKGROUND: Failed to load protocol status:', error);
       // Fallback na pôvodný systém - nezrušime funkčnosť
@@ -3086,68 +3105,94 @@ export default function RentalList() {
                         justifyContent: 'flex-start',
                         flexWrap: 'wrap'
                       }}>
-                        <Chip
-                          size="small"
-                          label={hasHandover ? '🚗→' : '⏳'}
-                          title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (hasHandover) {
-                              // Open handover protocol menu only if exists
-                              handleOpenProtocolMenu(rental, 'handover');
-                            }
-                            // Do nothing if protocol doesn't exist
-                          }}
-                          sx={{
-                            height: { xs: 32, sm: 28 },
-                            fontSize: { xs: '0.8rem', sm: '0.75rem' },
-                            bgcolor: hasHandover ? '#4caf50' : '#ccc',
-                            color: 'white',
-                            fontWeight: 700,
-                            minWidth: { xs: 44, sm: 42 },
-                            maxWidth: { xs: 60, sm: 60 },
-                            cursor: hasHandover ? 'pointer' : 'default',
-                            borderRadius: { xs: 2, sm: 2.5 },
-                            boxShadow: hasHandover ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
-                            '&:hover': hasHandover ? {
-                              bgcolor: '#388e3c',
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
-                            } : {},
-                            transition: 'all 0.2s ease'
-                          }}
-                        />
-                        <Chip
-                          size="small"
-                          label={hasReturn ? '←🚗' : '⏳'}
-                          title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (hasReturn) {
-                              // Open return protocol menu only if exists
-                              handleOpenProtocolMenu(rental, 'return');
-                            }
-                            // Do nothing if protocol doesn't exist
-                          }}
-                          sx={{
-                            height: { xs: 32, sm: 28 },
-                            fontSize: { xs: '0.8rem', sm: '0.75rem' },
-                            bgcolor: hasReturn ? '#4caf50' : '#ccc',
-                            color: 'white',
-                            fontWeight: 700,
-                            minWidth: { xs: 44, sm: 42 },
-                            maxWidth: { xs: 60, sm: 60 },
-                            cursor: hasReturn ? 'pointer' : 'default',
-                            borderRadius: { xs: 2, sm: 2.5 },
-                            boxShadow: hasReturn ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
-                            '&:hover': hasReturn ? {
-                              bgcolor: '#388e3c',
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
-                            } : {},
-                            transition: 'all 0.2s ease'
-                          }}
-                        />
+                        <Fade in timeout={600}>
+                          <Chip
+                            size="small"
+                            label="🚗→"
+                            title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (hasHandover) {
+                                // Open handover protocol menu only if exists
+                                handleOpenProtocolMenu(rental, 'handover');
+                              }
+                              // Do nothing if protocol doesn't exist
+                            }}
+                            sx={{
+                              height: { xs: 32, sm: 28 },
+                              fontSize: { xs: '0.8rem', sm: '0.75rem' },
+                              bgcolor: hasHandover ? '#4caf50' : '#ccc',
+                              color: 'white',
+                              fontWeight: 700,
+                              minWidth: { xs: 44, sm: 42 },
+                              maxWidth: { xs: 60, sm: 60 },
+                              cursor: hasHandover ? 'pointer' : 'default',
+                              borderRadius: { xs: 2, sm: 2.5 },
+                              boxShadow: hasHandover ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+                              transform: hasHandover ? 'scale(1)' : 'scale(0.95)',
+                              opacity: hasHandover ? 1 : 0.7,
+                              '&:hover': hasHandover ? {
+                                bgcolor: '#388e3c',
+                                transform: 'scale(1.1)',
+                                boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
+                                animation: 'bounce 0.6s ease'
+                              } : {
+                                transform: 'scale(0.98)',
+                                opacity: 0.8
+                              },
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              '@keyframes bounce': {
+                                '0%, 20%, 60%, 100%': { transform: 'scale(1.1)' },
+                                '40%': { transform: 'scale(1.15)' },
+                                '80%': { transform: 'scale(1.05)' }
+                              }
+                            }}
+                          />
+                        </Fade>
+                        <Fade in timeout={800}>
+                          <Chip
+                            size="small"
+                            label="←🚗"
+                            title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (hasReturn) {
+                                // Open return protocol menu only if exists
+                                handleOpenProtocolMenu(rental, 'return');
+                              }
+                              // Do nothing if protocol doesn't exist
+                            }}
+                            sx={{
+                              height: { xs: 32, sm: 28 },
+                              fontSize: { xs: '0.8rem', sm: '0.75rem' },
+                              bgcolor: hasReturn ? '#4caf50' : '#ccc',
+                              color: 'white',
+                              fontWeight: 700,
+                              minWidth: { xs: 44, sm: 42 },
+                              maxWidth: { xs: 60, sm: 60 },
+                              cursor: hasReturn ? 'pointer' : 'default',
+                              borderRadius: { xs: 2, sm: 2.5 },
+                              boxShadow: hasReturn ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+                              transform: hasReturn ? 'scale(1)' : 'scale(0.95)',
+                              opacity: hasReturn ? 1 : 0.7,
+                              '&:hover': hasReturn ? {
+                                bgcolor: '#388e3c',
+                                transform: 'scale(1.1)',
+                                boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
+                                animation: 'bounce 0.6s ease'
+                              } : {
+                                transform: 'scale(0.98)',
+                                opacity: 0.8
+                              },
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              '@keyframes bounce': {
+                                '0%, 20%, 60%, 100%': { transform: 'scale(1.1)' },
+                                '40%': { transform: 'scale(1.15)' },
+                                '80%': { transform: 'scale(1.05)' }
+                              }
+                            }}
+                          />
+                        </Fade>
                         {/* ⚡ SMART PROTOCOL CHECK BUTTON - zobrazuje sa len ak je potrebné */}
                         {isLoadingProtocolStatus ? (
                           <Chip
@@ -3618,60 +3663,86 @@ export default function RentalList() {
                       overflow: 'hidden'
                     }}>
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                        <Chip
-                          size="small"
-                          label="🚗→"
-                          title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (hasHandover) {
-                              handleOpenProtocolMenu(rental, 'handover');
-                            }
-                            // Do nothing if protocol doesn't exist
-                          }}
-                          sx={{
-                            height: 28,
-                            width: 42,
-                            fontSize: '0.8rem',
-                            bgcolor: hasHandover ? '#4caf50' : '#ccc',
-                            color: 'white',
-                            fontWeight: 700,
-                            cursor: hasHandover ? 'pointer' : 'default',
-                            '&:hover': hasHandover ? {
-                              bgcolor: '#388e3c',
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
-                            } : {},
-                            transition: 'all 0.2s ease'
-                          }}
-                        />
-                        <Chip
-                          size="small"
-                          label="←🚗"
-                          title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (hasReturn) {
-                              handleOpenProtocolMenu(rental, 'return');
-                            }
-                            // Do nothing if protocol doesn't exist
-                          }}
-                          sx={{
-                            height: 28,
-                            width: 42,
-                            fontSize: '0.8rem',
-                            bgcolor: hasReturn ? '#4caf50' : '#ccc',
-                            color: 'white',
-                            fontWeight: 700,
-                            cursor: hasReturn ? 'pointer' : 'default',
-                            '&:hover': hasReturn ? {
-                              bgcolor: '#388e3c',
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
-                            } : {},
-                            transition: 'all 0.2s ease'
-                          }}
-                        />
+                        <Fade in timeout={600}>
+                          <Chip
+                            size="small"
+                            label="🚗→"
+                            title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (hasHandover) {
+                                handleOpenProtocolMenu(rental, 'handover');
+                              }
+                              // Do nothing if protocol doesn't exist
+                            }}
+                            sx={{
+                              height: 28,
+                              width: 42,
+                              fontSize: '0.8rem',
+                              bgcolor: hasHandover ? '#4caf50' : '#ccc',
+                              color: 'white',
+                              fontWeight: 700,
+                              cursor: hasHandover ? 'pointer' : 'default',
+                              transform: hasHandover ? 'scale(1)' : 'scale(0.95)',
+                              opacity: hasHandover ? 1 : 0.7,
+                              '&:hover': hasHandover ? {
+                                bgcolor: '#388e3c',
+                                transform: 'scale(1.15)',
+                                boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
+                                animation: 'pulse 0.8s ease'
+                              } : {
+                                transform: 'scale(0.98)',
+                                opacity: 0.8
+                              },
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              '@keyframes pulse': {
+                                '0%': { transform: 'scale(1.15)' },
+                                '50%': { transform: 'scale(1.25)' },
+                                '100%': { transform: 'scale(1.15)' }
+                              }
+                            }}
+                          />
+                        </Fade>
+                        <Fade in timeout={800}>
+                          <Chip
+                            size="small"
+                            label="←🚗"
+                            title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (hasReturn) {
+                                handleOpenProtocolMenu(rental, 'return');
+                              }
+                              // Do nothing if protocol doesn't exist
+                            }}
+                            sx={{
+                              height: 28,
+                              width: 42,
+                              fontSize: '0.8rem',
+                              bgcolor: hasReturn ? '#4caf50' : '#ccc',
+                              color: 'white',
+                              fontWeight: 700,
+                              cursor: hasReturn ? 'pointer' : 'default',
+                              transform: hasReturn ? 'scale(1)' : 'scale(0.95)',
+                              opacity: hasReturn ? 1 : 0.7,
+                              '&:hover': hasReturn ? {
+                                bgcolor: '#388e3c',
+                                transform: 'scale(1.15)',
+                                boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
+                                animation: 'pulse 0.8s ease'
+                              } : {
+                                transform: 'scale(0.98)',
+                                opacity: 0.8
+                              },
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              '@keyframes pulse': {
+                                '0%': { transform: 'scale(1.15)' },
+                                '50%': { transform: 'scale(1.25)' },
+                                '100%': { transform: 'scale(1.15)' }
+                              }
+                            }}
+                          />
+                        </Fade>
                       </Box>
                       <Typography variant="caption" sx={{ 
                         color: '#666',

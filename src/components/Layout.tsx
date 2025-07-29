@@ -58,6 +58,7 @@ import { useThemeMode } from '../context/ThemeContext';
 import ChangePasswordForm from './auth/ChangePasswordForm';
 import UserProfile from './users/UserProfile';
 import { ErrorToast } from './common/ErrorToast';
+import { SuccessToast } from './common/SuccessToast';
 import { EnhancedError } from '../utils/errorHandling';
 
 const drawerWidth = 280;
@@ -89,6 +90,10 @@ export default function Layout({ children }: LayoutProps) {
   // 🛡️ Error handling state
   const [currentError, setCurrentError] = useState<EnhancedError | null>(null);
   
+  // 🎉 Success feedback state
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [successStats, setSuccessStats] = useState<{ count?: number; duration?: number } | undefined>(undefined);
+  
   // Error handling functions
   const handleError = (error: EnhancedError) => {
     setCurrentError(error);
@@ -103,6 +108,31 @@ export default function Layout({ children }: LayoutProps) {
     // This is just for UI feedback
     console.log('🔄 Retry requested from ErrorToast');
   };
+  
+  // Success handling functions
+  const handleSuccess = (message: string, stats?: { count?: number; duration?: number }) => {
+    setSuccessMessage(message);
+    setSuccessStats(stats);
+  };
+  
+  const handleSuccessClose = () => {
+    setSuccessMessage(null);
+    setSuccessStats(undefined);
+  };
+  
+  // Listen for global success toast events
+  React.useEffect(() => {
+    const handleSuccessEvent = (event: CustomEvent) => {
+      const { message, stats, icon } = event.detail;
+      handleSuccess(message, stats);
+    };
+
+    window.addEventListener('showSuccessToast', handleSuccessEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener('showSuccessToast', handleSuccessEvent as EventListener);
+    };
+  }, []);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -926,6 +956,14 @@ export default function Layout({ children }: LayoutProps) {
         error={currentError}
         onClose={handleErrorClose}
         onRetry={handleErrorRetry}
+      />
+
+      {/* 🎉 Global Success Toast */}
+      <SuccessToast
+        message={successMessage}
+        onClose={handleSuccessClose}
+        showStats={successStats}
+        icon="check"
       />
     </Box>
   );
