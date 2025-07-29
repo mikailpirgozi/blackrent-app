@@ -58,7 +58,12 @@ export default function ProtocolGallery({
         description: img.description
       })) || []
     });
-  }, [open, images, videos, title]);
+    console.log('🔍 ProtocolGallery state:', {
+      open,
+      isFullscreen,
+      dialogShouldOpen: open && !isFullscreen
+    });
+  }, [open, images, videos, title, isFullscreen]);
 
   const allMedia = [...(images || []), ...(videos || [])];
   const totalCount = allMedia.length;
@@ -180,7 +185,11 @@ export default function ProtocolGallery({
       {/* Grid Gallery Modal */}
       <Dialog
         open={open && !isFullscreen}
-        onClose={onClose}
+        onClose={() => {
+          console.log('🚪 Dialog onClose triggered!');
+          console.trace('🔍 Dialog close stack trace:');
+          onClose();
+        }}
         maxWidth="lg"
         fullWidth
         PaperProps={{
