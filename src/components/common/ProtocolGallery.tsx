@@ -84,6 +84,8 @@ export default function ProtocolGallery({
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!open) return;
     
+    console.log('🎹 ProtocolGallery keyboard event:', event.key, 'open:', open);
+    
     switch (event.key) {
       case 'ArrowLeft':
         handlePrevious();
@@ -92,6 +94,7 @@ export default function ProtocolGallery({
         handleNext();
         break;
       case 'Escape':
+        console.log('🚪 Escape pressed - closing gallery');
         onClose();
         break;
       case '+':
@@ -107,7 +110,7 @@ export default function ProtocolGallery({
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open]);
+  }, [open, onClose, handlePrevious, handleNext, setZoom]);
 
   // Helper function to convert R2 URL to proxy URL
   const getProxyUrl = (r2Url: string | undefined): string => {

@@ -944,6 +944,11 @@ export default function RentalList() {
       
       console.log('️ Gallery state set, should open now');
       
+      // Close protocol menu after gallery is successfully opened - delayed to prevent re-render issues
+      setTimeout(() => {
+        handleCloseProtocolMenu();
+      }, 100);
+      
     } catch (error) {
       console.error('❌ Error opening gallery:', error);
       alert('Chyba pri otváraní galérie: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
@@ -955,6 +960,7 @@ export default function RentalList() {
 
   const handleCloseGallery = () => {
     console.log('🖼️ Closing gallery');
+    console.trace('🔍 Gallery close stack trace:');
     setGalleryOpen(false);
     setGalleryImages([]);
     setGalleryVideos([]);
@@ -988,7 +994,7 @@ export default function RentalList() {
     if (selectedProtocolRental && selectedProtocolType) {
       handleOpenGallery(selectedProtocolRental, selectedProtocolType);
     }
-    handleCloseProtocolMenu();
+    // REMOVED: handleCloseProtocolMenu(); - now handled in handleOpenGallery
   };
 
   // New function to check all protocols for a rental
