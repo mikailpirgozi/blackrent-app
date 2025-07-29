@@ -95,6 +95,21 @@ export interface Rental {
     vehicleCode?: string;
     vehicleName?: string;
     company?: string;
+    rentalType?: 'standard' | 'flexible' | 'priority';
+    isFlexible?: boolean;
+    flexibleEndDate?: Date;
+    flexibleSettings?: {
+        canBeOverridden: boolean;
+        overridePriority: number;
+        notificationThreshold: number;
+        autoExtend: boolean;
+    };
+    overrideHistory?: {
+        date: Date;
+        reason: string;
+        newRentalId: string;
+        userId: string;
+    }[];
 }
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';
 export interface Expense {

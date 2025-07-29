@@ -943,8 +943,8 @@ export default function VehicleListNew() {
                         </IconButton>
                       </Can>
                       
-                      {/* Ownership History Button */}
-                      <IconButton
+                      {/* DEAKTIVOVANÉ - Transfer vlastníctva sa nepoužíva */}
+                      {/* <IconButton
                         size="small"
                         title="História transferov vlastníctva"
                         onClick={(e) => {
@@ -965,7 +965,7 @@ export default function VehicleListNew() {
                         }}
                       >
                         <HistoryIcon fontSize="small" />
-                      </IconButton>
+                      </IconButton> */}
                       
                       {/* Delete Button */}
                       <Can delete="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>

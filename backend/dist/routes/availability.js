@@ -70,17 +70,23 @@ router.get('/calendar', auth_1.authenticateToken, async (req, res) => {
                 return unavailabilityStart <= date && unavailabilityEnd >= date;
             });
             const vehicleAvailability = vehicles.map(vehicle => {
-                const isRented = dayRentals.some(rental => rental.vehicleId === vehicle.id);
                 const rental = dayRentals.find(r => r.vehicleId === vehicle.id);
+                const isRented = !!rental;
+                // 🔄 NOVÉ: Detekcia flexibilného prenájmu
+                const isFlexible = rental?.isFlexible || rental?.rentalType === 'flexible';
                 // Check if vehicle has unavailability on this date
                 const unavailability = dayUnavailabilities.find(u => u.vehicleId === vehicle.id);
                 let status = 'available';
                 let additionalData = {};
                 if (isRented) {
-                    status = 'rented';
+                    // 🔄 NOVÉ: Flexibilné prenájmy majú iný status
+                    status = isFlexible ? 'flexible' : 'rented';
                     additionalData = {
                         rentalId: rental?.id || null,
-                        customerName: rental?.customerName || null
+                        customerName: rental?.customerName || null,
+                        isFlexible: isFlexible,
+                        rentalType: rental?.rentalType || 'standard',
+                        overridePriority: rental?.flexibleSettings?.overridePriority || 5
                     };
                 }
                 else if (unavailability) {

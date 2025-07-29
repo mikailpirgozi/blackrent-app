@@ -114,7 +114,8 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
     try {
         console.log('📝 Received handover protocol request');
         const protocolData = req.body;
-        console.log('📝 Creating handover protocol with data:', JSON.stringify(protocolData, null, 2));
+        const quickMode = req.query.mode === 'quick'; // 🚀 QUICK MODE detection
+        console.log(`📝 Creating handover protocol${quickMode ? ' (QUICK MODE)' : ''} with data:`, JSON.stringify(protocolData, null, 2));
         // Validácia povinných polí
         if (!protocolData.rentalId) {
             console.error('❌ Missing rental ID');
@@ -128,32 +129,58 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
         // 1. Uloženie protokolu do databázy
         const protocol = await postgres_database_1.postgresDatabase.createHandoverProtocol(protocolData);
         console.log('✅ Handover protocol created in DB:', protocol.id);
-        // 2. 🎭 PDF generovanie + upload do R2
         let pdfUrl = null;
-        try {
-            console.log('🎭 Generating PDF for protocol:', protocol.id);
-            const pdfBuffer = await (0, pdf_generator_1.generateHandoverPDF)(protocolData);
-            // 3. Uloženie PDF do R2 storage
-            const filename = `protocols/handover/${protocol.id}_${Date.now()}.pdf`;
-            pdfUrl = await r2_storage_1.r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
-            console.log('✅ PDF generated and uploaded to R2:', pdfUrl);
-            // 4. Aktualizácia protokolu s PDF URL
-            await postgres_database_1.postgresDatabase.updateHandoverProtocol(protocol.id, { pdfUrl });
+        if (quickMode) {
+            // 🚀 QUICK MODE: Len uloženie do DB, PDF na pozadí
+            console.log('⚡ QUICK MODE: Skipping immediate PDF generation');
+            // Background PDF generation (fire and forget)
+            setImmediate(async () => {
+                try {
+                    console.log('🎭 Background: Starting PDF generation for protocol:', protocol.id);
+                    const pdfBuffer = await (0, pdf_generator_1.generateHandoverPDF)(protocolData);
+                    // Uloženie PDF do R2 storage
+                    const filename = `protocols/handover/${protocol.id}_${Date.now()}.pdf`;
+                    const backgroundPdfUrl = await r2_storage_1.r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
+                    // Aktualizácia protokolu s PDF URL
+                    await postgres_database_1.postgresDatabase.updateHandoverProtocol(protocol.id, { pdfUrl: backgroundPdfUrl });
+                    console.log('✅ Background: PDF generated and uploaded:', backgroundPdfUrl);
+                }
+                catch (pdfError) {
+                    console.error('❌ Background PDF generation failed:', pdfError);
+                    // V prípade chyby, protokol zostane bez PDF
+                }
+            });
+            // Pre quick mode, vráti proxy URL hneď (aj keď PDF ešte nie je ready)
+            pdfUrl = `/protocols/pdf/${protocol.id}`;
         }
-        catch (pdfError) {
-            console.error('❌ Error generating PDF, but protocol saved:', pdfError);
-            // Protokol je uložený, ale PDF sa nepodarilo vytvoriť
+        else {
+            // 2. 🎭 STANDARD MODE: PDF generovanie + upload do R2 (blocking)
+            try {
+                console.log('🎭 Standard: Generating PDF for protocol:', protocol.id);
+                const pdfBuffer = await (0, pdf_generator_1.generateHandoverPDF)(protocolData);
+                // 3. Uloženie PDF do R2 storage
+                const filename = `protocols/handover/${protocol.id}_${Date.now()}.pdf`;
+                pdfUrl = await r2_storage_1.r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
+                console.log('✅ Standard: PDF generated and uploaded to R2:', pdfUrl);
+                // 4. Aktualizácia protokolu s PDF URL
+                await postgres_database_1.postgresDatabase.updateHandoverProtocol(protocol.id, { pdfUrl });
+            }
+            catch (pdfError) {
+                console.error('❌ Error generating PDF, but protocol saved:', pdfError);
+                // Protokol je uložený, ale PDF sa nepodarilo vytvoriť
+            }
         }
-        console.log('✅ Handover protocol created successfully:', protocol.id);
+        console.log(`✅ Handover protocol created successfully${quickMode ? ' (QUICK)' : ''}:`, protocol.id);
         res.status(201).json({
             success: true,
-            message: 'Odovzdávací protokol úspešne vytvorený',
+            message: quickMode ? 'Odovzdávací protokol rýchlo uložený, PDF sa generuje na pozadí' : 'Odovzdávací protokol úspešne vytvorený',
             protocol: {
                 ...protocol,
-                pdfUrl,
+                pdfUrl: quickMode ? null : pdfUrl, // V quick mode PDF URL nie je hneď dostupné 
                 // 🎯 FRONTEND proxy URL namiesto priameho R2 URL (bez /api prefix)
-                pdfProxyUrl: pdfUrl ? `/protocols/pdf/${protocol.id}` : null
-            }
+                pdfProxyUrl: quickMode ? `/protocols/pdf/${protocol.id}` : (pdfUrl ? `/protocols/pdf/${protocol.id}` : null)
+            },
+            quickMode // Inform frontend about the mode
         });
     }
     catch (error) {
