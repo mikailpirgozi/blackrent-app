@@ -890,6 +890,85 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         }}
       />
 
+      {/* 🔄 NOVÉ: Filter tlačidlo */}
+      <Box sx={{ mb: { xs: 1, sm: 1.5 }, display: 'flex', justifyContent: 'center' }}>
+        <Button
+          size={isSmallMobile ? "small" : "medium"}
+          onClick={toggleFilters}
+          variant="outlined"
+          startIcon={<FilterIcon fontSize={isSmallMobile ? "small" : "medium"} />}
+          sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+        >
+          Filtre {showFilters ? '▲' : '▼'}
+        </Button>
+      </Box>
+
+      {/* 🔄 NOVÉ: Filter sekcia */}
+      <Collapse in={showFilters}>
+        <Card sx={{ mb: { xs: 1.5, sm: 2 }, bgcolor: '#f5f5f5' }}>
+          <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+              🔍 Filtre dostupnosti
+            </Typography>
+            
+            <Grid container spacing={2}>
+              {/* Status filter */}
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size={isSmallMobile ? "small" : "medium"}>
+                  <InputLabel>Status vozidla</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    label="Status vozidla"
+                  >
+                    <MenuItem value="all">🌐 Všetky</MenuItem>
+                    <MenuItem value="available">🟢 Dostupné</MenuItem>
+                    <MenuItem value="rented">🔴 Obsadené</MenuItem>
+                    <MenuItem value="flexible">🟠 Flexibilné</MenuItem>
+                    <MenuItem value="maintenance">🔧 Údržba</MenuItem>
+                    <MenuItem value="service">⚙️ Servis</MenuItem>
+                    <MenuItem value="blocked">🚫 Blokované</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Brand filter */}
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size={isSmallMobile ? "small" : "medium"}>
+                  <InputLabel>Značka</InputLabel>
+                  <Select
+                    value={brandFilter}
+                    onChange={(e) => setBrandFilter(e.target.value)}
+                    label="Značka"
+                  >
+                    <MenuItem value="all">🌐 Všetky značky</MenuItem>
+                    {uniqueBrands.map(brand => (
+                      <MenuItem key={brand} value={brand}>
+                        🚗 {brand}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Reset button */}
+              <Grid item xs={12}>
+                <Button
+                  fullWidth
+                  size={isSmallMobile ? "small" : "medium"}
+                  onClick={handleResetFilters}
+                  variant="outlined"
+                  startIcon={<ClearIcon />}
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                >
+                  Resetovať filtre
+                </Button>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Collapse>
+
             {/* Mobilný kalendár - horizontálne scrollovanie dní */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -1799,6 +1878,141 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
             startIcon={<DeleteIcon />}
           >
             Zmazať
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
+
+    {/* 🔄 NOVÉ: Rental Details Dialog */}
+    <Dialog 
+      open={rentalDetailsOpen} 
+      onClose={handleCloseRentalDetails}
+      maxWidth="md"
+      fullWidth
+    >
+      <DialogTitle sx={{ pb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box>
+            📋 Detail prenájmu
+          </Box>
+          {selectedRental?.isFlexible && (
+            <Chip
+              label="FLEXIBILNÝ"
+              size="small"
+              sx={{
+                bgcolor: '#ff9800',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: '0.75rem'
+              }}
+            />
+          )}
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        {loadingRentalDetails ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <CircularProgress />
+            <Typography sx={{ ml: 2 }}>Načítavam detail prenájmu...</Typography>
+          </Box>
+        ) : selectedRental ? (
+          <Grid container spacing={3}>
+            {/* Základné informácie */}
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#1976d2' }}>
+                👤 Zákazník
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography><strong>Meno:</strong> {selectedRental.customerName}</Typography>
+                <Typography><strong>Objednávka:</strong> {selectedRental.orderNumber || 'N/A'}</Typography>
+                <Typography><strong>Status:</strong> 
+                  <Chip 
+                    size="small" 
+                    label={selectedRental.status?.toUpperCase() || 'NEZNÁMY'}
+                    color={selectedRental.status === 'active' ? 'success' : 'default'}
+                    sx={{ ml: 1 }}
+                  />
+                </Typography>
+              </Box>
+            </Grid>
+
+            {/* Dátumy */}
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#1976d2' }}>
+                📅 Termíny
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography><strong>Od:</strong> {selectedRental.startDate ? format(new Date(selectedRental.startDate), 'dd.MM.yyyy', { locale: sk }) : 'N/A'}</Typography>
+                <Typography><strong>Do:</strong> {selectedRental.endDate ? format(new Date(selectedRental.endDate), 'dd.MM.yyyy', { locale: sk }) : 'N/A'}</Typography>
+                {selectedRental.isFlexible && selectedRental.flexibleEndDate && (
+                  <Typography sx={{ color: '#ff9800' }}>
+                    <strong>🟠 Odhadovaný koniec:</strong> {format(new Date(selectedRental.flexibleEndDate), 'dd.MM.yyyy', { locale: sk })}
+                  </Typography>
+                )}
+              </Box>
+            </Grid>
+
+            {/* Flexibilné nastavenia */}
+            {selectedRental.isFlexible && (
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#ff9800' }}>
+                  🟠 Flexibilné nastavenia
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography><strong>Typ prenájmu:</strong> {selectedRental.rentalType?.toUpperCase() || 'FLEXIBLE'}</Typography>
+                    <Typography><strong>Priorita prepísania:</strong> {selectedRental.flexibleSettings?.overridePriority || 5}/10</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography><strong>Možno prepísať:</strong> {selectedRental.flexibleSettings?.canBeOverridden ? '✅ Áno' : '❌ Nie'}</Typography>
+                    <Typography><strong>Automatické predĺženie:</strong> {selectedRental.flexibleSettings?.autoExtend ? '✅ Áno' : '❌ Nie'}</Typography>
+                  </Grid>
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Finančné informácie */}
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#1976d2' }}>
+                💰 Financie
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography><strong>Celková cena:</strong> {selectedRental.totalPrice?.toFixed(2) || '0.00'} €</Typography>
+                <Typography><strong>Záloha:</strong> {selectedRental.deposit?.toFixed(2) || '0.00'} €</Typography>
+                <Typography><strong>Zaplatené:</strong> {selectedRental.paid ? '✅ Áno' : '❌ Nie'}</Typography>
+                <Typography><strong>Spôsob platby:</strong> {selectedRental.paymentMethod || 'N/A'}</Typography>
+              </Box>
+            </Grid>
+
+            {/* Dodatočné informácie */}
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#1976d2' }}>
+                🚗 Prenájom
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography><strong>Místo odovzdania:</strong> {selectedRental.handoverPlace || 'N/A'}</Typography>
+                <Typography><strong>Povolené km:</strong> {selectedRental.allowedKilometers || 'N/A'}</Typography>
+                <Typography><strong>Denné km:</strong> {selectedRental.dailyKilometers || 'N/A'}</Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        ) : (
+          <Typography>Prenájom sa nenašiel.</Typography>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleCloseRentalDetails}>
+          Zavrieť
+        </Button>
+        {selectedRental && (
+          <Button 
+            variant="contained" 
+            onClick={() => {
+              // Tu by sme mohli pridať navigáciu na editáciu prenájmu
+              console.log('Edit rental:', selectedRental.id);
+            }}
+          >
+            Upraviť prenájom
           </Button>
         )}
       </DialogActions>
