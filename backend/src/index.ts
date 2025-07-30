@@ -92,6 +92,7 @@ import insuranceClaimRoutes from './routes/insurance-claims';
 import permissionRoutes from './routes/permissions';
 import adminRoutes from './routes/admin';
 import bulkRoutes from './routes/bulk';
+import cleanupRoutes from './routes/cleanup';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -113,6 +114,7 @@ app.use('/api/insurance-claims', insuranceClaimRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/bulk', bulkRoutes);
+app.use('/api/cleanup', cleanupRoutes);
 
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {
