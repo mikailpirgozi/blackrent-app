@@ -161,7 +161,7 @@ router.get('/analyze', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Database analysis failed',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -243,7 +243,7 @@ router.post('/safe-cleanup', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Safe cleanup failed',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -281,7 +281,7 @@ router.get('/database-size', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Database size analysis failed',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 });
