@@ -317,13 +317,33 @@ export default function SerialPhotoCapture({
         }
 
         // Okamžitý upload na R2 ak je povolený
+        console.log('🔍 R2 UPLOAD CHECK:', {
+          autoUploadToR2,
+          entityId,
+          hasEntityId: !!entityId,
+          willUseR2: autoUploadToR2 && entityId,
+          filename: processedFile.name
+        });
+        
         let url: string;
         if (autoUploadToR2 && entityId) {
+          console.log('✅ STARTING R2 UPLOAD:', processedFile.name);
           setUploadingToR2(true);
           setUploadProgress((processedCount / files.length) * 100);
-          url = await uploadToR2(processedFile, isVideo ? 'video' : 'image');
+          try {
+            url = await uploadToR2(processedFile, isVideo ? 'video' : 'image');
+            console.log('✅ R2 UPLOAD SUCCESS:', url);
+          } catch (error) {
+            console.error('❌ R2 UPLOAD FAILED, falling back to base64:', error);
+            url = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.readAsDataURL(processedFile);
+            });
+          }
           setUploadingToR2(false);
         } else {
+          console.log('⚠️ USING BASE64 FALLBACK - R2 conditions not met');
           // Fallback na base64
           url = await new Promise<string>((resolve) => {
             const reader = new FileReader();
