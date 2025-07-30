@@ -24,8 +24,10 @@ router.get('/analyze', authenticateToken, async (req, res) => {
         id, 
         created_at,
         vehicle_images_urls,
-        pdf_url,
-        pdf_data
+        vehicle_videos_urls,
+        document_images_urls,
+        damage_images_urls,
+        pdf_url
       FROM handover_protocols 
       ORDER BY created_at DESC
     `;
@@ -54,38 +56,42 @@ router.get('/analyze', authenticateToken, async (req, res) => {
       let imageSize = 0;
       let pdfSize = 0;
       
-      // Analyze images
-      if (protocol.vehicle_images_urls) {
-        let images;
-        try {
-          images = JSON.parse(protocol.vehicle_images_urls);
-        } catch (e) {
-          images = [];
-        }
-        
-        if (Array.isArray(images)) {
-          for (const img of images) {
-            if (img.url) {
-              if (img.url.startsWith('data:')) {
-                hasBase64Images = true;
-                const size = analyzeBase64Size(img.url);
-                imageSize += size;
-                totalBase64ImageSize += size;
-              } else if (img.url.includes('r2.dev') || img.url.includes('cloudflare')) {
-                hasR2Images = true;
+      // Analyze all media columns
+      const mediaColumns = [
+        'vehicle_images_urls',
+        'vehicle_videos_urls', 
+        'document_images_urls',
+        'damage_images_urls'
+      ];
+      
+      for (const columnName of mediaColumns) {
+        if (protocol[columnName]) {
+          let mediaArray;
+          try {
+            mediaArray = JSON.parse(protocol[columnName]);
+          } catch (e) {
+            mediaArray = [];
+          }
+          
+          if (Array.isArray(mediaArray)) {
+            for (const media of mediaArray) {
+              if (media.url) {
+                if (media.url.startsWith('data:')) {
+                  hasBase64Images = true;
+                  const size = analyzeBase64Size(media.url);
+                  imageSize += size;
+                  totalBase64ImageSize += size;
+                } else if (media.url.includes('r2.dev') || media.url.includes('cloudflare')) {
+                  hasR2Images = true;
+                }
               }
             }
           }
         }
       }
       
-      // Analyze PDF
-      if (protocol.pdf_data && protocol.pdf_data.startsWith('data:')) {
-        hasBase64PDF = true;
-        const size = analyzeBase64Size(protocol.pdf_data);
-        pdfSize += size;
-        totalBase64PDFSize += size;
-      } else if (protocol.pdf_url && (protocol.pdf_url.includes('r2.dev') || protocol.pdf_url.includes('cloudflare'))) {
+      // Analyze PDF URL (PDF data is now stored as R2 URLs, not base64)
+      if (protocol.pdf_url && (protocol.pdf_url.includes('r2.dev') || protocol.pdf_url.includes('cloudflare'))) {
         hasR2PDF = true;
       }
       
