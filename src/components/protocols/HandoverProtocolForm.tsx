@@ -340,13 +340,15 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       console.log('🧹 Cleaned handover protocol for DB:', cleanedProtocol);
 
       // 🚀 QUICK SAVE: Uloženie protokolu s flag-om pre background PDF
-      const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001';
+      const apiBaseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
+        : 'http://localhost:3001/api';
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
       console.log('⚡ QUICK SAVE: Sending protocol data...');
       const quickSaveStart = Date.now();
       
-      const response = await fetch(`${apiBaseUrl}/api/protocols/handover?mode=quick`, {
+      const response = await fetch(`${apiBaseUrl}/protocols/handover?mode=quick`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
