@@ -1956,7 +1956,8 @@ export class PostgresDatabase {
                customer_name, created_at, order_number, deposit, 
                allowed_kilometers, daily_kilometers, handover_place,
                rental_type, is_flexible, flexible_end_date, can_be_overridden,
-               override_priority, notification_threshold, auto_extend, override_history
+               override_priority, notification_threshold, auto_extend, override_history,
+               company
         FROM rentals 
         WHERE (start_date <= $2 AND end_date >= $1)
         ORDER BY start_date ASC
@@ -1986,6 +1987,8 @@ export class PostgresDatabase {
             allowedKilometers: row.allowed_kilometers || undefined,
             dailyKilometers: row.daily_kilometers || undefined,
             handoverPlace: row.handover_place || undefined,
+            // 🏢 COMPANY SNAPSHOT: Historical company field
+            company: row.company || 'Neznáma firma',
             // 🔄 NOVÉ: Flexibilné prenájmy polia
             rentalType: row.rental_type || 'standard',
             isFlexible: Boolean(row.is_flexible),
@@ -2351,7 +2354,7 @@ export class PostgresDatabase {
     try {
       console.log('🔍 getRental called for ID:', id);
       const result = await client.query(`
-        SELECT r.*, v.brand, v.model, v.license_plate, v.company 
+        SELECT r.*, v.brand, v.model, v.license_plate, v.company as vehicle_company 
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
         WHERE r.id = $1
@@ -2388,6 +2391,8 @@ export class PostgresDatabase {
         history: row.history ? (typeof row.history === 'string' ? JSON.parse(row.history) : row.history) : undefined,
         orderNumber: row.order_number,
         createdAt: new Date(row.created_at),
+        // 🏢 COMPANY SNAPSHOT: Historical company field  
+        company: row.company || 'Neznáma firma',
         // Rozšírené polia
         deposit: row.deposit ? parseFloat(row.deposit) : undefined,
         allowedKilometers: row.allowed_kilometers || undefined,
@@ -2407,7 +2412,7 @@ export class PostgresDatabase {
           brand: row.brand,
           model: row.model,
           licensePlate: row.license_plate,
-          company: row.company || 'N/A',
+          company: row.vehicle_company || 'N/A',
           pricing: [],
           commission: { type: 'percentage', value: 0 },
           status: 'available'
