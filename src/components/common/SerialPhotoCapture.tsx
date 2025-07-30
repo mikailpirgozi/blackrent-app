@@ -394,12 +394,43 @@ export default function SerialPhotoCapture({
   }, [capturedMedia, maxImages, maxVideos, allowedTypes, compressImages, compressVideos, autoUploadToR2, entityId, rapidMode]);
 
   // Handler pre natívnu kameru
-  const handleNativeCapture = useCallback((imageBlob: Blob) => {
+  const handleNativeCapture = useCallback(async (imageBlob: Blob) => {
     // Konvertuj Blob na File
     const file = new File([imageBlob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
     
-    // Vytvor preview URL
-    const preview = URL.createObjectURL(imageBlob);
+    // Vytvor dočasný preview URL
+    let preview = URL.createObjectURL(imageBlob);
+    
+    console.log('📸 Native camera capture - R2 upload check:', {
+      autoUploadToR2,
+      entityId,
+      hasEntityId: !!entityId,
+      willUploadToR2: autoUploadToR2 && entityId,
+      filename: file.name,
+      size: file.size
+    });
+    
+    // Okamžitý upload na R2 ak je povolený
+    if (autoUploadToR2 && entityId) {
+      console.log('🚀 NATIVE CAMERA: Starting R2 upload for:', file.name);
+      setUploadingToR2(true);
+      
+      try {
+        const r2Url = await uploadToR2(file, 'image');
+        console.log('✅ NATIVE CAMERA: R2 upload success:', r2Url);
+        
+        // Zruš dočasný blob URL a použij R2 URL
+        URL.revokeObjectURL(preview);
+        preview = r2Url;
+      } catch (error) {
+        console.error('❌ NATIVE CAMERA: R2 upload failed, using blob URL:', error);
+        // Ponechaj blob URL ako fallback
+      }
+      
+      setUploadingToR2(false);
+    } else {
+      console.log('⚠️ NATIVE CAMERA: Using blob URL (R2 conditions not met)');
+    }
     
     // Vytvor media objekt
     const media: CapturedMedia = {
@@ -408,7 +439,7 @@ export default function SerialPhotoCapture({
       type: 'image',
       mediaType: allowedTypes[0], // Default type
       description: '',
-      preview: preview,
+      preview: preview, // Buď R2 URL alebo blob URL
       timestamp: new Date(),
       compressed: false,
       originalSize: imageBlob.size,
@@ -419,7 +450,7 @@ export default function SerialPhotoCapture({
     // Pridaj do capturedMedia
     setCapturedMedia(prev => [...prev, media]);
     console.log('✅ Fotka z natívnej kamery pridaná', media);
-  }, [allowedTypes]);
+  }, [allowedTypes, autoUploadToR2, entityId, uploadToR2]);
 
   const handleMediaTypeChange = (id: string, type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer') => {
     setCapturedMedia(prev => 
