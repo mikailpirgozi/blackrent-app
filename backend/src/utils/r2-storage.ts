@@ -1,5 +1,7 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface R2Config {
   endpoint: string;
@@ -35,7 +37,7 @@ class R2Storage {
   }
 
   /**
-   * Upload súboru do R2 storage
+   * Upload súboru do R2 storage (s lokálnym fallbackom pre development)
    */
   async uploadFile(
     key: string,
@@ -43,6 +45,11 @@ class R2Storage {
     contentType: string,
     metadata?: Record<string, string>
   ): Promise<string> {
+    // Ak R2 nie je nakonfigurované, použi lokálne storage
+    if (!this.isConfigured()) {
+      return await this.uploadFileLocally(key, buffer, contentType);
+    }
+
     try {
       const command = new PutObjectCommand({
         Bucket: this.config.bucketName,
@@ -58,7 +65,42 @@ class R2Storage {
       return `${this.config.publicUrl}/${key}`;
     } catch (error) {
       console.error('R2 upload error:', error);
-      throw new Error(`Failed to upload file: ${error}`);
+      // Fallback na lokálne storage
+      console.log('📁 Falling back to local file storage');
+      return await this.uploadFileLocally(key, buffer, contentType);
+    }
+  }
+
+  /**
+   * Lokálne file storage pre development
+   */
+  private async uploadFileLocally(
+    key: string,
+    buffer: Buffer,
+    contentType: string
+  ): Promise<string> {
+    try {
+      // Vytvor lokálny storage adresár
+      const storageDir = path.join(process.cwd(), 'local-storage');
+      const filePath = path.join(storageDir, key);
+      const fileDir = path.dirname(filePath);
+
+      // Vytvor adresáre ak neexistujú
+      if (!fs.existsSync(fileDir)) {
+        fs.mkdirSync(fileDir, { recursive: true });
+      }
+
+      // Ulož súbor
+      fs.writeFileSync(filePath, buffer);
+      
+      // Vráť lokálny URL endpoint
+      const localUrl = `http://localhost:${process.env.PORT || 3001}/local-storage/${key}`;
+      console.log('📁 Local file stored:', localUrl);
+      
+      return localUrl;
+    } catch (error) {
+      console.error('❌ Local storage error:', error);
+      throw new Error(`Failed to store file locally: ${error}`);
     }
   }
 

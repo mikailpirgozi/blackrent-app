@@ -342,8 +342,15 @@ export default function RentalListNew() {
 
   // Funkcia pre zobrazenie protokolov na požiadanie
   const handleViewProtocols = async (rental: Rental) => {
+    console.log('🔍 Checking protocols for rental:', rental.id, {
+      hasProtocols: !!protocols[rental.id],
+      protocolKeys: Object.keys(protocols),
+      currentProtocol: protocols[rental.id]
+    });
+    
     // Ak už sú protokoly načítané, nechaj ich zobrazené
     if (protocols[rental.id]) {
+      console.log('✅ Protocols already loaded, skipping API call');
       return;
     }
     
@@ -1085,9 +1092,18 @@ export default function RentalListNew() {
   };
 
   // Protocol menu handlers
-  const handleOpenProtocolMenu = (rental: Rental, protocolType: 'handover' | 'return') => {
+  const handleOpenProtocolMenu = async (rental: Rental, protocolType: 'handover' | 'return') => {
+    console.log('🔄 Opening protocol menu for rental:', rental.id, 'type:', protocolType);
+    
     setSelectedProtocolRental(rental);
     setSelectedProtocolType(protocolType);
+    
+    // ⚡ Najprv načítaj protokoly, POTOM otvor menu
+    console.log('📋 Loading protocols before opening menu...');
+    await handleViewProtocols(rental);
+    
+    // Menu sa otvorí až po načítaní protokolov
+    console.log('✅ Protocols loaded, opening menu now');
     setProtocolMenuOpen(true);
   };
 
@@ -1106,12 +1122,62 @@ export default function RentalListNew() {
     console.log('📋 Protocol menu state reset completed');
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
+    console.log('🔍 PDF DOWNLOAD: Starting...', {selectedProtocolRental, selectedProtocolType});
+    console.log('🔍 PDF DOWNLOAD: All protocols:', protocols);
+    console.log('🔍 PDF DOWNLOAD: Protocols for rental:', selectedProtocolRental?.id ? protocols[selectedProtocolRental.id] : 'No rental ID');
+    
     if (selectedProtocolRental && selectedProtocolType) {
       const protocol = protocols[selectedProtocolRental.id]?.[selectedProtocolType];
-      if (protocol?.pdfUrl) {
-        window.open(protocol.pdfUrl, '_blank');
+      console.log('🔍 PDF DOWNLOAD: Protocol found:', protocol);
+      
+      if (protocol) {
+        try {
+          const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+          console.log('🔍 PDF DOWNLOAD: Token exists:', !!token, token ? `${token.substring(0, 20)}...` : 'null');
+          
+          let pdfUrl: string;
+          
+          if (protocol.pdfUrl) {
+            // Ak má pdfUrl, otvor priamo
+            console.log('✅ PDF DOWNLOAD: Using direct pdfUrl:', protocol.pdfUrl);
+            pdfUrl = protocol.pdfUrl;
+            window.open(pdfUrl, '_blank');
+          } else {
+            // Ak nemá pdfUrl, použij authenticated fetch pre generovanie PDF na požiadanie
+            const proxyUrl = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/protocols/pdf/${protocol.id}`;
+            console.log('⚡ PDF DOWNLOAD: Using proxy URL:', proxyUrl);
+            
+            const response = await fetch(proxyUrl, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            console.log('📡 PDF DOWNLOAD: Response status:', response.status, response.statusText);
+            
+            if (response.ok) {
+              const blob = await response.blob();
+              console.log('✅ PDF DOWNLOAD: Blob created, size:', blob.size);
+              const url = URL.createObjectURL(blob);
+              window.open(url, '_blank');
+              // Vyčisti URL po otvori
+              setTimeout(() => URL.revokeObjectURL(url), 100);
+              console.log('✅ PDF DOWNLOAD: Success!');
+            } else {
+              console.error('❌ Chyba pri načítaní PDF:', response.status, response.statusText);
+              alert('Chyba pri otváraní PDF protokolu: ' + response.status);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Chyba pri otváraní PDF:', error);
+          alert('Chyba pri otváraní PDF protokolu: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
+        }
+      } else {
+        console.error('❌ PDF DOWNLOAD: No protocol found for rental:', selectedProtocolRental.id, selectedProtocolType);
       }
+    } else {
+      console.error('❌ PDF DOWNLOAD: Missing rental or type:', {selectedProtocolRental, selectedProtocolType});
     }
     handleCloseProtocolMenu();
   };

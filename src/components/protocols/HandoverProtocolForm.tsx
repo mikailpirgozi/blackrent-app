@@ -340,13 +340,13 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       console.log('🧹 Cleaned handover protocol for DB:', cleanedProtocol);
 
       // 🚀 QUICK SAVE: Uloženie protokolu s flag-om pre background PDF
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001';
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
       console.log('⚡ QUICK SAVE: Sending protocol data...');
       const quickSaveStart = Date.now();
       
-      const response = await fetch(`${apiBaseUrl}/protocols/handover?mode=quick`, {
+      const response = await fetch(`${apiBaseUrl}/api/protocols/handover?mode=quick`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -392,7 +392,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
         setTimeout(async () => {
           try {
             console.log('📄 Background PDF download starting...');
-            const pdfResponse = await fetch(`${apiBaseUrl}${result.protocol.pdfProxyUrl}`);
+            const pdfResponse = await fetch(`${apiBaseUrl}${result.protocol.pdfProxyUrl}`, {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token')}`
+              }
+            });
             if (pdfResponse.ok) {
               const pdfBlob = await pdfResponse.blob();
               const url = URL.createObjectURL(pdfBlob);
