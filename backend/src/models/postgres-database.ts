@@ -2236,7 +2236,7 @@ export class PostgresDatabase {
       }
       const result = await client.query(`
         INSERT INTO rentals (
-          vehicle_id, customer_id, customer_name, start_date, end_date, 
+          vehicle_id, customer_name, start_date, end_date, 
           total_price, commission, payment_method, discount, custom_commission, 
           extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
@@ -2244,8 +2244,8 @@ export class PostgresDatabase {
           handover_protocol_id, return_protocol_id, company,
           rental_type, is_flexible, flexible_end_date, can_be_overridden, override_priority, 
           notification_threshold, auto_extend, override_history
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40)
-        RETURNING id, vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39)
+        RETURNING id, vehicle_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
@@ -2254,7 +2254,6 @@ export class PostgresDatabase {
           notification_threshold, auto_extend, override_history
       `, [
         rentalData.vehicleId || null, 
-        rentalData.customerId || null, 
         rentalData.customerName,
         rentalData.startDate, 
         rentalData.endDate, 
@@ -2300,7 +2299,7 @@ export class PostgresDatabase {
       return {
         id: row.id.toString(),
         vehicleId: row.vehicle_id?.toString(),
-        customerId: row.customer_id?.toString(),
+        customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
         customerName: row.customer_name,
         startDate: new Date(row.start_date),
         endDate: new Date(row.end_date),
