@@ -77,6 +77,8 @@ export interface Rental {
   commission: number;
   paymentMethod: PaymentMethod;
   createdAt: Date;
+  // 🏢 CRITICAL FIX: Historická firma z času vytvorenia prenájmu (NIKDY sa nemení!)
+  company: string;
   discount?: {
     type: 'percentage' | 'fixed';
     value: number;

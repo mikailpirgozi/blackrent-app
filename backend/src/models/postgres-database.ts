@@ -3029,11 +3029,11 @@ export class PostgresDatabase {
            const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) || 
                              (rentalEnd >= fromDate && rentalEnd <= toDate) ||
                              (rentalStart <= fromDate && rentalEnd >= toDate);
-           const hasMatchingCompany = rental.vehicle?.company === company;
-           
-           if (row.id && (isInPeriod || hasMatchingCompany)) {
-             console.log(`🏠 Settlement ${row.id} - Rental ${rental.id}: Vehicle company: "${rental.vehicle?.company}", Settlement company: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
-           }
+                     const hasMatchingCompany = rental.company === company;
+          
+          if (row.id && (isInPeriod || hasMatchingCompany)) {
+            console.log(`🏠 Settlement ${row.id} - Rental ${rental.id}: Historical company: "${rental.company}", Settlement company: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
+          }
            
            return isInPeriod && hasMatchingCompany;
          });

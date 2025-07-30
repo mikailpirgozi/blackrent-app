@@ -42,10 +42,15 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "CI=false ESLINT_NO_DEV_ERRORS=true react-scripts build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "vercel-build": "CI=false ESLINT_NO_DEV_ERRORS=true react-scripts build"
+    "dev:full": "./start-dev.sh",
+    "dev:stop": "./stop-dev.sh",
+    "dev:restart": "./stop-dev.sh && sleep 2 && ./start-dev.sh",
+    "dev:status": "echo 'Backend:' && lsof -i :3001 && echo 'Frontend:' && lsof -i :3000",
+    "dev:fast": "cd backend && RUN_MIGRATIONS=false npm run dev",
+    "dev:with-migrations": "cd backend && RUN_MIGRATIONS=true npm run dev"
   },
   "eslintConfig": {
     "extends": [
