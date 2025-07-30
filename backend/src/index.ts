@@ -69,6 +69,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Static file serving pre lokálne storage
+app.use('/local-storage', express.static('local-storage'));
+
 // Import routes
 import authRoutes from './routes/auth';
 import vehicleRoutes from './routes/vehicles';

@@ -93,27 +93,48 @@ router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Protocol not found' });
     }
     
+    let pdfBuffer: ArrayBuffer;
+    
     if (!protocol.pdfUrl) {
-      console.error('❌ No PDF URL found for protocol:', protocolId);
-      return res.status(404).json({ error: 'PDF not available for this protocol' });
+      console.log('⚡ No PDF URL found, generating PDF on demand for protocol:', protocolId);
+      
+      // Generuj PDF na požiadanie
+      try {
+        let generatedPdfBuffer: Buffer;
+        if (protocolType === 'handover') {
+          generatedPdfBuffer = await generateHandoverPDF(protocol);
+        } else {
+          generatedPdfBuffer = await generateReturnPDF(protocol);
+        }
+        
+        pdfBuffer = generatedPdfBuffer.buffer.slice(
+          generatedPdfBuffer.byteOffset,
+          generatedPdfBuffer.byteOffset + generatedPdfBuffer.byteLength
+        );
+        
+        console.log('✅ PDF generated on demand successfully');
+      } catch (error) {
+        console.error('❌ Error generating PDF on demand:', error);
+        return res.status(500).json({ error: 'Failed to generate PDF' });
+      }
+    } else {
+      console.log('📄 Fetching PDF from R2:', protocol.pdfUrl);
+      
+      // Fetch PDF z R2
+      const pdfResponse = await fetch(protocol.pdfUrl);
+      
+      if (!pdfResponse.ok) {
+        console.error('❌ Failed to fetch PDF from R2:', pdfResponse.status);
+        return res.status(404).json({ error: 'PDF file not found in storage' });
+      }
+      
+      // Stream PDF do response
+      pdfBuffer = await pdfResponse.arrayBuffer();
     }
-    
-    console.log('📄 Fetching PDF from R2:', protocol.pdfUrl);
-    
-    // Fetch PDF z R2
-    const pdfResponse = await fetch(protocol.pdfUrl);
-    
-    if (!pdfResponse.ok) {
-      console.error('❌ Failed to fetch PDF from R2:', pdfResponse.status);
-      return res.status(404).json({ error: 'PDF file not found in storage' });
-    }
-    
-    // Stream PDF do response
-    const pdfBuffer = await pdfResponse.arrayBuffer();
     
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${protocolType}-protocol-${protocolId}.pdf"`,
+      'Content-Disposition': `inline; filename="${protocolType}-protocol-${protocolId}.pdf"`,
       'Content-Length': pdfBuffer.byteLength.toString()
     });
     

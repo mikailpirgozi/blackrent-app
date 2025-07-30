@@ -150,7 +150,7 @@ export function usePermissions() {
           }
         }
         return hasCompanyPermission(userCompanyAccess, user.role, resource, 'read', context).hasAccess;
-      },
+      } ,
 
       canCreate: (resource: string, context?: { companyId?: string }) => {
         // Pre company_owner - obmedzené create permissions
