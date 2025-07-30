@@ -1145,7 +1145,10 @@ export default function RentalListNew() {
             window.open(pdfUrl, '_blank');
           } else {
             // Ak nemá pdfUrl, použij authenticated fetch pre generovanie PDF na požiadanie
-            const proxyUrl = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/protocols/pdf/${protocol.id}`;
+                            const apiBaseUrl = process.env.NODE_ENV === 'production' 
+                  ? 'https://blackrent-app-production-4d6f.up.railway.app'
+                  : 'http://localhost:3001';
+                const proxyUrl = `${apiBaseUrl}/api/protocols/pdf/${protocol.id}`;
             console.log('⚡ PDF DOWNLOAD: Using proxy URL:', proxyUrl);
             
             const response = await fetch(proxyUrl, {

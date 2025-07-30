@@ -145,7 +145,10 @@ export default function VehicleListNew() {
       setSelectedVehicleHistory(vehicle);
       // Použijem fetch API namiesto private request metódy
       const token = localStorage.getItem('token');
-              const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api'}/vehicles/${vehicle.id}/ownership-history`, {
+              const apiBaseUrl = process.env.NODE_ENV === 'production' 
+          ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
+          : 'http://localhost:3001/api';
+        const response = await fetch(`${apiBaseUrl}/vehicles/${vehicle.id}/ownership-history`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

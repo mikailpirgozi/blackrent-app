@@ -45,7 +45,9 @@ export default function PDFViewer({
     
     try {
       // Najprv skús načítať protokol aby získal pdfUrl
-      const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api';
+      const apiBaseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
+      : 'http://localhost:3001/api';
       const protocolUrl = `${apiBaseUrl}/protocols/${protocolType}/${protocolId}`;
       console.log('🔍 Loading protocol from:', protocolUrl);
       

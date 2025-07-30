@@ -138,7 +138,10 @@ export default function ProtocolGallery({
         const urlParts = r2Url.split('/');
         // Zober všetky časti po doméne ako key (preskoč https:// a doménu)
         const key = urlParts.slice(3).join('/');
-        const proxyUrl = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api'}/files/proxy/${encodeURIComponent(key)}`;
+        const apiBaseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
+        : 'http://localhost:3001/api';
+      const proxyUrl = `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
         console.log('🔄 Converting R2 URL to proxy:', r2Url, '→', proxyUrl);
         return proxyUrl;
       }
