@@ -327,7 +327,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       console.log('🧹 Cleaned protocol for DB:', cleanedProtocol);
 
       // API call
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api';
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
       console.log('🚀 Sending return protocol to API...');

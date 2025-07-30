@@ -112,7 +112,7 @@ export default function SerialPhotoCapture({
 
     // ✅ NOVÝ SYSTÉM: Signed URL upload
     try {
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api';
       
       // 🚀 NOVÝ SYSTÉM: Signed URL upload
       console.log('🔄 Getting presigned URL for:', {
@@ -238,7 +238,7 @@ export default function SerialPhotoCapture({
     formData.append('mediaType', mediaType);
     formData.append('label', file.name);
 
-    const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+    const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api';
     
     const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
       method: 'POST',

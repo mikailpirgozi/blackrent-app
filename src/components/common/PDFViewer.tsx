@@ -45,7 +45,7 @@ export default function PDFViewer({
     
     try {
       // Najprv skús načítať protokol aby získal pdfUrl
-      const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+      const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api';
       const protocolUrl = `${apiBaseUrl}/protocols/${protocolType}/${protocolId}`;
       console.log('🔍 Loading protocol from:', protocolUrl);
       
@@ -91,8 +91,8 @@ export default function PDFViewer({
     // Použi rovnakú logiku ako v api.ts
     let baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app';
     
-    if (process.env.REACT_APP_API_URL) {
-      baseUrl = process.env.REACT_APP_API_URL;
+    if (process.env.REACT_APP_API_BASE_URL) {
+      baseUrl = process.env.REACT_APP_API_BASE_URL;
     } else if (window.location.hostname.includes('railway.app')) {
       baseUrl = `${window.location.origin}/api`;
     } else if (window.location.hostname === 'mikailpirgozi.github.io') {
@@ -118,8 +118,8 @@ export default function PDFViewer({
     // Fallback na generovanie
     let baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app';
     
-    if (process.env.REACT_APP_API_URL) {
-      baseUrl = process.env.REACT_APP_API_URL;
+    if (process.env.REACT_APP_API_BASE_URL) {
+      baseUrl = process.env.REACT_APP_API_BASE_URL;
     } else if (window.location.hostname.includes('railway.app')) {
       baseUrl = `${window.location.origin}/api`;
     } else if (window.location.hostname === 'mikailpirgozi.github.io') {
