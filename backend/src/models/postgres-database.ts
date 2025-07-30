@@ -5,6 +5,11 @@ import { r2Storage } from '../utils/r2-storage';
 
 export class PostgresDatabase {
   private pool: Pool;
+  
+  // Public getter for cleanup operations
+  get dbPool(): Pool {
+    return this.pool;
+  }
 
   // ⚡ PERFORMANCE CACHE: Permission caching pre getUserCompanyAccess
   private permissionCache = new Map<string, {
