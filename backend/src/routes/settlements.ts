@@ -179,10 +179,10 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
             filteredRentals.push(rental);
             console.log(`📝 Rental ${rental.id} - Current ownership match: ${currentOwner.ownerCompanyName}`);
           } else {
-            // FALLBACK 2: Legacy matching
-            if (rental.vehicle?.company === company) {
+            // FALLBACK 2: Historical company matching (FIXED!)
+            if (rental.company === company) {
               filteredRentals.push(rental);
-              console.log(`📝 Rental ${rental.id} - Legacy match: ${rental.vehicle?.company}`);
+              console.log(`📝 Rental ${rental.id} - Historical company match: ${rental.company}`);
             }
           }
         }
