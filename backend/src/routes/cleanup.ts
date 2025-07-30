@@ -44,10 +44,10 @@ const analyzeBase64Size = (data: any): number => {
   return Math.floor(base64Part.length * 0.75); // Base64 -> bytes conversion
 };
 
-// 🔍 Database cleanup analysis endpoint  
-router.get('/analyze', authenticateToken, async (req, res) => {
+// 🔍 Database cleanup analysis endpoint v2.0 (FIXED)
+router.get('/analyze', authenticateToken, async (req, res) => {  
   try {
-    console.log('🔍 Starting database cleanup analysis...');
+    console.log('🔍 Starting database cleanup analysis v2.0...');
     
     // Get all handover protocols
     const query = `
