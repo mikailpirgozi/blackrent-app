@@ -1,6 +1,9 @@
 import express from 'express';
 import multer from 'multer';
 import { r2Storage } from '../utils/r2-storage';
+import { postgresDatabase } from '../models/postgres-database';
+import { authenticateToken } from '../middleware/auth';
+import { r2OrganizationManager, type PathVariables } from '../config/r2-organization';
 
 const router = express.Router();
 
@@ -599,63 +602,172 @@ router.post('/protocol-photo', upload.single('file'), async (req, res) => {
   }
 });
 
-// 🚀 NOVÝ ENDPOINT: Generovanie signed URL pre direct upload
-router.post('/presigned-upload', async (req, res) => {
+// 🗂️ HELPER: Získanie informácií o protokole pre organizáciu
+async function getProtocolInfo(protocolId: string, protocolType: string) {
+  const client = await postgresDatabase.dbPool.connect();
   try {
-    const { protocolId, protocolType, mediaType, filename, contentType } = req.body;
+    let query: string;
+    let tableName: string;
     
-    console.log('🔄 Generating presigned URL for:', {
+    if (protocolType === 'handover') {
+      tableName = 'handover_protocols';
+    } else if (protocolType === 'return') {
+      tableName = 'return_protocols';
+    } else {
+      throw new Error(`Neplatný typ protokolu: ${protocolType}`);
+    }
+    
+    // Získanie informácií o protokole, prenájme a vozidle
+    query = `
+      SELECT 
+        p.id as protocol_id,
+        p.rental_id,
+        p.created_at,
+        r.vehicle_id,
+        r.customer_name,
+        v.brand,
+        v.model,
+        v.license_plate,
+        v.company,
+        COALESCE(c.name, v.company, 'BlackRent') as company_name
+      FROM ${tableName} p
+      LEFT JOIN rentals r ON p.rental_id = r.id
+      LEFT JOIN vehicles v ON r.vehicle_id = v.id
+      LEFT JOIN companies c ON v.owner_company_id = c.id
+      WHERE p.id = $1::uuid
+    `;
+    
+    const result = await client.query(query, [protocolId]);
+    
+    if (result.rows.length === 0) {
+      throw new Error(`Protokol nenájdený: ${protocolId}`);
+    }
+    
+    return result.rows[0];
+  } finally {
+    client.release();
+  }
+}
+
+// 🚀 NOVÝ ENDPOINT: Generovanie signed URL s pokročilou organizáciou
+router.post('/presigned-upload', authenticateToken, async (req, res) => {
+  try {
+    const { protocolId, protocolType, mediaType, filename, contentType, category } = req.body;
+    
+    console.log('🔄 Generating organized presigned URL for:', {
       protocolId,
       protocolType,
       mediaType,
       filename,
-      contentType
+      contentType,
+      category
     });
 
-    if (!protocolId || !protocolType || !mediaType || !filename || !contentType) {
+    // Validácia povinných parametrov
+    if (!protocolId || !protocolType || !filename || !contentType) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Chýbajú povinné parametre' 
+        error: 'Chýbajú povinné parametre (protocolId, protocolType, filename, contentType)' 
       });
     }
 
-    // Validácia typu súboru
-    if (!contentType.startsWith('image/')) {
+    // Rozšírená validácia typov súborov (nie len obrázky)
+    const allowedTypes = [
+      'image/', 'video/', 'application/pdf', 
+      'application/msword', 'application/vnd.openxmlformats-officedocument'
+    ];
+    
+    if (!allowedTypes.some(type => contentType.startsWith(type))) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Len obrázky sú povolené' 
+        error: 'Nepodporovaný typ súboru. Povolené: obrázky, videá, PDF, Word dokumenty' 
       });
     }
 
-    // Generovanie file key
-    const today = new Date().toISOString().split('T')[0];
-    const fileKey = `protocols/${protocolType}/${today}/${protocolId}/${filename}`;
+    // 🔍 Získanie informácií o protokole
+    let protocolInfo;
+    try {
+      protocolInfo = await getProtocolInfo(protocolId, protocolType);
+    } catch (error) {
+      console.error('❌ Error fetching protocol info:', error);
+      return res.status(404).json({
+        success: false,
+        error: 'Protokol nenájdený v databáze',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
 
-    // Vytvorenie presigned URL (platná 5 minút)
+    // 🗂️ Príprava premenných pre organizáciu
+    const dateComponents = r2OrganizationManager.generateDateComponents(
+      protocolInfo.created_at ? new Date(protocolInfo.created_at) : new Date()
+    );
+    
+    const companyName = r2OrganizationManager.getCompanyName(protocolInfo.company_name);
+    
+    const vehicleName = r2OrganizationManager.generateVehicleName(
+      protocolInfo.brand || 'Unknown',
+      protocolInfo.model || 'Unknown', 
+      protocolInfo.license_plate || 'NoPlate'
+    );
+    
+    // Detekcia kategórie ak nie je zadaná
+    const detectedCategory = category || r2OrganizationManager.detectCategory(filename, mediaType);
+    
+    if (!r2OrganizationManager.validateCategory(detectedCategory)) {
+      console.warn(`⚠️ Neplatná kategória: ${detectedCategory}, používam 'other'`);
+    }
+
+    // 🛠️ Generovanie organizovanej cesty
+    const pathVariables: PathVariables = {
+      year: dateComponents.year,
+      month: dateComponents.month,
+      company: companyName,
+      vehicle: vehicleName,
+      protocolType: protocolType as 'handover' | 'return',
+      protocolId: protocolId,
+      category: detectedCategory,
+      filename: filename
+    };
+
+    const fileKey = r2OrganizationManager.generatePath(pathVariables);
+
+    console.log('🗂️ Generated organized path:', {
+      oldPath: `protocols/${protocolType}/${new Date().toISOString().split('T')[0]}/${protocolId}/${filename}`,
+      newPath: fileKey,
+      pathVariables
+    });
+
+    // 🔐 Vytvorenie presigned URL (platná 10 minút)
     const presignedUrl = await r2Storage.createPresignedUploadUrl(
       fileKey, 
       contentType, 
-      300 // 5 minút
+      600 // 10 minút (viac času pre upload)
     );
 
-    // Public URL pre neskoršie použitie
+    // 🌐 Public URL pre neskoršie použitie
     const publicUrl = r2Storage.getPublicUrl(fileKey);
 
-    console.log('✅ Presigned URL generated:', fileKey);
+    console.log('✅ Organized presigned URL generated:', fileKey);
 
     res.json({
       success: true,
       presignedUrl: presignedUrl,
       publicUrl: publicUrl,
       fileKey: fileKey,
-      expiresIn: 300
+      expiresIn: 600,
+      organization: {
+        company: companyName,
+        vehicle: vehicleName,
+        category: detectedCategory,
+        path: fileKey
+      }
     });
 
   } catch (error) {
-    console.error('❌ Error generating presigned URL:', error);
+    console.error('❌ Error generating organized presigned URL:', error);
     res.status(500).json({ 
       success: false, 
-      error: 'Chyba pri generovaní signed URL',
+      error: 'Chyba pri generovaní organizovanej signed URL',
       details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     });
   }
