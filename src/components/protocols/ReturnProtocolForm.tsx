@@ -701,6 +701,15 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           entityId={rental.id}
           protocolType="return"
           mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage'}
+          category={(() => {
+            // Mapovanie mediaType na R2 kategórie
+            const mediaTypeToCategory = {
+              'vehicle': 'vehicle_photos',
+              'document': 'documents', 
+              'damage': 'damages'
+            } as const;
+            return mediaTypeToCategory[activePhotoCapture as keyof typeof mediaTypeToCategory] || 'other';
+          })()}
         />
       )}
 

@@ -52,6 +52,7 @@ interface SerialPhotoCaptureProps {
   // ✅ NOVÉ PROPS pre nový systém
   protocolType?: 'handover' | 'return';
   mediaType?: 'vehicle' | 'document' | 'damage' | 'fuel' | 'odometer';
+  category?: 'vehicle_photos' | 'documents' | 'damages' | 'signatures' | 'pdf' | 'videos' | 'other';
 }
 
 interface CapturedMedia {
@@ -82,6 +83,7 @@ export default function SerialPhotoCapture({
   autoUploadToR2 = true,
   protocolType = 'handover',
   mediaType = 'vehicle',
+  category,
 }: SerialPhotoCaptureProps) {
   const [capturedMedia, setCapturedMedia] = useState<CapturedMedia[]>([]);
   const [processing, setProcessing] = useState(false);
@@ -138,7 +140,8 @@ export default function SerialPhotoCapture({
           protocolType: protocolType,
           mediaType: mediaType,
           filename: file.name,
-          contentType: file.type
+          contentType: file.type,
+          category: category
         })
       });
 

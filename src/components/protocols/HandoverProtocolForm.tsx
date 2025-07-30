@@ -858,6 +858,17 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
           entityId={rental.id}
           protocolType="handover"
           mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel'}
+          category={(() => {
+            // Mapovanie mediaType na R2 kategórie
+            const mediaTypeToCategory = {
+              'vehicle': 'vehicle_photos',
+              'document': 'documents', 
+              'damage': 'damages',
+              'odometer': 'vehicle_photos',
+              'fuel': 'vehicle_photos'
+            } as const;
+            return mediaTypeToCategory[activePhotoCapture as keyof typeof mediaTypeToCategory] || 'other';
+          })()}
         />
       )}
 
