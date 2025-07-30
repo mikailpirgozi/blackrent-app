@@ -123,8 +123,6 @@ export interface Rental {
   returnLocation?: string;
   vehicleCode?: string;
   vehicleName?: string;
-  // 🎯 SNAPSHOT: Zamrazený majiteľ vozidla k dátumu prenájmu
-  company?: string;
   // 🔄 NOVÉ: Flexibilné prenájmy
   rentalType?: 'standard' | 'flexible' | 'priority';
   isFlexible?: boolean;
