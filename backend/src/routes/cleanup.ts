@@ -4,6 +4,37 @@ import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
+// 🔧 TEST endpoint (test DB columns)
+router.get('/test', authenticateToken, async (req, res) => {
+  try {
+    console.log('🧪 Testing handover_protocols columns...');
+    
+    const query = `
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'handover_protocols' 
+      ORDER BY column_name
+    `;
+    
+    const client = await postgresDatabase.dbPool.connect();
+    const result = await client.query(query);
+    client.release();
+    
+    res.json({
+      success: true,
+      message: 'DB columns test completed',
+      columns: result.rows
+    });
+  } catch (error) {
+    console.error('❌ DB columns test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'DB columns test failed',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
 // 📊 Analýza base64 veľkosti
 const analyzeBase64Size = (data: any): number => {
   if (typeof data !== 'string') return 0;
@@ -13,7 +44,7 @@ const analyzeBase64Size = (data: any): number => {
   return Math.floor(base64Part.length * 0.75); // Base64 -> bytes conversion
 };
 
-// 🔍 Database cleanup analysis endpoint
+// 🔍 Database cleanup analysis endpoint  
 router.get('/analyze', authenticateToken, async (req, res) => {
   try {
     console.log('🔍 Starting database cleanup analysis...');
