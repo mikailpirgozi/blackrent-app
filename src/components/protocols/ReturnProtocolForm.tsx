@@ -696,7 +696,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           onSave={(images, videos) => handlePhotoCaptureSuccess(activePhotoCapture, images, videos)}
           title={`Fotky - ${activePhotoCapture}`}
           allowedTypes={['vehicle', 'document', 'damage']}
-          entityId={uuidv4()}
+          entityId={rental.id}
           protocolType="return"
           mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage'}
         />
