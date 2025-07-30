@@ -392,7 +392,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
         setTimeout(async () => {
           try {
             console.log('📄 Background PDF download starting...');
-            const pdfResponse = await fetch(`${apiBaseUrl}${result.protocol.pdfProxyUrl}`, {
+            const pdfResponse = await fetch(`${apiBaseUrl}/api${result.protocol.pdfProxyUrl}`, {
               headers: {
                 'Authorization': `Bearer ${localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token')}`
               }
