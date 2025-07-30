@@ -1,4 +1,0 @@
-Railway Docker build cache clear - Sentry dependencies fix
-Timestamp: 2025-07-19T16:28:41Z
-Issue: @sentry/node module not found in production container
-Solution: Force rebuild to ensure dependencies are properly installed 
