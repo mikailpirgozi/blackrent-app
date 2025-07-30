@@ -853,7 +853,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
           onSave={(images, videos) => handlePhotoCaptureSuccess(activePhotoCapture, images, videos)}
           title={`Fotky - ${activePhotoCapture}`}
           allowedTypes={['vehicle', 'document', 'damage', 'odometer', 'fuel']}
-          entityId={uuidv4()}
+          entityId={rental.id}
           protocolType="handover"
           mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel'}
         />
