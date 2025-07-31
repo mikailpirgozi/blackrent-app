@@ -5,6 +5,85 @@ import { postgresDatabase } from '../models/postgres-database';
 import { authenticateToken } from '../middleware/auth';
 import { r2OrganizationManager, type PathVariables } from '../config/r2-organization';
 
+// 📸 Helper: Generate meaningful media filename with organized structure
+const generateMeaningfulFilename = (
+  protocolInfo: any, 
+  mediaType: string, 
+  category: string, 
+  originalFilename: string,
+  index: number = 1
+): string => {
+  try {
+    // Extract file extension
+    const extension = originalFilename.split('.').pop()?.toLowerCase() || 'jpg';
+    
+    // Vehicle info
+    const brand = protocolInfo.brand || 'Unknown';
+    const model = protocolInfo.model || 'Unknown';
+    const licensePlate = protocolInfo.license_plate || 'NoPlate';
+    
+    // Media type mapping to readable names
+    const mediaTypeNames = {
+      'vehicle': 'Vehicle',
+      'damage': 'Damage',
+      'document': 'Document', 
+      'fuel': 'Fuel',
+      'odometer': 'Odometer'
+    };
+    
+    // Category mapping to readable names  
+    const categoryNames = {
+      'vehicle_photos': 'Photos',
+      'documents': 'Documents',
+      'damages': 'Damages',
+      'signatures': 'Signatures',
+      'videos': 'Videos',
+      'other': 'Other'
+    };
+    
+    const mediaTypeName = mediaTypeNames[mediaType as keyof typeof mediaTypeNames] || 'Media';
+    const categoryName = categoryNames[category as keyof typeof categoryNames] || 'Other';
+    
+    // Generate meaningful filename
+    const vehicleName = `${brand}_${model}`.replace(/[^a-zA-Z0-9]/g, '_');
+    const plateClean = licensePlate.replace(/[^a-zA-Z0-9]/g, '_');
+    const indexPadded = String(index).padStart(2, '0');
+    
+    // Different patterns based on media type
+    let meaningfulName: string;
+    
+    if (mediaType === 'vehicle') {
+      meaningfulName = `${vehicleName}_${plateClean}_${mediaTypeName}_${indexPadded}.${extension}`;
+    } else if (mediaType === 'damage') {
+      meaningfulName = `${vehicleName}_${plateClean}_Damage_${indexPadded}.${extension}`;
+    } else if (mediaType === 'document') {
+      meaningfulName = `${vehicleName}_${plateClean}_Document_${indexPadded}.${extension}`;
+    } else if (mediaType === 'fuel' || mediaType === 'odometer') {
+      meaningfulName = `${vehicleName}_${plateClean}_${mediaTypeName}_${indexPadded}.${extension}`;
+    } else {
+      // Fallback
+      meaningfulName = `${vehicleName}_${plateClean}_${categoryName}_${indexPadded}.${extension}`;
+    }
+    
+    console.log('📸 Generated meaningful filename:', {
+      original: originalFilename,
+      meaningful: meaningfulName,
+      vehicle: `${brand} ${model} (${licensePlate})`,
+      mediaType,
+      category
+    });
+    
+    return meaningfulName;
+    
+  } catch (error) {
+    console.error('❌ Error generating meaningful filename, using fallback:', error);
+    // Fallback to timestamped version if something fails
+    const timestamp = Date.now();
+    const extension = originalFilename.split('.').pop()?.toLowerCase() || 'jpg';
+    return `${mediaType}_${category}_${timestamp}.${extension}`;
+  }
+};
+
 const router = express.Router();
 
 // Multer konfigurácia pre upload súborov
@@ -717,7 +796,16 @@ router.post('/presigned-upload', authenticateToken, async (req, res) => {
       console.warn(`⚠️ Neplatná kategória: ${detectedCategory}, používam 'other'`);
     }
 
-    // 🛠️ Generovanie organizovanej cesty
+    // 📸 Generovanie zmysluplného filename (namiesto pôvodného)
+    const meaningfulFilename = generateMeaningfulFilename(
+      protocolInfo, 
+      mediaType || 'vehicle', 
+      detectedCategory, 
+      filename,
+      1 // Môžeme neskôr implementovať counter pre duplicates
+    );
+
+    // 🛠️ Generovanie organizovanej cesty s novým filename
     const pathVariables: PathVariables = {
       year: dateComponents.year,
       month: dateComponents.month,
@@ -726,12 +814,14 @@ router.post('/presigned-upload', authenticateToken, async (req, res) => {
       protocolType: protocolType as 'handover' | 'return',
       protocolId: protocolId,
       category: detectedCategory,
-      filename: filename
+      filename: meaningfulFilename // ✨ POUŽÍVAM NOVÝ MEANINGFUL FILENAME
     };
 
     const fileKey = r2OrganizationManager.generatePath(pathVariables);
 
-    console.log('🗂️ Generated organized path:', {
+    console.log('🗂️ Generated organized path with meaningful filename:', {
+      originalFilename: filename,
+      meaningfulFilename: meaningfulFilename,
       oldPath: `protocols/${protocolType}/${new Date().toISOString().split('T')[0]}/${protocolId}/${filename}`,
       newPath: fileKey,
       pathVariables
