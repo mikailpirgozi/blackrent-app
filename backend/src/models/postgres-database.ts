@@ -1770,7 +1770,7 @@ export class PostgresDatabase {
             
             // Aktualizuj vozidlo
             await client.query(
-              'UPDATE vehicles SET owner_company_id = $1 WHERE id = $2',
+              'UPDATE vehicles SET owner_company_id = $1::uuid WHERE id = $2::uuid',
               [companyId, vehicle.id]
             );
             
@@ -1919,7 +1919,7 @@ export class PostgresDatabase {
       }
 
       await client.query(
-        'UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, category = $5, owner_company_id = $6, pricing = $7, commission = $8, status = $9, year = $10, stk = $11, updated_at = CURRENT_TIMESTAMP WHERE id = $12',
+        'UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, category = $5, owner_company_id = $6::uuid, pricing = $7, commission = $8, status = $9, year = $10, stk = $11, updated_at = CURRENT_TIMESTAMP WHERE id = $12::uuid',
         [
           vehicle.brand, 
           vehicle.model, 
@@ -4222,7 +4222,7 @@ export class PostgresDatabase {
 
       // Filter by vehicle ID
       if (vehicleId) {
-        query += ` AND vu.vehicle_id = $${paramIndex}`;
+        query += ` AND vu.vehicle_id = $${paramIndex}::uuid`;
         params.push(vehicleId);
         paramIndex++;
       }
@@ -4823,7 +4823,7 @@ export class PostgresDatabase {
     try {
       for (const vehicleId of vehicleIds) {
         await client.query(
-          'UPDATE vehicles SET owner_company_id = $1 WHERE id = $2',
+          'UPDATE vehicles SET owner_company_id = $1::uuid WHERE id = $2::uuid',
           [companyId, vehicleId]
         );
       }
