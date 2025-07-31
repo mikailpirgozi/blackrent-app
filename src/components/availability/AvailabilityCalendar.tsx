@@ -15,20 +15,15 @@ import {
   Select,
   MenuItem,
   Button,
-  Collapse,
-  Tabs,
-  Tab,
-  Divider,
   Dialog,
   useTheme,
   useMediaQuery,
-  Stack,
-  Fab,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Autocomplete,
+  Tooltip,
 } from '@mui/material';
+import { Stack } from '@mui/system';
 // Using HTML5 date inputs instead of MUI date pickers for simplicity
 import {
   CalendarToday as CalendarIcon,
@@ -37,32 +32,12 @@ import {
   Cancel as RentedIcon,
   Build as MaintenanceIcon,
   Refresh as RefreshIcon,
-  ChevronLeft as PrevIcon,
-  ChevronRight as NextIcon,
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Clear as ClearIcon,
-  ExpandLess as CollapseIcon,
-  ExpandMore as ExpandIcon,
-  Close as CloseIcon,
-  Person as CustomerIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Euro as PriceIcon,
-  CalendarMonth as DateIcon,
-  LocationOn as LocationIcon,
-  Receipt as OrderIcon,
-  AccountBalance as DepositIcon,
-  Speed as KilometersIcon,
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Today as TodayIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
-  PriorityHigh as PriorityIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { API_BASE_URL } from '../../services/api';
 import { Rental, VehicleUnavailability, VehicleCategory } from '../../types';
@@ -132,13 +107,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const theme = useTheme();
   const fallbackIsMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
   const isMobile = propIsMobile !== undefined ? propIsMobile : fallbackIsMobile;
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'), { noSsr: true });
   const [calendarData, setCalendarData] = useState<CalendarDay[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [unavailabilities, setUnavailabilities] = useState<VehicleUnavailability[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // Rental details popup state
@@ -150,8 +122,14 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const [maintenanceDialogOpen, setMaintenanceDialogOpen] = useState(false);
   const [editingMaintenance, setEditingMaintenance] = useState<VehicleUnavailability | null>(null);
   const [submittingMaintenance, setSubmittingMaintenance] = useState(false);
-  const [clickedDate, setClickedDate] = useState<string | null>(null);
-  const [clickedVehicleId, setClickedVehicleId] = useState<string | null>(null);
+  
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    date: string;
+    vehicleId: string;
+    position: { x: number; y: number };
+    open: boolean;
+  } | null>(null);
   
   const [maintenanceFormData, setMaintenanceFormData] = useState<MaintenanceFormData>({
     vehicleId: '',
@@ -190,9 +168,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
   const [cacheKey, setCacheKey] = useState<string>('');
   
-  // MOBILNÝ KALENDÁR - vybraný dátum a počet zobrazených dní
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [visibleDays, setVisibleDays] = useState(14);
+  // MOBILNÝ KALENDÁR - navigácia
 
   // Mobilný kalendár - týždňová navigácia
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
@@ -304,6 +280,129 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     }
   };
 
+  // Handle day click - enhanced functionality for better UX
+  const handleDayClick = (date: string, vehicleStatus: VehicleAvailability | undefined, vehicleId: string, event?: React.MouseEvent) => {
+    console.log('📅 Day clicked:', { date, vehicleStatus, vehicleId });
+    
+    if (event?.ctrlKey || event?.metaKey) {
+      // Ctrl/Cmd click = show context menu
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      setContextMenu({
+        date,
+        vehicleId,
+        position: { x: rect.left + rect.width / 2, y: rect.top + rect.height },
+        open: true
+      });
+      return;
+    }
+    
+    if (!vehicleStatus) {
+      // Empty day - offer to create new rental or maintenance
+      setMaintenanceFormData({
+        vehicleId,
+        startDate: date,
+        endDate: date,
+        reason: '',
+        type: 'maintenance',
+        notes: '',
+        priority: 2,
+        recurring: false,
+      });
+      setEditingMaintenance(null);
+      setMaintenanceDialogOpen(true);
+    } else {
+      // Use existing status click logic
+      handleStatusClick(vehicleStatus, date);
+    }
+  };
+  
+  // Handle context menu actions
+  const handleContextMenuAction = (action: string) => {
+    if (!contextMenu) return;
+    
+    const { date, vehicleId } = contextMenu;
+    
+    switch (action) {
+      case 'new-rental':
+        // Navigate to create rental with pre-filled data
+        console.log('🚗 Create new rental for:', { date, vehicleId });
+        // TODO: Navigate to rental form
+        break;
+      case 'block-vehicle':
+        // Block vehicle for this day
+        setMaintenanceFormData({
+          vehicleId,
+          startDate: date,
+          endDate: date,
+          reason: 'Blokované',
+          type: 'blocked',
+          notes: '',
+          priority: 2,
+          recurring: false,
+        });
+        setEditingMaintenance(null);
+        setMaintenanceDialogOpen(true);
+        break;
+      case 'maintenance':
+        // Schedule maintenance
+        setMaintenanceFormData({
+          vehicleId,
+          startDate: date,
+          endDate: date,
+          reason: '',
+          type: 'maintenance',
+          notes: '',
+          priority: 2,
+          recurring: false,
+        });
+        setEditingMaintenance(null);
+        setMaintenanceDialogOpen(true);
+        break;
+      case 'day-summary':
+        // Show day summary
+        console.log('📊 Show day summary for:', date);
+        // TODO: Implement day summary modal
+        break;
+    }
+    
+    setContextMenu(null);
+  };
+
+  // Get tooltip content for a day
+  const getDayTooltip = (date: string, vehicleStatus: VehicleAvailability | undefined, vehicleName: string) => {
+    const dateObj = new Date(date);
+    const dayName = format(dateObj, 'EEEE', { locale: sk });
+    const dayDate = format(dateObj, 'd. MMMM yyyy', { locale: sk });
+    
+    if (!vehicleStatus) {
+      return `${vehicleName}\n${dayName}, ${dayDate}\n\n✅ Dostupné\n\n💡 Tip: Ctrl+klik pre viac možností`;
+    }
+    
+    let content = `${vehicleName}\n${dayName}, ${dayDate}\n\n`;
+    
+    switch (vehicleStatus.status) {
+      case 'available':
+        content += '✅ Dostupné\n\n💡 Kliknite pre blokovanie';
+        break;
+      case 'rented':
+        content += `🔴 Prenajatý\n👤 ${vehicleStatus.customerName || 'Neznámy zákazník'}\n\n💡 Kliknite pre detail prenájmu`;
+        break;
+      case 'flexible':
+        content += `🟠 Flexibilný prenájom\n👤 ${vehicleStatus.customerName || 'Neznámy zákazník'}\n\n💡 Kliknite pre detail prenájmu`;
+        break;
+      case 'maintenance':
+        content += `🔧 Údržba\n${vehicleStatus.unavailabilityReason || 'Naplánovaná údržba'}\n\n💡 Kliknite pre úpravu`;
+        break;
+      case 'blocked':
+        content += `⛔ Blokované\n${vehicleStatus.unavailabilityReason || 'Vozidlo je blokované'}\n\n💡 Kliknite pre úpravu`;
+        break;
+      default:
+        content += `${getStatusText(vehicleStatus.status)}\n\n💡 Kliknite pre detail`;
+    }
+    
+    return content;
+  };
+
   // Close rental details dialog
   const handleCloseRentalDetails = () => {
     setRentalDetailsOpen(false);
@@ -335,8 +434,6 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const handleCellClick = useCallback((date: string, vehicleId: string, currentStatus: string) => {
     // Only allow adding maintenance to available vehicles
     if (currentStatus === 'available') {
-      setClickedDate(date);
-      setClickedVehicleId(vehicleId);
       setMaintenanceFormData({
         vehicleId,
         startDate: date,
@@ -370,25 +467,20 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const handleMaintenanceClose = useCallback(() => {
     setMaintenanceDialogOpen(false);
     setEditingMaintenance(null);
-    setClickedDate(null);
-    setClickedVehicleId(null);
-    setError(null);
-    setSuccess(null);
   }, []);
 
   const handleMaintenanceSubmit = async () => {
     try {
       setSubmittingMaintenance(true);
-      setError(null);
 
       // Validation
       if (!maintenanceFormData.vehicleId || !maintenanceFormData.startDate || !maintenanceFormData.endDate || !maintenanceFormData.reason.trim()) {
-        setError('Všetky povinné polia musia byť vyplnené');
+        console.error('Všetky povinné polia musia byť vyplnené');
         return;
       }
 
       if (new Date(maintenanceFormData.endDate) < new Date(maintenanceFormData.startDate)) {
-        setError('Dátum ukončenia nemôže byť skorší ako dátum začiatku');
+        console.error('Dátum ukončenia nemôže byť skorší ako dátum začiatku');
         return;
       }
 
@@ -411,18 +503,17 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       const data = await response.json();
       
       if (data.success) {
-        setSuccess(editingMaintenance ? 'Nedostupnosť úspešne aktualizovaná' : 'Nedostupnosť úspešne vytvorená');
+        console.log(editingMaintenance ? 'Nedostupnosť úspešne aktualizovaná' : 'Nedostupnosť úspešne vytvorená');
         await fetchUnavailabilities();
         await fetchCalendarData();
         setTimeout(() => {
           handleMaintenanceClose();
         }, 1500);
       } else {
-        setError(data.error || 'Chyba pri ukladaní nedostupnosti');
+        console.error(data.error || 'Chyba pri ukladaní nedostupnosti');
       }
     } catch (err) {
       console.error('Error saving maintenance:', err);
-      setError('Chyba pri ukladaní nedostupnosti');
     } finally {
       setSubmittingMaintenance(false);
     }
@@ -446,22 +537,20 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       const data = await response.json();
       
       if (data.success) {
-        setSuccess('Nedostupnosť úspešne zmazaná');
+        console.log('Nedostupnosť úspešne zmazaná');
         await fetchUnavailabilities();
         await fetchCalendarData();
       } else {
-        setError(data.error || 'Chyba pri mazaní nedostupnosti');
+        console.error(data.error || 'Chyba pri mazaní nedostupnosti');
       }
     } catch (err) {
       console.error('Error deleting maintenance:', err);
-      setError('Chyba pri mazaní nedostupnosti');
     }
   };
 
   const fetchCalendarData = useCallback(async (forceMonth = false) => {
     try {
       setLoading(true);
-      setError(null);
       
       // 🔧 OPRAVA: Cache validation s kontrolou na hard refresh
       const now = Date.now();
@@ -561,11 +650,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           setCacheKey(currentCacheKey);
         }
       } else {
-        setError(data.error || 'Chyba pri načítaní dát');
+        console.error(data.error || 'Chyba pri načítaní dát');
       }
     } catch (err: any) {
       console.error('❌ Calendar fetch error:', err);
-      setError('Chyba pri načítaní kalendárnych dát');
       
       // 🔧 OPRAVA: Pri hard refresh nešuraj mock dáta, namiesto toho zobraz chybu
       const contextVehicles = getFilteredVehicles();
@@ -625,18 +713,6 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     fetchUnavailabilities();
   }, [fetchUnavailabilities]);
 
-  const handlePrevMonth = useCallback(() => {
-    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  }, []);
-
-  const handleNextMonth = useCallback(() => {
-    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  }, []);
-
-  const handleToday = useCallback(() => {
-    setCurrentDate(new Date());
-  }, []);
-
   const handleRefresh = useCallback(() => {
     if (viewMode === 'navigation') {
       const isCurrentMonth = 
@@ -649,46 +725,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     }
   }, [viewMode, currentDate, fetchCalendarData]);
 
-  const handleViewModeChange = useCallback((event: React.SyntheticEvent, newValue: 'navigation' | 'range') => {
-    setViewMode(newValue);
-  }, []);
-
-  const handleQuickRange = useCallback((days: number) => {
-    const today = new Date();
-    setFromDate(today);
-    setToDate(new Date(today.getTime() + days * 24 * 60 * 60 * 1000));
-  }, []);
-
-  // Filter functions - memoized
-  const handleResetFilters = useCallback(() => {
-    setSearchQuery('');
-    setBrandFilter('all');
-    setCompanyFilter('all');
-    setAvailableFromDate('');
-    setAvailableToDate('');
-  }, []);
-
-  // Dummy functions pre backward compatibility
-  const toggleFilters = useCallback(() => {
-    // Filter UI je teraz v parent komponente
-  }, []);
-  
-  const [showFilters] = useState(false);
-  const [statusFilter] = useState('all');
-  const setStatusFilter = useCallback((value: any) => {
-    // Status filter je teraz v parent komponente  
-  }, []);
-
-  // Get unique values for filter dropdowns - memoized
-  const uniqueBrands = useMemo(() => 
-    Array.from(new Set(vehicles.map(v => v.brand).filter(Boolean))).sort(), 
-    [vehicles]
-  );
-  
-  const uniqueCompanies = useMemo(() => 
-    Array.from(new Set(vehicles.map(v => v.company).filter(Boolean))).sort(), 
-    [vehicles]
-  );
+  // Filter logic
 
   // Filter vehicles based on current filters - memoized with debounced search
   const filteredVehicles = useMemo(() => {
@@ -880,41 +917,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     }
   };
 
-  // Helper functions for maintenance
-  const getMaintenanceTypeIcon = (type: string) => {
-    return getStatusIcon(type);
-  };
-
-  const getMaintenanceTypeLabel = (type: string) => {
-    return getStatusText(type);
-  };
-
-  const getMaintenanceTypeColor = (type: string) => {
-    return getStatusColor(type);
-  };
-
-  const getPriorityLabel = (priority: number) => {
-    switch (priority) {
-      case 1: return 'Kritická';
-      case 2: return 'Normálna';
-      case 3: return 'Nízka';
-      default: return 'Normálna';
-    }
-  };
-
-  const getPriorityColor = (priority: number) => {
-    switch (priority) {
-      case 1: return 'error';
-      case 2: return 'primary';
-      case 3: return 'success';
-      default: return 'primary';
-    }
-  };
-
-  const monthDays = eachDayOfInterval({
-    start: startOfMonth(currentDate),
-    end: endOfMonth(currentDate)
-  });
+  // Status helpers
 
   // 🔧 OPRAVA: Lepšie loading states pre hard refresh
   if (loading || (!state?.dataLoaded?.vehicles && authState?.isAuthenticated)) {
@@ -1088,27 +1091,41 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     : generateCalendarDays(currentMonthOffset, 30)
                   ).map((day) => {
                     const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
-                    const isAvailable = !vehicleStatus || vehicleStatus.status === 'available';
                     const isRented = vehicleStatus?.status === 'rented';
                     const isFlexible = vehicleStatus?.status === 'flexible';
                     const isMaintenance = vehicleStatus?.status === 'maintenance' || vehicleStatus?.status === 'service' || vehicleStatus?.status === 'blocked';
                     const dayIsToday = isToday(new Date(day.date));
                     
                     return (
-                      <Box 
+                      <Tooltip 
                         key={day.date}
-                        sx={{ 
-                          textAlign: 'center',
-                          p: 0.25,
-                          borderRadius: 0.5,
-                          backgroundColor: 
-                            dayIsToday ? '#e3f2fd' :
-                            isRented ? '#ffebee' :
-                            isFlexible ? '#fff8f0' :
-                            isMaintenance ? '#fff3e0' : '#e8f5e8',
-                          border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0'
-                        }}
+                        title={getDayTooltip(day.date, vehicleStatus, `${vehicle.brand} ${vehicle.model}`)}
+                        placement="top"
+                        arrow
                       >
+                        <Box 
+                          onClick={(e) => handleDayClick(day.date, vehicleStatus, vehicle.id, e)}
+                          sx={{ 
+                            textAlign: 'center',
+                            p: 0.25,
+                            borderRadius: 0.5,
+                            backgroundColor: 
+                              dayIsToday ? '#e3f2fd' :
+                              isRented ? '#ffebee' :
+                              isFlexible ? '#fff8f0' :
+                              isMaintenance ? '#fff3e0' : '#e8f5e8',
+                            border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              backgroundColor: dayIsToday ? '#bbdefb' :
+                                             isRented ? '#ffcdd2' :
+                                             isFlexible ? '#ffe0b2' :
+                                             isMaintenance ? '#ffecb2' : '#c8e6c8',
+                              transform: 'scale(1.1)'
+                            }
+                          }}
+                        >
                         <Typography variant="caption" sx={{ 
                           fontWeight: dayIsToday ? 700 : 600,
                           fontSize: '0.7rem',
@@ -1136,9 +1153,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                           mx: 'auto',
                           mt: 0.25
                         }} />
-                      </Box>
-                );
-              })}
+                        </Box>
+                      </Tooltip>
+                    );
+                  })}
                 </Box>
 
                 {/* Akcie pre vozidlo */}
@@ -1202,6 +1220,24 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     >
                       30 dní
                     </Button>
+                  </Box>
+                  
+                  {/* Usage Tip */}
+                  <Box sx={{ 
+                    mt: 1, 
+                    p: 1, 
+                    backgroundColor: '#f0f7ff', 
+                    borderRadius: 1, 
+                    border: '1px solid #e3f2fd' 
+                  }}>
+                    <Typography variant="caption" sx={{ 
+                      color: '#1976d2', 
+                      fontSize: '0.7rem',
+                      display: 'block',
+                      textAlign: 'center'
+                    }}>
+                      💡 Tip: Kliknite na deň pre akcie, Ctrl+klik pre viac možností
+                    </Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -1408,38 +1444,47 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   return generateCalendarDays(vehicleOffset, daysCount);
                 })().map((day) => {
                   const vehicleStatus = day.vehicles.find(v => v.vehicleId === vehicle.id);
-                  const isAvailable = !vehicleStatus || vehicleStatus.status === 'available';
                   const isRented = vehicleStatus?.status === 'rented';
                   const isFlexible = vehicleStatus?.status === 'flexible';
                   const isMaintenance = vehicleStatus?.status === 'maintenance' || vehicleStatus?.status === 'service' || vehicleStatus?.status === 'blocked';
                   const dayIsToday = isToday(new Date(day.date));
                   
-                  return (
-                    <Box 
+                                    return (
+                    <Tooltip 
                       key={day.date}
-                      sx={{ 
-                        textAlign: 'center',
-                        p: 1,
-                        borderRadius: 1,
-                        backgroundColor: 
-                          dayIsToday ? '#e3f2fd' :
-                          isRented ? '#ffebee' :
-                          isFlexible ? '#fff8f0' :
-                          isMaintenance ? '#fff3e0' : '#e8f5e8',
-                        border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        minHeight: '40px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        '&:hover': {
-                          transform: 'scale(1.05)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                        }
-                      }}
+                      title={getDayTooltip(day.date, vehicleStatus, `${vehicle.brand} ${vehicle.model}`)}
+                      placement="top"
+                      arrow
                     >
+                      <Box 
+                        onClick={(e) => handleDayClick(day.date, vehicleStatus, vehicle.id, e)}
+                        sx={{ 
+                          textAlign: 'center',
+                          p: 1,
+                          borderRadius: 1,
+                          backgroundColor: 
+                            dayIsToday ? '#e3f2fd' :
+                            isRented ? '#ffebee' :
+                            isFlexible ? '#fff8f0' :
+                            isMaintenance ? '#fff3e0' : '#e8f5e8',
+                          border: dayIsToday ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          minHeight: '40px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          '&:hover': {
+                            transform: 'scale(1.05)',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            backgroundColor: dayIsToday ? '#bbdefb' :
+                                           isRented ? '#ffcdd2' :
+                                           isFlexible ? '#ffe0b2' :
+                                           isMaintenance ? '#ffecb2' : '#c8e6c8'
+                          }
+                        }}
+                      >
                       <Typography variant="caption" sx={{ 
                         fontWeight: dayIsToday ? 700 : 600,
                         fontSize: '0.9rem',
@@ -1468,7 +1513,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                           isMaintenance ? '#ff9800' : '#4caf50',
                         mt: 'auto'
                       }} />
-                    </Box>
+                      </Box>
+                    </Tooltip>
                   );
                 })}
               </Box>
@@ -1764,6 +1810,81 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           </Button>
         )}
       </DialogActions>
+    </Dialog>
+    
+    {/* Context Menu */}
+    <Dialog 
+      open={contextMenu?.open || false}
+      onClose={() => setContextMenu(null)}
+      maxWidth="sm"
+      PaperProps={{
+        sx: {
+          position: 'absolute',
+          top: contextMenu?.position.y || 0,
+          left: contextMenu?.position.x || 0,
+          transform: 'translate(-50%, 0)',
+          m: 0,
+          borderRadius: 2,
+          minWidth: 200
+        }
+      }}
+    >
+      <DialogContent sx={{ p: 0 }}>
+        <Stack spacing={0}>
+          <Button
+            fullWidth
+            startIcon={<AddIcon />}
+            onClick={() => handleContextMenuAction('new-rental')}
+            sx={{ 
+              justifyContent: 'flex-start', 
+              p: 1.5, 
+              borderRadius: 0,
+              '&:hover': { backgroundColor: '#f5f5f5' }
+            }}
+          >
+            Vytvoriť rezerváciu
+          </Button>
+          <Button
+            fullWidth
+            startIcon={<DeleteIcon />}
+            onClick={() => handleContextMenuAction('block-vehicle')}
+            sx={{ 
+              justifyContent: 'flex-start', 
+              p: 1.5, 
+              borderRadius: 0,
+              '&:hover': { backgroundColor: '#f5f5f5' }
+            }}
+          >
+            Blokovať vozidlo
+          </Button>
+          <Button
+            fullWidth
+            startIcon={<MaintenanceIcon />}
+            onClick={() => handleContextMenuAction('maintenance')}
+            sx={{ 
+              justifyContent: 'flex-start', 
+              p: 1.5, 
+              borderRadius: 0,
+              '&:hover': { backgroundColor: '#f5f5f5' }
+            }}
+          >
+            Naplánované údržbu
+          </Button>
+          <Button
+            fullWidth
+            startIcon={<CalendarIcon />}
+            onClick={() => handleContextMenuAction('day-summary')}
+            sx={{ 
+              justifyContent: 'flex-start', 
+              p: 1.5, 
+              borderRadius: 0,
+              '&:hover': { backgroundColor: '#f5f5f5' }
+            }}
+          >
+            Denný súhrn
+          </Button>
+        </Stack>
+      </DialogContent>
     </Dialog>
     </>
   );
