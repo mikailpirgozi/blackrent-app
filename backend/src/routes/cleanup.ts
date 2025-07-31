@@ -1,6 +1,7 @@
 import express from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { authenticateToken } from '../middleware/auth';
+import { r2Storage } from '../utils/r2-storage';
 
 const router = express.Router();
 
@@ -318,6 +319,245 @@ router.get('/database-size', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Database size analysis failed',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// 🗂️ R2 CLEANUP ENDPOINTS
+
+// 📊 R2 súbory analýza
+router.get('/r2-analyze', authenticateToken, async (req, res) => {
+  try {
+    console.log('🔍 Analyzing R2 storage files...');
+    
+    if (!r2Storage.isConfigured()) {
+      return res.status(200).json({
+        success: true,
+        message: 'R2 not configured, using local storage',
+        r2Configured: false,
+        totalFiles: 0,
+        totalSizeBytes: 0
+      });
+    }
+
+    // Získanie všetkých súborov z R2
+    const allFiles = await r2Storage.listFiles('');
+    
+    // Kategorizácia súborov
+    let protocolFiles = 0;
+    let imageFiles = 0;
+    let pdfFiles = 0;
+    let otherFiles = 0;
+    let totalSize = 0;
+    
+    const filesByType = {
+      protocols: allFiles.filter(file => file.startsWith('protocols/')),
+      organized: allFiles.filter(file => file.match(/^\d{4}\/\d{2}\//)), // New organized structure
+      other: []
+    };
+    
+    filesByType.other = allFiles.filter(file => 
+      !file.startsWith('protocols/') && !file.match(/^\d{4}\/\d{2}\//)
+    );
+
+    // Counting by file extension
+    allFiles.forEach(file => {
+      if (file.endsWith('.pdf')) pdfFiles++;
+      else if (file.match(/\.(jpg|jpeg|png|gif|webp)$/i)) imageFiles++;
+      else otherFiles++;
+    });
+
+    console.log('✅ R2 analysis completed:', {
+      totalFiles: allFiles.length,
+      protocolFiles: filesByType.protocols.length,
+      organizedFiles: filesByType.organized.length,
+      imageFiles,
+      pdfFiles
+    });
+
+    res.json({
+      success: true,
+      message: 'R2 analysis completed',
+      r2Configured: true,
+      totalFiles: allFiles.length,
+      analysis: {
+        byStructure: {
+          oldProtocols: filesByType.protocols.length,
+          newOrganized: filesByType.organized.length,
+          other: filesByType.other.length
+        },
+        byType: {
+          images: imageFiles,
+          pdfs: pdfFiles,
+          other: otherFiles
+        }
+      },
+      examples: {
+        oldStructure: filesByType.protocols.slice(0, 3),
+        newStructure: filesByType.organized.slice(0, 3)
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ R2 analysis failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'R2 analysis failed',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// 🧹 R2 BULK DELETE (všetky súbory)
+router.delete('/r2-clear-all', authenticateToken, async (req, res) => {
+  try {
+    const { confirm } = req.body;
+    
+    if (confirm !== 'DELETE_ALL_R2_FILES') {
+      return res.status(400).json({
+        success: false,
+        error: 'Pre potvrdenie je potrebné poslať: { "confirm": "DELETE_ALL_R2_FILES" }',
+        warning: 'Táto akcia je NEVRATNÁ!'
+      });
+    }
+
+    console.log('🧹 Starting R2 bulk delete operation...');
+    
+    if (!r2Storage.isConfigured()) {
+      // Vymazanie local storage súborov
+      const path = require('path');
+      const fs = require('fs');
+      const localStorageDir = path.join(process.cwd(), 'local-storage');
+      
+      if (fs.existsSync(localStorageDir)) {
+        fs.rmSync(localStorageDir, { recursive: true, force: true });
+        console.log('✅ Local storage cleared');
+      }
+      
+      return res.json({
+        success: true,
+        message: 'Local storage cleared (R2 not configured)',
+        filesDeleted: 'all local files'
+      });
+    }
+
+    // Získanie všetkých súborov
+    const allFiles = await r2Storage.listFiles('');
+    console.log(`📋 Found ${allFiles.length} files to delete`);
+
+    if (allFiles.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No files found in R2 storage',
+        filesDeleted: 0
+      });
+    }
+
+    // Bulk delete (po skupinách pre lepšiu performance)
+    const batchSize = 50;
+    let deletedCount = 0;
+    
+    for (let i = 0; i < allFiles.length; i += batchSize) {
+      const batch = allFiles.slice(i, i + batchSize);
+      
+      const deletePromises = batch.map(async (fileKey) => {
+        try {
+          await r2Storage.deleteFile(fileKey);
+          deletedCount++;
+          return { success: true, file: fileKey };
+        } catch (error) {
+          console.error(`❌ Failed to delete ${fileKey}:`, error);
+          return { success: false, file: fileKey, error };
+        }
+      });
+      
+      await Promise.all(deletePromises);
+      console.log(`✅ Batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(allFiles.length/batchSize)} completed`);
+    }
+
+    console.log(`✅ R2 bulk delete completed: ${deletedCount}/${allFiles.length} files deleted`);
+
+    res.json({
+      success: true,
+      message: 'R2 bulk delete completed',
+      filesDeleted: deletedCount,
+      totalFiles: allFiles.length,
+      successRate: `${Math.round((deletedCount/allFiles.length) * 100)}%`
+    });
+
+  } catch (error) {
+    console.error('❌ R2 bulk delete failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'R2 bulk delete failed',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// 🗃️ RESET DATABASE PROTOCOLS (vymaže protokoly z DB)
+router.delete('/reset-protocols', authenticateToken, async (req, res) => {
+  try {
+    const { confirm, includeRentals } = req.body;
+    
+    if (confirm !== 'DELETE_ALL_PROTOCOLS') {
+      return res.status(400).json({
+        success: false,
+        error: 'Pre potvrdenie je potrebné poslať: { "confirm": "DELETE_ALL_PROTOCOLS" }',
+        warning: 'Táto akcia je NEVRATNÁ! Vymaže všetky protokoly z databázy.'
+      });
+    }
+
+    console.log('🗃️ Starting database protocols reset...');
+    
+    const client = await postgresDatabase.dbPool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Získanie štatistík pred vymazaním
+      const handoverCount = await client.query('SELECT COUNT(*) FROM handover_protocols');
+      const returnCount = await client.query('SELECT COUNT(*) FROM return_protocols');
+      
+      // Vymazanie protokolov
+      await client.query('DELETE FROM return_protocols');
+      await client.query('DELETE FROM handover_protocols');
+      
+      let rentalResetInfo = '';
+      if (includeRentals) {
+        const rentalCount = await client.query('SELECT COUNT(*) FROM rentals');
+        await client.query('DELETE FROM rentals');
+        rentalResetInfo = `, ${rentalCount.rows[0].count} rentals`;
+      }
+      
+      await client.query('COMMIT');
+      
+      console.log('✅ Database protocols reset completed');
+      
+      res.json({
+        success: true,
+        message: 'Database protocols reset completed',
+        deleted: {
+          handoverProtocols: parseInt(handoverCount.rows[0].count),
+          returnProtocols: parseInt(returnCount.rows[0].count),
+          rentals: includeRentals ? 'included' : 'preserved'
+        },
+        warning: 'Všetky protokoly boli vymazané z databázy. Vytvorte nové protokoly pre fresh start.'
+      });
+      
+    } catch (dbError) {
+      await client.query('ROLLBACK');
+      throw dbError;
+    } finally {
+      client.release();
+    }
+
+  } catch (error) {
+    console.error('❌ Database reset failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Database reset failed',
       details: error instanceof Error ? error.message : String(error)
     });
   }
