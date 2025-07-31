@@ -6,6 +6,7 @@ import { authenticateToken } from '../middleware/auth';
 import { r2Storage } from '../utils/r2-storage';
 import { HandoverProtocol, ReturnProtocol } from '../types';
 import { Request, Response } from 'express';
+import { r2OrganizationManager, type PathVariables } from '../config/r2-organization';
 
 const router = express.Router();
 
@@ -13,6 +14,68 @@ const router = express.Router();
 const isValidUUID = (uuid: string): boolean => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(uuid);
+};
+
+// 🗂️ Helper: Generate meaningful PDF filename with R2 organization
+const generatePDFPath = (protocolData: any, protocolId: string, protocolType: 'handover' | 'return'): string => {
+  try {
+    const { rentalData } = protocolData;
+    
+    // Extract info from rental data
+    const vehicle = rentalData?.vehicle || {};
+    const customer = rentalData?.customer || {};
+    const startDate = rentalData?.startDate ? new Date(rentalData.startDate) : new Date();
+    
+    // Generate date components
+    const dateComponents = r2OrganizationManager.generateDateComponents(startDate);
+    
+    // Generate company name (from vehicle or default)
+    const companyName = r2OrganizationManager.getCompanyName(
+      vehicle.company || rentalData?.vehicle?.ownerCompanyId || 'BlackRent'
+    );
+    
+    // Generate vehicle name
+    const vehicleName = r2OrganizationManager.generateVehicleName(
+      vehicle.brand || 'Unknown',
+      vehicle.model || 'Unknown',
+      vehicle.licensePlate || 'NoPlate'
+    );
+    
+    // Generate meaningful PDF filename
+    const customerName = customer.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Customer';
+    const dateStr = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const protocolTypeText = protocolType === 'handover' ? 'Odovzdavaci' : 'Preberaci';
+    
+    const meaningfulFilename = `${protocolTypeText}_${customerName}_${vehicle.brand || 'Auto'}_${vehicle.licensePlate || 'NoPlate'}_${dateStr}.pdf`;
+    
+    // Generate organized path using R2OrganizationManager
+    const pathVariables: PathVariables = {
+      year: dateComponents.year,
+      month: dateComponents.month,
+      company: companyName,
+      vehicle: vehicleName,
+      protocolType: protocolType,
+      protocolId: protocolId,
+      category: 'pdf',
+      filename: meaningfulFilename
+    };
+    
+    const organizedPath = r2OrganizationManager.generatePath(pathVariables);
+    
+    console.log('🗂️ Generated organized PDF path:', {
+      oldPath: `protocols/${protocolType}/${protocolId}_${Date.now()}.pdf`,
+      newPath: organizedPath,
+      meaningfulFilename,
+      pathVariables
+    });
+    
+    return organizedPath;
+    
+  } catch (error) {
+    console.error('❌ Error generating PDF path, using fallback:', error);
+    // Fallback to old structure if something fails
+    return `protocols/${protocolType}/${protocolId}_${Date.now()}.pdf`;
+  }
 };
 
 // Multer config for file uploads
@@ -185,8 +248,8 @@ router.post('/handover', authenticateToken, async (req, res) => {
           console.log('🎭 Background: Starting PDF generation for protocol:', protocol.id);
           const pdfBuffer = await generateHandoverPDF(protocolData);
           
-          // Uloženie PDF do R2 storage
-          const filename = `protocols/handover/${protocol.id}_${Date.now()}.pdf`;
+          // Uloženie PDF do R2 storage s novou organizáciou
+          const filename = generatePDFPath(protocolData, protocol.id, 'handover');
           const backgroundPdfUrl = await r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
           
           // Aktualizácia protokolu s PDF URL
@@ -208,8 +271,8 @@ router.post('/handover', authenticateToken, async (req, res) => {
         console.log('🎭 Standard: Generating PDF for protocol:', protocol.id);
         const pdfBuffer = await generateHandoverPDF(protocolData);
         
-        // 3. Uloženie PDF do R2 storage
-        const filename = `protocols/handover/${protocol.id}_${Date.now()}.pdf`;
+        // 3. Uloženie PDF do R2 storage s novou organizáciou
+        const filename = generatePDFPath(protocolData, protocol.id, 'handover');
         pdfUrl = await r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
         
         console.log('✅ Standard: PDF generated and uploaded to R2:', pdfUrl);
@@ -315,8 +378,8 @@ router.post('/return', authenticateToken, async (req, res) => {
       console.log('🎭 Generating Return PDF for protocol:', protocol.id);
       const pdfBuffer = await generateReturnPDF(protocolData);
       
-      // 3. Uloženie PDF do R2 storage
-      const filename = `protocols/return/${protocol.id}_${Date.now()}.pdf`;
+      // 3. Uloženie PDF do R2 storage s novou organizáciou
+      const filename = generatePDFPath(protocolData, protocol.id, 'return');
       pdfUrl = await r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
       
       console.log('✅ Return PDF generated and uploaded to R2:', pdfUrl);
