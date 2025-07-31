@@ -354,7 +354,7 @@ router.get('/r2-analyze', authenticateToken, async (req, res) => {
     const filesByType = {
       protocols: allFiles.filter(file => file.startsWith('protocols/')),
       organized: allFiles.filter(file => file.match(/^\d{4}\/\d{2}\//)), // New organized structure
-      other: []
+      other: [] as string[]
     };
     
     filesByType.other = allFiles.filter(file => 
