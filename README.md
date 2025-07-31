@@ -164,3 +164,4 @@ npm run build
 
 Pre otázky a problémy vytvorte issue v GitHub repozitári.
 # Force Railway redeploy
+# Force Vercel redeploy Thu Jul 31 11:22:56 CEST 2025
