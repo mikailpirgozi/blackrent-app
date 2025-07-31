@@ -44,6 +44,7 @@ import { Rental, VehicleUnavailability, VehicleCategory } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useDebounce } from '../../utils/performance';
+import RentalForm from '../rentals/RentalForm';
 
 // Custom isToday function to avoid hot reload issues
 const isToday = (date: Date): boolean => {
@@ -117,6 +118,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
   const [rentalDetailsOpen, setRentalDetailsOpen] = useState(false);
   const [loadingRentalDetails, setLoadingRentalDetails] = useState(false);
+
+  // Rental form state
+  const [editingRental, setEditingRental] = useState<Rental | null>(null);
+  const [rentalFormOpen, setRentalFormOpen] = useState(false);
   
   // Maintenance management state
   const [maintenanceDialogOpen, setMaintenanceDialogOpen] = useState(false);
@@ -1047,7 +1052,14 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         if (mobileViewMode === 'week') {
                           setCurrentWeekOffset(prev => prev - 1);
                         } else {
-                          setCurrentMonthOffset(prev => prev - 1);
+                          setCurrentMonthOffset(prev => {
+                            const newOffset = prev - 1;
+                            // 🔧 OPRAVA: Aktualizujem currentDate podľa nového offsetu
+                            const today = new Date();
+                            const newDate = new Date(today.getFullYear(), today.getMonth() + newOffset, 1);
+                            setCurrentDate(newDate);
+                            return newOffset;
+                          });
                         }
                       }}
                       sx={{ 
@@ -1064,7 +1076,14 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         if (mobileViewMode === 'week') {
                           setCurrentWeekOffset(prev => prev + 1);
                         } else {
-                          setCurrentMonthOffset(prev => prev + 1);
+                          setCurrentMonthOffset(prev => {
+                            const newOffset = prev + 1;
+                            // 🔧 OPRAVA: Aktualizujem currentDate podľa nového offsetu
+                            const today = new Date();
+                            const newDate = new Date(today.getFullYear(), today.getMonth() + newOffset, 1);
+                            setCurrentDate(newDate);
+                            return newOffset;
+                          });
                         }
                       }}
                       sx={{ 
@@ -1802,8 +1821,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           <Button 
             variant="contained" 
             onClick={() => {
-              // Tu by sme mohli pridať navigáciu na editáciu prenájmu
-              console.log('Edit rental:', selectedRental.id);
+              // 🔧 OPRAVA: Implementujem editáciu prenájmu
+              console.log('🚗 Opening rental edit for:', selectedRental.id);
+              setEditingRental(selectedRental);
+              setRentalFormOpen(true);
+              setSelectedRental(null);
+              setRentalDetailsOpen(false);
             }}
           >
             Upraviť prenájom
@@ -1886,6 +1909,40 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         </Stack>
       </DialogContent>
     </Dialog>
+    
+    {/* Rental Form Dialog */}
+    {rentalFormOpen && (
+      <Dialog
+        open={rentalFormOpen}
+        onClose={() => {
+          setRentalFormOpen(false);
+          setEditingRental(null);
+        }}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingRental ? 'Upraviť prenájom' : 'Nový prenájom'}
+        </DialogTitle>
+        <DialogContent>
+          <RentalForm
+            rental={editingRental}
+            onSave={(savedRental: Rental) => {
+              console.log('🎉 Rental saved:', savedRental);
+              // Aktualizovať dáta v calendári
+              fetchCalendarData(true);
+              setRentalFormOpen(false);
+              setEditingRental(null);
+            }}
+            onCancel={() => {
+              setRentalFormOpen(false);
+              setEditingRental(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    )}
+    
     </>
   );
 };
