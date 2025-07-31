@@ -49,6 +49,16 @@ export class PostgresDatabase {
     this.initTables().catch(console.error); // Spustenie pre aktualizáciu schémy
   }
 
+  // 📧 HELPER: Public query method pre webhook funcionalitu
+  async query(sql: string, params: any[] = []): Promise<any> {
+    const client = await this.pool.connect();
+    try {
+      return await client.query(sql, params);
+    } finally {
+      client.release();
+    }
+  }
+
   private async initTables() {
     const client = await this.pool.connect();
     try {
@@ -1243,6 +1253,57 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 24 chyba:', error.message);
       }
 
+      // Migrácia 25: 📊 AUDIT LOGGING - Sledovanie všetkých operácií v systéme
+      try {
+        console.log('📋 Migrácia 25: 📊 Vytváram audit_logs tabuľku...');
+        
+        // Vytvorenie audit_logs tabuľky
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS audit_logs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+            username VARCHAR(100),
+            action VARCHAR(100) NOT NULL,
+            resource_type VARCHAR(50) NOT NULL,
+            resource_id VARCHAR(100),
+            details JSONB,
+            metadata JSONB,
+            ip_address INET,
+            user_agent TEXT,
+            success BOOLEAN DEFAULT true,
+            error_message TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            
+            -- Validácia podporovaných akcií
+            CONSTRAINT audit_logs_action_check CHECK (action IN (
+              'create', 'update', 'delete', 'read', 'login', 'logout',
+              'email_processed', 'email_approved', 'email_rejected',
+              'rental_approved', 'rental_rejected', 'rental_edited',
+              'system_error', 'api_call', 'file_upload', 'file_delete'
+            ))
+          );
+        `);
+
+        // Indexy pre rýchle vyhľadávanie audit logov
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+          CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+          CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
+          CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_audit_logs_success ON audit_logs(success);
+          CREATE INDEX IF NOT EXISTS idx_audit_logs_username ON audit_logs(username);
+        `);
+
+        console.log('✅ Migrácia 25: 📊 Audit Logs systém úspešne vytvorený!');
+        console.log('   🕵️ Sleduje všetky operácie: create, update, delete, login');
+        console.log('   📧 Email operácie: processed, approved, rejected');
+        console.log('   🏠 Rental operácie: approved, rejected, edited');
+        console.log('   🚀 Optimalizované indexy pre rýchle vyhľadávanie');
+        
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 25 chyba:', error.message);
+      }
+
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
     }
@@ -2224,6 +2285,14 @@ export class PostgresDatabase {
     notificationThreshold?: number;
     autoExtend?: boolean;
     overrideHistory?: any;
+    // 📧 NOVÉ: Automatické spracovanie emailov
+    sourceType?: 'manual' | 'email_auto' | 'api_auto';
+    approvalStatus?: 'pending' | 'approved' | 'rejected' | 'spam';
+    emailContent?: string;
+    autoProcessedAt?: Date;
+    approvedBy?: string;
+    approvedAt?: Date;
+    rejectionReason?: string;
   }): Promise<Rental> {
     const client = await this.pool.connect();
     try {
@@ -2248,15 +2317,17 @@ export class PostgresDatabase {
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
           handover_protocol_id, return_protocol_id, company,
           rental_type, is_flexible, flexible_end_date, can_be_overridden, override_priority, 
-          notification_threshold, auto_extend, override_history
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39)
+          notification_threshold, auto_extend, override_history,
+          source_type, approval_status, email_content, auto_processed_at, approved_by, approved_at, rejection_reason
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46)
         RETURNING id, vehicle_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
           handover_protocol_id, return_protocol_id, company, created_at,
           rental_type, is_flexible, flexible_end_date, can_be_overridden, override_priority, 
-          notification_threshold, auto_extend, override_history
+          notification_threshold, auto_extend, override_history,
+          source_type, approval_status, email_content, auto_processed_at, approved_by, approved_at, rejection_reason
       `, [
         rentalData.vehicleId || null, 
         rentalData.customerName,
@@ -2297,7 +2368,15 @@ export class PostgresDatabase {
         rentalData.overridePriority || 5,
         rentalData.notificationThreshold || 3,
         rentalData.autoExtend || false,
-        rentalData.overrideHistory ? JSON.stringify(rentalData.overrideHistory) : '[]'
+        rentalData.overrideHistory ? JSON.stringify(rentalData.overrideHistory) : '[]',
+        // 📧 NOVÉ: Automatické spracovanie emailov hodnoty
+        rentalData.sourceType || 'manual',
+        rentalData.approvalStatus || 'approved',
+        rentalData.emailContent || null,
+        rentalData.autoProcessedAt || null,
+        rentalData.approvedBy || null,
+        rentalData.approvedAt || null,
+        rentalData.rejectionReason || null
       ]);
 
       const row = result.rows[0];
@@ -2346,7 +2425,15 @@ export class PostgresDatabase {
           notificationThreshold: row.notification_threshold || 3,
           autoExtend: Boolean(row.auto_extend)
         },
-        overrideHistory: this.safeJsonParse(row.override_history) || []
+        overrideHistory: this.safeJsonParse(row.override_history) || [],
+        // 📧 NOVÉ: Automatické spracovanie emailov polia
+        sourceType: row.source_type || 'manual',
+        approvalStatus: row.approval_status || 'approved',
+        emailContent: row.email_content || undefined,
+        autoProcessedAt: row.auto_processed_at ? new Date(row.auto_processed_at) : undefined,
+        approvedBy: row.approved_by || undefined,
+        approvedAt: row.approved_at ? new Date(row.approved_at) : undefined,
+        rejectionReason: row.rejection_reason || undefined
       };
     } finally {
       client.release();
@@ -2377,7 +2464,7 @@ export class PostgresDatabase {
       return {
         id: row.id,
         vehicleId: row.vehicle_id,
-        customerId: row.customer_id,
+        customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
         customerName: row.customer_name,
         startDate: new Date(row.start_date),
         endDate: new Date(row.end_date),
@@ -2456,18 +2543,17 @@ export class PostgresDatabase {
         // 🛡️ OCHRANA LEVEL 5: Controlled UPDATE s row counting
         const result = await client.query(`
           UPDATE rentals SET 
-            vehicle_id = $1, customer_id = $2, customer_name = $3, start_date = $4, end_date = $5,
-            total_price = $6, commission = $7, payment_method = $8, discount = $9, custom_commission = $10,
-            extra_km_charge = $11, paid = $12, status = $13, handover_place = $14, confirmed = $15,
-            payments = $16, history = $17, order_number = $18,
-            deposit = $19, allowed_kilometers = $20, daily_kilometers = $21, extra_kilometer_rate = $22, return_conditions = $23,
-            fuel_level = $24, odometer = $25, return_fuel_level = $26, return_odometer = $27,
-            actual_kilometers = $28, fuel_refill_cost = $29, handover_protocol_id = $30, 
-            return_protocol_id = $31, updated_at = CURRENT_TIMESTAMP
-          WHERE id = $32
+            vehicle_id = $1, customer_name = $2, start_date = $3, end_date = $4,
+            total_price = $5, commission = $6, payment_method = $7, discount = $8, custom_commission = $9,
+            extra_km_charge = $10, paid = $11, status = $12, handover_place = $13, confirmed = $14,
+            payments = $15, history = $16, order_number = $17,
+            deposit = $18, allowed_kilometers = $19, daily_kilometers = $20, extra_kilometer_rate = $21, return_conditions = $22,
+            fuel_level = $23, odometer = $24, return_fuel_level = $25, return_odometer = $26,
+            actual_kilometers = $27, fuel_refill_cost = $28, handover_protocol_id = $29, 
+            return_protocol_id = $30, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $31
         `, [
           rental.vehicleId || null, // UUID as string, not parseInt
-          rental.customerId || null, // UUID as string, not parseInt
           rental.customerName, 
           rental.startDate, 
           rental.endDate,

@@ -49,6 +49,7 @@ import {
   BarChartOutlined,
   MoreHorizOutlined,
   NotificationsNoneOutlined,
+  Email,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -65,6 +66,9 @@ const drawerWidth = 280;
 
 const allMenuItems = [
   { text: 'Prenájmy', icon: <ReceiptLongOutlined />, path: '/rentals', resource: 'rentals' as const },
+  { text: 'Čakajúce prenájmy', icon: <NotificationsNoneOutlined />, path: '/pending-rentals', resource: 'rentals' as const },
+  { text: 'Email Monitoring', icon: <Email />, path: '/email-monitoring', resource: 'rentals' as const },
+  { text: 'Audit Logs', icon: <AssessmentOutlined />, path: '/audit-logs', resource: 'admin' as const },
   { text: 'Databáza vozidiel', icon: <CarRental />, path: '/vehicles', resource: 'vehicles' as const },
   { text: 'Zákazníci', icon: <GroupOutlined />, path: '/customers', resource: 'customers' as const },
   { text: 'Dostupnosť áut', icon: <CalendarToday />, path: '/availability', resource: 'vehicles' as const }, // availability uses vehicles permissions

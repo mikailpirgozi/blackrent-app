@@ -25,6 +25,7 @@ app.use(cors({
     // Povolené základné domény
     const allowedOrigins = [
       'http://localhost:3000',
+      'http://localhost:3002',
       'https://mikailpirgozi.github.io', 
       'https://blackrent-app-production-4d6f.up.railway.app',
       process.env.FRONTEND_URL || 'http://localhost:3000'
@@ -93,6 +94,9 @@ import permissionRoutes from './routes/permissions';
 import adminRoutes from './routes/admin';
 import bulkRoutes from './routes/bulk';
 import cleanupRoutes from './routes/cleanup';
+import emailWebhookRoutes from './routes/email-webhook';
+import emailImapRoutes from './routes/email-imap';
+import auditRoutes from './routes/audit';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -115,6 +119,9 @@ app.use('/api/permissions', permissionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/bulk', bulkRoutes);
 app.use('/api/cleanup', cleanupRoutes);
+app.use('/api/email-webhook', emailWebhookRoutes);
+app.use('/api/email-imap', emailImapRoutes);
+app.use('/api/audit', auditRoutes);
 
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {

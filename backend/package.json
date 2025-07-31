@@ -44,8 +44,10 @@
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "imap": "^0.8.19",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^2.5.2",
+    "mailparser": "^3.7.4",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
     "pdf-lib": "^1.17.1",
@@ -57,6 +59,8 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
+    "@types/imap": "^0.8.42",
+    "@types/mailparser": "^3.4.6",
     "nodemon": "^3.0.2",
     "ts-node": "^10.9.1"
   }

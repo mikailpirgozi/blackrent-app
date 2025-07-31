@@ -28,7 +28,7 @@ const getApiBaseUrl = () => {
   }
   
   // V developmente používame localhost port 3001
-  return process.env.REACT_APP_API_URL || 'http://localhost:3002/api';
+  return process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -972,6 +972,124 @@ class ApiService {
         ownerCompanyName: string;
       };
     }>(`/vehicles/${vehicleId}/owner-at-date?date=${dateStr}`);
+  }
+
+  // 📧 Email Webhook APIs
+  private convertSnakeToCamelCase(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.convertSnakeToCamelCase(item));
+    } else if (obj !== null && typeof obj === 'object') {
+      const converted: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+        converted[camelKey] = this.convertSnakeToCamelCase(value);
+      }
+      return converted;
+    }
+    return obj;
+  }
+
+  async getPendingAutomaticRentals(): Promise<Rental[]> {
+    // this.request už extrahuje 'data' z {success, data} response
+    const responseData = await this.request<any[]>('/email-webhook/pending');
+    
+    // Konvertuj snake_case na camelCase
+    const convertedData = this.convertSnakeToCamelCase(responseData);
+    
+    return convertedData || [];
+  }
+
+  async approveAutomaticRental(rentalId: string): Promise<void> {
+    await this.request<{
+      success: boolean;
+      data: { status: string };
+    }>(`/email-webhook/approve/${rentalId}`, {
+      method: 'POST',
+    });
+  }
+
+  async rejectAutomaticRental(rentalId: string, reason: string): Promise<void> {
+    await this.request<{
+      success: boolean;
+      data: { status: string };
+    }>(`/email-webhook/reject/${rentalId}`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async updatePendingRental(rentalId: string, updates: Partial<Rental>): Promise<void> {
+    await this.request<{
+      success: boolean;
+      data: any;
+    }>(`/email-webhook/rentals/${rentalId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async getWebhookStats(): Promise<{
+    stats: any[];
+    log: any[];
+  }> {
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        stats: any[];
+        log: any[];
+      };
+    }>('/email-webhook/stats');
+    return response.data;
+  }
+
+  // IMAP Email Monitoring methods
+  async getImapStatus(): Promise<any> {
+    const response = await this.request<any>('/email-imap/status', { method: 'GET' });
+    return response;
+  }
+
+  async testImapConnection(): Promise<any> {
+    console.log('🧪 API: IMAP test pripojenia...');
+    
+    const response = await this.request<any>('/email-imap/test', { method: 'GET' });
+    
+    console.log('📊 API: Raw IMAP response:', response);
+    console.log('🔍 API: Extracted data:', response);
+    
+    return response;
+  }
+
+  async startImapMonitoring(): Promise<void> {
+    await this.request<any>('/email-imap/start', { method: 'POST' });
+  }
+
+  async stopImapMonitoring(): Promise<void> {
+    await this.request<any>('/email-imap/stop', { method: 'POST' });
+  }
+
+  async checkImapNow(): Promise<void> {
+    await this.request<any>('/email-imap/check-now', { method: 'POST' });
+  }
+
+  // ==================== AUDIT LOGS API ====================
+
+  async getAuditLogs(params: string): Promise<{ logs: any[]; total: number }> {
+    return await this.request<{ logs: any[]; total: number }>(`/audit/logs?${params}`, { method: 'GET' });
+  }
+
+  async getAuditStats(days: number): Promise<any> {
+    return await this.request<any>(`/audit/stats?days=${days}`, { method: 'GET' });
+  }
+
+  async getAuditActions(): Promise<string[]> {
+    return await this.request<string[]>('/audit/actions', { method: 'GET' });
+  }
+
+  async cleanupAuditLogs(olderThanDays: number): Promise<{ deletedCount: number }> {
+    return await this.request<{ deletedCount: number }>('/audit/logs/cleanup', { 
+      method: 'POST',
+      body: JSON.stringify({ olderThanDays })
+    });
   }
 }
 

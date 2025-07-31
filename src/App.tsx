@@ -21,6 +21,9 @@ import { Suspense, lazy } from 'react';
 
 const VehicleList = lazy(() => import('./components/vehicles/VehicleListNew'));
 const RentalList = lazy(() => import('./components/rentals/RentalListNew'));
+const PendingRentalsManager = lazy(() => import('./components/rentals/PendingRentalsManager'));
+const ImapEmailMonitoring = lazy(() => import('./components/admin/ImapEmailMonitoring'));
+const AuditLogsPage = lazy(() => import('./components/admin/AuditLogsPage'));
 const CustomerList = lazy(() => import('./components/customers/CustomerListNew'));
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));
 const InsuranceList = lazy(() => import('./components/insurances/InsuranceList'));
@@ -114,6 +117,42 @@ const AppContent: React.FC = () => {
                           <ErrorBoundary>
                             <Suspense fallback={<PageLoader />}>
                               <RentalList />
+                            </Suspense>
+                          </ErrorBoundary>
+                        </Layout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/pending-rentals" element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <ErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                              <PendingRentalsManager />
+                            </Suspense>
+                          </ErrorBoundary>
+                        </Layout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/email-monitoring" element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <ErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                              <ImapEmailMonitoring />
+                            </Suspense>
+                          </ErrorBoundary>
+                        </Layout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/audit-logs" element={
+                      <ProtectedRoute allowedRoles={['admin']}>
+                        <Layout>
+                          <ErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                              <AuditLogsPage />
                             </Suspense>
                           </ErrorBoundary>
                         </Layout>
