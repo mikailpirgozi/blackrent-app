@@ -145,6 +145,14 @@ export interface Rental {
     newRentalId: string;
     userId: string;
   }[];
+  // 📧 NOVÉ: Automatické spracovanie emailov
+  sourceType?: 'manual' | 'email_auto' | 'api_auto';
+  approvalStatus?: 'pending' | 'approved' | 'rejected' | 'spam';
+  emailContent?: string;
+  autoProcessedAt?: Date;
+  approvedBy?: string;
+  approvedAt?: Date;
+  rejectionReason?: string;
 }
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';

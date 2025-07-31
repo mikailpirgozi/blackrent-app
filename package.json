@@ -49,6 +49,7 @@
     "dev:stop": "./stop-dev.sh",
     "dev:restart": "./stop-dev.sh && sleep 2 && ./start-dev.sh",
     "dev:status": "echo 'Backend:' && lsof -i :3001 && echo 'Frontend:' && lsof -i :3000",
+    "dev:logs": "tail -f logs/backend.log logs/frontend.log",
     "dev:fast": "cd backend && RUN_MIGRATIONS=false npm run dev",
     "dev:with-migrations": "cd backend && RUN_MIGRATIONS=true npm run dev"
   },

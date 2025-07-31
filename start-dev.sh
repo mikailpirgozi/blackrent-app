@@ -13,8 +13,8 @@ cleanup() {
     echo "✅ Procesy ukončené"
 }
 
-# Čistenie pri ukončení skriptu
-trap cleanup EXIT
+# Čistenie len pri SIGINT (Ctrl+C) alebo chybe
+trap cleanup SIGINT SIGTERM
 
 # Čistenie existujúcich procesov
 cleanup
@@ -82,9 +82,20 @@ echo "📊 Prihlasovacie údaje:"
 echo "   Username: admin"  
 echo "   Password: Black123"
 echo ""
-echo "💡 Pre ukončenie stlačte Ctrl+C"
+echo "💡 Pre ukončenie aplikácie použite: npm run dev:stop"
+echo "📋 Pre sledovanie logov použite: tail -f logs/backend.log logs/frontend.log"
 echo ""
+echo "✅ Aplikácia beží na pozadí"
+echo "🔧 PID súbory uložené v logs/ adresári"
 
-# Sledovanie logov
-echo "📋 Sledovanie logov (posledných 10 riadkov):"
-tail -f logs/backend.log logs/frontend.log 
+# Uloženie PID procesov pre neskoršie ukončenie
+echo $BACKEND_PID > logs/backend.pid
+echo $FRONTEND_PID > logs/frontend.pid
+
+echo ""
+echo "📊 Aktuálny stav logov:"
+echo "Backend (posledných 5 riadkov):"
+tail -5 logs/backend.log 2>/dev/null || echo "  Log súbor sa ešte nevytvoril"
+echo ""
+echo "Frontend (posledných 5 riadkov):"  
+tail -5 logs/frontend.log 2>/dev/null || echo "  Log súbor sa ešte nevytvoril" 

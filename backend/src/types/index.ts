@@ -49,6 +49,8 @@ export type VehicleStatus =
 export interface Customer {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone: string;
   createdAt: Date;
@@ -139,6 +141,14 @@ export interface Rental {
     newRentalId: string;
     userId: string;
   }[];
+  // 📧 NOVÉ: Automatické spracovanie emailov
+  sourceType?: 'manual' | 'email_auto' | 'api_auto';
+  approvalStatus?: 'pending' | 'approved' | 'rejected' | 'spam';
+  emailContent?: string;
+  autoProcessedAt?: Date;
+  approvedBy?: string;
+  approvedAt?: Date;
+  rejectionReason?: string;
 }
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';
@@ -528,4 +538,44 @@ export interface ReturnProtocol {
   emailSentAt?: Date;
   createdBy: string;
   notes?: string;
-} 
+}
+
+// =====================================================
+// 📊 AUDIT LOGGING TYPES
+// =====================================================
+
+export interface AuditLog {
+  id: string;
+  userId?: string;
+  username?: string;
+  action: AuditAction;
+  resourceType: string;
+  resourceId?: string;
+  details?: Record<string, any>;
+  metadata?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  success: boolean;
+  errorMessage?: string;
+  createdAt: string;
+}
+
+export type AuditAction = 
+  | 'create' | 'update' | 'delete' | 'read' | 'login' | 'logout'
+  | 'email_processed' | 'email_approved' | 'email_rejected' 
+  | 'rental_approved' | 'rental_rejected' | 'rental_edited'
+  | 'system_error' | 'api_call' | 'file_upload' | 'file_delete';
+
+export interface AuditLogCreateRequest {
+  userId?: string;
+  username?: string;
+  action: AuditAction;
+  resourceType: string;
+  resourceId?: string;
+  details?: Record<string, any>;
+  metadata?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  success?: boolean;
+  errorMessage?: string;
+}
