@@ -248,40 +248,86 @@ class ImapEmailService {
   private parseEmailContent(emailData: EmailData): ParsedRentalData | null {
     try {
       const content = emailData.text || emailData.html;
+      console.log('🔍 PARSING: Obsah emailu na parsovanie:', content.substring(0, 500) + '...');
       
-      // Použijem existujúcu parsing logiku z email-webhook.ts
+      // Rozšírené parsing pre rôzne formáty emailov
       const orderNumberMatch = content.match(/(?:číslo objednávky|order number|objednávka)\s*:?\s*([A-Z0-9]+)/i);
-      const nameMatch = content.match(/(?:meno|name|zákazník)\s*:?\s*([^,\n]+)/i);
-      const emailMatch = content.match(/(?:email|e-mail)\s*:?\s*([^\s,\n]+@[^\s,\n]+)/i);
+      
+      // Rozšírené hľadanie mena - "Odbetaraťeľ", "Meno", "Name", "Zákazník"
+      const nameMatch = content.match(/(?:odbetaraťeľ|meno|name|zákazník|customer)\s*:?\s*([^,\n\r]+)/i);
+      
+      // Email parsing
+      const emailMatch = content.match(/(?:e-mail|email)\s*:?\s*([^\s,\n\r]+@[^\s,\n\r]+)/i);
+      
+      // Telefón parsing
       const phoneMatch = content.match(/(?:telefón|phone|tel)\s*:?\s*([+\d\s-()]+)/i);
       
-      // Vozidlo
-      const vehicleMatch = content.match(/(?:vozidlo|vehicle|auto)\s*:?\s*([^,\n]+)/i);
-      const licenseMatch = content.match(/(?:spz|license|registration)\s*:?\s*([A-Z0-9\s-]+)/i);
+      // Vozidlo parsing - hľadáme v tabuľke alebo v texte
+      const vehicleMatch = content.match(/(?:vozidlo|vehicle|auto)\s*:?\s*([^,\n\r]+)/i) || 
+                           content.match(/([A-Za-z0-9\s]+(?:BMW|Mercedes|Audi|Porsche|Škoda|VW|Ford|Opel)[A-Za-z0-9\s]*)/i);
       
-      // Dátumy
-      const startDateMatch = content.match(/(?:od|from|začiatok)\s*:?\s*(\d{1,2}[.-\/]\d{1,2}[.-\/]\d{2,4})/i);
-      const endDateMatch = content.match(/(?:do|to|koniec)\s*:?\s*(\d{1,2}[.-\/]\d{1,2}[.-\/]\d{2,4})/i);
+      // SPZ/Kód vozidla
+      const licenseMatch = content.match(/(?:spz|license|registration|kód)\s*:?\s*([A-Z0-9\s-]+)/i);
       
-      // Cena
-      const priceMatch = content.match(/(?:cena|price|suma)\s*:?\s*([0-9,.]+ ?€?)/i);
+      // Dátumy - rozšírené formáty
+      let startDateMatch = content.match(/(?:od|from|začiatok)\s*:?\s*(\d{1,2}[.-\/]\d{1,2}[.-\/]\d{2,4})/i);
+      let endDateMatch = content.match(/(?:do|to|koniec)\s*:?\s*(\d{1,2}[.-\/]\d{1,2}[.-\/]\d{2,4})/i);
       
-      // Miesto
-      const placeMatch = content.match(/(?:miesto|location|adresa)\s*:?\s*([^,\n]+)/i);
+      // Ak nenájdeme tradičné formáty, hľadáme "čas rezervácie" formát
+      if (!startDateMatch || !endDateMatch) {
+        const reservationTimeMatch = content.match(/(?:čas rezervácie|reservation time)\s*:?\s*(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}:\d{2}\s*-\s*(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}:\d{2}/i);
+        if (reservationTimeMatch) {
+          startDateMatch = [reservationTimeMatch[0], reservationTimeMatch[1]];
+          endDateMatch = [reservationTimeMatch[0], reservationTimeMatch[2]];
+        }
+      }
       
-      // Km limit
-      const kmMatch = content.match(/(?:km|kilometer)\s*:?\s*(\d+)/i);
+      // Cena - rozšírené hľadanie
+      const priceMatch = content.match(/(?:suma k úhrade|cena|price|suma|total)\s*:?\s*([0-9,.]+ ?€?)/i);
+      
+      // Miesto parsing
+      const placeMatch = content.match(/(?:miesto vyzdvihnutia|miesto odovzdania|miesto|location|adresa)\s*:?\s*([^,\n\r]+)/i);
+      
+      // KM limit
+      const kmMatch = content.match(/(?:počet povolených km|km|kilometer)\s*:?\s*(\d+)/i);
+
+      console.log('🔍 PARSING výsledky:');
+      console.log('- Číslo objednávky:', orderNumberMatch?.[1]);
+      console.log('- Meno:', nameMatch?.[1]);
+      console.log('- Email:', emailMatch?.[1]);
+      console.log('- Telefón:', phoneMatch?.[1]);
+      console.log('- Vozidlo:', vehicleMatch?.[1]);
+      console.log('- Dátum od:', startDateMatch?.[1]);
+      console.log('- Dátum do:', endDateMatch?.[1]);
+      console.log('- Cena:', priceMatch?.[1]);
 
       // Validácia povinných polí
       if (!orderNumberMatch || !nameMatch || !startDateMatch || !endDateMatch) {
         console.log('⚠️ PARSING: Chýbajú povinné údaje v emaili');
+        console.log('- Číslo objednávky nájdené:', !!orderNumberMatch);
+        console.log('- Meno nájdené:', !!nameMatch);
+        console.log('- Dátum od nájdený:', !!startDateMatch);
+        console.log('- Dátum do nájdený:', !!endDateMatch);
         return null;
       }
 
-      // Parsovanie dátumov
+      // Parsovanie dátumov - podporuje viacero formátov
       const parseDate = (dateStr: string): Date => {
-        const cleanDate = dateStr.replace(/[.-]/g, '/');
-        return new Date(cleanDate);
+        console.log('📅 PARSING DATE:', dateStr);
+        
+        // YYYY-MM-DD formát (z nového emailu)
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return new Date(dateStr);
+        }
+        
+        // DD/MM/YYYY alebo DD.MM.YYYY formát (starý formát)
+        if (dateStr.match(/^\d{1,2}[.\/\-]\d{1,2}[.\/\-]\d{2,4}$/)) {
+          const cleanDate = dateStr.replace(/[.-]/g, '/');
+          return new Date(cleanDate);
+        }
+        
+        // Fallback - skús základný new Date()
+        return new Date(dateStr);
       };
 
       const rentalData: ParsedRentalData = {
