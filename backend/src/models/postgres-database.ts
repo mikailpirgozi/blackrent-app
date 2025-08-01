@@ -734,7 +734,55 @@ export class PostgresDatabase {
         }
       }
       
-      console.log('✅ Databázové migrácie úspešne dokončené');
+              // Migrácia 27: Rozšírenie VARCHAR stĺpcov pre email parsing
+        try {
+          console.log('📋 Migrácia 27: Rozširujem VARCHAR stĺpce pre email parsing...');
+          
+          const fieldsToExpand = [
+            'customer_phone', 'order_number', 'vehicle_name', 
+            'vehicle_code', 'handover_place', 'payment_method', 'customer_name'
+          ];
+          
+          for (const field of fieldsToExpand) {
+            await this.pool.query(`
+              ALTER TABLE rentals 
+              ALTER COLUMN ${field} TYPE VARCHAR(500)
+            `);
+            console.log(`✅ ${field} rozšírený na VARCHAR(500)`);
+          }
+          
+        } catch (error) {
+          console.log('⚠️ Migrácia 27 chyba:', error);
+        }
+
+        // Migrácia 28: Blacklist zamietnutých objednávok
+        try {
+          console.log('📋 Migrácia 28: Vytváram blacklist pre zamietnuté objednávky...');
+          
+          await this.pool.query(`
+            CREATE TABLE IF NOT EXISTS email_blacklist (
+              id SERIAL PRIMARY KEY,
+              order_number VARCHAR(500) NOT NULL UNIQUE,
+              reason VARCHAR(500) DEFAULT 'rejected',
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              created_by VARCHAR(255),
+              notes TEXT
+            )
+          `);
+          
+          // Index pre rýchle vyhľadávanie
+          await this.pool.query(`
+            CREATE INDEX IF NOT EXISTS idx_email_blacklist_order_number 
+            ON email_blacklist(order_number)
+          `);
+          
+          console.log('✅ Blacklist tabuľka vytvorená');
+          
+        } catch (error) {
+          console.log('⚠️ Migrácia 28 chyba:', error);
+        }
+
+        console.log('✅ Databázové migrácie úspešne dokončené');
       
       // MIGRATION TRACKING SYSTEM - Vytvor tabuľku pre tracking migrácií
       await client.query(`
