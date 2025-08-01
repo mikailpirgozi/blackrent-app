@@ -1304,6 +1304,67 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 25 chyba:', error.message);
       }
 
+      // Migrácia 26: 📧 IMAP EMAIL SUPPORT - Pridanie customer email stĺpcov do rentals
+      try {
+        console.log('📋 Migrácia 26: 📧 Pridávanie IMAP email support stĺpcov do rentals...');
+        
+        // Skontroluj či stĺpce už existujú
+        const columnCheck = await client.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'rentals' AND column_name IN ('customer_email', 'customer_phone', 'order_number', 'vehicle_name', 'vehicle_code', 'handover_place', 'daily_kilometers', 'approval_status', 'auto_processed_at', 'email_content')
+        `);
+        
+        const existingColumns = columnCheck.rows.map((row: any) => row.column_name);
+        const neededColumns = [
+          'customer_email', 'customer_phone', 'order_number', 'vehicle_name', 
+          'vehicle_code', 'handover_place', 'daily_kilometers', 'approval_status', 
+          'auto_processed_at', 'email_content'
+        ];
+        
+        const missingColumns = neededColumns.filter(col => !existingColumns.includes(col));
+        
+        if (missingColumns.length > 0) {
+          console.log(`   📧 Pridávam ${missingColumns.length} chýbajúcich stĺpcov:`, missingColumns);
+          
+          await client.query(`
+            ALTER TABLE rentals 
+            ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255),
+            ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(30),
+            ADD COLUMN IF NOT EXISTS order_number VARCHAR(100),
+            ADD COLUMN IF NOT EXISTS vehicle_name VARCHAR(255),
+            ADD COLUMN IF NOT EXISTS vehicle_code VARCHAR(100),
+            ADD COLUMN IF NOT EXISTS handover_place VARCHAR(255),
+            ADD COLUMN IF NOT EXISTS daily_kilometers INTEGER,
+            ADD COLUMN IF NOT EXISTS approval_status VARCHAR(30) DEFAULT 'pending',
+            ADD COLUMN IF NOT EXISTS auto_processed_at TIMESTAMP,
+            ADD COLUMN IF NOT EXISTS email_content TEXT
+          `);
+          
+          console.log('   ✅ IMAP stĺpce pridané do rentals tabuľky');
+        } else {
+          console.log('   ℹ️ Všetky IMAP stĺpce už existujú');
+        }
+
+        // Pridaj indexy pre lepšiu performance pri vyhľadávaní emailových objednávok
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_rentals_order_number ON rentals(order_number);
+          CREATE INDEX IF NOT EXISTS idx_rentals_customer_email ON rentals(customer_email);
+          CREATE INDEX IF NOT EXISTS idx_rentals_approval_status ON rentals(approval_status);
+          CREATE INDEX IF NOT EXISTS idx_rentals_auto_processed_at ON rentals(auto_processed_at DESC);
+        `);
+        
+        console.log('✅ Migrácia 26: 📧 IMAP Email Support úspešne implementovaný!');
+        console.log('   📧 Customer email, phone, order number support');
+        console.log('   🚗 Vehicle name a code pre email parsing');
+        console.log('   📍 Handover place a daily kilometers');
+        console.log('   ⚖️ Approval status workflow pre email objednávky');
+        console.log('   🔍 Optimalizované indexy pre email vyhľadávanie');
+        
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 26 chyba:', error.message);
+      }
+
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
     }

@@ -141,50 +141,87 @@ class ImapEmailService {
           return;
         }
 
-        // Hľadaj nové (neprečítané) emaily od objednavky@blackrent.sk
+        // Najprv hľadaj od objednavky@blackrent.sk
         this.imap!.search(['UNSEEN', ['FROM', 'objednavky@blackrent.sk']], (err: any, results: any) => {
           if (err) {
             reject(err);
             return;
           }
 
+          // Ak nenájdeme od objednavky@, skúsime všetky nové emaily
           if (!results || results.length === 0) {
-            console.log('📭 IMAP: Žiadne nové objednávky');
-            resolve();
+            console.log('📭 IMAP: Žiadne nové objednávky od objednavky@blackrent.sk, skúšam všetky nové emaily...');
+            
+            // Skúsime všetky nové emaily
+            this.imap!.search(['UNSEEN'], (err2: any, unseenResults: any) => {
+              if (err2) {
+                reject(err2);
+                return;
+              }
+              
+              if (unseenResults && unseenResults.length > 0) {
+                console.log(`📧 IMAP: Našiel som ${unseenResults.length} nových emailov (všetky adresy)`);
+                this.processFetchedEmails(unseenResults, resolve, reject);
+                return;
+              }
+              
+              // Ak nie sú žiadne UNSEEN, skúsime posledných 5 emailov vôbec
+              console.log('📭 IMAP: Žiadne nové emaily, skúšam posledných 5 emailov...');
+              this.imap!.search(['ALL'], (err3: any, allResults: any) => {
+                if (err3) {
+                  reject(err3);
+                  return;
+                }
+                
+                if (!allResults || allResults.length === 0) {
+                  console.log('📭 IMAP: Žiadne emaily v schránke');
+                  resolve();
+                  return;
+                }
+                
+                // Vezmi posledných 5 emailov
+                const last5 = allResults.slice(-5);
+                console.log(`📧 IMAP: Testujem posledných ${last5.length} emailov z celkovo ${allResults.length}`);
+                this.processFetchedEmails(last5, resolve, reject);
+              });
+            });
             return;
           }
 
           console.log(`📧 IMAP: Našiel som ${results.length} nových emailov`);
-          
-          const fetch = this.imap!.fetch(results, { 
-            bodies: '',
-            markSeen: false // Neoznačuj ako prečítané hneď
-          });
-
-          let processed = 0;
-          const total = results.length;
-
-          fetch.on('message', (msg: any, seqno: number) => {
-            this.processMessage(msg, seqno)
-              .then(() => {
-                processed++;
-                if (processed === total) {
-                  resolve();
-                }
-              })
-              .catch((error) => {
-                console.error(`❌ IMAP: Chyba pri spracovaní emailu ${seqno}:`, error);
-                processed++;
-                if (processed === total) {
-                  resolve();
-                }
-              });
-          });
-
-          fetch.once('error', reject);
+          this.processFetchedEmails(results, resolve, reject);
         });
       });
     });
+  }
+
+  private processFetchedEmails(results: any[], resolve: Function, reject: Function): void {
+    const fetch = this.imap!.fetch(results, { 
+      bodies: '',
+      markSeen: false // Neoznačuj ako prečítané hneď
+    });
+
+    let processed = 0;
+    const total = results.length;
+
+    fetch.on('message', (msg: any, seqno: number) => {
+      this.processMessage(msg, seqno)
+        .then(() => {
+          processed++;
+          if (processed === total) {
+            resolve();
+          }
+        })
+        .catch((error) => {
+          console.error(`❌ IMAP: Chyba pri spracovaní emailu ${seqno}:`, error);
+          processed++;
+          if (processed === total) {
+            resolve();
+          }
+        });
+    });
+
+    fetch.once('error', reject);
   }
 
   private async processMessage(msg: any, seqno: number): Promise<void> {
@@ -209,13 +246,11 @@ class ImapEmailService {
             messageId: parsed.messageId || `${seqno}-${Date.now()}`
           };
 
-          console.log(`📧 IMAP: Spracúvam email: ${emailData.subject}`);
+          console.log(`📧 IMAP: Spracúvam email: "${emailData.subject}" od: ${emailData.from}`);
           
-          // Overíme či je to skutočne od objednavky@blackrent.sk
+          // Ak nie je od objednavky@blackrent.sk, stále ho spracujeme ale s upozornením
           if (!emailData.from.includes('objednavky@blackrent.sk')) {
-            console.log('⚠️ IMAP: Email nie je od objednavky@blackrent.sk, preskakujem');
-            resolve();
-            return;
+            console.log(`⚠️ IMAP: Email nie je od objednavky@blackrent.sk (je od: ${emailData.from}), ale pokúsim sa ho spracovať...`);
           }
 
           // Parsuj obsah emailu
@@ -275,10 +310,20 @@ class ImapEmailService {
       
       // Ak nenájdeme tradičné formáty, hľadáme "čas rezervácie" formát
       if (!startDateMatch || !endDateMatch) {
+        // Formát s časom: 2025-08-10 08:00:00 - 2025-08-15 08:00:00
         const reservationTimeMatch = content.match(/(?:čas rezervácie|reservation time)\s*:?\s*(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}:\d{2}\s*-\s*(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}:\d{2}/i);
         if (reservationTimeMatch) {
           startDateMatch = [reservationTimeMatch[0], reservationTimeMatch[1]];
           endDateMatch = [reservationTimeMatch[0], reservationTimeMatch[2]];
+          console.log('🔍 DÁTUM: Našiel som čas rezervácie s časom:', reservationTimeMatch[1], '-', reservationTimeMatch[2]);
+        } else {
+          // Jednoduchší formát iba s dátumom: 2025-08-10 - 2025-08-15  
+          const simpleDateRangeMatch = content.match(/(?:čas rezervácie|reservation time)\s*:?\s*(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})/i);
+          if (simpleDateRangeMatch) {
+            startDateMatch = [simpleDateRangeMatch[0], simpleDateRangeMatch[1]];
+            endDateMatch = [simpleDateRangeMatch[0], simpleDateRangeMatch[2]];
+            console.log('🔍 DÁTUM: Našiel som čas rezervácie jednoduchý:', simpleDateRangeMatch[1], '-', simpleDateRangeMatch[2]);
+          }
         }
       }
       
@@ -377,10 +422,11 @@ class ImapEmailService {
           order_number, customer_name, customer_email, customer_phone,
           vehicle_name, vehicle_code, start_date, end_date, total_price,
           handover_place, daily_kilometers, approval_status, status,
-          auto_processed_at, email_content, created_at, updated_at
+          payment_method, commission, auto_processed_at, email_content, 
+          created_at, updated_at
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', 'pending',
-          CURRENT_TIMESTAMP, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+          'standard', 0.00, CURRENT_TIMESTAMP, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         ) RETURNING id
       `, [
         rentalData.orderNumber,
