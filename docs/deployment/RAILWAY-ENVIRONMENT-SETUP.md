@@ -44,6 +44,15 @@ R2_ACCOUNT_ID=your-cloudflare-account-id
 R2_PUBLIC_URL=https://pub-xyz.r2.dev
 ```
 
+#### **📧 IMAP Email Configuration:**
+```bash
+IMAP_ENABLED=true
+IMAP_HOST=imap.m1.websupport.sk
+IMAP_PORT=993
+IMAP_USER=info@blackrent.sk
+IMAP_PASSWORD=your-email-password
+```
+
 #### **🔔 Monitoring (voliteľné):**
 ```bash
 SENTRY_DSN_BACKEND=your-sentry-dsn
@@ -116,7 +125,12 @@ curl -X POST https://blackrent-app-production-4d6f.up.railway.app/api/protocols/
   -d '{"rentalId":"550e8400-e29b-41d4-a716-446655440001","location":"Test"}'
 ```
 
-### **3. Frontend Test:**
+### **3. IMAP Email Test:**
+```bash
+curl -s -H "Authorization: Bearer $(curl -s -X POST https://blackrent-app-production-4d6f.up.railway.app/api/auth/login -H "Content-Type: application/json" -d '{"username":"admin","password":"Black123"}' | jq -r '.token')" https://blackrent-app-production-4d6f.up.railway.app/api/email-imap/status | jq .
+```
+
+### **4. Frontend Test:**
 - Otvor https://blackrent-app.vercel.app
 - Skús vytvoriť handover protokol
 - Skontroluj či sa fotky uploadujú
@@ -145,6 +159,12 @@ curl -X POST https://blackrent-app-production-4d6f.up.railway.app/api/protocols/
 - Return protokoly ✅
 - Upload fotiek ✅
 - PDF generovanie ✅
+
+### **✅ Email monitoring funguje:**
+- IMAP email processing ✅
+- Automatické spracovanie objednávok ✅
+- Email webhook integration ✅
+- Real-time email monitoring ✅
 
 ### **✅ Hybridná architektúra:**
 - Vercel frontend ✅
