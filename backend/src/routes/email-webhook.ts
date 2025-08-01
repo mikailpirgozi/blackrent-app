@@ -719,27 +719,52 @@ router.post('/reject/:id',
       const { reason } = req.body;
       const userId = req.user?.id;
       
-      // Zamietnuť rental - ZMAZAŤ z databázy
-      const deleteResult = await postgresDatabase.query(`
-        DELETE FROM rentals 
+      // Získaj order_number pred zmazaním
+      const rentalData = await postgresDatabase.query(`
+        SELECT order_number, customer_name 
+        FROM rentals 
         WHERE id = $1 AND approval_status = 'pending'
-        RETURNING order_number, customer_name
       `, [id]);
       
-      if (deleteResult.rows.length === 0) {
+      if (rentalData.rows.length === 0) {
         return res.status(404).json({
           success: false,
           error: 'Prenájom nenájdený alebo už nie je pending'
         });
       }
       
-      // Log rejection (TODO: implement audit log table later)
-      console.log('❌ RENTAL REJECTED & DELETED:', {
+      const { order_number, customer_name } = rentalData.rows[0];
+      
+      // 🚫 BLACKLIST: Pridaj do blacklistu aby sa už nikdy nevytvorila automaticky
+      if (order_number) {
+        try {
+          await postgresDatabase.query(`
+            INSERT INTO email_blacklist (order_number, reason, notes, created_by) 
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (order_number) DO NOTHING
+          `, [order_number, 'rejected', reason || 'Zamietnuté používateľom', userId]);
+          
+          console.log(`🚫 BLACKLIST: ${order_number} pridaný do blacklistu`);
+        } catch (blacklistError) {
+          console.error('❌ Chyba pri pridávaní do blacklistu:', blacklistError);
+        }
+      }
+      
+      // Zamietnuť rental - ZMAZAŤ z databázy
+      const deleteResult = await postgresDatabase.query(`
+        DELETE FROM rentals 
+        WHERE id = $1 AND approval_status = 'pending'
+        RETURNING id
+      `, [id]);
+      
+      // Log rejection
+      console.log('❌ RENTAL REJECTED & BLACKLISTED:', {
         rentalId: id,
-        orderNumber: deleteResult.rows[0].order_number,
-        customerName: deleteResult.rows[0].customer_name,
+        orderNumber: order_number,
+        customerName: customer_name,
         rejectedBy: userId,
-        reason: reason
+        reason: reason,
+        blacklisted: true
       });
       
       res.json({
@@ -859,5 +884,50 @@ router.get('/stats',
     }
   }
 );
+
+// 🚫 BLACKLIST: Zablokuj objednávku aby sa už nikdy nevytvorila z emailu
+router.post('/blacklist/:orderNumber', async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+    const { reason = 'rejected', notes = '' } = req.body;
+
+    console.log(`🚫 BLACKLIST: Blokujem objednávku ${orderNumber}`);
+
+    // Pridaj do blacklistu
+    await postgresDatabase.query(`
+      INSERT INTO email_blacklist (order_number, reason, notes, created_by) 
+      VALUES ($1, $2, $3, 'system')
+      ON CONFLICT (order_number) DO NOTHING
+    `, [orderNumber, reason, notes]);
+
+    // Zmaž z čakajúcich prenájmov ak existuje
+    const deleteResult = await postgresDatabase.query(`
+      DELETE FROM rentals 
+      WHERE order_number = $1 AND approval_status = 'pending'
+      RETURNING id
+    `, [orderNumber]);
+
+    const deletedCount = deleteResult.rows.length;
+
+    console.log(`✅ BLACKLIST: ${orderNumber} zablokovaný, zmazaných ${deletedCount} pending záznamov`);
+
+    res.json({
+      success: true,
+      data: {
+        orderNumber,
+        reason,
+        deletedPendingRentals: deletedCount,
+        message: 'Objednávka je permanentne zablokovaná'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ BLACKLIST chyba:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Chyba pri blokovaní objednávky'
+    });
+  }
+});
 
 export default router;
