@@ -55,6 +55,17 @@ const ImapEmailMonitoring: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
 
+  // Definujeme fetchStatus PRED useEffect hooks
+  const fetchStatus = async () => {
+    try {
+      const data = await apiService.getImapStatus();
+      setStatus(data);
+    } catch (err: any) {
+      console.error('Error fetching IMAP status:', err);
+      setError('Nepodarilo sa načítať status IMAP monitoringu');
+    }
+  };
+
   useEffect(() => {
     const initializeStatus = async () => {
       setInitialLoading(true);
@@ -114,16 +125,6 @@ const ImapEmailMonitoring: React.FC = () => {
       </Box>
     );
   }
-
-  const fetchStatus = async () => {
-    try {
-      const data = await apiService.getImapStatus();
-      setStatus(data);
-    } catch (err: any) {
-      console.error('Error fetching IMAP status:', err);
-      setError('Nepodarilo sa načítať status IMAP monitoringu');
-    }
-  };
 
   const testConnection = async () => {
     try {
