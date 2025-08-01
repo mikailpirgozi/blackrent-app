@@ -649,7 +649,9 @@ router.get('/pending',
   async (req: Request, res: Response<ApiResponse>) => {
     try {
       const result = await postgresDatabase.query(`
-        SELECT * FROM pending_automatic_rentals
+        SELECT * FROM rentals 
+        WHERE auto_processed_at IS NOT NULL 
+        AND approval_status = 'pending'
         ORDER BY auto_processed_at DESC
       `);
       
