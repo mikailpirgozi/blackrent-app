@@ -116,7 +116,7 @@ router.get('/data',
             
             // Insurances: filter by company  
             insurances: insurances.filter(i => 
-              allowedCompanyNames.includes(i.company)
+              i.company && allowedCompanyNames.includes(i.company)
             ),
             
             // Settlements: filter by company
