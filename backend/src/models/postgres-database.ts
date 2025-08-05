@@ -1427,7 +1427,7 @@ export class PostgresDatabase {
       const orphanedRentals = await client.query(`
         SELECT r.id, r.customer_name, r.vehicle_id 
         FROM rentals r 
-        LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
+        LEFT JOIN vehicles v ON r.vehicle_id = v.id 
         WHERE r.vehicle_id IS NOT NULL AND v.id IS NULL
       `);
       
@@ -2529,7 +2529,7 @@ export class PostgresDatabase {
       const result = await client.query(`
         SELECT r.*, v.brand, v.model, v.license_plate, v.company as vehicle_company 
         FROM rentals r 
-        LEFT JOIN vehicles v ON r.vehicle_id::uuid = v.id 
+        LEFT JOIN vehicles v ON r.vehicle_id = v.id 
         WHERE r.id = $1
       `, [id]);
       
