@@ -2408,8 +2408,8 @@ export class PostgresDatabase {
           handover_protocol_id, return_protocol_id, company,
           rental_type, is_flexible, flexible_end_date, can_be_overridden, override_priority, 
           notification_threshold, auto_extend, override_history,
-          source_type, approval_status, email_content, auto_processed_at, approved_by, approved_at, rejection_reason
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46)
+          approval_status, email_content, auto_processed_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43)
         RETURNING id, vehicle_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
@@ -2417,7 +2417,7 @@ export class PostgresDatabase {
           handover_protocol_id, return_protocol_id, company, created_at,
           rental_type, is_flexible, flexible_end_date, can_be_overridden, override_priority, 
           notification_threshold, auto_extend, override_history,
-          source_type, approval_status, email_content, auto_processed_at, approved_by, approved_at, rejection_reason
+          approval_status, email_content, auto_processed_at
       `, [
         rentalData.vehicleId || null, 
         rentalData.customerName,
@@ -2459,14 +2459,10 @@ export class PostgresDatabase {
         rentalData.notificationThreshold || 3,
         rentalData.autoExtend || false,
         rentalData.overrideHistory ? JSON.stringify(rentalData.overrideHistory) : '[]',
-        // 📧 NOVÉ: Automatické spracovanie emailov hodnoty
-        rentalData.sourceType || 'manual',
+        // 📧 NOVÉ: Automatické spracovanie emailov hodnoty (len existujúce stĺpce)
         rentalData.approvalStatus || 'approved',
         rentalData.emailContent || null,
-        rentalData.autoProcessedAt || null,
-        rentalData.approvedBy || null,
-        rentalData.approvedAt || null,
-        rentalData.rejectionReason || null
+        rentalData.autoProcessedAt || null
       ]);
 
       const row = result.rows[0];
@@ -2516,14 +2512,10 @@ export class PostgresDatabase {
           autoExtend: Boolean(row.auto_extend)
         },
         overrideHistory: this.safeJsonParse(row.override_history) || [],
-        // 📧 NOVÉ: Automatické spracovanie emailov polia
-        sourceType: row.source_type || 'manual',
+        // 📧 NOVÉ: Automatické spracovanie emailov polia (len existujúce stĺpce)
         approvalStatus: row.approval_status || 'approved',
         emailContent: row.email_content || undefined,
-        autoProcessedAt: row.auto_processed_at ? new Date(row.auto_processed_at) : undefined,
-        approvedBy: row.approved_by || undefined,
-        approvedAt: row.approved_at ? new Date(row.approved_at) : undefined,
-        rejectionReason: row.rejection_reason || undefined
+        autoProcessedAt: row.auto_processed_at ? new Date(row.auto_processed_at) : undefined
       };
     } finally {
       client.release();
