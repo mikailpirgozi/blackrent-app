@@ -5945,27 +5945,17 @@ export class PostgresDatabase {
       // Ensure protocol tables exist
       await this.initProtocolTables();
 
-      // Single efficient query using LEFT JOINs to get protocol status for all rentals
+      // Direct query using protocol IDs from rentals table (more efficient)
       const result = await client.query(`
         SELECT 
           r.id as rental_id,
-          hp.id as handover_protocol_id,
+          r.handover_protocol_id,
+          r.return_protocol_id,
           hp.created_at as handover_created_at,
-          rp.id as return_protocol_id,
           rp.created_at as return_created_at
         FROM rentals r
-        LEFT JOIN (
-          SELECT DISTINCT ON (rental_id) 
-            id, rental_id, created_at
-          FROM handover_protocols 
-          ORDER BY rental_id, created_at DESC
-        ) hp ON r.id = hp.rental_id
-        LEFT JOIN (
-          SELECT DISTINCT ON (rental_id) 
-            id, rental_id, created_at
-          FROM return_protocols 
-          ORDER BY rental_id, created_at DESC
-        ) rp ON r.id = rp.rental_id
+        LEFT JOIN handover_protocols hp ON r.handover_protocol_id = hp.id
+        LEFT JOIN return_protocols rp ON r.return_protocol_id = rp.id
         ORDER BY r.created_at DESC
       `);
 
