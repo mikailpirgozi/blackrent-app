@@ -2799,9 +2799,20 @@ export class PostgresDatabase {
     try {
       console.log('📝 Creating customer with data:', customerData);
       
+      // Rozdelenie mena na first_name a last_name
+      const nameParts = customerData.name.trim().split(/\s+/);
+      const firstName = nameParts[0] || customerData.name.trim();
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+      
+      console.log('📝 Name parsing:', { 
+        originalName: customerData.name, 
+        firstName, 
+        lastName 
+      });
+      
       const result = await client.query(
-        'INSERT INTO customers (name, email, phone) VALUES ($1, $2, $3) RETURNING id, name, email, phone, created_at',
-        [customerData.name, customerData.email, customerData.phone]
+        'INSERT INTO customers (first_name, last_name, name, email, phone) VALUES ($1, $2, $3, $4, $5) RETURNING id, first_name, last_name, name, email, phone, created_at',
+        [firstName, lastName, customerData.name, customerData.email, customerData.phone]
       );
 
       const row = result.rows[0];
@@ -2809,7 +2820,7 @@ export class PostgresDatabase {
       
       return {
         id: row.id.toString(),
-        name: row.name,
+        name: row.name || `${row.first_name} ${row.last_name}`.trim(),
         email: row.email,
         phone: row.phone,
         createdAt: new Date(row.created_at)
