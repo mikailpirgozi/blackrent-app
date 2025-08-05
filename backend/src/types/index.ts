@@ -208,15 +208,18 @@ export interface InsuranceClaim {
 
 export interface Insurance {
   id: string;
-  vehicleId: string;
+  vehicleId?: string; // Voliteľné pre spätnu kompatibilitu
+  rentalId?: number;
+  insurerId?: number;
   type: string;
   policyNumber: string;
   validFrom: Date;
   validTo: Date;
   price: number;
-  company: string;
+  company?: string;
   paymentFrequency: PaymentFrequency;
   filePath?: string;
+  coverageAmount?: number;
 }
 
 export interface Settlement {

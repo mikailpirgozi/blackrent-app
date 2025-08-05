@@ -2011,45 +2011,26 @@ export class PostgresDatabase {
       }
 
       // Nájdi alebo vytvor company
-      let companyId: string | null = null;
+      let companyId: number | null = null;
       if (vehicleData.company && vehicleData.company.trim()) {
         companyId = await this.getCompanyIdByName(vehicleData.company.trim());
       }
 
-      // Skús najprv s company_id, ak zlyhá, skús bez neho (pre kompatibilitu)
-      let result;
-      try {
-        result = await client.query(
-          'INSERT INTO vehicles (brand, model, year, license_plate, company, owner_company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, owner_company_id, pricing, commission, status, created_at',
-          [
-            vehicleData.brand, 
-            vehicleData.model, 
-            vehicleData.year || 2024, // Default rok ak nie je zadaný
-            vehicleData.licensePlate, 
-            vehicleData.company,
-            companyId, // 🆕 Automaticky nastavené company_id
-            JSON.stringify(vehicleData.pricing),
-            JSON.stringify(vehicleData.commission),
-            vehicleData.status
-          ]
-        );
-      } catch (insertError: any) {
-        console.log('⚠️ Insert with company_id failed, trying without:', insertError.message);
-        // Fallback - vytvor bez company_id ak stĺpec neexistuje
-        result = await client.query(
-          'INSERT INTO vehicles (brand, model, year, license_plate, company, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, brand, model, year, license_plate, company, pricing, commission, status, created_at',
-          [
-            vehicleData.brand, 
-            vehicleData.model, 
-            vehicleData.year || 2024,
-            vehicleData.licensePlate, 
-            vehicleData.company,
-            JSON.stringify(vehicleData.pricing),
-            JSON.stringify(vehicleData.commission),
-            vehicleData.status
-          ]
-        );
-      }
+      // ✅ OPRAVENÉ: Používame company_id (integer) namiesto owner_company_id (uuid)
+      const result = await client.query(
+        'INSERT INTO vehicles (brand, model, year, license_plate, company, company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, company_id, pricing, commission, status, created_at',
+        [
+          vehicleData.brand, 
+          vehicleData.model, 
+          vehicleData.year || 2024, // Default rok ak nie je zadaný
+          vehicleData.licensePlate, 
+          vehicleData.company,
+          companyId, // 🆕 Správne company_id (integer)
+          JSON.stringify(vehicleData.pricing),
+          JSON.stringify(vehicleData.commission),
+          vehicleData.status
+        ]
+      );
 
       const row = result.rows[0];
       return {
@@ -2059,7 +2040,7 @@ export class PostgresDatabase {
         year: row.year,
         licensePlate: row.license_plate,
         company: row.company,
-        ownerCompanyId: row.owner_company_id?.toString() || companyId?.toString(), // 🆕 Mapovanie owner_company_id na ownerCompanyId (fallback na companyId)
+        ownerCompanyId: row.company_id?.toString(), // ✅ OPRAVENÉ: Používame company_id namiesto owner_company_id
         pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing,
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission,
         status: row.status,
@@ -2995,35 +2976,53 @@ export class PostgresDatabase {
   }
 
   async createInsurance(insuranceData: {
-    vehicleId: string;
+    vehicleId?: string;
+    rentalId?: number;
+    insurerId?: number;
     type: string;
     policyNumber: string;
     validFrom: Date;
     validTo: Date;
     price: number;
-    company: string;
+    company?: string;
     paymentFrequency?: string;
     filePath?: string;
+    coverageAmount?: number;
   }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
+      // ✅ OPRAVENÉ: Mapovanie API parametrov na databázové stĺpce
       const result = await client.query(
-        'INSERT INTO insurances (vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency, file_path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency, file_path, created_at',
-        [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null]
+        'INSERT INTO insurances (rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, created_at',
+        [
+          insuranceData.rentalId || null,
+          insuranceData.insurerId || null, 
+          insuranceData.policyNumber, 
+          insuranceData.type,
+          insuranceData.coverageAmount || insuranceData.price, // coverage_amount = price ako fallback
+          insuranceData.price, // premium = price
+          insuranceData.validFrom, // start_date = validFrom
+          insuranceData.validTo, // end_date = validTo
+          insuranceData.paymentFrequency || 'yearly', 
+          insuranceData.filePath || null
+        ]
       );
 
       const row = result.rows[0];
       return {
         id: row.id.toString(),
-        vehicleId: row.vehicle_id,
+        vehicleId: insuranceData.vehicleId || '', // Zachovávame pre kompatibilitu API
+        rentalId: row.rental_id,
+        insurerId: row.insurer_id,
         type: row.type,
         policyNumber: row.policy_number || '',
-        validFrom: new Date(row.valid_from),
-        validTo: new Date(row.valid_to),
-        price: parseFloat(row.price) || 0,
-        company: row.company,
+        validFrom: new Date(row.start_date),
+        validTo: new Date(row.end_date),
+        price: parseFloat(row.premium) || 0,
+        company: insuranceData.company || '',
         paymentFrequency: row.payment_frequency || 'yearly',
-        filePath: row.file_path || undefined
+        filePath: row.file_path || undefined,
+        coverageAmount: parseFloat(row.coverage_amount) || 0
       };
     } finally {
       client.release();
@@ -3099,8 +3098,9 @@ export class PostgresDatabase {
     try {
       console.log('🏢 Creating company:', companyData.name);
       
+      // ✅ OPRAVENÉ: Používame len stĺpce ktoré existujú v databáze
       const result = await client.query(
-        'INSERT INTO companies (name) VALUES ($1) RETURNING id, name, business_id, tax_id, address, contact_person, email, phone, contract_start_date, contract_end_date, commission_rate, is_active, created_at, updated_at', 
+        'INSERT INTO companies (name) VALUES ($1) RETURNING id, name, address, phone, email, ic, dic, created_at', 
         [companyData.name]
       );
       
@@ -3110,18 +3110,18 @@ export class PostgresDatabase {
       return {
         id: row.id.toString(),
         name: row.name,
-        businessId: row.business_id,
-        taxId: row.tax_id,
-        address: row.address,
-        contactPerson: row.contact_person,
-        email: row.email,
-        phone: row.phone,
-        contractStartDate: row.contract_start_date ? new Date(row.contract_start_date) : undefined,
-        contractEndDate: row.contract_end_date ? new Date(row.contract_end_date) : undefined,
-        commissionRate: parseFloat(row.commission_rate) || 20.00,
-        isActive: row.is_active ?? true,
+        businessId: row.ic, // ✅ ic -> businessId mapovanie
+        taxId: row.dic, // ✅ dic -> taxId mapovanie
+        address: row.address || '',
+        contactPerson: '', // Nemáme v databáze, prazdné
+        email: row.email || '',
+        phone: row.phone || '',
+        contractStartDate: undefined, // Nemáme v databáze
+        contractEndDate: undefined, // Nemáme v databáze
+        commissionRate: 20.00, // Default hodnota
+        isActive: true, // Default hodnota
         createdAt: new Date(row.created_at),
-        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+        updatedAt: undefined // Nemáme v databáze
       };
     } catch (error) {
       console.error('❌ Error creating company:', error);
@@ -5232,24 +5232,25 @@ export class PostgresDatabase {
   }
 
   // 🔄 COMPANY MAPPING FUNCTIONS
-  async getCompanyIdByName(companyName: string): Promise<string | null> {
+  async getCompanyIdByName(companyName: string): Promise<number | null> {
     const client = await this.pool.connect();
     try {
       // 1. Skús najprv presný názov
       const exactResult = await client.query('SELECT id FROM companies WHERE name = $1', [companyName]);
       if (exactResult.rows.length > 0) {
-        console.log(`✅ Company found (exact): "${companyName}" ID: ${exactResult.rows[0].id}`);
-        return exactResult.rows[0].id;
+        const companyId = parseInt(exactResult.rows[0].id);
+        console.log(`✅ Company found (exact): "${companyName}" ID: ${companyId}`);
+        return companyId;
       }
 
       // 2. Ak nenájdem presný názov, vytvor novú firmu
       console.log(`⚠️ Company "${companyName}" not found, creating new one...`);
       const insertResult = await client.query(
-        'INSERT INTO companies (name, created_at, updated_at) VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id',
+        'INSERT INTO companies (name) VALUES ($1) RETURNING id',
         [companyName]
       );
       
-      const newCompanyId = insertResult.rows[0].id;
+      const newCompanyId = parseInt(insertResult.rows[0].id);
       console.log(`✅ Company created: "${companyName}" ID: ${newCompanyId}`);
       return newCompanyId;
       
