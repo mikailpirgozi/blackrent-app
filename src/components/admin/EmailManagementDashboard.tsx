@@ -1205,7 +1205,7 @@ const EmailManagementDashboard: React.FC = () => {
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                   <Typography variant="body2"><strong>Denné km:</strong> {rental.dailyKilometers}</Typography>
-                                  <Typography variant="body2"><strong>Záloha:</strong> {formatCurrency(rental.deposit)}</Typography>
+                                  <Typography variant="body2"><strong>Záloha:</strong> {formatCurrency(rental.deposit || 0)}</Typography>
                                   <Typography variant="body2"><strong>Platba:</strong> {rental.paymentMethod}</Typography>
                                 </Grid>
                               </Grid>
