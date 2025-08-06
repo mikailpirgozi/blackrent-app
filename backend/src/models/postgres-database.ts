@@ -30,6 +30,20 @@ export class PostgresDatabase {
   private calendarConnectionLastUsed: number = 0;
   private readonly CONNECTION_REUSE_TIMEOUT = 60000; // 1 minúta
 
+  // 🚀 FÁZA 2.3: SMART CACHING LAYER - hierarchical cache system
+  private calendarCache = new Map<string, {
+    data: any;
+    timestamp: number;
+    dateRange: { start: Date; end: Date };
+  }>();
+  private readonly CALENDAR_CACHE_TTL = 5 * 60 * 1000; // 5 minút
+
+  private unavailabilityCache = new Map<string, {
+    data: any[];
+    timestamp: number;
+  }>();
+  private readonly UNAVAILABILITY_CACHE_TTL = 3 * 60 * 1000; // 3 minúty
+
   constructor() {
     // 🚀 FÁZA 2.2: OPTIMALIZED CONNECTION POOL pre produkčné škálovanie
     const poolConfig = {
@@ -78,6 +92,11 @@ export class PostgresDatabase {
         this.releaseReusableConnection(true);
       }
     }, 2 * 60 * 1000); // Každé 2 minúty
+
+    // 🚀 FÁZA 2.3: Smart cache cleanup job (každých 5 minút)
+    setInterval(() => {
+      this.cleanupExpiredCache();
+    }, 5 * 60 * 1000); // Každých 5 minút
   }
 
   // 📧 HELPER: Public query method pre webhook funcionalitu
@@ -1980,6 +1999,56 @@ export class PostgresDatabase {
     // Inak necháme connection alive pre reuse
   }
 
+  // 🚀 FÁZA 2.3: SMART CACHE HELPERS
+  private generateCacheKey(prefix: string, startDate: Date, endDate: Date): string {
+    const start = startDate.toISOString().split('T')[0];
+    const end = endDate.toISOString().split('T')[0];
+    return `${prefix}:${start}:${end}`;
+  }
+
+  private isValidCacheEntry<T>(entry: { data: T; timestamp: number }, ttl: number): boolean {
+    return (Date.now() - entry.timestamp) < ttl;
+  }
+
+  private invalidateCalendarCache(): void {
+    const beforeSize = this.calendarCache.size;
+    this.calendarCache.clear();
+    console.log(`🗑️ CALENDAR CACHE INVALIDATED - cleared ${beforeSize} entries`);
+  }
+
+  private invalidateUnavailabilityCache(): void {
+    const beforeSize = this.unavailabilityCache.size;
+    this.unavailabilityCache.clear();
+    console.log(`🗑️ UNAVAILABILITY CACHE INVALIDATED - cleared ${beforeSize} entries`);
+  }
+
+  private cleanupExpiredCache(): void {
+    const now = Date.now();
+    
+    // Cleanup calendar cache
+    const calendarBefore = this.calendarCache.size;
+    for (const [key, entry] of this.calendarCache.entries()) {
+      if (!this.isValidCacheEntry(entry, this.CALENDAR_CACHE_TTL)) {
+        this.calendarCache.delete(key);
+      }
+    }
+    
+    // Cleanup unavailability cache
+    const unavailabilityBefore = this.unavailabilityCache.size;
+    for (const [key, entry] of this.unavailabilityCache.entries()) {
+      if (!this.isValidCacheEntry(entry, this.UNAVAILABILITY_CACHE_TTL)) {
+        this.unavailabilityCache.delete(key);
+      }
+    }
+
+    const calendarCleaned = calendarBefore - this.calendarCache.size;
+    const unavailabilityCleaned = unavailabilityBefore - this.unavailabilityCache.size;
+    
+    if (calendarCleaned > 0 || unavailabilityCleaned > 0) {
+      console.log(`🧹 CACHE CLEANUP: Removed ${calendarCleaned} calendar + ${unavailabilityCleaned} unavailability entries`);
+    }
+  }
+
   // Originálna metóda pre fresh loading
   private async getVehiclesFresh(): Promise<Vehicle[]> {
     const client = await this.pool.connect();
@@ -2129,6 +2198,9 @@ export class PostgresDatabase {
       const row = result.rows[0];
       // 🚀 FÁZA 1.3: Cache invalidation po vytvorení vozidla
       this.invalidateVehicleCache();
+      
+      // 🚀 FÁZA 2.3: Calendar cache invalidation po vytvorení vozidla
+      this.invalidateCalendarCache();
 
       return {
         id: row.id.toString(),
@@ -2186,6 +2258,9 @@ export class PostgresDatabase {
       
       // 🚀 FÁZA 1.3: Cache invalidation po aktualizácii vozidla
       this.invalidateVehicleCache();
+      
+      // 🚀 FÁZA 2.3: Calendar cache invalidation po aktualizácii vozidla
+      this.invalidateCalendarCache();
     } finally {
       client.release();
     }
@@ -2198,6 +2273,9 @@ export class PostgresDatabase {
       
       // 🚀 FÁZA 1.3: Cache invalidation po zmazaní vozidla
       this.invalidateVehicleCache();
+      
+      // 🚀 FÁZA 2.3: Calendar cache invalidation po zmazaní vozidla
+      this.invalidateCalendarCache();
     } finally {
       client.release();
     }
@@ -2620,6 +2698,11 @@ export class PostgresDatabase {
         emailContent: row.email_content || undefined,
         autoProcessedAt: row.auto_processed_at ? new Date(row.auto_processed_at) : undefined
       };
+
+      // 🚀 FÁZA 2.3: Calendar cache invalidation po vytvorení prenájmu
+      this.invalidateCalendarCache();
+      this.invalidateUnavailabilityCache();
+      
     } finally {
       client.release();
     }
@@ -2788,6 +2871,10 @@ export class PostgresDatabase {
         console.error(`❌ RENTAL UPDATE FAILED, ROLLED BACK:`, updateError);
         throw updateError;
       }
+
+      // 🚀 FÁZA 2.3: Calendar cache invalidation po aktualizácii prenájmu
+      this.invalidateCalendarCache();
+      this.invalidateUnavailabilityCache();
       
     } finally {
       client.release();
@@ -2840,6 +2927,10 @@ export class PostgresDatabase {
         console.error(`❌ RENTAL DELETE FAILED, ROLLED BACK:`, deleteError);
         throw deleteError;
       }
+
+      // 🚀 FÁZA 2.3: Calendar cache invalidation po zmazaní prenájmu
+      this.invalidateCalendarCache();
+      this.invalidateUnavailabilityCache();
       
     } finally {
       client.release();
@@ -4764,12 +4855,23 @@ export class PostgresDatabase {
     }
   }
 
-  // 🚀 FÁZA 2.1 + 2.2: HYBRID OPTIMIZED - pre-filtered CTE + connection reuse  
+  // 🚀 FÁZA 2.1 + 2.2 + 2.3: HYBRID OPTIMIZED - smart cache + pre-filtered CTE + connection reuse  
   async getCalendarDataUnified(startDate: Date, endDate: Date): Promise<any> {
+    // 🚀 FÁZA 2.3: SMART CACHE CHECK - skús nájsť v cache
+    const cacheKey = this.generateCacheKey('calendar', startDate, endDate);
+    const cachedEntry = this.calendarCache.get(cacheKey);
+    
+    if (cachedEntry && this.isValidCacheEntry(cachedEntry, this.CALENDAR_CACHE_TTL)) {
+      console.log(`⚡ CALENDAR CACHE HIT - using cached data for ${cacheKey}`);
+      return cachedEntry.data;
+    }
+
+    console.log(`🔄 CALENDAR CACHE MISS - generating fresh data for ${cacheKey}`);
+    
     // 🚀 FÁZA 2.2: CONNECTION REUSE - reusovanie connection pre calendar queries
     const client = await this.getReusableConnection();
     try {
-      console.log('🚀 PHASE 2.2 OPTIMIZED: Calendar data with connection reuse + pre-filtered CTE');
+      console.log('🚀 PHASE 2.3 OPTIMIZED: Smart cached calendar data + connection reuse + pre-filtered CTE');
       
       // 🚀 FÁZA 2.1: OPTIMALIZED CTE - 31% rýchlejšie, 94% menej filtrovaných riadkov
       const result = await client.query(`
@@ -4906,19 +5008,29 @@ export class PostgresDatabase {
           priority: row.unavailability_priority
         }));
       
-      console.log('🎯 PHASE 2.1 OPTIMIZED RESULT:', {
+      console.log('🎯 PHASE 2.3 OPTIMIZED RESULT:', {
         calendarDays: calendarData.length,
         vehiclesCount: vehicles.length,
         unavailabilitiesCount: unavailabilities.length,
-        performanceGain: '31% faster than Phase 1.2'
+        performanceGain: 'Smart cache + 31% faster CTE'
       });
-      
-      return {
+
+      const calendarResult = {
         calendar: calendarData,
         vehicles: vehicles, // 🚀 FÁZA 1.2: Vehicles z SQL (FUNKČNÉ)
         rentals: [], // Už sú v kalendári
         unavailabilities: unavailabilities
       };
+
+      // 🚀 FÁZA 2.3: SAVE TO CACHE - uložiť fresh data do cache
+      this.calendarCache.set(cacheKey, {
+        data: calendarResult,
+        timestamp: Date.now(),
+        dateRange: { start: startDate, end: endDate }
+      });
+      
+      console.log(`✅ CALENDAR CACHED - saved ${cacheKey} to cache (TTL: 5min)`);
+      return calendarResult;
       
     } catch (error) {
       // Pri chybe force release connection
