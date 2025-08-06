@@ -20,6 +20,12 @@ import {
   measurePerformance,
   type DebounceOptions 
 } from '../utils/debounce';
+import { 
+  apiCache, 
+  cacheKeys, 
+  cacheHelpers,
+  type CacheOptions 
+} from '../utils/apiCache';
 
 const getApiBaseUrl = () => {
   // V produkcii používame Railway URL
@@ -176,9 +182,20 @@ class ApiService {
     }
   }
 
-  // Vozidlá
+  // Vozidlá s cache
   async getVehicles(): Promise<Vehicle[]> {
-    return this.request<Vehicle[]>('/vehicles');
+    const userId = localStorage.getItem('blackrent_user_id');
+    const cacheKey = cacheKeys.vehicles(userId || undefined);
+    
+    return apiCache.getOrFetch(
+      cacheKey,
+      () => this.request<Vehicle[]>('/vehicles'),
+      {
+        ttl: 10 * 60 * 1000, // 10 minutes
+        tags: ['vehicles'],
+        background: true // Enable background refresh
+      }
+    );
   }
 
   async getVehicle(id: string): Promise<Vehicle> {
@@ -397,21 +414,33 @@ class ApiService {
   }
 
   async createVehicle(vehicle: Vehicle): Promise<void> {
-    return this.request<void>('/vehicles', {
+    const result = await this.request<void>('/vehicles', {
       method: 'POST',
       body: JSON.stringify(vehicle),
     });
+    
+    // Invalidate cache
+    cacheHelpers.invalidateEntity('vehicle');
+    return result;
   }
 
   async updateVehicle(vehicle: Vehicle): Promise<void> {
-    return this.request<void>(`/vehicles/${vehicle.id}`, {
+    const result = await this.request<void>(`/vehicles/${vehicle.id}`, {
       method: 'PUT',
       body: JSON.stringify(vehicle),
     });
+    
+    // Invalidate cache
+    cacheHelpers.invalidateEntity('vehicle');
+    return result;
   }
 
   async deleteVehicle(id: string): Promise<void> {
-    return this.request<void>(`/vehicles/${id}`, { method: 'DELETE' });
+    const result = await this.request<void>(`/vehicles/${id}`, { method: 'DELETE' });
+    
+    // Invalidate cache
+    cacheHelpers.invalidateEntity('vehicle');
+    return result;
   }
 
 
@@ -512,27 +541,50 @@ class ApiService {
     return this.request<void>(`/rentals/${id}`, { method: 'DELETE' });
   }
 
-  // Zákazníci
+  // Zákazníci s cache
   async getCustomers(): Promise<Customer[]> {
-    return this.request<Customer[]>('/customers');
+    const userId = localStorage.getItem('blackrent_user_id');
+    const cacheKey = cacheKeys.customers(userId || undefined);
+    
+    return apiCache.getOrFetch(
+      cacheKey,
+      () => this.request<Customer[]>('/customers'),
+      {
+        ttl: 5 * 60 * 1000, // 5 minutes
+        tags: ['customers'],
+        background: true
+      }
+    );
   }
 
   async createCustomer(customer: Customer): Promise<void> {
-    return this.request<void>('/customers', {
+    const result = await this.request<void>('/customers', {
       method: 'POST',
       body: JSON.stringify(customer),
     });
+    
+    // Invalidate cache
+    cacheHelpers.invalidateEntity('customer');
+    return result;
   }
 
   async updateCustomer(customer: Customer): Promise<void> {
-    return this.request<void>(`/customers/${customer.id}`, {
+    const result = await this.request<void>(`/customers/${customer.id}`, {
       method: 'PUT',
       body: JSON.stringify(customer),
     });
+    
+    // Invalidate cache
+    cacheHelpers.invalidateEntity('customer');
+    return result;
   }
 
   async deleteCustomer(id: string): Promise<void> {
-    return this.request<void>(`/customers/${id}`, { method: 'DELETE' });
+    const result = await this.request<void>(`/customers/${id}`, { method: 'DELETE' });
+    
+    // Invalidate cache
+    cacheHelpers.invalidateEntity('customer');
+    return result;
   }
 
   // Náklady
@@ -631,9 +683,19 @@ class ApiService {
     return this.request<void>(`/insurance-claims/${id}`, { method: 'DELETE' });
   }
 
-  // Firmy
+  // Firmy s cache (dlhší TTL - firmy sa zriedka menia)
   async getCompanies(): Promise<Company[]> {
-    return this.request<Company[]>('/companies');
+    const cacheKey = cacheKeys.companies();
+    
+    return apiCache.getOrFetch(
+      cacheKey,
+      () => this.request<Company[]>('/companies'),
+      {
+        ttl: 30 * 60 * 1000, // 30 minutes
+        tags: ['companies'],
+        background: true
+      }
+    );
   }
 
   async createCompany(company: Company): Promise<void> {
