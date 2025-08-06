@@ -9,9 +9,9 @@ const router = Router();
 // GET /api/availability/calendar - Kalendárne dáta pre mesiac
 router.get('/calendar', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { year, month, startDate: customStartDate, endDate: customEndDate } = req.query;
+    const { year, month, startDate: customStartDate, endDate: customEndDate, phase } = req.query;
     
-    console.log('🗓️ Availability calendar request:', { year, month, customStartDate, customEndDate });
+    console.log('🗓️ Availability calendar request:', { year, month, customStartDate, customEndDate, phase });
     
     let startDate: Date;
     let endDate: Date;
@@ -29,105 +29,59 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
       endDate = endOfMonth(startDate);
       console.log('📅 Using month navigation:', { startDate, endDate });
     } else {
-      // Default: od dnešného dňa + 30 dní dopredu
+      // 🚀 PROGRESSIVE LOADING: Optimalizované načítanie podľa fázy
       const today = startOfDay(new Date());
-      startDate = today;
-      endDate = addDays(today, 30);
-      console.log('📅 Using default range (today + 30 days):', { startDate, endDate });
+      const currentMonth = startOfMonth(today);
+      const endOfCurrentMonth = endOfMonth(today);
+      
+      switch (phase) {
+        case 'current':
+          // FÁZA 1: Len aktuálny mesiac (najrýchlejšie)
+          startDate = currentMonth;
+          endDate = endOfCurrentMonth;
+          console.log('🎯 PHASE 1: Loading current month only:', { startDate, endDate });
+          break;
+          
+        case 'past':
+          // FÁZA 2: Minulé dáta (3 mesiace dozadu)
+          startDate = addDays(today, -90);
+          endDate = addDays(currentMonth, -1); // Do konca predchádzajúceho mesiaca
+          console.log('📜 PHASE 2: Loading past data (-90 days to current month):', { startDate, endDate });
+          break;
+          
+        case 'future':
+          // FÁZA 3: Budúce dáta (6 mesiacov dopredu)
+          startDate = addDays(endOfCurrentMonth, 1); // Od začiatku nasledujúceho mesiaca
+          endDate = addDays(today, 180);
+          console.log('🔮 PHASE 3: Loading future data (next month to +180 days):', { startDate, endDate });
+          break;
+          
+        default:
+          // PÔVODNÉ SPRÁVANIE: Celý rozšírený rozsah (pre backward compatibility)
+          startDate = addDays(today, -90);
+          endDate = addDays(today, 180);
+          console.log('📅 FULL RANGE: Loading complete extended range (-90 to +180 days):', { startDate, endDate });
+      }
     }
     
     console.log('📅 Date range:', { startDate, endDate });
     
-    // OPTIMALIZÁCIA: Paralelné načítanie všetkých dát
-    console.log('🚀 Starting parallel data fetch...');
+    // 🚀 FÁZA 1.2: UNIFIED SQL QUERY - 1 optimalizovaný query namiesto 3 + JS processing
+    console.log('🚀 Using unified calendar data query...');
     
-    // OPTIMALIZÁCIA: Načítaj len potrebné dáta pre dané obdobie
-    const [vehicles, monthRentals, allUnavailabilities] = await Promise.all([
-      postgresDatabase.getVehicles(),
-      postgresDatabase.getRentalsForDateRange(startDate, endDate).catch(err => {
-        console.error('⚠️ Error loading rentals, using empty array:', err);
-        return [];
-      }),
-      postgresDatabase.getUnavailabilitiesForDateRange(startDate, endDate).catch(err => {
-        console.error('⚠️ Error loading unavailabilities, using empty array:', err);
-        return [];
-      })
-    ]);
+    const unifiedResult = await postgresDatabase.getCalendarDataUnified(startDate, endDate);
     
-    console.log('✅ Optimized data fetch completed:', {
-      vehicles: vehicles.length,
-      rentalsInPeriod: monthRentals.length,
-      unavailabilities: allUnavailabilities.length
+    console.log('✅ Unified calendar data loaded:', {
+      calendarDays: unifiedResult.calendar.length,
+      vehicles: unifiedResult.vehicles.length,
+      unavailabilities: unifiedResult.unavailabilities.length
     });
     
-    // monthUnavailabilities už obsahuje filtrované dáta
-    const monthUnavailabilities = allUnavailabilities || [];
-    console.log('🔧 Unavailabilities in period:', monthUnavailabilities.length);
-      
-      // Generovať kalendárne dáta
-      const calendarData = eachDayOfInterval({ start: startDate, end: endDate }).map(date => {
-        const dayRentals = monthRentals.filter(rental => {
-          const rentalStart = new Date(rental.startDate);
-          const rentalEnd = new Date(rental.endDate);
-          return rentalStart <= date && rentalEnd >= date;
-        });
-
-        // Check unavailabilities for this date
-        const dayUnavailabilities = monthUnavailabilities.filter(unavailability => {
-          const unavailabilityStart = new Date(unavailability.startDate);
-          const unavailabilityEnd = new Date(unavailability.endDate);
-          return unavailabilityStart <= date && unavailabilityEnd >= date;
-        });
-
-        const vehicleAvailability = vehicles.map(vehicle => {
-          const rental = dayRentals.find(r => r.vehicleId === vehicle.id);
-          const isRented = !!rental;
-          
-          // 🔄 NOVÉ: Detekcia flexibilného prenájmu
-          const isFlexible = rental?.isFlexible || rental?.rentalType === 'flexible';
-          
-          // Check if vehicle has unavailability on this date
-          const unavailability = dayUnavailabilities.find(u => u.vehicleId === vehicle.id);
-          
-          let status = 'available';
-          let additionalData = {};
-          
-          if (isRented) {
-            // 🔄 NOVÉ: Flexibilné prenájmy majú iný status
-            status = isFlexible ? 'flexible' : 'rented';
-            additionalData = {
-              rentalId: rental?.id || null,
-              customerName: rental?.customerName || null,
-              isFlexible: isFlexible,
-              rentalType: rental?.rentalType || 'standard',
-              overridePriority: rental?.flexibleSettings?.overridePriority || 5
-            };
-          } else if (unavailability) {
-            status = unavailability.type; // maintenance, service, repair, blocked, cleaning, inspection
-            additionalData = {
-              unavailabilityId: unavailability.id,
-              unavailabilityReason: unavailability.reason,
-              unavailabilityType: unavailability.type,
-              unavailabilityPriority: unavailability.priority
-            };
-          } else if (vehicle.status === 'maintenance') {
-            status = 'maintenance'; // Fallback to vehicle's own status
-          }
-          
-          return {
-            vehicleId: vehicle.id,
-            vehicleName: `${vehicle.brand} ${vehicle.model}`,
-            licensePlate: vehicle.licensePlate,
-            status: status,
-            ...additionalData
-          };
-        });
-
-        return {
-          date: format(date, 'yyyy-MM-dd'),
-          vehicles: vehicleAvailability
-        };
-      });
+    // Extrakcia dát z unified result
+    const calendarData = unifiedResult.calendar;
+    const vehicles = unifiedResult.vehicles;
+    const monthRentals = unifiedResult.rentals;
+    const monthUnavailabilities = unifiedResult.unavailabilities;
 
       res.json({
         success: true,
@@ -141,7 +95,11 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
             endDate: format(endDate, 'yyyy-MM-dd'),
             type: (year && month) ? 'month' : 'days',
             year: year ? Number(year) : startDate.getFullYear(),
-            month: month ? Number(month) : startDate.getMonth() + 1
+            month: month ? Number(month) : startDate.getMonth() + 1,
+            // 🚀 PROGRESSIVE LOADING: Metadata o fáze
+            phase: phase || 'full',
+            isProgressive: !!phase,
+            dayCount: Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1
           }
         }
              });
