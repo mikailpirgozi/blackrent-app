@@ -1117,12 +1117,12 @@ const EmailManagementDashboard: React.FC = () => {
                               <Box>
                                 <Typography variant="h6" display="flex" alignItems="center" gap={1}>
                                   <CarIcon color="primary" />
-                                  {rental.vehicle_name || 'Neznáme vozidlo'}
-                                  <Chip label={rental.vehicle_code} size="small" variant="outlined" />
+                                  {rental.vehicleName || 'Neznáme vozidlo'}
+                                  <Chip label={rental.vehicleCode} size="small" variant="outlined" />
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary" display="flex" alignItems="center" gap={1}>
                                   <PersonIcon fontSize="small" />
-                                  {rental.customer_name}
+                                  {rental.customerName}
                                 </Typography>
                               </Box>
                               <Box display="flex" gap={1}>
@@ -1164,7 +1164,7 @@ const EmailManagementDashboard: React.FC = () => {
                                 <Box display="flex" alignItems="center" gap={1}>
                                   <CalendarIcon fontSize="small" color="action" />
                                   <Typography variant="body2">
-                                    <strong>Od:</strong> {formatDate(rental.start_date)}
+                                    <strong>Od:</strong> {formatDate(rental.startDate)}
                                   </Typography>
                                 </Box>
                               </Grid>
@@ -1172,7 +1172,7 @@ const EmailManagementDashboard: React.FC = () => {
                                 <Box display="flex" alignItems="center" gap={1}>
                                   <CalendarIcon fontSize="small" color="action" />
                                   <Typography variant="body2">
-                                    <strong>Do:</strong> {formatDate(rental.end_date)}
+                                    <strong>Do:</strong> {formatDate(rental.endDate)}
                                   </Typography>
                                 </Box>
                               </Grid>
@@ -1180,7 +1180,7 @@ const EmailManagementDashboard: React.FC = () => {
                                 <Box display="flex" alignItems="center" gap={1}>
                                   <EuroIcon fontSize="small" color="action" />
                                   <Typography variant="body2">
-                                    <strong>Cena:</strong> {formatCurrency(rental.total_price)}
+                                    <strong>Cena:</strong> {formatCurrency(rental.totalPrice)}
                                   </Typography>
                                 </Box>
                               </Grid>
@@ -1188,7 +1188,7 @@ const EmailManagementDashboard: React.FC = () => {
                                 <Box display="flex" alignItems="center" gap={1}>
                                   <LocationIcon fontSize="small" color="action" />
                                   <Typography variant="body2">
-                                    <strong>Miesto:</strong> {rental.handover_place}
+                                    <strong>Miesto:</strong> {rental.handoverPlace}
                                   </Typography>
                                 </Box>
                               </Grid>
@@ -1199,14 +1199,14 @@ const EmailManagementDashboard: React.FC = () => {
                               <Divider sx={{ mb: 2 }} />
                               <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6}>
-                                  <Typography variant="body2"><strong>Objednávka:</strong> {rental.order_number}</Typography>
-                                  <Typography variant="body2"><strong>Email:</strong> {rental.customer_email}</Typography>
-                                  <Typography variant="body2"><strong>Telefón:</strong> {rental.customer_phone}</Typography>
+                                  <Typography variant="body2"><strong>Objednávka:</strong> {rental.orderNumber}</Typography>
+                                  <Typography variant="body2"><strong>Email:</strong> {rental.customerEmail}</Typography>
+                                  <Typography variant="body2"><strong>Telefón:</strong> {rental.customerPhone}</Typography>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
-                                  <Typography variant="body2"><strong>Denné km:</strong> {rental.daily_kilometers}</Typography>
+                                  <Typography variant="body2"><strong>Denné km:</strong> {rental.dailyKilometers}</Typography>
                                   <Typography variant="body2"><strong>Záloha:</strong> {formatCurrency(rental.deposit)}</Typography>
-                                  <Typography variant="body2"><strong>Platba:</strong> {rental.payment_method}</Typography>
+                                  <Typography variant="body2"><strong>Platba:</strong> {rental.paymentMethod}</Typography>
                                 </Grid>
                               </Grid>
                             </Collapse>
