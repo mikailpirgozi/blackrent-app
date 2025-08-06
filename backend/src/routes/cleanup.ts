@@ -409,8 +409,16 @@ router.get('/r2-analyze', authenticateToken, async (req, res) => {
   }
 });
 
-// 🧹 R2 BULK DELETE (všetky súbory)
+// 🧹 R2 BULK DELETE (všetky súbory) - PRODUCTION SAFETY CHECK
 router.delete('/r2-clear-all', authenticateToken, async (req, res) => {
+  // 🛡️ PRODUCTION SAFETY: Disable in production to prevent data loss
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({
+      success: false,
+      error: 'SECURITY: Bulk delete operations are disabled in production environment for data safety',
+      suggestion: 'Use database console directly if cleanup is absolutely necessary'
+    });
+  }
   try {
     const { confirm } = req.body;
     
@@ -496,8 +504,18 @@ router.delete('/r2-clear-all', authenticateToken, async (req, res) => {
   }
 });
 
-// 🗃️ RESET DATABASE PROTOCOLS (vymaže protokoly z DB)
+// 🗃️ RESET DATABASE PROTOCOLS - EXTREMELY DANGEROUS - PRODUCTION PROTECTED
 router.delete('/reset-protocols', authenticateToken, async (req, res) => {
+  // 🛡️ PRODUCTION SAFETY: This endpoint can DELETE ALL RENTALS! 
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({
+      success: false,
+      error: '🚨 CRITICAL SECURITY: This endpoint can DELETE ALL RENTALS and is disabled in production!',
+      reason: 'This endpoint caused data loss on August 5, 2025 - all rental data was deleted!',
+      suggestion: 'For protocol cleanup, use database console with surgical DELETE statements'
+    });
+  }
+  
   try {
     const { confirm, includeRentals } = req.body;
     

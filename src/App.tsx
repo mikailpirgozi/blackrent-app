@@ -23,6 +23,7 @@ const VehicleList = lazy(() => import('./components/vehicles/VehicleListNew'));
 const RentalList = lazy(() => import('./components/rentals/RentalListNew'));
 const PendingRentalsManager = lazy(() => import('./components/rentals/PendingRentalsManager'));
 const ImapEmailMonitoring = lazy(() => import('./components/admin/ImapEmailMonitoring'));
+const EmailManagementDashboard = lazy(() => import('./components/admin/EmailManagementDashboard'));
 const AuditLogsPage = lazy(() => import('./components/admin/AuditLogsPage'));
 const CustomerList = lazy(() => import('./components/customers/CustomerListNew'));
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));
@@ -140,7 +141,7 @@ const AppContent: React.FC = () => {
                         <Layout>
                           <ErrorBoundary>
                             <Suspense fallback={<PageLoader />}>
-                              <ImapEmailMonitoring />
+                              <EmailManagementDashboard />
                             </Suspense>
                           </ErrorBoundary>
                         </Layout>

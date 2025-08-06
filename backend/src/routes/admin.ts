@@ -68,34 +68,14 @@ router.post('/get-token', async (req: Request, res: Response) => {
   }
 });
 
-// 🗑️ RESET DATABASE - ADMIN ONLY
-router.post('/reset-database', 
-  authenticateToken,
-  requireRole(['admin']),
-  async (req: Request, res: Response) => {
-    try {
-      console.log('🗑️ ADMIN: Starting database reset...');
-      
-      const tablesDropped = await postgresDatabase.resetDatabase();
-      
-      console.log('✅ Database reset completed');
-      
-      res.json({
-        success: true,
-        message: 'Databáza úspešne resetovaná. Reštartujte aplikáciu pre vytvorenie novej schémy.',
-        tablesDropped
-      });
-      
-    } catch (error) {
-      console.error('❌ Database reset error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Chyba pri resetovaní databázy',
-        details: error instanceof Error ? error.message : 'Neznáma chyba'
-      });
-    }
-  }
-);
+// 🗑️ RESET DATABASE ENDPOINT - DISABLED FOR SECURITY
+// This endpoint was DANGEROUS and could delete all production data!
+// If database reset is ever needed, do it manually:
+// 1. Create full backup first
+// 2. Run reset SQL directly in database console 
+// 3. Never expose this via API in production!
+//
+// router.post('/reset-database', ...) - REMOVED FOR SECURITY
 
 // 🔧 FIX DATABASE SCHEMA - ADMIN ONLY
 router.post('/fix-schema', 
