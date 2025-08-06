@@ -6,7 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import { PermissionsProvider } from './context/PermissionsContext';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
-import { CssBaseline, Box, CircularProgress } from '@mui/material';
+import { CssBaseline, Box } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { ThemeProvider, useThemeMode } from './context/ThemeContext';
@@ -15,6 +15,7 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import Layout from './components/Layout';
 import LoginForm from './components/auth/LoginForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import { EnhancedLoading } from './components/common/EnhancedLoading';
 
 // Lazy imports pre code splitting a lepšie performance
 import { Suspense, lazy } from 'react';
@@ -34,45 +35,11 @@ const VehicleOwnershipTransfer = lazy(() => import('./components/admin/VehicleOw
 
 // OPTIMALIZOVANÝ Loading component pre lazy loaded routes
 const PageLoader = () => (
-  <Box 
-    sx={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '300px',
-      flexDirection: 'column',
-      gap: 2,
-      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-      borderRadius: 2,
-      m: 2
-    }}
-  >
-    <CircularProgress 
-      size={50} 
-      thickness={4}
-      sx={{ 
-        color: 'primary.main',
-        '& .MuiCircularProgress-circle': {
-          strokeLinecap: 'round',
-        }
-      }}
-    />
-    <Box sx={{ 
-      color: 'text.secondary', 
-      fontSize: '1rem',
-      fontWeight: 500,
-      textAlign: 'center'
-    }}>
-      ⚡ Načítavam stránku...
-    </Box>
-    <Box sx={{ 
-      color: 'text.disabled', 
-      fontSize: '0.75rem',
-      textAlign: 'center'
-    }}>
-      Optimalizované načítanie
-    </Box>
-  </Box>
+  <EnhancedLoading 
+    variant="page" 
+    message="⚡ Načítavam stránku..." 
+    showMessage={true}
+  />
 );
 
 const AppContent: React.FC = () => {
