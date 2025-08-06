@@ -451,7 +451,7 @@ router.post('/webhook', async (req: Request, res: Response<ApiResponse>) => {
     if (emailParsingService.isSpamEmail(payload.from, payload.subject, payload.body)) {
       console.log('🚫 Email marked as spam and ignored');
       
-      // Log spam attempt (TODO: implement audit log table later)
+      // Log spam attempt
       console.log('🚫 SPAM FILTERED:', {
         from: payload.from,
         subject: payload.subject,
@@ -473,7 +473,7 @@ router.post('/webhook', async (req: Request, res: Response<ApiResponse>) => {
     } catch (parseError) {
       console.error('❌ Email parsing failed:', parseError);
       
-      // Log parsing failure (TODO: implement audit log table later)
+      // Log parsing failure
       console.log('❌ PARSE FAILED:', {
         from: payload.from,
         subject: payload.subject,
@@ -586,7 +586,7 @@ router.post('/webhook', async (req: Request, res: Response<ApiResponse>) => {
 
     const createdRental = await postgresDatabase.createRental(rentalData);
     
-    // Log successful processing (TODO: implement audit log table later)
+    // Log successful processing
     console.log('✅ RENTAL PROCESSED:', {
       rentalId: createdRental.id,
       from: payload.from,
@@ -627,7 +627,7 @@ router.post('/webhook', async (req: Request, res: Response<ApiResponse>) => {
       fullError: error
     });
     
-    // Log system error (TODO: implement audit log table later)
+    // Log system error
     console.log('❌ SYSTEM ERROR:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : 'No stack trace',
@@ -689,7 +689,7 @@ router.post('/approve/:id',
         WHERE id = $1 AND approval_status = 'pending'
       `, [id, userId]);
       
-      // Log approval (TODO: implement audit log table later)
+      // Log approval
       console.log('✅ RENTAL APPROVED:', {
         rentalId: id,
         approvedBy: userId
@@ -865,7 +865,7 @@ router.get('/stats',
         SELECT * FROM automatic_rentals_stats
       `);
       
-      // TODO: implement audit log table later
+  
       const logResult = { rows: [] };
       
       res.json({

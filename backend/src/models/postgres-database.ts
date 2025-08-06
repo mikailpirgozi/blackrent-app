@@ -1351,52 +1351,16 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 24 chyba:', error.message);
       }
 
-      // Migrácia 25: 📊 AUDIT LOGGING - Sledovanie všetkých operácií v systéme
+      // Migrácia 25: 🗑️ AUDIT LOGGING REMOVAL - Odstraňujeme audit logs systém
       try {
-        console.log('📋 Migrácia 25: 📊 Vytváram audit_logs tabuľku...');
+        console.log('📋 Migrácia 25: 🗑️ Odstraňujem audit_logs tabuľku...');
         
-        // Vytvorenie audit_logs tabuľky
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS audit_logs (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-            username VARCHAR(100),
-            action VARCHAR(100) NOT NULL,
-            resource_type VARCHAR(50) NOT NULL,
-            resource_id VARCHAR(100),
-            details JSONB,
-            metadata JSONB,
-            ip_address INET,
-            user_agent TEXT,
-            success BOOLEAN DEFAULT true,
-            error_message TEXT,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            
-            -- Validácia podporovaných akcií
-            CONSTRAINT audit_logs_action_check CHECK (action IN (
-              'create', 'update', 'delete', 'read', 'login', 'logout',
-              'email_processed', 'email_approved', 'email_rejected',
-              'rental_approved', 'rental_rejected', 'rental_edited',
-              'system_error', 'api_call', 'file_upload', 'file_delete'
-            ))
-          );
-        `);
+        // Odstránenie audit_logs tabuľky a všetkých indexov
+        await client.query(`DROP TABLE IF EXISTS audit_logs CASCADE;`);
 
-        // Indexy pre rýchle vyhľadávanie audit logov
-        await client.query(`
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_success ON audit_logs(success);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_username ON audit_logs(username);
-        `);
-
-        console.log('✅ Migrácia 25: 📊 Audit Logs systém úspešne vytvorený!');
-        console.log('   🕵️ Sleduje všetky operácie: create, update, delete, login');
-        console.log('   📧 Email operácie: processed, approved, rejected');
-        console.log('   🏠 Rental operácie: approved, rejected, edited');
-        console.log('   🚀 Optimalizované indexy pre rýchle vyhľadávanie');
+        console.log('✅ Migrácia 25: 🗑️ Audit Logs systém úspešne odstránený!');
+        console.log('   🧹 Tabuľka audit_logs a všetky indexy odstránené');
+        console.log('   ⚡ Znížená záťaž na databázu a lepšie performance');
         
       } catch (error: any) {
         console.log('⚠️ Migrácia 25 chyba:', error.message);
@@ -2137,6 +2101,70 @@ export class PostgresDatabase {
     if (calendarCleaned > 0 || unavailabilityCleaned > 0) {
       console.log(`🧹 CACHE CLEANUP: Removed ${calendarCleaned} calendar + ${unavailabilityCleaned} unavailability entries`);
     }
+  }
+
+  // 🚀 FÁZA 2.4: DATA STRUCTURE OPTIMIZATION
+  private optimizeCalendarDataStructure(data: any): any {
+    const startTime = Date.now();
+    
+    // Create vehicle lookup map (deduplication)
+    const vehicleMap = new Map();
+    data.vehicles.forEach((vehicle: any, index: number) => {
+      vehicleMap.set(vehicle.id, {
+        i: index, // Vehicle index instead of full object
+        brand: vehicle.brand,
+        model: vehicle.model,
+        licensePlate: vehicle.licensePlate,
+        status: vehicle.status
+      });
+    });
+
+    // Optimize calendar structure - replace duplicate vehicle data with references
+    const optimizedCalendar = data.calendar.map((day: any) => {
+      return {
+        date: day.date,
+        vehicles: day.vehicles.map((vehicle: any) => {
+          const vehicleRef = vehicleMap.get(vehicle.vehicleId);
+          return {
+            vi: vehicleRef?.i, // Vehicle index reference
+            s: vehicle.status, // Status
+            ...(vehicle.rentalId && { ri: vehicle.rentalId }), // Rental ID only if exists
+            ...(vehicle.customerName && { cn: vehicle.customerName }), // Customer name only if exists
+            ...(vehicle.isFlexible !== undefined && { f: vehicle.isFlexible }), // Flexible flag
+            ...(vehicle.rentalType !== 'standard' && { rt: vehicle.rentalType }), // Rental type only if not standard
+            ...(vehicle.unavailabilityType && { ut: vehicle.unavailabilityType }) // Unavailability type
+          };
+        })
+      };
+    });
+
+    const optimizedTime = Date.now() - startTime;
+    const originalSize = JSON.stringify(data).length;
+    const optimizedSize = JSON.stringify({
+      calendar: optimizedCalendar,
+      vehicles: Array.from(vehicleMap.values()),
+      rentals: data.rentals,
+      unavailabilities: data.unavailabilities
+    }).length;
+    
+    const sizeSaved = originalSize - optimizedSize;
+    const percentSaved = ((sizeSaved / originalSize) * 100).toFixed(1);
+    
+    console.log(`🎯 DATA STRUCTURE OPTIMIZED: ${originalSize} → ${optimizedSize} bytes (${percentSaved}% smaller) in ${optimizedTime}ms`);
+    
+    return {
+      calendar: optimizedCalendar,
+      vehicles: Array.from(vehicleMap.values()),
+      vehicleMap: Object.fromEntries(vehicleMap), // For frontend reconstruction
+      rentals: data.rentals,
+      unavailabilities: data.unavailabilities,
+      _optimization: {
+        originalSize,
+        optimizedSize,
+        compressionRatio: percentSaved + '%',
+        processingTime: optimizedTime + 'ms'
+      }
+    };
   }
 
   // Originálna metóda pre fresh loading

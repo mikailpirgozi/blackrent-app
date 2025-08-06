@@ -1,5 +1,6 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
+import compression from 'compression'; // 🚀 FÁZA 2.4: Response compression
 import path from 'path';
 import dotenv from 'dotenv';
 
@@ -18,6 +19,22 @@ if (sentry) {
   app.use(sentry.requestHandler);
   app.use(sentry.tracingHandler);
 }
+
+// 🚀 FÁZA 2.4: RESPONSE COMPRESSION - gzip compression pre všetky responses
+app.use(compression({
+  filter: (req: Request, res: Response) => {
+    // Kompresuj všetko okrem už kompresovaných súborov
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+  threshold: 1024, // Kompresuj len súbory väčšie ako 1KB
+  level: 6, // Compression level (1=najrýchlejšie, 9=najlepšie compression)
+  chunkSize: 16 * 1024, // 16KB chunks
+  windowBits: 15,
+  memLevel: 8
+}));
 
 // CORS middleware s podporou pre všetky Vercel domény
 app.use(cors({
@@ -97,7 +114,6 @@ import cleanupRoutes from './routes/cleanup';
 import emailWebhookRoutes from './routes/email-webhook';
 import emailImapRoutes from './routes/email-imap';
 import emailManagementRoutes from './routes/email-management';
-import auditRoutes from './routes/audit';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -123,7 +139,6 @@ app.use('/api/cleanup', cleanupRoutes);
 app.use('/api/email-webhook', emailWebhookRoutes);
 app.use('/api/email-imap', emailImapRoutes);
 app.use('/api/email-management', emailManagementRoutes);
-app.use('/api/audit', auditRoutes);
 
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {

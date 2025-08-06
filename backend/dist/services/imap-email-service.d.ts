@@ -11,8 +11,14 @@ declare class ImapEmailService {
     private processInbox;
     private processFetchedEmails;
     private processMessage;
+    private parseEmailText;
     private parseEmailContent;
-    private findVehicleByCode;
+    private getAllVehicles;
+    private normalizeSpz;
+    private findVehicleWithIdenticalLogic;
+    private saveEmailToHistory;
+    private updateEmailHistory;
+    private logEmailAction;
     private createPendingRental;
     startMonitoring(intervalMinutes?: number): Promise<void>;
     testConnection(): Promise<boolean>;

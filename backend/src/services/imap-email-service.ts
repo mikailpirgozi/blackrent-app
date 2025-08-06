@@ -950,7 +950,7 @@ class ImapEmailService {
         console.log(`🔗 EMAIL HISTORY: Prepojený rental ${result.rows[0].id} s email ${emailHistoryId}`);
       }
 
-      // Log do konzoly (TODO: implement audit table later)
+      // Log do konzoly
       console.log('📊 AUTO-PROCESSING:', {
         rentalId: result.rows[0].id,
         orderNumber: rentalData.orderNumber,

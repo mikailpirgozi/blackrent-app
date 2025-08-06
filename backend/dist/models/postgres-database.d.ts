@@ -48,6 +48,7 @@ export declare class PostgresDatabase {
     private invalidateCalendarCache;
     private invalidateUnavailabilityCache;
     private cleanupExpiredCache;
+    private optimizeCalendarDataStructure;
     private getVehiclesFresh;
     getVehicle(id: string): Promise<Vehicle | null>;
     createVehicle(vehicleData: {

@@ -8,7 +8,13 @@ const auth_1 = require("../middleware/auth");
 const permissions_1 = require("../middleware/permissions");
 const imap_email_service_1 = __importDefault(require("../services/imap-email-service"));
 const router = (0, express_1.Router)();
+// Import global IMAP service from main server
 let imapService = null;
+// Get global IMAP service status (from main server auto-start)
+function getGlobalImapStatus() {
+    // Check if there's a global IMAP running by environment
+    return process.env.IMAP_AUTO_STARTED === 'true';
+}
 // GET /api/email-imap/test - Test IMAP pripojenia
 router.get('/test', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'read'), async (req, res) => {
     try {
@@ -140,16 +146,22 @@ router.post('/check-now', auth_1.authenticateToken, (0, permissions_1.checkPermi
 router.get('/status', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'read'), async (req, res) => {
     try {
         const isEnabled = process.env.IMAP_ENABLED !== 'false' && !!process.env.IMAP_PASSWORD;
+        const globalRunning = getGlobalImapStatus();
+        const manualRunning = !!imapService;
+        const anyRunning = globalRunning || manualRunning;
         res.json({
             success: true,
             data: {
-                running: !!imapService,
+                running: anyRunning,
                 enabled: isEnabled,
+                autoStarted: globalRunning,
+                manuallyStarted: manualRunning,
                 timestamp: new Date().toISOString(),
                 config: {
                     host: process.env.IMAP_HOST || 'imap.m1.websupport.sk',
                     user: process.env.IMAP_USER || 'info@blackrent.sk',
-                    enabled: isEnabled
+                    enabled: isEnabled,
+                    autoStart: process.env.IMAP_AUTO_START !== 'false'
                 }
             }
         });

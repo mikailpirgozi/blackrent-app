@@ -25,6 +25,11 @@ import {
   Pagination,
   Tooltip,
   CircularProgress,
+  Tabs,
+  Tab,
+  Badge,
+  Collapse,
+  Divider,
 } from '@mui/material';
 import {
   CheckCircle as ApproveIcon,
@@ -38,8 +43,20 @@ import {
   Stop as StopIcon,
   Settings as SettingsIcon,
   CheckCircle as TestIcon,
+  Schedule as PendingIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  DirectionsCar as CarIcon,
+  Person as PersonIcon,
+  Euro as EuroIcon,
+  CalendarToday as CalendarIcon,
+  LocationOn as LocationIcon,
+  Edit as EditIcon,
+  NotificationsNone as NotificationIcon,
+  CheckCircle,
 } from '@mui/icons-material';
 import { apiService } from '../../services/api';
+import { Rental } from '../../types';
 
 interface EmailEntry {
   id: string;
@@ -106,6 +123,9 @@ interface ImapStatus {
 }
 
 const EmailManagementDashboard: React.FC = () => {
+  // Tabs state
+  const [activeTab, setActiveTab] = useState(0);
+
   const [emails, setEmails] = useState<EmailEntry[]>([]);
   const [stats, setStats] = useState<EmailStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -125,14 +145,20 @@ const EmailManagementDashboard: React.FC = () => {
   const [totalEmails, setTotalEmails] = useState(0);
   const pageSize = 20;
 
+  // Pending Rentals State
+  const [pendingRentals, setPendingRentals] = useState<Rental[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [expandedRentals, setExpandedRentals] = useState<Set<string>>(new Set());
+
   // Dialogs
   const [viewDialog, setViewDialog] = useState<{ open: boolean; email: EmailDetail | null }>({
     open: false,
     email: null
   });
-  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; emailId: string | null }>({
+  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; emailId: string | null; isRental?: boolean }>({
     open: false,
-    emailId: null
+    emailId: null,
+    isRental: false
   });
   const [rejectReason, setRejectReason] = useState('');
 
@@ -277,38 +303,46 @@ const EmailManagementDashboard: React.FC = () => {
     }
   };
 
-  const rejectEmail = async () => {
+  const rejectItem = async () => {
     if (!rejectDialog.emailId) return;
 
-    try {
-      setActionLoading(rejectDialog.emailId);
-      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      
-      const directResponse = await fetch(`http://localhost:3001/api/email-management/${rejectDialog.emailId}/reject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ reason: rejectReason })
-      });
-      
-      const response = await directResponse.json();
+    if (rejectDialog.isRental) {
+      // Handle rental rejection
+      await handleRejectRental(rejectDialog.emailId, rejectReason);
+      setRejectDialog({ open: false, emailId: null, isRental: false });
+      setRejectReason('');
+    } else {
+      // Handle email rejection
+      try {
+        setActionLoading(rejectDialog.emailId);
+        const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+        
+        const directResponse = await fetch(`http://localhost:3001/api/email-management/${rejectDialog.emailId}/reject`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ reason: rejectReason })
+        });
+        
+        const response = await directResponse.json();
 
-      if (response.success) {
-        setSuccess('Email zamietnutý!');
-        await fetchEmails();
-        await fetchStats();
-        setRejectDialog({ open: false, emailId: null });
-        setRejectReason('');
-      } else {
-        setError(response.error || 'Chyba pri zamietaní emailu');
+        if (response.success) {
+          setSuccess('Email zamietnutý!');
+          await fetchEmails();
+          await fetchStats();
+          setRejectDialog({ open: false, emailId: null, isRental: false });
+          setRejectReason('');
+        } else {
+          setError(response.error || 'Chyba pri zamietaní emailu');
+        }
+      } catch (err: any) {
+        console.error('Reject email error:', err);
+        setError('Chyba pri zamietaní emailu');
+      } finally {
+        setActionLoading(null);
       }
-    } catch (err: any) {
-      console.error('Reject email error:', err);
-      setError('Chyba pri zamietaní emailu');
-    } finally {
-      setActionLoading(null);
     }
   };
 
@@ -476,6 +510,86 @@ const EmailManagementDashboard: React.FC = () => {
     }
   };
 
+  // ============================================
+  // PENDING RENTALS FUNCTIONS
+  // ============================================
+
+  const fetchPendingRentals = async () => {
+    try {
+      setPendingLoading(true);
+      setError(null);
+      const rentals = await apiService.getPendingAutomaticRentals();
+      console.log('✅ Loaded pending rentals:', rentals?.length || 0);
+      setPendingRentals(rentals || []);
+    } catch (err: any) {
+      console.error('❌ Error fetching pending rentals:', err);
+      setError('Nepodarilo sa načítať čakajúce prenájmy');
+      setPendingRentals([]);
+    } finally {
+      setPendingLoading(false);
+    }
+  };
+
+  const handleApproveRental = async (rentalId: string) => {
+    try {
+      setActionLoading(rentalId);
+      await apiService.approveAutomaticRental(rentalId);
+      // Remove from pending list
+      setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
+      setSuccess('Prenájom bol úspešne schválený');
+    } catch (err: any) {
+      console.error('Error approving rental:', err);
+      setError('Nepodarilo sa schváliť prenájom');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRejectRental = async (rentalId: string, reason: string) => {
+    try {
+      setActionLoading(rentalId);
+      await apiService.rejectAutomaticRental(rentalId, reason);
+      // Remove from pending list
+      setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
+      setSuccess('Prenájom bol zamietnutý');
+    } catch (err: any) {
+      console.error('Error rejecting rental:', err);
+      setError('Nepodarilo sa zamietnuť prenájom');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const toggleRentalExpansion = (rentalId: string) => {
+    setExpandedRentals(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(rentalId)) {
+        newSet.delete(rentalId);
+      } else {
+        newSet.add(rentalId);
+      }
+      return newSet;
+    });
+  };
+
+  const formatCurrency = (amount: string | number) => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return new Intl.NumberFormat('sk-SK', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(numAmount);
+  };
+
+  const formatDate = (date: string | Date) => {
+    return new Date(date).toLocaleDateString('sk-SK', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   // Initial load
   useEffect(() => {
     console.log('🚀 EMAIL DASHBOARD useEffect triggered', {
@@ -487,6 +601,7 @@ const EmailManagementDashboard: React.FC = () => {
     fetchEmails();
     fetchStats();
     fetchImapStatus(); // Load IMAP status
+    fetchPendingRentals(); // Load pending rentals
   }, [currentPage, statusFilter, senderFilter]);
 
   // Status chip styling
@@ -597,6 +712,7 @@ const EmailManagementDashboard: React.FC = () => {
               fetchEmails();
               fetchStats();
               fetchImapStatus();
+              fetchPendingRentals();
             }}
             disabled={loading}
           >
@@ -767,8 +883,39 @@ const EmailManagementDashboard: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Email Table */}
-      <Card>
+      {/* Tabs Navigation */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={(event, newValue) => setActiveTab(newValue)}
+          aria-label="Email management tabs"
+        >
+          <Tab 
+            label="História Emailov" 
+            icon={<EmailIcon />} 
+            iconPosition="start"
+          />
+          <Tab 
+            label={
+              <Box display="flex" alignItems="center" gap={1}>
+                <span>Čakajúce Prenájmy</span>
+                {pendingRentals.length > 0 && (
+                  <Badge badgeContent={pendingRentals.length} color="warning">
+                    <NotificationIcon />
+                  </Badge>
+                )}
+              </Box>
+            } 
+            icon={<PendingIcon />} 
+            iconPosition="start"
+          />
+        </Tabs>
+      </Box>
+
+      {/* Tab Content */}
+      {activeTab === 0 && (
+        /* Email Table */
+        <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             📋 Emaily ({totalEmails} celkom)
@@ -923,6 +1070,157 @@ const EmailManagementDashboard: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      )}
+
+      {/* Pending Rentals Tab */}
+      {activeTab === 1 && (
+        <Card>
+          <CardContent>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+              <Typography variant="h6" gutterBottom>
+                ⏳ Čakajúce automatické prenájmy ({pendingRentals.length})
+              </Typography>
+              <Button 
+                variant="outlined" 
+                onClick={fetchPendingRentals}
+                disabled={pendingLoading}
+                startIcon={<RefreshIcon />}
+              >
+                Obnoviť
+              </Button>
+            </Box>
+
+            {pendingLoading ? (
+              <Box display="flex" justifyContent="center" p={4}>
+                <CircularProgress />
+              </Box>
+            ) : pendingRentals.length === 0 ? (
+              <Box textAlign="center" py={6}>
+                <CheckCircle fontSize="large" color="success" sx={{ mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  Žiadne čakajúce prenájmy
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Všetky automatické prenájmy boli spracované alebo žiadne ešte nepriišli.
+                </Typography>
+              </Box>
+            ) : (
+              <Grid container spacing={2}>
+                {pendingRentals.map((rental) => (
+                  <Grid item xs={12} key={rental.id}>
+                    <Card variant="outlined" sx={{ mb: 2 }}>
+                      <CardContent>
+                        <Box display="flex" justifyContent="between" alignItems="start">
+                          <Box flex={1}>
+                            {/* Rental Header */}
+                            <Box display="flex" justifyContent="between" alignItems="start" mb={2}>
+                              <Box>
+                                <Typography variant="h6" display="flex" alignItems="center" gap={1}>
+                                  <CarIcon color="primary" />
+                                  {rental.vehicle_name || 'Neznáme vozidlo'}
+                                  <Chip label={rental.vehicle_code} size="small" variant="outlined" />
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" display="flex" alignItems="center" gap={1}>
+                                  <PersonIcon fontSize="small" />
+                                  {rental.customer_name}
+                                </Typography>
+                              </Box>
+                              <Box display="flex" gap={1}>
+                                <Tooltip title="Schváliť">
+                                  <IconButton
+                                    color="success"
+                                    onClick={() => handleApproveRental(rental.id)}
+                                    disabled={actionLoading === rental.id}
+                                  >
+                                    {actionLoading === rental.id ? (
+                                      <CircularProgress size={20} />
+                                    ) : (
+                                      <ApproveIcon />
+                                    )}
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Zamietnuť">
+                                  <IconButton
+                                    color="error"
+                                    onClick={() => setRejectDialog({ open: true, emailId: rental.id, isRental: true })}
+                                    disabled={actionLoading === rental.id}
+                                  >
+                                    <RejectIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Rozbaliť detaily">
+                                  <IconButton
+                                    onClick={() => toggleRentalExpansion(rental.id)}
+                                  >
+                                    {expandedRentals.has(rental.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Box>
+
+                            {/* Basic Info */}
+                            <Grid container spacing={2} mb={2}>
+                              <Grid item xs={12} sm={6} md={3}>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                  <CalendarIcon fontSize="small" color="action" />
+                                  <Typography variant="body2">
+                                    <strong>Od:</strong> {formatDate(rental.start_date)}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              <Grid item xs={12} sm={6} md={3}>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                  <CalendarIcon fontSize="small" color="action" />
+                                  <Typography variant="body2">
+                                    <strong>Do:</strong> {formatDate(rental.end_date)}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              <Grid item xs={12} sm={6} md={3}>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                  <EuroIcon fontSize="small" color="action" />
+                                  <Typography variant="body2">
+                                    <strong>Cena:</strong> {formatCurrency(rental.total_price)}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              <Grid item xs={12} sm={6} md={3}>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                  <LocationIcon fontSize="small" color="action" />
+                                  <Typography variant="body2">
+                                    <strong>Miesto:</strong> {rental.handover_place}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                            </Grid>
+
+                            {/* Expanded Details */}
+                            <Collapse in={expandedRentals.has(rental.id)}>
+                              <Divider sx={{ mb: 2 }} />
+                              <Grid container spacing={2}>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="body2"><strong>Objednávka:</strong> {rental.order_number}</Typography>
+                                  <Typography variant="body2"><strong>Email:</strong> {rental.customer_email}</Typography>
+                                  <Typography variant="body2"><strong>Telefón:</strong> {rental.customer_phone}</Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="body2"><strong>Denné km:</strong> {rental.daily_kilometers}</Typography>
+                                  <Typography variant="body2"><strong>Záloha:</strong> {formatCurrency(rental.deposit)}</Typography>
+                                  <Typography variant="body2"><strong>Platba:</strong> {rental.payment_method}</Typography>
+                                </Grid>
+                              </Grid>
+                            </Collapse>
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* View Email Dialog */}
       <Dialog 
@@ -1004,8 +1302,8 @@ const EmailManagementDashboard: React.FC = () => {
       </Dialog>
 
       {/* Reject Dialog */}
-      <Dialog open={rejectDialog.open} onClose={() => setRejectDialog({ open: false, emailId: null })}>
-        <DialogTitle>Zamietnuť email</DialogTitle>
+      <Dialog open={rejectDialog.open} onClose={() => setRejectDialog({ open: false, emailId: null, isRental: false })}>
+        <DialogTitle>{rejectDialog.isRental ? 'Zamietnuť prenájom' : 'Zamietnuť email'}</DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
@@ -1018,12 +1316,12 @@ const EmailManagementDashboard: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRejectDialog({ open: false, emailId: null })}>
+          <Button onClick={() => setRejectDialog({ open: false, emailId: null, isRental: false })}>
             Zrušiť
           </Button>
-          <Button onClick={rejectEmail} color="error" variant="contained">
-            Zamietnuť
-          </Button>
+                                        <Button onClick={rejectItem} color="error" variant="contained">
+                                Zamietnuť
+                              </Button>
         </DialogActions>
       </Dialog>
     </Box>
