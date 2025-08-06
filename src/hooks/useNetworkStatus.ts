@@ -1,114 +1,163 @@
-/**
- * 🌐 NETWORK STATUS HOOK
- * 
- * React hook pre monitoring network connectivity:
- * - Online/offline detection
- * - Connection quality estimation
- * - Auto-retry when connection restored
- */
+// 📶 Network Status Hook
+// Monitors network connectivity and provides connection status
 
-import { useState, useEffect, useCallback } from 'react';
-import { createNetworkMonitor } from '../utils/errorHandling';
+import { useState, useEffect } from 'react';
+import { useError } from '../context/ErrorContext';
 
 interface NetworkStatus {
   isOnline: boolean;
-  wasOffline: boolean;
-  connectionType: string;
-  effectiveType: string;
-  downlink: number;
-  rtt: number;
+  effectiveType?: string;
+  downlink?: number;
+  rtt?: number;
+  saveData?: boolean;
 }
 
-interface UseNetworkStatusReturn {
-  isOnline: boolean;
+interface UseNetworkStatusReturn extends NetworkStatus {
   wasOffline: boolean;
-  connectionQuality: 'slow' | 'good' | 'fast' | 'unknown';
-  networkStatus: NetworkStatus;
-  triggerRetry: () => void;
+  reconnectedAt?: Date;
+  networkQuality: 'slow' | 'medium' | 'fast' | 'unknown';
 }
+
+// Network quality assessment based on connection info
+const assessNetworkQuality = (connection: any): 'slow' | 'medium' | 'fast' | 'unknown' => {
+  if (!connection) return 'unknown';
+  
+  const { effectiveType, downlink, rtt } = connection;
+  
+  // Based on effective connection type
+  if (effectiveType === 'slow-2g' || effectiveType === '2g') return 'slow';
+  if (effectiveType === '3g') return 'medium';
+  if (effectiveType === '4g') return 'fast';
+  
+  // Based on downlink speed (Mbps) and RTT (ms)
+  if (downlink && rtt) {
+    if (downlink < 1 || rtt > 500) return 'slow';
+    if (downlink < 5 || rtt > 200) return 'medium';
+    return 'fast';
+  }
+  
+  return 'unknown';
+};
 
 export const useNetworkStatus = (): UseNetworkStatusReturn => {
-  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-  const [wasOffline, setWasOffline] = useState<boolean>(false);
-  const [retryTrigger, setRetryTrigger] = useState<number>(0);
+  const { showError } = useError();
   
-  // Get network connection info (if available)
-  const getNetworkInfo = useCallback((): NetworkStatus => {
-    const connection = (navigator as any).connection || 
-                     (navigator as any).mozConnection || 
-                     (navigator as any).webkitConnection;
-    
-    return {
-      isOnline: navigator.onLine,
-      wasOffline,
-      connectionType: connection?.type || 'unknown',
-      effectiveType: connection?.effectiveType || 'unknown',
-      downlink: connection?.downlink || 0,
-      rtt: connection?.rtt || 0
+  const [networkStatus, setNetworkStatus] = useState<NetworkStatus>({
+    isOnline: navigator.onLine,
+    effectiveType: undefined,
+    downlink: undefined,
+    rtt: undefined,
+    saveData: undefined,
+  });
+  
+  const [wasOffline, setWasOffline] = useState(false);
+  const [reconnectedAt, setReconnectedAt] = useState<Date>();
+
+  useEffect(() => {
+    // Get initial network connection info
+    const updateConnectionInfo = () => {
+      const connection = (navigator as any).connection || 
+                        (navigator as any).mozConnection || 
+                        (navigator as any).webkitConnection;
+      
+      if (connection) {
+        setNetworkStatus(prev => ({
+          ...prev,
+          effectiveType: connection.effectiveType,
+          downlink: connection.downlink,
+          rtt: connection.rtt,
+          saveData: connection.saveData,
+        }));
+      }
     };
-  }, [wasOffline]);
-  
-  // Determine connection quality
-  const getConnectionQuality = useCallback((): 'slow' | 'good' | 'fast' | 'unknown' => {
-    const info = getNetworkInfo();
-    
-    if (!isOnline) return 'unknown';
-    
-    // Ak nemáme connection API, assume good
-    if (info.effectiveType === 'unknown') return 'good';
-    
-    // Based on effective connection type
-    switch (info.effectiveType) {
-      case 'slow-2g':
-      case '2g':
-        return 'slow';
-      case '3g':
-        return 'good';
-      case '4g':
-        return 'fast';
-      default:
-        return 'good';
-    }
-  }, [isOnline, getNetworkInfo]);
-  
-  // Handle status changes
-  const handleStatusChange = useCallback((online: boolean) => {
-    setIsOnline(online);
-    
-    if (!online) {
+
+    const handleOnline = () => {
+      const now = new Date();
+      setNetworkStatus(prev => ({ ...prev, isOnline: true }));
+      
+      if (wasOffline) {
+        setReconnectedAt(now);
+        setWasOffline(false);
+        
+        // Show reconnection success message
+        showError({
+          message: '✅ Pripojenie k internetu obnovené',
+          category: 'network',
+          severity: 'info',
+          details: `Obnovené o ${now.toLocaleTimeString()}`,
+          retry: false,
+        });
+      }
+      
+      updateConnectionInfo();
+    };
+
+    const handleOffline = () => {
+      setNetworkStatus(prev => ({ ...prev, isOnline: false }));
       setWasOffline(true);
-      console.log('📡 Network connection lost');
-    } else if (wasOffline) {
-      console.log('🌐 Network connection restored - triggering retry');
-      setRetryTrigger(prev => prev + 1);
-    }
-  }, [wasOffline]);
-  
-  // Manual retry trigger
-  const triggerRetry = useCallback(() => {
-    console.log('🔄 Manual retry triggered');
-    setRetryTrigger(prev => prev + 1);
-  }, []);
-  
-  // Setup network monitoring
-  useEffect(() => {
-    const cleanup = createNetworkMonitor(handleStatusChange);
+      
+      // Show offline warning
+      showError({
+        message: '⚠️ Stratené internetové pripojenie',
+        category: 'network',
+        severity: 'warning',
+        details: 'Niektoré funkcie môžu byť obmedzené až do obnovenia pripojenia.',
+        retry: false,
+      });
+    };
+
+    const handleConnectionChange = () => {
+      updateConnectionInfo();
+    };
+
+    // Event listeners
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
     
-    return cleanup;
-  }, [handleStatusChange]);
-  
-  // Log network changes
-  useEffect(() => {
-    if (retryTrigger > 0) {
-      console.log(`🔄 Network retry trigger: ${retryTrigger}`);
+    const connection = (navigator as any).connection || 
+                      (navigator as any).mozConnection || 
+                      (navigator as any).webkitConnection;
+    
+    if (connection) {
+      connection.addEventListener('change', handleConnectionChange);
     }
-  }, [retryTrigger]);
+
+    // Initial connection info
+    updateConnectionInfo();
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      
+      if (connection) {
+        connection.removeEventListener('change', handleConnectionChange);
+      }
+    };
+  }, [wasOffline, showError]);
+
+  const networkQuality = assessNetworkQuality((navigator as any).connection);
+
+  return {
+    ...networkStatus,
+    wasOffline,
+    reconnectedAt,
+    networkQuality,
+  };
+};
+
+// Hook for detecting poor network conditions
+export const useNetworkQuality = () => {
+  const { networkQuality, rtt, downlink } = useNetworkStatus();
+  
+  const isSlowConnection = networkQuality === 'slow' || (rtt && rtt > 500) || (downlink && downlink < 1);
+  const isFastConnection = networkQuality === 'fast' && (rtt && rtt < 100) && (downlink && downlink > 5);
   
   return {
-    isOnline,
-    wasOffline,
-    connectionQuality: getConnectionQuality(),
-    networkStatus: getNetworkInfo(),
-    triggerRetry
+    networkQuality,
+    isSlowConnection,
+    isFastConnection,
+    shouldReduceRequests: isSlowConnection,
+    shouldEnableOptimizations: isSlowConnection,
   };
 };

@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import { PermissionsProvider } from './context/PermissionsContext';
+import { ErrorProvider } from './context/ErrorContext';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -12,6 +13,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { ThemeProvider, useThemeMode } from './context/ThemeContext';
 
 import ErrorBoundary from './components/common/ErrorBoundary';
+import ErrorToastContainer from './components/common/ErrorToastContainer';
 import Layout from './components/Layout';
 import LoginForm from './components/auth/LoginForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -48,10 +50,12 @@ const AppContent: React.FC = () => {
   return (
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <AuthProvider>
-          <PermissionsProvider>
-            <AppProvider>
+      <ErrorProvider>
+        <ErrorToastContainer />
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <AuthProvider>
+            <PermissionsProvider>
+              <AppProvider>
             <Router>
               <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
                 <Routes>
@@ -68,7 +72,7 @@ const AppContent: React.FC = () => {
                     <Route path="/vehicles" element={
                       <ProtectedRoute>
                         <Layout>
-                          <ErrorBoundary>
+                          <ErrorBoundary level="page" maxRetries={3}>
                             <Suspense fallback={<PageLoader />}>
                               <VehicleList />
                             </Suspense>
@@ -80,7 +84,7 @@ const AppContent: React.FC = () => {
                     <Route path="/rentals" element={
                       <ProtectedRoute>
                         <Layout>
-                          <ErrorBoundary>
+                          <ErrorBoundary level="page" maxRetries={3}>
                             <Suspense fallback={<PageLoader />}>
                               <RentalList />
                             </Suspense>
@@ -202,11 +206,12 @@ const AppContent: React.FC = () => {
                   </Routes>
                 </Box>
               </Router>
-            </AppProvider>
-          </PermissionsProvider>
+              </AppProvider>
+            </PermissionsProvider>
           </AuthProvider>
         </LocalizationProvider>
-      </MuiThemeProvider>
+      </ErrorProvider>
+    </MuiThemeProvider>
   );
 };
 
