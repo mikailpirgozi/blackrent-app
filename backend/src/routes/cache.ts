@@ -13,14 +13,14 @@ const router = Router();
 // GET /api/cache/stats - Cache statistics (admin only)
 router.get('/stats', 
   authenticateToken,
-  requireRole('admin'),
+  requireRole(['admin']),
   cacheStatsMiddleware
 );
 
 // POST /api/cache/clear - Clear all caches (admin only)
 router.post('/clear', 
   authenticateToken,
-  requireRole('admin'),
+  requireRole(['admin']),
   (req, res) => {
     try {
       // Import cache instances

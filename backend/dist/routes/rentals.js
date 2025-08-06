@@ -4,6 +4,7 @@ const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
 const permissions_1 = require("../middleware/permissions");
+const websocket_service_1 = require("../services/websocket-service");
 const router = (0, express_1.Router)();
 // 🔍 CONTEXT FUNCTIONS
 const getRentalContext = async (req) => {
@@ -119,8 +120,8 @@ router.get('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
 router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'create'), async (req, res) => {
     try {
         const { vehicleId, customerId, customerName, startDate, endDate, totalPrice, commission, paymentMethod, discount, customCommission, extraKmCharge, paid, status, handoverPlace, confirmed, payments, history, orderNumber, deposit, allowedKilometers, dailyKilometers, extraKilometerRate, returnConditions, fuelLevel, odometer, returnFuelLevel, returnOdometer, actualKilometers, fuelRefillCost, handoverProtocolId, returnProtocolId, 
-        // 🔄 NOVÉ: Flexibilné prenájmy
-        rentalType, isFlexible, flexibleEndDate, canBeOverridden, overridePriority, notificationThreshold, autoExtend, overrideHistory } = req.body;
+        // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
+        rentalType, isFlexible, flexibleEndDate } = req.body;
         // 🔄 NOVÁ VALIDÁCIA: Pre flexibilné prenájmy endDate nie je povinné
         if (!customerName || !startDate) {
             return res.status(400).json({
@@ -179,16 +180,17 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('r
             fuelRefillCost,
             handoverProtocolId,
             returnProtocolId,
-            // 🔄 NOVÉ: Flexibilné prenájmy
+            // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
             rentalType: rentalType || 'standard',
             isFlexible: isFlexible || false,
-            flexibleEndDate: flexibleEndDate ? new Date(flexibleEndDate) : undefined,
-            canBeOverridden: canBeOverridden || false,
-            overridePriority: overridePriority || 5,
-            notificationThreshold: notificationThreshold || 3,
-            autoExtend: autoExtend || false,
-            overrideHistory: overrideHistory || []
+            flexibleEndDate: flexibleEndDate ? new Date(flexibleEndDate) : undefined
         });
+        // 🔴 Real-time broadcast: Nový prenájom vytvorený
+        const websocketService = (0, websocket_service_1.getWebSocketService)();
+        if (websocketService) {
+            const userName = req.user?.username || 'Neznámy užívateľ';
+            websocketService.broadcastRentalCreated(createdRental, userName);
+        }
         res.status(201).json({
             success: true,
             message: 'Prenájom úspešne vytvorený',
@@ -251,6 +253,12 @@ router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
             vehicleId: savedRental?.vehicleId,
             hasVehicle: !!savedRental?.vehicle
         });
+        // 🔴 Real-time broadcast: Prenájom aktualizovaný
+        const websocketService = (0, websocket_service_1.getWebSocketService)();
+        if (websocketService && savedRental) {
+            const userName = req.user?.username || 'Neznámy užívateľ';
+            websocketService.broadcastRentalUpdated(savedRental, userName);
+        }
         res.json({
             success: true,
             message: 'Prenájom úspešne aktualizovaný',
@@ -284,6 +292,12 @@ router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermissio
         console.log(`✅ Prenájom ${id} nájdený, vymazávam...`);
         await postgres_database_1.postgresDatabase.deleteRental(id);
         console.log(`🎉 Prenájom ${id} úspešne vymazaný`);
+        // 🔴 Real-time broadcast: Prenájom zmazaný
+        const websocketService = (0, websocket_service_1.getWebSocketService)();
+        if (websocketService) {
+            const userName = req.user?.username || 'Neznámy užívateľ';
+            websocketService.broadcastRentalDeleted(id, existingRental.customerName, userName);
+        }
         res.json({
             success: true,
             message: 'Prenájom úspešne vymazaný'

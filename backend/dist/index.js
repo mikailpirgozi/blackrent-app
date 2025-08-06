@@ -1,9 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const http_1 = require("http");
 const cors_1 = __importDefault(require("cors"));
 const compression_1 = __importDefault(require("compression")); // 🚀 FÁZA 2.4: Response compression
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -11,6 +45,8 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 // Sentry backend error tracking
 const sentry_1 = require("./utils/sentry");
+// WebSocket service
+const websocket_service_1 = require("./services/websocket-service");
 const app = (0, express_1.default)();
 const port = Number(process.env.PORT) || 3001;
 // Sentry setup - vylepšená verzia
@@ -103,6 +139,7 @@ const cleanup_1 = __importDefault(require("./routes/cleanup"));
 const email_webhook_1 = __importDefault(require("./routes/email-webhook"));
 const email_imap_1 = __importDefault(require("./routes/email-imap"));
 const email_management_1 = __importDefault(require("./routes/email-management"));
+const cache_1 = __importDefault(require("./routes/cache"));
 // API routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/vehicles', vehicles_1.default);
@@ -127,6 +164,7 @@ app.use('/api/cleanup', cleanup_1.default);
 app.use('/api/email-webhook', email_webhook_1.default);
 app.use('/api/email-imap', email_imap_1.default);
 app.use('/api/email-management', email_management_1.default);
+app.use('/api/cache', cache_1.default);
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {
     console.log('🧪 Simple test endpoint called');
@@ -231,12 +269,25 @@ async function autoStartImapMonitoring() {
         console.log('⚠️ IMAP: Môžete ho manuálne spustiť cez Email Management Dashboard');
     }
 }
-// Start server
-app.listen(Number(port), '0.0.0.0', () => {
+// 🔴 Create HTTP server with WebSocket support
+const httpServer = (0, http_1.createServer)(app);
+// Initialize WebSocket service
+const websocketService = (0, websocket_service_1.initializeWebSocketService)(httpServer);
+// Start server with WebSocket support
+httpServer.listen(Number(port), '0.0.0.0', async () => {
     console.log(`🚀 BlackRent server beží na porte ${port}`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🗄️  Database: PostgreSQL`);
+    console.log(`🔴 WebSocket: Real-time updates aktívne`);
     console.log(`📊 Sentry: ${sentry ? '✅ Backend aktívny' : '❌ Backend vypnutý'}, Frontend aktívny`);
+    // Initialize cache warming
+    try {
+        const { warmCache } = await Promise.resolve().then(() => __importStar(require('./middleware/cache-middleware')));
+        setTimeout(warmCache, 3000); // 3 second delay for DB to be ready
+    }
+    catch (error) {
+        console.warn('Cache warming initialization failed:', error);
+    }
     // Auto-start IMAP monitoring after server starts (2 second delay)
     setTimeout(autoStartImapMonitoring, 2000);
 });

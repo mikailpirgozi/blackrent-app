@@ -101,11 +101,6 @@ export declare class PostgresDatabase {
         rentalType?: string;
         isFlexible?: boolean;
         flexibleEndDate?: Date;
-        canBeOverridden?: boolean;
-        overridePriority?: number;
-        notificationThreshold?: number;
-        autoExtend?: boolean;
-        overrideHistory?: any;
         sourceType?: 'manual' | 'email_auto' | 'api_auto';
         approvalStatus?: 'pending' | 'approved' | 'rejected' | 'spam';
         emailContent?: string;

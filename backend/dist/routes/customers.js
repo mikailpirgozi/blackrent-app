@@ -3,9 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
+const cache_middleware_1 = require("../middleware/cache-middleware");
 const router = (0, express_1.Router)();
-// GET /api/customers - Získanie všetkých zákazníkov
-router.get('/', auth_1.authenticateToken, async (req, res) => {
+// GET /api/customers - Získanie všetkých zákazníkov s cache
+router.get('/', auth_1.authenticateToken, (0, cache_middleware_1.cacheResponse)('customers', {
+    cacheKey: cache_middleware_1.userSpecificCache,
+    ttl: 5 * 60 * 1000, // 5 minutes
+    tags: ['customers']
+}), async (req, res) => {
     try {
         let customers = await postgres_database_1.postgresDatabase.getCustomers();
         console.log('👥 Customers GET - user:', {
@@ -58,7 +63,7 @@ router.get('/', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // POST /api/customers - Vytvorenie nového zákazníka
-router.post('/', auth_1.authenticateToken, async (req, res) => {
+router.post('/', auth_1.authenticateToken, (0, cache_middleware_1.invalidateCache)('customer'), async (req, res) => {
     try {
         console.log('🎯 Customer creation started with data:', req.body);
         const { name, email, phone } = req.body;
@@ -102,7 +107,7 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // PUT /api/customers/:id - Aktualizácia zákazníka
-router.put('/:id', auth_1.authenticateToken, async (req, res) => {
+router.put('/:id', auth_1.authenticateToken, (0, cache_middleware_1.invalidateCache)('customer'), async (req, res) => {
     try {
         const { id } = req.params;
         const { name, email, phone } = req.body;
@@ -135,7 +140,7 @@ router.put('/:id', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // DELETE /api/customers/:id - Vymazanie zákazníka
-router.delete('/:id', auth_1.authenticateToken, async (req, res) => {
+router.delete('/:id', auth_1.authenticateToken, (0, cache_middleware_1.invalidateCache)('customer'), async (req, res) => {
     try {
         const { id } = req.params;
         await postgres_database_1.postgresDatabase.deleteCustomer(id);
