@@ -12,7 +12,7 @@ interface UseLazyImageOptions {
   fallbackDelay?: number;
   retryAttempts?: number;
   onLoad?: () => void;
-  onError?: (error: Event) => void;
+  onError?: (error: React.SyntheticEvent<HTMLImageElement>) => void;
 }
 
 interface UseLazyImageReturn {
@@ -107,7 +107,25 @@ export const useLazyImage = (
         }, delay);
       } else {
         setHasError(true);
-        onError?.(error as Event);
+        // Create synthetic event for consistency
+        const syntheticError = {
+          nativeEvent: error as Event,
+          currentTarget: null as any,
+          target: null as any,
+          bubbles: false,
+          cancelable: false,
+          defaultPrevented: false,
+          eventPhase: 0,
+          isTrusted: false,
+          preventDefault: () => {},
+          isDefaultPrevented: () => false,
+          stopPropagation: () => {},
+          isPropagationStopped: () => false,
+          persist: () => {},
+          timeStamp: Date.now(),
+          type: 'error'
+        } as React.SyntheticEvent<HTMLImageElement>;
+        onError?.(syntheticError);
       }
     }
   }, [imageSrc, hasError, src, retryCount, retryAttempts, fallbackDelay, onLoad, onError]);

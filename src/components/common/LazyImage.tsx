@@ -28,7 +28,7 @@ interface LazyImageProps {
   placeholderColor?: string;
   fadeInDuration?: number;
   onLoad?: () => void;
-  onError?: (error: Event) => void;
+  onError?: (error: React.SyntheticEvent<HTMLImageElement>) => void;
   onClick?: () => void;
   // Lazy loading options
   threshold?: number;
