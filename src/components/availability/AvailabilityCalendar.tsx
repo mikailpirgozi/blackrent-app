@@ -112,6 +112,15 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [unavailabilities, setUnavailabilities] = useState<VehicleUnavailability[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // 🚀 PROGRESSIVE LOADING: Stavy pre postupné načítanie
+  const [progressiveLoading, setProgressiveLoading] = useState({
+    current: false,    // Aktuálny mesiac  
+    past: false,       // Minulé dáta
+    future: false,     // Budúce dáta
+    complete: false    // Všetko načítané
+  });
+  const [loadingPhase, setLoadingPhase] = useState<string>('Príprava...');
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // Rental details popup state
@@ -150,7 +159,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   // View mode: 'navigation' (prev/next months) or 'range' (custom date range)
   const [viewMode, setViewMode] = useState<'navigation' | 'range'>('navigation');
   const [fromDate, setFromDate] = useState<Date | null>(new Date());
-  const [toDate, setToDate] = useState<Date | null>(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // +30 days
+  const [toDate, setToDate] = useState<Date | null>(new Date(Date.now() + 180 * 24 * 60 * 60 * 1000)); // +180 days (rozšírený rozsah)
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState(propSearchQuery || '');
@@ -553,6 +562,96 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     }
   };
 
+  // 🚀 PROGRESSIVE LOADING: Nová funkcia pre postupné načítanie dát
+  const fetchCalendarDataProgressive = useCallback(async () => {
+    try {
+      setLoading(true);
+      setProgressiveLoading({ current: false, past: false, future: false, complete: false });
+      
+      // 🎯 FÁZA 1: Načítaj aktuálny mesiac (najrýchlejšie)
+      setLoadingPhase('Načítavam aktuálny mesiac...');
+      const currentData = await fetchCalendarPhase('current');
+      
+      if (currentData.success) {
+        setCalendarData(currentData.data.calendar);
+        setVehicles(currentData.data.vehicles);
+        setUnavailabilities(currentData.data.unavailabilities);
+        setProgressiveLoading(prev => ({ ...prev, current: true }));
+        
+        console.log('✅ PHASE 1 COMPLETE: Current month loaded', {
+          days: currentData.data.calendar.length,
+          vehicles: currentData.data.vehicles.length
+        });
+      }
+      
+      // Používateľ už vidí aktuálne dáta, môžeme načítať zvyšok na pozadí
+      setLoading(false);
+      
+      // 📜 FÁZA 2: Načítaj minulé dáta na pozadí  
+      setLoadingPhase('Načítavam históriu...');
+      const pastData = await fetchCalendarPhase('past');
+      
+      if (pastData.success) {
+        // Mergni s existujúcimi dátami
+        setCalendarData(prev => [...pastData.data.calendar, ...prev]);
+        setUnavailabilities(prev => [...pastData.data.unavailabilities, ...prev]);
+        setProgressiveLoading(prev => ({ ...prev, past: true }));
+        
+        console.log('✅ PHASE 2 COMPLETE: Past data loaded', {
+          additionalDays: pastData.data.calendar.length
+        });
+      }
+      
+      // 🔮 FÁZA 3: Načítaj budúce dáta na pozadí
+      setLoadingPhase('Načítavam budúce dáta...');
+      const futureData = await fetchCalendarPhase('future');
+      
+      if (futureData.success) {
+        // Mergni s existujúcimi dátami
+        setCalendarData(prev => [...prev, ...futureData.data.calendar]);
+        setUnavailabilities(prev => [...prev, ...futureData.data.unavailabilities]);
+        setProgressiveLoading(prev => ({ ...prev, future: true, complete: true }));
+        
+        console.log('✅ PHASE 3 COMPLETE: Future data loaded', {
+          additionalDays: futureData.data.calendar.length
+        });
+      }
+      
+      setLoadingPhase('Všetky dáta načítané');
+      
+    } catch (error) {
+      console.error('❌ Progressive loading error:', error);
+      setLoading(false);
+      setLoadingPhase('Chyba pri načítaní');
+    }
+  }, []);
+
+  // Helper funkcia pre načítanie konkrétnej fázy
+  const fetchCalendarPhase = async (phase: 'current' | 'past' | 'future') => {
+    const apiUrl = `${API_BASE_URL}/availability/calendar?phase=${phase}`;
+    const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout pre jednotlivé fázy
+    
+    try {
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      return await response.json();
+      
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  };
+
   const fetchCalendarData = useCallback(async (forceMonth = false) => {
     try {
       setLoading(true);
@@ -609,16 +708,16 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           apiUrl += `?year=${year}&month=${month}`;
           console.log('🗓️ Fetching calendar data for month:', { year, month });
         } else {
-          console.log('🗓️ Fetching default calendar data (today + 30 days)');
+          console.log('🗓️ Fetching default calendar data (rozšírený rozsah: -90 až +180 dní)');
         }
       }
       
       // Custom fetch pre availability API s timeout
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
-      // Vytvoríme AbortController pre timeout (5 sekúnd - zvýšené pre lepší výkon)
+      // Vytvoríme AbortController pre timeout (20 sekúnd - rozšírený pre väčší dátumový rozsah)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       
       const response = await fetch(apiUrl, {
         headers: {
@@ -699,9 +798,15 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           currentDate.getFullYear() === new Date().getFullYear() && 
           currentDate.getMonth() === new Date().getMonth();
         
-        fetchCalendarData(!isCurrentMonth);
+        if (isCurrentMonth) {
+          // 🚀 Pre aktuálny mesiac použiť progressive loading
+          fetchCalendarDataProgressive();
+        } else {
+          // Pre iné mesiace použiť pôvodné načítanie
+          fetchCalendarData(!isCurrentMonth);
+        }
       } else {
-        // Range mode - fetch when dates change
+        // Range mode - použiť pôvodné načítanie
         fetchCalendarData();
       }
     } else {
@@ -711,7 +816,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         vehiclesCount: state?.vehicles?.length || 0
       });
     }
-  }, [fetchCalendarData, state?.dataLoaded?.vehicles, authState?.isAuthenticated, currentDate, viewMode]);
+  }, [fetchCalendarData, fetchCalendarDataProgressive, state?.dataLoaded?.vehicles, authState?.isAuthenticated, currentDate, viewMode]);
 
   // Load unavailabilities on component mount
   useEffect(() => {
@@ -724,11 +829,17 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         currentDate.getFullYear() === new Date().getFullYear() && 
         currentDate.getMonth() === new Date().getMonth();
       
-      fetchCalendarData(!isCurrentMonth);
+      if (isCurrentMonth) {
+        // 🚀 Pre aktuálny mesiac použiť progressive loading
+        fetchCalendarDataProgressive();
+      } else {
+        // Pre iné mesiace použiť pôvodné načítanie
+        fetchCalendarData(!isCurrentMonth);
+      }
     } else {
       fetchCalendarData();
     }
-  }, [viewMode, currentDate, fetchCalendarData]);
+  }, [viewMode, currentDate, fetchCalendarData, fetchCalendarDataProgressive]);
 
   // Filter logic
 
@@ -924,17 +1035,57 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
   // Status helpers
 
-  // 🔧 OPRAVA: Lepšie loading states pre hard refresh
+  // 🔧 OPRAVA: Lepšie loading states pre hard refresh a progressive loading
   if (loading || (!state?.dataLoaded?.vehicles && authState?.isAuthenticated)) {
     return (
-      <Box display="flex" justifyContent="center" p={3}>
-        <CircularProgress />
-        <Typography variant="body2" sx={{ ml: 2 }}>
+      <Box display="flex" flexDirection="column" alignItems="center" p={3}>
+        <CircularProgress size={40} />
+        <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
           {!state?.dataLoaded?.vehicles ? 
             'Načítavam vozidlá z databázy...' : 
-            'Načítavam kalendár dostupnosti...'
+            loadingPhase
           }
         </Typography>
+        
+        {/* 🚀 PROGRESSIVE LOADING: Progress indikátory */}
+        {(progressiveLoading.current || progressiveLoading.past || progressiveLoading.future) && (
+          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 300 }}>
+            <Typography variant="caption" sx={{ mb: 1, color: '#666' }}>
+              Progres načítania:
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Box sx={{ 
+                width: 12, 
+                height: 12, 
+                borderRadius: '50%',
+                backgroundColor: progressiveLoading.current ? '#4caf50' : '#e0e0e0'
+              }} />
+              <Typography variant="caption" sx={{ minWidth: 80 }}>
+                Aktuálny mesiac
+              </Typography>
+              
+              <Box sx={{ 
+                width: 12, 
+                height: 12, 
+                borderRadius: '50%',
+                backgroundColor: progressiveLoading.past ? '#4caf50' : '#e0e0e0'
+              }} />
+              <Typography variant="caption" sx={{ minWidth: 60 }}>
+                História
+              </Typography>
+              
+              <Box sx={{ 
+                width: 12, 
+                height: 12, 
+                borderRadius: '50%',
+                backgroundColor: progressiveLoading.future ? '#4caf50' : '#e0e0e0'
+              }} />
+              <Typography variant="caption" sx={{ minWidth: 60 }}>
+                Budúcnosť
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
     );
   }
@@ -963,6 +1114,28 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
   return (
     <>
+    {/* 🚀 PROGRESSIVE LOADING: Status indikátor pre pozadie loading */}
+    {!loading && !progressiveLoading.complete && progressiveLoading.current && (
+      <Box sx={{ 
+        position: 'fixed', 
+        top: 16, 
+        right: 16, 
+        zIndex: 1000,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        padding: 1.5,
+        borderRadius: 2,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1
+      }}>
+        <CircularProgress size={16} />
+        <Typography variant="caption" sx={{ color: '#666' }}>
+          {loadingPhase}
+        </Typography>
+      </Box>
+    )}
+    
     {/* Mobilný vs Desktop view */}
     {isMobile ? (
       /* JEDNODUCHÝ MOBILNÝ KALENDÁR - bez komplexného scrollovania */

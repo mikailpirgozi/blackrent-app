@@ -18,6 +18,13 @@ export class PostgresDatabase {
   }>();
   private readonly PERMISSION_CACHE_TTL = 5 * 60 * 1000; // 5 minút
 
+  // 🚀 FÁZA 1.3: VEHICLE CACHING - vozidlá sa menia zriedka, môžeme cachovať
+  private vehicleCache: {
+    data: Vehicle[];
+    timestamp: number;
+  } | null = null;
+  private readonly VEHICLE_CACHE_TTL = 10 * 60 * 1000; // 10 minút
+
   constructor() {
     // Railway.app provides DATABASE_URL
     if (process.env.DATABASE_URL) {
@@ -1886,8 +1893,38 @@ export class PostgresDatabase {
     }
   }
 
-  // Metódy pre vozidlá
+  // 🚀 FÁZA 1.3: CACHED VEHICLES - drastické zrýchlenie kalendára
   async getVehicles(): Promise<Vehicle[]> {
+    // Skontroluj cache
+    const now = Date.now();
+    if (this.vehicleCache && (now - this.vehicleCache.timestamp) < this.VEHICLE_CACHE_TTL) {
+      console.log('⚡ VEHICLE CACHE HIT - using cached vehicles');
+      return this.vehicleCache.data;
+    }
+
+    console.log('🔄 VEHICLE CACHE MISS - loading fresh vehicles from DB');
+    const vehicles = await this.getVehiclesFresh();
+    
+    // Uložiť do cache
+    this.vehicleCache = {
+      data: vehicles,
+      timestamp: now
+    };
+    
+    console.log(`✅ VEHICLE CACHE UPDATED - cached ${vehicles.length} vehicles for 10min`);
+    return vehicles;
+  }
+
+  // Cache invalidation helper
+  private invalidateVehicleCache(): void {
+    if (this.vehicleCache) {
+      console.log('🗑️ VEHICLE CACHE INVALIDATED - will reload on next request');
+      this.vehicleCache = null;
+    }
+  }
+
+  // Originálna metóda pre fresh loading
+  private async getVehiclesFresh(): Promise<Vehicle[]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
@@ -2033,6 +2070,9 @@ export class PostgresDatabase {
       );
 
       const row = result.rows[0];
+      // 🚀 FÁZA 1.3: Cache invalidation po vytvorení vozidla
+      this.invalidateVehicleCache();
+
       return {
         id: row.id.toString(),
         brand: row.brand,
@@ -2086,6 +2126,9 @@ export class PostgresDatabase {
           vehicle.id // UUID as string, not parseInt
         ]
       );
+      
+      // 🚀 FÁZA 1.3: Cache invalidation po aktualizácii vozidla
+      this.invalidateVehicleCache();
     } finally {
       client.release();
     }
@@ -2095,6 +2138,9 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       await client.query('DELETE FROM vehicles WHERE id = $1', [id]); // Removed parseInt for UUID
+      
+      // 🚀 FÁZA 1.3: Cache invalidation po zmazaní vozidla
+      this.invalidateVehicleCache();
     } finally {
       client.release();
     }
@@ -4656,6 +4702,159 @@ export class PostgresDatabase {
       );
       
       return (result.rowCount || 0) > 0;
+    } finally {
+      client.release();
+    }
+  }
+
+  // 🚀 FÁZA 1.2 + 1.3: HYBRID OPTIMIZED - pôvodné CTE + cached vehicles  
+  async getCalendarDataUnified(startDate: Date, endDate: Date): Promise<any> {
+    const client = await this.pool.connect();
+    try {
+      console.log('🚀 UNIFIED QUERY: Fetching calendar data with optimized CTE query');
+      
+      // Obnovená pôvodná CTE logika (FÁZA 1.2) - funguje správne
+      const result = await client.query(`
+        WITH calendar_dates AS (
+          SELECT generate_series($1::date, $2::date, '1 day'::interval)::date as date
+        ),
+        vehicle_calendar AS (
+          SELECT
+            cd.date,
+            v.id as vehicle_id,
+            v.brand || ' ' || v.model as vehicle_name,
+            v.license_plate,
+            v.status as vehicle_status,
+            v.company_id as vehicle_company_id
+          FROM calendar_dates cd
+          CROSS JOIN vehicles v
+        ),
+        calendar_with_rentals AS (
+          SELECT
+            vc.*,
+            r.id as rental_id,
+            r.customer_name,
+            r.is_flexible,
+            r.rental_type,
+            CASE
+              WHEN r.id IS NOT NULL THEN
+                CASE WHEN r.is_flexible = true THEN 'flexible' ELSE 'rented' END
+              ELSE NULL
+            END as rental_status
+          FROM vehicle_calendar vc
+          LEFT JOIN rentals r ON (
+            r.vehicle_id = vc.vehicle_id
+            AND vc.date BETWEEN r.start_date AND r.end_date
+          )
+        ),
+        calendar_final AS (
+          SELECT
+            cwr.*,
+            u.id as unavailability_id,
+            u.reason as unavailability_reason,
+            u.type as unavailability_type,
+            u.priority as unavailability_priority,
+            CASE
+              WHEN cwr.rental_status IS NOT NULL THEN cwr.rental_status
+              WHEN u.type IS NOT NULL THEN u.type
+              ELSE 'available'
+            END as final_status
+          FROM calendar_with_rentals cwr
+          LEFT JOIN vehicle_unavailability u ON (
+            u.vehicle_id = cwr.vehicle_id
+            AND cwr.date BETWEEN u.start_date AND u.end_date
+          )
+        )
+        SELECT
+          date,
+          vehicle_id,
+          vehicle_name,
+          license_plate,
+          final_status as status,
+          rental_id,
+          customer_name,
+          is_flexible,
+          rental_type,
+          unavailability_id,
+          unavailability_reason,
+          unavailability_type,
+          unavailability_priority
+        FROM calendar_final
+        ORDER BY date, vehicle_id
+      `, [startDate, endDate]);
+      
+      console.log('✅ UNIFIED QUERY: Retrieved', result.rows.length, 'calendar records');
+      
+      // 🚀 FÁZA 1.2: Pôvodná logika grupovanie podľa dátumu (funguje správne)
+      const groupedByDate = result.rows.reduce((acc, row) => {
+        const dateStr = row.date.toISOString().split('T')[0];
+        
+        if (!acc[dateStr]) {
+          acc[dateStr] = {
+            date: dateStr,
+            vehicles: []
+          };
+        }
+        
+        acc[dateStr].vehicles.push({
+          vehicleId: row.vehicle_id,
+          vehicleName: row.vehicle_name,
+          licensePlate: row.license_plate,
+          status: row.status,
+          rentalId: row.rental_id,
+          customerName: row.customer_name,
+          isFlexible: row.is_flexible,
+          rentalType: row.rental_type || 'standard',
+          unavailabilityId: row.unavailability_id,
+          unavailabilityReason: row.unavailability_reason,
+          unavailabilityType: row.unavailability_type,
+          unavailabilityPriority: row.unavailability_priority
+        });
+        
+        return acc;
+      }, {} as Record<string, any>);
+      
+      // Konvertovanie na array
+      const calendarData = Object.values(groupedByDate);
+      
+      // 🚀 FÁZA 1.2: Pôvodná extrakcia vehicles z SQL result (FUNKČNÁ VERZIA)
+      const vehicles = [...new Map(result.rows.map(row => [
+        row.vehicle_id, 
+        {
+          id: row.vehicle_id,
+          brand: row.vehicle_name.split(' ')[0],
+          model: row.vehicle_name.split(' ').slice(1).join(' '),
+          licensePlate: row.license_plate,
+          status: 'available' // Default status
+        }
+      ])).values()];
+      
+      // Extrakcia nedostupností pre backward compatibility
+      const unavailabilities = result.rows
+        .filter(row => row.unavailability_id)
+        .map(row => ({
+          id: row.unavailability_id,
+          vehicleId: row.vehicle_id,
+          startDate: startDate,
+          endDate: endDate,
+          reason: row.unavailability_reason,
+          type: row.unavailability_type,
+          priority: row.unavailability_priority
+        }));
+      
+      console.log('🎯 PURE PHASE 1.2 RESULT:', {
+        calendarDays: calendarData.length,
+        vehiclesCount: vehicles.length,
+        unavailabilitiesCount: unavailabilities.length
+      });
+      
+      return {
+        calendar: calendarData,
+        vehicles: vehicles, // 🚀 FÁZA 1.2: Vehicles z SQL (FUNKČNÉ)
+        rentals: [], // Už sú v kalendári
+        unavailabilities: unavailabilities
+      };
+      
     } finally {
       client.release();
     }
