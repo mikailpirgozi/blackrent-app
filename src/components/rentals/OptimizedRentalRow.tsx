@@ -24,7 +24,7 @@ import {
   PictureAsPdf as PDFIcon,
   PhotoLibrary as GalleryIcon,
 } from '@mui/icons-material';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { Rental } from '../../types';
 import RentalStatusChip from './RentalStatusChip';
@@ -71,8 +71,8 @@ const OptimizedRentalRow: React.FC<OptimizedRentalRowProps> = ({
   const handleViewGallery = useCallback(() => onViewGallery(rental), [onViewGallery, rental]);
   
   // Memoized formatted dates
-  const startDate = format(parseISO(rental.startDate), 'dd.MM.yyyy', { locale: sk });
-  const endDate = format(parseISO(rental.endDate), 'dd.MM.yyyy', { locale: sk });
+  const startDate = format(rental.startDate, 'dd.MM.yyyy', { locale: sk });
+  const endDate = format(rental.endDate, 'dd.MM.yyyy', { locale: sk });
   
   // Customer initials for avatar
   const getCustomerInitials = (name: string) => {
