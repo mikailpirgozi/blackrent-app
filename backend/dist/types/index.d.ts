@@ -473,33 +473,4 @@ export interface ReturnProtocol {
     createdBy: string;
     notes?: string;
 }
-export interface AuditLog {
-    id: string;
-    userId?: string;
-    username?: string;
-    action: AuditAction;
-    resourceType: string;
-    resourceId?: string;
-    details?: Record<string, any>;
-    metadata?: Record<string, any>;
-    ipAddress?: string;
-    userAgent?: string;
-    success: boolean;
-    errorMessage?: string;
-    createdAt: string;
-}
-export type AuditAction = 'create' | 'update' | 'delete' | 'read' | 'login' | 'logout' | 'email_processed' | 'email_approved' | 'email_rejected' | 'rental_approved' | 'rental_rejected' | 'rental_edited' | 'system_error' | 'api_call' | 'file_upload' | 'file_delete';
-export interface AuditLogCreateRequest {
-    userId?: string;
-    username?: string;
-    action: AuditAction;
-    resourceType: string;
-    resourceId?: string;
-    details?: Record<string, any>;
-    metadata?: Record<string, any>;
-    ipAddress?: string;
-    userAgent?: string;
-    success?: boolean;
-    errorMessage?: string;
-}
 //# sourceMappingURL=index.d.ts.map

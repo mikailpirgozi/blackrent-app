@@ -21,10 +21,8 @@ import { Suspense, lazy } from 'react';
 
 const VehicleList = lazy(() => import('./components/vehicles/VehicleListNew'));
 const RentalList = lazy(() => import('./components/rentals/RentalListNew'));
-const PendingRentalsManager = lazy(() => import('./components/rentals/PendingRentalsManager'));
 const ImapEmailMonitoring = lazy(() => import('./components/admin/ImapEmailMonitoring'));
 const EmailManagementDashboard = lazy(() => import('./components/admin/EmailManagementDashboard'));
-const AuditLogsPage = lazy(() => import('./components/admin/AuditLogsPage'));
 const CustomerList = lazy(() => import('./components/customers/CustomerListNew'));
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));
 const InsuranceList = lazy(() => import('./components/insurances/InsuranceList'));
@@ -124,18 +122,7 @@ const AppContent: React.FC = () => {
                       </ProtectedRoute>
                     } />
                     
-                    <Route path="/pending-rentals" element={
-                      <ProtectedRoute>
-                        <Layout>
-                          <ErrorBoundary>
-                            <Suspense fallback={<PageLoader />}>
-                              <PendingRentalsManager />
-                            </Suspense>
-                          </ErrorBoundary>
-                        </Layout>
-                      </ProtectedRoute>
-                    } />
-                    
+
                     <Route path="/email-monitoring" element={
                       <ProtectedRoute>
                         <Layout>
@@ -148,18 +135,7 @@ const AppContent: React.FC = () => {
                       </ProtectedRoute>
                     } />
                     
-                    <Route path="/audit-logs" element={
-                      <ProtectedRoute allowedRoles={['admin']}>
-                        <Layout>
-                          <ErrorBoundary>
-                            <Suspense fallback={<PageLoader />}>
-                              <AuditLogsPage />
-                            </Suspense>
-                          </ErrorBoundary>
-                        </Layout>
-                      </ProtectedRoute>
-                    } />
-                    
+
                     <Route path="/customers" element={
                       <ProtectedRoute>
                         <Layout>

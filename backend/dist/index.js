@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
+const compression_1 = __importDefault(require("compression")); // 🚀 FÁZA 2.4: Response compression
 const dotenv_1 = __importDefault(require("dotenv"));
 // Načítaj environment variables
 dotenv_1.default.config();
@@ -18,6 +19,21 @@ if (sentry) {
     app.use(sentry.requestHandler);
     app.use(sentry.tracingHandler);
 }
+// 🚀 FÁZA 2.4: RESPONSE COMPRESSION - gzip compression pre všetky responses
+app.use((0, compression_1.default)({
+    filter: (req, res) => {
+        // Kompresuj všetko okrem už kompresovaných súborov
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        return compression_1.default.filter(req, res);
+    },
+    threshold: 1024, // Kompresuj len súbory väčšie ako 1KB
+    level: 6, // Compression level (1=najrýchlejšie, 9=najlepšie compression)
+    chunkSize: 16 * 1024, // 16KB chunks
+    windowBits: 15,
+    memLevel: 8
+}));
 // CORS middleware s podporou pre všetky Vercel domény
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
@@ -86,7 +102,7 @@ const bulk_1 = __importDefault(require("./routes/bulk"));
 const cleanup_1 = __importDefault(require("./routes/cleanup"));
 const email_webhook_1 = __importDefault(require("./routes/email-webhook"));
 const email_imap_1 = __importDefault(require("./routes/email-imap"));
-const audit_1 = __importDefault(require("./routes/audit"));
+const email_management_1 = __importDefault(require("./routes/email-management"));
 // API routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/vehicles', vehicles_1.default);
@@ -110,7 +126,7 @@ app.use('/api/bulk', bulk_1.default);
 app.use('/api/cleanup', cleanup_1.default);
 app.use('/api/email-webhook', email_webhook_1.default);
 app.use('/api/email-imap', email_imap_1.default);
-app.use('/api/audit', audit_1.default);
+app.use('/api/email-management', email_management_1.default);
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {
     console.log('🧪 Simple test endpoint called');
@@ -184,12 +200,45 @@ app.use((err, req, res, next) => {
         timestamp: new Date().toISOString()
     });
 });
+// Import IMAP service for auto-start
+const imap_email_service_1 = __importDefault(require("./services/imap-email-service"));
+// Global IMAP service instance
+let globalImapService = null;
+// Auto-start IMAP monitoring function
+async function autoStartImapMonitoring() {
+    try {
+        const isEnabled = process.env.IMAP_ENABLED !== 'false' && !!process.env.IMAP_PASSWORD;
+        const autoStart = process.env.IMAP_AUTO_START !== 'false'; // Default: true
+        if (!isEnabled) {
+            console.log('📧 IMAP: Auto-start preskočený - služba je vypnutá');
+            return;
+        }
+        if (!autoStart) {
+            console.log('📧 IMAP: Auto-start vypnutý (IMAP_AUTO_START=false)');
+            return;
+        }
+        console.log('🚀 IMAP: Auto-start monitoring...');
+        globalImapService = new imap_email_service_1.default();
+        // Start monitoring in background (každých 30 sekúnd)
+        await globalImapService.startMonitoring(0.5);
+        // Set environment flag for status tracking
+        process.env.IMAP_AUTO_STARTED = 'true';
+        console.log('✅ IMAP: Auto-start úspešný - monitoring beží automaticky');
+        console.log('📧 IMAP: Nové emaily sa budú automaticky pridávať do Email Management Dashboard');
+    }
+    catch (error) {
+        console.error('❌ IMAP: Auto-start chyba:', error);
+        console.log('⚠️ IMAP: Môžete ho manuálne spustiť cez Email Management Dashboard');
+    }
+}
 // Start server
 app.listen(Number(port), '0.0.0.0', () => {
     console.log(`🚀 BlackRent server beží na porte ${port}`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🗄️  Database: PostgreSQL`);
     console.log(`📊 Sentry: ${sentry ? '✅ Backend aktívny' : '❌ Backend vypnutý'}, Frontend aktívny`);
+    // Auto-start IMAP monitoring after server starts (2 second delay)
+    setTimeout(autoStartImapMonitoring, 2000);
 });
 // Graceful shutdown
 process.on('SIGTERM', () => {

@@ -1210,49 +1210,14 @@ class PostgresDatabase {
             catch (error) {
                 console.log('⚠️ Migrácia 24 chyba:', error.message);
             }
-            // Migrácia 25: 📊 AUDIT LOGGING - Sledovanie všetkých operácií v systéme
+            // Migrácia 25: 🗑️ AUDIT LOGGING REMOVAL - Odstraňujeme audit logs systém
             try {
-                console.log('📋 Migrácia 25: 📊 Vytváram audit_logs tabuľku...');
-                // Vytvorenie audit_logs tabuľky
-                await client.query(`
-          CREATE TABLE IF NOT EXISTS audit_logs (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-            username VARCHAR(100),
-            action VARCHAR(100) NOT NULL,
-            resource_type VARCHAR(50) NOT NULL,
-            resource_id VARCHAR(100),
-            details JSONB,
-            metadata JSONB,
-            ip_address INET,
-            user_agent TEXT,
-            success BOOLEAN DEFAULT true,
-            error_message TEXT,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            
-            -- Validácia podporovaných akcií
-            CONSTRAINT audit_logs_action_check CHECK (action IN (
-              'create', 'update', 'delete', 'read', 'login', 'logout',
-              'email_processed', 'email_approved', 'email_rejected',
-              'rental_approved', 'rental_rejected', 'rental_edited',
-              'system_error', 'api_call', 'file_upload', 'file_delete'
-            ))
-          );
-        `);
-                // Indexy pre rýchle vyhľadávanie audit logov
-                await client.query(`
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_success ON audit_logs(success);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_username ON audit_logs(username);
-        `);
-                console.log('✅ Migrácia 25: 📊 Audit Logs systém úspešne vytvorený!');
-                console.log('   🕵️ Sleduje všetky operácie: create, update, delete, login');
-                console.log('   📧 Email operácie: processed, approved, rejected');
-                console.log('   🏠 Rental operácie: approved, rejected, edited');
-                console.log('   🚀 Optimalizované indexy pre rýchle vyhľadávanie');
+                console.log('📋 Migrácia 25: 🗑️ Odstraňujem audit_logs tabuľku...');
+                // Odstránenie audit_logs tabuľky a všetkých indexov
+                await client.query(`DROP TABLE IF EXISTS audit_logs CASCADE;`);
+                console.log('✅ Migrácia 25: 🗑️ Audit Logs systém úspešne odstránený!');
+                console.log('   🧹 Tabuľka audit_logs a všetky indexy odstránené');
+                console.log('   ⚡ Znížená záťaž na databázu a lepšie performance');
             }
             catch (error) {
                 console.log('⚠️ Migrácia 25 chyba:', error.message);
@@ -1309,6 +1274,89 @@ class PostgresDatabase {
             }
             catch (error) {
                 console.log('⚠️ Migrácia 26 chyba:', error.message);
+            }
+            // Migrácia 27: 📧 EMAIL MANAGEMENT DASHBOARD - Email History & Tracking
+            try {
+                console.log('📋 Migrácia 27: 📧 Vytváram Email Management Dashboard štruktúru...');
+                // Vytvorenie tabuľky pre email históriu a tracking
+                await client.query(`
+          CREATE TABLE IF NOT EXISTS email_processing_history (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email_id TEXT UNIQUE NOT NULL,
+            message_id TEXT,
+            subject TEXT NOT NULL,
+            sender TEXT NOT NULL,
+            recipient TEXT DEFAULT 'info@blackrent.sk',
+            email_content TEXT,
+            email_html TEXT,
+            received_at TIMESTAMP NOT NULL,
+            processed_at TIMESTAMP,
+            status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'processing', 'processed', 'rejected', 'archived', 'duplicate')),
+            action_taken TEXT CHECK (action_taken IN ('approved', 'rejected', 'edited', 'deleted', 'archived', 'duplicate')),
+            processed_by UUID REFERENCES users(id),
+            parsed_data JSONB,
+            confidence_score DECIMAL(3,2) DEFAULT 0.0,
+            error_message TEXT,
+            notes TEXT,
+            tags TEXT[],
+            rental_id UUID REFERENCES rentals(id),
+            is_blacklisted BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+                // Vytvorenie indexov pre optimálnu performance
+                await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_email_history_email_id ON email_processing_history(email_id);
+          CREATE INDEX IF NOT EXISTS idx_email_history_status ON email_processing_history(status);
+          CREATE INDEX IF NOT EXISTS idx_email_history_sender ON email_processing_history(sender);
+          CREATE INDEX IF NOT EXISTS idx_email_history_received_at ON email_processing_history(received_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_email_history_processed_by ON email_processing_history(processed_by);
+          CREATE INDEX IF NOT EXISTS idx_email_history_rental_id ON email_processing_history(rental_id);
+          CREATE INDEX IF NOT EXISTS idx_email_history_search ON email_processing_history USING gin(to_tsvector('english', subject || ' ' || COALESCE(email_content, '')));
+        `);
+                // Vytvorenie tabuľky pre email actions log
+                await client.query(`
+          CREATE TABLE IF NOT EXISTS email_action_logs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email_id UUID REFERENCES email_processing_history(id),
+            user_id UUID REFERENCES users(id),
+            action TEXT NOT NULL,
+            old_values JSONB,
+            new_values JSONB,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+                await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_email_action_logs_email_id ON email_action_logs(email_id);
+          CREATE INDEX IF NOT EXISTS idx_email_action_logs_user_id ON email_action_logs(user_id);
+          CREATE INDEX IF NOT EXISTS idx_email_action_logs_created_at ON email_action_logs(created_at DESC);
+        `);
+                // Trigger na automatické updatovanie updated_at stĺpca
+                await client.query(`
+          CREATE OR REPLACE FUNCTION update_email_history_updated_at()
+          RETURNS TRIGGER AS $$
+          BEGIN
+            NEW.updated_at = CURRENT_TIMESTAMP;
+            RETURN NEW;
+          END;
+          $$ LANGUAGE plpgsql;
+
+          DROP TRIGGER IF EXISTS trigger_email_history_updated_at ON email_processing_history;
+          CREATE TRIGGER trigger_email_history_updated_at
+            BEFORE UPDATE ON email_processing_history
+            FOR EACH ROW
+            EXECUTE FUNCTION update_email_history_updated_at();
+        `);
+                console.log('✅ Migrácia 27: 📧 Email Management Dashboard úspešne vytvorený!');
+                console.log('   📧 Email processing history tabuľka');
+                console.log('   📊 Email action logs pre audit trail');
+                console.log('   🔍 Optimalizované indexy pre search & filtering');
+                console.log('   ⚡ Auto-update triggers pre timestamp tracking');
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 27 chyba:', error.message);
             }
         }
         catch (error) {
@@ -1822,6 +1870,63 @@ class PostgresDatabase {
         if (calendarCleaned > 0 || unavailabilityCleaned > 0) {
             console.log(`🧹 CACHE CLEANUP: Removed ${calendarCleaned} calendar + ${unavailabilityCleaned} unavailability entries`);
         }
+    }
+    // 🚀 FÁZA 2.4: DATA STRUCTURE OPTIMIZATION
+    optimizeCalendarDataStructure(data) {
+        const startTime = Date.now();
+        // Create vehicle lookup map (deduplication)
+        const vehicleMap = new Map();
+        data.vehicles.forEach((vehicle, index) => {
+            vehicleMap.set(vehicle.id, {
+                i: index, // Vehicle index instead of full object
+                brand: vehicle.brand,
+                model: vehicle.model,
+                licensePlate: vehicle.licensePlate,
+                status: vehicle.status
+            });
+        });
+        // Optimize calendar structure - replace duplicate vehicle data with references
+        const optimizedCalendar = data.calendar.map((day) => {
+            return {
+                date: day.date,
+                vehicles: day.vehicles.map((vehicle) => {
+                    const vehicleRef = vehicleMap.get(vehicle.vehicleId);
+                    return {
+                        vi: vehicleRef?.i, // Vehicle index reference
+                        s: vehicle.status, // Status
+                        ...(vehicle.rentalId && { ri: vehicle.rentalId }), // Rental ID only if exists
+                        ...(vehicle.customerName && { cn: vehicle.customerName }), // Customer name only if exists
+                        ...(vehicle.isFlexible !== undefined && { f: vehicle.isFlexible }), // Flexible flag
+                        ...(vehicle.rentalType !== 'standard' && { rt: vehicle.rentalType }), // Rental type only if not standard
+                        ...(vehicle.unavailabilityType && { ut: vehicle.unavailabilityType }) // Unavailability type
+                    };
+                })
+            };
+        });
+        const optimizedTime = Date.now() - startTime;
+        const originalSize = JSON.stringify(data).length;
+        const optimizedSize = JSON.stringify({
+            calendar: optimizedCalendar,
+            vehicles: Array.from(vehicleMap.values()),
+            rentals: data.rentals,
+            unavailabilities: data.unavailabilities
+        }).length;
+        const sizeSaved = originalSize - optimizedSize;
+        const percentSaved = ((sizeSaved / originalSize) * 100).toFixed(1);
+        console.log(`🎯 DATA STRUCTURE OPTIMIZED: ${originalSize} → ${optimizedSize} bytes (${percentSaved}% smaller) in ${optimizedTime}ms`);
+        return {
+            calendar: optimizedCalendar,
+            vehicles: Array.from(vehicleMap.values()),
+            vehicleMap: Object.fromEntries(vehicleMap), // For frontend reconstruction
+            rentals: data.rentals,
+            unavailabilities: data.unavailabilities,
+            _optimization: {
+                originalSize,
+                optimizedSize,
+                compressionRatio: percentSaved + '%',
+                processingTime: optimizedTime + 'ms'
+            }
+        };
     }
     // Originálna metóda pre fresh loading
     async getVehiclesFresh() {
