@@ -13,7 +13,7 @@ import {
   Alert,
   useMediaQuery,
   useTheme,
-  CircularProgress,
+
   Card,
   CardContent,
   Collapse,
@@ -53,6 +53,7 @@ import VehicleForm from './VehicleForm';
 import { apiService } from '../../services/api';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
+import { EnhancedLoading } from '../common/EnhancedLoading';
 
 const getStatusColor = (status: VehicleStatus): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
   switch (status) {
@@ -771,7 +772,13 @@ export default function VehicleListNew() {
         <Typography variant="body2" color="text.secondary">
           Zobrazených {filteredVehicles.length} z {state.vehicles.length} vozidiel
         </Typography>
-        {loading && <CircularProgress size={16} />}
+        {loading && (
+          <EnhancedLoading 
+            variant="inline" 
+            message="Aktualizujem zoznam..." 
+            showMessage={false} 
+          />
+        )}
       </Box>
 
       {/* Vehicle List */}
@@ -1338,7 +1345,7 @@ export default function VehicleListNew() {
             color="primary"
             onClick={handleAutoAssignOwners}
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={16} /> : undefined}
+            startIcon={loading ? <EnhancedLoading variant="button" showMessage={false} /> : undefined}
             sx={{
               bgcolor: '#2196f3',
               '&:hover': { bgcolor: '#1976d2' },
