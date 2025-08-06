@@ -12,6 +12,11 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { ThemeProvider, useThemeMode } from './context/ThemeContext';
 
+// Performance optimization imports
+import { initializeWebVitalsOptimizations } from './utils/webVitalsOptimizations';
+import { initializeCriticalResources } from './utils/criticalResources';
+import { initializeMemoryOptimization } from './utils/memoryOptimizer';
+
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ErrorToastContainer from './components/common/ErrorToastContainer';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
@@ -49,6 +54,16 @@ const PageLoader = () => (
 
 const AppContent: React.FC = () => {
   const { theme } = useThemeMode();
+  
+  // Initialize performance optimizations
+  React.useEffect(() => {
+    // Initialize all performance optimizations
+    initializeCriticalResources();
+    initializeWebVitalsOptimizations();
+    initializeMemoryOptimization();
+
+    console.log('⚡ Performance optimizations initialized');
+  }, []);
   
   return (
     <MuiThemeProvider theme={theme}>
