@@ -4,6 +4,7 @@ const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
 const permissions_1 = require("../middleware/permissions");
+const cache_middleware_1 = require("../middleware/cache-middleware");
 const router = (0, express_1.Router)();
 // 🔍 CONTEXT FUNCTIONS
 const getVehicleContext = async (req) => {
@@ -16,8 +17,12 @@ const getVehicleContext = async (req) => {
         resourceCompanyId: vehicle?.ownerCompanyId
     };
 };
-// GET /api/vehicles - Získanie všetkých vozidiel
-router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'read'), async (req, res) => {
+// GET /api/vehicles - Získanie všetkých vozidiel s cache
+router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'read'), (0, cache_middleware_1.cacheResponse)('vehicles', {
+    cacheKey: cache_middleware_1.userSpecificCache,
+    ttl: 10 * 60 * 1000, // 10 minutes
+    tags: ['vehicles']
+}), async (req, res) => {
     try {
         let vehicles = await postgres_database_1.postgresDatabase.getVehicles();
         console.log('🚗 Vehicles GET - user:', {
@@ -176,8 +181,8 @@ router.get('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
         });
     }
 });
-// POST /api/vehicles - Vytvorenie nového vozidla
-router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'create'), async (req, res) => {
+// POST /api/vehicles - Vytvorenie nového vozidla s cache invalidation
+router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'create'), (0, cache_middleware_1.invalidateCache)('vehicle'), async (req, res) => {
     try {
         const { brand, model, licensePlate, company, pricing, commission, status, year } = req.body;
         if (!brand || !model || !company) {
@@ -211,8 +216,8 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('v
         });
     }
 });
-// PUT /api/vehicles/:id - Aktualizácia vozidla
-router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'update', { getContext: getVehicleContext }), async (req, res) => {
+// PUT /api/vehicles/:id - Aktualizácia vozidla s cache invalidation
+router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'update', { getContext: getVehicleContext }), (0, cache_middleware_1.invalidateCache)('vehicle'), async (req, res) => {
     try {
         const { id } = req.params;
         const { brand, model, licensePlate, company, category, pricing, commission, status, year, stk } = req.body;
@@ -255,8 +260,8 @@ router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
         });
     }
 });
-// DELETE /api/vehicles/:id - Vymazanie vozidla
-router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'delete', { getContext: getVehicleContext }), async (req, res) => {
+// DELETE /api/vehicles/:id - Vymazanie vozidla s cache invalidation
+router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'delete', { getContext: getVehicleContext }), (0, cache_middleware_1.invalidateCache)('vehicle'), async (req, res) => {
     try {
         const { id } = req.params;
         // Skontroluj, či vozidlo existuje

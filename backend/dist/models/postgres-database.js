@@ -2161,13 +2161,6 @@ class PostgresDatabase {
                         rentalType: row.rental_type || 'standard',
                         isFlexible: Boolean(row.is_flexible),
                         flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
-                        flexibleSettings: {
-                            canBeOverridden: Boolean(row.can_be_overridden),
-                            overridePriority: row.override_priority || 5,
-                            notificationThreshold: row.notification_threshold || 3,
-                            autoExtend: Boolean(row.auto_extend),
-                        },
-                        overrideHistory: this.safeJsonParse(row.override_history) || []
                     };
                 }
                 catch (error) {
@@ -2260,13 +2253,6 @@ class PostgresDatabase {
                 rentalType: row.rental_type || 'standard',
                 isFlexible: Boolean(row.is_flexible),
                 flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
-                flexibleSettings: {
-                    canBeOverridden: Boolean(row.can_be_overridden),
-                    overridePriority: row.override_priority || 5,
-                    notificationThreshold: row.notification_threshold || 3,
-                    autoExtend: Boolean(row.auto_extend),
-                },
-                overrideHistory: this.safeJsonParse(row.override_history) || [],
                 // 🚗 PRIAMO MAPOVANÉ VEHICLE DATA (ako getVehicles) ✅
                 vehicle: row.brand ? {
                     id: row.vehicle_id,
@@ -2404,15 +2390,10 @@ class PostgresDatabase {
                 rentalData.handoverProtocolId || null,
                 rentalData.returnProtocolId || null,
                 company, // 🎯 CLEAN SOLUTION hodnota
-                // 🔄 NOVÉ: Flexibilné prenájmy parametre
+                // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy parametre (zjednodušené)
                 rentalData.rentalType || 'standard',
                 rentalData.isFlexible || false,
                 rentalData.flexibleEndDate || null,
-                rentalData.canBeOverridden || false,
-                rentalData.overridePriority || 5,
-                rentalData.notificationThreshold || 3,
-                rentalData.autoExtend || false,
-                rentalData.overrideHistory ? JSON.stringify(rentalData.overrideHistory) : '[]',
                 // 📧 NOVÉ: Automatické spracovanie emailov hodnoty (len existujúce stĺpce)
                 rentalData.approvalStatus || 'approved',
                 rentalData.emailContent || null,
@@ -2454,17 +2435,10 @@ class PostgresDatabase {
                 returnProtocolId: row.return_protocol_id || undefined,
                 company: row.company || undefined, // 🎯 CLEAN SOLUTION field
                 createdAt: new Date(row.created_at),
-                // 🔄 NOVÉ: Flexibilné prenájmy polia
+                // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
                 rentalType: row.rental_type || 'standard',
                 isFlexible: Boolean(row.is_flexible),
                 flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
-                flexibleSettings: {
-                    canBeOverridden: Boolean(row.can_be_overridden),
-                    overridePriority: row.override_priority || 5,
-                    notificationThreshold: row.notification_threshold || 3,
-                    autoExtend: Boolean(row.auto_extend)
-                },
-                overrideHistory: this.safeJsonParse(row.override_history) || [],
                 // 📧 NOVÉ: Automatické spracovanie emailov polia (len existujúce stĺpce)
                 approvalStatus: row.approval_status || 'approved',
                 emailContent: row.email_content || undefined,

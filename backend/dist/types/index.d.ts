@@ -99,21 +99,9 @@ export interface Rental {
     returnLocation?: string;
     vehicleCode?: string;
     vehicleName?: string;
-    rentalType?: 'standard' | 'flexible' | 'priority';
+    rentalType?: 'standard' | 'flexible';
     isFlexible?: boolean;
     flexibleEndDate?: Date;
-    flexibleSettings?: {
-        canBeOverridden: boolean;
-        overridePriority: number;
-        notificationThreshold: number;
-        autoExtend: boolean;
-    };
-    overrideHistory?: {
-        date: Date;
-        reason: string;
-        newRentalId: string;
-        userId: string;
-    }[];
     sourceType?: 'manual' | 'email_auto' | 'api_auto';
     approvalStatus?: 'pending' | 'approved' | 'rejected' | 'spam';
     emailContent?: string;
