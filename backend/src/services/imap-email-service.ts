@@ -11,6 +11,36 @@ interface EmailData {
   messageId: string;
 }
 
+// 🎯 IDENTICKÁ INTERFACE AKO V FRONTEND EmailParser.tsx
+interface ParsedData {
+  orderNumber?: string;
+  orderDate?: string;
+  paymentMethod?: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  pickupPlace?: string;
+  returnPlace?: string;
+  reservationTime?: string;
+  deposit?: number;
+  totalAmount?: number;
+  vehicleName?: string;
+  vehicleCode?: string;
+  vehiclePrice?: number;
+  vehicleTotalAmount?: number;
+  // Rozšírené polia
+  allowedKilometers?: number;
+  dailyKilometers?: number;
+  extraKilometerRate?: number;
+  fuelLevel?: number;
+  returnConditions?: string;
+  startOdometer?: number;
+  notes?: string;
+  insuranceInfo?: string;
+  additionalServices?: string[];
+}
+
 interface ParsedRentalData {
   orderNumber: string;
   customerName: string;
@@ -144,39 +174,38 @@ class ImapEmailService {
           return;
         }
 
-        // Najprv hľadaj od objednavky@blackrent.sk
-        this.imap!.search(['UNSEEN', ['FROM', 'objednavky@blackrent.sk']], (err: any, results: any) => {
+        // 🔍 ŠPECIÁLNE HĽADANIE: Emaily z 5. augusta 2025 od objednavky@blackrent.sk
+        console.log('🔍 IMAP: Hľadám emaily z 5.8.2025 od objednavky@blackrent.sk...');
+        this.imap!.search([['SINCE', 'Aug 5, 2025'], ['FROM', 'objednavky@blackrent.sk']], (err: any, results: any) => {
           if (err) {
             reject(err);
             return;
           }
 
-          // Ak nenájdeme od objednavky@, skúsime všetky nové emaily
-          if (!results || results.length === 0) {
-            console.log('📭 IMAP: Žiadne nové objednávky od objednavky@blackrent.sk, skúšam všetky nové emaily...');
-            
-            // Skúsime všetky nové emaily
-            this.imap!.search(['UNSEEN'], (err2: any, unseenResults: any) => {
-              if (err2) {
-                reject(err2);
-                return;
-              }
-              
-              if (unseenResults && unseenResults.length > 0) {
-                console.log(`📧 IMAP: Našiel som ${unseenResults.length} nových emailov (všetky adresy)`);
-                this.processFetchedEmails(unseenResults, resolve, reject);
-                return;
-              }
-              
-              // ✅ OPRAVENÉ: Ak nie sú UNSEEN emaily, KONČÍME (nehľadáme staré)
-              console.log('📭 IMAP: Žiadne nové emaily, končím (nehľadám staré emaily)');
-              resolve();
-            });
+          if (results && results.length > 0) {
+            console.log(`📧 IMAP: Našiel som ${results.length} emailov z 5.8.2025 od objednavky@blackrent.sk`);
+            this.processFetchedEmails(results, resolve, reject);
             return;
           }
 
-          console.log(`📧 IMAP: Našiel som ${results.length} nových emailov`);
-          this.processFetchedEmails(results, resolve, reject);
+          console.log('📭 IMAP: Žiadne emaily z 5.8.2025 od objednavky@blackrent.sk, skúšam všetky emaily z tohto dátumu...');
+          
+          // Skúsime všetky emaily z 5.8.2025 (pre debug)
+          this.imap!.search([['SINCE', 'Aug 5, 2025']], (err2: any, dateResults: any) => {
+            if (err2) {
+              reject(err2);
+              return;
+            }
+            
+            if (dateResults && dateResults.length > 0) {
+              console.log(`📧 IMAP: Našiel som ${dateResults.length} emailov z 5.8.2025 (všetky adresy)`);
+              this.processFetchedEmails(dateResults, resolve, reject);
+              return;
+            }
+            
+            console.log('📭 IMAP: Žiadne emaily z 5.8.2025');
+            resolve();
+          });
         });
       });
     });
@@ -222,9 +251,12 @@ class ImapEmailService {
       });
 
       msg.once('end', async () => {
+        let emailData: EmailData | null = null;
+        let emailHistoryId: string | null = null;
+        
         try {
           const parsed = await simpleParser(buffer);
-          const emailData: EmailData = {
+          emailData = {
             from: parsed.from?.text || '',
             subject: parsed.subject || '',
             text: parsed.text || '',
@@ -248,49 +280,321 @@ class ImapEmailService {
             });
           }
           
-          // Ak nie je od objednavky@blackrent.sk, stále ho spracujeme ale s upozornením
+          // FILTER: Spracúvaj LEN emaily od objednavky@blackrent.sk
           if (!emailData.from.includes('objednavky@blackrent.sk')) {
-            console.log(`⚠️ IMAP: Email nie je od objednavky@blackrent.sk (je od: ${emailData.from}), ale pokúsim sa ho spracovať...`);
+            console.log(`🚫 IMAP: Email nie je od objednavky@blackrent.sk (je od: ${emailData.from}) - ÚPLNE IGNORUJEM`);
+            return; // Vôbec ho neuložíme ani nespracujeme
           }
-
-          // Parsuj obsah emailu
-          const rentalData = await this.parseEmailContent(emailData);
           
-          if (rentalData) {
-            // Vytvor pending rental
-            await this.createPendingRental(rentalData, emailData);
-            
-            // Označ email ako prečítaný
-            this.imap!.addFlags(seqno, ['\\Seen'], (err: any) => {
-              if (err) {
-                console.error('❌ IMAP: Nepodarilo sa označiť email ako prečítaný:', err);
-              } else {
-                console.log(`✅ IMAP: Email ${seqno} označený ako spracovaný`);
-              }
-            });
-          } else {
-            console.log('⚠️ IMAP: Nepodarilo sa parsovať obsah emailu');
-          }
+          // 🆕 ULOŽIŤ EMAIL DO HISTÓRIE - len ak je od objednavky@blackrent.sk
+          emailHistoryId = await this.saveEmailToHistory(emailData);
+
+          console.log(`✅ IMAP: Email je od objednavky@blackrent.sk - SPRACÚVAM`);
+
+          // Email od objednavky@blackrent.sk uložený - BEZ automatického statusu
+          // Užívateľ si bude spravovať statusy manuálne v dashboarde
+          console.log(`📧 IMAP: Email od objednavky@blackrent.sk uložený pre manuálne spracovanie (ID: ${emailHistoryId})`);
 
           resolve();
         } catch (error) {
+          console.error('❌ IMAP: Chyba pri spracovaní emailu:', error);
+          
+          // Ak máme emailHistoryId, označ ako error v histórii
+          if (emailHistoryId) {
+            try {
+              await this.updateEmailHistory(emailHistoryId, 'rejected', 'rejected', null, `Processing error: ${error}`);
+            } catch (historyError) {
+              console.error('❌ Chyba pri ukladaní error do email histórie:', historyError);
+            }
+          }
+          
           reject(error);
         }
       });
     });
   }
 
-  // 🎯 NOVÝ: Používa zdieľanú parsing logiku z frontend EmailParser
+  // 🎯 VYLEPŠENÁ parseEmailText FUNKCIA - PODPORUJE HTML
+  private parseEmailText(text: string): ParsedData {
+    const data: ParsedData = {};
+    
+    // Parsovanie čísla objednávky (plain text aj HTML)
+    let orderNumberMatch = text.match(/Číslo objednávky\s+([A-Z]+\d+)/i);
+    if (!orderNumberMatch) {
+      // Skús HTML format: <td>Číslo objednávky</td> <td>OBJ02025018</td>
+      orderNumberMatch = text.match(/Číslo\s+objednávky<\/td>\s*<td[^>]*>([A-Z]+\d+)/i);
+    }
+    if (orderNumberMatch) {
+      data.orderNumber = orderNumberMatch[1];
+    }
+
+    // Parsovanie dátumu objednávky (plain text aj HTML)
+    let orderDateMatch = text.match(/Objednávka prijatá\s+(\d{2}\.\d{2}\.\d{4})/);
+    if (!orderDateMatch) {
+      orderDateMatch = text.match(/Objednávka\s+prijatá<\/td>\s*<td[^>]*>(\d{2}\.\d{2}\.\d{4})/);
+    }
+    if (orderDateMatch) {
+      data.orderDate = orderDateMatch[1];
+    }
+
+    // Parsovanie spôsobu úhrady (plain text aj HTML)
+    let paymentMethodMatch = text.match(/Spôsob úhrady\s+(.+)/);
+    if (!paymentMethodMatch) {
+      paymentMethodMatch = text.match(/Spôsob\s+úhrady<\/td>\s*<td[^>]*>([^<]+)/);
+    }
+    if (paymentMethodMatch) {
+      data.paymentMethod = paymentMethodMatch[1].trim();
+    }
+
+    // Parsovanie odoberateľa (plain text aj HTML)
+    let customerMatch = text.match(/Odoberateľ\s+(.+)/);
+    if (!customerMatch) {
+      customerMatch = text.match(/Odoberateľ<\/td>\s*<td[^>]*>([^<]+)/);
+    }
+    if (customerMatch) {
+      data.customerName = customerMatch[1].trim();
+    }
+
+    // Parsovanie emailu (plain text aj HTML)
+    let emailMatch = text.match(/E-mail\s+(.+)/);
+    if (!emailMatch) {
+      emailMatch = text.match(/E-mail<\/td>\s*<td[^>]*>([^<]+)/);
+    }
+    if (emailMatch) {
+      data.customerEmail = emailMatch[1].trim();
+    }
+
+    // Parsovanie telefónu (plain text aj HTML)
+    let phoneMatch = text.match(/Telefon\s+(.+)/);
+    if (!phoneMatch) {
+      phoneMatch = text.match(/Telefon<\/td>\s*<td[^>]*>([^<]+)/);
+    }
+    if (phoneMatch) {
+      data.customerPhone = phoneMatch[1].trim();
+    }
+
+    // Parsovanie kontaktnej adresy (plain text aj HTML)
+    let addressMatch = text.match(/Kontaktná adresa\s+(.+)/);
+    if (!addressMatch) {
+      addressMatch = text.match(/Kontaktná\s+adresa<\/td>\s*<td[^>]*>([^<]+)/);
+    }
+    if (addressMatch) {
+      data.customerAddress = addressMatch[1].trim();
+    }
+
+    // Parsovanie miesta vyzdvihnutia (plain text aj HTML)
+    let pickupMatch = text.match(/Miesto vyzdvihnutia\s+(.+)/);
+    if (!pickupMatch) {
+      pickupMatch = text.match(/Miesto vyzdvihnutia<\/td>\s*<td[^>]*>([^<]+)/);
+    }
+    if (pickupMatch) {
+      data.pickupPlace = pickupMatch[1].trim();
+    }
+
+    // Parsovanie miesta odovzdania (plain text aj HTML)
+    let returnMatch = text.match(/Miesto odovzdania\s+(.+)/);
+    if (!returnMatch) {
+      returnMatch = text.match(/Miesto\s+odovzdania<\/td>\s*<td[^>]*>([^<]+)/);
+    }
+    if (returnMatch) {
+      data.returnPlace = returnMatch[1].trim();
+    }
+
+    // Parsovanie času rezervácie (plain text aj HTML)
+    let reservationMatch = text.match(/Čas rezervacie\s+(.+)/);
+    if (!reservationMatch) {
+      reservationMatch = text.match(/Čas\s+rezervacie<\/td>\s*<td[^>]*>([^<]+)/);
+    }
+    if (reservationMatch) {
+      data.reservationTime = reservationMatch[1].trim();
+    }
+
+    // Parsovanie depozitu (plain text aj HTML)
+    let depositMatch = text.match(/Depozit\s+([\d\s,]+)\s*€/);
+    if (!depositMatch) {
+      // HTML format: <td>Depozit</td> <td>500,00 &#8364;</td>
+      depositMatch = text.match(/Depozit<\/td>\s*<td[^>]*>([\d\s,]+)\s*(?:&#8364;|€)/);
+    }
+    if (depositMatch) {
+      const depositStr = depositMatch[1].replace(/\s/g, '').replace(',', '.');
+      data.deposit = parseFloat(depositStr);
+    }
+
+    // Parsovanie sumy k úhrade (plain text aj HTML)
+    let totalMatch = text.match(/Suma k úhrade\s+([\d\s,]+)\s*€/);
+    if (!totalMatch) {
+      // HTML format: <td>Suma k úhrade</td> <td>200,00 &#8364;</td>
+      totalMatch = text.match(/Suma k úhrade<\/td>\s*<td[^>]*>([\d\s,]+)\s*(?:&#8364;|€)/);
+    }
+    if (totalMatch) {
+      const totalStr = totalMatch[1].replace(/\s/g, '').replace(',', '.');
+      data.totalAmount = parseFloat(totalStr);
+    }
+
+    // 🚗 PARSOVANIE VOZIDLA Z HTML TABULKY
+    console.log('🔍 Parsing vehicle from HTML...');
+    
+    // HTML format: <td>Volkswagen Polo GTI</td> <td>TN076HA</td> <td>50,00 &#8364;</td> <td>200,00 &#8364;</td>
+    const htmlVehicleMatch = text.match(/<tr[^>]*>\s*<td[^>]*>([^<]+)<\/td>\s*<td[^>]*>([A-Z0-9]{6,7})<\/td>\s*<td[^>]*>([\d\s,]+)\s*(?:&#8364;|€)<\/td>\s*<td[^>]*>([\d\s,]+)\s*(?:&#8364;|€)<\/td>/);
+    
+    if (htmlVehicleMatch) {
+      data.vehicleName = htmlVehicleMatch[1].trim();
+      data.vehicleCode = htmlVehicleMatch[2].trim();
+      
+      const priceStr = htmlVehicleMatch[3].replace(/\s/g, '').replace(',', '.');
+      data.vehiclePrice = parseFloat(priceStr);
+      
+      const totalStr = htmlVehicleMatch[4].replace(/\s/g, '').replace(',', '.');
+      data.vehicleTotalAmount = parseFloat(totalStr);
+      
+      console.log('✅ Parsed HTML vehicle:', {
+        name: data.vehicleName,
+        code: data.vehicleCode,
+        price: data.vehiclePrice,
+        total: data.vehicleTotalAmount
+      });
+    } else {
+      // Fallback pre plain text format
+      const vehicleMatch = text.match(/Položky objednávky\s*\n\s*Názov\s+Kód\s+Cena\s+Spolu\s*\n([^\n]+)/);
+      if (vehicleMatch) {
+        const vehicleLine = vehicleMatch[1].trim();
+        console.log('🔍 Parsing plain text vehicle line:', vehicleLine);
+        
+        // Rozdeliť riadok podľa tabuliek alebo viacerých medzier
+        const parts = vehicleLine.split(/\s+/).filter(part => part.trim());
+        console.log('🔍 Vehicle parts:', parts);
+        
+        // Nájdi ŠPZ (6-7 znakov, len písmená a čísla)
+        const spzIndex = parts.findIndex(part => /^[A-Z0-9]{6,7}$/.test(part.trim()));
+        console.log('🔍 SPZ index:', spzIndex, 'SPZ:', spzIndex >= 0 ? parts[spzIndex] : 'not found');
+        
+        if (spzIndex > 0) {
+          // Názov auta je všetko pred ŠPZ
+          data.vehicleName = parts.slice(0, spzIndex).join(' ');
+          data.vehicleCode = parts[spzIndex];
+          
+          // Cena a suma sú za ŠPZ
+          if (parts.length > spzIndex + 2) {
+            const priceStr = parts[spzIndex + 1].replace(',', '.').replace('€', '').trim();
+            data.vehiclePrice = parseFloat(priceStr);
+          }
+          
+          console.log('✅ Parsed plain text vehicle:', {
+            name: data.vehicleName,
+            code: data.vehicleCode,
+            price: data.vehiclePrice
+          });
+        } else {
+          console.log('❌ Could not find SPZ in vehicle line');
+        }
+      }
+    }
+
+    // Parsovanie kilometrov - VŠETKY sa považujú za denné km - IDENTICKÉ S FRONTEND
+    console.log('🔍 DEBUG: Searching for kilometers in text...');
+    console.log('🔍 Text sample around km:', text.substring(text.indexOf('Počet povolených km') - 20, text.indexOf('Počet povolených km') + 50));
+    
+    // NAJVYŠŠIA PRIORITA: Špecifické patterny pre "Počet povolených km" (plain text aj HTML)
+    let specificKmMatch = text.match(/Počet povolených km\s+(\d+)\s*km/i);
+    if (!specificKmMatch) {
+      // HTML format: <td>Počet povolených km</td> <td>210 km</td>
+      specificKmMatch = text.match(/Počet povolených km<\/td>\s*<td[^>]*>(\d+)\s*km/i);
+    }
+    console.log('🔍 DEBUG: specificKmMatch result:', specificKmMatch);
+    
+    if (specificKmMatch) {
+      data.dailyKilometers = parseInt(specificKmMatch[1]);
+      console.log(`🚗 Parsed "Počet povolených km": ${data.dailyKilometers} km/day (interpreted as daily)`);
+    } else {
+      console.log('🔍 DEBUG: specificKmMatch failed, trying other patterns...');
+      // Prioritne hľadáme explicitne denné km patterny
+      const explicitDailyKmMatch = text.match(/(\d+)\s*km\s*\/\s*de[ňn]/i) ||
+                                  text.match(/(\d+)\s*km\s*na\s*de[ňn]/i) ||
+                                  text.match(/denný\s*limit[:\s]*(\d+)\s*km/i) ||
+                                  text.match(/denne[:\s]*(\d+)\s*km/i) ||
+                                  text.match(/(\d+)\s*km\s*daily/i);
+      console.log('🔍 DEBUG: explicitDailyKmMatch result:', explicitDailyKmMatch);
+      
+      if (explicitDailyKmMatch) {
+        data.dailyKilometers = parseInt(explicitDailyKmMatch[1]);
+        console.log(`🚗 Parsed explicit daily km: ${data.dailyKilometers} km/day`);
+      } else {
+        console.log('🔍 DEBUG: explicitDailyKmMatch failed, trying general patterns...');
+        // Ak nie sú explicitne denné, hľadáme ostatné všeobecné km patterny a považujeme ich za denné
+        const generalKmMatch = text.match(/Povolené\s+km[:\s]+(\d+)/i) || 
+                              text.match(/Kilometrov[:\s]+(\d+)/i) ||
+                              text.match(/Limit\s+km[:\s]+(\d+)/i) ||
+                              text.match(/(\d+)\s*km/i); // Všeobecný pattern pre číslo + km (najnižšia priorita)
+        console.log('🔍 DEBUG: generalKmMatch result:', generalKmMatch);
+        
+        if (generalKmMatch) {
+          data.dailyKilometers = parseInt(generalKmMatch[1]);
+          console.log(`🚗 Parsed general km as daily: ${data.dailyKilometers} km/day (interpreted as daily)`);
+        } else {
+          console.log('🔍 DEBUG: No kilometer patterns matched!');
+        }
+      }
+    }
+
+    // Parsovanie ceny za extra km
+    const extraKmMatch = text.match(/Cena\s+za\s+km[:\s]+([\d,]+)\s*€/i) ||
+                        text.match(/Extra\s+km[:\s]+([\d,]+)\s*€/i) ||
+                        text.match(/Nadlimitn[ý]\s+km[:\s]+([\d,]+)\s*€/i);
+    if (extraKmMatch) {
+      const extraKmStr = extraKmMatch[1].replace(',', '.');
+      data.extraKilometerRate = parseFloat(extraKmStr);
+    }
+
+    // Parsovanie úrovne paliva
+    const fuelMatch = text.match(/Palivo[:\s]+(\d+)%/i) ||
+                     text.match(/Fuel[:\s]+(\d+)%/i) ||
+                     text.match(/Nádrž[:\s]+(\d+)%/i);
+    if (fuelMatch) {
+      data.fuelLevel = parseInt(fuelMatch[1]);
+    }
+
+    // Parsovanie stavu tachometra
+    const odometerMatch = text.match(/Tachometer[:\s]+([\d\s]+)\s*km/i) ||
+                         text.match(/Kilometrov[:\s]+([\d\s]+)\s*km/i) ||
+                         text.match(/Stav[:\s]+([\d\s]+)\s*km/i);
+    if (odometerMatch) {
+      const odometerStr = odometerMatch[1].replace(/\s/g, '');
+      data.startOdometer = parseInt(odometerStr);
+    }
+
+    // Parsovanie podmienok vrátenia
+    const conditionsMatch = text.match(/Podmienky\s+vrátenia[:\s]+([^.]+)/i) ||
+                           text.match(/Return\s+conditions[:\s]+([^.]+)/i);
+    if (conditionsMatch) {
+      data.returnConditions = conditionsMatch[1].trim();
+    }
+
+    // Parsovanie poznámok
+    const notesMatch = text.match(/Poznámky[:\s]+([^.]+)/i) ||
+                      text.match(/Notes[:\s]+([^.]+)/i) ||
+                      text.match(/Dodatočné\s+informácie[:\s]+([^.]+)/i);
+    if (notesMatch) {
+      data.notes = notesMatch[1].trim();
+    }
+
+    // Parsovanie informácií o poistení
+    const insuranceMatch = text.match(/Poistenie[:\s]+([^.]+)/i) ||
+                          text.match(/Insurance[:\s]+([^.]+)/i);
+    if (insuranceMatch) {
+      data.insuranceInfo = insuranceMatch[1].trim();
+    }
+
+    return data;
+  }
+
+  // 🎯 IDENTICKÁ PARSING LOGIKA AKO V FRONTEND EmailParser.tsx
   private async parseEmailContent(emailData: EmailData): Promise<ParsedRentalData | null> {
     try {
-      // Import zdieľanej parsing funkcie z frontend
-      const { parseEmailText, convertToRentalData } = require('../../../src/utils/emailParsingUtils');
-      
       // Získaj text obsah s fallback na HTML
       let content = emailData.text?.trim();
       
       if ((!content || content.length === 0) && emailData.html) {
-        // Extrahuj text z HTML - odstráň HTML značky (rovnaký ako v EmailParser)
+        // Extrahuj text z HTML - rovnaký ako v EmailParser
         content = emailData.html
           .replace(/<style[^>]*>.*?<\/style>/gis, '') // Odstráň CSS
           .replace(/<script[^>]*>.*?<\/script>/gis, '') // Odstráň JS
@@ -305,63 +609,76 @@ class ImapEmailService {
           .replace(/&#39;/g, "'") // HTML entity
           .replace(/\s+/g, ' ') // Viacnásobné medzery → jedna
           .trim();
-        console.log('🔄 FRONTEND PARSING: Extrahujem text z HTML emailu');
+        console.log('🔄 PARSING: Extrahujem text z HTML emailu');
       }
       
       if (!content) {
-        console.log('❌ FRONTEND PARSING: Žiadny obsah na spracovanie');
+        console.log('❌ PARSING: Žiadny obsah na spracovanie');
         return null;
       }
       
-      console.log('🎯 FRONTEND PARSING: Používam EmailParser logiku z frontend...');
+      console.log('🎯 PARSING: Používam identickú logiku ako manuálne parsovanie...');
       console.log('📧 EMAIL TEXT pre parsing:', content.substring(0, 300) + '...');
       
-      // 🎯 POUŽIŤ ZDIEĽANÚ PARSING LOGIKU Z FRONTEND (identická s manuálnym parsovaním)
-      const parsedData = parseEmailText(content);
-      console.log('📊 PARSED DATA (frontend EmailParser logic):', parsedData);
-      
-      // Konvertuj na backend formát
-      const rentalData = convertToRentalData(parsedData);
-      console.log('🔄 CONVERTED to backend rental format:', rentalData);
+      // 🎯 IDENTICKÁ PARSING LOGIKA AKO V EmailParser.tsx
+      const parsedData = this.parseEmailText(content);
+      console.log('📊 PARSED DATA (identické s manuálnym):', parsedData);
       
       // Validácia povinných údajov
-      if (!rentalData.orderNumber || !rentalData.customerName) {
-        console.log('⚠️ FRONTEND PARSING: Chýbajú povinné údaje (objednávka alebo meno)');
-        console.log('- Číslo objednávky:', rentalData.orderNumber || 'CHÝBA');
-        console.log('- Meno zákazníka:', rentalData.customerName || 'CHÝBA');
+      if (!parsedData.orderNumber || !parsedData.customerName) {
+        console.log('⚠️ PARSING: Chýbajú povinné údaje (objednávka alebo meno)');
+        console.log('- Číslo objednávky:', parsedData.orderNumber || 'CHÝBA');
+        console.log('- Meno zákazníka:', parsedData.customerName || 'CHÝBA');
         return null;
       }
       
-      // AUTOMATICKÉ NAPÁROVANIE VOZIDLA PODĽA SPZ (ako v manuálnom parsovaní)
-      if (rentalData.vehicleCode) {
-        const vehicleData = await this.findVehicleByCode(rentalData.vehicleCode);
-        if (vehicleData) {
-          rentalData.vehicleName = vehicleData.name;
-          rentalData.vehicleId = vehicleData.id;
-          console.log(`🚗 AUTO-NAPÁROVANIE: ${rentalData.vehicleCode} → ${vehicleData.name} (ID: ${vehicleData.id})`);
+      // IDENTICKÉ VEHICLE MATCHING AKO V MANUÁLNOM PARSOVANÍ
+      const vehicleSearchResult = await this.findVehicleWithIdenticalLogic(parsedData);
+      
+      // Parsovanie dátumu rezervácie - identické s manuálnym
+      let startDate = new Date();
+      let endDate = new Date();
+      if (parsedData.reservationTime) {
+        const timeMatch = parsedData.reservationTime.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) - (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
+        if (timeMatch) {
+          startDate = new Date(timeMatch[1]);
+          endDate = new Date(timeMatch[2]);
+        }
+      }
+
+      // Určenie spôsobu platby - identické s manuálnym
+      let paymentMethod = 'cash';
+      if (parsedData.paymentMethod) {
+        const paymentLower = parsedData.paymentMethod.toLowerCase();
+        if (paymentLower.includes('hotovosť') || paymentLower.includes('cash')) {
+          paymentMethod = 'cash';
+        } else if (paymentLower.includes('bank') || paymentLower.includes('prevod')) {
+          paymentMethod = 'bank_transfer';
+        } else if (paymentLower.includes('vrp')) {
+          paymentMethod = 'vrp';
         }
       }
       
-      // Finálny formát pre databázu (identický s manuálnym)
+      // Finálne rental data - identické s manuálnym parsovaním
       const finalRentalData: ParsedRentalData = {
-        orderNumber: rentalData.orderNumber,
-        customerName: rentalData.customerName,
-        customerEmail: rentalData.customerEmail || '',
-        customerPhone: rentalData.customerPhone || '',
-        vehicleName: rentalData.vehicleName || '',
-        vehicleCode: rentalData.vehicleCode || '',
-        vehicleId: rentalData.vehicleId || undefined,
-        startDate: rentalData.startDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        endDate: rentalData.endDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-        totalPrice: rentalData.totalPrice || 0,
-        deposit: rentalData.deposit || 0,
-        paymentMethod: rentalData.paymentMethod || 'Prevod',
-        handoverPlace: rentalData.handoverPlace || '',
-        dailyKilometers: rentalData.dailyKilometers || 0,
+        orderNumber: parsedData.orderNumber,
+        customerName: parsedData.customerName,
+        customerEmail: parsedData.customerEmail || '',
+        customerPhone: parsedData.customerPhone || '',
+        vehicleName: parsedData.vehicleName || '',
+        vehicleCode: parsedData.vehicleCode || '',
+        vehicleId: vehicleSearchResult?.id || undefined,
+        startDate,
+        endDate,
+        totalPrice: parsedData.totalAmount || 0,
+        deposit: parsedData.deposit || 0,
+        paymentMethod: paymentMethod,
+        handoverPlace: parsedData.pickupPlace || '',
+        dailyKilometers: parsedData.dailyKilometers || 0,
       };
 
-      console.log('✅ FRONTEND PARSING: Úspešne parsované údaje s EmailParser logikou!');
-      console.log('🎯 FINÁLNE PARSING RESULTS (identické s manuálnym):');
+      console.log('✅ PARSING: Úspešne parsované údaje identicky s manuálnym!');
+      console.log('🎯 FINÁLNE RESULTS (identické s manuálnym):');
       console.log('- Order Number:', finalRentalData.orderNumber);
       console.log('- Customer:', finalRentalData.customerName);  
       console.log('- Email:', finalRentalData.customerEmail);
@@ -378,41 +695,184 @@ class ImapEmailService {
       
       return finalRentalData;
 
-
     } catch (error) {
       console.error('❌ PARSING: Chyba pri parsovaní emailu:', error);
       return null;
     }
   }
 
-  // NOVÉ: Vyhľadá vozidlo v databáze podľa SPZ/kódu
-  private async findVehicleByCode(vehicleCode: string): Promise<{id: string, name: string} | null> {
+  // 🎯 IDENTICKÁ VEHICLE MATCHING LOGIKA AKO V FRONTEND EmailParser.tsx
+  private async getAllVehicles(): Promise<any[]> {
     try {
-      console.log(`🔍 HĽADÁM VOZIDLO: ${vehicleCode}`);
-      
       const result = await postgresDatabase.query(`
-        SELECT id, COALESCE(model, brand, 'Unknown') as name, license_plate
+        SELECT id, brand, model, license_plate
         FROM vehicles 
-        WHERE UPPER(license_plate) = UPPER($1) 
-           OR UPPER(COALESCE(model, brand, '')) LIKE UPPER('%' || $1 || '%')
-        LIMIT 1
-      `, [vehicleCode.trim()]);
-      
-      if (result.rows.length > 0) {
-        const vehicle = result.rows[0];
-        console.log(`✅ VOZIDLO NÁJDENÉ: ${vehicleCode} → ${vehicle.name} (${vehicle.id})`);
-        return { id: vehicle.id, name: vehicle.name };
-      } else {
-        console.log(`❌ VOZIDLO NENÁJDENÉ: ${vehicleCode}`);
-        return null;
-      }
+        WHERE license_plate IS NOT NULL
+      `);
+      return result.rows;
     } catch (error) {
-      console.log(`❌ CHYBA pri hľadaní vozidla ${vehicleCode}:`, error);
+      console.error('❌ Chyba pri načítaní vozidiel:', error);
+      return [];
+    }
+  }
+
+  // Normalizácia ŠPZ - identická s frontend
+  private normalizeSpz(spz: string): string {
+    return spz?.trim().toUpperCase().replace(/\s+/g, '') || '';
+  }
+
+  // IDENTICKÁ vehicle search logika ako v EmailParser.tsx handleApplyData
+  private async findVehicleWithIdenticalLogic(parsedData: ParsedData): Promise<{id: string, name: string} | null> {
+    try {
+      const vehicles = await this.getAllVehicles();
+      
+      console.log('🚗 Vehicle search START:', {
+        hasVehicleCode: !!parsedData.vehicleCode,
+        vehicleCode: parsedData.vehicleCode,
+        vehiclesAvailable: vehicles.length,
+        vehiclesList: vehicles.map(v => ({ 
+          id: v.id.substring(0, 8), 
+          plate: v.license_plate, 
+          normalized: this.normalizeSpz(v.license_plate || ''),
+          brand: v.brand, 
+          model: v.model 
+        }))
+      });
+      
+      // Nájdenie vozidla - primárne podľa ŠPZ, potom podľa názvu
+      let selectedVehicle: any = undefined;
+      
+      if (parsedData.vehicleCode) {
+        // Najprv hľadám podľa ŠPZ (kódu) s normalizáciou
+        const normalizedCode = this.normalizeSpz(parsedData.vehicleCode);
+        selectedVehicle = vehicles.find(v => this.normalizeSpz(v.license_plate || '') === normalizedCode);
+        
+        console.log('🔍 Vehicle search details:', {
+          searchingFor: parsedData.vehicleCode,
+          normalized: normalizedCode,
+          found: !!selectedVehicle,
+          foundVehicle: selectedVehicle ? { id: selectedVehicle.id, plate: selectedVehicle.license_plate, brand: selectedVehicle.brand, model: selectedVehicle.model } : null,
+          vehicleCount: vehicles.length
+        });
+      }
+      
+      // Ak sa nenájde podľa ŠPZ, skúsim podľa názvu
+      if (!selectedVehicle && parsedData.vehicleName) {
+        console.log('🔍 Searching by name fallback:', {
+          vehicleName: parsedData.vehicleName,
+          searchTerm: parsedData.vehicleName.toLowerCase()
+        });
+        
+        selectedVehicle = vehicles.find(v => 
+          v.brand && v.model && `${v.brand} ${v.model}`.toLowerCase().includes(parsedData.vehicleName!.toLowerCase())
+        );
+        
+        console.log('🔍 Name search result:', {
+          found: !!selectedVehicle,
+          foundVehicle: selectedVehicle ? { 
+            id: selectedVehicle.id.substring(0, 8), 
+            plate: selectedVehicle.license_plate, 
+            brand: selectedVehicle.brand, 
+            model: selectedVehicle.model 
+          } : null
+        });
+      }
+
+      if (selectedVehicle) {
+        const vehicleName = selectedVehicle.brand && selectedVehicle.model 
+          ? `${selectedVehicle.brand} ${selectedVehicle.model}` 
+          : (selectedVehicle.brand || selectedVehicle.model || 'Unknown Vehicle');
+        
+        return {
+          id: selectedVehicle.id,
+          name: vehicleName
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('❌ Chyba pri hľadaní vozidla:', error);
       return null;
     }
   }
 
-  private async createPendingRental(rentalData: ParsedRentalData, emailData: EmailData): Promise<void> {
+  // 🆕 NOVÉ: Email History Management Functions
+  private async saveEmailToHistory(emailData: EmailData): Promise<string> {
+    try {
+      // 🚀 PARSUJ EMAIL TEXT PRED ULOŽENÍM
+      const parsedData = this.parseEmailText(emailData.text);
+      console.log('🔍 PARSED EMAIL DATA:', parsedData);
+      
+      const result = await postgresDatabase.query(`
+        INSERT INTO email_processing_history (
+          email_id, message_id, subject, sender, email_content, email_html,
+          received_at, status, confidence_score, parsed_data, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+        ON CONFLICT (email_id) DO UPDATE SET
+          updated_at = CURRENT_TIMESTAMP
+        RETURNING id
+      `, [
+        emailData.messageId,
+        emailData.messageId,
+        emailData.subject,
+        emailData.from,
+        emailData.text,
+        emailData.html,
+        emailData.date,
+        'new',
+        0.0,
+        JSON.stringify(parsedData)
+      ]);
+      
+      const historyId = result.rows[0].id;
+      console.log(`📧 EMAIL HISTORY: Uložený email ${emailData.messageId} (ID: ${historyId})`);
+      return historyId;
+    } catch (error) {
+      console.error('❌ EMAIL HISTORY: Chyba pri ukladaní emailu:', error);
+      throw error;
+    }
+  }
+
+  private async updateEmailHistory(
+    historyId: string, 
+    status: string, 
+    actionTaken: string, 
+    parsedData?: any,
+    errorMessage?: string
+  ): Promise<void> {
+    try {
+      await postgresDatabase.query(`
+        UPDATE email_processing_history 
+        SET 
+          status = $2,
+          action_taken = $3,
+          parsed_data = $4,
+          error_message = $5,
+          processed_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+      `, [historyId, status, actionTaken, parsedData ? JSON.stringify(parsedData) : null, errorMessage]);
+      
+      console.log(`📧 EMAIL HISTORY: Updated ${historyId} → ${status}/${actionTaken}`);
+    } catch (error) {
+      console.error('❌ EMAIL HISTORY: Chyba pri aktualizácii:', error);
+    }
+  }
+
+  private async logEmailAction(historyId: string, action: string, userId?: string, notes?: string): Promise<void> {
+    try {
+      await postgresDatabase.query(`
+        INSERT INTO email_action_logs (email_id, user_id, action, notes)
+        VALUES ($1, $2, $3, $4)
+      `, [historyId, userId, action, notes]);
+      
+      console.log(`📧 ACTION LOG: ${action} logged for email ${historyId}`);
+    } catch (error) {
+      console.error('❌ ACTION LOG: Chyba pri logovaní akcie:', error);
+    }
+  }
+
+  private async createPendingRental(rentalData: ParsedRentalData, emailData: EmailData, emailHistoryId?: string): Promise<void> {
     try {
       // 🚫 KONTROLA BLACKLISTU - ZABLOKOVANÉ OBJEDNÁVKY
       const blacklistCheck = await postgresDatabase.query(
@@ -479,13 +939,25 @@ class ImapEmailService {
 
       console.log(`✅ DB: Vytvorený pending rental ${rentalData.orderNumber} (ID: ${result.rows[0].id})`);
 
+      // 🆕 Prepoj rental s email históriou
+      if (emailHistoryId) {
+        await postgresDatabase.query(`
+          UPDATE email_processing_history 
+          SET rental_id = $1 
+          WHERE id = $2
+        `, [result.rows[0].id, emailHistoryId]);
+        
+        console.log(`🔗 EMAIL HISTORY: Prepojený rental ${result.rows[0].id} s email ${emailHistoryId}`);
+      }
+
       // Log do konzoly (TODO: implement audit table later)
       console.log('📊 AUTO-PROCESSING:', {
         rentalId: result.rows[0].id,
         orderNumber: rentalData.orderNumber,
         customerName: rentalData.customerName,
         processedAt: new Date().toISOString(),
-        source: 'IMAP'
+        source: 'IMAP',
+        emailHistoryId: emailHistoryId
       });
 
     } catch (error) {

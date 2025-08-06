@@ -96,6 +96,7 @@ import bulkRoutes from './routes/bulk';
 import cleanupRoutes from './routes/cleanup';
 import emailWebhookRoutes from './routes/email-webhook';
 import emailImapRoutes from './routes/email-imap';
+import emailManagementRoutes from './routes/email-management';
 import auditRoutes from './routes/audit';
 
 // API routes
@@ -121,6 +122,7 @@ app.use('/api/bulk', bulkRoutes);
 app.use('/api/cleanup', cleanupRoutes);
 app.use('/api/email-webhook', emailWebhookRoutes);
 app.use('/api/email-imap', emailImapRoutes);
+app.use('/api/email-management', emailManagementRoutes);
 app.use('/api/audit', auditRoutes);
 
 // SIMPLE TEST ENDPOINT - bez middleware

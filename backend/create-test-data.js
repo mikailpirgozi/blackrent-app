@@ -211,7 +211,7 @@ async function insertTestData() {
     console.log('🔄 Vkladanie testových dát...');
     
     // Importovanie databázy
-    const { Database } = require('./src/models/database');
+    const { Database } = require('./src/models/postgres-database');
     const db = new Database();
     
     // Počkať na inicializáciu databázy

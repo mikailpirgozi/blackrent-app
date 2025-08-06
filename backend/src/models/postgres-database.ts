@@ -1463,6 +1463,96 @@ export class PostgresDatabase {
         console.log('⚠️ Migrácia 26 chyba:', error.message);
       }
 
+      // Migrácia 27: 📧 EMAIL MANAGEMENT DASHBOARD - Email History & Tracking
+      try {
+        console.log('📋 Migrácia 27: 📧 Vytváram Email Management Dashboard štruktúru...');
+
+        // Vytvorenie tabuľky pre email históriu a tracking
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS email_processing_history (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email_id TEXT UNIQUE NOT NULL,
+            message_id TEXT,
+            subject TEXT NOT NULL,
+            sender TEXT NOT NULL,
+            recipient TEXT DEFAULT 'info@blackrent.sk',
+            email_content TEXT,
+            email_html TEXT,
+            received_at TIMESTAMP NOT NULL,
+            processed_at TIMESTAMP,
+            status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'processing', 'processed', 'rejected', 'archived', 'duplicate')),
+            action_taken TEXT CHECK (action_taken IN ('approved', 'rejected', 'edited', 'deleted', 'archived', 'duplicate')),
+            processed_by UUID REFERENCES users(id),
+            parsed_data JSONB,
+            confidence_score DECIMAL(3,2) DEFAULT 0.0,
+            error_message TEXT,
+            notes TEXT,
+            tags TEXT[],
+            rental_id UUID REFERENCES rentals(id),
+            is_blacklisted BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+
+        // Vytvorenie indexov pre optimálnu performance
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_email_history_email_id ON email_processing_history(email_id);
+          CREATE INDEX IF NOT EXISTS idx_email_history_status ON email_processing_history(status);
+          CREATE INDEX IF NOT EXISTS idx_email_history_sender ON email_processing_history(sender);
+          CREATE INDEX IF NOT EXISTS idx_email_history_received_at ON email_processing_history(received_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_email_history_processed_by ON email_processing_history(processed_by);
+          CREATE INDEX IF NOT EXISTS idx_email_history_rental_id ON email_processing_history(rental_id);
+          CREATE INDEX IF NOT EXISTS idx_email_history_search ON email_processing_history USING gin(to_tsvector('english', subject || ' ' || COALESCE(email_content, '')));
+        `);
+
+        // Vytvorenie tabuľky pre email actions log
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS email_action_logs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email_id UUID REFERENCES email_processing_history(id),
+            user_id UUID REFERENCES users(id),
+            action TEXT NOT NULL,
+            old_values JSONB,
+            new_values JSONB,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_email_action_logs_email_id ON email_action_logs(email_id);
+          CREATE INDEX IF NOT EXISTS idx_email_action_logs_user_id ON email_action_logs(user_id);
+          CREATE INDEX IF NOT EXISTS idx_email_action_logs_created_at ON email_action_logs(created_at DESC);
+        `);
+
+        // Trigger na automatické updatovanie updated_at stĺpca
+        await client.query(`
+          CREATE OR REPLACE FUNCTION update_email_history_updated_at()
+          RETURNS TRIGGER AS $$
+          BEGIN
+            NEW.updated_at = CURRENT_TIMESTAMP;
+            RETURN NEW;
+          END;
+          $$ LANGUAGE plpgsql;
+
+          DROP TRIGGER IF EXISTS trigger_email_history_updated_at ON email_processing_history;
+          CREATE TRIGGER trigger_email_history_updated_at
+            BEFORE UPDATE ON email_processing_history
+            FOR EACH ROW
+            EXECUTE FUNCTION update_email_history_updated_at();
+        `);
+        
+        console.log('✅ Migrácia 27: 📧 Email Management Dashboard úspešne vytvorený!');
+        console.log('   📧 Email processing history tabuľka');
+        console.log('   📊 Email action logs pre audit trail');
+        console.log('   🔍 Optimalizované indexy pre search & filtering');
+        console.log('   ⚡ Auto-update triggers pre timestamp tracking');
+        
+      } catch (error: any) {
+        console.log('⚠️ Migrácia 27 chyba:', error.message);
+      }
+
     } catch (error: any) {
       console.log('⚠️ Migrácie celkovo preskočené:', error.message);
     }

@@ -769,6 +769,21 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
           required={false}
         />
 
+        {/* Spôsob platby */}
+        <FormControl fullWidth>
+          <InputLabel>Spôsob platby</InputLabel>
+          <Select
+            value={formData.paymentMethod || 'cash'}
+            label="Spôsob platby"
+            onChange={e => handleInputChange('paymentMethod', e.target.value as PaymentMethod)}
+          >
+            <MenuItem value="cash">Hotovosť</MenuItem>
+            <MenuItem value="bank_transfer">Bankový prevod</MenuItem>
+            <MenuItem value="vrp">VRP</MenuItem>
+            <MenuItem value="direct_to_owner">Priamo majiteľovi</MenuItem>
+          </Select>
+        </FormControl>
+
         <TextField
           fullWidth
           label="Dátum od"
