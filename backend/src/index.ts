@@ -207,12 +207,55 @@ app.use((err: any, req: any, res: any, next: any) => {
   });
 });
 
+// Import IMAP service for auto-start
+import ImapEmailService from './services/imap-email-service';
+
+// Global IMAP service instance
+let globalImapService: ImapEmailService | null = null;
+
+// Auto-start IMAP monitoring function
+async function autoStartImapMonitoring() {
+  try {
+    const isEnabled = process.env.IMAP_ENABLED !== 'false' && !!process.env.IMAP_PASSWORD;
+    const autoStart = process.env.IMAP_AUTO_START !== 'false'; // Default: true
+    
+    if (!isEnabled) {
+      console.log('📧 IMAP: Auto-start preskočený - služba je vypnutá');
+      return;
+    }
+    
+    if (!autoStart) {
+      console.log('📧 IMAP: Auto-start vypnutý (IMAP_AUTO_START=false)');
+      return;
+    }
+    
+    console.log('🚀 IMAP: Auto-start monitoring...');
+    
+    globalImapService = new ImapEmailService();
+    
+    // Start monitoring in background (každých 30 sekúnd)
+    await globalImapService.startMonitoring(0.5);
+    
+    // Set environment flag for status tracking
+    process.env.IMAP_AUTO_STARTED = 'true';
+    
+    console.log('✅ IMAP: Auto-start úspešný - monitoring beží automaticky');
+    console.log('📧 IMAP: Nové emaily sa budú automaticky pridávať do Email Management Dashboard');
+  } catch (error) {
+    console.error('❌ IMAP: Auto-start chyba:', error);
+    console.log('⚠️ IMAP: Môžete ho manuálne spustiť cez Email Management Dashboard');
+  }
+}
+
 // Start server
 app.listen(Number(port), '0.0.0.0', () => {
   console.log(`🚀 BlackRent server beží na porte ${port}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  Database: PostgreSQL`);
   console.log(`📊 Sentry: ${sentry ? '✅ Backend aktívny' : '❌ Backend vypnutý'}, Frontend aktívny`);
+  
+  // Auto-start IMAP monitoring after server starts (2 second delay)
+  setTimeout(autoStartImapMonitoring, 2000);
 });
 
 // Graceful shutdown
