@@ -35,8 +35,8 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.1",
     "react-scripts": "5.0.1",
-    "socket.io-client": "^4.7.5",
     "recharts": "^3.1.0",
+    "socket.io-client": "^4.7.5",
     "typescript": "^4.9.5",
     "uuid": "^9.0.1",
     "web-vitals": "^2.1.4"
@@ -52,7 +52,11 @@
     "dev:status": "echo 'Backend:' && lsof -i :3001 && echo 'Frontend:' && lsof -i :3000",
     "dev:logs": "tail -f logs/backend.log logs/frontend.log",
     "dev:fast": "cd backend && RUN_MIGRATIONS=false npm run dev",
-    "dev:with-migrations": "cd backend && RUN_MIGRATIONS=true npm run dev"
+    "dev:with-migrations": "cd backend && RUN_MIGRATIONS=true npm run dev",
+    "analyze": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js",
+    "build:analyze": "GENERATE_SOURCEMAP=false npm run build && npx webpack-bundle-analyzer build/static/js/*.js",
+    "build:optimized": "GENERATE_SOURCEMAP=false INLINE_RUNTIME_CHUNK=false npm run build",
+    "performance:audit": "npm run build:optimized && lighthouse http://localhost:3000 --output=html --output-path=lighthouse-report.html"
   },
   "eslintConfig": {
     "extends": [
@@ -76,7 +80,8 @@
     "@types/file-saver": "^2.0.7",
     "@types/papaparse": "^5.3.16",
     "@types/qrcode": "^1.5.5",
-    "puppeteer": "^24.15.0"
+    "puppeteer": "^24.15.0",
+    "webpack-bundle-analyzer": "^4.10.2"
   },
   "engines": {
     "node": ">=18.0.0"

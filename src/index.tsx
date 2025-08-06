@@ -26,4 +26,14 @@ window.addEventListener('error', (event) => {
   }
 });
 
-// Performance monitoring disabled - reportWebVitals removed
+// Initialize error handling for manifest.json and performance monitoring
+if (process.env.NODE_ENV === 'development') {
+  import('./utils/webVitals').then(({ debugPerformance, reportWebVitals }) => {
+    debugPerformance();
+    
+    // Initialize Web Vitals monitoring
+    reportWebVitals((data) => {
+      console.log('📊 Web Vitals:', data);
+    });
+  });
+}
