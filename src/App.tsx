@@ -14,6 +14,9 @@ import { ThemeProvider, useThemeMode } from './context/ThemeContext';
 
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ErrorToastContainer from './components/common/ErrorToastContainer';
+import PWAInstallPrompt from './components/common/PWAInstallPrompt';
+import PWAStatus from './components/common/PWAStatus';
+import OfflineIndicator from './components/common/OfflineIndicator';
 import Layout from './components/Layout';
 import LoginForm from './components/auth/LoginForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -52,6 +55,9 @@ const AppContent: React.FC = () => {
       <CssBaseline />
       <ErrorProvider>
         <ErrorToastContainer />
+        <PWAInstallPrompt autoShow={true} delay={10000} />
+        <PWAStatus position="fixed" />
+        <OfflineIndicator position="top" showDetails={true} />
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <AuthProvider>
             <PermissionsProvider>
