@@ -150,8 +150,6 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
 
   const renderChart = () => {
     const commonProps = {
-      width: '100%',
-      height: chartHeight,
       data,
       margin: {
         top: isMobile ? 10 : 20,
@@ -164,7 +162,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
     switch (type) {
       case 'bar':
         return (
-          <BarChart {...commonProps}>
+          <BarChart width={400} height={chartHeight} {...commonProps}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" opacity={0.3} />}
             <XAxis 
               dataKey={xAxisKey}
@@ -203,7 +201,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
 
       case 'line':
         return (
-          <LineChart {...commonProps}>
+          <LineChart width={400} height={chartHeight} {...commonProps}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" opacity={0.3} />}
             <XAxis 
               dataKey={xAxisKey}
@@ -243,7 +241,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
 
       case 'area':
         return (
-          <AreaChart {...commonProps}>
+          <AreaChart width={400} height={chartHeight} {...commonProps}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" opacity={0.3} />}
             <XAxis 
               dataKey={xAxisKey}
@@ -284,7 +282,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
 
       case 'pie':
         return (
-          <PieChart width="100%" height={chartHeight}>
+          <PieChart width={400} height={chartHeight}>
             <Pie
               data={data}
               cx="50%"
@@ -307,7 +305,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
         );
 
       default:
-        return null;
+        return <div>Unsupported chart type</div>;
     }
   };
 
