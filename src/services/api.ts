@@ -26,6 +26,12 @@ import {
   cacheHelpers,
   type CacheOptions 
 } from '../utils/apiCache';
+import { 
+  withRetry as newWithRetry,
+  parseApiError,
+  createApiErrorHandler,
+  handleApiResponse 
+} from '../utils/apiErrorHandler';
 
 const getApiBaseUrl = () => {
   // V produkcii používame Railway URL
@@ -44,6 +50,18 @@ export const API_BASE_URL = getApiBaseUrl();
 class ApiService {
   // ⚡ Performance optimizations
   private requestDeduplicator = new RequestDeduplicator();
+  private errorHandler = createApiErrorHandler(
+    (error) => {
+      // This will be overridden by components that use the error context
+      console.error('API Error (fallback handler):', error);
+      return 'api-error-' + Date.now();
+    }
+  );
+  
+  // Set error handler from components that have access to error context
+  public setErrorHandler(showError: (error: any) => string) {
+    this.errorHandler = createApiErrorHandler(showError);
+  }
   
   private getAuthToken(): string | null {
     return localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');

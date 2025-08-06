@@ -43,7 +43,7 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
-  const { isOnline, connectionQuality, wasOffline } = useNetworkStatus();
+  const { isOnline, networkQuality, wasOffline } = useNetworkStatus();
 
   // Show toast when error appears
   useEffect(() => {
@@ -95,10 +95,10 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
   const getConnectionIcon = () => {
     if (!isOnline) return <WifiOffIcon fontSize="small" />;
     
-    switch (connectionQuality) {
+    switch (networkQuality) {
       case 'slow':
         return <WifiIcon fontSize="small" sx={{ color: 'orange' }} />;
-      case 'good':
+      case 'medium':
         return <WifiIcon fontSize="small" sx={{ color: 'green' }} />;
       case 'fast':
         return <WifiIcon fontSize="small" sx={{ color: 'blue' }} />;
@@ -132,7 +132,7 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
             {/* Connection status */}
             <Chip
               icon={getConnectionIcon()}
-              label={isOnline ? connectionQuality : 'offline'}
+              label={isOnline ? networkQuality : 'offline'}
               size="small"
               variant="outlined"
               sx={{ 

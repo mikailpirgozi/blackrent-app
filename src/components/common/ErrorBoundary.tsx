@@ -1,36 +1,106 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Box, Typography, Button, Paper } from '@mui/material';
+import { 
+  Box, 
+  Typography, 
+  Button, 
+  Paper, 
+  Alert,
+  AlertTitle,
+  Collapse,
+  IconButton,
+  Stack,
+} from '@mui/material';
+import {
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Refresh as RefreshIcon,
+  Home as HomeIcon,
+  BugReport as BugReportIcon,
+} from '@mui/icons-material';
 import { reportError } from '../../utils/sentry';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  maxRetries?: number;
+  level?: 'page' | 'component' | 'section';
 }
 
 interface State {
   hasError: boolean;
   error: Error | null;
+  errorInfo?: ErrorInfo;
+  retryCount: number;
+  showDetails: boolean;
 }
 
 class ErrorBoundary extends Component<Props, State> {
+  private retryTimeouts: NodeJS.Timeout[] = [];
+
   public state: State = {
     hasError: false,
     error: null,
+    errorInfo: undefined,
+    retryCount: 0,
+    showDetails: false,
   };
 
-  public static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('🚨 ErrorBoundary caught an error:', error, errorInfo);
+    this.setState({ errorInfo });
     
-    // Report to Sentry
+    console.group('🚨 ErrorBoundary caught an error');
+    console.error('Error:', error);
+    console.error('Component Stack:', errorInfo.componentStack);
+    console.groupEnd();
+    
+    // Report to Sentry with enhanced context
     reportError(error, {
       componentStack: errorInfo.componentStack,
       errorBoundary: true,
+      retryCount: this.state.retryCount,
+      level: this.props.level || 'component',
     });
+
+    // Auto-retry for certain recoverable errors
+    if (this.shouldAutoRetry(error) && this.state.retryCount < (this.props.maxRetries || 2)) {
+      const timeout = setTimeout(() => {
+        this.handleRetry();
+      }, 1000 * (this.state.retryCount + 1));
+      
+      this.retryTimeouts.push(timeout);
+    }
   }
+
+  componentWillUnmount() {
+    this.retryTimeouts.forEach(timeout => clearTimeout(timeout));
+  }
+
+  private shouldAutoRetry = (error: Error): boolean => {
+    const recoverableErrors = [
+      'ChunkLoadError',
+      'Loading chunk',
+      'Network Error',
+      'Failed to fetch',
+    ];
+    
+    return recoverableErrors.some(pattern => 
+      error.message.includes(pattern) || error.name.includes(pattern)
+    );
+  };
+
+  private handleRetry = () => {
+    this.setState(prevState => ({ 
+      hasError: false, 
+      error: null, 
+      errorInfo: undefined,
+      retryCount: prevState.retryCount + 1,
+      showDetails: false,
+    }));
+  };
 
   private handleReload = () => {
     window.location.reload();
@@ -40,77 +110,179 @@ class ErrorBoundary extends Component<Props, State> {
     window.location.href = '/';
   };
 
+  private toggleDetails = () => {
+    this.setState(prevState => ({ 
+      showDetails: !prevState.showDetails 
+    }));
+  };
+
+  private getErrorMessage = (): string => {
+    const { error } = this.state;
+    
+    if (!error) return 'Neznáma chyba';
+
+    if (error.message.includes('ChunkLoadError') || error.message.includes('Loading chunk')) {
+      return 'Načítavanie stránky bolo prerušené. Skúste obnoviť stránku.';
+    }
+    
+    if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+      return 'Problém s pripojením. Skontrolujte internetové pripojenie.';
+    }
+
+    if (error.name === 'TypeError') {
+      return 'Nastala technická chyba. Skúste obnoviť stránku.';
+    }
+
+    return 'Nastala neočakávaná chyba. Skúste to znovu.';
+  };
+
   public render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      return (
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="100vh"
-          p={2}
-          bgcolor="background.default"
-        >
-          <Paper
-            elevation={3}
-            sx={{
-              p: 4,
-              maxWidth: 600,
-              textAlign: 'center',
-              bgcolor: 'background.paper',
-            }}
+      const { level = 'component', maxRetries = 2 } = this.props;
+      const { error, errorInfo, retryCount, showDetails } = this.state;
+      const canRetry = retryCount < maxRetries;
+
+      // Different layouts based on error level
+      if (level === 'page') {
+        return (
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            minHeight="100vh"
+            p={2}
+            bgcolor="background.default"
           >
-            <Typography variant="h4" color="error" gutterBottom>
-              🚨 Niečo sa pokazilo
-            </Typography>
-            
-            <Typography variant="body1" color="text.secondary" paragraph>
-              Aplikácia narazila na neočakávanú chybu. Chyba bola automaticky nahlásená 
-              a bude opravená čo najskôr.
-            </Typography>
-            
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <Paper 
-                sx={{ 
-                  p: 2, 
-                  mt: 2, 
-                  bgcolor: 'grey.100', 
-                  textAlign: 'left' 
-                }}
-              >
-                <Typography variant="caption" color="error">
-                  {this.state.error.toString()}
+            <Paper elevation={3} sx={{ p: 4, maxWidth: 700 }}>
+              <Alert severity="error" sx={{ mb: 3 }}>
+                <AlertTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <BugReportIcon />
+                  Stránka sa nenačítala správne
+                </AlertTitle>
+                <Typography variant="body2">
+                  {this.getErrorMessage()}
                 </Typography>
-              </Paper>
-            )}
-            
-            <Box mt={3} display="flex" gap={2} justifyContent="center">
-              <Button 
-                variant="contained" 
-                color="primary" 
-                onClick={this.handleReload}
-              >
-                Obnoviť stránku
-              </Button>
-              
-              <Button 
-                variant="outlined" 
-                color="primary" 
-                onClick={this.handleGoHome}
-              >
-                Späť na úvod
-              </Button>
-            </Box>
-            
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-              Ak problém pretrváva, kontaktujte podporu.
+              </Alert>
+
+              <Stack direction="row" spacing={2} sx={{ mb: 2, justifyContent: 'center' }}>
+                {canRetry && (
+                  <Button
+                    variant="contained"
+                    startIcon={<RefreshIcon />}
+                    onClick={this.handleRetry}
+                  >
+                    Skúsiť znovu ({retryCount}/{maxRetries})
+                  </Button>
+                )}
+                
+                <Button
+                  variant="outlined"
+                  startIcon={<RefreshIcon />}
+                  onClick={this.handleReload}
+                >
+                  Obnoviť stránku
+                </Button>
+                
+                <Button
+                  variant="text"
+                  startIcon={<HomeIcon />}
+                  onClick={this.handleGoHome}
+                >
+                  Domov
+                </Button>
+              </Stack>
+
+              {/* Technical details for developers */}
+              <Box>
+                <Button
+                  size="small"
+                  onClick={this.toggleDetails}
+                  startIcon={showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  sx={{ mb: 1 }}
+                >
+                  Technické detaily
+                </Button>
+                
+                <Collapse in={showDetails}>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                    {process.env.NODE_ENV === 'development' && error && (
+                      <>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
+                          Chybová správa:
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 2 }}>
+                          {error.toString()}
+                        </Typography>
+
+                        {error.stack && (
+                          <Box component="pre" sx={{ 
+                            fontSize: '0.75rem',
+                            overflow: 'auto',
+                            maxHeight: 200,
+                            bgcolor: 'grey.100',
+                            p: 1,
+                            borderRadius: 1,
+                          }}>
+                            {error.stack}
+                          </Box>
+                        )}
+                      </>
+                    )}
+                    
+                    <Typography variant="caption" color="text.secondary">
+                      Chyba bola automaticky nahlásená a bude opravená čo najskôr.
+                    </Typography>
+                  </Paper>
+                </Collapse>
+              </Box>
+            </Paper>
+          </Box>
+        );
+      }
+
+      // Component-level error (smaller, inline)
+      return (
+        <Alert 
+          severity="error" 
+          sx={{ m: 2 }}
+          action={
+            <Stack direction="row" spacing={1}>
+              {canRetry && (
+                <IconButton size="small" onClick={this.handleRetry}>
+                  <RefreshIcon />
+                </IconButton>
+              )}
+              {showDetails && (
+                <IconButton size="small" onClick={this.toggleDetails}>
+                  {showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              )}
+            </Stack>
+          }
+        >
+          <AlertTitle>Chyba v komponente</AlertTitle>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            {this.getErrorMessage()}
+          </Typography>
+          
+          {retryCount > 0 && (
+            <Typography variant="caption" sx={{ display: 'block', opacity: 0.7 }}>
+              Počet pokusov: {retryCount}/{maxRetries}
             </Typography>
-          </Paper>
-        </Box>
+          )}
+
+          <Collapse in={showDetails}>
+            <Box sx={{ mt: 2, p: 1, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 1 }}>
+              <Typography variant="caption">
+                {process.env.NODE_ENV === 'development' && error?.message}
+              </Typography>
+            </Box>
+          </Collapse>
+        </Alert>
       );
     }
 
