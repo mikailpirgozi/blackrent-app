@@ -278,6 +278,21 @@ router.post('/:id/approve',
           // Use totalAmount or vehicleTotalAmount as fallback
           const totalPrice = parsedData.totalAmount || parsedData.vehicleTotalAmount || null;
           
+          // Payment method mapping to correct enum values
+          let paymentMethod = 'cash';
+          if (parsedData.paymentMethod) {
+            const paymentLower = parsedData.paymentMethod.toLowerCase();
+            if (paymentLower.includes('hotovosť') || paymentLower.includes('cash')) {
+              paymentMethod = 'cash';
+            } else if (paymentLower.includes('bank') || paymentLower.includes('prevod')) {
+              paymentMethod = 'bank_transfer';
+            } else if (paymentLower.includes('vrp')) {
+              paymentMethod = 'vrp';
+            } else if (paymentLower.includes('direct') || paymentLower.includes('majiteľ')) {
+              paymentMethod = 'direct_to_owner';
+            }
+          }
+          
           // Find or create customer
           let customerId = null;
           if (parsedData.customerEmail) {
@@ -348,7 +363,7 @@ router.post('/:id/approve',
             totalPrice,
             parsedData.deposit,
             parsedData.orderNumber,
-            parsedData.paymentMethod || 'cash',
+            paymentMethod,
             allowedKilometers,
             0.30, // Default extra km rate
             `Email: ${parsedData.customerEmail}, Telefón: ${parsedData.customerPhone}, Vozidlo: ${parsedData.vehicleName} (${parsedData.vehicleCode}), Denné km: ${parsedData.dailyKilometers}`
