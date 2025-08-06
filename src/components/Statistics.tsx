@@ -83,6 +83,7 @@ import { format, startOfMonth, endOfMonth, subMonths, differenceInDays, isAfter,
 import { sk } from 'date-fns/locale';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import StatisticsMobile from './statistics/StatisticsMobile';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -715,6 +716,27 @@ const Statistics: React.FC = () => {
     }
   };
 
+  // Mobile view
+  if (isMobile) {
+    return (
+      <StatisticsMobile
+        stats={stats}
+        timeRange={timeRange}
+        onTimeRangeChange={setTimeRange}
+        filterYear={filterYear}
+        filterMonth={filterMonth}
+        onFilterYearChange={setFilterYear}
+        onFilterMonthChange={setFilterMonth}
+        onRefresh={() => {
+          // Force re-computation of stats
+          window.location.reload();
+        }}
+        isLoading={false}
+      />
+    );
+  }
+
+  // Desktop view
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       {/* Modern Header */}
