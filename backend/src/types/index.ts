@@ -125,22 +125,10 @@ export interface Rental {
   returnLocation?: string;
   vehicleCode?: string;
   vehicleName?: string;
-  // 🔄 NOVÉ: Flexibilné prenájmy
-  rentalType?: 'standard' | 'flexible' | 'priority';
-  isFlexible?: boolean;
-  flexibleEndDate?: Date; // Odhadovaný koniec pre flexibilné prenájmy
-  flexibleSettings?: {
-    canBeOverridden: boolean;
-    overridePriority: number; // 1-10 (1 = najvyššia priorita)
-    notificationThreshold: number; // Dni vopred na upozornenie
-    autoExtend: boolean;
-  };
-  overrideHistory?: {
-    date: Date;
-    reason: string;
-    newRentalId: string;
-    userId: string;
-  }[];
+  // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
+  rentalType?: 'standard' | 'flexible';  // Odstránené 'priority' - zbytočné
+  isFlexible?: boolean;  // Rýchly boolean check
+  flexibleEndDate?: Date; // Orientačný koniec pre flexible prenájmy
   // 📧 NOVÉ: Automatické spracovanie emailov
   sourceType?: 'manual' | 'email_auto' | 'api_auto';
   approvalStatus?: 'pending' | 'approved' | 'rejected' | 'spam';

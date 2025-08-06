@@ -4,6 +4,7 @@ import { Rental, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
+import { getWebSocketService } from '../services/websocket-service';
 
 const router = Router();
 
@@ -174,15 +175,10 @@ router.post('/',
       fuelRefillCost,
       handoverProtocolId,
       returnProtocolId,
-      // 🔄 NOVÉ: Flexibilné prenájmy
+      // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
       rentalType,
       isFlexible,
-      flexibleEndDate,
-      canBeOverridden,
-      overridePriority,
-      notificationThreshold,
-      autoExtend,
-      overrideHistory
+      flexibleEndDate
     } = req.body;
 
     // 🔄 NOVÁ VALIDÁCIA: Pre flexibilné prenájmy endDate nie je povinné
@@ -245,16 +241,18 @@ router.post('/',
       fuelRefillCost,
       handoverProtocolId,
       returnProtocolId,
-      // 🔄 NOVÉ: Flexibilné prenájmy
+      // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
       rentalType: rentalType || 'standard',
       isFlexible: isFlexible || false,
-      flexibleEndDate: flexibleEndDate ? new Date(flexibleEndDate) : undefined,
-      canBeOverridden: canBeOverridden || false,
-      overridePriority: overridePriority || 5,
-      notificationThreshold: notificationThreshold || 3,
-      autoExtend: autoExtend || false,
-      overrideHistory: overrideHistory || []
+      flexibleEndDate: flexibleEndDate ? new Date(flexibleEndDate) : undefined
     });
+
+    // 🔴 Real-time broadcast: Nový prenájom vytvorený
+    const websocketService = getWebSocketService();
+    if (websocketService) {
+      const userName = (req as any).user?.username || 'Neznámy užívateľ';
+      websocketService.broadcastRentalCreated(createdRental, userName);
+    }
 
     res.status(201).json({
       success: true,
@@ -330,6 +328,13 @@ router.put('/:id',
       hasVehicle: !!savedRental?.vehicle
     });
 
+    // 🔴 Real-time broadcast: Prenájom aktualizovaný
+    const websocketService = getWebSocketService();
+    if (websocketService && savedRental) {
+      const userName = (req as any).user?.username || 'Neznámy užívateľ';
+      websocketService.broadcastRentalUpdated(savedRental, userName);
+    }
+
     res.json({
       success: true,
       message: 'Prenájom úspešne aktualizovaný',
@@ -370,6 +375,13 @@ router.delete('/:id',
     console.log(`✅ Prenájom ${id} nájdený, vymazávam...`);
     await postgresDatabase.deleteRental(id);
     console.log(`🎉 Prenájom ${id} úspešne vymazaný`);
+
+    // 🔴 Real-time broadcast: Prenájom zmazaný
+    const websocketService = getWebSocketService();
+    if (websocketService) {
+      const userName = (req as any).user?.username || 'Neznámy užívateľ';
+      websocketService.broadcastRentalDeleted(id, existingRental.customerName, userName);
+    }
 
     res.json({
       success: true,

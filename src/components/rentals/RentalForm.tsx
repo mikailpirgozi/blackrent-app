@@ -46,6 +46,10 @@ const calculateRentalDays = (startDate: Date, endDate: Date): number => {
 
 export default function RentalForm({ rental, onSave, onCancel, isLoading = false }: RentalFormProps) {
   const { state, dispatch, createCustomer, updateCustomer } = useApp();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 📋 SECTION 1: FORM STATE
+  // ═══════════════════════════════════════════════════════════════════
   const [formData, setFormData] = useState<Partial<Rental>>({
     vehicleId: '',
     customerId: '',
@@ -54,60 +58,61 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
     endDate: new Date(),
     paymentMethod: 'cash',
     orderNumber: '',
-    // 🔄 NOVÉ: Flexibilné prenájmy
+    // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
+    rentalType: 'standard',
     isFlexible: false,
     flexibleEndDate: undefined,
-    flexibleSettings: {
-      canBeOverridden: false,
-      overridePriority: 5,
-      notificationThreshold: 3,
-      autoExtend: false,
-    },
   });
 
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 💰 SECTION 2: PRICING & PAYMENT STATE
+  // ═══════════════════════════════════════════════════════════════════
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [calculatedCommission, setCalculatedCommission] = useState(0);
-  // 🔄 NOVÉ: Manuálna cenotvorba pre flexibilné prenájmy
   const [manualPrice, setManualPrice] = useState<number | undefined>(undefined);
   const [useManualPricing, setUseManualPricing] = useState(false);
   const [extraKmCharge, setExtraKmCharge] = useState<number>(0);
   const [allowedKilometers, setAllowedKilometers] = useState<number>(0);
-  const [dailyKilometers, setDailyKilometers] = useState<number>(0); // NEW: Daily km input
+  const [dailyKilometers, setDailyKilometers] = useState<number>(0);
   const [extraKilometerRate, setExtraKilometerRate] = useState<number>(0.5);
   const [deposit, setDeposit] = useState<number>(0);
   const [paid, setPaid] = useState(false);
-  const [handoverPlace, setHandoverPlace] = useState('');
-  const [addingPlace, setAddingPlace] = useState(false);
-  const [newPlace, setNewPlace] = useState('');
-  const defaultPlaces = [
-    'Bratislava',
-    'Košice',
-    'Žilina',
-    'Trnava',
-    'Nitra',
-    'Banská Bystrica',
-    'Prešov',
-    'Trenčín',
-  ];
-  const [places, setPlaces] = useState<string[]>(defaultPlaces);
   const [payments, setPayments] = useState<RentalPayment[]>(rental?.payments || []);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<RentalPayment | null>(null);
   const [showDiscountCommission, setShowDiscountCommission] = useState(false);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 📍 SECTION 3: LOCATION & PLACES STATE
+  // ═══════════════════════════════════════════════════════════════════
+  const defaultPlaces = [
+    'Bratislava', 'Košice', 'Žilina', 'Trnava', 'Nitra', 
+    'Banská Bystrica', 'Prešov', 'Trenčín'
+  ];
+  const [handoverPlace, setHandoverPlace] = useState('');
+  const [addingPlace, setAddingPlace] = useState(false);
+  const [newPlace, setNewPlace] = useState('');
+  const [places, setPlaces] = useState<string[]>(defaultPlaces);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 👥 SECTION 4: CUSTOMER & VEHICLE MANAGEMENT STATE
+  // ═══════════════════════════════════════════════════════════════════
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [editCustomerDialogOpen, setEditCustomerDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
 
-  // Získam zoznam zákazníkov
+  // ═══════════════════════════════════════════════════════════════════
+  // 📊 SECTION 5: DATA OPTIONS
+  // ═══════════════════════════════════════════════════════════════════
   const customerOptions = (state.customers || []).map(c => ({
     label: c.name,
     id: c.id,
     customer: c
   }));
 
-  // Oprava vehicleOptions a Autocomplete pre výber vozidla
   const vehicleOptions = state.vehicles.map(v => ({
     label: `${v.brand} ${v.model} (${v.licensePlate})`,
     id: v.id
@@ -117,15 +122,10 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
     if (rental) {
       setFormData({
         ...rental,
-        // 🔄 NOVÉ: Nastavenie flexibilných polí z existujúceho prenájmu
+        // 🔄 OPTIMALIZOVANÉ: Nastavenie flexibilných polí z existujúceho prenájmu (zjednodušené)
+        rentalType: rental.rentalType || 'standard', 
         isFlexible: rental.isFlexible || false,
         flexibleEndDate: rental.flexibleEndDate,
-        flexibleSettings: rental.flexibleSettings || {
-          canBeOverridden: false,
-          overridePriority: 5,
-          notificationThreshold: 3,
-          autoExtend: false,
-        },
       });
       setCalculatedPrice(rental.totalPrice);
       setCalculatedCommission(rental.commission);
@@ -571,17 +571,19 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       handoverPlace: handoverPlace.trim() || undefined,
       payments: payments,
       orderNumber: formData.orderNumber || '',
-      // 🔄 NOVÉ: Flexibilné prenájmy
+      // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené) 
+      rentalType: formData.rentalType || 'standard',
       isFlexible: formData.isFlexible || false,
       flexibleEndDate: formData.flexibleEndDate,
-      flexibleSettings: formData.flexibleSettings,
-      overrideHistory: formData.overrideHistory || [],
     };
     onSave(completeRental);
   };
 
   const availableVehicles = state.vehicles.filter(v => v.status === 'available');
 
+  // ════════════════════════════════════════════════════════════════════════════════
+  // 🎨 RENDER - MAIN FORM UI
+  // ════════════════════════════════════════════════════════════════════════════════
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, opacity: isLoading ? 0.6 : 1, pointerEvents: isLoading ? 'none' : 'auto' }}>
       {/* Email Parser komponent */}
@@ -916,32 +918,11 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
                         }
                       }}
                       InputLabelProps={{ shrink: true }}
-                      helperText="🎯 Orientačný dátum pre plánovanie - pomáha pri rezerváciách a upozorneniach"
+                      helperText="Orientačný dátum ukončenia pre flexibilný prenájom"
                     />
                   </Grid>
 
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Priorita prepísania</InputLabel>
-                      <Select
-                        value={formData.flexibleSettings?.overridePriority || 5}
-                        onChange={(e) => {
-                          const newSettings = {
-                            ...formData.flexibleSettings,
-                            overridePriority: Number(e.target.value)
-                          };
-                          handleInputChange('flexibleSettings', newSettings);
-                        }}
-                        label="Priorita prepísania"
-                      >
-                        <MenuItem value={1}>1 - Najvyššia (ťažko prepísateľné)</MenuItem>
-                        <MenuItem value={3}>3 - Vysoká</MenuItem>
-                        <MenuItem value={5}>5 - Stredná (odporúčané)</MenuItem>
-                        <MenuItem value={7}>7 - Nízka</MenuItem>
-                        <MenuItem value={10}>10 - Najnižšia (ľahko prepísateľné)</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
+                  {/* Priorita prepísania odstránená - zjednodušené flexible rentals */}
 
                   <Grid item xs={12}>
                     <Card variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>

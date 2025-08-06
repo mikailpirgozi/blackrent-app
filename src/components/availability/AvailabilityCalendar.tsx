@@ -39,6 +39,7 @@ import {
 } from '@mui/icons-material';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import dayjs from 'dayjs';
 import { API_BASE_URL } from '../../services/api';
 import { Rental, VehicleUnavailability, VehicleCategory } from '../../types';
 import { useApp } from '../../context/AppContext';
@@ -1946,12 +1947,13 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
-                                            <Typography><strong>Typ prenájmu:</strong> {selectedRental.isFlexible ? 'FLEXIBILNÝ' : 'ŠTANDARDNÝ'}</Typography>
-                    <Typography><strong>Priorita prepísania:</strong> {selectedRental.flexibleSettings?.overridePriority || 5}/10</Typography>
+                    <Typography><strong>Typ prenájmu:</strong> {selectedRental.isFlexible ? 'FLEXIBILNÝ' : 'ŠTANDARDNÝ'}</Typography>
+                    {selectedRental.flexibleEndDate && (
+                      <Typography><strong>Orientačný koniec:</strong> {dayjs(selectedRental.flexibleEndDate).format('DD.MM.YYYY')}</Typography>
+                    )}
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <Typography><strong>Možno prepísať:</strong> {selectedRental.flexibleSettings?.canBeOverridden ? '✅ Áno' : '❌ Nie'}</Typography>
-                    <Typography><strong>Automatické predĺženie:</strong> {selectedRental.flexibleSettings?.autoExtend ? '✅ Áno' : '❌ Nie'}</Typography>
+                    <Typography><strong>Typ:</strong> {selectedRental.rentalType || 'standard'}</Typography>
                   </Grid>
                 </Grid>
               </Grid>

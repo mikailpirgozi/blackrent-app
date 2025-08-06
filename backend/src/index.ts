@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import compression from 'compression'; // 🚀 FÁZA 2.4: Response compression
 import path from 'path';
@@ -9,6 +10,9 @@ dotenv.config();
 
 // Sentry backend error tracking
 import { initSentry, reportError } from './utils/sentry';
+
+// WebSocket service
+import { initializeWebSocketService } from './services/websocket-service';
 
 const app = express();
 const port = Number(process.env.PORT) || 3001;
@@ -262,11 +266,18 @@ async function autoStartImapMonitoring() {
   }
 }
 
-// Start server
-app.listen(Number(port), '0.0.0.0', () => {
+// 🔴 Create HTTP server with WebSocket support
+const httpServer = createServer(app);
+
+// Initialize WebSocket service
+const websocketService = initializeWebSocketService(httpServer);
+
+// Start server with WebSocket support
+httpServer.listen(Number(port), '0.0.0.0', () => {
   console.log(`🚀 BlackRent server beží na porte ${port}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  Database: PostgreSQL`);
+  console.log(`🔴 WebSocket: Real-time updates aktívne`);
   console.log(`📊 Sentry: ${sentry ? '✅ Backend aktívny' : '❌ Backend vypnutý'}, Frontend aktívny`);
   
   // Auto-start IMAP monitoring after server starts (2 second delay)
