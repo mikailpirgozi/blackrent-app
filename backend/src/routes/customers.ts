@@ -2,12 +2,20 @@ import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { Customer, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
+import { cacheResponse, invalidateCache, userSpecificCache } from '../middleware/cache-middleware';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
-// GET /api/customers - Získanie všetkých zákazníkov
-router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<Customer[]>>) => {
+// GET /api/customers - Získanie všetkých zákazníkov s cache
+router.get('/', 
+  authenticateToken,
+  cacheResponse('customers', {
+    cacheKey: userSpecificCache,
+    ttl: 5 * 60 * 1000, // 5 minutes
+    tags: ['customers']
+  }),
+  async (req: Request, res: Response<ApiResponse<Customer[]>>) => {
   try {
     let customers = await postgresDatabase.getCustomers();
     
@@ -69,7 +77,10 @@ router.get('/', authenticateToken, async (req: Request, res: Response<ApiRespons
 });
 
 // POST /api/customers - Vytvorenie nového zákazníka
-router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.post('/', 
+  authenticateToken, 
+  invalidateCache('customer'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     console.log('🎯 Customer creation started with data:', req.body);
     const { name, email, phone } = req.body;
@@ -120,7 +131,10 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
 });
 
 // PUT /api/customers/:id - Aktualizácia zákazníka
-router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.put('/:id', 
+  authenticateToken, 
+  invalidateCache('customer'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
     const { name, email, phone } = req.body;
@@ -158,7 +172,10 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
 });
 
 // DELETE /api/customers/:id - Vymazanie zákazníka
-router.delete('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.delete('/:id', 
+  authenticateToken, 
+  invalidateCache('customer'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
 

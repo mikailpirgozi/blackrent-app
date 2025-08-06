@@ -3,6 +3,7 @@ import { postgresDatabase } from '../models/postgres-database';
 import { Vehicle, ApiResponse, VehicleStatus } from '../types';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
+import { cacheResponse, invalidateCache, userSpecificCache } from '../middleware/cache-middleware';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -19,10 +20,15 @@ const getVehicleContext = async (req: Request) => {
   };
 };
 
-// GET /api/vehicles - Získanie všetkých vozidiel
+// GET /api/vehicles - Získanie všetkých vozidiel s cache
 router.get('/', 
   authenticateToken, 
   checkPermission('vehicles', 'read'),
+  cacheResponse('vehicles', {
+    cacheKey: userSpecificCache,
+    ttl: 10 * 60 * 1000, // 10 minutes
+    tags: ['vehicles']
+  }),
   async (req: Request, res: Response<ApiResponse<Vehicle[]>>) => {
     try {
       let vehicles = await postgresDatabase.getVehicles();
@@ -212,10 +218,11 @@ router.get('/:id',
   }
 );
 
-// POST /api/vehicles - Vytvorenie nového vozidla
+// POST /api/vehicles - Vytvorenie nového vozidla s cache invalidation
 router.post('/', 
   authenticateToken,
   checkPermission('vehicles', 'create'),
+  invalidateCache('vehicle'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { brand, model, licensePlate, company, pricing, commission, status, year } = req.body;
@@ -254,10 +261,11 @@ router.post('/',
   }
 });
 
-// PUT /api/vehicles/:id - Aktualizácia vozidla
+// PUT /api/vehicles/:id - Aktualizácia vozidla s cache invalidation
 router.put('/:id', 
   authenticateToken,
   checkPermission('vehicles', 'update', { getContext: getVehicleContext }),
+  invalidateCache('vehicle'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
@@ -306,10 +314,11 @@ router.put('/:id',
   }
 });
 
-// DELETE /api/vehicles/:id - Vymazanie vozidla
+// DELETE /api/vehicles/:id - Vymazanie vozidla s cache invalidation
 router.delete('/:id', 
   authenticateToken,
   checkPermission('vehicles', 'delete', { getContext: getVehicleContext }),
+  invalidateCache('vehicle'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;

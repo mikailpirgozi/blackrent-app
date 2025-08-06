@@ -118,6 +118,7 @@ import cleanupRoutes from './routes/cleanup';
 import emailWebhookRoutes from './routes/email-webhook';
 import emailImapRoutes from './routes/email-imap';
 import emailManagementRoutes from './routes/email-management';
+import cacheRoutes from './routes/cache';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -143,6 +144,7 @@ app.use('/api/cleanup', cleanupRoutes);
 app.use('/api/email-webhook', emailWebhookRoutes);
 app.use('/api/email-imap', emailImapRoutes);
 app.use('/api/email-management', emailManagementRoutes);
+app.use('/api/cache', cacheRoutes);
 
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {
@@ -273,12 +275,20 @@ const httpServer = createServer(app);
 const websocketService = initializeWebSocketService(httpServer);
 
 // Start server with WebSocket support
-httpServer.listen(Number(port), '0.0.0.0', () => {
+httpServer.listen(Number(port), '0.0.0.0', async () => {
   console.log(`🚀 BlackRent server beží na porte ${port}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  Database: PostgreSQL`);
   console.log(`🔴 WebSocket: Real-time updates aktívne`);
   console.log(`📊 Sentry: ${sentry ? '✅ Backend aktívny' : '❌ Backend vypnutý'}, Frontend aktívny`);
+  
+  // Initialize cache warming
+  try {
+    const { warmCache } = await import('./middleware/cache-middleware');
+    setTimeout(warmCache, 3000); // 3 second delay for DB to be ready
+  } catch (error) {
+    console.warn('Cache warming initialization failed:', error);
+  }
   
   // Auto-start IMAP monitoring after server starts (2 second delay)
   setTimeout(autoStartImapMonitoring, 2000);
