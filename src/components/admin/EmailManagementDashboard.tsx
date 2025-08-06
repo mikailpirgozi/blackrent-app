@@ -156,7 +156,6 @@ const EmailManagementDashboard: React.FC = () => {
       if (senderFilter) params.append('sender', senderFilter);
 
       console.log('🌐 About to call API:', `/email-management?${params}`);
-      console.log('🔍 API Service check:', typeof apiService, !!apiService.request);
       
       // TEMPORARY: Direct fetch bypass apiService
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
