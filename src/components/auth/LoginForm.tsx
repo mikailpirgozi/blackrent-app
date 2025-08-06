@@ -19,6 +19,8 @@ import { LockOutlined as LockIcon, AccountCircle as AccountIcon } from '@mui/ico
 import { useAuth } from '../../context/AuthContext';
 import { LoginCredentials } from '../../types';
 import { useNavigate } from 'react-router-dom';
+import { useAuthError } from '../../hooks/useEnhancedError';
+import { EnhancedErrorToast } from '../common/EnhancedErrorToast';
 
 interface LoginFormProps {
   onLoginSuccess?: () => void;
@@ -32,33 +34,41 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     password: '',
   });
   const [rememberMe, setRememberMe] = useState(true); // defaultne zapnuté
-  const [error, setError] = useState<string | null>(null);
+  const { error, showError, clearError, executeWithErrorHandling } = useAuthError();
   const [showDemo, setShowDemo] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCredentials(prev => ({ ...prev, [name]: value }));
-    if (error) setError(null);
+    if (error) clearError();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    clearError();
 
     if (!credentials.username || !credentials.password) {
-      setError('Prosím zadajte používateľské meno a heslo');
+      showError('Prosím zadajte používateľské meno a heslo', { action: 'login', entity: 'credentials' });
       return;
     }
 
-    const success = await login(credentials, rememberMe);
+    const success = await executeWithErrorHandling(
+      async () => {
+        const result = await login(credentials, rememberMe);
+        if (!result) {
+          throw new Error('Nesprávne používateľské meno alebo heslo');
+        }
+        return result;
+      },
+      { action: 'login', entity: 'user' }
+    );
+
     if (success) {
       onLoginSuccess?.();
       // 🚀 DIRECT navigation to /vehicles to bypass root redirect timing issue
       setTimeout(() => {
         navigate('/vehicles');
       }, 100);
-    } else {
-      setError('Nesprávne používateľské meno alebo heslo');
     }
   };
 
@@ -107,11 +117,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               </Typography>
             </Box>
 
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
+            {/* Error handling sa teraz zobrazuje cez EnhancedErrorToast */}
 
             <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
               <TextField
@@ -255,6 +261,14 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
           </Typography>
         </Box>
       </Box>
+      
+      {/* Enhanced Error Toast */}
+      <EnhancedErrorToast
+        error={error}
+        context={{ action: 'login', location: 'auth' }}
+        onClose={clearError}
+        position="top"
+      />
     </Container>
   );
 } 

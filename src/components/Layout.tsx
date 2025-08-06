@@ -58,7 +58,7 @@ import { usePermissions, getUserRoleDisplayName } from '../hooks/usePermissions'
 import { useThemeMode } from '../context/ThemeContext';
 import ChangePasswordForm from './auth/ChangePasswordForm';
 import UserProfile from './users/UserProfile';
-import { ErrorToast } from './common/ErrorToast';
+import { EnhancedErrorToast } from './common/EnhancedErrorToast';
 import { SuccessToast } from './common/SuccessToast';
 import { EnhancedError } from '../utils/errorHandling';
 import RealTimeNotifications from './common/RealTimeNotifications';
@@ -623,11 +623,13 @@ export default function Layout({ children }: LayoutProps) {
         onClose={() => setProfileDialogOpen(false)}
       />
 
-      {/* 🛡️ Global Error Toast */}
-      <ErrorToast
+      {/* 🛡️ Enhanced Global Error Toast */}
+      <EnhancedErrorToast
         error={currentError}
+        context={{ location: 'global' }}
         onClose={handleErrorClose}
         onRetry={handleErrorRetry}
+        position="top"
       />
 
       {/* 🎉 Global Success Toast */}
