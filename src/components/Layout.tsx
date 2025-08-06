@@ -61,6 +61,7 @@ import UserProfile from './users/UserProfile';
 import { ErrorToast } from './common/ErrorToast';
 import { SuccessToast } from './common/SuccessToast';
 import { EnhancedError } from '../utils/errorHandling';
+import RealTimeNotifications from './common/RealTimeNotifications';
 
 const drawerWidth = 280;
 
@@ -401,6 +402,10 @@ export default function Layout({ children }: LayoutProps) {
                 color={state.user?.role === 'admin' ? 'primary' : 'default'}
                 sx={{ fontSize: '0.75rem' }}
               />
+              
+              {/* 🔴 Real-time Notifications */}
+              <RealTimeNotifications />
+              
               <IconButton
                 onClick={toggleTheme}
                 sx={{ 

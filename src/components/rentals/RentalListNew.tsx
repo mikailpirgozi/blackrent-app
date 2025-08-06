@@ -73,6 +73,7 @@ import { sk } from 'date-fns/locale';
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
 import { Rental } from '../../types';
+import { useRentalUpdates } from '../../hooks/useWebSocket';
 import EmailParser from './EmailParser';
 import RentalAdvancedFilters from './RentalAdvancedFilters';
 import RentalCardView from './RentalCardView';
@@ -180,6 +181,17 @@ export default function RentalListNew() {
   const [isLoadingProtocolStatus, setIsLoadingProtocolStatus] = useState(false);
   const [protocolStatusLoaded, setProtocolStatusLoaded] = useState(false);
   
+  // 🔴 Real-time updates hook
+  useRentalUpdates((type, rental, rentalId) => {
+    console.log('🔴 WebSocket rental update:', type, rental, rentalId);
+    
+    // Auto-refresh rental list when changes occur
+    if (type === 'created' || type === 'updated' || type === 'deleted') {
+      // Trigger refresh of rental data (you might want to optimize this)
+      window.dispatchEvent(new Event('rental-list-refresh'));
+    }
+  });
+
   // Helper function to get vehicle data by vehicleId
   const getVehicleByRental = useCallback((rental: Rental) => {
     return rental.vehicleId ? state.vehicles.find(v => v.id === rental.vehicleId) : null;
