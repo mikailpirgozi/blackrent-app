@@ -146,7 +146,7 @@ const OptimizedRentalRow: React.FC<OptimizedRentalRowProps> = ({
 
       {/* Status */}
       <TableCell>
-        <RentalStatusChip status={rental.status} />
+        <RentalStatusChip status={rental.status || 'pending'} />
       </TableCell>
 
       {/* Company */}

@@ -66,7 +66,7 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
     }
   }, [imageUrl, imageLoadTime]);
 
-  const handleImageError = useCallback((error: Event) => {
+  const handleImageError = useCallback((error: React.SyntheticEvent<HTMLImageElement>) => {
     if (imageUrl) {
       ImagePerformanceMonitor.onImageError(imageUrl, error);
     }

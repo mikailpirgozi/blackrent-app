@@ -24,9 +24,31 @@ import { Rental } from '../../types';
 import { useOptimizedFilters } from '../../hooks/useOptimizedFilters';
 import RentalTableHeader from './RentalTableHeader';
 import OptimizedRentalRow from './OptimizedRentalRow';
-import RentalAdvancedFilters from './RentalAdvancedFilters';
+import RentalAdvancedFilters, { FilterState } from './RentalAdvancedFilters';
 import { EnhancedLoading } from '../common/EnhancedLoading';
 import { memoizeCallback, useStableCallback } from '../../utils/memoizeCallback';
+import type { FilterCriteria } from '../../utils/rentalFilters';
+
+// Convert FilterState to FilterCriteria for optimized filters
+const convertFilterStateToFilterCriteria = (filterState: FilterState, searchQuery: string): FilterCriteria => {
+  return {
+    searchQuery,
+    status: filterState.status,
+    paymentMethod: filterState.paymentMethod,
+    company: filterState.company,
+    dateFrom: filterState.dateFrom,
+    dateTo: filterState.dateTo,
+    priceMin: filterState.priceMin,
+    priceMax: filterState.priceMax,
+    protocolStatus: filterState.protocolStatus,
+    vehicleBrand: filterState.vehicleBrand,
+    insuranceCompany: filterState.insuranceCompany,
+    insuranceType: filterState.insuranceType,
+    customerType: 'all', // Default value
+    rentalLocation: 'all', // Default value
+    vehicleCategory: 'all', // Default value
+  };
+};
 
 // Memoized table header component
 const TableHeaderRow = memo(() => (
@@ -65,8 +87,8 @@ const RentalListOptimized: React.FC<RentalListOptimizedProps> = ({
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [filterCriteria, setFilterCriteria] = useState({
-    searchQuery: '',
+  const [filterCriteria, setFilterCriteria] = useState<FilterState>({
+    // Základné filtre
     status: 'all',
     paymentMethod: 'all',
     company: 'all',
@@ -75,12 +97,31 @@ const RentalListOptimized: React.FC<RentalListOptimizedProps> = ({
     priceMin: '',
     priceMax: '',
     protocolStatus: 'all',
+    
+    // Rozšírené filtre
+    customerName: '',
     vehicleBrand: 'all',
+    vehicleModel: '',
+    licensePlate: '',
+    customerEmail: '',
+    customerPhone: '',
+    customerCompany: '',
     insuranceCompany: 'all',
     insuranceType: 'all',
-    customerType: 'all',
-    rentalLocation: 'all',
-    vehicleCategory: 'all',
+    
+    // Časové filtre
+    timeFilter: 'all',
+    
+    // Cenové filtre
+    priceRange: 'all',
+    
+    // Stav platby
+    paymentStatus: 'all',
+    
+    // Zobrazenie
+    showOnlyActive: false,
+    showOnlyOverdue: false,
+    showOnlyCompleted: false,
   });
   
   // Protocol status state (simplified)
@@ -104,10 +145,7 @@ const RentalListOptimized: React.FC<RentalListOptimizedProps> = ({
     rentals: state.rentals || [],
     vehicles: state.vehicles || [],
     protocols: {}, // Simplified for demo
-    filterCriteria: {
-      ...filterCriteria,
-      searchQuery
-    }
+    filterCriteria: convertFilterStateToFilterCriteria(filterCriteria, searchQuery)
   });
   
   // Memoized handlers using custom hook
@@ -184,6 +222,50 @@ const RentalListOptimized: React.FC<RentalListOptimizedProps> = ({
     console.log('📤 Export rentals');
     // Implementation here
   }, []);
+
+  const handleResetFilters = useCallback(() => {
+    setFilterCriteria({
+      // Základné filtre
+      status: 'all',
+      paymentMethod: 'all',
+      company: 'all',
+      dateFrom: '',
+      dateTo: '',
+      priceMin: '',
+      priceMax: '',
+      protocolStatus: 'all',
+      
+      // Rozšírené filtre
+      customerName: '',
+      vehicleBrand: 'all',
+      vehicleModel: '',
+      licensePlate: '',
+      customerEmail: '',
+      customerPhone: '',
+      customerCompany: '',
+      insuranceCompany: 'all',
+      insuranceType: 'all',
+      
+      // Časové filtre
+      timeFilter: 'all',
+      
+      // Cenové filtre
+      priceRange: 'all',
+      
+      // Stav platby
+      paymentStatus: 'all',
+      
+      // Zobrazenie
+      showOnlyActive: false,
+      showOnlyOverdue: false,
+      showOnlyCompleted: false,
+    });
+  }, []);
+
+  const handleSavePreset = useCallback(() => {
+    console.log('💾 Save filter preset');
+    // Implementation here
+  }, []);
   
   // Effect pre performance monitoring
   useEffect(() => {
@@ -217,10 +299,14 @@ const RentalListOptimized: React.FC<RentalListOptimizedProps> = ({
           <RentalAdvancedFilters
             filters={filterCriteria}
             onFiltersChange={setFilterCriteria}
-            uniqueStatuses={filterOptions.statuses}
-            uniqueCompanies={filterOptions.companies}
-            uniquePaymentMethods={filterOptions.paymentMethods}
-            uniqueVehicleBrands={filterOptions.vehicleBrands}
+            onReset={handleResetFilters}
+            onSavePreset={handleSavePreset}
+            availableStatuses={filterOptions.statuses}
+            availableCompanies={filterOptions.companies}
+            availablePaymentMethods={filterOptions.paymentMethods}
+            availableVehicleBrands={filterOptions.vehicleBrands}
+            availableInsuranceCompanies={[]}
+            availableInsuranceTypes={[]}
           />
         </Box>
       </Collapse>
