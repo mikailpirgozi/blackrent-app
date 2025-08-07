@@ -178,8 +178,12 @@ export const usePWA = (): PWAState & PWAActions => {
     } catch (error) {
       console.error('Service Worker registration failed:', error);
       
-      // Only show error if it's a real error, not just network issues
-      if (error instanceof Error && !error.message.includes('Failed to fetch')) {
+      // Only show error for critical failures in production
+      if (error instanceof Error && 
+          !error.message.includes('Failed to fetch') &&
+          !error.message.includes('NetworkError') &&
+          !error.message.includes('Load failed') &&
+          process.env.NODE_ENV === 'development') {
         showError({
           message: 'Service Worker registrácia zlyhala',
           category: 'client',
@@ -187,7 +191,7 @@ export const usePWA = (): PWAState & PWAActions => {
           context: { error: error.message },
         });
       } else {
-        console.warn('Service Worker registration skipped due to network issues');
+        console.warn('Service Worker registration failed silently:', error instanceof Error ? error.message : 'Unknown error');
       }
       return null;
     }
