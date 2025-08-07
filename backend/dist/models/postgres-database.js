@@ -2870,7 +2870,7 @@ class PostgresDatabase {
     async updateInsurance(id, insuranceData) {
         const client = await this.pool.connect();
         try {
-            const result = await client.query('UPDATE insurances SET type = $1, policy_number = $2, start_date = $3, end_date = $4, premium = $5, coverage_amount = $6, payment_frequency = $7, file_path = $8 WHERE id = $9 RETURNING id, rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path', [insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, id]);
+            const result = await client.query('UPDATE insurances SET rental_id = $1, type = $2, policy_number = $3, start_date = $4, end_date = $5, premium = $6, coverage_amount = $7, payment_frequency = $8, file_path = $9 WHERE id = $10 RETURNING id, rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path', [insuranceData.vehicleId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, id]);
             if (result.rows.length === 0) {
                 throw new Error('Poistka nebola nájdená');
             }
