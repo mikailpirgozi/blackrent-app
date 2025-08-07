@@ -93,6 +93,24 @@ const AdvancedUserManagement: React.FC = () => {
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    jobTitle: '',
+    roleId: '',
+    departmentId: ''
+  });
+
+  // API Base URL helper
+  const getApiBaseUrl = () => {
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    return `${protocol}//${hostname}:3001/api`;
+  };
 
   // State for different entities
   const [organization, setOrganization] = useState<any>(null);
@@ -159,7 +177,7 @@ const AdvancedUserManagement: React.FC = () => {
 
     try {
       // Load organization info
-      const orgResponse = await fetch('/api/advanced-users/organization', {
+      const orgResponse = await fetch(`${getApiBaseUrl()}/advanced-users/organization`, {
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`
         }
@@ -201,7 +219,7 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   const loadOrganizationStats = async () => {
-    const response = await fetch('/api/advanced-users/organization/stats', {
+    const response = await fetch(`${getApiBaseUrl()}/advanced-users/organization/stats`, {
       headers: {
         'Authorization': `Bearer ${getAuthToken()}`
       }
@@ -214,7 +232,7 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   const loadUsers = async () => {
-    const response = await fetch('/api/advanced-users/users', {
+    const response = await fetch(`${getApiBaseUrl()}/advanced-users/users`, {
       headers: {
         'Authorization': `Bearer ${getAuthToken()}`
       }
@@ -227,7 +245,7 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   const loadRoles = async () => {
-    const response = await fetch('/api/advanced-users/roles', {
+    const response = await fetch(`${getApiBaseUrl()}/advanced-users/roles`, {
       headers: {
         'Authorization': `Bearer ${getAuthToken()}`
       }
@@ -240,7 +258,7 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   const loadDepartments = async () => {
-    const response = await fetch('/api/advanced-users/departments', {
+    const response = await fetch(`${getApiBaseUrl()}/advanced-users/departments`, {
       headers: {
         'Authorization': `Bearer ${getAuthToken()}`
       }
@@ -253,7 +271,7 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   const loadTeams = async () => {
-    const response = await fetch('/api/advanced-users/teams', {
+    const response = await fetch(`${getApiBaseUrl()}/advanced-users/teams`, {
       headers: {
         'Authorization': `Bearer ${getAuthToken()}`
       }
@@ -266,7 +284,7 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   const loadActivityLog = async () => {
-    const response = await fetch('/api/advanced-users/activity-log?limit=50', {
+    const response = await fetch(`${getApiBaseUrl()}/advanced-users/activity-log?limit=50`, {
       headers: {
         'Authorization': `Bearer ${getAuthToken()}`
       }
@@ -284,7 +302,7 @@ const AdvancedUserManagement: React.FC = () => {
 
   const handleCreateUser = async () => {
     try {
-      const response = await fetch('/api/advanced-users/users', {
+      const response = await fetch(`${getApiBaseUrl()}/advanced-users/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -308,7 +326,7 @@ const AdvancedUserManagement: React.FC = () => {
 
   const handleCreateRole = async () => {
     try {
-      const response = await fetch('/api/advanced-users/roles', {
+      const response = await fetch(`${getApiBaseUrl()}/advanced-users/roles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -332,7 +350,7 @@ const AdvancedUserManagement: React.FC = () => {
 
   const handleCreateDepartment = async () => {
     try {
-      const response = await fetch('/api/advanced-users/departments', {
+      const response = await fetch(`${getApiBaseUrl()}/advanced-users/departments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -356,7 +374,7 @@ const AdvancedUserManagement: React.FC = () => {
 
   const handleCreateTeam = async () => {
     try {
-      const response = await fetch('/api/advanced-users/teams', {
+      const response = await fetch(`${getApiBaseUrl()}/advanced-users/teams`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -378,9 +396,73 @@ const AdvancedUserManagement: React.FC = () => {
     }
   };
 
+  const handleViewUser = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      alert(`Zobrazenie používateľa: ${user.firstName} ${user.lastName}\nEmail: ${user.email}\nRola: ${user.roleName}`);
+    }
+  };
+
+  const handleEditUser = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setEditingUser(user);
+      setEditForm({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        jobTitle: user.jobTitle || '',
+        roleId: user.roleId || '',
+        departmentId: user.departmentId || ''
+      });
+      setEditModalOpen(true);
+    }
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editingUser) return;
+    
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/advanced-users/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`
+        },
+        body: JSON.stringify(editForm)
+      });
+
+      if (response.ok) {
+        setEditModalOpen(false);
+        setEditingUser(null);
+        await loadUsers(); // Reload users to show changes
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Chyba pri úprave používateľa');
+      }
+    } catch (error) {
+      setError('Chyba pri úprave používateľa');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditModalOpen(false);
+    setEditingUser(null);
+    setEditForm({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      jobTitle: '',
+      roleId: '',
+      departmentId: ''
+    });
+  };
+
   const handleDeactivateUser = async (userId: string) => {
     try {
-      const response = await fetch(`/api/advanced-users/users/${userId}/deactivate`, {
+      const response = await fetch(`${getApiBaseUrl()}/advanced-users/users/${userId}/deactivate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`
@@ -701,12 +783,12 @@ const AdvancedUserManagement: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <Tooltip title="Zobraziť">
-                      <IconButton size="small">
+                      <IconButton size="small" onClick={() => handleViewUser(user.id)}>
                         <ViewIcon />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Upraviť">
-                      <IconButton size="small">
+                      <IconButton size="small" onClick={() => handleEditUser(user.id)}>
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
@@ -1217,6 +1299,97 @@ const AdvancedUserManagement: React.FC = () => {
           </Button>
           <Button variant="contained" onClick={handleCreateTeam}>
             Vytvoriť
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editModalOpen} onClose={handleCancelEdit} maxWidth="md" fullWidth>
+        <DialogTitle>Upraviť používateľa</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Meno"
+                value={editForm.firstName}
+                onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Priezvisko"
+                value={editForm.lastName}
+                onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Telefón"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Pozícia"
+                value={editForm.jobTitle}
+                onChange={(e) => setEditForm({ ...editForm, jobTitle: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Rola</InputLabel>
+                <Select
+                  value={editForm.roleId}
+                  onChange={(e) => setEditForm({ ...editForm, roleId: e.target.value })}
+                  label="Rola"
+                >
+                  {roles.map((role) => (
+                    <MenuItem key={role.id} value={role.id}>
+                      {role.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Oddelenie</InputLabel>
+                <Select
+                  value={editForm.departmentId}
+                  onChange={(e) => setEditForm({ ...editForm, departmentId: e.target.value })}
+                  label="Oddelenie"
+                >
+                  <MenuItem value="">Žiadne</MenuItem>
+                  {departments.map((dept) => (
+                    <MenuItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelEdit}>
+            Zrušiť
+          </Button>
+          <Button variant="contained" onClick={handleSaveEditUser}>
+            Uložiť
           </Button>
         </DialogActions>
       </Dialog>
