@@ -41,6 +41,11 @@ import {
   useTheme,
   alpha,
   Tooltip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -56,6 +61,8 @@ import {
   Block as BlockIcon,
   VpnKey as KeyIcon,
   Analytics as AnalyticsIcon,
+  ExpandMore as ExpandMoreIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -104,6 +111,8 @@ const AdvancedUserManagement: React.FC = () => {
     roleId: '',
     departmentId: ''
   });
+  const [userPermissions, setUserPermissions] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
 
   // API Base URL helper
   const getApiBaseUrl = () => {
@@ -195,6 +204,7 @@ const AdvancedUserManagement: React.FC = () => {
           break;
         case 1: // Users
           await loadUsers();
+          await loadCompanies();
           break;
         case 2: // Roles
           await loadRoles();
@@ -241,6 +251,46 @@ const AdvancedUserManagement: React.FC = () => {
     if (response.ok) {
       const data = await response.json();
       setUsers(data.users);
+    }
+  };
+
+  const loadCompanies = async () => {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/companies`, {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // API vracia { success: true, data: [...] }
+        setCompanies(data.data || []);
+      } else {
+        setCompanies([]);
+      }
+    } catch (error) {
+      console.warn('Chyba pri načítavaní firiem');
+      setCompanies([]);
+    }
+  };
+
+  const loadUserPermissions = async (userId: string) => {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/permissions/user/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserPermissions(data.access || []);
+      } else {
+        setUserPermissions([]);
+      }
+    } catch (error) {
+      setUserPermissions([]);
     }
   };
 
@@ -403,7 +453,7 @@ const AdvancedUserManagement: React.FC = () => {
     }
   };
 
-  const handleEditUser = (userId: string) => {
+  const handleEditUser = async (userId: string) => {
     const user = users.find(u => u.id === userId);
     if (user) {
       setEditingUser(user);
@@ -416,6 +466,11 @@ const AdvancedUserManagement: React.FC = () => {
         roleId: user.roleId || '',
         departmentId: user.departmentId || ''
       });
+      
+      // Load user permissions
+      await loadUserPermissions(userId);
+      await loadCompanies(); // Ensure companies are loaded
+      
       setEditModalOpen(true);
     }
   };
@@ -424,7 +479,8 @@ const AdvancedUserManagement: React.FC = () => {
     if (!editingUser) return;
     
     try {
-      const response = await fetch(`${getApiBaseUrl()}/advanced-users/users/${editingUser.id}`, {
+      // 1. Update user basic info
+      const userResponse = await fetch(`${getApiBaseUrl()}/advanced-users/users/${editingUser.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -433,14 +489,35 @@ const AdvancedUserManagement: React.FC = () => {
         body: JSON.stringify(editForm)
       });
 
-      if (response.ok) {
-        setEditModalOpen(false);
-        setEditingUser(null);
-        await loadUsers(); // Reload users to show changes
-      } else {
-        const errorData = await response.json();
+      if (!userResponse.ok) {
+        const errorData = await userResponse.json();
         setError(errorData.error || 'Chyba pri úprave používateľa');
+        return;
       }
+
+      // 2. Update user permissions
+      for (const permission of userPermissions) {
+        try {
+          await fetch(`${getApiBaseUrl()}/permissions/user/${editingUser.id}/company/${permission.companyId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify({
+              permissions: permission.permissions
+            })
+          });
+        } catch (permError) {
+          console.warn('Chyba pri ukladaní oprávnení pre firmu:', permission.companyName);
+        }
+      }
+
+      setEditModalOpen(false);
+      setEditingUser(null);
+      setUserPermissions([]);
+      await loadUsers(); // Reload users to show changes
+      
     } catch (error) {
       setError('Chyba pri úprave používateľa');
     }
@@ -449,6 +526,7 @@ const AdvancedUserManagement: React.FC = () => {
   const handleCancelEdit = () => {
     setEditModalOpen(false);
     setEditingUser(null);
+    setUserPermissions([]);
     setEditForm({
       firstName: '',
       lastName: '',
@@ -1381,6 +1459,183 @@ const AdvancedUserManagement: React.FC = () => {
                   ))}
                 </Select>
               </FormControl>
+            </Grid>
+            
+            {/* Permissions Section */}
+            <Grid item xs={12}>
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <SecurityIcon />
+                Oprávnenia pre firmy
+              </Typography>
+              
+              {companies.map((company) => {
+                const userCompanyAccess = userPermissions.find(p => p.companyId === company.id);
+                const permissions = userCompanyAccess?.permissions || {
+                  vehicles: { read: false, write: false, delete: false },
+                  rentals: { read: false, write: false, delete: false },
+                  expenses: { read: false, write: false, delete: false },
+                  customers: { read: false, write: false, delete: false },
+                  insurances: { read: false, write: false, delete: false },
+                  protocols: { read: false, write: false, delete: false },
+                  settlements: { read: false, write: false, delete: false },
+                  maintenance: { read: false, write: false, delete: false },
+                  statistics: { read: false, write: false, delete: false }
+                };
+
+                return (
+                  <Accordion key={company.id} sx={{ mb: 1 }}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <BusinessIcon />
+                        <Typography>{company.name}</Typography>
+                        {userCompanyAccess && (
+                          <Chip 
+                            size="small" 
+                            label="Má prístup" 
+                            color="success" 
+                            variant="outlined" 
+                          />
+                        )}
+                      </Box>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <Grid container spacing={1}>
+                        {Object.entries({
+                          vehicles: '🚗 Vozidlá',
+                          rentals: '📋 Prenájmy', 
+                          expenses: '💰 Náklady',
+                          customers: '👥 Zákazníci',
+                          insurances: '🛡️ Poistky',
+                          protocols: '📝 Protokoly',
+                          settlements: '📊 Vyúčtovania',
+                          maintenance: '🔧 Údržba',
+                          statistics: '📈 Štatistiky'
+                        }).map(([resource, label]) => (
+                          <Grid item xs={12} key={resource}>
+                            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                              {label}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    size="small"
+                                    checked={permissions[resource]?.read || false}
+                                    onChange={(e) => {
+                                      const newPermissions = [...userPermissions];
+                                      const existingIndex = newPermissions.findIndex(p => p.companyId === company.id);
+                                      
+                                      if (existingIndex >= 0) {
+                                        newPermissions[existingIndex].permissions[resource].read = e.target.checked;
+                                      } else {
+                                        const newPerm = {
+                                          companyId: company.id,
+                                          companyName: company.name,
+                                          permissions: {
+                                            vehicles: { read: false, write: false, delete: false },
+                                            rentals: { read: false, write: false, delete: false },
+                                            expenses: { read: false, write: false, delete: false },
+                                            customers: { read: false, write: false, delete: false },
+                                            insurances: { read: false, write: false, delete: false },
+                                            protocols: { read: false, write: false, delete: false },
+                                            settlements: { read: false, write: false, delete: false },
+                                            maintenance: { read: false, write: false, delete: false },
+                                            statistics: { read: false, write: false, delete: false }
+                                          }
+                                        };
+                                        newPerm.permissions[resource].read = e.target.checked;
+                                        newPermissions.push(newPerm);
+                                      }
+                                      
+                                      setUserPermissions(newPermissions);
+                                    }}
+                                  />
+                                }
+                                label="Čítanie"
+                              />
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    size="small"
+                                    checked={permissions[resource]?.write || false}
+                                    onChange={(e) => {
+                                      const newPermissions = [...userPermissions];
+                                      const existingIndex = newPermissions.findIndex(p => p.companyId === company.id);
+                                      
+                                      if (existingIndex >= 0) {
+                                        newPermissions[existingIndex].permissions[resource].write = e.target.checked;
+                                      } else {
+                                        const newPerm = {
+                                          companyId: company.id,
+                                          companyName: company.name,
+                                          permissions: {
+                                            vehicles: { read: false, write: false, delete: false },
+                                            rentals: { read: false, write: false, delete: false },
+                                            expenses: { read: false, write: false, delete: false },
+                                            customers: { read: false, write: false, delete: false },
+                                            insurances: { read: false, write: false, delete: false },
+                                            protocols: { read: false, write: false, delete: false },
+                                            settlements: { read: false, write: false, delete: false },
+                                            maintenance: { read: false, write: false, delete: false },
+                                            statistics: { read: false, write: false, delete: false }
+                                          }
+                                        };
+                                        newPerm.permissions[resource].write = e.target.checked;
+                                        newPermissions.push(newPerm);
+                                      }
+                                      
+                                      setUserPermissions(newPermissions);
+                                    }}
+                                  />
+                                }
+                                label="Zápis"
+                              />
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    size="small"
+                                    checked={permissions[resource]?.delete || false}
+                                    onChange={(e) => {
+                                      const newPermissions = [...userPermissions];
+                                      const existingIndex = newPermissions.findIndex(p => p.companyId === company.id);
+                                      
+                                      if (existingIndex >= 0) {
+                                        newPermissions[existingIndex].permissions[resource].delete = e.target.checked;
+                                      } else {
+                                        const newPerm = {
+                                          companyId: company.id,
+                                          companyName: company.name,
+                                          permissions: {
+                                            vehicles: { read: false, write: false, delete: false },
+                                            rentals: { read: false, write: false, delete: false },
+                                            expenses: { read: false, write: false, delete: false },
+                                            customers: { read: false, write: false, delete: false },
+                                            insurances: { read: false, write: false, delete: false },
+                                            protocols: { read: false, write: false, delete: false },
+                                            settlements: { read: false, write: false, delete: false },
+                                            maintenance: { read: false, write: false, delete: false },
+                                            statistics: { read: false, write: false, delete: false }
+                                          }
+                                        };
+                                        newPerm.permissions[resource].delete = e.target.checked;
+                                        newPermissions.push(newPerm);
+                                      }
+                                      
+                                      setUserPermissions(newPermissions);
+                                    }}
+                                  />
+                                }
+                                label="Mazanie"
+                              />
+                            </Box>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </AccordionDetails>
+                  </Accordion>
+                );
+              })}
             </Grid>
           </Grid>
         </DialogContent>

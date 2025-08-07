@@ -290,6 +290,7 @@ export interface CompanyPermissions {
     insurances: ResourcePermission;
     maintenance: ResourcePermission;
     protocols: ResourcePermission;
+    statistics: ResourcePermission;
 }
 export interface ResourcePermission {
     read: boolean;
