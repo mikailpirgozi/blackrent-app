@@ -12,7 +12,7 @@ const router = express.Router();
 // ORGANIZATION MANAGEMENT
 // ================================================================================
 
-// Get current user's organization
+// Get current user's organization (fallback to companies table)
 router.get('/organization', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const user = req.user;
@@ -23,14 +23,50 @@ router.get('/organization', authenticateToken, async (req: AuthRequest, res) => 
       });
     }
 
-    const organization = await advancedUserService.getOrganization(user.companyId);
+    // Fallback: Use existing companies table instead of organizations
+    try {
+      const organization = await advancedUserService.getOrganization(user.companyId);
+      if (organization) {
+        return res.json({
+          success: true,
+          organization
+        });
+      }
+    } catch (orgError) {
+      console.log('Organizations table not available, using companies fallback');
+    }
+
+    // Fallback to companies table
+    const { postgresDatabase } = await import('../models/postgres-database');
+    const companies = await postgresDatabase.getCompanies();
+    const company = companies.find(c => c.id === user.companyId);
     
-    if (!organization) {
+    if (!company) {
       return res.status(404).json({
         success: false,
-        error: 'Organization not found'
+        error: 'Company not found'
       });
     }
+
+    // Map company to organization format
+    const organization = {
+      id: company.id,
+      name: company.name,
+      slug: company.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      businessId: company.businessId,
+      taxId: company.taxId,
+      address: company.address,
+      phone: company.phone,
+      email: company.email,
+      subscriptionPlan: 'basic',
+      subscriptionStatus: 'active',
+      maxUsers: 50,
+      maxVehicles: 100,
+      settings: {},
+      branding: {},
+      createdAt: company.createdAt,
+      updatedAt: company.updatedAt
+    };
 
     res.json({
       success: true,

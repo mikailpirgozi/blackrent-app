@@ -1,6 +1,39 @@
 "use strict";
 // 🏢 Advanced User Management API Routes
 // Multi-tenant user management endpoints
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -12,7 +45,7 @@ const router = express_1.default.Router();
 // ================================================================================
 // ORGANIZATION MANAGEMENT
 // ================================================================================
-// Get current user's organization
+// Get current user's organization (fallback to companies table)
 router.get('/organization', auth_1.authenticateToken, async (req, res) => {
     try {
         const user = req.user;
@@ -22,13 +55,48 @@ router.get('/organization', auth_1.authenticateToken, async (req, res) => {
                 error: 'User not associated with organization'
             });
         }
-        const organization = await advanced_user_service_1.advancedUserService.getOrganization(user.companyId);
-        if (!organization) {
+        // Fallback: Use existing companies table instead of organizations
+        try {
+            const organization = await advanced_user_service_1.advancedUserService.getOrganization(user.companyId);
+            if (organization) {
+                return res.json({
+                    success: true,
+                    organization
+                });
+            }
+        }
+        catch (orgError) {
+            console.log('Organizations table not available, using companies fallback');
+        }
+        // Fallback to companies table
+        const { postgresDatabase } = await Promise.resolve().then(() => __importStar(require('../models/postgres-database')));
+        const companies = await postgresDatabase.getCompanies();
+        const company = companies.find(c => c.id === user.companyId);
+        if (!company) {
             return res.status(404).json({
                 success: false,
-                error: 'Organization not found'
+                error: 'Company not found'
             });
         }
+        // Map company to organization format
+        const organization = {
+            id: company.id,
+            name: company.name,
+            slug: company.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+            businessId: company.businessId,
+            taxId: company.taxId,
+            address: company.address,
+            phone: company.phone,
+            email: company.email,
+            subscriptionPlan: 'basic',
+            subscriptionStatus: 'active',
+            maxUsers: 50,
+            maxVehicles: 100,
+            settings: {},
+            branding: {},
+            createdAt: company.createdAt,
+            updatedAt: company.updatedAt
+        };
         res.json({
             success: true,
             organization

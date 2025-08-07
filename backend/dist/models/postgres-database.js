@@ -2019,19 +2019,28 @@ class PostgresDatabase {
                     throw new Error(`Vozidlo s ŠPZ ${vehicleData.licensePlate} už existuje v databáze`);
                 }
             }
-            // Nájdi alebo vytvor company
-            let companyId = null;
+            // Nájdi alebo vytvor company UUID
+            let ownerCompanyId = null;
             if (vehicleData.company && vehicleData.company.trim()) {
-                companyId = await this.getCompanyIdByName(vehicleData.company.trim());
+                const companies = await this.getCompanies();
+                const existingCompany = companies.find(c => c.name === vehicleData.company.trim());
+                if (existingCompany) {
+                    ownerCompanyId = existingCompany.id;
+                }
+                else {
+                    // Vytvor novú firmu
+                    const newCompany = await this.createCompany({ name: vehicleData.company.trim() });
+                    ownerCompanyId = newCompany.id;
+                }
             }
-            // ✅ OPRAVENÉ: Používame company_id (integer) namiesto owner_company_id (uuid)
-            const result = await client.query('INSERT INTO vehicles (brand, model, year, license_plate, company, company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, company_id, pricing, commission, status, created_at', [
+            // ✅ OPRAVENÉ: Používame owner_company_id (UUID) konzistentne
+            const result = await client.query('INSERT INTO vehicles (brand, model, year, license_plate, company, owner_company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, owner_company_id, pricing, commission, status, created_at', [
                 vehicleData.brand,
                 vehicleData.model,
                 vehicleData.year || 2024, // Default rok ak nie je zadaný
                 vehicleData.licensePlate,
                 vehicleData.company,
-                companyId, // 🆕 Správne company_id (integer)
+                ownerCompanyId, // 🆕 Správne owner_company_id (UUID)
                 JSON.stringify(vehicleData.pricing),
                 JSON.stringify(vehicleData.commission),
                 vehicleData.status
@@ -2048,7 +2057,7 @@ class PostgresDatabase {
                 year: row.year,
                 licensePlate: row.license_plate,
                 company: row.company,
-                ownerCompanyId: row.company_id?.toString(), // ✅ OPRAVENÉ: Používame company_id namiesto owner_company_id
+                ownerCompanyId: row.owner_company_id?.toString(), // ✅ OPRAVENÉ: Používame owner_company_id konzistentne
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing,
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission,
                 status: row.status,
