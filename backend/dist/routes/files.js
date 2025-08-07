@@ -613,9 +613,10 @@ async function getProtocolInfo(protocolId, protocolType) {
 // 🚀 NOVÝ ENDPOINT: Generovanie signed URL s pokročilou organizáciou
 router.post('/presigned-upload', auth_1.authenticateToken, async (req, res) => {
     try {
-        const { protocolId, protocolType, mediaType, filename, contentType, category } = req.body;
+        const { protocolId, protocolType, mediaType, filename, contentType, category, rentalId } = req.body;
         console.log('🔄 Generating organized presigned URL for:', {
             protocolId,
+            rentalId,
             protocolType,
             mediaType,
             filename,
@@ -623,10 +624,10 @@ router.post('/presigned-upload', auth_1.authenticateToken, async (req, res) => {
             category
         });
         // Validácia povinných parametrov
-        if (!protocolId || !protocolType || !filename || !contentType) {
+        if ((!protocolId && !rentalId) || !protocolType || !filename || !contentType) {
             return res.status(400).json({
                 success: false,
-                error: 'Chýbajú povinné parametre (protocolId, protocolType, filename, contentType)'
+                error: 'Chýbajú povinné parametre (protocolId alebo rentalId, protocolType, filename, contentType)'
             });
         }
         // Rozšírená validácia typov súborov (nie len obrázky)
@@ -640,21 +641,62 @@ router.post('/presigned-upload', auth_1.authenticateToken, async (req, res) => {
                 error: 'Nepodporovaný typ súboru. Povolené: obrázky, videá, PDF, Word dokumenty'
             });
         }
-        // 🔍 Získanie informácií o protokole
+        // Pomocné: validácia UUID
+        const isValidUUID = (uuid) => {
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+            return uuidRegex.test(uuid);
+        };
+        // 🔍 Získanie informácií o protokole (s fallbackom na prenájom)
         let protocolInfo;
         try {
-            protocolInfo = await getProtocolInfo(protocolId, protocolType);
+            if (protocolId && isValidUUID(String(protocolId))) {
+                protocolInfo = await getProtocolInfo(protocolId, protocolType);
+            }
+            else {
+                // Fallback: dedukcia z prenájmu
+                const rentalIdValue = rentalId || protocolId; // môže prísť rental id v poli protocolId
+                const parsedRentalId = parseInt(String(rentalIdValue));
+                if (!parsedRentalId || Number.isNaN(parsedRentalId)) {
+                    throw new Error('Neplatné rentalId pre fallback');
+                }
+                const client = await postgres_database_1.postgresDatabase.dbPool.connect();
+                try {
+                    const result = await client.query(`
+            SELECT 
+              r.id as rental_id,
+              r.created_at,
+              r.start_date,
+              v.brand,
+              v.model,
+              v.license_plate,
+              v.company,
+              COALESCE(c.name, v.company, 'BlackRent') as company_name
+            FROM rentals r
+            LEFT JOIN vehicles v ON r.vehicle_id = v.id
+            LEFT JOIN companies c ON v.owner_company_id = c.id
+            WHERE r.id = $1::integer
+            `, [parsedRentalId]);
+                    if (result.rows.length === 0) {
+                        throw new Error(`Prenájom nenájdený: ${parsedRentalId}`);
+                    }
+                    protocolInfo = result.rows[0];
+                    console.log('ℹ️ Using rental-based info for presigned upload organization:', protocolInfo);
+                }
+                finally {
+                    client.release();
+                }
+            }
         }
         catch (error) {
-            console.error('❌ Error fetching protocol info:', error);
+            console.error('❌ Error fetching protocol/rental info:', error);
             return res.status(404).json({
                 success: false,
-                error: 'Protokol nenájdený v databáze',
+                error: 'Protokol alebo prenájom nenájdený pre organizáciu uploadu',
                 details: error instanceof Error ? error.message : 'Unknown error'
             });
         }
         // 🗂️ Príprava premenných pre organizáciu
-        const dateComponents = r2_organization_1.r2OrganizationManager.generateDateComponents(protocolInfo.created_at ? new Date(protocolInfo.created_at) : new Date());
+        const dateComponents = r2_organization_1.r2OrganizationManager.generateDateComponents(protocolInfo.start_date ? new Date(protocolInfo.start_date) : (protocolInfo.created_at ? new Date(protocolInfo.created_at) : new Date()));
         const companyName = r2_organization_1.r2OrganizationManager.getCompanyName(protocolInfo.company_name);
         const vehicleName = r2_organization_1.r2OrganizationManager.generateVehicleName(protocolInfo.brand || 'Unknown', protocolInfo.model || 'Unknown', protocolInfo.license_plate || 'NoPlate');
         // Detekcia kategórie ak nie je zadaná
@@ -672,7 +714,7 @@ router.post('/presigned-upload', auth_1.authenticateToken, async (req, res) => {
             company: companyName,
             vehicle: vehicleName,
             protocolType: protocolType,
-            protocolId: protocolId,
+            protocolId: (protocolId && isValidUUID(String(protocolId))) ? protocolId : String(protocolInfo.protocol_id || protocolInfo.rental_id),
             category: detectedCategory,
             filename: meaningfulFilename // ✨ POUŽÍVAM NOVÝ MEANINGFUL FILENAME
         };
