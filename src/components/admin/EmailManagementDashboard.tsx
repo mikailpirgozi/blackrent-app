@@ -423,7 +423,7 @@ const EmailManagementDashboard: React.FC = () => {
   const fetchImapStatus = async () => {
     try {
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch('${API_BASE_URL}/email-imap/status', {
+      const directResponse = await fetch(`${API_BASE_URL}/email-imap/status`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -445,7 +445,7 @@ const EmailManagementDashboard: React.FC = () => {
     try {
       setImapLoading(true);
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch('${API_BASE_URL}/email-imap/test', {
+      const directResponse = await fetch(`${API_BASE_URL}/email-imap/test`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -473,7 +473,7 @@ const EmailManagementDashboard: React.FC = () => {
     try {
       setImapLoading(true);
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch('${API_BASE_URL}/email-imap/start', {
+      const directResponse = await fetch(`${API_BASE_URL}/email-imap/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -498,7 +498,7 @@ const EmailManagementDashboard: React.FC = () => {
     try {
       setImapLoading(true);
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch('${API_BASE_URL}/email-imap/stop', {
+      const directResponse = await fetch(`${API_BASE_URL}/email-imap/stop`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

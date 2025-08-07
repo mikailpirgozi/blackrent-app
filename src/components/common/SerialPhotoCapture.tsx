@@ -20,7 +20,7 @@ import {
   FormControlLabel,
   Switch,
 } from '@mui/material';
-import { Grid } from '@mui/material';
+// import { Grid } from '@mui/material';
 import {
   PhotoCamera,
   Delete,
@@ -30,8 +30,8 @@ import {
   VideoCall,
   Compress,
 } from '@mui/icons-material';
-import { compressImage, compressMultipleImages, CompressionResult } from '../../utils/imageCompression';
-import { compressVideo, generateVideoThumbnail, VideoCompressionResult } from '../../utils/videoCompression';
+import { compressImage } from '../../utils/imageCompression';
+import { compressVideo } from '../../utils/videoCompression';
 import { ProtocolImage, ProtocolVideo } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import Alert from '@mui/material/Alert';
@@ -97,7 +97,34 @@ export default function SerialPhotoCapture({
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   // Funkcia pre upload na R2
-  const uploadToR2 = async (file: File, type: 'image' | 'video'): Promise<string> => {
+  // ✅ NOVÁ FUNKCIA: Direct upload (fallback)
+  const directUpload = useCallback(async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('protocolId', entityId!);
+    formData.append('protocolType', protocolType);
+    formData.append('mediaType', mediaType);
+    formData.append('label', file.name);
+
+    const apiBaseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
+      : 'http://localhost:3001/api';
+    
+    const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result.url;
+  }, [entityId, protocolType, mediaType]);
+
+  const uploadToR2 = useCallback(async (file: File, type: 'image' | 'video'): Promise<string> => {
     // Fallback na base64 ak R2 nie je povolené
     if (!autoUploadToR2) {
       return new Promise((resolve) => {
@@ -137,6 +164,7 @@ export default function SerialPhotoCapture({
         },
         body: JSON.stringify({
           protocolId: entityId,
+          rentalId: entityId,
           protocolType: protocolType,
           mediaType: mediaType,
           filename: file.name,
@@ -201,65 +229,12 @@ export default function SerialPhotoCapture({
       console.log('🔄 Falling back to direct upload...');
       return await directUpload(file);
     }
-  };
+  }, [autoUploadToR2, category, directUpload, entityId, mediaType, protocolType]);
 
-  // ✅ NOVÁ FUNKCIA: Cloudflare Worker upload
-  const workerUpload = async (file: File): Promise<string> => {
-    const workerUrl = process.env.REACT_APP_WORKER_URL || 'https://blackrent-upload-worker.r2workerblackrentapp.workers.dev';
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('protocolId', entityId!);
-    formData.append('protocolType', protocolType);
-    formData.append('mediaType', mediaType);
-    formData.append('label', file.name);
+  // Cloudflare Worker upload (nepoužíva sa)
+  // const workerUpload = async (file: File): Promise<string> => { /* intentionally disabled */ throw new Error('unused'); };
 
-    const response = await fetch(workerUrl, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Worker upload failed: ${response.status} - ${errorText}`);
-    }
-
-    const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(`Worker upload failed: ${result.error}`);
-    }
-
-    console.log('✅ File uploaded via Cloudflare Worker');
-    return result.url;
-  };
-
-  // ✅ NOVÁ FUNKCIA: Direct upload (fallback)
-  const directUpload = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('protocolId', entityId!);
-    formData.append('protocolType', protocolType);
-    formData.append('mediaType', mediaType);
-    formData.append('label', file.name);
-
-    const apiBaseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
-      : 'http://localhost:3001/api';
-    
-    const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Upload failed: ${response.status} - ${errorText}`);
-    }
-
-    const result = await response.json();
-    return result.url;
-  };
+  // directUpload definované vyššie
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -394,7 +369,7 @@ export default function SerialPhotoCapture({
         event.target.value = '';
       }
     }
-  }, [capturedMedia, maxImages, maxVideos, allowedTypes, compressImages, compressVideos, autoUploadToR2, entityId, rapidMode]);
+  }, [capturedMedia, maxImages, maxVideos, allowedTypes, compressImages, compressVideos, autoUploadToR2, entityId, rapidMode, uploadToR2]);
 
   // Handler pre natívnu kameru
   const handleNativeCapture = useCallback(async (imageBlob: Blob) => {
