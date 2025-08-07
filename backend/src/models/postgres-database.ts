@@ -3172,7 +3172,7 @@ export class PostgresDatabase {
       }
 
       await client.query(
-        'UPDATE expenses SET description = $1, amount = $2, date = $3, vehicle_id = $4, company = $5, category = $6, note = $7, updated_at = CURRENT_TIMESTAMP WHERE id = $8',
+        'UPDATE expenses SET description = $1, amount = $2, date = $3, vehicle_id = $4, company = $5, category = $6, note = $7 WHERE id = $8',
         [
           expense.description,
           expense.amount,
