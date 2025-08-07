@@ -491,7 +491,7 @@ export default function UserManagementNew() {
           <Card sx={{ bgcolor: '#ffebee' }}>
             <CardContent>
               <Typography variant="h6" color="error.main">
-                {stats.admins}
+                {stats.roleStats?.admin || 0}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Administrátori
@@ -503,7 +503,7 @@ export default function UserManagementNew() {
           <Card sx={{ bgcolor: '#fff3e0' }}>
             <CardContent>
               <Typography variant="h6" color="warning.main">
-                {stats.employees}
+                {stats.roleStats?.employee || 0}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Zamestnanci
