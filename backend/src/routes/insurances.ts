@@ -134,7 +134,7 @@ router.put('/:id',
     });
 
   } catch (error) {
-    console.error('❌ UPDATE INSURANCE ERROR:', error);
+    console.error('Update insurance error:', error);
     res.status(500).json({
       success: false,
       error: 'Chyba pri aktualizácii poistky'

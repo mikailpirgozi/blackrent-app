@@ -110,7 +110,7 @@ router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
         });
     }
     catch (error) {
-        console.error('❌ UPDATE INSURANCE ERROR:', error);
+        console.error('Update insurance error:', error);
         res.status(500).json({
             success: false,
             error: 'Chyba pri aktualizácii poistky'

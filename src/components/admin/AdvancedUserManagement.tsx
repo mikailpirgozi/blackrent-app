@@ -796,7 +796,10 @@ const AdvancedUserManagement: React.FC = () => {
           <Button
             variant="contained"
             startIcon={<PersonAddIcon />}
-            onClick={() => setUserDialogOpen(true)}
+            onClick={() => {
+              setUserDialogOpen(true);
+              loadRoles(); // Načítaj role pri otvorení dialógu
+            }}
           >
             Pridať používateľa
           </Button>
