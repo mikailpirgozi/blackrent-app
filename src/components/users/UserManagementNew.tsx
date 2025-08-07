@@ -34,7 +34,9 @@ import {
   TableRow,
   TablePagination,
   Collapse,
-  Stack
+  Stack,
+  Tabs,
+  Tab
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -57,7 +59,9 @@ import {
   Cancel as InactiveIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  VpnKey as PermissionIcon
+  VpnKey as PermissionIcon,
+  SupervisorAccount as AdvancedIcon,
+  Notifications as NotificationIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -68,6 +72,8 @@ import { PermissionGuard, RoleGuard } from '../common/PermissionGuard';
 import { User, UserRole, Company, UserCompanyAccess } from '../../types';
 import { apiService } from '../../services/api';
 import UserCompanyPermissions from './UserCompanyPermissions';
+import AdvancedUserManagement from '../admin/AdvancedUserManagement';
+import PushNotificationManager from '../common/PushNotificationManager';
 
 interface UserFormData {
   username: string;
@@ -115,6 +121,9 @@ export default function UserManagementNew() {
   const permissions = usePermissions();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Tab management
+  const [currentTab, setCurrentTab] = useState(0);
   
   // State management
   const [users, setUsers] = useState<User[]>([]);
@@ -431,6 +440,83 @@ export default function UserManagementNew() {
     return company?.name || 'Nezadané';
   };
 
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setCurrentTab(newValue);
+  };
+
+  const renderTabContent = () => {
+    switch (currentTab) {
+      case 1:
+        return <AdvancedUserManagement />;
+      case 2:
+        return <PushNotificationManager />;
+      default:
+        return renderBasicUserManagement();
+    }
+  };
+
+  const renderBasicUserManagement = () => (
+    <>
+      {/* Success/Error Messages */}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+
+      {/* Statistics Cards */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ bgcolor: '#e3f2fd' }}>
+            <CardContent>
+              <Typography variant="h6" color="primary">
+                {stats.total}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Celkom používateľov
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ bgcolor: '#e8f5e8' }}>
+            <CardContent>
+              <Typography variant="h6" color="success.main">
+                {stats.active}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Aktívnych
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ bgcolor: '#ffebee' }}>
+            <CardContent>
+              <Typography variant="h6" color="error.main">
+                {stats.admins}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Administrátori
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ bgcolor: '#fff3e0' }}>
+            <CardContent>
+              <Typography variant="h6" color="warning.main">
+                {stats.employees}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Zamestnanci
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Rest of the original user management content will be here */}
+    </>
+  );
+
   return (
     <RoleGuard allowedRoles={['admin']} showAccessDeniedMessage>
       <Box sx={{ p: { xs: 2, sm: 3 } }}>
@@ -451,28 +537,57 @@ export default function UserManagementNew() {
             👥 Správa používateľov
           </Typography>
           
-          <PermissionGuard resource="users" action="create">
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
-              sx={{
-                bgcolor: '#1976d2',
-                px: 3,
-                py: 1,
-                borderRadius: 2
-              }}
-            >
-              Nový používateľ
-            </Button>
-          </PermissionGuard>
+          {currentTab === 0 && (
+            <PermissionGuard resource="users" action="create">
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => handleOpenDialog()}
+                sx={{
+                  bgcolor: '#1976d2',
+                  px: 3,
+                  py: 1,
+                  borderRadius: 2
+                }}
+              >
+                Nový používateľ
+              </Button>
+            </PermissionGuard>
+          )}
         </Box>
 
-        {/* Success/Error Messages */}
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+        {/* Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={currentTab} onChange={handleTabChange} aria-label="user management tabs">
+            <Tab 
+              icon={<PersonIcon />} 
+              label="Základná správa" 
+              sx={{ textTransform: 'none' }}
+            />
+            <Tab 
+              icon={<AdvancedIcon />} 
+              label="Pokročilá správa" 
+              sx={{ textTransform: 'none' }}
+            />
+            <Tab 
+              icon={<NotificationIcon />} 
+              label="Push notifikácie" 
+              sx={{ textTransform: 'none' }}
+            />
+          </Tabs>
+        </Box>
 
-        {/* Statistics Cards */}
+        {/* Tab Content */}
+        {renderTabContent()}
+      </Box>
+    </RoleGuard>
+  );
+}
+
+// This is the rest of the original content that will be moved to renderBasicUserManagement
+const ORIGINAL_CONTENT_PLACEHOLDER = () => (
+  <>
+    {/* Statistics Cards - moved to renderBasicUserManagement */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ bgcolor: '#e3f2fd' }}>

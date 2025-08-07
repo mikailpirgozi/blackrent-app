@@ -19,6 +19,7 @@ import {
   Avatar,
   Divider,
   Chip,
+  Button,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -65,6 +66,8 @@ import RealTimeNotifications from './common/RealTimeNotifications';
 import MobileNavigation from './common/MobileNavigation';
 import { usePWA } from '../hooks/usePWA';
 import { GetApp as InstallIcon, PhoneIphone as MobileIcon } from '@mui/icons-material';
+import PWAInstallPrompt from './common/PWAInstallPrompt';
+import PWAStatus from './common/PWAStatus';
 
 const drawerWidth = 280;
 
@@ -78,7 +81,6 @@ const allMenuItems = [
   { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'finances' as const },
   { text: 'Poistky/STK/Dialničné', icon: <SecurityOutlined />, path: '/insurances', resource: 'insurances' as const },
   { text: 'Správa používateľov', icon: <AdminPanelSettingsOutlined />, path: '/users', resource: 'users' as const },
-  { text: 'Pokročilá správa používateľov', icon: <People />, path: '/advanced-users', resource: 'users' as const },
   // { text: 'Transfer vlastníctva', icon: <SwapHoriz />, path: '/admin/vehicle-ownership', resource: 'admin' as const }, // DEAKTIVOVANÉ - nepoužíva sa
   { text: 'Štatistiky', icon: <DashboardOutlined />, path: '/statistics', resource: 'finances' as const }, // statistics need finance access
 ];
@@ -414,6 +416,39 @@ export default function Layout({ children }: LayoutProps) {
                 {state.user?.role ? getUserRoleDisplayName(state.user.role) : 'Používateľ'}
               </Typography>
             </Box>
+          </Box>
+          
+          {/* PWA Features Section */}
+          <Box sx={{ mt: 2, px: 2, position: 'relative', zIndex: 2 }}>
+            <Divider sx={{ mb: 2, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+            
+            {/* PWA Install Prompt */}
+            {isInstallable && (
+              <Box sx={{ mb: 2 }}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                  startIcon={<InstallIcon />}
+                  onClick={promptInstall}
+                  sx={{
+                    color: 'white',
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    '&:hover': {
+                      borderColor: 'rgba(255, 255, 255, 0.5)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                  }}
+                >
+                  Nainštalovať aplikáciu
+                </Button>
+              </Box>
+            )}
+            
+            {/* PWA Status */}
+            <PWAStatus />
           </Box>
         </Box>
       </Box>
