@@ -10,6 +10,7 @@ const pdf_generator_1 = require("../utils/pdf-generator");
 const auth_1 = require("../middleware/auth");
 const r2_storage_1 = require("../utils/r2-storage");
 const r2_organization_1 = require("../config/r2-organization");
+const email_service_1 = require("../services/email-service");
 const router = express_1.default.Router();
 // UUID validation function
 const isValidUUID = (uuid) => {
@@ -208,6 +209,28 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
                     // Aktualizácia protokolu s PDF URL
                     await postgres_database_1.postgresDatabase.updateHandoverProtocol(protocol.id, { pdfUrl: backgroundPdfUrl });
                     console.log('✅ Background: PDF generated and uploaded:', backgroundPdfUrl);
+                    // 📧 BACKGROUND EMAIL: Odoslanie protokolu emailom
+                    if (protocolData.rentalData?.customer?.email) {
+                        try {
+                            console.log('📧 Background: Sending handover protocol email...');
+                            const emailSent = await email_service_1.emailService.sendHandoverProtocolEmail(protocolData.rentalData.customer, pdfBuffer, protocolData);
+                            if (emailSent) {
+                                // Aktualizácia protokolu s email statusom
+                                await postgres_database_1.postgresDatabase.updateHandoverProtocol(protocol.id, {
+                                    emailSent: true,
+                                    emailSentAt: new Date()
+                                });
+                                console.log('✅ Background: Email sent successfully');
+                            }
+                        }
+                        catch (emailError) {
+                            console.error('❌ Background: Email sending failed:', emailError);
+                            // Email chyba neblokuje protokol
+                        }
+                    }
+                    else {
+                        console.log('⚠️ Background: No customer email found, skipping email sending');
+                    }
                 }
                 catch (pdfError) {
                     console.error('❌ Background PDF generation failed:', pdfError);
@@ -228,6 +251,30 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
                 console.log('✅ Standard: PDF generated and uploaded to R2:', pdfUrl);
                 // 4. Aktualizácia protokolu s PDF URL
                 await postgres_database_1.postgresDatabase.updateHandoverProtocol(protocol.id, { pdfUrl });
+                // 📧 STANDARD EMAIL: Odoslanie protokolu emailom (background)
+                if (protocolData.rentalData?.customer?.email) {
+                    setImmediate(async () => {
+                        try {
+                            console.log('📧 Standard: Sending handover protocol email...');
+                            const emailSent = await email_service_1.emailService.sendHandoverProtocolEmail(protocolData.rentalData.customer, pdfBuffer, protocolData);
+                            if (emailSent) {
+                                // Aktualizácia protokolu s email statusom
+                                await postgres_database_1.postgresDatabase.updateHandoverProtocol(protocol.id, {
+                                    emailSent: true,
+                                    emailSentAt: new Date()
+                                });
+                                console.log('✅ Standard: Email sent successfully');
+                            }
+                        }
+                        catch (emailError) {
+                            console.error('❌ Standard: Email sending failed:', emailError);
+                            // Email chyba neblokuje protokol
+                        }
+                    });
+                }
+                else {
+                    console.log('⚠️ Standard: No customer email found, skipping email sending');
+                }
             }
             catch (pdfError) {
                 console.error('❌ Error generating PDF, but protocol saved:', pdfError);
@@ -320,6 +367,30 @@ router.post('/return', auth_1.authenticateToken, async (req, res) => {
             console.log('✅ Return PDF generated and uploaded to R2:', pdfUrl);
             // 4. Aktualizácia protokolu s PDF URL
             await postgres_database_1.postgresDatabase.updateReturnProtocol(protocol.id, { pdfUrl });
+            // 📧 RETURN EMAIL: Odoslanie protokolu emailom (background)
+            if (protocolData.rentalData?.customer?.email) {
+                setImmediate(async () => {
+                    try {
+                        console.log('📧 Return: Sending return protocol email...');
+                        const emailSent = await email_service_1.emailService.sendReturnProtocolEmail(protocolData.rentalData.customer, pdfBuffer, protocolData);
+                        if (emailSent) {
+                            // Aktualizácia protokolu s email statusom
+                            await postgres_database_1.postgresDatabase.updateReturnProtocol(protocol.id, {
+                                emailSent: true,
+                                emailSentAt: new Date()
+                            });
+                            console.log('✅ Return: Email sent successfully');
+                        }
+                    }
+                    catch (emailError) {
+                        console.error('❌ Return: Email sending failed:', emailError);
+                        // Email chyba neblokuje protokol
+                    }
+                });
+            }
+            else {
+                console.log('⚠️ Return: No customer email found, skipping email sending');
+            }
         }
         catch (pdfError) {
             console.error('❌ Error generating Return PDF, but protocol saved:', pdfError);
@@ -363,6 +434,41 @@ router.get('/debug/pdf-config', (req, res) => {
         success: true,
         config
     });
+});
+// 🧪 TEST: Endpoint pre testovanie email služby
+router.get('/debug/test-email', async (req, res) => {
+    try {
+        console.log('📧 Test email connection starting...');
+        const connectionTest = await email_service_1.emailService.testConnection();
+        if (connectionTest) {
+            res.json({
+                success: true,
+                message: 'Email service connection successful',
+                config: {
+                    host: process.env.SMTP_HOST || 'smtp.m1.websupport.sk',
+                    port: process.env.SMTP_PORT || '465',
+                    secure: process.env.SMTP_SECURE === 'true' || parseInt(process.env.SMTP_PORT || '465') === 465,
+                    user: process.env.SMTP_USER || 'info@blackrent.sk',
+                    enabled: process.env.EMAIL_SEND_PROTOCOLS === 'true'
+                }
+            });
+        }
+        else {
+            res.status(500).json({
+                success: false,
+                error: 'Email service connection failed',
+                message: 'Check SMTP credentials and configuration'
+            });
+        }
+    }
+    catch (error) {
+        console.error('❌ Email test error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Email test failed',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
 });
 // 🧪 TEST: Endpoint pre testovanie PDF generátora bez autentifikácie
 router.get('/debug/test-pdf', async (req, res) => {
