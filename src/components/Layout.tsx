@@ -63,6 +63,8 @@ import { SuccessToast } from './common/SuccessToast';
 import { EnhancedError } from '../utils/errorHandling';
 import RealTimeNotifications from './common/RealTimeNotifications';
 import MobileNavigation from './common/MobileNavigation';
+import { usePWA } from '../hooks/usePWA';
+import { GetApp as InstallIcon, PhoneIphone as MobileIcon } from '@mui/icons-material';
 
 const drawerWidth = 280;
 
@@ -90,6 +92,9 @@ export default function Layout({ children }: LayoutProps) {
   const [bottomNavValue, setBottomNavValue] = useState(0);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  
+  // 📱 PWA hooks
+  const { isInstallable, promptInstall } = usePWA();
   
   // 🛡️ Error handling state
   const [currentError, setCurrentError] = useState<EnhancedError | null>(null);
@@ -175,6 +180,15 @@ export default function Layout({ children }: LayoutProps) {
   const handleNavigate = (path: string) => {
     setMobileOpen(false);
     navigate(path);
+  };
+
+  // 📱 PWA install handler
+  const handlePWAInstall = async () => {
+    try {
+      await promptInstall();
+    } catch (error) {
+      console.error('PWA install failed:', error);
+    }
   };
 
   const drawer = (
@@ -293,6 +307,60 @@ export default function Layout({ children }: LayoutProps) {
             </ListItem>
           ))}
         </List>
+
+        {/* PWA Install Button - zobrazí sa len ak je aplikácia nainštalovateľná */}
+        {isInstallable && (
+          <Box sx={{ p: 2, pt: 1 }}>
+            <ListItemButton
+              onClick={handlePWAInstall}
+              sx={{
+                borderRadius: '12px',
+                backgroundColor: isDarkMode 
+                  ? 'rgba(76, 175, 80, 0.1)'
+                  : 'rgba(76, 175, 80, 0.1)',
+                border: '1px solid',
+                borderColor: isDarkMode 
+                  ? 'rgba(76, 175, 80, 0.3)'
+                  : 'rgba(76, 175, 80, 0.3)',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: isDarkMode 
+                    ? 'rgba(76, 175, 80, 0.2)'
+                    : 'rgba(76, 175, 80, 0.2)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+                },
+                transition: 'all 0.2s ease-in-out',
+              }}
+            >
+              <ListItemIcon 
+                sx={{ 
+                  color: '#4caf50',
+                  minWidth: 40,
+                  '& .MuiSvgIcon-root': {
+                    fontSize: 22,
+                  },
+                }}
+              >
+                <InstallIcon />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Nainštalovať aplikáciu"
+                secondary="Pre lepší zážitok"
+                primaryTypographyProps={{
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: 'white',
+                }}
+                secondaryTypographyProps={{
+                  fontSize: '0.75rem',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                }}
+              />
+              <MobileIcon sx={{ color: 'rgba(255, 255, 255, 0.5)', ml: 1 }} />
+            </ListItemButton>
+          </Box>
+        )}
 
         {/* User info v spodnej časti */}
         <Box 
@@ -455,6 +523,18 @@ export default function Layout({ children }: LayoutProps) {
                 <LockIcon sx={{ mr: 1, fontSize: 18 }} />
                 Zmeniť heslo
               </MenuItem>
+                
+                {/* PWA Install v profile menu */}
+                {isInstallable && (
+                  <>
+                    <Divider />
+                    <MenuItem onClick={handlePWAInstall} sx={{ color: 'success.main' }}>
+                      <InstallIcon sx={{ mr: 1, fontSize: 18 }} />
+                      Nainštalovať aplikáciu
+                    </MenuItem>
+                  </>
+                )}
+                
                 <Divider />
                 <MenuItem onClick={handleLogout}>
                   <Logout sx={{ mr: 1, fontSize: 18 }} />
@@ -537,6 +617,18 @@ export default function Layout({ children }: LayoutProps) {
                 <LockIcon sx={{ mr: 1, fontSize: 18 }} />
                 Zmeniť heslo
               </MenuItem>
+              
+              {/* PWA Install v mobile profile menu */}
+              {isInstallable && (
+                <>
+                  <Divider />
+                  <MenuItem onClick={handlePWAInstall} sx={{ color: 'success.main' }}>
+                    <InstallIcon sx={{ mr: 1, fontSize: 18 }} />
+                    Nainštalovať aplikáciu
+                  </MenuItem>
+                </>
+              )}
+              
               <Divider />
               <MenuItem onClick={handleLogout}>
                 <Logout sx={{ mr: 1, fontSize: 18 }} />

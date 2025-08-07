@@ -59,16 +59,19 @@ export const usePWA = (): PWAState & PWAActions => {
       // Register service worker
       if ('serviceWorker' in navigator) {
         const registration = await registerServiceWorker();
-        setState(prev => ({ ...prev, swRegistration: registration }));
+        if (registration) {
+          setState(prev => ({ ...prev, swRegistration: registration }));
+          console.log('✅ PWA: Service Worker successfully initialized');
+        } else {
+          console.warn('⚠️ PWA: Service Worker registration returned null');
+        }
+      } else {
+        console.warn('⚠️ PWA: Service Worker not supported in this browser');
       }
     } catch (error) {
       console.error('PWA initialization failed:', error);
-      showError({
-        message: 'PWA inicializácia zlyhala',
-        category: 'client',
-        severity: 'warning',
-        context: { error },
-      });
+      // Don't show error for PWA initialization - it's not critical
+      console.warn('PWA features will be limited without Service Worker');
     }
   };
 
@@ -112,12 +115,7 @@ export const usePWA = (): PWAState & PWAActions => {
       installPrompt: null,
     }));
     
-    showError({
-      message: '🎉 BlackRent aplikácia bola nainštalovaná!',
-      category: 'client',
-      severity: 'info',
-    });
-    
+    // App installed silently - no user notification needed
     console.log('✅ PWA: App installed successfully');
   };
 
@@ -125,22 +123,14 @@ export const usePWA = (): PWAState & PWAActions => {
     setState(prev => ({ ...prev, isOffline: false }));
     console.log('🌐 PWA: App is online');
     
-    showError({
-      message: '✅ Pripojenie k internetu obnovené',
-      category: 'network',
-      severity: 'info',
-    });
+    // Network restored silently - no user notification needed
   };
 
   const handleOffline = () => {
     setState(prev => ({ ...prev, isOffline: true }));
     console.log('📵 PWA: App is offline');
     
-    showError({
-      message: '⚠️ Aplikácia je offline. Niektoré funkcie môžu byť obmedzené.',
-      category: 'network',
-      severity: 'warning',
-    });
+    // App offline silently - no user notification needed
   };
 
   const checkInstallationStatus = () => {
@@ -162,7 +152,7 @@ export const usePWA = (): PWAState & PWAActions => {
         scope: '/',
       });
 
-      console.log('✅ Service Worker registered:', registration.scope);
+      console.log('✅ Service Worker registered successfully:', registration.scope);
 
       // Listen for updates
       registration.addEventListener('updatefound', () => {
@@ -174,12 +164,7 @@ export const usePWA = (): PWAState & PWAActions => {
             setState(prev => ({ ...prev, isUpdateAvailable: true }));
             console.log('🔄 PWA: Update available');
             
-            showError({
-              message: '🔄 Nová verzia aplikácie je dostupná',
-              category: 'client',
-              severity: 'info',
-              context: { updateAvailable: true },
-            });
+            // Update available silently - no user notification needed
           }
         });
       });
@@ -187,15 +172,23 @@ export const usePWA = (): PWAState & PWAActions => {
       // Listen for messages from service worker
       navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
 
+      // PWA functions activated silently - no user notification needed
+
       return registration;
     } catch (error) {
       console.error('Service Worker registration failed:', error);
-      showError({
-        message: 'Service Worker registrácia zlyhala',
-        category: 'client',
-        severity: 'warning',
-        context: { error },
-      });
+      
+      // Only show error if it's a real error, not just network issues
+      if (error instanceof Error && !error.message.includes('Failed to fetch')) {
+        showError({
+          message: 'Service Worker registrácia zlyhala',
+          category: 'client',
+          severity: 'warning',
+          context: { error: error.message },
+        });
+      } else {
+        console.warn('Service Worker registration skipped due to network issues');
+      }
       return null;
     }
   };
@@ -205,11 +198,8 @@ export const usePWA = (): PWAState & PWAActions => {
     
     switch (type) {
       case 'SYNC_COMPLETE':
-        showError({
-          message: message || '✅ Offline akcie synchronizované',
-          category: 'client',
-          severity: 'info',
-        });
+        // Sync completed silently - no user notification needed
+        console.log('✅ PWA: Offline actions synchronized');
         break;
         
       case 'CACHE_UPDATED':
@@ -276,11 +266,7 @@ export const usePWA = (): PWAState & PWAActions => {
 
       setState(prev => ({ ...prev, isUpdateAvailable: false }));
       
-      showError({
-        message: '🔄 Aplikácia sa aktualizuje...',
-        category: 'client',
-        severity: 'info',
-      });
+      // App updating silently - no user notification needed
     } catch (error) {
       console.error('Service Worker update failed:', error);
       showError({
@@ -302,11 +288,7 @@ export const usePWA = (): PWAState & PWAActions => {
       await state.swRegistration.unregister();
       setState(prev => ({ ...prev, swRegistration: null }));
       
-      showError({
-        message: '🗑️ Service Worker odstránený',
-        category: 'client',
-        severity: 'info',
-      });
+      // Service Worker unregistered silently - no user notification needed
       
       console.log('🗑️ PWA: Service Worker unregistered');
     } catch (error) {
@@ -338,11 +320,7 @@ export const usePWA = (): PWAState & PWAActions => {
         );
       }
 
-      showError({
-        message: '🗑️ Cache vymazané',
-        category: 'client',
-        severity: 'info',
-      });
+      // Cache cleared silently - no user notification needed
 
       console.log('🗑️ PWA: Cache cleared');
     } catch (error) {
