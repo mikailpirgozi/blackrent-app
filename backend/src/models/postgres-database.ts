@@ -5476,7 +5476,7 @@ export class PostgresDatabase {
     try {
       for (const vehicleId of vehicleIds) {
         await client.query(
-          'UPDATE vehicles SET company_id = $1 WHERE id = $2',
+          'UPDATE vehicles SET owner_company_id = $1 WHERE id = $2',
           [companyId, vehicleId]
         );
       }
