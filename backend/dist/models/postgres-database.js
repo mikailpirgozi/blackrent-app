@@ -2461,7 +2461,7 @@ class PostgresDatabase {
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id = v.id 
         WHERE r.id = $1
-      `, [id]);
+      `, [parseInt(id)]);
             console.log('📊 getRental result:', {
                 found: result.rows.length > 0,
                 vehicleId: result.rows[0]?.vehicle_id,
@@ -2524,90 +2524,55 @@ class PostgresDatabase {
             client.release();
         }
     }
-    // 🛡️ PROTECTED UPDATE with 6-level safety system
+    // 🛡️ FIXED UPDATE with proper field mapping
     async updateRental(rental) {
         const client = await this.pool.connect();
         try {
-            // 🛡️ OCHRANA LEVEL 1: Validácia pred zmenou
-            const validation = await this.validateRentalUpdate(rental.id, rental);
-            if (!validation.valid) {
-                throw new Error(`RENTAL UPDATE BLOCKED: ${validation.errors.join(', ')}`);
-            }
-            // 🛡️ OCHRANA LEVEL 2: Backup pôvodných dát
-            await this.createRentalBackup(rental.id);
-            // 🛡️ OCHRANA LEVEL 3: Transaction protection
-            await client.query('BEGIN');
-            try {
-                // 🛡️ OCHRANA LEVEL 4: Log každú zmenu
-                console.log(`🛡️ RENTAL UPDATE START: ${rental.id}`, {
-                    customer: rental.customerName,
-                    vehicle: rental.vehicleId,
-                    dateRange: `${rental.startDate} - ${rental.endDate}`,
-                    price: rental.totalPrice
-                });
-                // 🛡️ OCHRANA LEVEL 5: Controlled UPDATE s row counting
-                const result = await client.query(`
-          UPDATE rentals SET 
-            vehicle_id = $1, customer_name = $2, start_date = $3, end_date = $4,
-            total_price = $5, commission = $6, payment_method = $7, discount = $8, custom_commission = $9,
-            extra_km_charge = $10, paid = $11, status = $12, handover_place = $13, confirmed = $14,
-            payments = $15, history = $16, order_number = $17,
-            deposit = $18, allowed_kilometers = $19, daily_kilometers = $20, extra_kilometer_rate = $21, return_conditions = $22,
-            fuel_level = $23, odometer = $24, return_fuel_level = $25, return_odometer = $26,
-            actual_kilometers = $27, fuel_refill_cost = $28, handover_protocol_id = $29, 
-            return_protocol_id = $30, updated_at = CURRENT_TIMESTAMP
-          WHERE id = $31
+            console.log(`🔧 RENTAL UPDATE: ${rental.id}`, {
+                customer: rental.customerName,
+                vehicle: rental.vehicleId,
+                price: rental.totalPrice,
+                paid: rental.paid,
+                status: rental.status
+            });
+            // UPDATE with proper field mapping
+            const result = await client.query(`
+        UPDATE rentals SET 
+          vehicle_id = $1, 
+          customer_name = $2, 
+          start_date = $3, 
+          end_date = $4,
+          total_price = $5, 
+          paid = $6, 
+          status = $7,
+          payment_method = $8,
+          handover_place = $9,
+          order_number = $10,
+          deposit = $11,
+          allowed_kilometers = $12,
+          extra_kilometer_rate = $13
+        WHERE id = $14
         `, [
-                    rental.vehicleId || null, // UUID as string, not parseInt
-                    rental.customerName,
-                    rental.startDate,
-                    rental.endDate,
-                    rental.totalPrice,
-                    rental.commission,
-                    rental.paymentMethod,
-                    rental.discount ? JSON.stringify(rental.discount) : null,
-                    rental.customCommission ? JSON.stringify(rental.customCommission) : null,
-                    rental.extraKmCharge,
-                    rental.paid,
-                    rental.status,
-                    rental.handoverPlace,
-                    rental.confirmed,
-                    rental.payments ? JSON.stringify(rental.payments) : null,
-                    rental.history ? JSON.stringify(rental.history) : null,
-                    rental.orderNumber,
-                    rental.deposit || null,
-                    rental.allowedKilometers || null,
-                    rental.dailyKilometers || null,
-                    rental.extraKilometerRate || null,
-                    rental.returnConditions || null,
-                    rental.fuelLevel || null,
-                    rental.odometer || null,
-                    rental.returnFuelLevel || null,
-                    rental.returnOdometer || null,
-                    rental.actualKilometers || null,
-                    rental.fuelRefillCost || null,
-                    rental.handoverProtocolId || null,
-                    rental.returnProtocolId || null,
-                    rental.id // UUID as string, not parseInt
-                ]);
-                // 🛡️ OCHRANA LEVEL 6: Verify update success
-                if (result.rowCount === null || result.rowCount === 0) {
-                    throw new Error(`RENTAL UPDATE FAILED: No rows affected for ID ${rental.id}`);
-                }
-                if (result.rowCount > 1) {
-                    throw new Error(`RENTAL UPDATE ERROR: Multiple rows affected (${result.rowCount}) for ID ${rental.id}`);
-                }
-                await client.query('COMMIT');
-                console.log(`✅ RENTAL UPDATE SUCCESS: ${rental.id} (${result.rowCount} row updated)`);
-            }
-            catch (updateError) {
-                await client.query('ROLLBACK');
-                console.error(`❌ RENTAL UPDATE FAILED, ROLLED BACK:`, updateError);
-                throw updateError;
-            }
-            // 🚀 FÁZA 2.3: Calendar cache invalidation po aktualizácii prenájmu
-            this.invalidateCalendarCache();
-            this.invalidateUnavailabilityCache();
+                rental.vehicleId ? parseInt(rental.vehicleId.toString()) : null,
+                rental.customerName,
+                rental.startDate,
+                rental.endDate,
+                rental.totalPrice || 0,
+                rental.paid || false,
+                rental.status || 'pending',
+                rental.paymentMethod || null,
+                rental.handoverPlace || null,
+                rental.orderNumber || null,
+                rental.deposit || null,
+                rental.allowedKilometers || null,
+                rental.extraKilometerRate || null,
+                parseInt(rental.id.toString())
+            ]);
+            console.log(`✅ RENTAL UPDATE SUCCESS: ${rental.id} (${result.rowCount} row updated)`);
+        }
+        catch (error) {
+            console.error(`❌ RENTAL UPDATE ERROR: ${rental.id}`, error);
+            throw error;
         }
         finally {
             client.release();
@@ -2711,8 +2676,11 @@ class PostgresDatabase {
     async updateCustomer(customer) {
         const client = await this.pool.connect();
         try {
-            await client.query('UPDATE customers SET name = $1, email = $2, phone = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4', [customer.name, customer.email, customer.phone, customer.id] // UUID as string
-            );
+            // Parse name into first_name and last_name
+            const nameParts = customer.name.split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
+            await client.query('UPDATE customers SET name = $1, first_name = $2, last_name = $3, email = $4, phone = $5 WHERE id = $6', [customer.name, firstName, lastName, customer.email, customer.phone, customer.id]);
         }
         finally {
             client.release();
@@ -3602,7 +3570,7 @@ class PostgresDatabase {
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
         ) RETURNING *
       `, [
-                protocolData.rentalId,
+                parseInt(protocolData.rentalId.toString()), // Convert to integer for rental_id
                 protocolData.location || '',
                 protocolData.vehicleCondition?.odometer || 0,
                 protocolData.vehicleCondition?.fuelLevel || 100,
@@ -3631,6 +3599,13 @@ class PostgresDatabase {
                 documentImages: row.document_images_urls?.length || 0,
                 damageImages: row.damage_images_urls?.length || 0
             });
+            // ✅ UPDATE RENTAL with protocol ID
+            await client.query(`
+        UPDATE rentals 
+        SET handover_protocol_id = $1 
+        WHERE id = $2
+      `, [row.id, protocolData.rentalId]);
+            console.log('✅ Updated rental', protocolData.rentalId, 'with handover protocol ID:', row.id);
             const mappedProtocol = this.mapHandoverProtocolFromDB(row);
             console.log('✅ Mapped protocol pdfUrl:', mappedProtocol.pdfUrl);
             console.log('✅ Mapped protocol media:', {
@@ -3657,9 +3632,9 @@ class PostgresDatabase {
             await this.initProtocolTables();
             const result = await client.query(`
         SELECT * FROM handover_protocols 
-        WHERE rental_id = $1::uuid 
+        WHERE rental_id = $1::integer 
         ORDER BY created_at DESC
-      `, [rentalId]);
+      `, [parseInt(rentalId)]);
             return result.rows.map(row => this.mapHandoverProtocolFromDB(row));
         }
         catch (error) {
@@ -3746,6 +3721,13 @@ class PostgresDatabase {
             ]);
             const row = result.rows[0];
             console.log('✅ Return protocol created:', row.id);
+            // ✅ UPDATE RENTAL with protocol ID
+            await client.query(`
+        UPDATE rentals 
+        SET return_protocol_id = $1 
+        WHERE id = $2
+      `, [row.id, protocolData.rentalId]);
+            console.log('✅ Updated rental', protocolData.rentalId, 'with return protocol ID:', row.id);
             return this.mapReturnProtocolFromDB(row);
         }
         catch (error) {
@@ -3762,9 +3744,9 @@ class PostgresDatabase {
             await this.initProtocolTables();
             const result = await client.query(`
         SELECT * FROM return_protocols 
-        WHERE rental_id = $1::uuid 
+        WHERE rental_id = $1::integer 
         ORDER BY created_at DESC
-      `, [rentalId]);
+      `, [parseInt(rentalId)]);
             return result.rows.map(row => this.mapReturnProtocolFromDB(row));
         }
         catch (error) {

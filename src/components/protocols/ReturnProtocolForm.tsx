@@ -499,7 +499,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
             />
             <TextField
               label="Poplatok za km"
-              value={`${fees.kilometerFee.toFixed(2)} EUR`}
+              value={`${(fees.kilometerFee || 0).toFixed(2)} EUR`}
               InputProps={{ readOnly: true }}
               color={fees.kilometerFee > 0 ? 'warning' : 'primary'}
               fullWidth
@@ -512,14 +512,14 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
             />
             <TextField
               label="Poplatok za palivo"
-              value={`${fees.fuelFee.toFixed(2)} EUR`}
+              value={`${(fees.fuelFee || 0).toFixed(2)} EUR`}
               InputProps={{ readOnly: true }}
               color={fees.fuelFee > 0 ? 'warning' : 'primary'}
               fullWidth
             />
             <TextField
               label="Celkové poplatky"
-              value={`${fees.totalExtraFees.toFixed(2)} EUR`}
+              value={`${(fees.totalExtraFees || 0).toFixed(2)} EUR`}
               InputProps={{ readOnly: true }}
               color={fees.totalExtraFees > 0 ? 'warning' : 'primary'}
               fullWidth
@@ -531,21 +531,21 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
             <TextField
               label="Vratenie z depozitu"
-              value={`${fees.depositRefund.toFixed(2)} EUR`}
+              value={`${(fees.depositRefund || 0).toFixed(2)} EUR`}
               InputProps={{ readOnly: true }}
               color="success"
               fullWidth
             />
             <TextField
               label="Doplatok"
-              value={`${fees.additionalCharges.toFixed(2)} EUR`}
+              value={`${(fees.additionalCharges || 0).toFixed(2)} EUR`}
               InputProps={{ readOnly: true }}
               color={fees.additionalCharges > 0 ? 'error' : 'primary'}
               fullWidth
             />
             <TextField
               label="Finálny refund"
-              value={`${fees.finalRefund.toFixed(2)} EUR`}
+              value={`${(fees.finalRefund || 0).toFixed(2)} EUR`}
               InputProps={{ readOnly: true }}
               color="success"
               fullWidth

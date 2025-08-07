@@ -876,7 +876,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
                       if (isFlexible) {
                         setUseManualPricing(true);
                         if (manualPrice === undefined) {
-                          setManualPrice(calculatedPrice || 0);
+                          setManualPrice((calculatedPrice || 0));
                         }
                         // 🔄 NOVÉ: Automaticky vyčistiť pole "Dátum do"
                         handleInputChange('endDate', undefined);
@@ -938,7 +938,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
                             const isManual = e.target.value === 'manual';
                             setUseManualPricing(isManual);
                             if (isManual && manualPrice === undefined) {
-                              setManualPrice(calculatedPrice || 0);
+                              setManualPrice((calculatedPrice || 0));
                             }
                           }}
                           label="Typ cenotvorby"
@@ -967,7 +967,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
                       {!useManualPricing && (
                         <Typography variant="body2" color="text.secondary">
-                          Automatická cena: <strong>{calculatedPrice}€</strong>
+                          Automatická cena: <strong>{(calculatedPrice || 0)}€</strong>
                         </Typography>
                       )}
                     </Card>
@@ -1159,10 +1159,10 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
               <Typography>
-                Celková cena: <strong>{calculatedPrice.toFixed(2)} €</strong>
+                Celková cena: <strong>{(calculatedPrice || 0).toFixed(2)} €</strong>
               </Typography>
               <Typography>
-                Provízia: <strong>{calculatedCommission.toFixed(2)} €</strong>
+                Provízia: <strong>{(calculatedCommission || 0).toFixed(2)} €</strong>
               </Typography>
             </Box>
             {/* Nadpis sekcie s ikonou na zobrazenie/skrytie zľavy/provízie */}
@@ -1268,7 +1268,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
                   {payments.map(payment => (
                     <Box component="tr" key={payment.id}>
                       <Box component="td">{new Date(payment.date).toLocaleDateString()}</Box>
-                      <Box component="td">{payment.amount.toFixed(2)}</Box>
+                      <Box component="td">{(payment.amount || 0).toFixed(2)}</Box>
                       <Box component="td">{payment.isPaid ? 'Zaplatené' : 'Nezaplatené'}</Box>
                       <Box component="td">{payment.paymentMethod}</Box>
                       <Box component="td">{payment.invoiceNumber}</Box>
