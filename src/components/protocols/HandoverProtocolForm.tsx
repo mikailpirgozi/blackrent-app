@@ -195,7 +195,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     return d.toLocaleDateString('sk-SK') + ' ' + d.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
   }, []);
 
-  const formatCurrency = useCallback((amount: number) => {
+  const formatCurrency = useCallback((amount: number | null | undefined) => {
     return amount ? `${amount.toFixed(2)} €` : '0,00 €';
   }, []);
 

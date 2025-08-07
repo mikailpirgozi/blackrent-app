@@ -186,10 +186,10 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
             console.error('❌ Missing rental ID');
             return res.status(400).json({ error: 'Rental ID is required' });
         }
-        // UUID validácia pre rental ID
-        if (!isValidUUID(protocolData.rentalId)) {
+        // Rental ID validácia (môže byť integer alebo UUID string)
+        if (!protocolData.rentalId || (isNaN(Number(protocolData.rentalId)) && !isValidUUID(protocolData.rentalId))) {
             console.error('❌ Invalid rental ID format:', protocolData.rentalId);
-            return res.status(400).json({ error: 'Invalid rental ID format. Must be valid UUID.' });
+            return res.status(400).json({ error: 'Invalid rental ID format. Must be valid integer or UUID.' });
         }
         // 1. Uloženie protokolu do databázy
         const protocol = await postgres_database_1.postgresDatabase.createHandoverProtocol(protocolData);
@@ -199,10 +199,14 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
             // 🚀 QUICK MODE: Len uloženie do DB, PDF na pozadí
             console.log('⚡ QUICK MODE: Skipping immediate PDF generation');
             // Background PDF generation (fire and forget)
+            console.log('🚀 QUICK MODE: Scheduling background PDF generation for protocol:', protocol.id);
             setImmediate(async () => {
                 try {
                     console.log('🎭 Background: Starting PDF generation for protocol:', protocol.id);
-                    const pdfBuffer = await (0, pdf_generator_1.generateHandoverPDF)(protocolData);
+                    console.log('🎭 Background: Protocol data customer email:', protocolData.rentalData?.customer?.email);
+                    // FIX: Pass protocol object instead of protocolData to have ID
+                    const protocolWithData = { ...protocol, ...protocolData };
+                    const pdfBuffer = await (0, pdf_generator_1.generateHandoverPDF)(protocolWithData);
                     // Uloženie PDF do R2 storage s novou organizáciou
                     const filename = generatePDFPath(protocolData, protocol.id, 'handover');
                     const backgroundPdfUrl = await r2_storage_1.r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
@@ -244,7 +248,9 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
             // 2. 🎭 STANDARD MODE: PDF generovanie + upload do R2 (blocking)
             try {
                 console.log('🎭 Standard: Generating PDF for protocol:', protocol.id);
-                const pdfBuffer = await (0, pdf_generator_1.generateHandoverPDF)(protocolData);
+                // FIX: Pass protocol object instead of protocolData to have ID
+                const protocolWithData = { ...protocol, ...protocolData };
+                const pdfBuffer = await (0, pdf_generator_1.generateHandoverPDF)(protocolWithData);
                 // 3. Uloženie PDF do R2 storage s novou organizáciou
                 const filename = generatePDFPath(protocolData, protocol.id, 'handover');
                 pdfUrl = await r2_storage_1.r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
@@ -348,10 +354,10 @@ router.post('/return', auth_1.authenticateToken, async (req, res) => {
             console.error('❌ Missing rental ID');
             return res.status(400).json({ error: 'Rental ID is required' });
         }
-        // UUID validácia pre rental ID
-        if (!isValidUUID(protocolData.rentalId)) {
+        // Rental ID validácia (môže byť integer alebo UUID string)
+        if (!protocolData.rentalId || (isNaN(Number(protocolData.rentalId)) && !isValidUUID(protocolData.rentalId))) {
             console.error('❌ Invalid rental ID format:', protocolData.rentalId);
-            return res.status(400).json({ error: 'Invalid rental ID format. Must be valid UUID.' });
+            return res.status(400).json({ error: 'Invalid rental ID format. Must be valid integer or UUID.' });
         }
         // 1. Uloženie protokolu do databázy
         const protocol = await postgres_database_1.postgresDatabase.createReturnProtocol(protocolData);

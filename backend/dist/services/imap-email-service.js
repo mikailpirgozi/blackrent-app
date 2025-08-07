@@ -12,8 +12,8 @@ class ImapEmailService {
         this.isConnected = false;
         this.processingEmails = false;
         this.isEnabled = false;
-        // Kontrola či je IMAP povolené
-        this.isEnabled = process.env.IMAP_ENABLED !== 'false' && !!process.env.IMAP_PASSWORD;
+        // Kontrola či je IMAP povolené (DOČASNE VYPNUTÉ PRE TESTOVANIE)
+        this.isEnabled = false; // process.env.IMAP_ENABLED !== 'false' && !!process.env.IMAP_PASSWORD;
         if (!this.isEnabled) {
             console.log('📧 IMAP: Služba je vypnutá (IMAP_ENABLED=false alebo chýba IMAP_PASSWORD)');
             return;

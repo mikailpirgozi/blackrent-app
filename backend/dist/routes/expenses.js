@@ -68,6 +68,7 @@ router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('ex
 // POST /api/expenses - Vytvorenie nového nákladu
 router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('expenses', 'create'), async (req, res) => {
     try {
+        console.log('💰 EXPENSE CREATE START:', { body: req.body, user: req.user?.username });
         const { description, amount, date, vehicleId, company, category, note } = req.body;
         // Povinné je len description
         if (!description || description.toString().trim() === '') {
@@ -76,6 +77,15 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('e
                 error: 'Popis nákladu je povinný'
             });
         }
+        console.log('💰 EXPENSE CREATE DATA:', {
+            description: description.toString().trim(),
+            amount: amount && !isNaN(Number(amount)) ? Number(amount) : 0,
+            date: date ? new Date(date) : new Date(),
+            vehicleId: vehicleId || undefined,
+            company: company && company.toString().trim() !== '' ? company.toString().trim() : 'Neznáma firma',
+            category: category && ['service', 'insurance', 'fuel', 'other'].includes(category) ? category : 'other',
+            note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
+        });
         const createdExpense = await postgres_database_1.postgresDatabase.createExpense({
             description: description.toString().trim(),
             amount: amount && !isNaN(Number(amount)) ? Number(amount) : 0,
@@ -92,7 +102,8 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('e
         });
     }
     catch (error) {
-        console.error('Create expense error:', error);
+        console.error('❌ EXPENSE CREATE ERROR:', error);
+        console.error('❌ EXPENSE ERROR STACK:', error.stack);
         res.status(500).json({
             success: false,
             error: 'Chyba pri vytváraní nákladu'

@@ -241,26 +241,26 @@ export default function CustomerListNew() {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         if (
-          !customer.name.toLowerCase().includes(query) &&
-          !customer.email.toLowerCase().includes(query) &&
-          !customer.phone.toLowerCase().includes(query)
+          !(customer.name || '').toLowerCase().includes(query) &&
+          !(customer.email || '').toLowerCase().includes(query) &&
+          !(customer.phone || '').toLowerCase().includes(query)
         ) {
           return false;
         }
       }
 
       // Name filter
-      if (filterName && !customer.name.toLowerCase().includes(filterName.toLowerCase())) {
+      if (filterName && !(customer.name || '').toLowerCase().includes(filterName.toLowerCase())) {
         return false;
       }
 
       // Email filter
-      if (filterEmail && !customer.email.toLowerCase().includes(filterEmail.toLowerCase())) {
+      if (filterEmail && !(customer.email || '').toLowerCase().includes(filterEmail.toLowerCase())) {
         return false;
       }
 
       // Phone filter
-      if (filterPhone && !customer.phone.includes(filterPhone)) {
+      if (filterPhone && !(customer.phone || '').includes(filterPhone)) {
         return false;
       }
 
