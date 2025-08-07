@@ -7,19 +7,36 @@ const permissions_1 = require("../middleware/permissions");
 const router = (0, express_1.Router)();
 // 🔍 CONTEXT FUNCTIONS
 const getExpenseContext = async (req) => {
-    const expenseId = req.params.id;
-    if (!expenseId)
-        return {};
-    const expenses = await postgres_database_1.postgresDatabase.getExpenses();
-    const expense = expenses.find(e => e.id === expenseId);
-    if (!expense || !expense.vehicleId)
-        return {};
-    // Získaj vehicle pre company context
-    const vehicle = await postgres_database_1.postgresDatabase.getVehicle(expense.vehicleId);
-    return {
-        resourceCompanyId: vehicle?.ownerCompanyId,
-        amount: expense.amount
-    };
+    try {
+        console.log('🔍 GET EXPENSE CONTEXT - Starting for expense ID:', req.params.id);
+        const expenseId = req.params.id;
+        if (!expenseId) {
+            console.log('🔍 GET EXPENSE CONTEXT - No expense ID provided');
+            return {};
+        }
+        console.log('🔍 GET EXPENSE CONTEXT - Fetching all expenses...');
+        const expenses = await postgres_database_1.postgresDatabase.getExpenses();
+        const expense = expenses.find(e => e.id === expenseId);
+        console.log('🔍 GET EXPENSE CONTEXT - Found expense:', expense ? 'YES' : 'NO');
+        if (!expense || !expense.vehicleId) {
+            console.log('🔍 GET EXPENSE CONTEXT - No expense or vehicleId, returning empty context');
+            return {};
+        }
+        console.log('🔍 GET EXPENSE CONTEXT - Fetching vehicle:', expense.vehicleId);
+        // Získaj vehicle pre company context
+        const vehicle = await postgres_database_1.postgresDatabase.getVehicle(expense.vehicleId);
+        console.log('🔍 GET EXPENSE CONTEXT - Found vehicle:', vehicle ? 'YES' : 'NO');
+        const context = {
+            resourceCompanyId: vehicle?.ownerCompanyId,
+            amount: expense.amount
+        };
+        console.log('🔍 GET EXPENSE CONTEXT - Returning context:', context);
+        return context;
+    }
+    catch (error) {
+        console.error('❌ GET EXPENSE CONTEXT - Error:', error);
+        throw error;
+    }
 };
 // GET /api/expenses - Získanie všetkých nákladov
 router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('expenses', 'read'), async (req, res) => {
