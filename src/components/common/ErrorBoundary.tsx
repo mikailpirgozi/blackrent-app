@@ -122,6 +122,13 @@ class ErrorBoundary extends Component<Props, State> {
     if (!error) return 'Neznáma chyba';
 
     if (error.message.includes('ChunkLoadError') || error.message.includes('Loading chunk')) {
+      // Na mobilných zariadeniach skúsime raz automaticky obnoviť stránku
+      const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+      const hasAutoReloaded = sessionStorage.getItem('autoReloadedAfterChunkError') === '1';
+      if (isMobile && !hasAutoReloaded) {
+        sessionStorage.setItem('autoReloadedAfterChunkError', '1');
+        setTimeout(() => window.location.reload(), 100);
+      }
       return 'Načítavanie stránky bolo prerušené. Skúste obnoviť stránku.';
     }
     

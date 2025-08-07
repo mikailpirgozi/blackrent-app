@@ -1295,6 +1295,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         title={getDayTooltip(day.date, vehicleStatus, `${vehicle.brand} ${vehicle.model}`)}
                         placement="top"
                         arrow
+                        disableTouchListener={Boolean(isMobile)}
+                        disableFocusListener={Boolean(isMobile)}
+                        enterTouchDelay={0}
+                        leaveTouchDelay={0}
                       >
                         <Box 
                           onClick={(e) => handleDayClick(day.date, vehicleStatus, vehicle.id, e)}
@@ -1345,7 +1349,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                             isMaintenance ? '#ff9800' : '#4caf50',
                           mx: 'auto',
                           mt: 0.25
-                        }} />
+                         }} />
                         </Box>
                       </Tooltip>
                     );
@@ -1648,6 +1652,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       title={getDayTooltip(day.date, vehicleStatus, `${vehicle.brand} ${vehicle.model}`)}
                       placement="top"
                       arrow
+                      disableTouchListener={Boolean(isMobile)}
+                      disableFocusListener={Boolean(isMobile)}
+                      enterTouchDelay={0}
+                      leaveTouchDelay={0}
                     >
                       <Box 
                         onClick={(e) => handleDayClick(day.date, vehicleStatus, vehicle.id, e)}
@@ -1677,6 +1685,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                                            isMaintenance ? '#ffecb2' : '#c8e6c8'
                           }
                         }}
+                        data-today={dayIsToday ? 'true' : undefined}
                       >
                       <Typography variant="caption" sx={{ 
                         fontWeight: dayIsToday ? 700 : 600,
