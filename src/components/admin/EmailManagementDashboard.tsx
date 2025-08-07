@@ -30,6 +30,10 @@ import {
   Badge,
   Collapse,
   Divider,
+  useTheme,
+  useMediaQuery,
+  Stack,
+  Avatar,
 } from '@mui/material';
 import {
   CheckCircle as ApproveIcon,
@@ -123,6 +127,11 @@ interface ImapStatus {
 }
 
 const EmailManagementDashboard: React.FC = () => {
+  // Theme and responsive hooks
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   // Tabs state
   const [activeTab, setActiveTab] = useState(0);
 
@@ -735,50 +744,50 @@ const EmailManagementDashboard: React.FC = () => {
 
       {/* Statistics Cards */}
       {stats && (
-        <Grid container spacing={3} mb={3}>
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" color="primary">
-                  📬 Dnes celkom
+        <Grid container spacing={isMobile ? 2 : 3} mb={3}>
+          <Grid item xs={6} sm={6} md={3}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                <Typography variant={isMobile ? "body2" : "h6"} color="primary" sx={{ fontSize: isMobile ? '0.875rem' : undefined }}>
+                  📬 Celkom
                 </Typography>
-                <Typography variant="h4">
+                <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
                   {stats.today.total}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" color="success.main">
+          <Grid item xs={6} sm={6} md={3}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                <Typography variant={isMobile ? "body2" : "h6"} color="success.main" sx={{ fontSize: isMobile ? '0.875rem' : undefined }}>
                   ✅ Schválené
                 </Typography>
-                <Typography variant="h4">
+                <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
                   {stats.today.processed}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" color="error.main">
+          <Grid item xs={6} sm={6} md={3}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                <Typography variant={isMobile ? "body2" : "h6"} color="error.main" sx={{ fontSize: isMobile ? '0.875rem' : undefined }}>
                   ❌ Zamietnuté
                 </Typography>
-                <Typography variant="h4">
+                <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
                   {stats.today.rejected}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" color="warning.main">
+          <Grid item xs={6} sm={6} md={3}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                <Typography variant={isMobile ? "body2" : "h6"} color="warning.main" sx={{ fontSize: isMobile ? '0.875rem' : undefined }}>
                   ⏳ Čakajúce
                 </Typography>
-                <Typography variant="h4">
+                <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
                   {stats.today.pending}
                 </Typography>
               </CardContent>
@@ -835,19 +844,19 @@ const EmailManagementDashboard: React.FC = () => {
 
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
+        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+          <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom>
             🔍 Filtre
           </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+          <Grid container spacing={isMobile ? 2 : 2}>
+            <Grid item xs={12} sm={6} md={4}>
               <TextField
                 select
                 label="Status"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 fullWidth
-                size="small"
+                size={isMobile ? "medium" : "small"}
               >
                 <MenuItem value="">Všetky</MenuItem>
                 <MenuItem value="new">Nové</MenuItem>
@@ -856,13 +865,13 @@ const EmailManagementDashboard: React.FC = () => {
                 <MenuItem value="archived">Archivované</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={4}>
               <TextField
                 label="Odosielateľ"
                 value={senderFilter}
                 onChange={(e) => setSenderFilter(e.target.value)}
                 fullWidth
-                size="small"
+                size={isMobile ? "medium" : "small"}
                 placeholder="Hľadať podľa odosielateľa..."
               />
             </Grid>
@@ -927,133 +936,256 @@ const EmailManagementDashboard: React.FC = () => {
             </Box>
           ) : (
             <>
-              <TableContainer component={Paper} elevation={0}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Predmet</TableCell>
-                      <TableCell>Odosielateľ</TableCell>
-                      <TableCell>Prijaté</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Objednávka</TableCell>
-                      <TableCell>Akcie</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {emails.map((email) => (
-                      <TableRow key={email.id} hover>
-                        <TableCell>
-                          <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
+              {/* Mobile View - Card List */}
+              {isMobile ? (
+                <Stack spacing={2}>
+                  {emails.map((email) => (
+                    <Card key={email.id} variant="outlined" sx={{ 
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        boxShadow: 1
+                      }
+                    }}>
+                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                        {/* Header - Subject and Status */}
+                        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                          <Typography 
+                            variant="subtitle2" 
+                            sx={{ 
+                              fontWeight: 600,
+                              flex: 1,
+                              mr: 1,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                            }}
+                          >
                             {email.subject}
                           </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {email.sender}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {new Date(email.received_at).toLocaleString('sk')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
                           {getStatusChip(email.status, email.action_taken)}
-                        </TableCell>
-                        <TableCell>
-                          {email.order_number ? (
+                        </Box>
+
+                        {/* Sender and Date */}
+                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: 'primary.main' }}>
+                              {email.sender.charAt(0).toUpperCase()}
+                            </Avatar>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                              {email.sender.length > 25 ? `${email.sender.substring(0, 25)}...` : email.sender}
+                            </Typography>
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(email.received_at).toLocaleDateString('sk')}
+                          </Typography>
+                        </Box>
+
+                        {/* Order Number */}
+                        {email.order_number && (
+                          <Box mb={2}>
                             <Chip
-                              label={email.order_number}
+                              label={`📋 ${email.order_number}`}
                               size="small"
                               variant="outlined"
+                              sx={{ fontSize: '0.75rem' }}
                             />
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">
-                              -
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Box display="flex" gap={1}>
-                            <Tooltip title="Zobraziť detail">
-                              <IconButton
+                          </Box>
+                        )}
+
+                        {/* Actions */}
+                        <Box display="flex" gap={1} flexWrap="wrap">
+                          <Button
+                            size="small"
+                            startIcon={<ViewIcon />}
+                            onClick={() => viewEmailDetail(email.id)}
+                            variant="outlined"
+                            sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
+                          >
+                            Detail
+                          </Button>
+                          
+                          {email.status === 'new' && (
+                            <>
+                              <Button
                                 size="small"
-                                onClick={() => viewEmailDetail(email.id)}
+                                startIcon={actionLoading === email.id ? <CircularProgress size={16} /> : <ApproveIcon />}
+                                onClick={() => approveEmail(email.id)}
+                                disabled={actionLoading === email.id}
+                                color="success"
+                                variant="outlined"
+                                sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
                               >
-                                <ViewIcon />
-                              </IconButton>
-                            </Tooltip>
-                            
-                            {email.status === 'new' && (
-                              <Tooltip title="Schváliť">
+                                Schváliť
+                              </Button>
+                              <Button
+                                size="small"
+                                startIcon={<RejectIcon />}
+                                onClick={() => setRejectDialog({ open: true, emailId: email.id })}
+                                color="error"
+                                variant="outlined"
+                                sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
+                              >
+                                Zamietnuť
+                              </Button>
+                            </>
+                          )}
+
+                          <Button
+                            size="small"
+                            startIcon={actionLoading === email.id ? <CircularProgress size={16} /> : <ArchiveIcon />}
+                            onClick={() => archiveEmail(email.id)}
+                            disabled={actionLoading === email.id}
+                            variant="outlined"
+                            sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
+                          >
+                            Archív
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </Stack>
+              ) : (
+                /* Desktop View - Table */
+                <TableContainer component={Paper} elevation={0} sx={{ overflowX: 'auto' }}>
+                  <Table stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ minWidth: 200 }}>Predmet</TableCell>
+                        <TableCell sx={{ minWidth: 150 }}>Odosielateľ</TableCell>
+                        <TableCell sx={{ minWidth: 120 }}>Prijaté</TableCell>
+                        <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
+                        <TableCell sx={{ minWidth: 120 }}>Objednávka</TableCell>
+                        <TableCell sx={{ minWidth: 200 }}>Akcie</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {emails.map((email) => (
+                        <TableRow key={email.id} hover>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ 
+                              maxWidth: 250,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                            }}>
+                              {email.subject}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ maxWidth: 150 }} noWrap>
+                              {email.sender}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {new Date(email.received_at).toLocaleString('sk')}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {getStatusChip(email.status, email.action_taken)}
+                          </TableCell>
+                          <TableCell>
+                            {email.order_number ? (
+                              <Chip
+                                label={email.order_number}
+                                size="small"
+                                variant="outlined"
+                              />
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                -
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" gap={1} flexWrap="wrap">
+                              <Tooltip title="Zobraziť detail">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => viewEmailDetail(email.id)}
+                                >
+                                  <ViewIcon />
+                                </IconButton>
+                              </Tooltip>
+                              
+                              {email.status === 'new' && (
+                                <Tooltip title="Schváliť">
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => approveEmail(email.id)}
+                                      disabled={actionLoading === email.id}
+                                      color="success"
+                                    >
+                                      {actionLoading === email.id ? (
+                                        <CircularProgress size={20} />
+                                      ) : (
+                                        <ApproveIcon />
+                                      )}
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              )}
+
+                              {email.status === 'new' && (
+                                <Tooltip title="Zamietnuť">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => setRejectDialog({ open: true, emailId: email.id })}
+                                    color="error"
+                                  >
+                                    <RejectIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+
+                              <Tooltip title="Archivovať">
                                 <span>
                                   <IconButton
                                     size="small"
-                                    onClick={() => approveEmail(email.id)}
+                                    onClick={() => archiveEmail(email.id)}
                                     disabled={actionLoading === email.id}
-                                    color="success"
                                   >
                                     {actionLoading === email.id ? (
                                       <CircularProgress size={20} />
                                     ) : (
-                                      <ApproveIcon />
+                                      <ArchiveIcon />
                                     )}
                                   </IconButton>
                                 </span>
                               </Tooltip>
-                            )}
 
-                            {email.status === 'new' && (
-                              <Tooltip title="Zamietnuť">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => setRejectDialog({ open: true, emailId: email.id })}
-                                  color="error"
-                                >
-                                  <RejectIcon />
-                                </IconButton>
+                              <Tooltip title="Zmazať">
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => deleteEmail(email.id)}
+                                    disabled={actionLoading === email.id}
+                                    color="error"
+                                  >
+                                    {actionLoading === email.id ? (
+                                      <CircularProgress size={20} />
+                                    ) : (
+                                      <DeleteIcon />
+                                    )}
+                                  </IconButton>
+                                </span>
                               </Tooltip>
-                            )}
-
-                            <Tooltip title="Archivovať">
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => archiveEmail(email.id)}
-                                  disabled={actionLoading === email.id}
-                                >
-                                  {actionLoading === email.id ? (
-                                    <CircularProgress size={20} />
-                                  ) : (
-                                    <ArchiveIcon />
-                                  )}
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-
-                            <Tooltip title="Zmazať">
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => deleteEmail(email.id)}
-                                  disabled={actionLoading === email.id}
-                                  color="error"
-                                >
-                                  {actionLoading === email.id ? (
-                                    <CircularProgress size={20} />
-                                  ) : (
-                                    <DeleteIcon />
-                                  )}
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
 
               {/* Pagination */}
               {totalPages > 1 && (
@@ -1228,6 +1360,13 @@ const EmailManagementDashboard: React.FC = () => {
         onClose={() => setViewDialog({ open: false, email: null })}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            margin: isMobile ? 0 : 2,
+            maxHeight: isMobile ? '100vh' : 'calc(100vh - 64px)',
+          }
+        }}
       >
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={1}>
@@ -1302,7 +1441,18 @@ const EmailManagementDashboard: React.FC = () => {
       </Dialog>
 
       {/* Reject Dialog */}
-      <Dialog open={rejectDialog.open} onClose={() => setRejectDialog({ open: false, emailId: null, isRental: false })}>
+      <Dialog 
+        open={rejectDialog.open} 
+        onClose={() => setRejectDialog({ open: false, emailId: null, isRental: false })}
+        fullScreen={isSmallMobile}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            margin: isMobile ? 1 : 2,
+          }
+        }}
+      >
         <DialogTitle>{rejectDialog.isRental ? 'Zamietnuť prenájom' : 'Zamietnuť email'}</DialogTitle>
         <DialogContent>
           <TextField
