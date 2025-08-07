@@ -2078,19 +2078,19 @@ class PostgresDatabase {
                     console.log('⚠️ Company update error:', companyError.message);
                 }
             }
-            await client.query('UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, category = $5, company_id = $6, pricing = $7, commission = $8, status = $9, year = $10, stk = $11, updated_at = CURRENT_TIMESTAMP WHERE id = $12', [
+            await client.query('UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, category = $5, owner_company_id = $6, pricing = $7, commission = $8, status = $9, year = $10, stk = $11, updated_at = CURRENT_TIMESTAMP WHERE id = $12', [
                 vehicle.brand,
                 vehicle.model,
                 vehicle.licensePlate,
                 vehicle.company,
-                vehicle.category || null, // 🚗 Category
-                vehicle.ownerCompanyId || null, // 🏢 Company ID as UUID string
-                JSON.stringify(vehicle.pricing), // Konverzia na JSON string
-                JSON.stringify(vehicle.commission), // Konverzia na JSON string
+                vehicle.category || null,
+                vehicle.ownerCompanyId || null,
+                JSON.stringify(vehicle.pricing),
+                JSON.stringify(vehicle.commission),
                 vehicle.status,
-                vehicle.year || null, // 📅 Year
-                vehicle.stk || null, // 📋 STK date
-                vehicle.id // UUID as string, not parseInt
+                vehicle.year || null,
+                vehicle.stk || null,
+                vehicle.id
             ]);
             // 🚀 FÁZA 1.3: Cache invalidation po aktualizácii vozidla
             this.invalidateVehicleCache();
