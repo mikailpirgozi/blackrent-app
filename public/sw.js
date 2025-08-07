@@ -636,3 +636,404 @@ async function clearAllCaches() {
   );
   console.log('🗑️ Service Worker: All caches cleared');
 }
+
+// ================================================================================
+// 🔔 PUSH NOTIFICATIONS IMPLEMENTATION
+// ================================================================================
+
+// Push event listener - handle incoming push notifications
+self.addEventListener('push', event => {
+  console.log('🔔 Push notification received:', event);
+  
+  if (!event.data) {
+    console.warn('Push event has no data');
+    return;
+  }
+  
+  try {
+    const data = event.data.json();
+    console.log('📨 Push data:', data);
+    
+    event.waitUntil(handlePushNotification(data));
+  } catch (error) {
+    console.error('❌ Error parsing push data:', error);
+    
+    // Fallback notification
+    event.waitUntil(
+      self.registration.showNotification('BlackRent', {
+        body: 'Máte novú notifikáciu',
+        icon: '/logo192.png',
+        badge: '/favicon.ico',
+        tag: 'fallback'
+      })
+    );
+  }
+});
+
+// Handle push notification display and data processing
+async function handlePushNotification(data) {
+  const {
+    title = 'BlackRent',
+    body = 'Máte novú notifikáciu',
+    icon = '/logo192.png',
+    badge = '/favicon.ico',
+    image,
+    tag = 'default',
+    data: notificationData = {},
+    actions = [],
+    requireInteraction = false,
+    silent = false,
+    vibrate,
+    timestamp = Date.now(),
+    renotify = false,
+    sticky = false
+  } = data;
+  
+  // Enhanced notification options
+  const notificationOptions = {
+    body,
+    icon,
+    badge,
+    image,
+    tag,
+    data: {
+      ...notificationData,
+      timestamp,
+      url: notificationData.url || '/',
+      clickAction: notificationData.clickAction || 'open_app'
+    },
+    actions: actions.map(action => ({
+      action: action.action,
+      title: action.title,
+      icon: action.icon
+    })),
+    requireInteraction,
+    silent,
+    renotify,
+    sticky,
+    vibrate: vibrate || [200, 100, 200], // Default vibration pattern
+    timestamp,
+    
+    // Additional options for better UX
+    dir: 'ltr',
+    lang: 'sk',
+    
+    // Custom styling
+    color: '#1976d2', // BlackRent brand color
+  };
+  
+  // Show the notification
+  await self.registration.showNotification(title, notificationOptions);
+  
+  // Track notification display
+  await trackNotificationEvent('displayed', {
+    title,
+    tag,
+    timestamp,
+    data: notificationData
+  });
+  
+  console.log('✅ Push notification displayed:', title);
+}
+
+// Notification click event handler
+self.addEventListener('notificationclick', event => {
+  console.log('👆 Notification clicked:', event.notification);
+  
+  const notification = event.notification;
+  const action = event.action;
+  const data = notification.data || {};
+  
+  // Close the notification
+  notification.close();
+  
+  // Handle different actions
+  event.waitUntil(handleNotificationClick(action, data, notification));
+});
+
+// Handle notification click actions
+async function handleNotificationClick(action, data, notification) {
+  const { url = '/', clickAction = 'open_app' } = data;
+  
+  // Track click event
+  await trackNotificationEvent('clicked', {
+    action,
+    tag: notification.tag,
+    timestamp: Date.now(),
+    data
+  });
+  
+  // Handle different actions
+  switch (action) {
+    case 'view_rental':
+      await openWindow(`/rentals/${data.rentalId}`);
+      break;
+      
+    case 'view_vehicle':
+      await openWindow(`/vehicles/${data.vehicleId}`);
+      break;
+      
+    case 'view_customer':
+      await openWindow(`/customers/${data.customerId}`);
+      break;
+      
+    case 'approve_rental':
+      await handleRentalAction('approve', data.rentalId);
+      break;
+      
+    case 'reject_rental':
+      await handleRentalAction('reject', data.rentalId);
+      break;
+      
+    case 'mark_read':
+      await markNotificationRead(data.notificationId);
+      break;
+      
+    case 'dismiss':
+      // Just dismiss - already closed
+      break;
+      
+    default:
+      // Default action - open app
+      await openWindow(url);
+      break;
+  }
+}
+
+// Open or focus app window
+async function openWindow(url) {
+  const fullUrl = new URL(url, self.location.origin).href;
+  
+  try {
+    // Try to focus existing window
+    const windowClients = await clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    });
+    
+    // Look for existing window with the same URL
+    for (const client of windowClients) {
+      if (client.url === fullUrl && 'focus' in client) {
+        console.log('🎯 Focusing existing window:', fullUrl);
+        return client.focus();
+      }
+    }
+    
+    // Look for any BlackRent window to navigate
+    for (const client of windowClients) {
+      if (client.url.includes(self.location.origin) && 'navigate' in client) {
+        console.log('🔄 Navigating existing window to:', fullUrl);
+        await client.navigate(fullUrl);
+        return client.focus();
+      }
+    }
+    
+    // Open new window
+    console.log('🆕 Opening new window:', fullUrl);
+    return clients.openWindow(fullUrl);
+    
+  } catch (error) {
+    console.error('❌ Error opening window:', error);
+    // Fallback - try to open new window
+    return clients.openWindow(fullUrl);
+  }
+}
+
+// Handle rental-specific actions
+async function handleRentalAction(action, rentalId) {
+  try {
+    const apiUrl = `${self.location.origin}/api/rentals/${rentalId}/${action}`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Note: In production, you'd need to handle authentication
+      }
+    });
+    
+    if (response.ok) {
+      console.log(`✅ Rental ${action} successful for ${rentalId}`);
+      
+      // Show success notification
+      await self.registration.showNotification('BlackRent', {
+        body: `Prenájom bol ${action === 'approve' ? 'schválený' : 'zamietnutý'}`,
+        icon: '/logo192.png',
+        tag: `rental-${action}-success`,
+        actions: [
+          {
+            action: 'view_rental',
+            title: 'Zobraziť prenájom'
+          }
+        ],
+        data: { rentalId, url: `/rentals/${rentalId}` }
+      });
+      
+    } else {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+  } catch (error) {
+    console.error(`❌ Error ${action} rental:`, error);
+    
+    // Show error notification
+    await self.registration.showNotification('BlackRent - Chyba', {
+      body: `Nepodarilo sa ${action === 'approve' ? 'schváliť' : 'zamietnuť'} prenájom`,
+      icon: '/logo192.png',
+      tag: `rental-${action}-error`,
+      requireInteraction: true
+    });
+  }
+}
+
+// Mark notification as read
+async function markNotificationRead(notificationId) {
+  if (!notificationId) return;
+  
+  try {
+    const apiUrl = `${self.location.origin}/api/notifications/${notificationId}/read`;
+    
+    await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log(`✅ Notification ${notificationId} marked as read`);
+    
+  } catch (error) {
+    console.error('❌ Error marking notification as read:', error);
+  }
+}
+
+// Notification close event handler
+self.addEventListener('notificationclose', event => {
+  console.log('❌ Notification closed:', event.notification.tag);
+  
+  // Track close event
+  const notification = event.notification;
+  const data = notification.data || {};
+  
+  event.waitUntil(
+    trackNotificationEvent('closed', {
+      tag: notification.tag,
+      timestamp: Date.now(),
+      data
+    })
+  );
+});
+
+// Track notification events for analytics
+async function trackNotificationEvent(eventType, eventData) {
+  try {
+    // Store event in IndexedDB for analytics
+    const event = {
+      type: eventType,
+      timestamp: Date.now(),
+      data: eventData
+    };
+    
+    console.log('📊 Notification event tracked:', event);
+    
+    // Optional: Send to backend analytics
+    if ('navigator' in self && navigator.onLine) {
+      await sendNotificationAnalytics(event);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error tracking notification event:', error);
+  }
+}
+
+// Send notification analytics to backend
+async function sendNotificationAnalytics(event) {
+  try {
+    const apiUrl = `${self.location.origin}/api/analytics/notifications`;
+    
+    await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(event)
+    });
+    
+  } catch (error) {
+    console.warn('Analytics send failed (will retry later):', error);
+  }
+}
+
+// Push subscription change handler
+self.addEventListener('pushsubscriptionchange', event => {
+  console.log('🔄 Push subscription changed');
+  
+  event.waitUntil(
+    handlePushSubscriptionChange(event.oldSubscription, event.newSubscription)
+  );
+});
+
+// Handle push subscription changes
+async function handlePushSubscriptionChange(oldSubscription, newSubscription) {
+  try {
+    console.log('Old subscription:', oldSubscription);
+    console.log('New subscription:', newSubscription);
+    
+    // Update subscription on server
+    if (newSubscription) {
+      await updatePushSubscription(newSubscription);
+    } else {
+      // Resubscribe
+      const registration = await self.registration;
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: await getVAPIDPublicKey()
+      });
+      
+      await updatePushSubscription(subscription);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error handling subscription change:', error);
+  }
+}
+
+// Update push subscription on server
+async function updatePushSubscription(subscription) {
+  try {
+    const apiUrl = `${self.location.origin}/api/push/subscription`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        timestamp: Date.now(),
+        userAgent: navigator.userAgent
+      })
+    });
+    
+    if (response.ok) {
+      console.log('✅ Push subscription updated');
+    } else {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error updating push subscription:', error);
+  }
+}
+
+// Get VAPID public key from server
+async function getVAPIDPublicKey() {
+  try {
+    const response = await fetch(`${self.location.origin}/api/push/vapid-key`);
+    const data = await response.json();
+    return data.publicKey;
+  } catch (error) {
+    console.error('❌ Error getting VAPID key:', error);
+    return null;
+  }
+}

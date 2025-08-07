@@ -140,6 +140,7 @@ const email_webhook_1 = __importDefault(require("./routes/email-webhook"));
 const email_imap_1 = __importDefault(require("./routes/email-imap"));
 const email_management_1 = __importDefault(require("./routes/email-management"));
 const cache_1 = __importDefault(require("./routes/cache"));
+const push_1 = __importDefault(require("./routes/push"));
 // API routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/vehicles', vehicles_1.default);
@@ -165,6 +166,7 @@ app.use('/api/email-webhook', email_webhook_1.default);
 app.use('/api/email-imap', email_imap_1.default);
 app.use('/api/email-management', email_management_1.default);
 app.use('/api/cache', cache_1.default);
+app.use('/api/push', push_1.default);
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {
     console.log('🧪 Simple test endpoint called');
