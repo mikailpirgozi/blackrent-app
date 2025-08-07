@@ -296,7 +296,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   };
 
   // Handle day click - enhanced functionality for better UX
-  const handleDayClick = (date: string, vehicleStatus: VehicleAvailability | undefined, vehicleId: string, event?: React.MouseEvent) => {
+  const handleDayClick = (date: string, vehicleStatus: VehicleAvailability | undefined, vehicleId: string, event?: any) => {
+    // Prevencia pred default touch/click správaním na mobile (niekedy spôsobuje reload/navigáciu)
+    try {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+    } catch {}
     console.log('📅 Day clicked:', { date, vehicleStatus, vehicleId });
     
     if (event?.ctrlKey || event?.metaKey) {
@@ -1301,7 +1306,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         leaveTouchDelay={0}
                       >
                         <Box 
-                          onClick={(e) => handleDayClick(day.date, vehicleStatus, vehicle.id, e)}
+                          onTouchStart={(e) => { if (isMobile) { e.preventDefault(); e.stopPropagation(); } }}
+                          onTouchEnd={(e) => { if (isMobile) { e.preventDefault(); e.stopPropagation(); handleDayClick(day.date, vehicleStatus, vehicle.id, e); } }}
+                          onClick={(e) => { handleDayClick(day.date, vehicleStatus, vehicle.id, e); }}
                           sx={{ 
                             textAlign: 'center',
                             p: 0.25,
@@ -1657,8 +1664,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       enterTouchDelay={0}
                       leaveTouchDelay={0}
                     >
-                      <Box 
-                        onClick={(e) => handleDayClick(day.date, vehicleStatus, vehicle.id, e)}
+                        <Box 
+                          onTouchStart={(e) => { if (isMobile) { e.preventDefault(); e.stopPropagation(); } }}
+                          onTouchEnd={(e) => { if (isMobile) { e.preventDefault(); e.stopPropagation(); handleDayClick(day.date, vehicleStatus, vehicle.id, e); } }}
+                          onClick={(e) => { handleDayClick(day.date, vehicleStatus, vehicle.id, e); }}
                         sx={{ 
                           textAlign: 'center',
                           p: 1,
