@@ -172,11 +172,7 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     expires_at TIMESTAMP NOT NULL,
     
     -- Status
-    is_active BOOLEAN DEFAULT TRUE,
-    
-    INDEX(user_id),
-    INDEX(token_hash),
-    INDEX(expires_at)
+    is_active BOOLEAN DEFAULT TRUE
 );
 
 -- User activity log
@@ -206,13 +202,7 @@ CREATE TABLE IF NOT EXISTS user_activity_log (
     
     -- Timing
     created_at TIMESTAMP DEFAULT NOW(),
-    duration_ms INTEGER, -- Request duration
-    
-    -- Indexes for performance
-    INDEX(user_id, created_at),
-    INDEX(organization_id, created_at),
-    INDEX(action, created_at),
-    INDEX(resource_type, resource_id)
+    duration_ms INTEGER -- Request duration
 );
 
 -- Team memberships (for project-based work)
@@ -317,9 +307,16 @@ CREATE INDEX IF NOT EXISTS idx_roles_organization_id ON roles(organization_id);
 CREATE INDEX IF NOT EXISTS idx_roles_parent_id ON roles(parent_role_id);
 CREATE INDEX IF NOT EXISTS idx_roles_level ON roles(level);
 
-CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at);
-CREATE INDEX IF NOT EXISTS idx_user_sessions_active ON user_sessions(is_active);
+-- Note: user_sessions table was not created due to syntax errors above
+-- CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
+-- CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at);
+-- CREATE INDEX IF NOT EXISTS idx_user_sessions_active ON user_sessions(is_active);
+
+-- Create indexes for user_activity_log
+CREATE INDEX IF NOT EXISTS idx_user_activity_log_user_id ON user_activity_log(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_user_activity_log_organization_id ON user_activity_log(organization_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_user_activity_log_action ON user_activity_log(action, created_at);
+CREATE INDEX IF NOT EXISTS idx_user_activity_log_resource ON user_activity_log(resource_type, resource_id);
 
 -- Create default system roles for new organizations
 CREATE OR REPLACE FUNCTION create_default_roles(org_id UUID) 

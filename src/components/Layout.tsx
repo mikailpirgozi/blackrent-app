@@ -78,6 +78,7 @@ const allMenuItems = [
   { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'finances' as const },
   { text: 'Poistky/STK/Dialničné', icon: <SecurityOutlined />, path: '/insurances', resource: 'insurances' as const },
   { text: 'Správa používateľov', icon: <AdminPanelSettingsOutlined />, path: '/users', resource: 'users' as const },
+  { text: 'Pokročilá správa používateľov', icon: <People />, path: '/advanced-users', resource: 'users' as const },
   // { text: 'Transfer vlastníctva', icon: <SwapHoriz />, path: '/admin/vehicle-ownership', resource: 'admin' as const }, // DEAKTIVOVANÉ - nepoužíva sa
   { text: 'Štatistiky', icon: <DashboardOutlined />, path: '/statistics', resource: 'finances' as const }, // statistics need finance access
 ];
