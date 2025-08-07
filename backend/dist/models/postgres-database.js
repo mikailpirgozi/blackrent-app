@@ -2815,13 +2815,13 @@ class PostgresDatabase {
             const result = await client.query('SELECT * FROM insurances ORDER BY created_at DESC');
             return result.rows.map(row => ({
                 id: row.id?.toString() || '',
-                vehicleId: row.vehicle_id?.toString() || '',
+                vehicleId: row.rental_id?.toString() || '', // Mapovanie rental_id na vehicleId pre kompatibilitu
                 type: row.type,
                 policyNumber: row.policy_number || '',
-                validFrom: new Date(row.valid_from),
-                validTo: new Date(row.valid_to),
-                price: parseFloat(row.price) || 0,
-                company: row.company,
+                validFrom: row.start_date ? new Date(row.start_date) : new Date(),
+                validTo: row.end_date ? new Date(row.end_date) : new Date(),
+                price: parseFloat(row.premium) || 0,
+                company: row.company || '', // company stĺpec možno neexistuje v DB
                 paymentFrequency: row.payment_frequency || 'yearly',
                 filePath: row.file_path || undefined
             }));
@@ -2870,20 +2870,20 @@ class PostgresDatabase {
     async updateInsurance(id, insuranceData) {
         const client = await this.pool.connect();
         try {
-            const result = await client.query('UPDATE insurances SET vehicle_id = $1, type = $2, policy_number = $3, valid_from = $4, valid_to = $5, price = $6, company = $7, payment_frequency = $8, file_path = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10 RETURNING id, vehicle_id, type, policy_number, valid_from, valid_to, price, company, payment_frequency, file_path', [insuranceData.vehicleId, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.company, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, id]);
+            const result = await client.query('UPDATE insurances SET type = $1, policy_number = $2, start_date = $3, end_date = $4, premium = $5, coverage_amount = $6, payment_frequency = $7, file_path = $8 WHERE id = $9 RETURNING id, rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path', [insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, id]);
             if (result.rows.length === 0) {
                 throw new Error('Poistka nebola nájdená');
             }
             const row = result.rows[0];
             return {
                 id: row.id.toString(),
-                vehicleId: row.vehicle_id,
+                vehicleId: insuranceData.vehicleId || '', // Zachovávame pre kompatibilitu API
                 type: row.type,
                 policyNumber: row.policy_number || '',
-                validFrom: new Date(row.valid_from),
-                validTo: new Date(row.valid_to),
-                price: parseFloat(row.price) || 0,
-                company: row.company,
+                validFrom: new Date(row.start_date),
+                validTo: new Date(row.end_date),
+                price: parseFloat(row.premium) || 0,
+                company: insuranceData.company || '', // Zachovávame pre kompatibilitu API
                 paymentFrequency: row.payment_frequency || 'yearly',
                 filePath: row.file_path || undefined
             };
