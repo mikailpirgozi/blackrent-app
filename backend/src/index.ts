@@ -119,6 +119,7 @@ import emailWebhookRoutes from './routes/email-webhook';
 import emailImapRoutes from './routes/email-imap';
 import emailManagementRoutes from './routes/email-management';
 import cacheRoutes from './routes/cache';
+import pushRoutes from './routes/push';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -145,6 +146,7 @@ app.use('/api/email-webhook', emailWebhookRoutes);
 app.use('/api/email-imap', emailImapRoutes);
 app.use('/api/email-management', emailManagementRoutes);
 app.use('/api/cache', cacheRoutes);
+app.use('/api/push', pushRoutes);
 
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {
