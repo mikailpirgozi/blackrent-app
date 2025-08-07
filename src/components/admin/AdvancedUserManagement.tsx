@@ -1527,7 +1527,7 @@ const AdvancedUserManagement: React.FC = () => {
                                       const existingIndex = newPermissions.findIndex(p => p.companyId === company.id);
                                       
                                       if (existingIndex >= 0) {
-                                        newPermissions[existingIndex].permissions[resource].read = e.target.checked;
+                                        (newPermissions[existingIndex].permissions as any)[resource].read = e.target.checked;
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
@@ -1544,7 +1544,7 @@ const AdvancedUserManagement: React.FC = () => {
                                             statistics: { read: false, write: false, delete: false }
                                           }
                                         };
-                                        newPerm.permissions[resource].read = e.target.checked;
+                                        (newPerm.permissions as any)[resource].read = e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
                                       
@@ -1564,7 +1564,7 @@ const AdvancedUserManagement: React.FC = () => {
                                       const existingIndex = newPermissions.findIndex(p => p.companyId === company.id);
                                       
                                       if (existingIndex >= 0) {
-                                        newPermissions[existingIndex].permissions[resource].write = e.target.checked;
+                                        (newPermissions[existingIndex].permissions as any)[resource].write = e.target.checked;
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
@@ -1581,7 +1581,7 @@ const AdvancedUserManagement: React.FC = () => {
                                             statistics: { read: false, write: false, delete: false }
                                           }
                                         };
-                                        newPerm.permissions[resource].write = e.target.checked;
+                                        (newPerm.permissions as any)[resource].write = e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
                                       
@@ -1601,7 +1601,7 @@ const AdvancedUserManagement: React.FC = () => {
                                       const existingIndex = newPermissions.findIndex(p => p.companyId === company.id);
                                       
                                       if (existingIndex >= 0) {
-                                        newPermissions[existingIndex].permissions[resource].delete = e.target.checked;
+                                        (newPermissions[existingIndex].permissions as any)[resource].delete = e.target.checked;
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
@@ -1618,7 +1618,7 @@ const AdvancedUserManagement: React.FC = () => {
                                             statistics: { read: false, write: false, delete: false }
                                           }
                                         };
-                                        newPerm.permissions[resource].delete = e.target.checked;
+                                        (newPerm.permissions as any)[resource].delete = e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
                                       
