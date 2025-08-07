@@ -430,24 +430,18 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
 
   return (
     <Box sx={{ 
-      position: 'fixed', 
-      top: 0, 
-      left: 0, 
-      right: 0, 
-      bottom: 0, 
-      bgcolor: 'background.default', 
-      zIndex: 1300,
-      overflowY: 'auto',
-      p: 2
+      width: '100%',
+      maxWidth: '100%'
     }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" color="text.primary">
-          Odovzdávací protokol - {currentVehicle?.licensePlate || 'Vozidlo'}
+      {/* Vehicle Info Header */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" color="text.primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <DirectionsCar />
+          {currentVehicle?.licensePlate || 'Vozidlo'} - {currentVehicle?.brand} {currentVehicle?.model}
         </Typography>
-        <IconButton onClick={onClose} size="large">
-          <Close />
-        </IconButton>
+        <Typography variant="body2" color="text.secondary">
+          Zákazník: {rental.customer?.name || rental.customerName}
+        </Typography>
       </Box>
 
       {loading && (
