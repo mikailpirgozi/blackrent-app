@@ -19,6 +19,21 @@
     },
 
     {
+      "src": "/sw.js",
+      "dest": "/sw.js",
+      "headers": {
+        "cache-control": "public, max-age=0, must-revalidate"
+      }
+    },
+    {
+      "src": "/offline.html",
+      "dest": "/offline.html",
+      "headers": {
+        "cache-control": "public, max-age=0, must-revalidate"
+      }
+    },
+
+    {
       "src": "/favicon.ico",
       "dest": "/favicon.ico"
     },

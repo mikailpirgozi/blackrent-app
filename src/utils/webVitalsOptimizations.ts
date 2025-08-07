@@ -140,17 +140,38 @@ export const optimizeFID = () => {
 
   // Preload JavaScript modules
   const preloadModules = () => {
-    const criticalModules = [
-      '/static/js/main.js',
-      '/static/js/vendor.js',
-    ];
+    const tryPreloadFromManifest = async () => {
+      try {
+        const res = await fetch('/asset-manifest.json', { cache: 'no-store' });
+        if (!res.ok) return;
+        const manifest = await res.json();
+        const modules: string[] = [];
 
-    criticalModules.forEach(module => {
-      const link = document.createElement('link');
-      link.rel = 'modulepreload';
-      link.href = module;
-      document.head.appendChild(link);
-    });
+        if (Array.isArray(manifest.entrypoints)) {
+          manifest.entrypoints
+            .filter((p: string) => p.endsWith('.js'))
+            .forEach((p: string) => modules.push(p));
+        } else if (manifest.files) {
+          for (const key of Object.keys(manifest.files)) {
+            if (key.endsWith('.js')) {
+              modules.push(manifest.files[key]);
+            }
+          }
+        }
+
+        Array.from(new Set(modules)).forEach((module) => {
+          const link = document.createElement('link');
+          link.rel = 'modulepreload';
+          link.href = module;
+          document.head.appendChild(link);
+        });
+      } catch (_) {
+        // nič – ak manifest nie je dostupný, nepreloadujeme
+      }
+    };
+
+    // spusti asynchrónne, neblokovať
+    void tryPreloadFromManifest();
   };
 
   return {
