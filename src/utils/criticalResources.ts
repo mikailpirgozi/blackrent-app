@@ -32,15 +32,11 @@ class CriticalResourceManager {
       '/favicon.ico',
     ],
     important: [
-      // Above-the-fold icons
+      // Above-the-fold fonts; CSS doplníme dynamicky z asset-manifestu
       '/assets/fonts/aeonik-bold.woff2',
-      // Critical CSS chunks
-      '/static/css/main.css',
     ],
     normal: [
-      // Main JS chunks
-      '/static/js/main.js',
-      '/static/js/vendor.js',
+      // Main JS chunks (dynamicky z asset-manifestu; fallback prázdny)
     ],
     low: [
       // Non-critical icons and images
@@ -155,12 +151,58 @@ class CriticalResourceManager {
 
       criticalOrigins.forEach(origin => this.preconnect(origin, true));
 
-      // 3. Load critical resources in priority order
+      // 3. Najprv sa pokús o načítanie dynamických bundlov z asset-manifest.json
+      await this.hydrateFromAssetManifest();
+
+      // 4. Load critical resources in priority order
       await this.loadResourcesByPriority();
 
       console.log('✅ Critical resources initialized');
     } catch (error) {
       console.error('❌ Failed to initialize critical resources:', error);
+    }
+  }
+
+  // Načíta dynamické cesty bundlov z CRA asset-manifest.json (ak existuje)
+  private async hydrateFromAssetManifest(): Promise<void> {
+    try {
+      const res = await fetch('/asset-manifest.json', { cache: 'no-store' });
+      if (!res.ok) return;
+      const manifest = await res.json();
+
+      // CRA poskytuje buď files/main, alebo entrypoints pole
+      const normalResources: string[] = [];
+      const cssResources: string[] = [];
+
+      if (Array.isArray(manifest.entrypoints)) {
+        manifest.entrypoints.forEach((p: string) => {
+          if (p.endsWith('.js')) normalResources.push(p);
+          if (p.endsWith('.css')) cssResources.push(p);
+        });
+      } else if (manifest.files) {
+        for (const key of Object.keys(manifest.files)) {
+          if (key.endsWith('.js')) normalResources.push(manifest.files[key]);
+          if (key.endsWith('.css')) cssResources.push(manifest.files[key]);
+        }
+      }
+
+      // Odstráň duplikáty a priraď
+      this.resourcePriorities.normal = Array.from(new Set(normalResources));
+      // Zachovaj už existujúce fonty v important a pridaj CSS
+      const existingImportant = this.resourcePriorities.important.filter(
+        (p) => !p.endsWith('.css')
+      );
+      this.resourcePriorities.important = [
+        ...existingImportant,
+        ...Array.from(new Set(cssResources)),
+      ];
+    } catch (_) {
+      // Ticho zlyhaj – v najhoršom prípade len nepreloadneme nič
+      this.resourcePriorities.normal = [];
+      // CSS nepreloadujeme, nechaj iba fonty
+      this.resourcePriorities.important = this.resourcePriorities.important.filter(
+        (p) => !p.endsWith('.css')
+      );
     }
   }
 
