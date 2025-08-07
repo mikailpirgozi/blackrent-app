@@ -853,8 +853,28 @@ export default function RentalListNew() {
         return newProtocols;
       });
       await loadProtocolsForRental(protocolData.rentalId);
+
+      // ✅ OPTIMISTIC UPDATE BULK-STATUS
+      setProtocolStatusMap(prev => ({
+        ...prev,
+        [protocolData.rentalId]: {
+          hasHandoverProtocol: true,
+          hasReturnProtocol: prev[protocolData.rentalId]?.hasReturnProtocol || false,
+        }
+      }));
+
+      // 🔄 REFRESH BULK-STATUS NA POZADÍ (zosúladenie s backendom)
+      setTimeout(() => {
+        try {
+          // dočasne povoliť refresh aj keď už bolo raz načítané
+          setProtocolStatusLoaded(false);
+          loadProtocolStatusInBackground();
+        } catch (e) {
+          console.warn('Bulk-status refresh after handover failed:', e);
+        }
+      }, 100);
       
-              alert('Odovzdávací protokol úspešne dokončený!');
+      alert('Odovzdávací protokol úspešne dokončený!');
       setOpenHandoverDialog(false);
       setSelectedRentalForProtocol(null);
     } catch (error) {
