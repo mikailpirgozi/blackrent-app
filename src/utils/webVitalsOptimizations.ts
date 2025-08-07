@@ -5,21 +5,7 @@
 export const optimizeLCP = () => {
   // Preload critical resources
   const preloadCriticalResources = () => {
-    // Preload critical fonts
-    const fonts = [
-      '/assets/fonts/aeonik-bold.woff2',
-      '/assets/fonts/aeonik-regular.woff2',
-    ];
-    
-    fonts.forEach(font => {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'font';
-      link.type = 'font/woff2';
-      link.href = font;
-      link.crossOrigin = 'anonymous';
-      document.head.appendChild(link);
-    });
+    // Preload kritických fontov neriadime ručne – nechá sa to na bundler a CSS
 
     // Preload critical images
     const criticalImages = document.querySelectorAll('img[data-critical="true"]');
@@ -218,21 +204,7 @@ export const optimizeCLS = () => {
     document.head.appendChild(style);
 
     // Preload critical fonts
-    const fonts = [
-      { family: 'Inter', weight: '400', src: '/assets/fonts/inter-regular.woff2' },
-      { family: 'Inter', weight: '600', src: '/assets/fonts/inter-semibold.woff2' },
-      { family: 'Aeonik', weight: '700', src: '/assets/fonts/aeonik-bold.woff2' },
-    ];
-
-    fonts.forEach(font => {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'font';
-      link.type = 'font/woff2';
-      link.href = font.src;
-      link.crossOrigin = 'anonymous';
-      document.head.appendChild(link);
-    });
+    // Font preloads sa vypínajú – prediď 404/OTS chybám pri hashovaných cestách
   };
 
   // Reserve space for dynamic content

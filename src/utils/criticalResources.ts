@@ -24,16 +24,12 @@ class CriticalResourceManager {
   // Resource priorities configuration
   private resourcePriorities: ResourcePriority = {
     critical: [
-      // Critical fonts for FOIT prevention
-      '/assets/fonts/inter-regular.woff2',
-      '/assets/fonts/inter-semibold.woff2',
       // Critical images above the fold
       '/logo192.png',
       '/favicon.ico',
     ],
     important: [
-      // Above-the-fold fonts; CSS doplníme dynamicky z asset-manifestu
-      '/assets/fonts/aeonik-bold.woff2',
+      // CSS doplníme dynamicky z asset-manifestu
     ],
     normal: [
       // Main JS chunks (dynamicky z asset-manifestu; fallback prázdny)
@@ -451,22 +447,7 @@ export class CriticalCSSManager {
         height: auto;
       }
       
-      /* Font loading optimization */
-      @font-face {
-        font-family: 'Inter';
-        font-display: swap;
-        font-style: normal;
-        font-weight: 400;
-        src: url('/assets/fonts/inter-regular.woff2') format('woff2');
-      }
-      
-      @font-face {
-        font-family: 'Inter';
-        font-display: swap;
-        font-style: normal;
-        font-weight: 600;
-        src: url('/assets/fonts/inter-semibold.woff2') format('woff2');
-      }
+      /* Font loading optimization: Inter je načítané cez Google Fonts v index.html */
     `;
   }
 
