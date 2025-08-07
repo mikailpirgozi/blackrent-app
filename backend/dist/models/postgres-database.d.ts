@@ -303,7 +303,7 @@ export declare class PostgresDatabase {
         permissions: CompanyPermissions;
     }[]>;
     resetDatabase(): Promise<number>;
-    getCompanyIdByName(companyName: string): Promise<number | null>;
+    getCompanyIdByName(companyName: string): Promise<string | null>;
     getCompanyNameById(companyId: string): Promise<string | null>;
     getAllCompanies(): Promise<{
         id: string;

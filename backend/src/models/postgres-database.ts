@@ -2909,7 +2909,7 @@ export class PostgresDatabase {
           extra_kilometer_rate = $13
         WHERE id = $14
         `, [
-          rental.vehicleId ? parseInt(rental.vehicleId.toString()) : null,
+          rental.vehicleId || null, // UUID as string, not parseInt
           rental.customerName, 
           rental.startDate, 
           rental.endDate,
@@ -2922,7 +2922,7 @@ export class PostgresDatabase {
           rental.deposit || null,
           rental.allowedKilometers || null,
           rental.extraKilometerRate || null,
-          parseInt(rental.id.toString())
+          rental.id // UUID as string, not parseInt
         ]);
         
         console.log(`✅ RENTAL UPDATE SUCCESS: ${rental.id} (${result.rowCount} row updated)`);
@@ -4069,7 +4069,7 @@ export class PostgresDatabase {
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
         ) RETURNING *
       `, [
-        parseInt(protocolData.rentalId.toString()), // Convert to integer for rental_id
+        protocolData.rentalId, // UUID as string, not parseInt
         protocolData.location || '',
         protocolData.vehicleCondition?.odometer || 0,
         protocolData.vehicleCondition?.fuelLevel || 100,
@@ -4135,9 +4135,9 @@ export class PostgresDatabase {
       
       const result = await client.query(`
         SELECT * FROM handover_protocols 
-        WHERE rental_id = $1::integer 
+        WHERE rental_id = $1 
         ORDER BY created_at DESC
-      `, [parseInt(rentalId)]);
+      `, [rentalId]);
 
       return result.rows.map(row => this.mapHandoverProtocolFromDB(row));
 
@@ -4254,9 +4254,9 @@ export class PostgresDatabase {
       
       const result = await client.query(`
         SELECT * FROM return_protocols 
-        WHERE rental_id = $1::integer 
+        WHERE rental_id = $1 
         ORDER BY created_at DESC
-      `, [parseInt(rentalId)]);
+      `, [rentalId]);
 
       return result.rows.map(row => this.mapReturnProtocolFromDB(row));
 
@@ -5679,13 +5679,13 @@ export class PostgresDatabase {
   }
 
   // 🔄 COMPANY MAPPING FUNCTIONS
-  async getCompanyIdByName(companyName: string): Promise<number | null> {
+  async getCompanyIdByName(companyName: string): Promise<string | null> {
     const client = await this.pool.connect();
     try {
       // 1. Skús najprv presný názov
       const exactResult = await client.query('SELECT id FROM companies WHERE name = $1', [companyName]);
       if (exactResult.rows.length > 0) {
-        const companyId = parseInt(exactResult.rows[0].id);
+        const companyId = exactResult.rows[0].id; // UUID as string, not parseInt
         console.log(`✅ Company found (exact): "${companyName}" ID: ${companyId}`);
         return companyId;
       }
@@ -5697,7 +5697,7 @@ export class PostgresDatabase {
         [companyName]
       );
       
-      const newCompanyId = parseInt(insertResult.rows[0].id);
+      const newCompanyId = insertResult.rows[0].id; // UUID as string, not parseInt
       console.log(`✅ Company created: "${companyName}" ID: ${newCompanyId}`);
       return newCompanyId;
       
