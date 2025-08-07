@@ -86,6 +86,7 @@ router.post('/',
   checkPermission('expenses', 'create'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
+    console.log('💰 EXPENSE CREATE START:', { body: req.body, user: req.user?.username });
     const { description, amount, date, vehicleId, company, category, note } = req.body;
 
     // Povinné je len description
@@ -95,6 +96,16 @@ router.post('/',
         error: 'Popis nákladu je povinný'
       });
     }
+
+    console.log('💰 EXPENSE CREATE DATA:', {
+      description: description.toString().trim(),
+      amount: amount && !isNaN(Number(amount)) ? Number(amount) : 0,
+      date: date ? new Date(date) : new Date(),
+      vehicleId: vehicleId || undefined,
+      company: company && company.toString().trim() !== '' ? company.toString().trim() : 'Neznáma firma',
+      category: category && ['service', 'insurance', 'fuel', 'other'].includes(category) ? category : 'other',
+      note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
+    });
 
     const createdExpense = await postgresDatabase.createExpense({
       description: description.toString().trim(),
@@ -112,8 +123,9 @@ router.post('/',
       data: createdExpense
     });
 
-  } catch (error) {
-    console.error('Create expense error:', error);
+  } catch (error: any) {
+    console.error('❌ EXPENSE CREATE ERROR:', error);
+    console.error('❌ EXPENSE ERROR STACK:', error.stack);
     res.status(500).json({
       success: false,
       error: 'Chyba pri vytváraní nákladu'

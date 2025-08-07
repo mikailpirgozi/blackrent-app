@@ -227,10 +227,10 @@ router.post('/handover', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Rental ID is required' });
     }
     
-    // UUID validácia pre rental ID
-    if (!isValidUUID(protocolData.rentalId)) {
+    // Rental ID validácia (môže byť integer alebo UUID string)
+    if (!protocolData.rentalId || (isNaN(Number(protocolData.rentalId)) && !isValidUUID(protocolData.rentalId))) {
       console.error('❌ Invalid rental ID format:', protocolData.rentalId);
-      return res.status(400).json({ error: 'Invalid rental ID format. Must be valid UUID.' });
+      return res.status(400).json({ error: 'Invalid rental ID format. Must be valid integer or UUID.' });
     }
     
     // 1. Uloženie protokolu do databázy
@@ -244,9 +244,11 @@ router.post('/handover', authenticateToken, async (req, res) => {
       console.log('⚡ QUICK MODE: Skipping immediate PDF generation');
       
       // Background PDF generation (fire and forget)
+      console.log('🚀 QUICK MODE: Scheduling background PDF generation for protocol:', protocol.id);
       setImmediate(async () => {
         try {
           console.log('🎭 Background: Starting PDF generation for protocol:', protocol.id);
+          console.log('🎭 Background: Protocol data customer email:', protocolData.rentalData?.customer?.email);
           const pdfBuffer = await generateHandoverPDF(protocolData);
           
           // Uloženie PDF do R2 storage s novou organizáciou
@@ -417,10 +419,10 @@ router.post('/return', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Rental ID is required' });
     }
     
-    // UUID validácia pre rental ID
-    if (!isValidUUID(protocolData.rentalId)) {
+    // Rental ID validácia (môže byť integer alebo UUID string)
+    if (!protocolData.rentalId || (isNaN(Number(protocolData.rentalId)) && !isValidUUID(protocolData.rentalId))) {
       console.error('❌ Invalid rental ID format:', protocolData.rentalId);
-      return res.status(400).json({ error: 'Invalid rental ID format. Must be valid UUID.' });
+      return res.status(400).json({ error: 'Invalid rental ID format. Must be valid integer or UUID.' });
     }
     
     // 1. Uloženie protokolu do databázy
@@ -516,6 +518,7 @@ router.get('/debug/pdf-config', (req: Request, res: Response) => {
     config
   });
 });
+
 
 // 🧪 TEST: Endpoint pre testovanie email služby
 router.get('/debug/test-email', async (req: Request, res: Response) => {

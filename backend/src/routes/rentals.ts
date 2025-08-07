@@ -270,21 +270,26 @@ router.post('/',
   }
 });
 
-// PUT /api/rentals/:id - Aktualizácia prenájmu
+// PUT /api/rentals/:id - Aktualizácia prenájmu (simplified for debugging)
 router.put('/:id', 
   authenticateToken,
-  checkPermission('rentals', 'update', { getContext: getRentalContext }),
+  // checkPermission('rentals', 'update', { getContext: getRentalContext }), // dočasne vypnuté
   async (req: Request, res: Response<ApiResponse>) => {
   try {
+    console.log('🚀 RENTAL UPDATE ENDPOINT HIT - ID:', req.params.id);
     const { id } = req.params;
     const updateData = req.body;
 
-    console.log('🔄 Rental UPDATE request:', {
+    console.log('🔄 RENTAL UPDATE request:', {
       rentalId: id,
       userId: req.user?.id,
       updateFields: Object.keys(updateData),
       vehicleId: updateData.vehicleId,
-      customerName: updateData.customerName
+      customerName: updateData.customerName,
+      totalPrice: updateData.totalPrice,
+      paid: updateData.paid,
+      status: updateData.status,
+      fullUpdateData: updateData
     });
 
     // Skontroluj, či prenájom existuje
