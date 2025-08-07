@@ -77,27 +77,48 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
   const chartData = useMemo(() => {
     if (!stats) return { monthly: [], vehicleStats: [], topCustomers: [] };
 
-    // Monthly revenue data
-    const monthlyData = stats.monthlyStats?.map((month: any, index: number) => ({
-      name: `${index + 1}/${filterYear}`,
-      revenue: month.totalRevenue || 0,
-      rentals: month.totalRentals || 0,
-      commission: month.totalCommission || 0
-    })) || [];
+    // Monthly revenue data - podporuj monthlyStats (mobil starý) alebo monthlyData (desktop nový)
+    const monthlyData = (stats.monthlyStats && Array.isArray(stats.monthlyStats))
+      ? stats.monthlyStats.map((month: any, index: number) => ({
+          name: `${index + 1}/${filterYear}`,
+          revenue: month.totalRevenue || 0,
+          rentals: month.totalRentals || 0,
+          commission: month.totalCommission || 0
+        }))
+      : (stats.monthlyData && Array.isArray(stats.monthlyData))
+        ? stats.monthlyData.map((m: any) => ({
+            name: m.month,
+            revenue: m.revenue || 0,
+            rentals: m.rentals || 0,
+            commission: m.commission || 0
+          }))
+        : [];
 
-    // Vehicle statistics
-    const vehicleData = stats.topVehiclesByRevenue?.slice(0, 5).map((vehicle: any) => ({
-      name: `${vehicle.brand} ${vehicle.model}`,
-      revenue: vehicle.totalRevenue || 0,
-      utilization: vehicle.utilizationRate || 0
-    })) || [];
+    // Vehicle statistics - podporuj topVehiclesByRevenue alebo vehiclesByRevenue (desktop nový)
+    const vehiclesSource = (stats.topVehiclesByRevenue && Array.isArray(stats.topVehiclesByRevenue))
+      ? stats.topVehiclesByRevenue
+      : (stats.vehiclesByRevenue && Array.isArray(stats.vehiclesByRevenue))
+        ? stats.vehiclesByRevenue
+        : [];
 
-    // Top customers
-    const customerData = stats.topCustomersByRevenue?.slice(0, 5).map((customer: any) => ({
-      name: customer.customerName,
-      revenue: customer.totalRevenue || 0,
-      rentals: customer.totalRentals || 0
-    })) || [];
+    const vehicleData = vehiclesSource.slice(0, 5).map((v: any) => ({
+      name: v.name || (v.vehicle ? `${v.vehicle.brand} ${v.vehicle.model}` : `${v.brand ?? ''} ${v.model ?? ''}`.trim()),
+      revenue: v.totalRevenue || v.revenue || 0,
+      utilization: v.utilizationRate || v.utilizationPercentage || 0
+    }));
+
+    // Top customers - podporuj topCustomersByRevenue alebo customersByRevenue (desktop nový)
+    const customersSource = (stats.topCustomersByRevenue && Array.isArray(stats.topCustomersByRevenue))
+      ? stats.topCustomersByRevenue
+      : (stats.customersByRevenue && Array.isArray(stats.customersByRevenue))
+        ? stats.customersByRevenue
+        : [];
+
+    const customerData = customersSource.slice(0, 5).map((c: any) => ({
+      name: c.customerName || c.customer?.name || 'Neznámy zákazník',
+      revenue: c.totalRevenue || c.revenue || 0,
+      rentals: c.totalRentals || c.rentalCount || 0
+    }));
 
     return {
       monthly: monthlyData,
@@ -105,6 +126,25 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
       topCustomers: customerData
     };
   }, [stats, filterYear]);
+
+  // Derivované agregácie pre mobil z desktop štatistík
+  const derivedTotals = useMemo(() => {
+    const rentals = (stats?.filteredRentals && Array.isArray(stats.filteredRentals)) ? stats.filteredRentals : [];
+    const totalRentals = rentals.length || stats?.totalRentals || 0;
+    const activeVehicleIds = new Set<string>();
+    rentals.forEach((r: any) => {
+      if (r.vehicleId) activeVehicleIds.add(r.vehicleId);
+      else if (r.vehicle?.id) activeVehicleIds.add(r.vehicle.id);
+    });
+    const activeVehicles = activeVehicleIds.size;
+    const customerKeys = new Set<string>();
+    rentals.forEach((r: any) => {
+      const key = r.customerId || r.customerName || r.customer?.id;
+      if (key) customerKeys.add(String(key));
+    });
+    const totalCustomers = customerKeys.size;
+    return { totalRentals, activeVehicles, totalCustomers };
+  }, [stats]);
 
   // Get years for filter
   const availableYears = useMemo(() => {
@@ -228,7 +268,7 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
           <Grid item xs={6}>
             <StatisticsCard
               title="Prenájmy"
-              value={stats.totalRentals?.toLocaleString() || 0}
+              value={(derivedTotals.totalRentals || 0).toLocaleString()}
               icon={<ReceiptIcon />}
               color="primary"
               trend={stats.rentalsTrend && {
@@ -243,7 +283,7 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
           <Grid item xs={6}>
             <StatisticsCard
               title="Aktívne vozidlá"
-              value={stats.activeVehicles?.toLocaleString() || 0}
+              value={(derivedTotals.activeVehicles || 0).toLocaleString()}
               icon={<CarIcon />}
               color="info"
               compact
@@ -253,7 +293,7 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
           <Grid item xs={6}>
             <StatisticsCard
               title="Zákazníci"
-              value={stats.totalCustomers?.toLocaleString() || 0}
+              value={(derivedTotals.totalCustomers || 0).toLocaleString()}
               icon={<PersonIcon />}
               color="warning"
               compact
@@ -330,33 +370,43 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
       </Box>
 
       {/* Companies Performance */}
-      {stats.companiesStats && stats.companiesStats.length > 0 && (
-        <Box sx={{ mt: 2 }}>
-          <CollapsibleSection
-            title="Výkon firiem"
-            icon={<BusinessIcon />}
-            color="info"
-            defaultExpanded={expandedSections.has('companies')}
-            badge={stats.companiesStats.length}
-            compact
-          >
-            <Grid container spacing={2}>
-              {stats.companiesStats.slice(0, 3).map((company: any, index: number) => (
-                <Grid item xs={12} key={index}>
-                  <StatisticsCard
-                    title={company.companyName || 'Nezadaná firma'}
-                    value={`€${company.totalRevenue?.toLocaleString() || 0}`}
-                    subtitle={`${company.totalRentals || 0} prenájmov`}
-                    icon={<BusinessIcon />}
-                    color="info"
-                    compact
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </CollapsibleSection>
-        </Box>
-      )}
+      {(() => {
+        const companiesArray = Array.isArray(stats?.companiesStats) ? stats.companiesStats
+          : (stats?.companyStats && typeof stats.companyStats === 'object')
+            ? Object.entries(stats.companyStats).map(([companyName, data]: any) => ({
+                companyName,
+                totalRevenue: data.revenue || 0,
+                totalRentals: data.count || 0,
+              }))
+            : [];
+        return companiesArray && companiesArray.length > 0 ? (
+          <Box sx={{ mt: 2 }}>
+            <CollapsibleSection
+              title="Výkon firiem"
+              icon={<BusinessIcon />}
+              color="info"
+              defaultExpanded={expandedSections.has('companies')}
+              badge={companiesArray.length}
+              compact
+            >
+              <Grid container spacing={2}>
+                {companiesArray.slice(0, 3).map((company: any, index: number) => (
+                  <Grid item xs={12} key={index}>
+                    <StatisticsCard
+                      title={company.companyName || 'Nezadaná firma'}
+                      value={`€${(company.totalRevenue || 0).toLocaleString()}`}
+                      subtitle={`${company.totalRentals || 0} prenájmov`}
+                      icon={<BusinessIcon />}
+                      color="info"
+                      compact
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </CollapsibleSection>
+          </Box>
+        ) : null;
+      })()}
 
       {/* Monthly Calendar View */}
       {timeRange === 'month' && (
