@@ -55,7 +55,7 @@ import {
   NotificationsNone as NotificationIcon,
   CheckCircle,
 } from '@mui/icons-material';
-import { apiService } from '../../services/api';
+import { apiService, API_BASE_URL } from '../../services/api';
 import { Rental } from '../../types';
 
 interface EmailEntry {
@@ -171,7 +171,7 @@ const EmailManagementDashboard: React.FC = () => {
       console.log('🔍 EMAIL DASHBOARD DEBUG:');
       console.log('- Token:', localStorage.getItem('blackrent_token') ? 'EXISTS' : 'MISSING');
       console.log('- Session token:', sessionStorage.getItem('blackrent_token') ? 'EXISTS' : 'MISSING');
-      console.log('- API Base URL:', 'http://localhost:3001/api');
+      console.log('- API Base URL:', API_BASE_URL);
       
       const params = new URLSearchParams({
         limit: pageSize.toString(),
@@ -185,7 +185,7 @@ const EmailManagementDashboard: React.FC = () => {
       
       // TEMPORARY: Direct fetch bypass apiService
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch(`http://localhost:3001/api/email-management?${params}`, {
+      const directResponse = await fetch(`${API_BASE_URL}/email-management?${params}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -224,7 +224,7 @@ const EmailManagementDashboard: React.FC = () => {
       
       // TEMPORARY: Direct fetch bypass apiService
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch('http://localhost:3001/api/email-management/stats/dashboard', {
+      const directResponse = await fetch(`${API_BASE_URL}/email-management/stats/dashboard`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -250,7 +250,7 @@ const EmailManagementDashboard: React.FC = () => {
       console.log('🔍 Loading email detail for:', emailId);
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
-      const directResponse = await fetch(`http://localhost:3001/api/email-management/${emailId}`, {
+      const directResponse = await fetch(`${API_BASE_URL}/email-management/${emailId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -278,7 +278,7 @@ const EmailManagementDashboard: React.FC = () => {
       setActionLoading(emailId);
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
-      const directResponse = await fetch(`http://localhost:3001/api/email-management/${emailId}/approve`, {
+      const directResponse = await fetch(`${API_BASE_URL}/email-management/${emailId}/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -317,7 +317,7 @@ const EmailManagementDashboard: React.FC = () => {
         setActionLoading(rejectDialog.emailId);
         const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
         
-        const directResponse = await fetch(`http://localhost:3001/api/email-management/${rejectDialog.emailId}/reject`, {
+        const directResponse = await fetch(`${API_BASE_URL}/email-management/${rejectDialog.emailId}/reject`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -351,7 +351,7 @@ const EmailManagementDashboard: React.FC = () => {
       setActionLoading(emailId);
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
-      const directResponse = await fetch(`http://localhost:3001/api/email-management/${emailId}/archive`, {
+      const directResponse = await fetch(`${API_BASE_URL}/email-management/${emailId}/archive`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -385,7 +385,7 @@ const EmailManagementDashboard: React.FC = () => {
       setActionLoading(emailId);
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
-      const directResponse = await fetch(`http://localhost:3001/api/email-management/${emailId}`, {
+      const directResponse = await fetch(`${API_BASE_URL}/email-management/${emailId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -414,7 +414,7 @@ const EmailManagementDashboard: React.FC = () => {
   const fetchImapStatus = async () => {
     try {
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch('http://localhost:3001/api/email-imap/status', {
+      const directResponse = await fetch('${API_BASE_URL}/email-imap/status', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -436,7 +436,7 @@ const EmailManagementDashboard: React.FC = () => {
     try {
       setImapLoading(true);
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch('http://localhost:3001/api/email-imap/test', {
+      const directResponse = await fetch('${API_BASE_URL}/email-imap/test', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -464,7 +464,7 @@ const EmailManagementDashboard: React.FC = () => {
     try {
       setImapLoading(true);
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch('http://localhost:3001/api/email-imap/start', {
+      const directResponse = await fetch('${API_BASE_URL}/email-imap/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -489,7 +489,7 @@ const EmailManagementDashboard: React.FC = () => {
     try {
       setImapLoading(true);
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch('http://localhost:3001/api/email-imap/stop', {
+      const directResponse = await fetch('${API_BASE_URL}/email-imap/stop', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

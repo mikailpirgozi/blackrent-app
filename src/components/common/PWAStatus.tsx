@@ -174,8 +174,12 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
       <Box sx={position === 'fixed' ? {
         position: 'fixed',
         top: 16,
-        right: 16,
+        right: 80, // Moved left to avoid profile overlap
         zIndex: 1300,
+        '@media (max-width: 600px)': {
+          right: 16, // On mobile, move closer to edge
+          top: 80,   // Move down to avoid mobile header
+        },
       } : {}}>
         <Tooltip title={statusInfo.description}>
           <Badge
@@ -194,6 +198,10 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
                 fontWeight: 500,
                 '& .MuiChip-icon': {
                   marginLeft: 1,
+                },
+                '@media (max-width: 600px)': {
+                  fontSize: '0.75rem', // Smaller on mobile
+                  height: 28,
                 },
               }}
             />

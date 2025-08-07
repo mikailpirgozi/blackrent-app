@@ -39,8 +39,15 @@ const getApiBaseUrl = () => {
     return 'https://blackrent-app-production-4d6f.up.railway.app/api';
   }
   
-  // V developmente používame localhost port 3001
-  return process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  // V developmente - dynamické API URL pre sieťový prístup
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // Automatická detekcia - použije hostname z prehliadača s portom 3001
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol;
+  return `${protocol}//${hostname}:3001/api`;
 };
 
 export const API_BASE_URL = getApiBaseUrl();

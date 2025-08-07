@@ -70,8 +70,7 @@ const AppContent: React.FC = () => {
       <CssBaseline />
       <ErrorProvider>
         <ErrorToastContainer />
-        <PWAInstallPrompt autoShow={true} delay={10000} />
-        <PWAStatus position="fixed" />
+        {/* PWA Install moved to sidebar - no auto-popup */}
         <OfflineIndicator position="top" showDetails={true} />
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <AuthProvider>

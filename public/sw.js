@@ -73,10 +73,14 @@ self.addEventListener('install', event => {
   
   event.waitUntil(
     Promise.all([
-      // Cache critical assets
+      // Cache critical assets - with error handling
       caches.open(CACHE_NAME).then(cache => {
         console.log('📦 Service Worker: Caching critical assets');
-        return cache.addAll(CRITICAL_ASSETS);
+        return cache.addAll(CRITICAL_ASSETS).catch(err => {
+          console.warn('⚠️ Service Worker: Some critical assets failed to cache:', err.message);
+          // Continue installation even if some assets fail
+          return Promise.resolve();
+        });
       }),
       
       // Initialize other caches
@@ -89,7 +93,9 @@ self.addEventListener('install', event => {
       return self.skipWaiting();
     })
     .catch(error => {
-      console.error('❌ Service Worker: Install failed', error);
+      console.warn('⚠️ Service Worker: Install partially failed, but continuing:', error.message);
+      // Don't throw error - allow SW to install even with partial failures
+      return self.skipWaiting();
     })
   );
 });
