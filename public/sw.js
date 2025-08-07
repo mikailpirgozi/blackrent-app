@@ -1,7 +1,7 @@
 // 🚀 BlackRent Service Worker - Enhanced Performance & PWA Experience
 // Provides offline support, intelligent caching, and performance optimizations
 
-const CACHE_VERSION = '2.0.0';
+const CACHE_VERSION = '2.1.0';
 const CACHE_NAME = `blackrent-v${CACHE_VERSION}`;
 const API_CACHE = `blackrent-api-v${CACHE_VERSION}`;
 const IMAGE_CACHE = `blackrent-images-v${CACHE_VERSION}`;
