@@ -60,7 +60,7 @@ import {
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { Insurance, PaymentFrequency, VehicleDocument, DocumentType } from '../../types';
-import { format, isAfter, addDays, parseISO } from 'date-fns';
+import { format, isAfter, addDays, parseISO, isValid } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
 import InsuranceClaimList from './InsuranceClaimList';
@@ -84,17 +84,26 @@ interface UnifiedDocument {
 }
 
 const getExpiryStatus = (validTo: Date | string) => {
-  const today = new Date();
-  const thirtyDaysFromNow = addDays(today, 30);
-  
-  const validToDate = typeof validTo === 'string' ? parseISO(validTo) : validTo;
-  
-  if (isAfter(today, validToDate)) {
-    return { status: 'expired', color: 'error', text: 'Vypršalo', bgColor: '#ffebee' };
-  } else if (isAfter(validToDate, thirtyDaysFromNow)) {
-    return { status: 'valid', color: 'success', text: 'Platné', bgColor: '#e8f5e8' };
-  } else {
-    return { status: 'expiring', color: 'warning', text: 'Vyprší čoskoro', bgColor: '#fff3e0' };
+  try {
+    const today = new Date();
+    const thirtyDaysFromNow = addDays(today, 30);
+    
+    const validToDate = typeof validTo === 'string' ? parseISO(validTo) : validTo;
+    
+    // Skontroluj, či je dátum platný
+    if (!isValid(validToDate)) {
+      return { status: 'invalid', color: 'default', text: 'Neplatný dátum', bgColor: '#f5f5f5' };
+    }
+    
+    if (isAfter(today, validToDate)) {
+      return { status: 'expired', color: 'error', text: 'Vypršalo', bgColor: '#ffebee' };
+    } else if (isAfter(validToDate, thirtyDaysFromNow)) {
+      return { status: 'valid', color: 'success', text: 'Platné', bgColor: '#e8f5e8' };
+    } else {
+      return { status: 'expiring', color: 'warning', text: 'Vyprší čoskoro', bgColor: '#fff3e0' };
+    }
+  } catch (error) {
+    return { status: 'invalid', color: 'default', text: 'Neplatný dátum', bgColor: '#f5f5f5' };
   }
 };
 
@@ -751,7 +760,14 @@ export default function InsuranceList() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {format(typeof doc.validTo === 'string' ? parseISO(doc.validTo) : doc.validTo, 'dd.MM.yyyy', { locale: sk })}
+                          {(() => {
+                            try {
+                              const date = typeof doc.validTo === 'string' ? parseISO(doc.validTo) : doc.validTo;
+                              return isValid(date) ? format(date, 'dd.MM.yyyy', { locale: sk }) : 'Neplatný dátum';
+                            } catch (error) {
+                              return 'Neplatný dátum';
+                            }
+                          })()}
                         </Typography>
                       </TableCell>
                       <TableCell>
