@@ -249,7 +249,9 @@ router.post('/handover', authenticateToken, async (req, res) => {
         try {
           console.log('🎭 Background: Starting PDF generation for protocol:', protocol.id);
           console.log('🎭 Background: Protocol data customer email:', protocolData.rentalData?.customer?.email);
-          const pdfBuffer = await generateHandoverPDF(protocolData);
+          // FIX: Pass protocol object instead of protocolData to have ID
+          const protocolWithData = { ...protocol, ...protocolData };
+          const pdfBuffer = await generateHandoverPDF(protocolWithData);
           
           // Uloženie PDF do R2 storage s novou organizáciou
           const filename = generatePDFPath(protocolData, protocol.id, 'handover');
@@ -298,7 +300,9 @@ router.post('/handover', authenticateToken, async (req, res) => {
       // 2. 🎭 STANDARD MODE: PDF generovanie + upload do R2 (blocking)
       try {
         console.log('🎭 Standard: Generating PDF for protocol:', protocol.id);
-        const pdfBuffer = await generateHandoverPDF(protocolData);
+        // FIX: Pass protocol object instead of protocolData to have ID
+        const protocolWithData = { ...protocol, ...protocolData };
+        const pdfBuffer = await generateHandoverPDF(protocolWithData);
         
         // 3. Uloženie PDF do R2 storage s novou organizáciou
         const filename = generatePDFPath(protocolData, protocol.id, 'handover');
