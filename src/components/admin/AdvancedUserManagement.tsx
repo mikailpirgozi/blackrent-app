@@ -59,6 +59,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import { useAuth } from '../../context/AuthContext';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -88,6 +89,7 @@ function TabPanel(props: TabPanelProps) {
 
 const AdvancedUserManagement: React.FC = () => {
   const theme = useTheme();
+  const { state } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -443,7 +445,7 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   const getAuthToken = () => {
-    return localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+    return state.token || localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
   };
 
   const getRoleLevel = (level: number) => {

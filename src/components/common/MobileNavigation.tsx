@@ -12,6 +12,7 @@ import {
   AttachMoney,
   BarChartOutlined,
   MoreHorizOutlined,
+  GetApp as InstallIcon,
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -28,12 +29,16 @@ interface MobileNavigationProps {
   isDarkMode: boolean;
   onMoreClick: () => void;
   mobileOpen: boolean;
+  isInstallable?: boolean;
+  onInstallClick?: () => void;
 }
 
 const MobileNavigation: React.FC<MobileNavigationProps> = ({
   isDarkMode,
   onMoreClick,
   mobileOpen,
+  isInstallable = false,
+  onInstallClick,
 }) => {
   const theme = useTheme();
   const location = useLocation();
@@ -50,8 +55,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   // Active item state
   const [activeItem, setActiveItem] = useState<string | null>(null);
 
-  // Navigation items configuration
-  const navItems: NavItem[] = [
+  // Navigation items configuration - dynamically add install button if available
+  const baseNavItems: NavItem[] = [
     {
       id: 'rentals',
       label: 'Prenájmy',
@@ -79,14 +84,29 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: <BarChartOutlined />,
       badge: notificationCounts.statistics,
     },
-    {
-      id: 'more',
-      label: 'Viac',
-      icon: <MoreHorizOutlined />,
-      badge: notificationCounts.more,
-      action: onMoreClick,
-    },
   ];
+
+  // Add install button if available (only on mobile)
+  const navItems: NavItem[] = isInstallable && onInstallClick 
+    ? [
+        ...baseNavItems,
+        {
+          id: 'install',
+          label: 'Inštalovať',
+          icon: <InstallIcon />,
+          action: onInstallClick,
+        },
+      ]
+    : [
+        ...baseNavItems,
+        {
+          id: 'more',
+          label: 'Viac',
+          icon: <MoreHorizOutlined />,
+          badge: notificationCounts.more,
+          action: onMoreClick,
+        },
+      ];
 
   // Determine active item based on current path
   const getActiveItemId = () => {
