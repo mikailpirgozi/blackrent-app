@@ -39,8 +39,7 @@ const CustomerList = lazy(() => import('./components/customers/CustomerListNew')
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));
 const InsuranceList = lazy(() => import('./components/insurances/InsuranceList'));
 const Statistics = lazy(() => import('./components/Statistics'));
-const UserManagement = lazy(() => import('./components/users/UserManagementNew'));
-const AdvancedUserManagement = lazy(() => import('./components/admin/AdvancedUserManagement'));
+const UserManagement = lazy(() => import('./components/users/IntegratedUserManagement'));
 const SettlementList = lazy(() => import('./components/settlements/SettlementListNew'));
 const AvailabilityPage = lazy(() => import('./pages/AvailabilityPageNew'));
 const VehicleOwnershipTransfer = lazy(() => import('./components/admin/VehicleOwnershipTransfer'));
@@ -202,17 +201,7 @@ const AppContent: React.FC = () => {
                       </ProtectedRoute>
                     } />
                     
-                    <Route path="/advanced-users" element={
-                      <ProtectedRoute>
-                        <Layout>
-                          <ErrorBoundary>
-                            <Suspense fallback={<PageLoader />}>
-                              <AdvancedUserManagement />
-                            </Suspense>
-                          </ErrorBoundary>
-                        </Layout>
-                      </ProtectedRoute>
-                    } />
+
                     
                     <Route path="/availability" element={
                       <ProtectedRoute>
