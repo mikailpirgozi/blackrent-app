@@ -155,6 +155,7 @@ export declare class PostgresDatabase {
         validTo: Date;
         price: number;
         company: string;
+        insurerId?: string;
         paymentFrequency?: string;
         filePath?: string;
     }): Promise<Insurance>;

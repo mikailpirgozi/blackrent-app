@@ -76,7 +76,7 @@ import { Rental } from '../../types';
 import { useRentalUpdates } from '../../hooks/useWebSocket';
 import EmailParser from './EmailParser';
 import RentalAdvancedFilters from './RentalAdvancedFilters';
-import RentalCardView from './RentalCardView';
+
 import { debounce, measurePerformance } from '../../utils/debounce';
 import { MobileRentalRow } from './MobileRentalRow';
 import { saveAs } from 'file-saver';
@@ -87,7 +87,7 @@ import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 import PDFViewer from '../common/PDFViewer';
 import ProtocolGallery from '../common/ProtocolGallery';
-import RentalViewToggle from './RentalViewToggle';
+
 import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 
 // Types
@@ -128,8 +128,7 @@ interface FilterState {
   showOnlyCompleted: boolean;
 }
 
-type ViewMode = 'table' | 'cards' | 'grid' | 'list' | 'compact' | 'detailed';
-type CardViewMode = 'compact' | 'detailed';
+
 
 // 🎯 SNAPSHOT: Komponent pre zobrazenie majiteľa vozidla (ZAMRAZENÝ k dátumu prenájmu)
 const VehicleOwnerDisplay: React.FC<{
@@ -203,9 +202,7 @@ export default function RentalListNew() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   
-  // View mode
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
-  const [cardViewMode] = useState<CardViewMode>('compact');
+
   
   // Advanced filters state
   const [advancedFilters, setAdvancedFilters] = useState({
@@ -2717,14 +2714,7 @@ export default function RentalListNew() {
               flexWrap: 'wrap',
               justifyContent: { xs: 'space-between', md: 'flex-start' }
             }}>
-              {/* View Mode Toggle */}
-              <RentalViewToggle
-                viewMode={viewMode}
-                onViewModeChange={(mode: ViewMode) => setViewMode(mode)}
-                        totalCount={state.rentals?.length || 0}
-        filteredCount={filteredRentals.length}
-                showCounts={false}
-              />
+
 
               {/* Filter Button */}
               <Button
@@ -3713,7 +3703,7 @@ export default function RentalListNew() {
             </Box>
           </CardContent>
         </Card>
-      ) : viewMode === 'table' ? (
+      ) : (
         /* DESKTOP BOOKING.COM STYLE PRENÁJMY */
         <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
           <CardContent sx={{ p: 0 }}>
@@ -4284,20 +4274,6 @@ export default function RentalListNew() {
             </Box>
           </CardContent>
         </Card>
-      ) : (
-        <RentalCardView
-          rentals={filteredRentals}
-          viewMode={cardViewMode}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onCreateHandover={handleCreateHandover}
-          onCreateReturn={handleCreateReturn}
-          onViewPDF={handleViewPDF}
-          onOpenGallery={handleOpenGallery}
-          onViewProtocols={handleViewProtocols}
-          protocols={protocols}
-          loadingProtocols={loadingProtocols}
-        />
       )}
 
       {/* Rental Form Dialog */}
