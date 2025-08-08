@@ -116,6 +116,12 @@ const AdvancedUserManagement: React.FC = () => {
 
   // API Base URL helper
   const getApiBaseUrl = () => {
+    // V produkcii používame Railway URL
+    if (process.env.NODE_ENV === 'production') {
+      return 'https://blackrent-app-production-4d6f.up.railway.app/api';
+    }
+    
+    // V developmente - automatická detekcia
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
     return `${protocol}//${hostname}:3001/api`;
