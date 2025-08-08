@@ -484,11 +484,16 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                     if (newInsurerName.trim()) {
                       try {
                         // Volám API pre vytvorenie poistovne
-                        const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/api/insurers`, {
+                        // Použijem správnu API URL
+                        const apiUrl = process.env.NODE_ENV === 'production' 
+                          ? 'https://blackrent-app-production-4d6f.up.railway.app/api/insurers'
+                          : `${window.location.protocol}//${window.location.hostname}:3001/api/insurers`;
+                        
+                        const response = await fetch(apiUrl, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            'Authorization': `Bearer ${localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token')}`
                           },
                           body: JSON.stringify({ name: newInsurerName.trim() })
                         });
