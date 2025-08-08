@@ -87,6 +87,9 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
     price: document?.price || 0,
     filePath: document?.filePath || ''
   });
+  
+  const [addingInsurer, setAddingInsurer] = useState(false);
+  const [newInsurerName, setNewInsurerName] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -236,15 +239,35 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                         </Grid>
 
                         <Grid item xs={12} sm={6}>
-                          <TextField
-                            fullWidth
-                            required
-                            label="Poisťovňa"
-                            value={formData.company}
-                            onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
-                            error={!!errors.company}
-                            helperText={errors.company}
-                          />
+                          <FormControl fullWidth required error={!!errors.company}>
+                            <InputLabel>Poisťovňa</InputLabel>
+                            <Select
+                              value={formData.company}
+                              label="Poisťovňa"
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '__add_new__') {
+                                  setAddingInsurer(true);
+                                } else {
+                                  setFormData(prev => ({ ...prev, company: value }));
+                                }
+                              }}
+                            >
+                              {state.insurers.map((insurer) => (
+                                <MenuItem key={insurer.id} value={insurer.name}>
+                                  {insurer.name}
+                                </MenuItem>
+                              ))}
+                              <MenuItem value="__add_new__">
+                                <em>+ Pridať novú poisťovňu</em>
+                              </MenuItem>
+                            </Select>
+                            {errors.company && (
+                              <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
+                                {errors.company}
+                              </Typography>
+                            )}
+                          </FormControl>
                         </Grid>
 
                         <Grid item xs={12} sm={6}>
@@ -417,6 +440,69 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
           </Box>
         </Box>
       </form>
+
+      {/* Dialóg pre pridanie novej poistovne */}
+      {addingInsurer && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}
+          onClick={() => setAddingInsurer(false)}
+        >
+          <Card sx={{ minWidth: 400, m: 2 }} onClick={(e) => e.stopPropagation()}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Pridať novú poisťovňu
+              </Typography>
+              <TextField
+                fullWidth
+                label="Názov poisťovne"
+                value={newInsurerName}
+                onChange={(e) => setNewInsurerName(e.target.value)}
+                margin="normal"
+                autoFocus
+              />
+              <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'flex-end' }}>
+                <Button onClick={() => {
+                  setAddingInsurer(false);
+                  setNewInsurerName('');
+                }}>
+                  Zrušiť
+                </Button>
+                <Button 
+                  variant="contained" 
+                  onClick={async () => {
+                    if (newInsurerName.trim()) {
+                      try {
+                        // TODO: Pridať API volanie pre vytvorenie poistovne
+                        console.log('Pridávam poistovňu:', newInsurerName);
+                        // Po úspešnom pridaní:
+                        setFormData(prev => ({ ...prev, company: newInsurerName }));
+                        setAddingInsurer(false);
+                        setNewInsurerName('');
+                      } catch (error) {
+                        console.error('Chyba pri pridávaní poistovne:', error);
+                      }
+                    }
+                  }}
+                  disabled={!newInsurerName.trim()}
+                >
+                  Pridať
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      )}
     </LocalizationProvider>
   );
 } 
