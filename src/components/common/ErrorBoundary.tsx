@@ -122,12 +122,37 @@ class ErrorBoundary extends Component<Props, State> {
     if (!error) return 'Neznáma chyba';
 
     if (error.message.includes('ChunkLoadError') || error.message.includes('Loading chunk')) {
-      // Na mobilných zariadeniach skúsime raz automaticky obnoviť stránku
+      // 🔍 IMPROVED: Lepšie logovanie pre mobile chunk errors
       const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
       const hasAutoReloaded = sessionStorage.getItem('autoReloadedAfterChunkError') === '1';
+      
+      console.group('🚨 ChunkLoadError detected');
+      console.log('Is Mobile:', isMobile);
+      console.log('Has Auto Reloaded:', hasAutoReloaded);
+      console.log('Current URL:', window.location.href);
+      console.log('User Agent:', navigator.userAgent);
+      console.log('Connection:', (navigator as any).connection);
+      console.groupEnd();
+      
+      // 🔍 CHANGE: Pridáme delay a user confirmation na mobile
       if (isMobile && !hasAutoReloaded) {
         sessionStorage.setItem('autoReloadedAfterChunkError', '1');
-        setTimeout(() => window.location.reload(), 100);
+        
+        // V development mode - pýtaj sa používateľa
+        if (process.env.NODE_ENV === 'development') {
+          const shouldReload = confirm(
+            '🚨 ChunkLoadError na mobile!\n\n' +
+            'Chcete automaticky obnoviť stránku?\n' +
+            '(Cancel = ponechať pre debugging)'
+          );
+          
+          if (shouldReload) {
+            setTimeout(() => window.location.reload(), 100);
+          }
+        } else {
+          // V production - automatický reload s dlhším delayom
+          setTimeout(() => window.location.reload(), 1000);
+        }
       }
       return 'Načítavanie stránky bolo prerušené. Skúste obnoviť stránku.';
     }
