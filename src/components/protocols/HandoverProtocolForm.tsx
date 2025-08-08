@@ -35,6 +35,7 @@ import { getSmartDefaults, cacheFormDefaults, cacheCompanyDefaults } from '../..
 import { initializeMobileStabilizer, getMobileStabilizer } from '../../utils/mobileStabilizer';
 import { useMobileRecovery } from '../../hooks/useMobileRecovery';
 import { getMobilePerformanceOptimizer } from '../../utils/mobilePerformance';
+import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -71,6 +72,45 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [currentSigner, setCurrentSigner] = useState<{name: string, role: 'customer' | 'employee'} | null>(null);
   
+  // 📱 MOBILE LOGGER: Initialize detailed logging
+  const mobileLogger = getMobileLogger();
+  
+  // Log component mount
+  React.useEffect(() => {
+    logMobile('INFO', 'HandoverProtocol', 'Component mounted', {
+      open,
+      rentalId: rental?.id,
+      timestamp: Date.now()
+    });
+    
+    return () => {
+      logMobile('INFO', 'HandoverProtocol', 'Component unmounting', {
+        rentalId: rental?.id,
+        timestamp: Date.now()
+      });
+    };
+  }, []);
+
+  // Log open state changes
+  React.useEffect(() => {
+    logMobile('INFO', 'HandoverProtocol', `Modal ${open ? 'opened' : 'closed'}`, {
+      open,
+      rentalId: rental?.id,
+      timestamp: Date.now(),
+      url: window.location.href
+    });
+    
+    if (open && mobileLogger) {
+      mobileLogger.logModalEvent('HandoverProtocol', 'opened', {
+        rentalId: rental?.id,
+        viewport: {
+          width: window.innerWidth,
+          height: window.innerHeight
+        }
+      });
+    }
+  }, [open, rental?.id, mobileLogger]);
+
   // 🚑 MOBILE RECOVERY: Emergency recovery for unexpected refreshes
   const { recoveryState, clearRecoveryData, restoreFormData, hasRecoveredData } = useMobileRecovery({
     enableAutoRecovery: true,
@@ -209,6 +249,12 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
 
   // 🚀 OPTIMALIZÁCIA: Quick Save - najprv uloží protokol, PDF na pozadí
   const performSave = useCallback(async () => {
+    logMobile('INFO', 'HandoverProtocol', 'Save operation started', {
+      rentalId: rental?.id,
+      timestamp: Date.now(),
+      formDataKeys: Object.keys(formData)
+    });
+    
     const stabilizer = getMobileStabilizer();
     // Validácia povinných polí
     const errors: string[] = [];
@@ -242,6 +288,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     }
     
     if (errors.length > 0) {
+      logMobile('ERROR', 'HandoverProtocol', 'Validation errors', {
+        errors,
+        rentalId: rental?.id,
+        timestamp: Date.now()
+      });
       alert(`❌ Prosím vyplňte všetky povinné polia:\n\n${errors.join('\n')}`);
       return;
     }
@@ -466,6 +517,15 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
           errorMessage = `Chyba: ${error.message}`;
         }
       }
+      
+      logMobile('CRITICAL', 'HandoverProtocol', 'Save operation failed', {
+        error: error instanceof Error ? error.message : String(error),
+        errorType: error instanceof Error ? error.name : 'Unknown',
+        stack: error instanceof Error ? error.stack : undefined,
+        rentalId: rental?.id,
+        timestamp: Date.now(),
+        formData: formData
+      });
       
       alert(errorMessage);
       

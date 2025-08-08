@@ -67,6 +67,7 @@ import MobileNavigation from './common/MobileNavigation';
 import { usePWA } from '../hooks/usePWA';
 import { GetApp as InstallIcon, PhoneIphone as MobileIcon } from '@mui/icons-material';
 import PWAInstallPrompt from './common/PWAInstallPrompt';
+import MobileDebugPanel from './common/MobileDebugPanel';
 import PWAStatus from './common/PWAStatus';
 
 const drawerWidth = 280;
@@ -670,6 +671,9 @@ export default function Layout({ children }: LayoutProps) {
         showStats={successStats}
         icon="check"
       />
+
+      {/* 📱 Mobile Debug Panel */}
+      <MobileDebugPanel />
     </Box>
   );
 }
