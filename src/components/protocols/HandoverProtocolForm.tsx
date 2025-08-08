@@ -32,9 +32,9 @@ import SignaturePad from '../common/SignaturePad';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { getSmartDefaults, cacheFormDefaults, cacheCompanyDefaults } from '../../utils/protocolFormCache';
-import { initializeMobileStabilizer, getMobileStabilizer } from '../../utils/mobileStabilizer';
-import { useMobileRecovery } from '../../hooks/useMobileRecovery';
-import { getMobilePerformanceOptimizer } from '../../utils/mobilePerformance';
+// import { initializeMobileStabilizer, getMobileStabilizer } from '../../utils/mobileStabilizer';
+// import { useMobileRecovery } from '../../hooks/useMobileRecovery';
+// import { getMobilePerformanceOptimizer } from '../../utils/mobilePerformance';
 // import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
 
 interface HandoverProtocolFormProps {
@@ -181,31 +181,31 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   // Zjednodušený state - iba základné polia
   const [formData, setFormData] = useState(initialFormData);
   
-  // 🚑 RECOVERY: Restore form data if available
-  React.useEffect(() => {
-    if (hasRecoveredData && recoveryState.recoveredData) {
-      console.log('🚑 Attempting to restore form data from recovery');
-      restoreFormData(recoveryState.recoveredData);
-      
-      // Show notification about recovered data
-      const confirmRestore = window.confirm(
-        '🚑 Našli sme neuložené dáta z predchádzajúcej session. Chcete ich obnoviť?'
-      );
-      
-      if (confirmRestore) {
-        // Merge recovered data with current form data
-        if (recoveryState.recoveredData.formData) {
-          setFormData(prev => ({
-            ...prev,
-            ...recoveryState.recoveredData.formData
-          }));
-        }
-      }
-      
-      // Clear recovery data after handling
-      clearRecoveryData();
-    }
-  }, [hasRecoveredData, recoveryState.recoveredData, restoreFormData, clearRecoveryData]);
+  // 🚨 EMERGENCY: Disable recovery functionality to prevent TypeScript errors
+  // React.useEffect(() => {
+  //   if (hasRecoveredData && recoveryState.recoveredData) {
+  //     console.log('🚑 Attempting to restore form data from recovery');
+  //     restoreFormData(recoveryState.recoveredData);
+  //     
+  //     // Show notification about recovered data
+  //     const confirmRestore = window.confirm(
+  //       '🚑 Našli sme neuložené dáta z predchádzajúcej session. Chcete ich obnoviť?'
+  //     );
+  //     
+  //     if (confirmRestore) {
+  //       // Merge recovered data with current form data
+  //       if (recoveryState.recoveredData.formData) {
+  //         setFormData(prev => ({
+  //           ...prev,
+  //           ...recoveryState.recoveredData.formData
+  //         }));
+  //       }
+  //     }
+  //     
+  //     // Clear recovery data after handling
+  //     clearRecoveryData();
+  //   }
+  // }, [hasRecoveredData, recoveryState.recoveredData, restoreFormData, clearRecoveryData]);
 
   // 🚀 OPTIMALIZÁCIA: Memoized input change handler
   const handleInputChange = useCallback((field: string, value: any) => {
@@ -269,7 +269,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     //   formDataKeys: Object.keys(formData)
     // });
     
-    const stabilizer = getMobileStabilizer();
+    // const stabilizer = getMobileStabilizer();
     // Validácia povinných polí
     const errors: string[] = [];
     
@@ -547,11 +547,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       console.log('🛑 Error handled gracefully, preventing page refresh');
       
       // 📱 MOBILE PROTECTION: Mark that an error occurred but don't refresh
-      if (stabilizer) {
-        console.log('🚨 Save error occurred - maintaining mobile protection');
-        // Keep the stabilizer active and save current state for recovery
-        stabilizer.markUnexpectedRefresh();
-      }
+      // if (stabilizer) {
+      //   console.log('🚨 Save error occurred - maintaining mobile protection');
+      //   // Keep the stabilizer active and save current state for recovery
+      //   // stabilizer.markUnexpectedRefresh();
+      // }
     } finally {
       setLoading(false);
     }
@@ -559,17 +559,19 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
 
   const handleSave = useCallback(async () => {
     // 📱 MOBILE PROTECTION: Mark that we're starting a critical operation
-    const stabilizer = getMobileStabilizer();
-    const perfOptimizer = getMobilePerformanceOptimizer();
+    // const stabilizer = getMobileStabilizer();
+    // const perfOptimizer = getMobilePerformanceOptimizer();
     
-    if (stabilizer) {
-      console.log('🛡️ Starting critical save operation - mobile protection active');
-    }
+    // if (stabilizer) {
+    //   console.log('🛡️ Starting critical save operation - mobile protection active');
+    // }
 
-    // 📱 PERFORMANCE: Measure save operation performance
-    return perfOptimizer?.measurePerformance('Protocol Save', async () => {
-      return await performSave();
-    }) || await performSave();
+    // 📱 PERFORMANCE: Measure save operation performance (disabled)
+    // return perfOptimizer?.measurePerformance('Protocol Save', async () => {
+    //   return await performSave();
+    // }) || await performSave();
+    
+    return await performSave();
   }, [performSave]);
 
   // 🔧 MOBILE PROTECTION: Immediate rendering - no lazy loading delays
