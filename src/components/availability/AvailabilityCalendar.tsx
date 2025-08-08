@@ -1309,6 +1309,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                           onTouchStart={(e) => { if (isMobile) { e.preventDefault(); e.stopPropagation(); } }}
                           onTouchEnd={(e) => { if (isMobile) { e.preventDefault(); e.stopPropagation(); handleDayClick(day.date, vehicleStatus, vehicle.id, e); } }}
                           onClick={(e) => { handleDayClick(day.date, vehicleStatus, vehicle.id, e); }}
+                          onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           sx={{ 
                             textAlign: 'center',
                             p: 0.25,
@@ -1489,7 +1490,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               >
                 Mesačný
               </Button>
-              <IconButton onClick={handleRefresh} size="small">
+              <IconButton 
+                onClick={handleRefresh} 
+                size="small"
+                type="button"
+                onTouchStart={(e) => { if (isMobile) { e.preventDefault(); e.stopPropagation(); } }}
+              >
                 <RefreshIcon />
               </IconButton>
             </Box>
@@ -1668,6 +1674,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                           onTouchStart={(e) => { if (isMobile) { e.preventDefault(); e.stopPropagation(); } }}
                           onTouchEnd={(e) => { if (isMobile) { e.preventDefault(); e.stopPropagation(); handleDayClick(day.date, vehicleStatus, vehicle.id, e); } }}
                           onClick={(e) => { handleDayClick(day.date, vehicleStatus, vehicle.id, e); }}
+                          onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         sx={{ 
                           textAlign: 'center',
                           p: 1,
@@ -1865,7 +1872,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setMaintenanceDialogOpen(false)}>
+        <Button 
+          onClick={() => setMaintenanceDialogOpen(false)}
+          type="button"
+        >
           Zrušiť
         </Button>
         <Button 
@@ -1873,6 +1883,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           variant="contained" 
           disabled={submittingMaintenance}
           startIcon={submittingMaintenance ? <CircularProgress size={20} /> : null}
+          type="button"
         >
           {submittingMaintenance ? 'Ukladám...' : (editingMaintenance ? 'Uložiť' : 'Pridať')}
         </Button>
@@ -2007,7 +2018,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleCloseRentalDetails}>
+        <Button 
+          onClick={handleCloseRentalDetails}
+          type="button"
+        >
           Zavrieť
         </Button>
         {selectedRental && (
@@ -2021,6 +2035,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               setSelectedRental(null);
               setRentalDetailsOpen(false);
             }}
+            type="button"
           >
             Upraviť prenájom
           </Button>
