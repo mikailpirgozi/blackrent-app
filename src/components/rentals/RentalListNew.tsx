@@ -791,6 +791,9 @@ export default function RentalListNew() {
   // Handover Protocol handlers
   const handleCreateHandover = async (rental: Rental) => {
     console.log('📝 Creating handover protocol for rental:', rental.id);
+    console.log('🔍 MOBILE DEBUG: handleCreateHandover called');
+    console.log('🔍 MOBILE DEBUG: rental object:', rental);
+    console.log('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
     
     logMobile('INFO', 'RentalList', 'Handover protocol creation started', {
       rentalId: rental.id,
@@ -815,6 +818,9 @@ export default function RentalListNew() {
       }
       
       console.log('⚡ CACHED: No existing handover protocol, proceeding instantly...');
+      console.log('🔍 MOBILE DEBUG: About to open modal');
+      console.log('🔍 MOBILE DEBUG: setSelectedRentalForProtocol:', rental.id);
+      console.log('🔍 MOBILE DEBUG: setOpenHandoverDialog(true)');
       
       logMobile('INFO', 'RentalList', 'Opening handover modal', {
         rentalId: rental.id,
@@ -824,6 +830,8 @@ export default function RentalListNew() {
       
       setSelectedRentalForProtocol(rental);
       setOpenHandoverDialog(true);
+      
+      console.log('🔍 MOBILE DEBUG: Modal state set - should be open now');
       
       logMobile('INFO', 'RentalList', 'Handover modal state set', {
         rentalId: rental.id,
@@ -4320,6 +4328,13 @@ export default function RentalListNew() {
       <Dialog
         open={openHandoverDialog}
         onClose={() => {
+          console.log('🚨 MOBILE DEBUG: Dialog onClose triggered!');
+          console.log('🚨 MOBILE DEBUG: Modal closing via backdrop click or ESC');
+          console.log('🚨 MOBILE DEBUG: timestamp:', new Date().toISOString());
+          
+          // Temporary alert for mobile debugging
+          alert('🚨 MOBILE DEBUG: Dialog zatvorený! Dôvod: backdrop click alebo ESC key');
+          
           logMobile('WARN', 'RentalList', 'Handover modal closing via Dialog onClose', {
             timestamp: Date.now(),
             selectedRentalId: selectedRentalForProtocol?.id,
@@ -4338,6 +4353,10 @@ export default function RentalListNew() {
               rental={selectedRentalForProtocol}
               onSave={handleSaveHandover}
               onClose={() => {
+                console.log('🚨 MOBILE DEBUG: HandoverProtocolForm onClose triggered!');
+                console.log('🚨 MOBILE DEBUG: Modal closing via form close button');
+                console.log('🚨 MOBILE DEBUG: timestamp:', new Date().toISOString());
+                
                 logMobile('WARN', 'RentalList', 'Handover modal closing via HandoverProtocolForm onClose', {
                   timestamp: Date.now(),
                   selectedRentalId: selectedRentalForProtocol?.id,

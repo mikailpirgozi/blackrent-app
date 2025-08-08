@@ -93,6 +93,16 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
 
   // Log open state changes
   React.useEffect(() => {
+    console.log('🔍 MOBILE DEBUG: HandoverProtocolForm open state changed:', open);
+    console.log('🔍 MOBILE DEBUG: rental ID:', rental?.id);
+    console.log('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
+    
+    if (open) {
+      console.log('✅ MOBILE DEBUG: HandoverProtocolForm is OPENING');
+    } else {
+      console.log('❌ MOBILE DEBUG: HandoverProtocolForm is CLOSING');
+    }
+    
     logMobile('INFO', 'HandoverProtocol', `Modal ${open ? 'opened' : 'closed'}`, {
       open,
       rentalId: rental?.id,
