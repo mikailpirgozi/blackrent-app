@@ -477,12 +477,12 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       // ⚡ OKAMŽITÉ ZATVORENIE - bez čakania na PDF
       onSave(result.protocol);
       
-      // 📱 MOBILE PROTECTION: Clear any saved state as operation completed successfully
-      if (stabilizer) {
-        console.log('✅ Protocol saved successfully - clearing mobile protection state');
-        // Clear any auto-saved form data as we successfully saved
-        sessionStorage.removeItem('mobileStabilizer_state');
-      }
+      // 📱 MOBILE PROTECTION: Clear any saved state as operation completed successfully (disabled)
+      // if (stabilizer) {
+      //   console.log('✅ Protocol saved successfully - clearing mobile protection state');
+      //   // Clear any auto-saved form data as we successfully saved
+      //   sessionStorage.removeItem('mobileStabilizer_state');
+      // }
       
       onClose();
       
