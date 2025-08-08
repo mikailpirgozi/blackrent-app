@@ -473,9 +473,12 @@ const AdvancedUserManagement: React.FC = () => {
         departmentId: user.departmentId || ''
       });
       
-      // Load user permissions
-      await loadUserPermissions(userId);
-      await loadCompanies(); // Ensure companies are loaded
+      // Load user permissions, roles and companies
+      await Promise.all([
+        loadUserPermissions(userId),
+        loadRoles(), // Načítaj role pre editáciu
+        loadCompanies() // Ensure companies are loaded
+      ]);
       
       setEditModalOpen(true);
     }
@@ -1446,7 +1449,7 @@ const AdvancedUserManagement: React.FC = () => {
                 >
                   {roles.map((role) => (
                     <MenuItem key={role.id} value={role.id}>
-                      {role.name}
+                      {role.displayName}
                     </MenuItem>
                   ))}
                 </Select>
