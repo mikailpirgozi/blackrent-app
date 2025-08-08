@@ -72,29 +72,26 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [currentSigner, setCurrentSigner] = useState<{name: string, role: 'customer' | 'employee'} | null>(null);
   
-  // 📱 MOBILE LOGGER: Initialize detailed logging
-  const mobileLogger = getMobileLogger();
+  // 🚨 EMERGENCY: Disable mobile logger to reduce memory usage
+  // const mobileLogger = getMobileLogger();
   
   // Log component mount
   React.useEffect(() => {
     console.log('🟢 MOBILE DEBUG: HandoverProtocolForm MOUNTED');
     console.log('🟢 MOBILE DEBUG: rental:', rental?.id);
     
-    logMobile('INFO', 'HandoverProtocol', 'Component mounted', {
-      open,
-      rentalId: rental?.id,
-      timestamp: Date.now()
-    });
+    // logMobile('INFO', 'HandoverProtocol', 'Component mounted', {
+    //   open,
+    //   rentalId: rental?.id,
+    //   timestamp: Date.now()
+    // });
 
     // 🚨 EMERGENCY: Remove all heavy monitoring to prevent browser crash
     // All debug listeners removed to reduce memory pressure
     
     return () => {
       // Minimal cleanup to prevent memory leaks
-      logMobile('INFO', 'HandoverProtocol', 'Component unmounting', {
-        rentalId: rental?.id,
-        timestamp: Date.now()
-      });
+      console.log('🔴 MOBILE DEBUG: HandoverProtocolForm UNMOUNTING');
     };
   }, []);
 
@@ -110,29 +107,29 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       console.log('❌ MOBILE DEBUG: HandoverProtocolForm is CLOSING');
     }
     
-    logMobile('INFO', 'HandoverProtocol', `Modal ${open ? 'opened' : 'closed'}`, {
-      open,
-      rentalId: rental?.id,
-      timestamp: Date.now(),
-      url: window.location.href
-    });
+    // logMobile('INFO', 'HandoverProtocol', `Modal ${open ? 'opened' : 'closed'}`, {
+    //   open,
+    //   rentalId: rental?.id,
+    //   timestamp: Date.now(),
+    //   url: window.location.href
+    // });
     
-    if (open && mobileLogger) {
-      mobileLogger.logModalEvent('HandoverProtocol', 'opened', {
-        rentalId: rental?.id,
-        viewport: {
-          width: window.innerWidth,
-          height: window.innerHeight
-        }
-      });
-    }
+    // if (open && mobileLogger) {
+    //   mobileLogger.logModalEvent('HandoverProtocol', 'opened', {
+    //     rentalId: rental?.id,
+    //     viewport: {
+    //       width: window.innerWidth,
+    //       height: window.innerHeight
+    //     }
+    //   });
+    // }
   }, [open, rental?.id, mobileLogger]);
 
-  // 🚑 MOBILE RECOVERY: Emergency recovery for unexpected refreshes
-  const { recoveryState, clearRecoveryData, restoreFormData, hasRecoveredData } = useMobileRecovery({
-    enableAutoRecovery: true,
-    debugMode: false // Disable verbose logging
-  });
+  // 🚨 EMERGENCY: Disable mobile recovery to reduce memory usage
+  // const { recoveryState, clearRecoveryData, restoreFormData, hasRecoveredData } = useMobileRecovery({
+  //   enableAutoRecovery: true,
+  //   debugMode: false
+  // });
   
   // 🚀 OPTIMALIZÁCIA: Vehicle indexing pre rýchle vyhľadávanie
   const vehicleIndex = useMemo(() => {

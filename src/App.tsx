@@ -61,36 +61,15 @@ const AppContent: React.FC = () => {
   
   // Initialize performance optimizations
   React.useEffect(() => {
-    // Initialize all performance optimizations
-    initializeCriticalResources();
-    initializeWebVitalsOptimizations();
-    initializeMemoryOptimization();
-    initializeMobileOptimizations();
-
-    // Initialize mobile stabilizer for preventing unexpected refreshes
-    initializeMobileStabilizer({
-      enablePreventUnload: true,
-      enableMemoryMonitoring: false, // Disable heavy monitoring in global scope
-      enableVisibilityHandling: true,
-      enableFormDataPersistence: false, // Only enable in specific forms
-      debugMode: false // Disable verbose logging for better performance
-    });
-
-    // Initialize mobile performance optimizations
-    initializeMobilePerformance({
-      enableVirtualization: true,
-      enableImageOptimization: true,
-      enableRenderOptimization: true,
-      debugMode: false
-    });
-
-    // Initialize mobile logger for detailed diagnostics
-    const mobileLogger = initializeMobileLogger();
-    mobileLogger.log('INFO', 'App', 'BlackRent application starting', {
-      timestamp: Date.now(),
-      userAgent: navigator.userAgent,
-      url: window.location.href
-    });
+    // 🚨 EMERGENCY: Disable ALL heavy optimizations to prevent mobile crashes
+    console.log('🚨 LIGHTWEIGHT MODE: All heavy optimizations disabled');
+    
+    // Only essential initialization
+    try {
+      initializeCriticalResources(); // Keep only critical resources
+    } catch (error) {
+      console.warn('Critical resources init failed:', error);
+    }
 
     // 🚨 EMERGENCY: Removed heavy fetch monitoring to prevent browser crashes
 
@@ -101,10 +80,7 @@ const AppContent: React.FC = () => {
     // 🚨 EMERGENCY: Removed all heavy monitoring to prevent mobile browser crashes
     // The issue is browser memory pressure, not code logic
 
-    console.log('⚡ Performance & Mobile optimizations initialized');
-    console.log('🛡️ Mobile stabilizer initialized globally');
-    console.log('📱 Mobile logger initialized for diagnostics');
-    console.log('🚨 EMERGENCY: Heavy monitoring disabled to prevent crashes');
+    console.log('🚨 LIGHTWEIGHT MODE: Minimal initialization completed');
   }, []);
   
   return (
