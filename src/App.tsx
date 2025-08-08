@@ -1,6 +1,6 @@
 import './utils/dayjs-setup';
 import './styles/custom-font.css'; // Aeonik font
-// 🚫 TEMPORARILY DISABLED: Mobile refresh debugger causing startup issues
+// 🚫 DISABLED: Mobile refresh debugger causes Safari errors
 // import './utils/mobileRefreshDebugger';
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
