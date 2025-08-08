@@ -92,153 +92,19 @@ const AppContent: React.FC = () => {
       url: window.location.href
     });
 
-    // 🚨 NETWORK MONITORING: Track all API calls
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      const url = args[0]?.toString() || 'unknown';
-      console.log('🌐 MOBILE DEBUG: API CALL STARTED:', url);
-      
-      try {
-        const response = await originalFetch(...args);
-        console.log('✅ MOBILE DEBUG: API CALL SUCCESS:', url, response.status);
-        
-        // Check if this API call might affect modal state
-        if (url.includes('protocol') || url.includes('rental')) {
-          console.log('⚠️ MOBILE DEBUG: PROTOCOL/RENTAL API CALL - might affect modal!');
-          alert(`🌐 API CALL: ${url} - status: ${response.status}`);
-        }
-        
-        return response;
-      } catch (error) {
-        console.log('❌ MOBILE DEBUG: API CALL ERROR:', url, error);
-        alert(`❌ API ERROR: ${url} - ${error}`);
-        throw error;
-      }
-    };
+    // 🚨 EMERGENCY: Removed heavy fetch monitoring to prevent browser crashes
 
-    // 🚨 WEBSOCKET MONITORING: Track WebSocket messages
-    const originalWebSocket = window.WebSocket;
-    window.WebSocket = class extends WebSocket {
-      constructor(url: string | URL, protocols?: string | string[]) {
-        super(url, protocols);
-        console.log('🔌 MOBILE DEBUG: WebSocket CREATED:', url);
-        
-        this.addEventListener('message', (event) => {
-          console.log('📨 MOBILE DEBUG: WebSocket MESSAGE:', event.data);
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'rental_update' || data.type === 'protocol_update') {
-              console.log('⚠️ MOBILE DEBUG: CRITICAL WebSocket message - might close modal!');
-              alert(`📨 WebSocket: ${data.type} - might affect modal!`);
-            }
-          } catch (e) {
-            // Not JSON, ignore
-          }
-        });
-        
-        this.addEventListener('close', (event) => {
-          console.log('🔌 MOBILE DEBUG: WebSocket CLOSED:', event.code, event.reason);
-          alert(`🔌 WebSocket CLOSED: ${event.code} - ${event.reason}`);
-        });
-      }
-    };
+    // 🚨 EMERGENCY: Removed WebSocket monitoring to prevent browser crashes
 
-    // 🚨 STORAGE MONITORING: Track localStorage changes
-    const originalSetItem = localStorage.setItem;
-    localStorage.setItem = function(key, value) {
-      console.log('💾 MOBILE DEBUG: localStorage SET:', key, value);
-      if (key.includes('modal') || key.includes('protocol')) {
-        alert(`💾 localStorage: ${key} = ${value}`);
-      }
-      return originalSetItem.call(this, key, value);
-    };
+    // 🚨 EMERGENCY: Removed localStorage monitoring to prevent browser crashes
 
-    // 🚨 PAGE RELOAD DETECTION
-    const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-    if (navigationEntries.length > 0) {
-      const navEntry = navigationEntries[0];
-      console.log('🔄 MOBILE DEBUG: Navigation type:', navEntry.type);
-      console.log('🔄 MOBILE DEBUG: Reload count since startup:', window.history.length);
-      
-      if (navEntry.type === 'reload') {
-        alert(`🔄 PAGE RELOAD DETECTED! Type: ${navEntry.type}`);
-      } else if (navEntry.type === 'navigate') {
-        alert(`🔄 PAGE NAVIGATION DETECTED! Type: ${navEntry.type}`);
-      }
-    }
-
-    // Check if page was reloaded recently
-    const lastReload = sessionStorage.getItem('lastReload');
-    const now = Date.now();
-    if (lastReload) {
-      const timeSinceReload = now - parseInt(lastReload);
-      if (timeSinceReload < 5000) { // Less than 5 seconds
-        alert(`⚠️ RECENT RELOAD: ${timeSinceReload}ms ago!`);
-      }
-    }
-    sessionStorage.setItem('lastReload', now.toString());
-
-    // Track page visibility changes that might cause reloads
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        console.log('📱 MOBILE DEBUG: Page became HIDDEN');
-        sessionStorage.setItem('pageHidden', Date.now().toString());
-      } else {
-        console.log('📱 MOBILE DEBUG: Page became VISIBLE');
-        const hiddenTime = sessionStorage.getItem('pageHidden');
-        if (hiddenTime) {
-          const hiddenDuration = Date.now() - parseInt(hiddenTime);
-          console.log('📱 MOBILE DEBUG: Was hidden for:', hiddenDuration, 'ms');
-          if (hiddenDuration > 1000) {
-            alert(`📱 PAGE WAS HIDDEN: ${hiddenDuration}ms - might cause reload!`);
-          }
-        }
-      }
-    });
-
-    // 🚨 URL NAVIGATION TRACKING
-    let lastUrl = window.location.href;
-    console.log('🔗 MOBILE DEBUG: Initial URL:', lastUrl);
-    
-    // Track hash changes
-    window.addEventListener('hashchange', (event) => {
-      console.log('🔗 MOBILE DEBUG: Hash changed!');
-      console.log('🔗 MOBILE DEBUG: From:', event.oldURL);
-      console.log('🔗 MOBILE DEBUG: To:', event.newURL);
-      alert(`🔗 HASH CHANGE: ${event.oldURL} → ${event.newURL}`);
-    });
-    
-    // Track popstate (back/forward navigation)
-    window.addEventListener('popstate', (event) => {
-      console.log('🔗 MOBILE DEBUG: PopState navigation!');
-      console.log('🔗 MOBILE DEBUG: State:', event.state);
-      console.log('🔗 MOBILE DEBUG: URL:', window.location.href);
-      alert(`🔗 POPSTATE: Navigated to ${window.location.href}`);
-    });
-    
-    // Track URL changes via polling (catches programmatic navigation)
-    const checkUrlChange = () => {
-      const currentUrl = window.location.href;
-      if (currentUrl !== lastUrl) {
-        console.log('🔗 MOBILE DEBUG: URL changed programmatically!');
-        console.log('🔗 MOBILE DEBUG: From:', lastUrl);
-        console.log('🔗 MOBILE DEBUG: To:', currentUrl);
-        alert(`🔗 URL CHANGE: ${lastUrl} → ${currentUrl}`);
-        lastUrl = currentUrl;
-      }
-    };
-    
-    // Check URL every 500ms
-    const urlChecker = setInterval(checkUrlChange, 500);
-    
-    // Store interval ID for cleanup
-    (window as any).urlChecker = urlChecker;
+    // 🚨 EMERGENCY: Removed all heavy monitoring to prevent mobile browser crashes
+    // The issue is browser memory pressure, not code logic
 
     console.log('⚡ Performance & Mobile optimizations initialized');
     console.log('🛡️ Mobile stabilizer initialized globally');
     console.log('📱 Mobile logger initialized for diagnostics');
-    console.log('🚨 MOBILE DEBUG: All monitoring systems active!');
-    alert('🚨 MONITORING ACTIVE: API, WebSocket, localStorage tracked!');
+    console.log('🚨 EMERGENCY: Heavy monitoring disabled to prevent crashes');
   }, []);
   
   return (
