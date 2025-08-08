@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import {
   Box,
   Button,
@@ -11,8 +11,6 @@ import {
   Select,
   MenuItem,
   LinearProgress,
-  IconButton,
-  Alert,
   Chip,
   Grid,
   Divider,
@@ -22,7 +20,6 @@ import {
 } from '@mui/material';
 import {
   Save,
-  Close,
   PhotoCamera,
   LocationOn,
   SpeedOutlined,
@@ -36,7 +33,6 @@ import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
-import { apiService } from '../../services/api';
 import { getSmartDefaults, cacheFormDefaults, cacheCompanyDefaults } from '../../utils/protocolFormCache';
 
 interface HandoverProtocolFormProps {
@@ -45,30 +41,6 @@ interface HandoverProtocolFormProps {
   rental: Rental;
   onSave: (protocol: HandoverProtocol) => void;
 }
-
-// 🚀 OPTIMALIZÁCIA: Photo capture button component
-const PhotoCaptureButton = memo<{
-  mediaType: string;
-  label: string;
-  icon: React.ReactNode;
-  onCapture: (mediaType: string) => void;
-}>(({ mediaType, label, icon, onCapture }) => {
-  const handleClick = useCallback(() => {
-    onCapture(mediaType);
-  }, [mediaType, onCapture]);
-
-  return (
-    <Button
-      variant="outlined"
-      startIcon={icon}
-      onClick={handleClick}
-      fullWidth
-      sx={{ mb: 1 }}
-    >
-      {label}
-    </Button>
-  );
-});
 
 // 🚀 OPTIMALIZÁCIA: Signature display component
 const SignatureDisplay = memo<{
@@ -462,11 +434,14 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     }
   }, [formData, rental, currentVehicle, onSave, onClose]);
 
-  // 🔥 EARLY RETURN - PO všetkých hooks
-  if (!open) return null;
+  // 🔧 MOBILE PROTECTION: Lazy rendering pre veľké komponenty
+  const isMobile = window.matchMedia('(max-width: 900px)').matches;
+  const [mobileRenderReady, setMobileRenderReady] = React.useState(!isMobile);
 
   // 🔧 MOBILE DEBUG: Logujeme načítanie HandoverProtocolForm na mobile
   React.useEffect(() => {
+    if (!open) return; // Guard clause
+    
     const isMobile = window.matchMedia('(max-width: 900px)').matches;
     if (isMobile) {
       console.log('📱 HandoverProtocolForm: Starting to render on mobile');
@@ -509,10 +484,6 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     return () => window.removeEventListener('error', handleError);
   }, []);
 
-  // 🔧 MOBILE PROTECTION: Lazy rendering pre veľké komponenty
-  const isMobile = window.matchMedia('(max-width: 900px)').matches;
-  const [mobileRenderReady, setMobileRenderReady] = React.useState(!isMobile);
-
   React.useEffect(() => {
     if (isMobile && open) {
       console.log('📱 Mobile lazy rendering: Starting delayed render...');
@@ -524,6 +495,9 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       return () => clearTimeout(timer);
     }
   }, [isMobile, open]);
+
+  // 🔥 EARLY RETURN - PO všetkých hooks
+  if (!open) return null;
 
   // Na mobile počkáme na delayed render
   if (isMobile && !mobileRenderReady) {
