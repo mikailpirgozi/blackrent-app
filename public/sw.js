@@ -90,6 +90,9 @@ self.addEventListener('install', event => {
     ])
     .then(() => {
       console.log('✅ Service Worker: Installation complete');
+      
+      // 📱 MOBILE FIX: Skip waiting immediately to prevent refresh loops
+      console.log('📱 Mobile: Skipping waiting to prevent refresh issues');
       return self.skipWaiting();
     })
     .catch(error => {
@@ -126,6 +129,9 @@ self.addEventListener('activate', event => {
     ])
     .then(() => {
       console.log('🔄 Service Worker: Cache cleanup complete');
+      
+      // 📱 MOBILE FIX: Claim clients immediately to prevent refresh loops
+      console.log('📱 Mobile: Claiming clients to prevent refresh issues');
       return self.clients.claim();
     })
   );

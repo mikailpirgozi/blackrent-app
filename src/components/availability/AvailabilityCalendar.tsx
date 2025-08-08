@@ -255,13 +255,28 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     try {
       setLoadingRentalDetails(true);
       
+      // 🔧 MOBILE FIX: Timeout protection pre mobile zariadenia
+      const isMobile = window.matchMedia('(max-width: 900px)').matches;
+      const timeoutMs = isMobile ? 15000 : 30000; // 15s na mobile, 30s na desktop
+      
+      console.log(`📱 Calendar API: Using ${timeoutMs/1000}s timeout for ${isMobile ? 'mobile' : 'desktop'}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('🚨 Calendar API timeout after', timeoutMs/1000, 'seconds');
+      }, timeoutMs);
+      
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       const response = await fetch(`${API_BASE_URL}/rentals/${rentalId}`, {
         headers: {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` }),
         },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       const data = await response.json();
       
@@ -273,6 +288,25 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       }
     } catch (error) {
       console.error('Error fetching rental details:', error);
+      
+      // 🔧 MOBILE FIX: Lepší error handling pre mobile zariadenia
+      const isMobile = window.matchMedia('(max-width: 900px)').matches;
+      
+      if (isMobile) {
+        let errorMessage = 'Chyba pri načítaní detailov rezervácie';
+        
+        if (error instanceof Error) {
+          if (error.name === 'AbortError') {
+            errorMessage = '⏱️ Načítanie trvalo príliš dlho. Skúste to znovu s lepším internetovým pripojením.';
+          } else if (error.message.includes('fetch')) {
+            errorMessage = '🌐 Problém s internetovým pripojením. Skontrolujte pripojenie a skúste znovu.';
+          }
+        }
+        
+        console.log('📱 Calendar error handled gracefully:', errorMessage);
+        // Môžeme pridať toast notification namiesto alert
+        // alert(errorMessage);
+      }
     } finally {
       setLoadingRentalDetails(false);
     }
@@ -302,7 +336,30 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       event?.preventDefault?.();
       event?.stopPropagation?.();
     } catch {}
+    
+    // 🔧 MOBILE DEBUG: Enhanced logging pre mobile zariadenia
+    const isMobile = window.matchMedia('(max-width: 900px)').matches;
     console.log('📅 Day clicked:', { date, vehicleStatus, vehicleId });
+    
+    if (isMobile) {
+      console.log('📱 Calendar mobile click:', {
+        isMobile,
+        hasVehicleStatus: !!vehicleStatus,
+        status: vehicleStatus?.status,
+        rentalId: vehicleStatus?.rentalId,
+        action: !vehicleStatus ? 'create-maintenance' : 
+                vehicleStatus.rentalId ? 'fetch-rental-details' : 'other'
+      });
+      
+      // Memory check na mobile
+      if ('memory' in performance) {
+        const memInfo = (performance as any).memory;
+        console.log('💾 Calendar memory before action:', {
+          used: Math.round(memInfo.usedJSHeapSize / 1024 / 1024) + 'MB',
+          total: Math.round(memInfo.totalJSHeapSize / 1024 / 1024) + 'MB'
+        });
+      }
+    }
     
     if (event?.ctrlKey || event?.metaKey) {
       // Ctrl/Cmd click = show context menu

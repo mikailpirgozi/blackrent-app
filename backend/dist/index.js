@@ -77,6 +77,7 @@ app.use((0, cors_1.default)({
         const allowedOrigins = [
             'http://localhost:3000',
             'http://localhost:3002',
+            'http://10.0.86.238:3000', // IP adresa pre sieťový prístup
             'https://mikailpirgozi.github.io',
             'https://blackrent-app-production-4d6f.up.railway.app',
             process.env.FRONTEND_URL || 'http://localhost:3000'
@@ -100,6 +101,12 @@ app.use((0, cors_1.default)({
         // Povolím file:// protokol pre lokálne súbory
         if (origin.startsWith('file://')) {
             console.log('✅ Local file protocol detected - allowing:', origin);
+            return callback(null, true);
+        }
+        // ✅ NOVÉ: Povolím lokálne IP adresy (pre development na sieti)
+        const ipPattern = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+|127\.0\.0\.1|localhost)(:\d+)?$/;
+        if (ipPattern.test(origin)) {
+            console.log('✅ Local IP address detected - allowing:', origin);
             return callback(null, true);
         }
         // Inak zamietni
