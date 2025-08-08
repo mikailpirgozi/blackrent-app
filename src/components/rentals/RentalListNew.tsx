@@ -788,6 +788,16 @@ export default function RentalListNew() {
     }
   };
 
+  // Monitor state changes
+  React.useEffect(() => {
+    console.log('🔄 MOBILE DEBUG: openHandoverDialog state changed:', openHandoverDialog);
+    if (!openHandoverDialog) {
+      console.log('❌ MOBILE DEBUG: Modal was closed! Investigating...');
+      console.log('❌ MOBILE DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
+      console.log('❌ MOBILE DEBUG: Current URL:', window.location.href);
+    }
+  }, [openHandoverDialog, selectedRentalForProtocol]);
+
   // Handover Protocol handlers
   const handleCreateHandover = async (rental: Rental) => {
     console.log('📝 Creating handover protocol for rental:', rental.id);

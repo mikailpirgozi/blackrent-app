@@ -77,13 +77,52 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   
   // Log component mount
   React.useEffect(() => {
+    console.log('🟢 MOBILE DEBUG: HandoverProtocolForm MOUNTED');
+    console.log('🟢 MOBILE DEBUG: rental:', rental?.id);
+    
     logMobile('INFO', 'HandoverProtocol', 'Component mounted', {
       open,
       rentalId: rental?.id,
       timestamp: Date.now()
     });
+
+    // Global error handler
+    const handleError = (event: ErrorEvent) => {
+      console.log('💥 MOBILE DEBUG: Global error caught!', event.error);
+      alert(`💥 GLOBAL ERROR: ${event.error?.message || 'Unknown error'}`);
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.log('💥 MOBILE DEBUG: Unhandled promise rejection!', event.reason);
+      alert(`💥 PROMISE ERROR: ${event.reason}`);
+    };
+
+    // Navigation listeners
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      console.log('🚨 MOBILE DEBUG: Page is about to unload!');
+      alert('🚨 PAGE UNLOAD: Stránka sa chystá zatvoriť!');
+    };
+
+    const handlePopState = (event: PopStateEvent) => {
+      console.log('🚨 MOBILE DEBUG: PopState event triggered!');
+      alert('🚨 NAVIGATION: Zmena v histórii prehliadača!');
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
     
     return () => {
+      console.log('🔴 MOBILE DEBUG: HandoverProtocolForm UNMOUNTING');
+      console.log('🔴 MOBILE DEBUG: This means component was destroyed!');
+      alert('🔴 COMPONENT UNMOUNT: HandoverProtocolForm sa zničil!');
+      
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+      
       logMobile('INFO', 'HandoverProtocol', 'Component unmounting', {
         rentalId: rental?.id,
         timestamp: Date.now()
