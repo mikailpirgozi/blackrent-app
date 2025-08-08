@@ -39,7 +39,10 @@ class MobileStabilizer {
     };
 
     this.isMobile = this.detectMobileDevice();
-    this.log('🔧 MobileStabilizer initialized', { isMobile: this.isMobile, config: this.config });
+    // Only log if debug mode is enabled
+    if (this.config.debugMode) {
+      this.log('🔧 MobileStabilizer initialized', { isMobile: this.isMobile, config: this.config });
+    }
   }
 
   private detectMobileDevice(): boolean {

@@ -18,6 +18,7 @@ import { initializeCriticalResources } from './utils/criticalResources';
 import { initializeMemoryOptimization } from './utils/memoryOptimizer';
 import { initializeMobileOptimizations } from './utils/mobileOptimization';
 import { initializeMobileStabilizer } from './utils/mobileStabilizer';
+import { initializeMobilePerformance } from './utils/mobilePerformance';
 
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ErrorToastContainer from './components/common/ErrorToastContainer';
@@ -68,10 +69,18 @@ const AppContent: React.FC = () => {
     // Initialize mobile stabilizer for preventing unexpected refreshes
     initializeMobileStabilizer({
       enablePreventUnload: true,
-      enableMemoryMonitoring: true,
+      enableMemoryMonitoring: false, // Disable heavy monitoring in global scope
       enableVisibilityHandling: true,
-      enableFormDataPersistence: true,
-      debugMode: process.env.NODE_ENV === 'development'
+      enableFormDataPersistence: false, // Only enable in specific forms
+      debugMode: false // Disable verbose logging for better performance
+    });
+
+    // Initialize mobile performance optimizations
+    initializeMobilePerformance({
+      enableVirtualization: true,
+      enableImageOptimization: true,
+      enableRenderOptimization: true,
+      debugMode: false
     });
 
     console.log('⚡ Performance & Mobile optimizations initialized');

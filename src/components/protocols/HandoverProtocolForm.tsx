@@ -14,9 +14,7 @@ import {
   Chip,
   Grid,
   Divider,
-  Dialog,
-  DialogContent,
-  CircularProgress,
+
 } from '@mui/material';
 import {
   Save,
@@ -36,6 +34,7 @@ import { useApp } from '../../context/AppContext';
 import { getSmartDefaults, cacheFormDefaults, cacheCompanyDefaults } from '../../utils/protocolFormCache';
 import { initializeMobileStabilizer, getMobileStabilizer } from '../../utils/mobileStabilizer';
 import { useMobileRecovery } from '../../hooks/useMobileRecovery';
+import { getMobilePerformanceOptimizer } from '../../utils/mobilePerformance';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -75,7 +74,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   // 🚑 MOBILE RECOVERY: Emergency recovery for unexpected refreshes
   const { recoveryState, clearRecoveryData, restoreFormData, hasRecoveredData } = useMobileRecovery({
     enableAutoRecovery: true,
-    debugMode: true
+    debugMode: false // Disable verbose logging
   });
   
   // 🚀 OPTIMALIZÁCIA: Vehicle indexing pre rýchle vyhľadávanie
@@ -209,12 +208,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   }, []);
 
   // 🚀 OPTIMALIZÁCIA: Quick Save - najprv uloží protokol, PDF na pozadí
-  const handleSave = useCallback(async () => {
-    // 📱 MOBILE PROTECTION: Mark that we're starting a critical operation
+  const performSave = useCallback(async () => {
     const stabilizer = getMobileStabilizer();
-    if (stabilizer) {
-      console.log('🛡️ Starting critical save operation - mobile protection active');
-    }
     // Validácia povinných polí
     const errors: string[] = [];
     
@@ -488,9 +483,24 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     }
   }, [formData, rental, currentVehicle, onSave, onClose]);
 
-  // 🔧 MOBILE PROTECTION: Lazy rendering pre veľké komponenty
+  const handleSave = useCallback(async () => {
+    // 📱 MOBILE PROTECTION: Mark that we're starting a critical operation
+    const stabilizer = getMobileStabilizer();
+    const perfOptimizer = getMobilePerformanceOptimizer();
+    
+    if (stabilizer) {
+      console.log('🛡️ Starting critical save operation - mobile protection active');
+    }
+
+    // 📱 PERFORMANCE: Measure save operation performance
+    return perfOptimizer?.measurePerformance('Protocol Save', async () => {
+      return await performSave();
+    }) || await performSave();
+  }, [performSave]);
+
+  // 🔧 MOBILE PROTECTION: Immediate rendering - no lazy loading delays
   const isMobile = window.matchMedia('(max-width: 900px)').matches;
-  const [mobileRenderReady, setMobileRenderReady] = React.useState(!isMobile);
+  // Removed mobileRenderReady as it's no longer needed
 
   // 🔧 MOBILE STABILIZER: Initialize mobile protection
   React.useEffect(() => {
@@ -510,10 +520,10 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       // Initialize mobile stabilizer for this critical form
       initializeMobileStabilizer({
         enablePreventUnload: true,
-        enableMemoryMonitoring: true,
+        enableMemoryMonitoring: false, // Disable heavy monitoring
         enableVisibilityHandling: true,
         enableFormDataPersistence: true,
-        debugMode: true
+        debugMode: false // Disable verbose logging
       });
       
       console.log('🛡️ Mobile stabilizer activated for protocol form');
@@ -554,37 +564,19 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     return () => window.removeEventListener('error', handleError);
   }, []);
 
-  React.useEffect(() => {
-    if (isMobile && open) {
-      console.log('📱 Mobile lazy rendering: Starting delayed render...');
-      // Delayed render na mobile pre lepšiu performance
-      const timer = setTimeout(() => {
-        console.log('📱 Mobile lazy rendering: Ready to render');
-        setMobileRenderReady(true);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isMobile, open]);
+  // Remove lazy rendering delay - it causes more problems than it solves
+  // Removed lazy rendering effect as it's no longer needed
 
   // 🔥 EARLY RETURN - PO všetkých hooks
   if (!open) return null;
 
-  // Na mobile počkáme na delayed render
-  if (isMobile && !mobileRenderReady) {
-    console.log('📱 Mobile lazy rendering: Waiting...');
-    return (
-      <Dialog open={open} maxWidth="md" fullWidth>
-        <DialogContent>
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
-            <Typography sx={{ ml: 2 }}>Načítavam formulár...</Typography>
-          </Box>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  // Immediate render - no loading delays
+  // Removed lazy loading as it causes more problems than benefits
 
-  console.log('📱 HandoverProtocolForm: Full render starting', { isMobile, mobileRenderReady });
+  // Reduced logging for better performance
+  if (isMobile) {
+    console.log('📱 HandoverProtocolForm: Mobile render');
+  }
 
   return (
     <Box sx={{ 
