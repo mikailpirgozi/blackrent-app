@@ -247,35 +247,56 @@ router.post('/import/csv', auth_1.authenticateToken, async (req, res) => {
         const dataLines = lines.slice(1);
         const results = [];
         const errors = [];
+        console.log(`📥 CSV Import: Spracovávam ${dataLines.length} riadkov`);
         for (let i = 0; i < dataLines.length; i++) {
             try {
                 const line = dataLines[i].trim();
                 if (!line)
                     continue;
-                // Parsuj CSV riadok
-                const fields = line.split(',').map(field => field.replace(/^"|"$/g, '').trim());
-                if (fields.length < 4) {
-                    errors.push({ row: i + 2, error: 'Nedostatok stĺpcov' });
+                // Parsuj CSV riadok - flexibilne spracovanie
+                const fields = [];
+                let current = '';
+                let inQuotes = false;
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    }
+                    else if (char === ',' && !inQuotes) {
+                        fields.push(current.trim());
+                        current = '';
+                    }
+                    else {
+                        current += char;
+                    }
+                }
+                fields.push(current.trim()); // Posledné pole
+                console.log(`Riadok ${i + 2}: ${fields.length} polí:`, fields);
+                // Mapovanie polí podľa vášho formátu: id, description, amount, date, category, company, vehicleId, vehicleLicensePlate, note
+                const [id, description, amount, date, category, company, vehicleId, vehicleLicensePlate, note] = fields;
+                // Kontrola povinných polí - len description je povinný
+                if (!description || description.trim() === '') {
+                    console.warn(`Riadok ${i + 2}: Preskakujem - chýba popis`);
                     continue;
                 }
-                const [, description, amount, date, category, vehicleId, company, note] = fields;
-                if (!description || !amount) {
-                    errors.push({ row: i + 2, error: 'Popis a suma sú povinné' });
-                    continue;
+                // Parsuj sumu - ak nie je zadaná, nastav na 0
+                let parsedAmount = 0;
+                if (amount && amount.trim() !== '') {
+                    parsedAmount = parseFloat(amount.replace(',', '.'));
+                    if (isNaN(parsedAmount)) {
+                        console.warn(`Riadok ${i + 2}: Neplatná suma "${amount}", nastavujem na 0`);
+                        parsedAmount = 0;
+                    }
                 }
-                const parsedAmount = parseFloat(amount);
-                if (isNaN(parsedAmount)) {
-                    errors.push({ row: i + 2, error: 'Neplatná suma' });
-                    continue;
-                }
-                // Parsuj dátum - podporuj formáty MM/YYYY, DD.MM.YYYY, YYYY-MM-DD
+                // Parsuj dátum - formát MM/YYYY sa zmení na 01.MM.YYYY
                 let parsedDate = new Date();
                 if (date && date.trim()) {
                     const dateStr = date.trim();
-                    // Formát MM/YYYY (napr. 01/2025)
+                    // Formát MM/YYYY (napr. 01/2025) -> 01.01.2025
                     if (/^\d{1,2}\/\d{4}$/.test(dateStr)) {
                         const [month, year] = dateStr.split('/');
                         parsedDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+                        console.log(`Dátum ${dateStr} parsovaný ako ${parsedDate.toISOString().split('T')[0]}`);
                     }
                     // Formát DD.MM.YYYY (napr. 15.01.2025)
                     else if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(dateStr)) {
@@ -292,33 +313,34 @@ router.post('/import/csv', auth_1.authenticateToken, async (req, res) => {
                         parsedDate = new Date();
                     }
                 }
-                // Mapuj kategóriu na správne hodnoty
+                // Mapuj kategóriu na správne hodnoty - flexibilne
                 let mappedCategory = 'other';
                 if (category && category.trim()) {
                     const cat = category.trim().toLowerCase();
-                    if (cat.includes('palivo') || cat.includes('fuel')) {
+                    if (cat.includes('palivo') || cat.includes('fuel') || cat === 'fuel') {
                         mappedCategory = 'fuel';
                     }
-                    else if (cat.includes('servis') || cat.includes('service') || cat.includes('oprava')) {
+                    else if (cat.includes('servis') || cat.includes('service') || cat.includes('oprava') || cat === 'service') {
                         mappedCategory = 'service';
                     }
-                    else if (cat.includes('poistenie') || cat.includes('insurance') || cat.includes('kasko') || cat.includes('pzp')) {
+                    else if (cat.includes('poistenie') || cat.includes('insurance') || cat.includes('kasko') || cat.includes('pzp') || cat === 'insurance') {
                         mappedCategory = 'insurance';
                     }
                     else {
                         mappedCategory = 'other';
                     }
                 }
-                // Vytvor náklad
+                // Vytvor náklad - všetky polia sú voliteľné okrem description
                 const expenseData = {
                     description: description.trim(),
                     amount: parsedAmount,
                     date: parsedDate,
                     category: mappedCategory,
-                    vehicleId: vehicleId?.trim() || undefined,
-                    company: company?.trim() || 'Neznáma firma',
-                    note: note?.trim() || undefined
+                    vehicleId: (vehicleId && vehicleId.trim() !== '') ? vehicleId.trim() : undefined,
+                    company: (company && company.trim() !== '') ? company.trim() : 'Neznáma firma',
+                    note: (note && note.trim() !== '') ? note.trim() : undefined
                 };
+                console.log(`Vytváram náklad:`, expenseData);
                 const createdExpense = await postgres_database_1.postgresDatabase.createExpense(expenseData);
                 results.push({ row: i + 2, expense: createdExpense });
             }
