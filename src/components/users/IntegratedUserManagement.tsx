@@ -13,42 +13,30 @@ import {
   Notifications as NotificationIcon
 } from '@mui/icons-material';
 import { RoleGuard } from '../common/PermissionGuard';
-import AdvancedUserManagement from '../admin/AdvancedUserManagement';
+import BasicUserManagement from './BasicUserManagement';
 import PushNotificationManager from '../common/PushNotificationManager';
 
 export default function IntegratedUserManagement() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
-  // Tab management - start with Advanced tab (index 1) as it's the main feature
-  const [currentTab, setCurrentTab] = useState(1);
+  // Tab management - start with Basic tab (index 0) as it's the main feature
+  const [currentTab, setCurrentTab] = useState(0);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
   };
 
-  const BasicUserManagementPlaceholder = () => (
-    <Box sx={{ p: 3, textAlign: 'center' }}>
-      <Typography variant="h5" sx={{ mb: 2, color: 'primary.main' }}>
-        🚧 Základná správa používateľov
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-        Pôvodná funkcionalita bude integrovaná v ďalšej verzii.
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        💡 <strong>Tip:</strong> Použite záložku "Pokročilá správa" pre kompletné user management s organizáciami, rolami, tímami a audit logom.
-      </Typography>
-    </Box>
-  );
+  // Basic User Management is now the main component - no placeholder needed
 
   const renderTabContent = () => {
     switch (currentTab) {
       case 0:
-        return <BasicUserManagementPlaceholder />;
-      case 2:
+        return <BasicUserManagement />;
+      case 1:
         return <PushNotificationManager />;
-      default: // case 1 - Advanced User Management
-        return <AdvancedUserManagement />;
+      default:
+        return <BasicUserManagement />;
     }
   };
 
@@ -96,11 +84,7 @@ export default function IntegratedUserManagement() {
           >
             <Tab 
               icon={<PersonIcon />} 
-              label="Základná správa"
-            />
-            <Tab 
-              icon={<AdvancedIcon />} 
-              label="Pokročilá správa"
+              label="Správa používateľov"
             />
             <Tab 
               icon={<NotificationIcon />} 
