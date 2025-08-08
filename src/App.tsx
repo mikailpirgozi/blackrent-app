@@ -92,9 +92,72 @@ const AppContent: React.FC = () => {
       url: window.location.href
     });
 
+    // 🚨 NETWORK MONITORING: Track all API calls
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const url = args[0]?.toString() || 'unknown';
+      console.log('🌐 MOBILE DEBUG: API CALL STARTED:', url);
+      
+      try {
+        const response = await originalFetch(...args);
+        console.log('✅ MOBILE DEBUG: API CALL SUCCESS:', url, response.status);
+        
+        // Check if this API call might affect modal state
+        if (url.includes('protocol') || url.includes('rental')) {
+          console.log('⚠️ MOBILE DEBUG: PROTOCOL/RENTAL API CALL - might affect modal!');
+          alert(`🌐 API CALL: ${url} - status: ${response.status}`);
+        }
+        
+        return response;
+      } catch (error) {
+        console.log('❌ MOBILE DEBUG: API CALL ERROR:', url, error);
+        alert(`❌ API ERROR: ${url} - ${error}`);
+        throw error;
+      }
+    };
+
+    // 🚨 WEBSOCKET MONITORING: Track WebSocket messages
+    const originalWebSocket = window.WebSocket;
+    window.WebSocket = class extends WebSocket {
+      constructor(url: string | URL, protocols?: string | string[]) {
+        super(url, protocols);
+        console.log('🔌 MOBILE DEBUG: WebSocket CREATED:', url);
+        
+        this.addEventListener('message', (event) => {
+          console.log('📨 MOBILE DEBUG: WebSocket MESSAGE:', event.data);
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'rental_update' || data.type === 'protocol_update') {
+              console.log('⚠️ MOBILE DEBUG: CRITICAL WebSocket message - might close modal!');
+              alert(`📨 WebSocket: ${data.type} - might affect modal!`);
+            }
+          } catch (e) {
+            // Not JSON, ignore
+          }
+        });
+        
+        this.addEventListener('close', (event) => {
+          console.log('🔌 MOBILE DEBUG: WebSocket CLOSED:', event.code, event.reason);
+          alert(`🔌 WebSocket CLOSED: ${event.code} - ${event.reason}`);
+        });
+      }
+    };
+
+    // 🚨 STORAGE MONITORING: Track localStorage changes
+    const originalSetItem = localStorage.setItem;
+    localStorage.setItem = function(key, value) {
+      console.log('💾 MOBILE DEBUG: localStorage SET:', key, value);
+      if (key.includes('modal') || key.includes('protocol')) {
+        alert(`💾 localStorage: ${key} = ${value}`);
+      }
+      return originalSetItem.call(this, key, value);
+    };
+
     console.log('⚡ Performance & Mobile optimizations initialized');
     console.log('🛡️ Mobile stabilizer initialized globally');
     console.log('📱 Mobile logger initialized for diagnostics');
+    console.log('🚨 MOBILE DEBUG: All monitoring systems active!');
+    alert('🚨 MONITORING ACTIVE: API, WebSocket, localStorage tracked!');
   }, []);
   
   return (
