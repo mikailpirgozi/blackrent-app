@@ -57,8 +57,6 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions, getUserRoleDisplayName } from '../hooks/usePermissions';
 import { useThemeMode } from '../context/ThemeContext';
-// 🚫 TEMPORARILY DISABLED: Mobile debug indicator causing issues
-// import MobileDebugIndicator from './common/MobileDebugIndicator';
 import ChangePasswordForm from './auth/ChangePasswordForm';
 import UserProfile from './users/UserProfile';
 import { EnhancedErrorToast } from './common/EnhancedErrorToast';
@@ -672,9 +670,6 @@ export default function Layout({ children }: LayoutProps) {
         showStats={successStats}
         icon="check"
       />
-      
-      {/* 🚫 TEMPORARILY DISABLED: Mobile Debug Indicator causing startup issues */}
-      {/* <MobileDebugIndicator /> */}
     </Box>
   );
 }
