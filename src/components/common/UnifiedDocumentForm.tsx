@@ -18,13 +18,11 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs from 'dayjs';
-import { 
-  Security as SecurityIcon,
-  Build as BuildIcon,
-  Assignment as AssignmentIcon,
-  LocalShipping as HighwayIcon,
-  AttachFile as FileIcon
-} from '@mui/icons-material';
+import SecurityIcon from '@mui/icons-material/Security';
+import BuildIcon from '@mui/icons-material/Build';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import HighwayIcon from '@mui/icons-material/LocalShipping';
+import FileIcon from '@mui/icons-material/AttachFile';
 import { useApp } from '../../context/AppContext';
 import { Insurance, VehicleDocument, PaymentFrequency } from '../../types';
 import R2FileUpload from './R2FileUpload';
