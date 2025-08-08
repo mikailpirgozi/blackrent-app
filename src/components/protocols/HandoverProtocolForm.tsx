@@ -593,16 +593,16 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
         signatures: formData.signatures?.length || 0
       });
       
-      // Initialize mobile stabilizer for this critical form
-      initializeMobileStabilizer({
-        enablePreventUnload: true,
-        enableMemoryMonitoring: false, // Disable heavy monitoring
-        enableVisibilityHandling: true,
-        enableFormDataPersistence: true,
-        debugMode: false // Disable verbose logging
-      });
+      // Initialize mobile stabilizer for this critical form (DISABLED)
+      // initializeMobileStabilizer({
+      //   enablePreventUnload: true,
+      //   enableMemoryMonitoring: false, // Disable heavy monitoring
+      //   enableVisibilityHandling: true,
+      //   enableFormDataPersistence: true,
+      //   debugMode: false // Disable verbose logging
+      // });
       
-      console.log('🛡️ Mobile stabilizer activated for protocol form');
+      // console.log('🛡️ Mobile stabilizer activated for protocol form');
       
       // Kontrola memory
       if ('memory' in performance) {
@@ -616,7 +616,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       
       return () => {
         // Keep stabilizer active - don't destroy on unmount as user might return
-        console.log('📱 Protocol form unmounted, keeping stabilizer active');
+        console.log('📱 Protocol form unmounted');
       };
     }
   }, [open, rental?.id, formData]);

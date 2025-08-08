@@ -13,13 +13,13 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { ThemeProvider, useThemeMode } from './context/ThemeContext';
 
 // Performance optimization imports
-import { initializeWebVitalsOptimizations } from './utils/webVitalsOptimizations';
+// import { initializeWebVitalsOptimizations } from './utils/webVitalsOptimizations';
 import { initializeCriticalResources } from './utils/criticalResources';
-import { initializeMemoryOptimization } from './utils/memoryOptimizer';
-import { initializeMobileOptimizations } from './utils/mobileOptimization';
-import { initializeMobileStabilizer } from './utils/mobileStabilizer';
-import { initializeMobilePerformance } from './utils/mobilePerformance';
-import { initializeMobileLogger } from './utils/mobileLogger';
+// import { initializeMemoryOptimization } from './utils/memoryOptimizer';
+// import { initializeMobileOptimizations } from './utils/mobileOptimization';
+// import { initializeMobileStabilizer } from './utils/mobileStabilizer';
+// import { initializeMobilePerformance } from './utils/mobilePerformance';
+// import { initializeMobileLogger } from './utils/mobileLogger';
 
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ErrorToastContainer from './components/common/ErrorToastContainer';
