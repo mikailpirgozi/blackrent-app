@@ -17,7 +17,7 @@ import {
   Home as HomeIcon,
   BugReport as BugReportIcon,
 } from '@mui/icons-material';
-import { reportError } from '../../utils/sentry';
+import { getMobileLogger } from '../../utils/mobileLogger';
 
 interface Props {
   children: ReactNode;
@@ -57,13 +57,18 @@ class ErrorBoundary extends Component<Props, State> {
     console.error('Component Stack:', errorInfo.componentStack);
     console.groupEnd();
     
-    // Report to Sentry with enhanced context
-    reportError(error, {
-      componentStack: errorInfo.componentStack,
-      errorBoundary: true,
-      retryCount: this.state.retryCount,
-      level: this.props.level || 'component',
-    });
+    // Report to MobileLogger with enhanced context
+    const mobileLogger = getMobileLogger();
+    if (mobileLogger) {
+      mobileLogger.log('CRITICAL', 'ErrorBoundary', 'React Error Boundary caught error', {
+        error: error.message,
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+        errorBoundary: true,
+        retryCount: this.state.retryCount,
+        level: this.props.level || 'component',
+      });
+    }
 
     // Auto-retry for certain recoverable errors
     if (this.shouldAutoRetry(error) && this.state.retryCount < (this.props.maxRetries || 2)) {

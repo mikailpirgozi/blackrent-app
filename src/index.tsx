@@ -2,10 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
-import { initSentry } from './utils/sentry';
-
-// Inicializuj Sentry ako prvé
-initSentry();
+// Sentry removed - using MobileLogger instead
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
