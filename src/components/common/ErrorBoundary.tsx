@@ -138,21 +138,21 @@ class ErrorBoundary extends Component<Props, State> {
       if (isMobile && !hasAutoReloaded) {
         sessionStorage.setItem('autoReloadedAfterChunkError', '1');
         
-        // V development mode - pýtaj sa používateľa
-        if (process.env.NODE_ENV === 'development') {
-          const shouldReload = window.confirm(
-            '🚨 ChunkLoadError na mobile!\n\n' +
-            'Chcete automaticky obnoviť stránku?\n' +
-            '(Cancel = ponechať pre debugging)'
-          );
-          
-          if (shouldReload) {
-            setTimeout(() => window.location.reload(), 100);
-          }
-        } else {
-          // V production - automatický reload s dlhším delayom
-          setTimeout(() => window.location.reload(), 1000);
-        }
+        // 🚫 TEMPORARILY DISABLED: Automatic reload on ChunkLoadError
+        // This might be causing the mobile refresh issues
+        
+        console.log('🚨 ChunkLoadError detected but auto-reload is DISABLED for debugging');
+        console.log('📱 Mobile users should manually refresh if needed');
+        
+        // PÔVODNÝ KÓD (ZAKÁZANÝ):
+        // if (process.env.NODE_ENV === 'development') {
+        //   const shouldReload = window.confirm('🚨 ChunkLoadError na mobile!\n\nChcete automaticky obnoviť stránku?\n(Cancel = ponechať pre debugging)');
+        //   if (shouldReload) {
+        //     setTimeout(() => window.location.reload(), 100);
+        //   }
+        // } else {
+        //   setTimeout(() => window.location.reload(), 1000);
+        // }
       }
       return 'Načítavanie stránky bolo prerušené. Skúste obnoviť stránku.';
     }
