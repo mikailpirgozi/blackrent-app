@@ -2418,8 +2418,9 @@ export default function RentalListNew() {
 
   // ⚡ BACKGROUND PROTOCOL LOADING - načíta protocol status na pozadí bez spomalenia
   const loadProtocolStatusInBackground = useCallback(async () => {
-    if (isLoadingProtocolStatus || protocolStatusLoaded) {
-      return; // Už sa načítava alebo je načítané
+    // 🛡️ MOBILE FIX: Pozastaviť background loading keď je otvorený modal
+    if (openHandoverDialog || openReturnDialog || isLoadingProtocolStatus || protocolStatusLoaded) {
+      return; // Modal je otvorený alebo už sa načítava/je načítané
     }
 
     console.log('🚀 BACKGROUND: Starting protocol status loading...');
@@ -2514,7 +2515,8 @@ export default function RentalListNew() {
 
   // ⚡ TRIGGER BACKGROUND LOADING po načítaní rentals
   React.useEffect(() => {
-    if (state.rentals.length > 0 && !protocolStatusLoaded && !isLoadingProtocolStatus) {
+    // 🛡️ MOBILE FIX: Nepúšťať background loading keď je otvorený modal
+    if (state.rentals.length > 0 && !protocolStatusLoaded && !isLoadingProtocolStatus && !openHandoverDialog && !openReturnDialog) {
       // Spusti na pozadí za 100ms aby sa nestratila rýchlosť UI
       const timer = setTimeout(() => {
         loadProtocolStatusInBackground();
@@ -2522,7 +2524,7 @@ export default function RentalListNew() {
       
       return () => clearTimeout(timer);
     }
-  }, [state.rentals.length, protocolStatusLoaded, isLoadingProtocolStatus, loadProtocolStatusInBackground]);
+  }, [state.rentals.length, protocolStatusLoaded, isLoadingProtocolStatus, loadProtocolStatusInBackground, openHandoverDialog, openReturnDialog]);
 
   return (
     <Box>
@@ -4305,6 +4307,12 @@ export default function RentalListNew() {
         onClose={() => setOpenHandoverDialog(false)}
         maxWidth="lg"
         fullWidth
+        disableEscapeKeyDown={true}
+        sx={{
+          '& .MuiBackdrop-root': {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }}
       >
         <DialogTitle>Odovzdávací protokol</DialogTitle>
         <DialogContent>
