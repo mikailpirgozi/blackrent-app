@@ -35,7 +35,7 @@ import { getSmartDefaults, cacheFormDefaults, cacheCompanyDefaults } from '../..
 import { initializeMobileStabilizer, getMobileStabilizer } from '../../utils/mobileStabilizer';
 import { useMobileRecovery } from '../../hooks/useMobileRecovery';
 import { getMobilePerformanceOptimizer } from '../../utils/mobilePerformance';
-import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
+// import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -123,7 +123,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     //     }
     //   });
     // }
-  }, [open, rental?.id, mobileLogger]);
+  }, [open, rental?.id]);
 
   // 🚨 EMERGENCY: Disable mobile recovery to reduce memory usage
   // const { recoveryState, clearRecoveryData, restoreFormData, hasRecoveredData } = useMobileRecovery({
@@ -263,11 +263,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
 
   // 🚀 OPTIMALIZÁCIA: Quick Save - najprv uloží protokol, PDF na pozadí
   const performSave = useCallback(async () => {
-    logMobile('INFO', 'HandoverProtocol', 'Save operation started', {
-      rentalId: rental?.id,
-      timestamp: Date.now(),
-      formDataKeys: Object.keys(formData)
-    });
+    // logMobile('INFO', 'HandoverProtocol', 'Save operation started', {
+    //   rentalId: rental?.id,
+    //   timestamp: Date.now(),
+    //   formDataKeys: Object.keys(formData)
+    // });
     
     const stabilizer = getMobileStabilizer();
     // Validácia povinných polí
@@ -302,11 +302,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     }
     
     if (errors.length > 0) {
-      logMobile('ERROR', 'HandoverProtocol', 'Validation errors', {
-        errors,
-        rentalId: rental?.id,
-        timestamp: Date.now()
-      });
+      // logMobile('ERROR', 'HandoverProtocol', 'Validation errors', {
+      //   errors,
+      //   rentalId: rental?.id,
+      //   timestamp: Date.now()
+      // });
       alert(`❌ Prosím vyplňte všetky povinné polia:\n\n${errors.join('\n')}`);
       return;
     }
@@ -532,14 +532,14 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
         }
       }
       
-      logMobile('CRITICAL', 'HandoverProtocol', 'Save operation failed', {
-        error: error instanceof Error ? error.message : String(error),
-        errorType: error instanceof Error ? error.name : 'Unknown',
-        stack: error instanceof Error ? error.stack : undefined,
-        rentalId: rental?.id,
-        timestamp: Date.now(),
-        formData: formData
-      });
+      // logMobile('CRITICAL', 'HandoverProtocol', 'Save operation failed', {
+      //   error: error instanceof Error ? error.message : String(error),
+      //   errorType: error instanceof Error ? error.name : 'Unknown',
+      //   stack: error instanceof Error ? error.stack : undefined,
+      //   rentalId: rental?.id,
+      //   timestamp: Date.now(),
+      //   formData: formData
+      // });
       
       alert(errorMessage);
       

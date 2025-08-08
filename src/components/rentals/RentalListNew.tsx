@@ -832,23 +832,23 @@ export default function RentalListNew() {
       console.log('🔍 MOBILE DEBUG: setSelectedRentalForProtocol:', rental.id);
       console.log('🔍 MOBILE DEBUG: setOpenHandoverDialog(true)');
       
-      logMobile('INFO', 'RentalList', 'Opening handover modal', {
-        rentalId: rental.id,
-        timestamp: Date.now(),
-        modalState: 'opening'
-      });
+      // logMobile('INFO', 'RentalList', 'Opening handover modal', {
+      //   rentalId: rental.id,
+      //   timestamp: Date.now(),
+      //   modalState: 'opening'
+      // });
       
       setSelectedRentalForProtocol(rental);
       setOpenHandoverDialog(true);
       
       console.log('🔍 MOBILE DEBUG: Modal state set - should be open now');
       
-      logMobile('INFO', 'RentalList', 'Handover modal state set', {
-        rentalId: rental.id,
-        timestamp: Date.now(),
-        openHandoverDialog: true,
-        selectedRentalForProtocol: rental.id
-      });
+      // logMobile('INFO', 'RentalList', 'Handover modal state set', {
+      //   rentalId: rental.id,
+      //   timestamp: Date.now(),
+      //   openHandoverDialog: true,
+      //   selectedRentalForProtocol: rental.id
+      // });
       
     } catch (error) {
       console.error('❌ Error checking cached protocols:', error);
@@ -4345,11 +4345,11 @@ export default function RentalListNew() {
           // Temporary alert for mobile debugging
           alert('🚨 MOBILE DEBUG: Dialog zatvorený! Dôvod: backdrop click alebo ESC key');
           
-          logMobile('WARN', 'RentalList', 'Handover modal closing via Dialog onClose', {
-            timestamp: Date.now(),
-            selectedRentalId: selectedRentalForProtocol?.id,
-            reason: 'dialog_onClose'
-          });
+          // logMobile('WARN', 'RentalList', 'Handover modal closing via Dialog onClose', {
+          //   timestamp: Date.now(),
+          //   selectedRentalId: selectedRentalForProtocol?.id,
+          //   reason: 'dialog_onClose'
+          // });
           setOpenHandoverDialog(false);
         }}
         maxWidth="lg"
@@ -4367,11 +4367,11 @@ export default function RentalListNew() {
                 console.log('🚨 MOBILE DEBUG: Modal closing via form close button');
                 console.log('🚨 MOBILE DEBUG: timestamp:', new Date().toISOString());
                 
-                logMobile('WARN', 'RentalList', 'Handover modal closing via HandoverProtocolForm onClose', {
-                  timestamp: Date.now(),
-                  selectedRentalId: selectedRentalForProtocol?.id,
-                  reason: 'form_onClose'
-                });
+                // logMobile('WARN', 'RentalList', 'Handover modal closing via HandoverProtocolForm onClose', {
+                //   timestamp: Date.now(),
+                //   selectedRentalId: selectedRentalForProtocol?.id,
+                //   reason: 'form_onClose'
+                // });
                 setOpenHandoverDialog(false);
               }}
             />
