@@ -82,6 +82,7 @@ import { MobileRentalRow } from './MobileRentalRow';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
+import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
 import RentalForm from './RentalForm';
 import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
@@ -791,6 +792,12 @@ export default function RentalListNew() {
   const handleCreateHandover = async (rental: Rental) => {
     console.log('📝 Creating handover protocol for rental:', rental.id);
     
+    logMobile('INFO', 'RentalList', 'Handover protocol creation started', {
+      rentalId: rental.id,
+      timestamp: Date.now(),
+      url: window.location.href
+    });
+    
     try {
       // ⚡ OPTIMALIZÁCIA: Použiť cached protocol status namiesto API volania
       const backgroundStatus = protocolStatusMap[rental.id];
@@ -808,8 +815,22 @@ export default function RentalListNew() {
       }
       
       console.log('⚡ CACHED: No existing handover protocol, proceeding instantly...');
+      
+      logMobile('INFO', 'RentalList', 'Opening handover modal', {
+        rentalId: rental.id,
+        timestamp: Date.now(),
+        modalState: 'opening'
+      });
+      
       setSelectedRentalForProtocol(rental);
       setOpenHandoverDialog(true);
+      
+      logMobile('INFO', 'RentalList', 'Handover modal state set', {
+        rentalId: rental.id,
+        timestamp: Date.now(),
+        openHandoverDialog: true,
+        selectedRentalForProtocol: rental.id
+      });
       
     } catch (error) {
       console.error('❌ Error checking cached protocols:', error);
@@ -4298,7 +4319,14 @@ export default function RentalListNew() {
       {/* Handover Protocol Dialog */}
       <Dialog
         open={openHandoverDialog}
-        onClose={() => setOpenHandoverDialog(false)}
+        onClose={() => {
+          logMobile('WARN', 'RentalList', 'Handover modal closing via Dialog onClose', {
+            timestamp: Date.now(),
+            selectedRentalId: selectedRentalForProtocol?.id,
+            reason: 'dialog_onClose'
+          });
+          setOpenHandoverDialog(false);
+        }}
         maxWidth="lg"
         fullWidth
       >
@@ -4309,7 +4337,14 @@ export default function RentalListNew() {
               open={openHandoverDialog}
               rental={selectedRentalForProtocol}
               onSave={handleSaveHandover}
-              onClose={() => setOpenHandoverDialog(false)}
+              onClose={() => {
+                logMobile('WARN', 'RentalList', 'Handover modal closing via HandoverProtocolForm onClose', {
+                  timestamp: Date.now(),
+                  selectedRentalId: selectedRentalForProtocol?.id,
+                  reason: 'form_onClose'
+                });
+                setOpenHandoverDialog(false);
+              }}
             />
           )}
         </DialogContent>

@@ -19,6 +19,7 @@ import { initializeMemoryOptimization } from './utils/memoryOptimizer';
 import { initializeMobileOptimizations } from './utils/mobileOptimization';
 import { initializeMobileStabilizer } from './utils/mobileStabilizer';
 import { initializeMobilePerformance } from './utils/mobilePerformance';
+import { initializeMobileLogger } from './utils/mobileLogger';
 
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ErrorToastContainer from './components/common/ErrorToastContainer';
@@ -83,8 +84,17 @@ const AppContent: React.FC = () => {
       debugMode: false
     });
 
+    // Initialize mobile logger for detailed diagnostics
+    const mobileLogger = initializeMobileLogger();
+    mobileLogger.log('INFO', 'App', 'BlackRent application starting', {
+      timestamp: Date.now(),
+      userAgent: navigator.userAgent,
+      url: window.location.href
+    });
+
     console.log('⚡ Performance & Mobile optimizations initialized');
     console.log('🛡️ Mobile stabilizer initialized globally');
+    console.log('📱 Mobile logger initialized for diagnostics');
   }, []);
   
   return (
