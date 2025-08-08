@@ -82,7 +82,7 @@ import { MobileRentalRow } from './MobileRentalRow';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
-import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
+// import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
 import RentalForm from './RentalForm';
 import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
@@ -805,11 +805,11 @@ export default function RentalListNew() {
     console.log('🔍 MOBILE DEBUG: rental object:', rental);
     console.log('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
     
-    logMobile('INFO', 'RentalList', 'Handover protocol creation started', {
-      rentalId: rental.id,
-      timestamp: Date.now(),
-      url: window.location.href
-    });
+    // logMobile('INFO', 'RentalList', 'Handover protocol creation started', {
+    //   rentalId: rental.id,
+    //   timestamp: Date.now(),
+    //   url: window.location.href
+    // });
     
     try {
       // ⚡ OPTIMALIZÁCIA: Použiť cached protocol status namiesto API volania
