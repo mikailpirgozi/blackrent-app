@@ -140,7 +140,7 @@ class ErrorBoundary extends Component<Props, State> {
         
         // V development mode - pýtaj sa používateľa
         if (process.env.NODE_ENV === 'development') {
-          const shouldReload = confirm(
+          const shouldReload = window.confirm(
             '🚨 ChunkLoadError na mobile!\n\n' +
             'Chcete automaticky obnoviť stránku?\n' +
             '(Cancel = ponechať pre debugging)'

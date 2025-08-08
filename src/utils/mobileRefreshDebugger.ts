@@ -43,7 +43,7 @@ class MobileRefreshDebugger {
       
       // V development mode - pozastavíme refresh a zobrazíme alert
       if (process.env.NODE_ENV === 'development') {
-        const shouldContinue = confirm(
+        const shouldContinue = window.confirm(
           '🚨 REFRESH DETECTED!\n\n' +
           'Trigger: window.location.reload()\n' +
           'Location: ' + window.location.pathname + '\n\n' +
@@ -67,7 +67,7 @@ class MobileRefreshDebugger {
         
         // V development mode - pozastavíme redirect
         if (process.env.NODE_ENV === 'development' && url !== window.location.href) {
-          const shouldContinue = confirm(
+          const shouldContinue = window.confirm(
             '🚨 REDIRECT DETECTED!\n\n' +
             'Trigger: window.location.href assignment\n' +
             'From: ' + window.location.href + '\n' +
