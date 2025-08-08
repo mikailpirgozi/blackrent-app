@@ -85,7 +85,7 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('i
 router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('insurances', 'update', { getContext: getInsuranceContext }), async (req, res) => {
     try {
         const { id } = req.params;
-        const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath } = req.body;
+        const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath } = req.body;
         if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
             return res.status(400).json({
                 success: false,
@@ -100,6 +100,7 @@ router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
             validTo: new Date(validTo),
             price,
             company,
+            insurerId, // Nový parameter
             paymentFrequency,
             filePath
         });

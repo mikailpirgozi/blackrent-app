@@ -303,6 +303,9 @@ export default function InsuranceList() {
       if (editingDocument) {
         // EDITING existing document
         if (editingDocument.type === 'insurance') {
+          // Nájdem insurerId podľa názvu poistovne
+          const selectedInsurer = state.insurers.find(insurer => insurer.name === data.company);
+          
           // Transform UnifiedDocument to Insurance format
           const insuranceData = {
             id: editingDocument.id || '',
@@ -312,7 +315,8 @@ export default function InsuranceList() {
             validFrom: data.validFrom || new Date(),
             validTo: data.validTo,
             price: data.price || 0,
-            company: data.company || '',
+            company: data.company || '', // Zachovávame pre kompatibilitu
+            insurerId: selectedInsurer?.id || null, // Nový parameter
             paymentFrequency: data.paymentFrequency || 'yearly',
             filePath: data.filePath
           };
