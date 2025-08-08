@@ -2812,7 +2812,13 @@ class PostgresDatabase {
     async getInsurances() {
         const client = await this.pool.connect();
         try {
-            const result = await client.query('SELECT * FROM insurances ORDER BY created_at DESC');
+            // JOIN s insurers tabuľkou pre načítanie názvu poistovne
+            const result = await client.query(`
+        SELECT i.*, ins.name as insurer_name 
+        FROM insurances i 
+        LEFT JOIN insurers ins ON i.insurer_id = ins.id 
+        ORDER BY i.created_at DESC
+      `);
             return result.rows.map(row => ({
                 id: row.id?.toString() || '',
                 vehicleId: row.rental_id?.toString() || '', // Mapovanie rental_id na vehicleId pre kompatibilitu
@@ -2821,7 +2827,7 @@ class PostgresDatabase {
                 validFrom: row.start_date ? new Date(row.start_date) : new Date(),
                 validTo: row.end_date ? new Date(row.end_date) : new Date(),
                 price: parseFloat(row.premium) || 0,
-                company: row.company || '', // company stĺpec možno neexistuje v DB
+                company: row.insurer_name || '', // Načítaný názov poistovne z JOIN
                 paymentFrequency: row.payment_frequency || 'yearly',
                 filePath: row.file_path || undefined
             }));
@@ -2870,9 +2876,21 @@ class PostgresDatabase {
     async updateInsurance(id, insuranceData) {
         const client = await this.pool.connect();
         try {
-            const result = await client.query('UPDATE insurances SET rental_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10 WHERE id = $11 RETURNING id, rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path', [insuranceData.vehicleId || null, insuranceData.insurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, id]);
+            // UPDATE s JOIN pre získanie názvu poistovne
+            const result = await client.query(`
+        UPDATE insurances 
+        SET rental_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10 
+        WHERE id = $11 
+        RETURNING id, rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path
+      `, [insuranceData.vehicleId || null, insuranceData.insurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, id]);
             if (result.rows.length === 0) {
                 throw new Error('Poistka nebola nájdená');
+            }
+            // Načítam názov poistovne ak existuje insurer_id
+            let insurerName = '';
+            if (result.rows[0].insurer_id) {
+                const insurerResult = await client.query('SELECT name FROM insurers WHERE id = $1', [result.rows[0].insurer_id]);
+                insurerName = insurerResult.rows[0]?.name || '';
             }
             const row = result.rows[0];
             return {
@@ -2883,7 +2901,7 @@ class PostgresDatabase {
                 validFrom: new Date(row.start_date),
                 validTo: new Date(row.end_date),
                 price: parseFloat(row.premium) || 0,
-                company: insuranceData.company || '', // Zachovávame pre kompatibilitu API
+                company: insurerName || insuranceData.company || '', // Použijem načítaný názov poistovne
                 paymentFrequency: row.payment_frequency || 'yearly',
                 filePath: row.file_path || undefined
             };

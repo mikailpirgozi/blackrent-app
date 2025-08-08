@@ -483,14 +483,32 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                   onClick={async () => {
                     if (newInsurerName.trim()) {
                       try {
-                        // TODO: Pridať API volanie pre vytvorenie poistovne
-                        console.log('Pridávam poistovňu:', newInsurerName);
-                        // Po úspešnom pridaní:
-                        setFormData(prev => ({ ...prev, company: newInsurerName }));
-                        setAddingInsurer(false);
-                        setNewInsurerName('');
+                        // Volám API pre vytvorenie poistovne
+                        const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/api/insurers`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                          },
+                          body: JSON.stringify({ name: newInsurerName.trim() })
+                        });
+
+                        if (response.ok) {
+                          const result = await response.json();
+                          console.log('✅ Poistovňa úspešne vytvorená:', result.data);
+                          
+                          // Po úspešnom pridaní nastavím novú poistovňu ako vybranú
+                          setFormData(prev => ({ ...prev, company: newInsurerName.trim() }));
+                          setAddingInsurer(false);
+                          setNewInsurerName('');
+                          
+                          // Refresh poistovní v AppContext (ak by bolo potrebné)
+                          window.location.reload();
+                        } else {
+                          console.error('❌ Chyba pri vytváraní poistovne:', response.statusText);
+                        }
                       } catch (error) {
-                        console.error('Chyba pri pridávaní poistovne:', error);
+                        console.error('❌ Chyba pri pridávaní poistovne:', error);
                       }
                     }
                   }}

@@ -106,7 +106,7 @@ router.put('/:id',
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath } = req.body;
 
     if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
       return res.status(400).json({
@@ -123,6 +123,7 @@ router.put('/:id',
       validTo: new Date(validTo),
       price,
       company,
+      insurerId, // Nový parameter
       paymentFrequency,
       filePath
     });
