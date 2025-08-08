@@ -3281,15 +3281,16 @@ export class PostgresDatabase {
     validFrom: Date;
     validTo: Date;
     price: number;
-    company: string;
+    company: string; // Zachovávame pre kompatibilitu, ale použijeme insurerId
+    insurerId?: string; // Nový parameter pre insurer_id
     paymentFrequency?: string;
     filePath?: string;
   }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'UPDATE insurances SET rental_id = $1, type = $2, policy_number = $3, start_date = $4, end_date = $5, premium = $6, coverage_amount = $7, payment_frequency = $8, file_path = $9 WHERE id = $10 RETURNING id, rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path',
-        [insuranceData.vehicleId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, id]
+        'UPDATE insurances SET rental_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10 WHERE id = $11 RETURNING id, rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path',
+        [insuranceData.vehicleId || null, insuranceData.insurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, id]
       );
 
       if (result.rows.length === 0) {
