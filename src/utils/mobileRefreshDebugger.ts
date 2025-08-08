@@ -60,32 +60,38 @@ class MobileRefreshDebugger {
       this.originalReload();
     };
 
-    // Intercept window.location.href assignments
-    Object.defineProperty(window.location, 'href', {
-      set: (url: string) => {
-        this.logRefreshEvent(`window.location.href = "${url}"`);
-        
-        // V development mode - pozastavíme redirect
-        if (process.env.NODE_ENV === 'development' && url !== window.location.href) {
-          const shouldContinue = window.confirm(
-            '🚨 REDIRECT DETECTED!\n\n' +
-            'Trigger: window.location.href assignment\n' +
-            'From: ' + window.location.href + '\n' +
-            'To: ' + url + '\n\n' +
-            'Chcete pokračovať? (Cancel = zastaviť pre debugging)'
-          );
+    // 🚫 SAFARI FIX: Safari nedovoľuje redefinovať window.location.href
+    // Skúsime to len ak je to možné, inak preskočíme
+    try {
+      Object.defineProperty(window.location, 'href', {
+        set: (url: string) => {
+          this.logRefreshEvent(`window.location.href = "${url}"`);
           
-          if (!shouldContinue) {
-            console.log('🛑 Redirect cancelled for debugging');
-            console.log('📊 Debug info:', this.getLastEvent());
-            return;
+          // V development mode - pozastavíme redirect
+          if (process.env.NODE_ENV === 'development' && url !== window.location.href) {
+            const shouldContinue = window.confirm(
+              '🚨 REDIRECT DETECTED!\n\n' +
+              'Trigger: window.location.href assignment\n' +
+              'From: ' + window.location.href + '\n' +
+              'To: ' + url + '\n\n' +
+              'Chcete pokračovať? (Cancel = zastaviť pre debugging)'
+            );
+            
+            if (!shouldContinue) {
+              console.log('🛑 Redirect cancelled for debugging');
+              console.log('📊 Debug info:', this.getLastEvent());
+              return;
+            }
           }
-        }
-        
-        this.originalAssign(url);
-      },
-      configurable: true
-    });
+          
+          this.originalAssign(url);
+        },
+        configurable: true
+      });
+    } catch (error) {
+      console.warn('⚠️ Cannot intercept window.location.href (Safari restriction):', error);
+      console.log('📱 Location redirect interception disabled on this browser');
+    }
 
     // Monitor for unhandled errors that might trigger ErrorBoundary
     window.addEventListener('error', (event) => {
