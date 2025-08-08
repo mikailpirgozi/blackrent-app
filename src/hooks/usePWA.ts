@@ -56,21 +56,19 @@ export const usePWA = (): PWAState & PWAActions => {
       // Check if app is already installed
       checkInstallationStatus();
       
-      // 🚫 TEMPORARY: Zakážeme Service Worker pre mobile zariadenia
+      // 🔧 ALLOW Service Worker on mobile but with disabled auto-updates
       const isMobileDevice = window.matchMedia('(max-width: 900px)').matches;
       
       if (isMobileDevice) {
-        console.log('📱 PWA: Service Worker DISABLED on mobile to prevent refresh issues');
-        console.log('🔧 This is a temporary fix for mobile refresh debugging');
-        return;
+        console.log('📱 PWA: Service Worker enabled on mobile but auto-updates DISABLED');
       }
       
-      // Register service worker len na desktop
+      // Register service worker na všetkých zariadeniach
       if ('serviceWorker' in navigator) {
         const registration = await registerServiceWorker();
         if (registration) {
           setState(prev => ({ ...prev, swRegistration: registration }));
-          console.log('✅ PWA: Service Worker successfully initialized (desktop only)');
+          console.log('✅ PWA: Service Worker successfully initialized');
         } else {
           console.warn('⚠️ PWA: Service Worker registration returned null');
         }
