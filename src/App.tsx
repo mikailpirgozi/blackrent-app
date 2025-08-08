@@ -196,6 +196,44 @@ const AppContent: React.FC = () => {
       }
     });
 
+    // 🚨 URL NAVIGATION TRACKING
+    let lastUrl = window.location.href;
+    console.log('🔗 MOBILE DEBUG: Initial URL:', lastUrl);
+    
+    // Track hash changes
+    window.addEventListener('hashchange', (event) => {
+      console.log('🔗 MOBILE DEBUG: Hash changed!');
+      console.log('🔗 MOBILE DEBUG: From:', event.oldURL);
+      console.log('🔗 MOBILE DEBUG: To:', event.newURL);
+      alert(`🔗 HASH CHANGE: ${event.oldURL} → ${event.newURL}`);
+    });
+    
+    // Track popstate (back/forward navigation)
+    window.addEventListener('popstate', (event) => {
+      console.log('🔗 MOBILE DEBUG: PopState navigation!');
+      console.log('🔗 MOBILE DEBUG: State:', event.state);
+      console.log('🔗 MOBILE DEBUG: URL:', window.location.href);
+      alert(`🔗 POPSTATE: Navigated to ${window.location.href}`);
+    });
+    
+    // Track URL changes via polling (catches programmatic navigation)
+    const checkUrlChange = () => {
+      const currentUrl = window.location.href;
+      if (currentUrl !== lastUrl) {
+        console.log('🔗 MOBILE DEBUG: URL changed programmatically!');
+        console.log('🔗 MOBILE DEBUG: From:', lastUrl);
+        console.log('🔗 MOBILE DEBUG: To:', currentUrl);
+        alert(`🔗 URL CHANGE: ${lastUrl} → ${currentUrl}`);
+        lastUrl = currentUrl;
+      }
+    };
+    
+    // Check URL every 500ms
+    const urlChecker = setInterval(checkUrlChange, 500);
+    
+    // Store interval ID for cleanup
+    (window as any).urlChecker = urlChecker;
+
     console.log('⚡ Performance & Mobile optimizations initialized');
     console.log('🛡️ Mobile stabilizer initialized globally');
     console.log('📱 Mobile logger initialized for diagnostics');
