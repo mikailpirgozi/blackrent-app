@@ -34,6 +34,8 @@ import SignaturePad from '../common/SignaturePad';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { getSmartDefaults, cacheFormDefaults, cacheCompanyDefaults } from '../../utils/protocolFormCache';
+import { initializeMobileStabilizer, getMobileStabilizer } from '../../utils/mobileStabilizer';
+import { useMobileRecovery } from '../../hooks/useMobileRecovery';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -69,6 +71,12 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [currentSigner, setCurrentSigner] = useState<{name: string, role: 'customer' | 'employee'} | null>(null);
+  
+  // 🚑 MOBILE RECOVERY: Emergency recovery for unexpected refreshes
+  const { recoveryState, clearRecoveryData, restoreFormData, hasRecoveredData } = useMobileRecovery({
+    enableAutoRecovery: true,
+    debugMode: true
+  });
   
   // 🚀 OPTIMALIZÁCIA: Vehicle indexing pre rýchle vyhľadávanie
   const vehicleIndex = useMemo(() => {
@@ -119,6 +127,32 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   
   // Zjednodušený state - iba základné polia
   const [formData, setFormData] = useState(initialFormData);
+  
+  // 🚑 RECOVERY: Restore form data if available
+  React.useEffect(() => {
+    if (hasRecoveredData && recoveryState.recoveredData) {
+      console.log('🚑 Attempting to restore form data from recovery');
+      restoreFormData(recoveryState.recoveredData);
+      
+      // Show notification about recovered data
+      const confirmRestore = window.confirm(
+        '🚑 Našli sme neuložené dáta z predchádzajúcej session. Chcete ich obnoviť?'
+      );
+      
+      if (confirmRestore) {
+        // Merge recovered data with current form data
+        if (recoveryState.recoveredData.formData) {
+          setFormData(prev => ({
+            ...prev,
+            ...recoveryState.recoveredData.formData
+          }));
+        }
+      }
+      
+      // Clear recovery data after handling
+      clearRecoveryData();
+    }
+  }, [hasRecoveredData, recoveryState.recoveredData, restoreFormData, clearRecoveryData]);
 
   // 🚀 OPTIMALIZÁCIA: Memoized input change handler
   const handleInputChange = useCallback((field: string, value: any) => {
@@ -176,6 +210,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
 
   // 🚀 OPTIMALIZÁCIA: Quick Save - najprv uloží protokol, PDF na pozadí
   const handleSave = useCallback(async () => {
+    // 📱 MOBILE PROTECTION: Mark that we're starting a critical operation
+    const stabilizer = getMobileStabilizer();
+    if (stabilizer) {
+      console.log('🛡️ Starting critical save operation - mobile protection active');
+    }
     // Validácia povinných polí
     const errors: string[] = [];
     
@@ -377,6 +416,14 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       
       // ⚡ OKAMŽITÉ ZATVORENIE - bez čakania na PDF
       onSave(result.protocol);
+      
+      // 📱 MOBILE PROTECTION: Clear any saved state as operation completed successfully
+      if (stabilizer) {
+        console.log('✅ Protocol saved successfully - clearing mobile protection state');
+        // Clear any auto-saved form data as we successfully saved
+        sessionStorage.removeItem('mobileStabilizer_state');
+      }
+      
       onClose();
       
       // 🎯 BACKGROUND PDF DOWNLOAD - na pozadí (neblokuje UI)
@@ -429,6 +476,13 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       
       // 🚫 PREVENT REFRESH: Zabránime automatickému refreshu
       console.log('🛑 Error handled gracefully, preventing page refresh');
+      
+      // 📱 MOBILE PROTECTION: Mark that an error occurred but don't refresh
+      if (stabilizer) {
+        console.log('🚨 Save error occurred - maintaining mobile protection');
+        // Keep the stabilizer active and save current state for recovery
+        stabilizer.markUnexpectedRefresh();
+      }
     } finally {
       setLoading(false);
     }
@@ -438,7 +492,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   const isMobile = window.matchMedia('(max-width: 900px)').matches;
   const [mobileRenderReady, setMobileRenderReady] = React.useState(!isMobile);
 
-  // 🔧 MOBILE DEBUG: Logujeme načítanie HandoverProtocolForm na mobile
+  // 🔧 MOBILE STABILIZER: Initialize mobile protection
   React.useEffect(() => {
     if (!open) return; // Guard clause
     
@@ -453,6 +507,17 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
         signatures: formData.signatures?.length || 0
       });
       
+      // Initialize mobile stabilizer for this critical form
+      initializeMobileStabilizer({
+        enablePreventUnload: true,
+        enableMemoryMonitoring: true,
+        enableVisibilityHandling: true,
+        enableFormDataPersistence: true,
+        debugMode: true
+      });
+      
+      console.log('🛡️ Mobile stabilizer activated for protocol form');
+      
       // Kontrola memory
       if ('memory' in performance) {
         const memInfo = (performance as any).memory;
@@ -462,6 +527,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
           limit: Math.round(memInfo.jsHeapSizeLimit / 1024 / 1024) + 'MB'
         });
       }
+      
+      return () => {
+        // Keep stabilizer active - don't destroy on unmount as user might return
+        console.log('📱 Protocol form unmounted, keeping stabilizer active');
+      };
     }
   }, [open, rental?.id, formData]);
 
