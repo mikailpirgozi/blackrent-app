@@ -37,25 +37,26 @@ const MobileDebugPanel: React.FC = () => {
   // Detect if mobile
   const isMobile = window.matchMedia('(max-width: 900px)').matches;
 
-  // Only show on mobile
-  if (!isMobile || !mobileLogger) {
-    return null;
-  }
-
   const refreshLogs = () => {
+    if (!mobileLogger) return;
     const currentLogs = mobileLogger.getLogs();
     setLogs(currentLogs.slice(-50)); // Last 50 logs
     setStats(mobileLogger.getStats());
   };
 
   useEffect(() => {
-    if (open) {
+    if (open && mobileLogger) {
       refreshLogs();
       // Auto-refresh every 2 seconds when panel is open
       const interval = setInterval(refreshLogs, 2000);
       return () => clearInterval(interval);
     }
-  }, [open]);
+  }, [open, mobileLogger]);
+
+  // Only show on mobile
+  if (!isMobile || !mobileLogger) {
+    return null;
+  }
 
   const handleDownloadLogs = () => {
     mobileLogger.downloadLogs();
