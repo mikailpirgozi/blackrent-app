@@ -348,14 +348,29 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       console.log('⚡ QUICK SAVE: Sending protocol data...');
       const quickSaveStart = Date.now();
       
+      // 🔧 MOBILE FIX: Pridáme timeout protection pre mobile zariadenia
+      const isMobile = window.matchMedia('(max-width: 900px)').matches;
+      const timeoutMs = isMobile ? 30000 : 60000; // 30s na mobile, 60s na desktop
+      
+      console.log(`📱 Using ${timeoutMs/1000}s timeout for ${isMobile ? 'mobile' : 'desktop'}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('🚨 API request timeout after', timeoutMs/1000, 'seconds');
+      }, timeoutMs);
+      
       const response = await fetch(`${apiBaseUrl}/protocols/handover?mode=quick`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
         },
-        body: JSON.stringify(cleanedProtocol)
+        body: JSON.stringify(cleanedProtocol),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
@@ -419,7 +434,26 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       
     } catch (error) {
       console.error('Error saving protocol:', error);
-      alert('Chyba pri ukladaní protokolu: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
+      
+      // 🔧 MOBILE FIX: Lepší error handling pre mobile zariadenia
+      let errorMessage = 'Chyba pri ukladaní protokolu';
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = '⏱️ Požiadavka trvala príliš dlho. Skúste to znovu s lepším internetovým pripojením.';
+        } else if (error.message.includes('fetch')) {
+          errorMessage = '🌐 Problém s internetovým pripojením. Skontrolujte pripojenie a skúste znovu.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = '⏱️ Časový limit požiadavky vypršal. Skúste to znovu.';
+        } else {
+          errorMessage = `Chyba: ${error.message}`;
+        }
+      }
+      
+      alert(errorMessage);
+      
+      // 🚫 PREVENT REFRESH: Zabránime automatickému refreshu
+      console.log('🛑 Error handled gracefully, preventing page refresh');
     } finally {
       setLoading(false);
     }
