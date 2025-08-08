@@ -16,6 +16,9 @@ import {
   Chip,
   Grid,
   Divider,
+  Dialog,
+  DialogContent,
+  CircularProgress,
 } from '@mui/material';
 import {
   Save,
@@ -461,6 +464,83 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
 
   // 🔥 EARLY RETURN - PO všetkých hooks
   if (!open) return null;
+
+  // 🔧 MOBILE DEBUG: Logujeme načítanie HandoverProtocolForm na mobile
+  React.useEffect(() => {
+    const isMobile = window.matchMedia('(max-width: 900px)').matches;
+    if (isMobile) {
+      console.log('📱 HandoverProtocolForm: Starting to render on mobile');
+      console.log('📊 Memory info:', {
+        rental: rental?.id,
+        vehicleImages: formData.vehicleImages?.length || 0,
+        documentImages: formData.documentImages?.length || 0,
+        damageImages: formData.damageImages?.length || 0,
+        signatures: formData.signatures?.length || 0
+      });
+      
+      // Kontrola memory
+      if ('memory' in performance) {
+        const memInfo = (performance as any).memory;
+        console.log('💾 Memory usage:', {
+          used: Math.round(memInfo.usedJSHeapSize / 1024 / 1024) + 'MB',
+          total: Math.round(memInfo.totalJSHeapSize / 1024 / 1024) + 'MB',
+          limit: Math.round(memInfo.jsHeapSizeLimit / 1024 / 1024) + 'MB'
+        });
+      }
+    }
+  }, [open, rental?.id, formData]);
+
+  // 🔧 MOBILE ERROR BOUNDARY: Catch any rendering errors
+  React.useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      const isMobile = window.matchMedia('(max-width: 900px)').matches;
+      if (isMobile) {
+        console.error('🚨 HandoverProtocolForm error on mobile:', event.error);
+        console.log('📱 Error details:', {
+          message: event.message,
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno
+        });
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  // 🔧 MOBILE PROTECTION: Lazy rendering pre veľké komponenty
+  const isMobile = window.matchMedia('(max-width: 900px)').matches;
+  const [mobileRenderReady, setMobileRenderReady] = React.useState(!isMobile);
+
+  React.useEffect(() => {
+    if (isMobile && open) {
+      console.log('📱 Mobile lazy rendering: Starting delayed render...');
+      // Delayed render na mobile pre lepšiu performance
+      const timer = setTimeout(() => {
+        console.log('📱 Mobile lazy rendering: Ready to render');
+        setMobileRenderReady(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isMobile, open]);
+
+  // Na mobile počkáme na delayed render
+  if (isMobile && !mobileRenderReady) {
+    console.log('📱 Mobile lazy rendering: Waiting...');
+    return (
+      <Dialog open={open} maxWidth="md" fullWidth>
+        <DialogContent>
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
+            <Typography sx={{ ml: 2 }}>Načítavam formulár...</Typography>
+          </Box>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  console.log('📱 HandoverProtocolForm: Full render starting', { isMobile, mobileRenderReady });
 
   return (
     <Box sx={{ 
