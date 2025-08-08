@@ -56,6 +56,11 @@ export default function ProtectedRoute({
 
   // POTOM: Ak nie je prihlásený (po dokončení loading), presmeruj na login
   if (!state.isAuthenticated) {
+    console.log('🚨 MOBILE DEBUG: ProtectedRoute - NOT AUTHENTICATED!');
+    console.log('🚨 MOBILE DEBUG: Redirecting to /login');
+    console.log('🚨 MOBILE DEBUG: Current path:', window.location.pathname);
+    console.log('🚨 MOBILE DEBUG: Auth state:', state);
+    alert(`🚨 AUTH REDIRECT: Not authenticated! Redirecting to /login from ${window.location.pathname}`);
     return <Navigate to="/login" replace />;
   }
 
