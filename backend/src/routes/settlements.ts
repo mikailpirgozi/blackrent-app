@@ -118,81 +118,39 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
     console.log(`📊 Total rentals in DB: ${rentals.length}`);
     console.log(`📊 Total expenses in DB: ${expenses.length}`);
     
-    // ⚡⚡ SUPER OPTIMIZED: Bulk ownership checking namiesto individuálnych volaní
-    console.log(`🚀 BULK: Filtering ${rentals.length} rentals for settlement...`);
-    const bulkStartTime = Date.now();
+    // 🔧 SIMPLIFIED: Direct filtering using vehicle.company from getRentals
+    console.log(`🚀 SIMPLE: Filtering ${rentals.length} rentals for settlement...`);
+    const filterStartTime = Date.now();
     
-    // 1. Filter by period first
-    const rentalsInPeriod = rentals.filter(rental => {
+    // Filter by period and company
+    const filteredRentals = rentals.filter(rental => {
       if (!rental.vehicleId) return false;
       
+      // 1. Check if rental is in period
       const rentalStart = new Date(rental.startDate);
       const rentalEnd = new Date(rental.endDate);
-      return (rentalStart >= fromDate && rentalStart <= toDate) || 
-             (rentalEnd >= fromDate && rentalEnd <= toDate) ||
-             (rentalStart <= fromDate && rentalEnd >= toDate);
-    });
-    
-    console.log(`📊 Rentals in period: ${rentalsInPeriod.length}/${rentals.length}`);
-    
-    let filteredRentals = [];
-    
-    if (rentalsInPeriod.length === 0) {
-      console.log(`✅ No rentals in period, skipping ownership checks`);
-    } else {
-      // 2. Bulk ownership checking for historical data
-      const ownershipChecks = rentalsInPeriod.map(rental => ({
-        vehicleId: rental.vehicleId!,
-        timestamp: new Date(rental.startDate)
-      }));
+      const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) || 
+                        (rentalEnd >= fromDate && rentalEnd <= toDate) ||
+                        (rentalStart <= fromDate && rentalEnd >= toDate);
       
-      const [historicalOwners, currentOwners] = await Promise.all([
-        postgresDatabase.getBulkVehicleOwnersAtTime(ownershipChecks),
-        postgresDatabase.getBulkCurrentVehicleOwners(rentalsInPeriod.map(r => r.vehicleId!))
-      ]);
+      if (!isInPeriod) return false;
       
-      // 3. Create lookup maps
-      const historicalOwnerMap = new Map();
-      historicalOwners.forEach(result => {
-        const key = `${result.vehicleId}-${result.timestamp.toISOString()}`;
-        historicalOwnerMap.set(key, result.owner);
-      });
+      // 2. Check company match using vehicle.company (from getRentals JOIN)
+      const vehicleCompany = rental.vehicle?.company;
+      const rentalCompany = rental.company; // Historical snapshot
       
-      const currentOwnerMap = new Map();
-      currentOwners.forEach(result => {
-        currentOwnerMap.set(result.vehicleId, result.owner);
-      });
+      const companyMatch = vehicleCompany === company || rentalCompany === company;
       
-      // 4. Filter rentals using bulk data
-      for (const rental of rentalsInPeriod) {
-        const rentalStart = new Date(rental.startDate);
-        const historicalKey = `${rental.vehicleId}-${rentalStart.toISOString()}`;
-        const historicalOwner = historicalOwnerMap.get(historicalKey);
-        
-        if (historicalOwner && historicalOwner.ownerCompanyName === company) {
-          filteredRentals.push(rental);
-          console.log(`🏠 Rental ${rental.id} - Historical match: ${historicalOwner.ownerCompanyName}`);
-        } else {
-          // FALLBACK: Current ownership
-          const currentOwner = currentOwnerMap.get(rental.vehicleId);
-          if (currentOwner && currentOwner.ownerCompanyName === company) {
-            filteredRentals.push(rental);
-            console.log(`📝 Rental ${rental.id} - Current ownership match: ${currentOwner.ownerCompanyName}`);
-          } else {
-            // FALLBACK 2: Historical company matching (FIXED!)
-            if (rental.company === company) {
-              filteredRentals.push(rental);
-              console.log(`📝 Rental ${rental.id} - Historical company match: ${rental.company}`);
-            }
-          }
-        }
+      if (companyMatch) {
+        console.log(`✅ Rental ${rental.id} - Company match: ${vehicleCompany || rentalCompany} (customer: ${rental.customerName})`);
       }
       
-      const bulkTime = Date.now() - bulkStartTime;
-      console.log(`⚡ BULK: Filtered ${filteredRentals.length} rentals in ${bulkTime}ms (vs ~${rentalsInPeriod.length * 50}ms individually)`);
-    }
+      return companyMatch;
+    });
     
-    console.log(`✅ Filtered rentals: ${filteredRentals.length}`);
+    const filterTime = Date.now() - filterStartTime;
+    console.log(`⚡ SIMPLE: Filtered ${filteredRentals.length}/${rentals.length} rentals in ${filterTime}ms`);
+
     
     // Filtruj náklady pre dané obdobie a firmu
     const filteredExpenses = expenses.filter(expense => {

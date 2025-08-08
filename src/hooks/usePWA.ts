@@ -56,12 +56,21 @@ export const usePWA = (): PWAState & PWAActions => {
       // Check if app is already installed
       checkInstallationStatus();
       
-      // Register service worker
+      // 🚫 TEMPORARY: Zakážeme Service Worker pre mobile zariadenia
+      const isMobileDevice = window.matchMedia('(max-width: 900px)').matches;
+      
+      if (isMobileDevice) {
+        console.log('📱 PWA: Service Worker DISABLED on mobile to prevent refresh issues');
+        console.log('🔧 This is a temporary fix for mobile refresh debugging');
+        return;
+      }
+      
+      // Register service worker len na desktop
       if ('serviceWorker' in navigator) {
         const registration = await registerServiceWorker();
         if (registration) {
           setState(prev => ({ ...prev, swRegistration: registration }));
-          console.log('✅ PWA: Service Worker successfully initialized');
+          console.log('✅ PWA: Service Worker successfully initialized (desktop only)');
         } else {
           console.warn('⚠️ PWA: Service Worker registration returned null');
         }
@@ -154,20 +163,23 @@ export const usePWA = (): PWAState & PWAActions => {
 
       console.log('✅ Service Worker registered successfully:', registration.scope);
 
-      // Listen for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (!newWorker) return;
-
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            setState(prev => ({ ...prev, isUpdateAvailable: true }));
-            console.log('🔄 PWA: Update available');
-            
-            // Update available silently - no user notification needed
-          }
-        });
-      });
+      // 🚫 DISABLED: Zakážeme automatické update detection
+      // Toto môže triggernúť neočakávané refreshy na mobile
+      
+      console.log('🔄 PWA: Service Worker update detection DISABLED');
+      console.log('📱 This prevents automatic mobile refreshes caused by SW updates');
+      
+      // PÔVODNÝ KÓD (ZAKÁZANÝ):
+      // registration.addEventListener('updatefound', () => {
+      //   const newWorker = registration.installing;
+      //   if (!newWorker) return;
+      //   newWorker.addEventListener('statechange', () => {
+      //     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+      //       setState(prev => ({ ...prev, isUpdateAvailable: true }));
+      //       console.log('🔄 PWA: Update available');
+      //     }
+      //   });
+      // });
 
       // Listen for messages from service worker
       navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
@@ -261,8 +273,9 @@ export const usePWA = (): PWAState & PWAActions => {
       if (waitingWorker) {
         waitingWorker.postMessage({ type: 'SKIP_WAITING' });
         
-        // Soft-update policy: vyhnúť sa auto-reloadu na kritických stránkach a na mobile
+        // 🔍 IMPROVED: Lepšia mobile detekcia a logovanie
         const isAvailabilityPage = typeof window !== 'undefined' && window.location.pathname.includes('/availability');
+        const isVehiclePage = typeof window !== 'undefined' && window.location.pathname.includes('/vehicles');
         const isMobileViewport = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
 
         // Debounce reloady: minimálny odstup 10 minút
@@ -272,15 +285,25 @@ export const usePWA = (): PWAState & PWAActions => {
         const tenMinutes = 10 * 60 * 1000;
         const recentlyReloaded = lastReloadAt && (now - lastReloadAt) < tenMinutes;
 
-        if (!refreshing.current && !recentlyReloaded && !isAvailabilityPage && !isMobileViewport) {
-          refreshing.current = true;
-          sessionStorage.setItem('lastReloadAt', String(now));
-          window.location.reload();
-        } else {
-          // Neobnovuj automaticky – len nastav flag, UI si môže vyžiadať manuálny refresh
-          setState(prev => ({ ...prev, isUpdateAvailable: true }));
-          console.log('🔄 SW updated, refresh deferred (no auto-reload on availability/mobile/recently)');
-        }
+        console.group('🔄 Service Worker Update Decision');
+        console.log('Is Availability Page:', isAvailabilityPage);
+        console.log('Is Vehicle Page:', isVehiclePage);
+        console.log('Is Mobile Viewport:', isMobileViewport);
+        console.log('Recently Reloaded:', recentlyReloaded);
+        console.log('Refreshing Flag:', refreshing.current);
+        console.groupEnd();
+
+        // 🚫 DISABLED: Úplne zakážeme automatické reloady Service Worker updatov
+        // Toto môže byť hlavná príčina automatického refreshovania na mobile
+        
+        console.log('🔄 Service Worker updated - AUTO-RELOAD DISABLED');
+        console.log('📱 Manual refresh required for updates');
+        
+        // Len nastavíme flag, že je update dostupný - ŽIADNY automatický reload
+        setState(prev => ({ ...prev, isUpdateAvailable: true }));
+        
+        // Logujeme dôvod prečo nerobíme reload
+        console.log('🔄 SW update available but auto-reload is disabled to prevent mobile refresh issues');
       }
 
       setState(prev => ({ ...prev, isUpdateAvailable: false }));

@@ -2209,9 +2209,12 @@ class PostgresDatabase {
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.rental_type, r.is_flexible, r.flexible_end_date, r.can_be_overridden,
           r.override_priority, r.notification_threshold, r.auto_extend, r.override_history,
-          v.brand, v.model, v.license_plate, v.pricing, v.commission as v_commission, v.status as v_status
+          v.brand, v.model, v.license_plate, v.pricing, v.commission as v_commission, v.status as v_status,
+          -- 🏢 COMPANY INFO: Pridané pre štatistiky Top firiem
+          c.name as company_name, v.company as vehicle_company
         FROM rentals r
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
+        LEFT JOIN companies c ON v.company_id = c.id
         ORDER BY r.created_at DESC
       `);
             console.log(`📊 Found ${result.rows.length} rentals`);
@@ -2225,6 +2228,8 @@ class PostgresDatabase {
                     model: row.model,
                     license_plate: row.license_plate,
                     company: row.company,
+                    company_name: row.company_name,
+                    vehicle_company: row.vehicle_company,
                     has_brand: !!row.brand
                 });
             });
@@ -2268,7 +2273,8 @@ class PostgresDatabase {
                     brand: row.brand,
                     model: row.model,
                     licensePlate: row.license_plate,
-                    // 🛡️ BULLETPROOF: ŽIADNA company - zabráni fallback na aktuálnu company!
+                    // 🏢 COMPANY INFO: Pridané pre štatistiky - použije company_name z companies tabuľky alebo fallback na vehicle_company
+                    company: row.company_name || row.vehicle_company || 'Bez firmy',
                     pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing || [],
                     commission: typeof row.v_commission === 'string' ? JSON.parse(row.v_commission) : row.v_commission || { type: 'percentage', value: 0 },
                     status: row.v_status || 'available'
@@ -3069,9 +3075,12 @@ class PostgresDatabase {
                     const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) ||
                         (rentalEnd >= fromDate && rentalEnd <= toDate) ||
                         (rentalStart <= fromDate && rentalEnd >= toDate);
-                    const hasMatchingCompany = rental.company === company;
+                    // 🔧 FIXED: Use vehicle.company (from corrected getRentals) or fallback to rental.company
+                    const vehicleCompany = rental.vehicle?.company;
+                    const rentalCompany = rental.company; // Historical snapshot
+                    const hasMatchingCompany = vehicleCompany === company || rentalCompany === company;
                     if (row.id && (isInPeriod || hasMatchingCompany)) {
-                        console.log(`🏠 Settlement ${row.id} - Rental ${rental.id}: Historical company: "${rental.company}", Settlement company: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
+                        console.log(`🏠 Settlement ${row.id} - Rental ${rental.id}: Vehicle company: "${vehicleCompany}", Historical company: "${rentalCompany}", Settlement company: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
                     }
                     return isInPeriod && hasMatchingCompany;
                 });
@@ -3116,17 +3125,39 @@ class PostgresDatabase {
             if (result.rows.length === 0)
                 return null;
             const row = result.rows[0];
-            // Načítaj súvisiace prenájmy a náklady ak treba
-            const rentals = await this.getRentals(); // Simplified - môžeme filtrovať podľa obdobia
-            const expenses = await this.getExpenses(); // Simplified - môžeme filtrovať podľa obdobia
+            // Načítaj súvisiace prenájmy a náklady a filtruj ich
+            const allRentals = await this.getRentals();
+            const allExpenses = await this.getExpenses();
+            const fromDate = new Date(row.from_date);
+            const toDate = new Date(row.to_date);
+            const company = row.company;
+            // Filter rentals for this settlement
+            const filteredRentals = allRentals.filter(rental => {
+                const rentalStart = new Date(rental.startDate);
+                const rentalEnd = new Date(rental.endDate);
+                const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) ||
+                    (rentalEnd >= fromDate && rentalEnd <= toDate) ||
+                    (rentalStart <= fromDate && rentalEnd >= toDate);
+                // Use vehicle.company (from corrected getRentals) or fallback to rental.company
+                const vehicleCompany = rental.vehicle?.company;
+                const rentalCompany = rental.company;
+                const hasMatchingCompany = vehicleCompany === company || rentalCompany === company;
+                return isInPeriod && hasMatchingCompany;
+            });
+            // Filter expenses for this settlement
+            const filteredExpenses = allExpenses.filter(expense => {
+                const expenseDate = new Date(expense.date);
+                const isInPeriod = expenseDate >= fromDate && expenseDate <= toDate;
+                return isInPeriod && expense.company === company;
+            });
             return {
                 id: row.id?.toString() || '',
                 period: {
-                    from: new Date(row.period_from),
-                    to: new Date(row.period_to)
+                    from: fromDate,
+                    to: toDate
                 },
-                rentals: rentals || [],
-                expenses: expenses || [],
+                rentals: filteredRentals || [],
+                expenses: filteredExpenses || [],
                 totalIncome: parseFloat(row.total_income) || 0,
                 totalExpenses: parseFloat(row.total_expenses) || 0,
                 totalCommission: parseFloat(row.total_commission) || 0,
