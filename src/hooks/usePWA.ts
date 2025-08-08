@@ -261,10 +261,25 @@ export const usePWA = (): PWAState & PWAActions => {
       if (waitingWorker) {
         waitingWorker.postMessage({ type: 'SKIP_WAITING' });
         
-        // Refresh the page after update
-        if (!refreshing.current) {
+        // Soft-update policy: vyhnúť sa auto-reloadu na kritických stránkach a na mobile
+        const isAvailabilityPage = typeof window !== 'undefined' && window.location.pathname.includes('/availability');
+        const isMobileViewport = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+
+        // Debounce reloady: minimálny odstup 10 minút
+        const now = Date.now();
+        const lastReloadAtStr = sessionStorage.getItem('lastReloadAt');
+        const lastReloadAt = lastReloadAtStr ? Number(lastReloadAtStr) : 0;
+        const tenMinutes = 10 * 60 * 1000;
+        const recentlyReloaded = lastReloadAt && (now - lastReloadAt) < tenMinutes;
+
+        if (!refreshing.current && !recentlyReloaded && !isAvailabilityPage && !isMobileViewport) {
           refreshing.current = true;
+          sessionStorage.setItem('lastReloadAt', String(now));
           window.location.reload();
+        } else {
+          // Neobnovuj automaticky – len nastav flag, UI si môže vyžiadať manuálny refresh
+          setState(prev => ({ ...prev, isUpdateAvailable: true }));
+          console.log('🔄 SW updated, refresh deferred (no auto-reload on availability/mobile/recently)');
         }
       }
 
