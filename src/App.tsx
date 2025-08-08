@@ -153,6 +153,49 @@ const AppContent: React.FC = () => {
       return originalSetItem.call(this, key, value);
     };
 
+    // 🚨 PAGE RELOAD DETECTION
+    const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    if (navigationEntries.length > 0) {
+      const navEntry = navigationEntries[0];
+      console.log('🔄 MOBILE DEBUG: Navigation type:', navEntry.type);
+      console.log('🔄 MOBILE DEBUG: Reload count since startup:', window.history.length);
+      
+      if (navEntry.type === 'reload') {
+        alert(`🔄 PAGE RELOAD DETECTED! Type: ${navEntry.type}`);
+      } else if (navEntry.type === 'navigate') {
+        alert(`🔄 PAGE NAVIGATION DETECTED! Type: ${navEntry.type}`);
+      }
+    }
+
+    // Check if page was reloaded recently
+    const lastReload = sessionStorage.getItem('lastReload');
+    const now = Date.now();
+    if (lastReload) {
+      const timeSinceReload = now - parseInt(lastReload);
+      if (timeSinceReload < 5000) { // Less than 5 seconds
+        alert(`⚠️ RECENT RELOAD: ${timeSinceReload}ms ago!`);
+      }
+    }
+    sessionStorage.setItem('lastReload', now.toString());
+
+    // Track page visibility changes that might cause reloads
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log('📱 MOBILE DEBUG: Page became HIDDEN');
+        sessionStorage.setItem('pageHidden', Date.now().toString());
+      } else {
+        console.log('📱 MOBILE DEBUG: Page became VISIBLE');
+        const hiddenTime = sessionStorage.getItem('pageHidden');
+        if (hiddenTime) {
+          const hiddenDuration = Date.now() - parseInt(hiddenTime);
+          console.log('📱 MOBILE DEBUG: Was hidden for:', hiddenDuration, 'ms');
+          if (hiddenDuration > 1000) {
+            alert(`📱 PAGE WAS HIDDEN: ${hiddenDuration}ms - might cause reload!`);
+          }
+        }
+      }
+    });
+
     console.log('⚡ Performance & Mobile optimizations initialized');
     console.log('🛡️ Mobile stabilizer initialized globally');
     console.log('📱 Mobile logger initialized for diagnostics');
