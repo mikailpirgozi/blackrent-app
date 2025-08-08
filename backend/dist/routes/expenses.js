@@ -268,12 +268,53 @@ router.post('/import/csv', auth_1.authenticateToken, async (req, res) => {
                     errors.push({ row: i + 2, error: 'Neplatná suma' });
                     continue;
                 }
+                // Parsuj dátum - podporuj formáty MM/YYYY, DD.MM.YYYY, YYYY-MM-DD
+                let parsedDate = new Date();
+                if (date && date.trim()) {
+                    const dateStr = date.trim();
+                    // Formát MM/YYYY (napr. 01/2025)
+                    if (/^\d{1,2}\/\d{4}$/.test(dateStr)) {
+                        const [month, year] = dateStr.split('/');
+                        parsedDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+                    }
+                    // Formát DD.MM.YYYY (napr. 15.01.2025)
+                    else if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(dateStr)) {
+                        const [day, month, year] = dateStr.split('.');
+                        parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                    }
+                    // Štandardný ISO formát YYYY-MM-DD
+                    else if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(dateStr)) {
+                        parsedDate = new Date(dateStr);
+                    }
+                    // Ak sa nepodarí parsovať, použij aktuálny dátum
+                    else {
+                        console.warn(`Nepodarilo sa parsovať dátum: ${dateStr}, používam aktuálny dátum`);
+                        parsedDate = new Date();
+                    }
+                }
+                // Mapuj kategóriu na správne hodnoty
+                let mappedCategory = 'other';
+                if (category && category.trim()) {
+                    const cat = category.trim().toLowerCase();
+                    if (cat.includes('palivo') || cat.includes('fuel')) {
+                        mappedCategory = 'fuel';
+                    }
+                    else if (cat.includes('servis') || cat.includes('service') || cat.includes('oprava')) {
+                        mappedCategory = 'service';
+                    }
+                    else if (cat.includes('poistenie') || cat.includes('insurance') || cat.includes('kasko') || cat.includes('pzp')) {
+                        mappedCategory = 'insurance';
+                    }
+                    else {
+                        mappedCategory = 'other';
+                    }
+                }
                 // Vytvor náklad
                 const expenseData = {
                     description: description.trim(),
                     amount: parsedAmount,
-                    date: date ? new Date(date) : new Date(),
-                    category: (category?.trim() || 'general'),
+                    date: parsedDate,
+                    category: mappedCategory,
                     vehicleId: vehicleId?.trim() || undefined,
                     company: company?.trim() || 'Neznáma firma',
                     note: note?.trim() || undefined
