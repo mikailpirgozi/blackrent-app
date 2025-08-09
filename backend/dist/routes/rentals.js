@@ -21,6 +21,60 @@ const getRentalContext = async (req) => {
         amount: rental.totalPrice
     };
 };
+// GET /api/rentals/paginated - Získanie prenájmov s pagination a filtrami
+router.get('/paginated', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'read'), async (req, res) => {
+    try {
+        const { page = 1, limit = 50, search = '', dateFilter = 'all', dateFrom = '', dateTo = '', company = 'all', status = 'all', protocolStatus = 'all', paymentMethod = 'all', paymentStatus = 'all', vehicleBrand = 'all', priceMin = '', priceMax = '' } = req.query;
+        console.log('🚗 Rentals PAGINATED GET - params:', {
+            page, limit, search, dateFilter, company, status,
+            role: req.user?.role,
+            userId: req.user?.id
+        });
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const offset = (pageNum - 1) * limitNum;
+        // Získaj paginated rentals s filtrami
+        const result = await postgres_database_1.postgresDatabase.getRentalsPaginated({
+            limit: limitNum,
+            offset,
+            search: search,
+            dateFilter: dateFilter,
+            dateFrom: dateFrom,
+            dateTo: dateTo,
+            company: company,
+            status: status,
+            protocolStatus: protocolStatus,
+            paymentMethod: paymentMethod,
+            paymentStatus: paymentStatus,
+            vehicleBrand: vehicleBrand,
+            priceMin: priceMin,
+            priceMax: priceMax,
+            userId: req.user?.id,
+            userRole: req.user?.role
+        });
+        console.log(`📊 Found ${result.rentals.length}/${result.total} rentals (page ${pageNum})`);
+        res.json({
+            success: true,
+            data: {
+                rentals: result.rentals,
+                pagination: {
+                    currentPage: pageNum,
+                    totalPages: Math.ceil(result.total / limitNum),
+                    totalItems: result.total,
+                    hasMore: (pageNum * limitNum) < result.total,
+                    itemsPerPage: limitNum
+                }
+            }
+        });
+    }
+    catch (error) {
+        console.error('Get paginated rentals error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri získavaní prenájmov'
+        });
+    }
+});
 // GET /api/rentals - Získanie všetkých prenájmov
 router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'read'), async (req, res) => {
     try {

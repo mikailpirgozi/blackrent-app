@@ -19,7 +19,8 @@ import {
   useTheme,
   Button,
   Stack,
-  Divider
+  Divider,
+  CircularProgress
 } from '@mui/material';
 
 export interface ResponsiveTableColumn {
@@ -44,6 +45,7 @@ export interface ResponsiveTableProps {
   mobileCardRenderer?: (row: any, index: number) => React.ReactNode;
   emptyMessage?: string;
   loading?: boolean;
+
 }
 
 export default function ResponsiveTable({
@@ -92,7 +94,13 @@ export default function ResponsiveTable({
   if (isMobile) {
     if (mobileCardRenderer) {
       return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: 2
+          }}
+        >
           {data.map((row, index) => (
             <Box key={getRowId(row)}>
               {mobileCardRenderer(row, index)}
@@ -105,13 +113,20 @@ export default function ResponsiveTable({
               </CardContent>
             </Card>
           )}
+
         </Box>
       );
     }
 
     // Default Mobile Card Layout
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 2
+        }}
+      >
         {data.map((row) => {
           const rowId = getRowId(row);
           const backgroundColor = getRowColor ? getRowColor(row) : undefined;
@@ -172,6 +187,7 @@ export default function ResponsiveTable({
             </CardContent>
           </Card>
         )}
+
       </Box>
     );
   }
@@ -179,7 +195,12 @@ export default function ResponsiveTable({
   // Desktop Table View
   return (
     <Card>
-      <TableContainer component={Paper} sx={{ backgroundColor: 'transparent' }}>
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          backgroundColor: 'transparent'
+        }}
+      >
         <Table>
           <TableHead>
             <TableRow>
@@ -257,6 +278,7 @@ export default function ResponsiveTable({
                 </TableCell>
               </TableRow>
             )}
+
           </TableBody>
         </Table>
       </TableContainer>
