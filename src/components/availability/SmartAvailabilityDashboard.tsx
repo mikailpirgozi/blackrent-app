@@ -54,7 +54,9 @@ import {
   Refresh as RefreshIcon,
   FilterList as FilterIcon,
   Visibility as ViewIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  ArrowBack as ArrowBackIcon,
+  ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
 import { format, addDays, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -71,7 +73,7 @@ interface AvailabilityData {
   vehicleName: string;
   licensePlate: string;
   brand: string;
-  category: VehicleCategory;
+  category: VehicleCategory | 'other'; // ✅ FIXED: Allow 'other' for undefined categories
   company: string;
   location?: string;
   dailyStatus: Array<{
@@ -102,6 +104,10 @@ interface LoadMoreState {
   isLoadingMore: boolean;
   currentDays: number;
   maxDays: number; // 6 mesiacov = ~180 dní
+  canLoadPast: boolean;
+  isLoadingPast: boolean;
+  currentPastDays: number;
+  maxPastDays: number; // Max 30 dní do minulosti
 }
 
 interface SmartAvailabilityDashboardProps {
@@ -127,7 +133,11 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     canLoadMore: true,
     isLoadingMore: false,
     currentDays: 14, // Start with 14 days
-    maxDays: 180 // 6 months max
+    maxDays: 180, // 6 months max
+    canLoadPast: true,
+    isLoadingPast: false,
+    currentPastDays: 0, // Start with 0 past days
+    maxPastDays: 30 // Max 30 days in the past
   });
   
   // Smart defaults for filters
@@ -293,8 +303,8 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
    */
   const filteredData = useMemo(() => {
     return availabilityData.filter(vehicle => {
-      // Category filter
-      if (filters.categories.length > 0 && !filters.categories.includes(vehicle.category)) {
+      // Category filter - handle 'other' category
+      if (filters.categories.length > 0 && !filters.categories.includes(vehicle.category as VehicleCategory)) {
         return false;
       }
 
@@ -395,6 +405,56 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     } catch (error) {
       logger.error('Failed to load more days', error);
       setLoadMoreState(prev => ({ ...prev, isLoadingMore: false }));
+    }
+  }, [loadMoreState, filters, calculateAvailability]);
+
+  /**
+   * ⚡ PROGRESSIVE LOADING: Load past days (only on demand)
+   */
+  const loadPastDays = useCallback(async () => {
+    if (loadMoreState.isLoadingPast || !loadMoreState.canLoadPast) return;
+    
+    const additionalPastDays = 7; // Load 7 past days each time
+    const newTotalPastDays = loadMoreState.currentPastDays + additionalPastDays;
+    
+    if (newTotalPastDays > loadMoreState.maxPastDays) {
+      setLoadMoreState(prev => ({ ...prev, canLoadPast: false }));
+      return;
+    }
+    
+    setLoadMoreState(prev => ({ ...prev, isLoadingPast: true }));
+    
+    try {
+      const today = new Date();
+      const newStartDate = addDays(today, -Math.min(newTotalPastDays, loadMoreState.maxPastDays));
+      
+      // Update filters to include past days
+      const newFilters = {
+        ...filters,
+        dateFrom: format(newStartDate, 'yyyy-MM-dd')
+      };
+      
+      logger.performance('Loading past days', { 
+        currentPastDays: loadMoreState.currentPastDays, 
+        additionalPastDays, 
+        newTotalPastDays: Math.min(newTotalPastDays, loadMoreState.maxPastDays) 
+      });
+      
+      // ⚡ IMPORTANT: Always fetch fresh API data for extended past range
+      const newData = await calculateAvailability(newFilters);
+      setAvailabilityData(newData);
+      setFilters(newFilters);
+      
+      setLoadMoreState(prev => ({
+        ...prev,
+        currentPastDays: Math.min(newTotalPastDays, prev.maxPastDays),
+        canLoadPast: newTotalPastDays < prev.maxPastDays,
+        isLoadingPast: false
+      }));
+      
+    } catch (error) {
+      logger.error('Failed to load past days', error);
+      setLoadMoreState(prev => ({ ...prev, isLoadingPast: false }));
     }
   }, [loadMoreState, filters, calculateAvailability]);
 
@@ -703,23 +763,41 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
         </TableContainer>
       )}
 
-      {/* ⚡ PROGRESSIVE LOADING: Load More Button */}
-      {loadMoreState.canLoadMore && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+      {/* ⚡ PROGRESSIVE LOADING: Load More/Past Buttons */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 3 }}>
+        {/* Load Past Days Button */}
+        {loadMoreState.canLoadPast && (
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={loadPastDays}
+            disabled={loadMoreState.isLoadingPast}
+            startIcon={loadMoreState.isLoadingPast ? <RefreshIcon sx={{ animation: 'spin 1s linear infinite' }} /> : <ArrowBackIcon />}
+            size="large"
+          >
+            {loadMoreState.isLoadingPast 
+              ? 'Načítavam minulosť...' 
+              : `Načítať 7 dní do minulosti (${loadMoreState.currentPastDays}/${loadMoreState.maxPastDays})`
+            }
+          </Button>
+        )}
+        
+        {/* Load Future Days Button */}
+        {loadMoreState.canLoadMore && (
           <Button
             variant="outlined"
             onClick={loadMoreDays}
             disabled={loadMoreState.isLoadingMore}
-            startIcon={loadMoreState.isLoadingMore ? <RefreshIcon sx={{ animation: 'spin 1s linear infinite' }} /> : <AddIcon />}
+            startIcon={loadMoreState.isLoadingMore ? <RefreshIcon sx={{ animation: 'spin 1s linear infinite' }} /> : <ArrowForwardIcon />}
             size="large"
           >
             {loadMoreState.isLoadingMore 
-              ? 'Načítavam ďalších 14 dní...' 
-              : `Načítať ďalších 14 dní (${loadMoreState.currentDays}/${loadMoreState.maxDays})`
+              ? 'Načítavam budúcnosť...' 
+              : `Načítať 14 dní do budúcnosti (${loadMoreState.currentDays}/${loadMoreState.maxDays})`
             }
           </Button>
-        </Box>
-      )}
+        )}
+      </Box>
 
       {/* Max days reached info */}
       {!loadMoreState.canLoadMore && loadMoreState.currentDays >= loadMoreState.maxDays && (
