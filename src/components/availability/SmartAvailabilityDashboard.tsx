@@ -64,6 +64,7 @@ import { useAuth } from '../../context/AuthContext';
 import { logger } from '../../utils/smartLogger';
 import { cacheHelpers, smartInvalidation } from '../../utils/unifiedCache';
 import { VehicleCategory } from '../../types';
+import { apiService } from '../../services/api';
 
 interface AvailabilityData {
   vehicleId: string;
@@ -96,6 +97,13 @@ interface FilterOptions {
   minAvailabilityPercent: number;
 }
 
+interface LoadMoreState {
+  canLoadMore: boolean;
+  isLoadingMore: boolean;
+  currentDays: number;
+  maxDays: number; // 6 mesiacov = ~180 dní
+}
+
 interface SmartAvailabilityDashboardProps {
   isMobile?: boolean;
 }
@@ -114,10 +122,18 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   const [availabilityData, setAvailabilityData] = useState<AvailabilityData[]>([]);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   
+  // ⚡ PROGRESSIVE LOADING STATE
+  const [loadMoreState, setLoadMoreState] = useState<LoadMoreState>({
+    canLoadMore: true,
+    isLoadingMore: false,
+    currentDays: 14, // Start with 14 days
+    maxDays: 180 // 6 months max
+  });
+  
   // Smart defaults for filters
   const [filters, setFilters] = useState<FilterOptions>({
     dateFrom: format(new Date(), 'yyyy-MM-dd'), // Today
-    dateTo: format(addDays(new Date(), 7), 'yyyy-MM-dd'), // +7 days (most common)
+    dateTo: format(addDays(new Date(), 14), 'yyyy-MM-dd'), // +14 days (initial load)
     categories: [],
     brands: [],
     companies: [],
@@ -142,7 +158,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   );
 
   /**
-   * Smart availability calculation
+   * ⚡ REAL API: Smart availability calculation with real data
    */
   const calculateAvailability = useCallback(async (filters: FilterOptions): Promise<AvailabilityData[]> => {
     const { dateFrom, dateTo } = filters;
@@ -157,7 +173,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
       currentDate = addDays(currentDate, 1);
     }
 
-    logger.debug('Calculating availability', { 
+    logger.performance('Calculating availability', { 
       dateFrom, 
       dateTo, 
       daysCount: dateRange.length,
@@ -173,18 +189,52 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
       logger.cache('Using cached availability data for calculation');
       calendarData = cachedData.calendar || [];
     } else {
-      // Fetch fresh data if not cached
-      logger.api('Fetching fresh availability data for calculation');
-      // 🚧 DEMO: Generate sample data for testing
-      calendarData = dateRange.map(date => ({
-        date,
-        vehicles: availableVehicles.map(vehicle => ({
-          vehicleId: vehicle.id,
-          status: Math.random() > 0.7 ? 'rented' : 'available',
-          customer_name: Math.random() > 0.5 ? 'Demo zákazník' : undefined,
-          rental_id: Math.random() > 0.5 ? 'demo-rental-123' : undefined
-        }))
-      }));
+      // ⚡ REAL API CALL: Fetch fresh data from /availability/calendar
+      try {
+        logger.api('Fetching fresh availability data from API', { dateFrom, dateTo });
+        
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/availability/calendar?` + 
+          `startDate=${dateFrom}&endDate=${dateTo}&fields=calendar,vehicles,unavailabilities&optimize=true`,
+          {
+            headers: {
+              'Authorization': `Bearer ${authState?.token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`API responded with ${response.status}: ${response.statusText}`);
+        }
+
+        const apiData = await response.json();
+        
+        if (!apiData.success) {
+          throw new Error(apiData.error || 'API returned unsuccessful response');
+        }
+
+        calendarData = apiData.data.calendar || [];
+        
+        // ⚡ CACHE: Store fresh data for future use (5 minutes TTL)
+        cacheHelpers.calendar.set(cacheKey, apiData.data);
+        
+        logger.performance('Real API data loaded successfully', {
+          calendarDays: calendarData.length,
+          vehicles: apiData.data.vehicles?.length || 0,
+          unavailabilities: apiData.data.unavailabilities?.length || 0,
+          cacheKey
+        });
+        
+      } catch (error) {
+        logger.error('Failed to fetch availability data from API', { error, dateFrom, dateTo });
+        
+        // ⚠️ FALLBACK: Return empty data structure to prevent crashes
+        calendarData = [];
+        
+        // Optional: Show user-friendly error message
+        throw new Error('Nepodarilo sa načítať dáta dostupnosti. Skúste to znovu.');
+      }
     }
 
     // Process each vehicle
@@ -296,6 +346,59 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   }, [calculateAvailability, filters]);
 
   /**
+   * ⚡ PROGRESSIVE LOADING: Load more days
+   */
+  const loadMoreDays = useCallback(async () => {
+    if (loadMoreState.isLoadingMore || !loadMoreState.canLoadMore) return;
+    
+    const additionalDays = 14; // Load 14 more days each time
+    const newTotalDays = loadMoreState.currentDays + additionalDays;
+    
+    if (newTotalDays > loadMoreState.maxDays) {
+      // Reached maximum, load remaining days only
+      const remainingDays = loadMoreState.maxDays - loadMoreState.currentDays;
+      if (remainingDays <= 0) return;
+      
+      setLoadMoreState(prev => ({ ...prev, canLoadMore: false }));
+    }
+    
+    setLoadMoreState(prev => ({ ...prev, isLoadingMore: true }));
+    
+    try {
+      const today = new Date();
+      const newEndDate = addDays(today, Math.min(newTotalDays, loadMoreState.maxDays));
+      
+      // Update filters to include more days
+      const newFilters = {
+        ...filters,
+        dateTo: format(newEndDate, 'yyyy-MM-dd')
+      };
+      
+      logger.performance('Loading more days', { 
+        currentDays: loadMoreState.currentDays, 
+        additionalDays, 
+        newTotalDays: Math.min(newTotalDays, loadMoreState.maxDays) 
+      });
+      
+      // ⚡ IMPORTANT: Always fetch fresh API data for extended range
+      const newData = await calculateAvailability(newFilters);
+      setAvailabilityData(newData);
+      setFilters(newFilters);
+      
+      setLoadMoreState(prev => ({
+        ...prev,
+        currentDays: Math.min(newTotalDays, prev.maxDays),
+        canLoadMore: newTotalDays < prev.maxDays,
+        isLoadingMore: false
+      }));
+      
+    } catch (error) {
+      logger.error('Failed to load more days', error);
+      setLoadMoreState(prev => ({ ...prev, isLoadingMore: false }));
+    }
+  }, [loadMoreState, filters, calculateAvailability]);
+
+  /**
    * Quick filter presets
    */
   const applyQuickFilter = useCallback((preset: 'today' | 'week' | 'month' | 'available-only') => {
@@ -303,25 +406,31 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     
     switch (preset) {
       case 'today':
-        setFilters(prev => ({
-          ...prev,
+        const newFilters1 = {
+          ...filters,
           dateFrom: format(today, 'yyyy-MM-dd'),
           dateTo: format(today, 'yyyy-MM-dd')
-        }));
+        };
+        setFilters(newFilters1);
+        setLoadMoreState(prev => ({ ...prev, currentDays: 1, canLoadMore: true }));
         break;
       case 'week':
-        setFilters(prev => ({
-          ...prev,
+        const newFilters7 = {
+          ...filters,
           dateFrom: format(today, 'yyyy-MM-dd'),
           dateTo: format(addDays(today, 7), 'yyyy-MM-dd')
-        }));
+        };
+        setFilters(newFilters7);
+        setLoadMoreState(prev => ({ ...prev, currentDays: 7, canLoadMore: true }));
         break;
       case 'month':
-        setFilters(prev => ({
-          ...prev,
+        const newFilters30 = {
+          ...filters,
           dateFrom: format(today, 'yyyy-MM-dd'),
           dateTo: format(addDays(today, 30), 'yyyy-MM-dd')
-        }));
+        };
+        setFilters(newFilters30);
+        setLoadMoreState(prev => ({ ...prev, currentDays: 30, canLoadMore: true }));
         break;
       case 'available-only':
         setFilters(prev => ({
@@ -330,7 +439,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
         }));
         break;
     }
-  }, []);
+  }, [filters]);
 
   /**
    * Get status color and icon
@@ -592,6 +701,33 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {/* ⚡ PROGRESSIVE LOADING: Load More Button */}
+      {loadMoreState.canLoadMore && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <Button
+            variant="outlined"
+            onClick={loadMoreDays}
+            disabled={loadMoreState.isLoadingMore}
+            startIcon={loadMoreState.isLoadingMore ? <RefreshIcon sx={{ animation: 'spin 1s linear infinite' }} /> : <AddIcon />}
+            size="large"
+          >
+            {loadMoreState.isLoadingMore 
+              ? 'Načítavam ďalších 14 dní...' 
+              : `Načítať ďalších 14 dní (${loadMoreState.currentDays}/${loadMoreState.maxDays})`
+            }
+          </Button>
+        </Box>
+      )}
+
+      {/* Max days reached info */}
+      {!loadMoreState.canLoadMore && loadMoreState.currentDays >= loadMoreState.maxDays && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            📅 Dosiahli ste maximálny rozsah {loadMoreState.maxDays} dní (6 mesiacov)
+          </Typography>
+        </Box>
       )}
 
       {/* Filter Dialog */}
