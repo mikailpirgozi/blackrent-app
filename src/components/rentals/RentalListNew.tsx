@@ -89,11 +89,9 @@ import RentalForm from './RentalForm';
 import PDFViewer from '../common/PDFViewer';
 import ProtocolGallery from '../common/ProtocolGallery';
 import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
-
 // 🚀 LAZY LOADING: Protocols loaded only when needed
 const HandoverProtocolForm = React.lazy(() => import('../protocols/HandoverProtocolForm'));
-// ⚡ TEMPORARY FIX: Direct import instead of lazy loading for ReturnProtocolForm
-import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
+const ReturnProtocolForm = React.lazy(() => import('../protocols/ReturnProtocolFormSimple'));
 
 // Types
 interface FilterState {
@@ -4763,13 +4761,20 @@ export default function RentalListNew() {
         <DialogTitle>Preberací protokol</DialogTitle>
         <DialogContent>
           {selectedRentalForProtocol && (
-            <ReturnProtocolForm
-              open={openReturnDialog}
-              onClose={() => setOpenReturnDialog(false)}
-              rental={selectedRentalForProtocol}
-              handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
-              onSave={handleSaveReturn}
-            />
+            <React.Suspense fallback={
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+                <Typography sx={{ ml: 2 }}>Načítavam protokol...</Typography>
+              </Box>
+            }>
+              <ReturnProtocolForm
+                open={openReturnDialog}
+                onClose={() => setOpenReturnDialog(false)}
+                rental={selectedRentalForProtocol}
+                handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
+                onSave={handleSaveReturn}
+              />
+            </React.Suspense>
           )}
         </DialogContent>
       </Dialog>
