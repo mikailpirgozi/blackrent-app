@@ -43,6 +43,7 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useDebounce } from '../../utils/performance';
 import { logger } from '../../utils/smartLogger';
+import { cacheHelpers } from '../../utils/unifiedCache';
 import RentalForm from '../rentals/RentalForm';
 
 // Custom isToday function to avoid hot reload issues
@@ -629,6 +630,20 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       const endDate = new Date(today);
       endDate.setDate(today.getDate() + 7); // 7 dní dopredu
       
+      // 🗄️ UNIFIED CACHE: Check cache first
+      const cacheKey = `${startDate.toISOString()}-${endDate.toISOString()}`;
+      const cachedData = cacheHelpers.calendar.get(cacheKey);
+      
+      if (cachedData) {
+        logger.cache('Using cached calendar data');
+        setCalendarData(cachedData.calendar);
+        setVehicles(cachedData.vehicles);
+        setUnavailabilities(cachedData.unavailabilities);
+        setLoading(false);
+        setLoadingPhase('Kalendár načítaný z cache');
+        return;
+      }
+      
       const apiUrl = `${API_BASE_URL}/availability/calendar?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
@@ -650,6 +665,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         setCalendarData(data.data.calendar);
         setVehicles(data.data.vehicles);
         setUnavailabilities(data.data.unavailabilities);
+        
+        // 🗄️ UNIFIED CACHE: Store calendar data
+        const cacheKey = `${startDate.toISOString()}-${endDate.toISOString()}`;
+        cacheHelpers.calendar.set(cacheKey, data.data);
         
         logger.performance('Smart calendar loaded', {
           days: data.data.calendar.length,

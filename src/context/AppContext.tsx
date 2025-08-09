@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect, useCallback } from 'react';
 import { Vehicle, Rental, Expense, Insurance, Settlement, Customer, Company, Insurer, VehicleDocument, InsuranceClaim, VehicleCategory, VehicleStatus } from '../types';
 import { apiService } from '../services/api';
 import { useAuth } from './AuthContext';
 import { usePermissionsContext } from './PermissionsContext';
 import logger from '../utils/logger';
+import { logger as smartLogger } from '../utils/smartLogger';
+import { cacheHelpers, smartInvalidation } from '../utils/unifiedCache';
 
 // 🚀 ENHANCED FILTER SYSTEM - TYPES
 interface FilterOptions {
@@ -559,7 +561,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   // Funkcia na načítanie dát z API - OPTIMALIZOVANÁ s BULK endpointom
-  const loadData = async (): Promise<void> => {
+  const loadData = useCallback(async (): Promise<void> => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
@@ -587,6 +589,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         vehicleDocuments: bulkData.vehicleDocuments.length,
         insuranceClaims: bulkData.insuranceClaims.length,
       });
+      
+      // 🗄️ UNIFIED CACHE: Store data in unified cache system
+      cacheHelpers.vehicles.set(bulkData.vehicles);
+      cacheHelpers.rentals.set(bulkData.rentals);
+      cacheHelpers.customers.set(bulkData.customers);
+      cacheHelpers.companies.set(bulkData.companies);
       
       // Dispatch všetkých dát naraz
       dispatch({ type: 'SET_VEHICLES', payload: bulkData.vehicles });
@@ -629,7 +637,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
+  }, []);
 
   // FALLBACK funkcia - pôvodný spôsob načítania
   const loadDataFallback = async (): Promise<void> => {
@@ -687,36 +695,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'insuranceClaims', loaded: true } });
   };
 
-  // OPTIMALIZÁCIA: Načítaj dáta len keď je používateľ prihlásený a nie je loading
+  // 🗄️ UNIFIED CACHE: Smart data loading with unified cache system
   useEffect(() => {
     const loadDataSafely = async () => {
       if (authState.isAuthenticated && !authState.isLoading && authState.token) {
-        // OPTIMALIZÁCIA: Kontrola cache - načítaj len ak dáta nie sú aktuálne
-        const now = Date.now();
-        const cacheValid = state.lastLoadTime && (now - state.lastLoadTime) < 5 * 60 * 1000; // 5 minút cache
         
-        if (!cacheValid) {
-          console.log('🚀 Používateľ je prihlásený, načítavam dáta (cache invalid)...');
-          // 🔧 OPRAVA: Await loadData aby sa dáta načítali pred použitím
-          await loadData();
+        // 🚀 UNIFIED CACHE: Check if we have cached data
+        const cachedVehicles = cacheHelpers.vehicles.get();
+        const cachedRentals = cacheHelpers.rentals.get();
+        const cachedCustomers = cacheHelpers.customers.get();
+        const cachedCompanies = cacheHelpers.companies.get();
+        
+        if (cachedVehicles && cachedRentals && cachedCustomers && cachedCompanies) {
+          smartLogger.cache('Using unified cached data - no API calls needed');
+          
+          // Load from unified cache
+          dispatch({ type: 'SET_VEHICLES', payload: cachedVehicles });
+          dispatch({ type: 'SET_RENTALS', payload: cachedRentals });
+          dispatch({ type: 'SET_CUSTOMERS', payload: cachedCustomers });
+          dispatch({ type: 'SET_COMPANIES', payload: cachedCompanies });
+          
+          // Mark data as loaded
+          dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'vehicles', loaded: true } });
+          dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'rentals', loaded: true } });
+          dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'customers', loaded: true } });
+          dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'companies', loaded: true } });
+          
         } else {
-          console.log('⚡ Používam cached dáta (cache valid)...');
+          smartLogger.cache('Cache miss - loading fresh data from API');
+          await loadData();
         }
+        
       } else if (!authState.isAuthenticated && !authState.isLoading) {
-        // Vymaž dáta ak sa používateľ odhlásil
-        console.log('Používateľ nie je prihlásený, mažem dáta...');
+        // Clear data and cache when user logs out
+        console.log('Používateľ nie je prihlásený, mažem dáta a cache...');
         dispatch({ type: 'CLEAR_ALL_DATA' });
+        
+        // Clear unified cache
+        cacheHelpers.vehicles.invalidate();
+        cacheHelpers.rentals.invalidate();
+        cacheHelpers.customers.invalidate();
+        cacheHelpers.companies.invalidate();
       }
     };
 
     loadDataSafely();
-  }, [authState.isAuthenticated, authState.isLoading, authState.token, state.lastLoadTime]);
+  }, [authState.isAuthenticated, authState.isLoading, authState.token, loadData]);
 
   // API helper methods
   const createVehicle = async (vehicle: Vehicle): Promise<void> => {
     try {
       await apiService.createVehicle(vehicle);
       dispatch({ type: 'ADD_VEHICLE', payload: vehicle });
+      
+      // 🗄️ UNIFIED CACHE: Smart invalidation
+      smartInvalidation.onVehicleChange();
     } catch (error) {
       console.error('Chyba pri vytváraní vozidla:', error);
       throw error;
@@ -727,6 +760,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await apiService.updateVehicle(vehicle);
       dispatch({ type: 'UPDATE_VEHICLE', payload: vehicle });
+      
+      // 🗄️ UNIFIED CACHE: Smart invalidation
+      smartInvalidation.onVehicleChange();
     } catch (error) {
       console.error('Chyba pri aktualizácii vozidla:', error);
       throw error;
@@ -737,6 +773,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await apiService.deleteVehicle(id);
       dispatch({ type: 'DELETE_VEHICLE', payload: id });
+      
+      // 🗄️ UNIFIED CACHE: Smart invalidation
+      smartInvalidation.onVehicleChange();
     } catch (error) {
       console.error('Chyba pri mazaní vozidla:', error);
       throw error;
@@ -747,6 +786,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await apiService.createRental(rental);
       dispatch({ type: 'ADD_RENTAL', payload: rental });
+      
+      // 🗄️ UNIFIED CACHE: Smart invalidation
+      smartInvalidation.onRentalChange();
     } catch (error) {
       console.error('Chyba pri vytváraní prenájmu:', error);
       throw error;
@@ -757,6 +799,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await apiService.updateRental(rental);
       dispatch({ type: 'UPDATE_RENTAL', payload: rental });
+      
+      // 🗄️ UNIFIED CACHE: Smart invalidation
+      smartInvalidation.onRentalChange();
     } catch (error) {
       console.error('Chyba pri aktualizácii prenájmu:', error);
       throw error;
@@ -769,6 +814,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await apiService.deleteRental(id);
       console.log(`✅ AppContext: Prenájom ${id} úspešne vymazaný z API`);
       dispatch({ type: 'DELETE_RENTAL', payload: id });
+      
+      // 🗄️ UNIFIED CACHE: Smart invalidation
+      smartInvalidation.onRentalChange();
     } catch (error) {
       console.error('Chyba pri mazaní prenájmu:', error);
       
