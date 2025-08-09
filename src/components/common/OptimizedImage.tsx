@@ -20,6 +20,9 @@ interface OptimizedImageProps {
   thumbnail?: boolean; // Pre zoznamy - malé obrázky
   quality?: number; // 1-100
   priority?: boolean; // Pre critical images
+  aspectRatio?: number; // Backward compatibility
+  placeholder?: string; // Backward compatibility
+  lazy?: boolean; // Backward compatibility
   onLoad?: () => void;
   onError?: () => void;
   className?: string;
@@ -35,6 +38,9 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   thumbnail = false,
   quality = 75,
   priority = false,
+  aspectRatio, // Backward compatibility - ignored for now
+  placeholder, // Backward compatibility - ignored for now  
+  lazy, // Backward compatibility - handled by priority
   onLoad,
   onError,
   className,

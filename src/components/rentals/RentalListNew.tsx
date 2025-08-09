@@ -279,8 +279,38 @@ export default function RentalListOptimizedNew() {
       <RentalAdvancedFilters
         filters={advancedFilters}
         onFiltersChange={setAdvancedFilters}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onReset={() => setAdvancedFilters({
+          status: 'all',
+          paymentMethod: 'all',
+          company: 'all',
+          dateFrom: '',
+          dateTo: '',
+          priceMin: '',
+          priceMax: '',
+          protocolStatus: 'all',
+          customerName: '',
+          vehicleBrand: 'all',
+          vehicleModel: '',
+          licensePlate: '',
+          customerEmail: '',
+          customerPhone: '',
+          customerCompany: '',
+          insuranceCompany: 'all',
+          insuranceType: 'all',
+          timeFilter: 'all',
+          priceRange: 'all',
+          paymentStatus: 'all',
+          showOnlyActive: false,
+          showOnlyOverdue: false,
+          showOnlyCompleted: false,
+        })}
+        onSavePreset={() => console.log('Save preset')}
+        availableStatuses={['confirmed', 'active', 'completed', 'cancelled']}
+        availableCompanies={[...new Set((state.rentals || []).map(r => r.company).filter(Boolean))]}
+        availablePaymentMethods={['hotovosť', 'karta', 'prevod']}
+        availableVehicleBrands={[...new Set((state.vehicles || []).map(v => v.brand).filter(Boolean))]}
+        availableInsuranceCompanies={['Allianz', 'Generali', 'UNIQA']}
+        availableInsuranceTypes={['povinné', 'kasko', 'úrazové']}
       />
 
       {/* 🚀 INFINITE SCROLL LIST */}
