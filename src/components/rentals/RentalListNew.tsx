@@ -797,17 +797,17 @@ export default function RentalListNew() {
     });
   }
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     setEditingRental(null);
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleEdit = (rental: Rental) => {
+  const handleEdit = useCallback((rental: Rental) => {
     setEditingRental(rental);
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (window.confirm('Naozaj chcete vymazať tento prenájom?')) {
       try {
         await deleteRental(id);
@@ -817,7 +817,7 @@ export default function RentalListNew() {
         alert('Chyba pri mazaní prenájmu. Skúste to znovu.');
       }
     }
-  };
+  }, [deleteRental]);
 
   const handleSave = async (rental: Rental) => {
     try {
@@ -851,7 +851,7 @@ export default function RentalListNew() {
   }, [openHandoverDialog, selectedRentalForProtocol]);
 
   // Handover Protocol handlers
-  const handleCreateHandover = async (rental: Rental) => {
+  const handleCreateHandover = useCallback(async (rental: Rental) => {
     console.log('📝 Creating handover protocol for rental:', rental.id);
     // Optimalized: Mobile debug logs only in development
     if (process.env.NODE_ENV === 'development') {
@@ -928,7 +928,7 @@ export default function RentalListNew() {
         alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
       }
     }
-  };
+  }, [protocolStatusMap, protocols]);
 
   const handleSaveHandover = async (protocolData: any) => {
     try {
@@ -975,7 +975,7 @@ export default function RentalListNew() {
   };
 
   // Return Protocol handlers
-  const handleCreateReturn = async (rental: Rental) => {
+  const handleCreateReturn = useCallback(async (rental: Rental) => {
     console.log('📝 Creating return protocol for rental:', rental.id);
     
     try {
@@ -1038,7 +1038,7 @@ export default function RentalListNew() {
         alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
       }
     }
-  };
+  }, [protocolStatusMap, protocols]);
 
     const handleSaveReturn = async (protocolData: any) => {
     try {
@@ -1905,39 +1905,58 @@ export default function RentalListNew() {
             <Button
               size="small"
               variant="contained"
-              startIcon={<HandoverIcon />}
-              onClick={(e) => { e.stopPropagation(); handleCreateHandover(rental); }}
+              startIcon={<EditIcon />}
+              onClick={(e) => { e.stopPropagation(); handleEdit(rental); }}
               sx={{ 
                 flex: 1,
-                minWidth: '120px',
+                minWidth: '100px',
                 bgcolor: theme.palette.primary.main,
                 '&:hover': { bgcolor: theme.palette.primary.dark }
               }}
             >
-              Prevzatie
+              Upraviť
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<HandoverIcon />}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if (hasHandover) {
+                  // handleOpenProtocolMenu(rental, 'handover');
+                } else {
+                  handleCreateHandover(rental);
+                }
+              }}
+              sx={{ 
+                flex: 1,
+                minWidth: '120px',
+                bgcolor: hasHandover ? theme.palette.success.main : theme.palette.warning.main,
+                '&:hover': { bgcolor: hasHandover ? theme.palette.success.dark : theme.palette.warning.dark }
+              }}
+            >
+              {hasHandover ? 'Zobraz prevzatie' : 'Prevzatie'}
             </Button>
             <Button
               size="small"
               variant="contained"
               startIcon={<ReturnIcon />}
-              onClick={(e) => { e.stopPropagation(); handleCreateReturn(rental); }}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if (hasReturn) {
+                  // handleOpenProtocolMenu(rental, 'return');
+                } else {
+                  handleCreateReturn(rental);
+                }
+              }}
               sx={{ 
                 flex: 1,
                 minWidth: '120px',
-                bgcolor: theme.palette.secondary.main,
-                '&:hover': { bgcolor: theme.palette.secondary.dark }
+                bgcolor: hasReturn ? theme.palette.info.main : theme.palette.success.main,
+                '&:hover': { bgcolor: hasReturn ? theme.palette.info.dark : theme.palette.success.dark }
               }}
             >
-              Vrátenie
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<EditIcon />}
-              onClick={(e) => { e.stopPropagation(); handleEdit(rental); }}
-              sx={{ minWidth: '80px' }}
-            >
-              Upraviť
+              {hasReturn ? 'Zobraz vrátenie' : 'Vrátenie'}
             </Button>
             <Button
               size="small"
@@ -2253,8 +2272,18 @@ export default function RentalListNew() {
     if (!rental) return null;
     
     const vehicle = getVehicleByRental(rental);
-    const hasHandover = !!protocols[rental.id]?.handover;
-    const hasReturn = !!protocols[rental.id]?.return;
+    
+    // ⚡ OPTIMALIZÁCIA: Použiť background loaded protocol status
+    const backgroundStatus = protocolStatusMap[rental.id];
+    const fallbackProtocols = protocols[rental.id];
+    
+    const hasHandover = backgroundStatus 
+      ? backgroundStatus.hasHandoverProtocol 
+      : !!fallbackProtocols?.handover;
+    const hasReturn = backgroundStatus 
+      ? backgroundStatus.hasReturnProtocol 
+      : !!fallbackProtocols?.return;
+      
     const isLoadingProtocolStatus = loadingProtocols.includes(rental.id);
     const protocolStatusLoaded = protocolStatusMap[rental.id] !== undefined;
 
@@ -2272,16 +2301,25 @@ export default function RentalListNew() {
           onEdit={handleEdit}
           onOpenProtocolMenu={(rental, type) => {
             if (type === 'handover') {
-              handleCreateHandover(rental);
+              if (hasHandover) {
+                handleOpenProtocolMenu(rental, 'handover');
+              } else {
+                handleCreateHandover(rental);
+              }
             } else {
-              handleCreateReturn(rental);
+              if (hasReturn) {
+                handleOpenProtocolMenu(rental, 'return');
+              } else {
+                handleCreateReturn(rental);
+              }
             }
           }}
           onCheckProtocols={() => {}} // Simplified for now
+          onDelete={handleDelete}
         />
       </div>
     );
-  }, [filteredRentals, protocols, loadingProtocols, protocolStatusMap, getVehicleByRental, handleEdit, handleCreateHandover, handleCreateReturn]);
+  }, [filteredRentals, protocols, loadingProtocols, protocolStatusMap, getVehicleByRental, handleEdit, handleCreateHandover, handleCreateReturn, handleDelete, handleOpenProtocolMenu]);
 
   // Card renderer for mobile/card view (fallback)
   const renderRentalCard = useCallback((rental: Rental, index: number) => {
@@ -3571,7 +3609,7 @@ export default function RentalListNew() {
                 height={600}
                 width="100%"
                 itemCount={filteredRentals.length}
-                itemSize={120}
+                itemSize={160}
                 itemData={filteredRentals}
               >
                 {VirtualizedRentalRow}
@@ -3904,30 +3942,51 @@ export default function RentalListNew() {
                         justifyContent: 'flex-start',
                         flexWrap: 'wrap'
                       }}>
-                        {/* Create Handover Protocol Button */}
+                        {/* Edit Rental Button */}
                         <IconButton
                           size="small"
-                          title={hasHandover ? "Protokol už existuje" : "Vytvoriť odovzdávací protokol"}
+                          title="Upraviť prenájom"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!hasHandover) {
-                              handleCreateHandover(rental);
-                            }
+                            handleEdit(rental);
                           }}
-                          disabled={hasHandover}
                           sx={{ 
-                            bgcolor: hasHandover ? '#ccc' : '#ff9800', 
+                            bgcolor: '#2196f3', 
                             color: 'white',
                             width: { xs: 36, sm: 32 },
                             height: { xs: 36, sm: 32 },
-                            '&:hover': !hasHandover ? { 
-                              bgcolor: '#f57c00',
+                            '&:hover': { 
+                              bgcolor: '#1976d2',
                               transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(255,152,0,0.4)'
-                            } : {},
-                            '&:disabled': {
-                              bgcolor: '#ccc',
-                              color: '#999'
+                              boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        
+                        {/* Create/View Handover Protocol Button */}
+                        <IconButton
+                          size="small"
+                          title={hasHandover ? "Zobraziť odovzdávací protokol" : "Vytvoriť odovzdávací protokol"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (hasHandover) {
+                              handleOpenProtocolMenu(rental, 'handover');
+                            } else {
+                              handleCreateHandover(rental);
+                            }
+                          }}
+                          sx={{ 
+                            bgcolor: hasHandover ? '#4caf50' : '#ff9800', 
+                            color: 'white',
+                            width: { xs: 36, sm: 32 },
+                            height: { xs: 36, sm: 32 },
+                            '&:hover': { 
+                              bgcolor: hasHandover ? '#388e3c' : '#f57c00',
+                              transform: 'scale(1.1)',
+                              boxShadow: hasHandover ? '0 4px 12px rgba(76,175,80,0.4)' : '0 4px 12px rgba(255,152,0,0.4)'
                             },
                             transition: 'all 0.2s ease'
                           }}
@@ -3935,30 +3994,27 @@ export default function RentalListNew() {
                           <HandoverIcon fontSize="small" />
                         </IconButton>
                         
-                        {/* Create Return Protocol Button */}
+                        {/* Create/View Return Protocol Button */}
                         <IconButton
                           size="small"
-                          title={hasReturn ? "Protokol už existuje" : "Vytvoriť preberací protokol"}
+                          title={hasReturn ? "Zobraziť preberací protokol" : "Vytvoriť preberací protokol"}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!hasReturn) {
+                            if (hasReturn) {
+                              handleOpenProtocolMenu(rental, 'return');
+                            } else {
                               handleCreateReturn(rental);
                             }
                           }}
-                          disabled={hasReturn}
                           sx={{ 
-                            bgcolor: hasReturn ? '#ccc' : '#4caf50', 
+                            bgcolor: hasReturn ? '#2196f3' : '#4caf50', 
                             color: 'white',
                             width: { xs: 36, sm: 32 },
                             height: { xs: 36, sm: 32 },
-                            '&:hover': !hasReturn ? { 
-                              bgcolor: '#388e3c',
+                            '&:hover': { 
+                              bgcolor: hasReturn ? '#1976d2' : '#388e3c',
                               transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
-                            } : {},
-                            '&:disabled': {
-                              bgcolor: '#ccc',
-                              color: '#999'
+                              boxShadow: hasReturn ? '0 4px 12px rgba(33,150,243,0.4)' : '0 4px 12px rgba(76,175,80,0.4)'
                             },
                             transition: 'all 0.2s ease'
                           }}
