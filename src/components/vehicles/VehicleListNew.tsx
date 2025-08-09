@@ -139,8 +139,6 @@ export default function VehicleListNew() {
   const [selectedVehicleHistory, setSelectedVehicleHistory] = useState<Vehicle | null>(null);
   const [ownershipHistory, setOwnershipHistory] = useState<any[]>([]);
 
-  // Moved after filteredVehicles definition
-
   // Handlers
   const handleEdit = (vehicle: Vehicle) => {
     setEditingVehicle(vehicle);
@@ -280,6 +278,41 @@ export default function VehicleListNew() {
     showOther,
     getFullyFilteredVehicles // 🎯 Enhanced filter function
   ]);
+
+  // 🚀 INFINITE SCROLL LOGIC (after filteredVehicles definition)
+  const loadMoreVehicles = useCallback(() => {
+    if (isLoadingMore || displayedVehicles >= filteredVehicles.length) return;
+    
+    setIsLoadingMore(true);
+    
+    // Simulate loading delay for better UX
+    setTimeout(() => {
+      setDisplayedVehicles(prev => Math.min(prev + 20, filteredVehicles.length));
+      setIsLoadingMore(false);
+    }, 300);
+  }, [isLoadingMore, displayedVehicles, filteredVehicles.length]);
+
+  // Reset displayed count when filters change
+  useEffect(() => {
+    setDisplayedVehicles(20);
+  }, [searchQuery, filterBrand, filterModel, filterCompany, filterStatus, filterCategory, showAvailable, showRented, showMaintenance, showOther]);
+
+  // Infinite scroll event handler
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    
+    // Load more when user scrolls to 80% of the content
+    if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+      loadMoreVehicles();
+    }
+  }, [loadMoreVehicles]);
+
+  // Get vehicles to display (limited by infinite scroll)
+  const vehiclesToDisplay = useMemo(() => {
+    return filteredVehicles.slice(0, displayedVehicles);
+  }, [filteredVehicles, displayedVehicles]);
+
+  const hasMore = displayedVehicles < filteredVehicles.length;
 
   // Get unique values for filters
   const uniqueBrands = [...new Set(state.vehicles.map(v => v.brand))].sort();
