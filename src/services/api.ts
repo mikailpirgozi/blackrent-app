@@ -294,20 +294,13 @@ class ApiService {
         }
         
         // 🌐 2. API CALL - cache chýba alebo expired
-        return measurePerformance(() => {
-          console.log('🌐 Loading protocol status from API...');
-          const cacheInfo = getCacheInfo();
-          if (cacheInfo.exists) {
-            console.log(`📊 Cache info: age=${cacheInfo.age}s, records=${cacheInfo.records}, fresh=${cacheInfo.fresh}`);
-          }
-          
-          return this.loadProtocolStatusFromAPI();
-        }, 'Protocol Status API Call');
-      },
-      {
-        ttl: 10000, // 10s deduplication window
-        maxConcurrent: 3,
-        onDuplicate: () => console.log('🔄 Duplicate protocol status request detected')
+        console.log('🌐 Loading protocol status from API...');
+        const cacheInfo = getCacheInfo();
+        if (cacheInfo.exists) {
+          console.log(`📊 Cache info: age=${cacheInfo.age}s, records=${cacheInfo.records}, fresh=${cacheInfo.fresh}`);
+        }
+        
+        return this.loadProtocolStatusFromAPI();
       }
     );
   }
