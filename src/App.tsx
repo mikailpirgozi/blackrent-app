@@ -1,5 +1,6 @@
 import './styles/custom-font.css'; // Aeonik font
 import React from 'react';
+import { logger } from './utils/smartLogger';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
@@ -60,26 +61,15 @@ const AppContent: React.FC = () => {
   
   // Initialize performance optimizations
   React.useEffect(() => {
-    // 🚨 EMERGENCY: Disable ALL heavy optimizations to prevent mobile crashes
-    console.log('🚨 LIGHTWEIGHT MODE: All heavy optimizations disabled');
+    // Initialize critical resources only
+    logger.info('Initializing critical resources...', undefined, 'performance');
     
-    // Only essential initialization
     try {
-      initializeCriticalResources(); // Keep only critical resources
+      initializeCriticalResources();
+      logger.info('Critical resources initialized successfully', undefined, 'performance');
     } catch (error) {
-      console.warn('Critical resources init failed:', error);
+      logger.error('Critical resources initialization failed', error);
     }
-
-    // 🚨 EMERGENCY: Removed heavy fetch monitoring to prevent browser crashes
-
-    // 🚨 EMERGENCY: Removed WebSocket monitoring to prevent browser crashes
-
-    // 🚨 EMERGENCY: Removed localStorage monitoring to prevent browser crashes
-
-    // 🚨 EMERGENCY: Removed all heavy monitoring to prevent mobile browser crashes
-    // The issue is browser memory pressure, not code logic
-
-    console.log('🚨 LIGHTWEIGHT MODE: Minimal initialization completed');
   }, []);
   
   return (
