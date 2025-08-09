@@ -843,12 +843,31 @@ export default function RentalListNew() {
     if (process.env.NODE_ENV === 'development') {
       console.log('🔄 MOBILE DEBUG: openHandoverDialog state changed:', openHandoverDialog);
       if (!openHandoverDialog) {
-        console.log('❌ MOBILE DEBUG: Modal was closed! Investigating...');
+        console.log('❌ MOBILE DEBUG: Handover Modal was closed! Investigating...');
         console.log('❌ MOBILE DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
         console.log('❌ MOBILE DEBUG: Current URL:', window.location.href);
       }
     }
   }, [openHandoverDialog, selectedRentalForProtocol]);
+
+  // Monitor return dialog state changes
+  React.useEffect(() => {
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 RETURN DEBUG: openReturnDialog state changed:', openReturnDialog);
+      if (!openReturnDialog) {
+        console.log('❌ RETURN DEBUG: Return Modal was closed! Investigating...');
+        console.log('❌ RETURN DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
+        console.log('❌ RETURN DEBUG: protocols loaded:', selectedRentalForProtocol ? !!protocols[selectedRentalForProtocol.id] : 'no rental selected');
+        console.log('❌ RETURN DEBUG: handover protocol:', selectedRentalForProtocol ? protocols[selectedRentalForProtocol.id]?.handover?.id : 'no rental selected');
+      } else {
+        console.log('✅ RETURN DEBUG: Return Modal opened!');
+        console.log('✅ RETURN DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
+        console.log('✅ RETURN DEBUG: protocols loaded:', selectedRentalForProtocol ? !!protocols[selectedRentalForProtocol.id] : 'no rental selected');
+        console.log('✅ RETURN DEBUG: handover protocol:', selectedRentalForProtocol ? protocols[selectedRentalForProtocol.id]?.handover?.id : 'no rental selected');
+      }
+    }
+  }, [openReturnDialog, selectedRentalForProtocol, protocols]);
 
   // Handover Protocol handlers
   const handleCreateHandover = useCallback(async (rental: Rental) => {
@@ -1010,8 +1029,13 @@ export default function RentalListNew() {
       // ⚡ NAČÍTAJ HANDOVER PROTOKOL PRED OTVORENÍM RETURN DIALOGU
       await loadProtocolsForRental(rental.id);
       
+      console.log('🔄 RETURN DEBUG: Setting selectedRentalForProtocol to:', rental.id);
       setSelectedRentalForProtocol(rental);
+      
+      console.log('🔄 RETURN DEBUG: Setting openReturnDialog to true');
       setOpenReturnDialog(true);
+      
+      console.log('🔄 RETURN DEBUG: Protocol data after load:', protocols[rental.id]);
       
     } catch (error) {
       console.error('❌ Error checking cached protocols:', error);
@@ -1039,8 +1063,13 @@ export default function RentalListNew() {
         // ⚡ NAČÍTAJ PROTOKOLY PRED OTVORENÍM RETURN DIALOGU
         await loadProtocolsForRental(rental.id);
         
+        console.log('🔄 RETURN DEBUG (fallback): Setting selectedRentalForProtocol to:', rental.id);
         setSelectedRentalForProtocol(rental);
+        
+        console.log('🔄 RETURN DEBUG (fallback): Setting openReturnDialog to true');
         setOpenReturnDialog(true);
+        
+        console.log('🔄 RETURN DEBUG (fallback): Protocol data after load:', protocols[rental.id]);
       } catch (fallbackError) {
         console.error('❌ Fallback API call also failed:', fallbackError);
         alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
