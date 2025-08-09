@@ -45,6 +45,7 @@ const Statistics = lazy(() => import('./components/Statistics'));
 const UserManagement = lazy(() => import('./components/users/IntegratedUserManagement'));
 const SettlementList = lazy(() => import('./components/settlements/SettlementListNew'));
 const AvailabilityPage = lazy(() => import('./pages/AvailabilityPageNew'));
+const SmartAvailabilityPage = lazy(() => import('./pages/SmartAvailabilityPage'));
 const VehicleOwnershipTransfer = lazy(() => import('./components/admin/VehicleOwnershipTransfer'));
 
 // OPTIMALIZOVANÝ Loading component pre lazy loaded routes
@@ -217,6 +218,16 @@ const AppContent: React.FC = () => {
                             </Suspense>
                           </ErrorBoundary>
                         </Layout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/availability-smart" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <Suspense fallback={<PageLoader />}>
+                            <SmartAvailabilityPage />
+                          </Suspense>
+                        </ErrorBoundary>
                       </ProtectedRoute>
                     } />
                     
