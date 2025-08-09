@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -75,6 +75,12 @@ export default function CustomerListNew() {
   const [showWithoutEmail, setShowWithoutEmail] = useState(true);
   const [showWithPhone, setShowWithPhone] = useState(true);
   const [showWithoutPhone, setShowWithoutPhone] = useState(true);
+  
+  // 🚀 INFINITE SCROLL STATES
+  const [displayedCustomers, setDisplayedCustomers] = useState(20); // Start with 20 items
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Moved after filteredCustomers definition
 
   // Handlers
   const handleEdit = (customer: Customer) => {
@@ -287,6 +293,41 @@ export default function CustomerListNew() {
     showWithoutPhone
   ]);
 
+  // 🚀 INFINITE SCROLL LOGIC (after filteredCustomers definition)
+  const loadMoreCustomers = useCallback(() => {
+    if (isLoadingMore || displayedCustomers >= filteredCustomers.length) return;
+    
+    setIsLoadingMore(true);
+    
+    // Simulate loading delay for better UX
+    setTimeout(() => {
+      setDisplayedCustomers(prev => Math.min(prev + 20, filteredCustomers.length));
+      setIsLoadingMore(false);
+    }, 300);
+  }, [isLoadingMore, displayedCustomers, filteredCustomers.length]);
+
+  // Reset displayed count when filters change
+  useEffect(() => {
+    setDisplayedCustomers(20);
+  }, [searchQuery, filterName, filterEmail, filterPhone, showWithEmail, showWithoutEmail, showWithPhone, showWithoutPhone]);
+
+  // Infinite scroll event handler
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    
+    // Load more when user scrolls to 80% of the content
+    if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+      loadMoreCustomers();
+    }
+  }, [loadMoreCustomers]);
+
+  // Get customers to display (limited by infinite scroll)
+  const customersToDisplay = useMemo(() => {
+    return filteredCustomers.slice(0, displayedCustomers);
+  }, [filteredCustomers, displayedCustomers]);
+
+  const hasMore = displayedCustomers < filteredCustomers.length;
+
   // Get customer rental count
   const getCustomerRentalCount = (customerId: string) => {
     return state.rentals.filter(rental => rental.customerId === customerId).length;
@@ -464,8 +505,17 @@ export default function CustomerListNew() {
       {/* Results Count */}
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Typography variant="body2" color="text.secondary">
-          Zobrazených {filteredCustomers.length} z {state.customers.length} zákazníkov
+          Zobrazených {customersToDisplay.length} z {filteredCustomers.length} zákazníkov
+          {filteredCustomers.length !== state.customers.length && ` (filtrovaných z ${state.customers.length})`}
         </Typography>
+        {isLoadingMore && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CircularProgress size={16} />
+            <Typography variant="body2" color="text.secondary">
+              Načítavam ďalších...
+            </Typography>
+          </Box>
+        )}
         {loading && <CircularProgress size={16} />}
       </Box>
 
@@ -474,13 +524,16 @@ export default function CustomerListNew() {
         /* MOBILE CARDS VIEW */
         <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
           <CardContent sx={{ p: 0 }}>
-            <Box>
-              {filteredCustomers.map((customer, index) => (
+            <Box 
+              sx={{ maxHeight: '70vh', overflowY: 'auto' }}
+              onScroll={handleScroll}
+            >
+              {customersToDisplay.map((customer, index) => (
                 <Box 
                   key={customer.id}
                   sx={{ 
                     display: 'flex',
-                    borderBottom: index < filteredCustomers.length - 1 ? '1px solid #e0e0e0' : 'none',
+                    borderBottom: index < customersToDisplay.length - 1 ? '1px solid #e0e0e0' : 'none',
                     '&:hover': { backgroundColor: '#f8f9fa' },
                     minHeight: 80,
                     cursor: 'pointer'
@@ -706,6 +759,32 @@ export default function CustomerListNew() {
                   </Box>
                 </Box>
               ))}
+              
+              {/* 🚀 INFINITE SCROLL: Load More Button */}
+              {hasMore && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  p: 3,
+                  borderTop: '1px solid #e0e0e0'
+                }}>
+                  <Button
+                    variant="outlined"
+                    onClick={loadMoreCustomers}
+                    disabled={isLoadingMore}
+                    sx={{
+                      minWidth: 200,
+                      py: 1.5,
+                      borderRadius: 3,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      fontWeight: 600
+                    }}
+                  >
+                    {isLoadingMore ? 'Načítavam...' : `Načítať ďalších (${filteredCustomers.length - displayedCustomers} zostáva)`}
+                  </Button>
+                </Box>
+              )}
             </Box>
           </CardContent>
         </Card>
@@ -809,13 +888,16 @@ export default function CustomerListNew() {
             </Box>
 
             {/* Desktop Customer Rows */}
-            <Box>
-              {filteredCustomers.map((customer, index) => (
+            <Box 
+              sx={{ maxHeight: '70vh', overflowY: 'auto' }}
+              onScroll={handleScroll}
+            >
+              {customersToDisplay.map((customer, index) => (
                 <Box 
                   key={customer.id}
                   sx={{ 
                     display: 'flex',
-                    borderBottom: index < filteredCustomers.length - 1 ? '1px solid #e0e0e0' : 'none',
+                    borderBottom: index < customersToDisplay.length - 1 ? '1px solid #e0e0e0' : 'none',
                     '&:hover': { backgroundColor: '#f8f9fa' },
                     minHeight: 72,
                     cursor: 'pointer'
@@ -1062,6 +1144,32 @@ export default function CustomerListNew() {
                   </Box>
                 </Box>
               ))}
+              
+              {/* 🚀 INFINITE SCROLL: Load More Button */}
+              {hasMore && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  p: 3,
+                  borderTop: '1px solid #e0e0e0'
+                }}>
+                  <Button
+                    variant="outlined"
+                    onClick={loadMoreCustomers}
+                    disabled={isLoadingMore}
+                    sx={{
+                      minWidth: 200,
+                      py: 1.5,
+                      borderRadius: 3,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      fontWeight: 600
+                    }}
+                  >
+                    {isLoadingMore ? 'Načítavam...' : `Načítať ďalších (${filteredCustomers.length - displayedCustomers} zostáva)`}
+                  </Button>
+                </Box>
+              )}
             </Box>
           </CardContent>
         </Card>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -116,6 +116,10 @@ export default function VehicleListNew() {
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   
+  // 🚀 INFINITE SCROLL STATES
+  const [displayedVehicles, setDisplayedVehicles] = useState(20); // Start with 20 items
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
   // ✅ NOVÉ: State pre hromadné mazanie
   const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set());
   const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
@@ -134,6 +138,8 @@ export default function VehicleListNew() {
   const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false);
   const [selectedVehicleHistory, setSelectedVehicleHistory] = useState<Vehicle | null>(null);
   const [ownershipHistory, setOwnershipHistory] = useState<any[]>([]);
+
+  // Moved after filteredVehicles definition
 
   // Handlers
   const handleEdit = (vehicle: Vehicle) => {
@@ -770,13 +776,21 @@ export default function VehicleListNew() {
         {/* Results Count */}
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Typography variant="body2" color="text.secondary">
-          Zobrazených {filteredVehicles.length} z {state.vehicles.length} vozidiel
+          Zobrazených {vehiclesToDisplay.length} z {filteredVehicles.length} vozidiel
+          {filteredVehicles.length !== state.vehicles.length && ` (filtrovaných z ${state.vehicles.length})`}
         </Typography>
         {loading && (
           <EnhancedLoading 
             variant="inline" 
             message="Aktualizujem zoznam..." 
             showMessage={false} 
+          />
+        )}
+        {isLoadingMore && (
+          <EnhancedLoading 
+            variant="inline" 
+            message="Načítavam ďalšie..." 
+            showMessage={true} 
           />
         )}
       </Box>
@@ -786,15 +800,18 @@ export default function VehicleListNew() {
         /* MOBILE CARDS VIEW */
         <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
           <CardContent sx={{ p: 0 }}>
-            <Box>
-              {filteredVehicles.map((vehicle, index) => (
+            <Box 
+              sx={{ maxHeight: '70vh', overflowY: 'auto' }}
+              onScroll={handleScroll}
+            >
+              {vehiclesToDisplay.map((vehicle, index) => (
                 <Box
                   key={vehicle.id}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
                     p: 0,
-                    borderBottom: index < filteredVehicles.length - 1 ? '1px solid #e0e0e0' : 'none',
+                    borderBottom: index < vehiclesToDisplay.length - 1 ? '1px solid #e0e0e0' : 'none',
                     '&:hover': { backgroundColor: '#f8f9fa' },
                     minHeight: 80,
                     cursor: 'pointer'
@@ -1000,6 +1017,32 @@ export default function VehicleListNew() {
                   </Box>
                 </Box>
               ))}
+              
+              {/* 🚀 INFINITE SCROLL: Load More Button */}
+              {hasMore && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  p: 3,
+                  borderTop: '1px solid #e0e0e0'
+                }}>
+                  <Button
+                    variant="outlined"
+                    onClick={loadMoreVehicles}
+                    disabled={isLoadingMore}
+                    sx={{
+                      minWidth: 200,
+                      py: 1.5,
+                      borderRadius: 3,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      fontWeight: 600
+                    }}
+                  >
+                    {isLoadingMore ? 'Načítavam...' : `Načítať ďalších (${filteredVehicles.length - displayedVehicles} zostáva)`}
+                  </Button>
+                </Box>
+              )}
             </Box>
           </CardContent>
         </Card>
@@ -1103,15 +1146,18 @@ export default function VehicleListNew() {
             </Box>
 
             {/* Desktop Vehicle Rows */}
-            <Box>
-              {filteredVehicles.map((vehicle, index) => (
+            <Box 
+              sx={{ maxHeight: '70vh', overflowY: 'auto' }}
+              onScroll={handleScroll}
+            >
+              {vehiclesToDisplay.map((vehicle, index) => (
                 <Box 
                   key={vehicle.id}
                   sx={{ 
                     display: 'flex',
                     alignItems: 'center',
                     p: 0,
-                    borderBottom: index < filteredVehicles.length - 1 ? '1px solid #e0e0e0' : 'none',
+                    borderBottom: index < vehiclesToDisplay.length - 1 ? '1px solid #e0e0e0' : 'none',
                     '&:hover': { backgroundColor: '#f8f9fa' },
                     minHeight: 72,
                     cursor: 'pointer'
@@ -1328,6 +1374,32 @@ export default function VehicleListNew() {
                   </Box>
                 </Box>
               ))}
+              
+              {/* 🚀 INFINITE SCROLL: Load More Button */}
+              {hasMore && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  p: 3,
+                  borderTop: '1px solid #e0e0e0'
+                }}>
+                  <Button
+                    variant="outlined"
+                    onClick={loadMoreVehicles}
+                    disabled={isLoadingMore}
+                    sx={{
+                      minWidth: 200,
+                      py: 1.5,
+                      borderRadius: 3,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      fontWeight: 600
+                    }}
+                  >
+                    {isLoadingMore ? 'Načítavam...' : `Načítať ďalších (${filteredVehicles.length - displayedVehicles} zostáva)`}
+                  </Button>
+                </Box>
+              )}
             </Box>
           </CardContent>
         </Card>
