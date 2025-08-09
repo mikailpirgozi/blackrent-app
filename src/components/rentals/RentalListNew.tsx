@@ -91,7 +91,7 @@ import ProtocolGallery from '../common/ProtocolGallery';
 import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 // 🚀 LAZY LOADING: Protocols loaded only when needed
 const HandoverProtocolForm = React.lazy(() => import('../protocols/HandoverProtocolForm'));
-const ReturnProtocolForm = React.lazy(() => import('../protocols/ReturnProtocolFormSimple'));
+const ReturnProtocolForm = React.lazy(() => import('../protocols/ReturnProtocolForm'));
 
 // Types
 interface FilterState {
