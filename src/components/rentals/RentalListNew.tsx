@@ -197,7 +197,7 @@ export default function RentalListNew() {
     return () => clearTimeout(timeoutId);
   }, []);
 
-  useRentalUpdates(useCallback((type, rental, rentalId) => {
+  useRentalUpdates(useCallback((type: string, rental?: Rental, rentalId?: string) => {
     logger.debug('WebSocket rental update', { type, rentalId, timestamp: Date.now() });
     
     // ⚡ PERFORMANCE: Smart updates with debouncing
