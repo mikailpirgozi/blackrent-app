@@ -227,7 +227,7 @@ class ApiService {
     return this.request<Vehicle>(`/vehicles/${id}`);
   }
 
-  // ⚡ BULK DATA ENDPOINT - Načíta všetky dáta jedným requestom
+  // ⚡ BULK DATA ENDPOINT - Načíta všetky dáta jedným requestom s AGGRESSIVE CACHING
   async getBulkData(): Promise<{
     vehicles: Vehicle[];
     rentals: Rental[];
@@ -246,25 +246,48 @@ class ApiService {
       timestamp: string;
     };
   }> {
-    const response = await this.request<{
-      vehicles: Vehicle[];
-      rentals: Rental[];
-      customers: Customer[];
-      companies: Company[];
-      insurers: Insurer[];
-      expenses: Expense[];
-      insurances: Insurance[];
-      settlements: Settlement[];
-      vehicleDocuments: VehicleDocument[];
-      insuranceClaims: InsuranceClaim[];
-      metadata: {
-        loadTimeMs: number;
-        userRole: string;
-        isFiltered: boolean;
-        timestamp: string;
-      };
-    }>('/bulk/data');
-    return response;
+    // ⚡ SMART CACHING + REQUEST DEDUPLICATION
+    return this.requestDeduplicator.deduplicate(
+      'bulk-data',
+      async () => {
+        return apiCache.getOrFetch(
+          cacheKeys.bulkData(),
+          async () => {
+            console.log('🌐 Loading bulk data from API...');
+            const startTime = performance.now();
+            
+            const response = await this.request<{
+              vehicles: Vehicle[];
+              rentals: Rental[];
+              customers: Customer[];
+              companies: Company[];
+              insurers: Insurer[];
+              expenses: Expense[];
+              insurances: Insurance[];
+              settlements: Settlement[];
+              vehicleDocuments: VehicleDocument[];
+              insuranceClaims: InsuranceClaim[];
+              metadata: {
+                loadTimeMs: number;
+                userRole: string;
+                isFiltered: boolean;
+                timestamp: string;
+              };
+            }>('/bulk/data');
+            
+            const loadTime = performance.now() - startTime;
+            console.log(`⚡ Bulk data loaded in ${loadTime.toFixed(2)}ms`);
+            console.log(`📊 Data: ${response.vehicles?.length || 0} vehicles, ${response.rentals?.length || 0} rentals, ${response.customers?.length || 0} customers`);
+            
+            return response;
+          },
+          { 
+            ttl: 10 * 60 * 1000, // 10 minutes - aggressive caching
+            tags: ['bulk', 'vehicles', 'rentals', 'customers'] 
+          }
+        );
+      }
+    );
   }
 
   // ⚡ BULK PROTOCOL STATUS - Získa protocol status pre všetky rentals naraz s SMART CACHE
@@ -399,7 +422,7 @@ class ApiService {
     }
   }
 
-  // ⚡ BULK: História vlastníctva všetkých vozidiel naraz
+  // ⚡ BULK: História vlastníctva všetkých vozidiel naraz s CACHING
   async getBulkVehicleOwnershipHistory(): Promise<{
     vehicleHistories: Array<{
       vehicleId: string;
@@ -423,12 +446,28 @@ class ApiService {
     totalVehicles: number;
     loadTimeMs: number;
   }> {
-    const response = await this.request<{
-      vehicleHistories: any[];
-      totalVehicles: number;
-      loadTimeMs: number;
-    }>('/vehicles/bulk-ownership-history');
-    return response;
+    return this.requestDeduplicator.deduplicate(
+      'bulk-vehicle-ownership-history',
+      async () => {
+        return apiCache.getOrFetch(
+          cacheKeys.vehicleOwnership(),
+          async () => {
+            console.log('🌐 Loading vehicle ownership history from API...');
+            const response = await this.request<{
+              vehicleHistories: any[];
+              totalVehicles: number;
+              loadTimeMs: number;
+            }>('/vehicles/bulk-ownership-history');
+            console.log(`📊 Vehicle ownership history: ${response.totalVehicles} vehicles loaded`);
+            return response;
+          },
+          { 
+            ttl: 15 * 60 * 1000, // 15 minutes - history changes rarely
+            tags: ['vehicles', 'ownership', 'history'] 
+          }
+        );
+      }
+    );
   }
 
   async createVehicle(vehicle: Vehicle): Promise<void> {
