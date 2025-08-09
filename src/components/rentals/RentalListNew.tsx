@@ -159,7 +159,10 @@ const VehicleOwnerDisplay: React.FC<{
 };
 
 export default function RentalListNew() {
-  logger.render('RentalListNew render', { timestamp: Date.now() });
+  // ⚡ PERFORMANCE: Only log renders in development
+  if (process.env.NODE_ENV === 'development') {
+    logger.render('RentalListNew render', { timestamp: Date.now() });
+  }
   
   const { state, createRental, updateRental, deleteRental } = useApp();
   const theme = useTheme();
@@ -184,21 +187,39 @@ export default function RentalListNew() {
   const [isLoadingProtocolStatus, setIsLoadingProtocolStatus] = useState(false);
   const [protocolStatusLoaded, setProtocolStatusLoaded] = useState(false);
   
-  // 🔴 Real-time updates hook
-  useRentalUpdates((type, rental, rentalId) => {
+  // ⚡ OPTIMIZED: Real-time updates hook with debouncing
+  const debouncedRefresh = useCallback(() => {
+    // ⚡ PERFORMANCE: Debounce multiple rapid updates
+    const timeoutId = setTimeout(() => {
+      window.dispatchEvent(new Event('rental-list-refresh'));
+    }, 100); // 100ms debounce
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  useRentalUpdates(useCallback((type, rental, rentalId) => {
     logger.debug('WebSocket rental update', { type, rentalId, timestamp: Date.now() });
     
-    // Auto-refresh rental list when changes occur
+    // ⚡ PERFORMANCE: Smart updates with debouncing
     if (type === 'created' || type === 'updated' || type === 'deleted') {
       logger.performance('Rental list refresh triggered', { reason: type, rentalId });
-      window.dispatchEvent(new Event('rental-list-refresh'));
+      debouncedRefresh();
     }
-  });
+  }, [debouncedRefresh]));
 
-  // Helper function to get vehicle data by vehicleId
-  const getVehicleByRental = useCallback((rental: Rental) => {
-    return rental.vehicleId ? state.vehicles.find(v => v.id === rental.vehicleId) : null;
+  // ⚡ OPTIMIZED: Memoized vehicle lookup map for performance
+  const vehicleLookupMap = useMemo(() => {
+    const map = new Map();
+    state.vehicles.forEach(vehicle => {
+      map.set(vehicle.id, vehicle);
+    });
+    return map;
   }, [state.vehicles]);
+
+  // ⚡ OPTIMIZED: Helper function using lookup map
+  const getVehicleByRental = useCallback((rental: Rental) => {
+    return rental.vehicleId ? vehicleLookupMap.get(rental.vehicleId) || null : null;
+  }, [vehicleLookupMap]);
   
   // 🎯 SNAPSHOT LOGIC: Už nepotrebujeme getVehicleOwnerAtDate - všetko je v rental.vehicleCompanySnapshot!
   
@@ -2016,7 +2037,7 @@ export default function RentalListNew() {
   // Save filter preset
   const handleSaveFilterPreset = () => {
     // TODO: Implement preset saving
-    console.log('💾 Ukladám filter preset:', advancedFilters);
+    logger.debug('Saving filter preset', { filters: advancedFilters });
   };
   
   // Filter rentals based on all filters with 30 item limit for mobile performance
@@ -2038,7 +2059,11 @@ export default function RentalListNew() {
                (endDate >= now && endDate <= sevenDaysFromNow) ||
                (startDate <= now && endDate >= now); // Currently running
       });
-      console.log(`🎯 Smart filter applied: ${filtered.length} rentals in next 7 days`);
+      logger.performance('Smart filter applied', { 
+        filteredCount: filtered.length, 
+        totalCount: rentals.length, 
+        period: 'next 7 days' 
+      });
     }
     
     // Search query filter
