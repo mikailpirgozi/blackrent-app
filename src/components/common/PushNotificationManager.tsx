@@ -42,8 +42,7 @@ import {
   Info as InfoIcon,
 } from '@mui/icons-material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs from 'dayjs';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 import { 
   pushNotificationService, 

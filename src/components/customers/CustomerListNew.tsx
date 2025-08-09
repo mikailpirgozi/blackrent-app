@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
 import {
   Box,
   Button,
@@ -235,9 +234,9 @@ export default function CustomerListNew() {
     }
   };
 
-  // Filtered customers with 30 item limit for mobile performance
+  // Filtered customers
   const filteredCustomers = useMemo(() => {
-    const customers = state.customers.filter(customer => {
+    return state.customers.filter(customer => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -276,12 +275,6 @@ export default function CustomerListNew() {
 
       return true;
     });
-    
-    // 🚀 MOBILE PERFORMANCE: Limit to 30 customers max to prevent browser crashes
-    const limitedCustomers = customers.slice(0, 30);
-    console.log(`📊 Filtered customers: ${customers.length} total → ${limitedCustomers.length} displayed (max 30)`);
-    
-    return limitedCustomers;
   }, [
     state.customers,
     searchQuery,
@@ -298,138 +291,6 @@ export default function CustomerListNew() {
   const getCustomerRentalCount = (customerId: string) => {
     return state.rentals.filter(rental => rental.customerId === customerId).length;
   };
-
-  // 🚀 VIRTUALIZED CUSTOMER ROW for react-window
-  const VirtualizedCustomerRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const customer = filteredCustomers[index];
-    if (!customer) return null;
-
-    const rentalCount = getCustomerRentalCount(customer.id);
-
-    return (
-      <div style={style}>
-        <Box 
-          key={customer.id}
-          sx={{ 
-            display: 'flex',
-            borderBottom: index < filteredCustomers.length - 1 ? '1px solid #e0e0e0' : 'none',
-            '&:hover': { backgroundColor: '#f8f9fa' },
-            minHeight: 72,
-            cursor: 'pointer'
-          }}
-          onClick={() => handleEdit(customer)}
-        >
-          {/* Zákazník column */}
-          <Box sx={{ 
-            width: 200,
-            minWidth: 200,
-            p: 2,
-            borderRight: '1px solid #e0e0e0',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center'
-          }}>
-            <Typography variant="subtitle2" sx={{ 
-              fontWeight: 600, 
-              color: '#1976d2',
-              mb: 0.5
-            }}>
-              {customer.name}
-            </Typography>
-            <Typography variant="caption" sx={{ 
-              color: '#666',
-              fontSize: '0.7rem'
-            }}>
-              ID: {customer.id.slice(0, 8)}...
-            </Typography>
-          </Box>
-          
-          {/* Email column */}
-          <Box sx={{ 
-            width: 200,
-            minWidth: 200,
-            p: 2,
-            borderRight: '1px solid #e0e0e0',
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <Typography variant="body2">
-              {customer.email || 'Bez emailu'}
-            </Typography>
-          </Box>
-          
-          {/* Telefón column */}
-          <Box sx={{ 
-            width: 140,
-            minWidth: 140,
-            p: 2,
-            borderRight: '1px solid #e0e0e0',
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <Typography variant="body2">
-              {customer.phone || 'Bez telefónu'}
-            </Typography>
-          </Box>
-          
-          {/* Prenájmy column */}
-          <Box sx={{ 
-            width: 100,
-            minWidth: 100,
-            p: 2,
-            borderRight: '1px solid #e0e0e0',
-            textAlign: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Chip
-              label={rentalCount}
-              size="small"
-              color={rentalCount > 0 ? 'primary' : 'default'}
-              sx={{ fontSize: '0.75rem' }}
-            />
-          </Box>
-          
-          {/* Akcie column */}
-          <Box sx={{ 
-            flex: 1,
-            p: 2,
-            display: 'flex',
-            gap: 1,
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <Tooltip title="Upraviť zákazníka">
-              <IconButton 
-                size="small" 
-                color="primary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEdit(customer);
-                }}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            
-            <Tooltip title="História prenájmov">
-              <IconButton 
-                size="small" 
-                color="secondary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleShowHistory(customer);
-                }}
-              >
-                <HistoryIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-      </div>
-    );
-  }, [filteredCustomers, getCustomerRentalCount, handleEdit, handleShowHistory]);
 
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
@@ -947,22 +808,9 @@ export default function CustomerListNew() {
               </Box>
             </Box>
 
-            {/* 🚀 VIRTUALIZED Desktop Customer Rows - pre performance */}
-            <Box sx={{ height: 600, width: '100%' }}>
-              <List
-                height={600}
-                width="100%"
-                itemCount={filteredCustomers.length}
-                itemSize={72}
-                itemData={filteredCustomers}
-              >
-                {VirtualizedCustomerRow}
-              </List>
-            </Box>
-            
-            {/* FALLBACK: Tradičný rendering pre debug */}
-            <Box sx={{ display: 'none' }}>
-              {filteredCustomers.slice(0, 5).map((customer, index) => (
+            {/* Desktop Customer Rows */}
+            <Box>
+              {filteredCustomers.map((customer, index) => (
                 <Box 
                   key={customer.id}
                   sx={{ 
@@ -1215,8 +1063,6 @@ export default function CustomerListNew() {
                 </Box>
               ))}
             </Box>
-            
-            {/* END OF FALLBACK - original customer rendering disabled */}
           </CardContent>
         </Card>
       )}
