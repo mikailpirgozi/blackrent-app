@@ -85,13 +85,13 @@ import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
 // import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
 import RentalForm from './RentalForm';
+import PDFViewer from '../common/PDFViewer';
+import ProtocolGallery from '../common/ProtocolGallery';
+import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
+
 // 🚀 LAZY LOADING: Protocols loaded only when needed
 const HandoverProtocolForm = React.lazy(() => import('../protocols/HandoverProtocolForm'));
 const ReturnProtocolForm = React.lazy(() => import('../protocols/ReturnProtocolForm'));
-import PDFViewer from '../common/PDFViewer';
-import ProtocolGallery from '../common/ProtocolGallery';
-
-import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 
 // Types
 interface FilterState {
