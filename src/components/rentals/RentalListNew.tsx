@@ -85,8 +85,9 @@ import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
 // import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
 import RentalForm from './RentalForm';
-import HandoverProtocolForm from '../protocols/HandoverProtocolForm';
-import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
+// 🚀 LAZY LOADING: Protocols loaded only when needed
+const HandoverProtocolForm = React.lazy(() => import('../protocols/HandoverProtocolForm'));
+const ReturnProtocolForm = React.lazy(() => import('../protocols/ReturnProtocolForm'));
 import PDFViewer from '../common/PDFViewer';
 import ProtocolGallery from '../common/ProtocolGallery';
 
@@ -4431,11 +4432,17 @@ export default function RentalListNew() {
         <DialogTitle>Odovzdávací protokol</DialogTitle>
         <DialogContent>
           {selectedRentalForProtocol && (
-            <HandoverProtocolForm
-              open={openHandoverDialog}
-              rental={selectedRentalForProtocol}
-              onSave={handleSaveHandover}
-              onClose={() => {
+            <React.Suspense fallback={
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+                <Typography sx={{ ml: 2 }}>Načítavam protokol...</Typography>
+              </Box>
+            }>
+              <HandoverProtocolForm
+                open={openHandoverDialog}
+                rental={selectedRentalForProtocol}
+                onSave={handleSaveHandover}
+                onClose={() => {
                 console.log('🚨 MOBILE DEBUG: HandoverProtocolForm onClose triggered!');
                 console.log('🚨 MOBILE DEBUG: Modal closing via form close button');
                 console.log('🚨 MOBILE DEBUG: timestamp:', new Date().toISOString());
@@ -4448,6 +4455,7 @@ export default function RentalListNew() {
                 setOpenHandoverDialog(false);
               }}
             />
+            </React.Suspense>
           )}
         </DialogContent>
       </Dialog>
@@ -4462,13 +4470,20 @@ export default function RentalListNew() {
         <DialogTitle>Preberací protokol</DialogTitle>
         <DialogContent>
           {selectedRentalForProtocol && (
-            <ReturnProtocolForm
-              open={openReturnDialog}
-              onClose={() => setOpenReturnDialog(false)}
-              rental={selectedRentalForProtocol}
-              handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
-              onSave={handleSaveReturn}
-            />
+            <React.Suspense fallback={
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+                <Typography sx={{ ml: 2 }}>Načítavam protokol...</Typography>
+              </Box>
+            }>
+              <ReturnProtocolForm
+                open={openReturnDialog}
+                onClose={() => setOpenReturnDialog(false)}
+                rental={selectedRentalForProtocol}
+                handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
+                onSave={handleSaveReturn}
+              />
+            </React.Suspense>
           )}
         </DialogContent>
       </Dialog>
