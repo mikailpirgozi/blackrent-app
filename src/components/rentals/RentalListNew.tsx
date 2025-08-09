@@ -1028,7 +1028,15 @@ export default function RentalListNew() {
       console.log('⚡ CACHED: Handover protocol found, no return protocol exists. Loading handover protocol...');
       
       // ⚡ NAČÍTAJ HANDOVER PROTOKOL PRED OTVORENÍM RETURN DIALOGU
-      await loadProtocolsForRental(rental.id);
+      const protocolData = await loadProtocolsForRental(rental.id);
+      
+      console.log('🔄 RETURN DEBUG: Protocol data returned from loadProtocolsForRental:', protocolData);
+      
+      if (!protocolData || !protocolData.handover) {
+        console.error('❌ RETURN DEBUG: No handover protocol data returned!');
+        alert('Chyba pri načítaní odovzdávacieho protokolu. Skúste to znovu.');
+        return;
+      }
       
       console.log('🔄 RETURN DEBUG: Setting selectedRentalForProtocol to:', rental.id);
       setSelectedRentalForProtocol(rental);
@@ -1036,7 +1044,7 @@ export default function RentalListNew() {
       console.log('🔄 RETURN DEBUG: Setting openReturnDialog to true');
       setOpenReturnDialog(true);
       
-      console.log('🔄 RETURN DEBUG: Protocol data after load:', protocols[rental.id]);
+      console.log('🔄 RETURN DEBUG: Handover protocol available:', protocolData.handover.id);
       
     } catch (error) {
       console.error('❌ Error checking cached protocols:', error);
@@ -1062,7 +1070,15 @@ export default function RentalListNew() {
         console.log('✅ Handover protocol found, no return protocol exists (fallback). Loading protocols...');
         
         // ⚡ NAČÍTAJ PROTOKOLY PRED OTVORENÍM RETURN DIALOGU
-        await loadProtocolsForRental(rental.id);
+        const protocolData = await loadProtocolsForRental(rental.id);
+        
+        console.log('🔄 RETURN DEBUG (fallback): Protocol data returned:', protocolData);
+        
+        if (!protocolData || !protocolData.handover) {
+          console.error('❌ RETURN DEBUG (fallback): No handover protocol data returned!');
+          alert('Chyba pri načítaní odovzdávacieho protokolu. Skúste to znovu.');
+          return;
+        }
         
         console.log('🔄 RETURN DEBUG (fallback): Setting selectedRentalForProtocol to:', rental.id);
         setSelectedRentalForProtocol(rental);
@@ -1070,7 +1086,7 @@ export default function RentalListNew() {
         console.log('🔄 RETURN DEBUG (fallback): Setting openReturnDialog to true');
         setOpenReturnDialog(true);
         
-        console.log('🔄 RETURN DEBUG (fallback): Protocol data after load:', protocols[rental.id]);
+        console.log('🔄 RETURN DEBUG (fallback): Handover protocol available:', protocolData.handover.id);
       } catch (fallbackError) {
         console.error('❌ Fallback API call also failed:', fallbackError);
         alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
