@@ -372,15 +372,8 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
 
   return (
     <Box sx={{ 
-      position: 'fixed', 
-      top: 0, 
-      left: 0, 
-      right: 0, 
-      bottom: 0, 
-      bgcolor: 'background.default', 
-      zIndex: 1300,
-      overflowY: 'auto',
-      p: 2
+      width: '100%',
+      maxWidth: '100%'
     }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
