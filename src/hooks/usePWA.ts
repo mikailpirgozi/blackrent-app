@@ -111,7 +111,7 @@ export const usePWA = (): PWAState & PWAActions => {
       installPrompt: promptEvent,
     }));
     
-    console.log('📱 PWA: Install prompt available');
+    // console.log('📱 PWA: Install prompt available'); // VERBOSE: Disabled to reduce PWA spam
   };
 
   const handleAppInstalled = () => {
@@ -236,7 +236,7 @@ export const usePWA = (): PWAState & PWAActions => {
       await state.installPrompt.prompt();
       const choiceResult = await state.installPrompt.userChoice;
       
-      console.log('📱 PWA: Install prompt result:', choiceResult.outcome);
+      // console.log('📱 PWA: Install prompt result:', choiceResult.outcome); // VERBOSE: Disabled
       
       if (choiceResult.outcome === 'accepted') {
         setState(prev => ({ 
