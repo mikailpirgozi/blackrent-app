@@ -462,7 +462,7 @@ export default function RentalListNew() {
           
           // Najskôr spracujeme všetky riadky a vytvoríme zákazníkov, firmy a vozidlá ak je potrebné
           for (const row of results.data as any[]) {
-            console.log('Processing row:', row);
+            logger.debug('Processing CSV row', { rowIndex: results.data.indexOf(row) });
             
             // 1. VYTVORENIE ZÁKAZNÍKA AK NEEXISTUJE
             const customerName = row.customerName || 'Neznámy zákazník';
@@ -495,9 +495,9 @@ export default function RentalListNew() {
                 };
                 await apiService.createCustomer(newCustomer);
                 createdCustomers.push(newCustomer);
-                console.log(`👤 Vytvorený nový zákazník: ${customerName}`);
+                logger.info('Customer created during import', { customerName });
               } catch (error) {
-                console.error(`❌ Chyba pri vytváraní zákazníka ${customerName}:`, error);
+                logger.error('Failed to create customer during import', { customerName, error });
               }
             }
 
@@ -527,16 +527,16 @@ export default function RentalListNew() {
                 };
                 await apiService.createCompany(newCompany);
                 createdCompanies.push(newCompany);
-                console.log(`🏢 Vytvorená nová firma: ${companyName}`);
+                logger.info('Company created during import', { companyName });
               } catch (error) {
-                console.error(`❌ Chyba pri vytváraní firmy ${companyName}:`, error);
+                logger.error('Failed to create company during import', { companyName, error });
               }
             }
 
             // 3. VYTVORENIE VOZIDLA AK NEEXISTUJE
             const licensePlate = row.licensePlate;
             if (!licensePlate) {
-              console.warn('⚠️ Chýba ŠPZ, preskakujem riadok');
+              logger.warn('Missing license plate, skipping row', { rowIndex: results.data.indexOf(row) });
               continue;
             }
             
@@ -557,7 +557,7 @@ export default function RentalListNew() {
                 );
                 
                 if (!finalCompany) {
-                  console.warn(`⚠️ Chýba firma pre vozidlo ${licensePlate}, preskakujem`);
+                  logger.warn('Missing company for vehicle, skipping', { licensePlate });
                   continue;
                 }
                 
@@ -583,9 +583,9 @@ export default function RentalListNew() {
                 };
                 await apiService.createVehicle(newVehicle);
                 createdVehicles.push(newVehicle);
-                console.log(`🚗 Vytvorené nové vozidlo: ${licensePlate} (${row.brand} ${row.model})`);
+                logger.info('Vehicle created during import', { licensePlate, brand: row.brand, model: row.model });
               } catch (error) {
-                console.error(`❌ Chyba pri vytváraní vozidla ${licensePlate}:`, error);
+                logger.error('Failed to create vehicle during import', { licensePlate, error });
                 continue;
               }
             }
@@ -653,7 +653,10 @@ export default function RentalListNew() {
             // automaticky nastav platbu priamo majiteľovi vozidla
             if (vehicle && !row.paymentMethod) {
               finalPaymentMethod = 'direct_to_owner';
-              console.log(`🏢 Automaticky nastavená platba priamo majiteľovi pre vozidlo ${vehicle.licensePlate} (${vehicle.company})`);
+              logger.info('Auto-assigned direct payment to vehicle owner', { 
+                licensePlate: vehicle.licensePlate, 
+                company: vehicle.company 
+              });
             }
 
             // Automatické počítanie provízie na základe vozidla ak nie je zadaná
@@ -664,12 +667,20 @@ export default function RentalListNew() {
               : 0);
             
             if (!row.commission && vehicle?.commission) {
-              console.log(`💰 Automaticky vypočítaná provízia pre vozidlo ${vehicle.licensePlate}: ${finalCommission}€ (${vehicle.commission.type}: ${vehicle.commission.value})`);
+              logger.info('Auto-calculated commission for vehicle', {
+                licensePlate: vehicle.licensePlate,
+                commission: finalCommission,
+                type: vehicle.commission.type,
+                value: vehicle.commission.value
+              });
             }
 
             // Log informácií o majiteľovi/firme vozidla
             if (vehicle) {
-              console.log(`🚗 Priradené vozidlo ${vehicle.licensePlate} - Majiteľ: ${vehicle.company}`);
+              logger.debug('Vehicle assigned to rental', { 
+                licensePlate: vehicle.licensePlate, 
+                owner: vehicle.company 
+              });
             }
 
             const startDate = parseDate(row.startDate);
@@ -693,7 +704,11 @@ export default function RentalListNew() {
             });
             
             if (duplicateRental) {
-              console.warn(`⚠️ Duplicitný prenájom pre vozidlo ${vehicle?.licensePlate} na dátum ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}, preskakujem`);
+              logger.warn('Duplicate rental detected, skipping', {
+                licensePlate: vehicle?.licensePlate,
+                startDate: startDate.toLocaleDateString(),
+                endDate: endDate.toLocaleDateString()
+              });
               continue;
             }
 
@@ -730,20 +745,28 @@ export default function RentalListNew() {
             try {
               await apiService.createRental(newRental);
               imported.push(newRental);
-              console.log(`✅ Importovaný prenájom: ${customerName} - ${vehicle?.licensePlate} (${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()})`);
+              logger.info('Rental imported successfully', {
+                customer: customerName,
+                licensePlate: vehicle?.licensePlate,
+                startDate: startDate.toLocaleDateString(),
+                endDate: endDate.toLocaleDateString()
+              });
             } catch (error) {
-              console.error(`❌ Chyba pri vytváraní prenájmu:`, error);
+              logger.error('Failed to create rental during import', { error });
             }
           }
           
-          console.log(`🎉 Import dokončený: ${imported.length} prenájmov úspešne importovaných`);
+          logger.info('CSV import completed successfully', { 
+            importedCount: imported.length,
+            totalRows: results.data.length 
+          });
           setImportError('');
           
           // Refresh dát
           window.location.reload();
           
         } catch (error) {
-          console.error('❌ Chyba pri importe CSV:', error);
+          logger.error('CSV import failed', { error });
           setImportError('Chyba pri importe CSV súboru');
         }
         
