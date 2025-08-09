@@ -114,17 +114,15 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
 
   const handleHandoverClick = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if (hasHandover) {
-      onOpenProtocolMenu(rental, 'handover');
-    }
-  }, [hasHandover, rental, onOpenProtocolMenu]);
+    // Vždy zavolaj onOpenProtocolMenu - nech sa rozhodne či vytvoriť alebo zobraziť
+    onOpenProtocolMenu(rental, 'handover');
+  }, [rental, onOpenProtocolMenu]);
 
   const handleReturnClick = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if (hasReturn) {
-      onOpenProtocolMenu(rental, 'return');
-    }
-  }, [hasReturn, rental, onOpenProtocolMenu]);
+    // Vždy zavolaj onOpenProtocolMenu - nech sa rozhodne či vytvoriť alebo zobraziť
+    onOpenProtocolMenu(rental, 'return');
+  }, [rental, onOpenProtocolMenu]);
 
   const handleProtocolCheck = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
