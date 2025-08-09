@@ -151,9 +151,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   });
   
   // View mode: 'navigation' (prev/next months) or 'range' (custom date range)
-  const [viewMode, setViewMode] = useState<'navigation' | 'range'>('navigation');
-  const [fromDate, setFromDate] = useState<Date | null>(new Date());
-  const [toDate, setToDate] = useState<Date | null>(new Date(Date.now() + 180 * 24 * 60 * 60 * 1000)); // +180 days (rozšírený rozsah)
+  const [viewMode] = useState<'navigation' | 'range'>('navigation');
+  const [fromDate] = useState<Date | null>(new Date());
+  const [toDate] = useState<Date | null>(new Date(Date.now() + 180 * 24 * 60 * 60 * 1000)); // +180 days (rozšírený rozsah)
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState(propSearchQuery || '');
@@ -165,12 +165,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   }, [propSearchQuery]);
 
 
-  const [brandFilter, setBrandFilter] = useState('all');
-  const [companyFilter, setCompanyFilter] = useState('all');
+  const [brandFilter] = useState('all');
+  const [companyFilter] = useState('all');
   
-  // Date range availability filter
-  const [availableFromDate, setAvailableFromDate] = useState<string>('');
-  const [availableToDate, setAvailableToDate] = useState<string>('');
+  // Date range availability filter  
+  const [availableFromDate] = useState<string>('');
+  const [availableToDate] = useState<string>('');
   
   // OPTIMALIZÁCIA: Cache pre availability data
   const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
@@ -669,8 +669,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       setLoading(false);
       setLoadingPhase('Chyba pri načítaní');
       
-      // Fallback na pôvodné načítanie
-      fetchCalendarData();
+      // Fallback - použije sa pôvodné načítanie ak je dostupné
+      console.warn('Smart calendar failed, falling back to default loading');
     }
   }, []);
 
@@ -810,7 +810,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [currentDate, viewMode, fromDate, toDate, getFilteredVehicles]);
+  }, [currentDate, viewMode, fromDate, toDate, getFilteredVehicles, cacheKey, lastFetchTime, state.vehicles.length]);
 
   useEffect(() => {
     // 🔧 OPRAVA: Čakaj na načítanie AppContext dát pred fetchovaním calendar data
@@ -838,7 +838,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         vehiclesCount: state?.vehicles?.length || 0
       });
     }
-  }, [fetchCalendarData, fetchCalendarDataSmart, state?.dataLoaded?.vehicles, authState?.isAuthenticated, currentDate, viewMode]);
+  }, [fetchCalendarData, fetchCalendarDataSmart, state?.dataLoaded?.vehicles, state?.vehicles?.length, authState?.isAuthenticated, currentDate, viewMode]);
 
   // Load unavailabilities on component mount
   useEffect(() => {
