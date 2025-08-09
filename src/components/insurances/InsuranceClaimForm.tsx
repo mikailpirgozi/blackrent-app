@@ -18,9 +18,9 @@ import {
   IconButton
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import dayjs from 'dayjs';
+
 import {
   Close as CloseIcon,
   DirectionsCar as CarIcon,
@@ -184,7 +184,7 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
   const statusInfo = getStatusInfo(formData.status || 'reported');
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
       <form onSubmit={handleSubmit}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -259,10 +259,10 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                 <Grid item xs={12} md={6}>
                   <DateTimePicker
                     label="Dátum a čas udalosti *"
-                    value={formData.incidentDate ? dayjs(formData.incidentDate) : null}
+                    value={formData.incidentDate ? new Date(formData.incidentDate) : null}
                     onChange={(newValue) => setFormData(prev => ({ 
                       ...prev, 
-                      incidentDate: newValue ? newValue.toDate() : new Date() 
+                      incidentDate: newValue || new Date() 
                     }))}
                     slotProps={{
                       textField: {

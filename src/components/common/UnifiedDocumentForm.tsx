@@ -15,9 +15,9 @@ import {
   Alert
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import dayjs from 'dayjs';
+
 import SecurityIcon from '@mui/icons-material/Security';
 import BuildIcon from '@mui/icons-material/Build';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -167,7 +167,7 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
   const isInsurance = formData.type === 'insurance';
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
       <form onSubmit={handleSubmit}>
         <Box sx={{ p: 3 }}>
           {/* Header */}
@@ -327,8 +327,8 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                     <Grid item xs={12} sm={6}>
                       <DatePicker
                         label="Platné od"
-                        value={formData.validFrom ? dayjs(formData.validFrom) : null}
-                        onChange={(date) => setFormData(prev => ({ ...prev, validFrom: date ? date.toDate() : undefined }))}
+                        value={formData.validFrom ? new Date(formData.validFrom) : null}
+                        onChange={(date) => setFormData(prev => ({ ...prev, validFrom: date || undefined }))}
                         slotProps={{
                           textField: {
                             fullWidth: true
@@ -340,8 +340,8 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                     <Grid item xs={12} sm={6}>
                       <DatePicker
                         label="Platné do"
-                        value={formData.validTo ? dayjs(formData.validTo) : dayjs()}
-                        onChange={(date) => setFormData(prev => ({ ...prev, validTo: date ? date.toDate() : new Date() }))}
+                        value={formData.validTo ? new Date(formData.validTo) : new Date()}
+                        onChange={(date) => setFormData(prev => ({ ...prev, validTo: date || new Date() }))}
                         slotProps={{
                           textField: {
                             fullWidth: true,

@@ -39,7 +39,7 @@ import {
 } from '@mui/icons-material';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import dayjs from 'dayjs';
+
 import { API_BASE_URL } from '../../services/api';
 import { Rental, VehicleUnavailability, VehicleCategory } from '../../types';
 import { useApp } from '../../context/AppContext';
@@ -2035,7 +2035,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   <Grid item xs={12} sm={6}>
                     <Typography><strong>Typ prenájmu:</strong> {selectedRental.isFlexible ? 'FLEXIBILNÝ' : 'ŠTANDARDNÝ'}</Typography>
                     {selectedRental.flexibleEndDate && (
-                      <Typography><strong>Orientačný koniec:</strong> {dayjs(selectedRental.flexibleEndDate).format('DD.MM.YYYY')}</Typography>
+                      <Typography><strong>Orientačný koniec:</strong> {format(new Date(selectedRental.flexibleEndDate), 'dd.MM.yyyy', { locale: sk })}</Typography>
                     )}
                   </Grid>
                   <Grid item xs={12} sm={6}>

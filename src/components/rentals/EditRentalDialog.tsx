@@ -17,7 +17,7 @@ import {
   Autocomplete,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import dayjs from 'dayjs';
+
 import { Rental, Vehicle, Customer } from '../../types';
 import { apiService } from '../../services/api';
 
@@ -192,8 +192,8 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
           <Grid item xs={12} md={6}>
             <DateTimePicker
               label="Začiatok prenájmu *"
-              value={formData.startDate ? dayjs(formData.startDate) : null}
-              onChange={(newValue) => handleInputChange('startDate', newValue?.toDate())}
+              value={formData.startDate ? new Date(formData.startDate) : null}
+              onChange={(newValue) => handleInputChange('startDate', newValue)}
               slots={{
                 textField: TextField,
               }}
@@ -206,8 +206,8 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
           <Grid item xs={12} md={6}>
             <DateTimePicker
               label="Koniec prenájmu *"
-              value={formData.endDate ? dayjs(formData.endDate) : null}
-              onChange={(newValue) => handleInputChange('endDate', newValue?.toDate())}
+              value={formData.endDate ? new Date(formData.endDate) : null}
+              onChange={(newValue) => handleInputChange('endDate', newValue)}
               slots={{
                 textField: TextField,
               }}

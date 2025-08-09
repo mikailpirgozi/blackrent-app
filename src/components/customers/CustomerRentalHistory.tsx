@@ -34,7 +34,8 @@ import {
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { Customer, Rental, Vehicle } from '../../types';
-import dayjs from 'dayjs';
+import { format, parseISO, isAfter, isBefore } from 'date-fns';
+import { sk } from 'date-fns/locale';
 
 interface CustomerRentalHistoryProps {
   open: boolean;
@@ -45,15 +46,15 @@ interface CustomerRentalHistoryProps {
 }
 
 const getRentalStatus = (rental: Rental) => {
-  const now = dayjs();
-  const startDate = dayjs(rental.startDate);
-  const endDate = dayjs(rental.endDate);
+  const now = new Date();
+  const startDate = new Date(rental.startDate);
+  const endDate = new Date(rental.endDate);
 
   if (rental.status === 'finished') return { status: 'finished', label: 'Ukončený', color: 'default' as const };
   
-  if (now.isBefore(startDate)) {
+  if (isBefore(now, startDate)) {
     return { status: 'pending', label: 'Čaká', color: 'warning' as const };
-  } else if (now.isAfter(endDate)) {
+  } else if (isAfter(now, endDate)) {
     return { status: 'overdue', label: 'Po termíne', color: 'error' as const };
   } else {
     return { status: 'active', label: 'Aktívny', color: 'success' as const };
@@ -88,7 +89,7 @@ export default function CustomerRentalHistory({
     return rentals.filter(rental => 
       rental.customerId === customer.id || 
       rental.customerName === customer.name
-    ).sort((a, b) => dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf());
+    ).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
   }, [rentals, customer]);
 
   const handleViewRentalDetail = (rental: Rental) => {
@@ -113,7 +114,9 @@ export default function CustomerRentalHistory({
   };
 
   const calculateRentalDays = (startDate: Date, endDate: Date) => {
-    return dayjs(endDate).diff(dayjs(startDate), 'day') + 1;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   };
 
   return (
@@ -226,11 +229,11 @@ export default function CustomerRentalHistory({
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                               <CalendarIcon sx={{ color: 'text.secondary', fontSize: 16 }} />
                               <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                                {dayjs(rental.startDate).format('DD.MM.YYYY')} - {dayjs(rental.endDate).format('DD.MM.YYYY')}
+                                {format(new Date(rental.startDate), 'dd.MM.yyyy', { locale: sk })} - {format(new Date(rental.endDate), 'dd.MM.yyyy', { locale: sk })}
                               </Typography>
                             </Box>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              {days} dní • {dayjs(rental.createdAt).format('DD.MM.YYYY')}
+                              {days} dní • {format(new Date(rental.createdAt), 'dd.MM.yyyy', { locale: sk })}
                             </Typography>
                           </Box>
 
@@ -321,10 +324,10 @@ export default function CustomerRentalHistory({
                             </TableCell>
                             <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                               <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                                {dayjs(rental.startDate).format('DD.MM.YYYY')}
+                                {format(new Date(rental.startDate), 'dd.MM.yyyy', { locale: sk })}
                               </Typography>
                               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                {dayjs(rental.endDate).format('DD.MM.YYYY')}
+                                {format(new Date(rental.endDate), 'dd.MM.yyyy', { locale: sk })}
                               </Typography>
                             </TableCell>
                             <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -456,14 +459,14 @@ export default function CustomerRentalHistory({
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Začiatok:</Typography>
                         <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                          {dayjs(selectedRental.startDate).format('DD.MM.YYYY HH:mm')}
+                          {format(new Date(selectedRental.startDate), 'dd.MM.yyyy HH:mm', { locale: sk })}
                         </Typography>
                       </Box>
                       <Divider />
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Koniec:</Typography>
                         <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                          {dayjs(selectedRental.endDate).format('DD.MM.YYYY HH:mm')}
+                          {format(new Date(selectedRental.endDate), 'dd.MM.yyyy HH:mm', { locale: sk })}
                         </Typography>
                       </Box>
                       <Divider />
@@ -482,7 +485,7 @@ export default function CustomerRentalHistory({
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Vytvorený:</Typography>
                         <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                          {dayjs(selectedRental.createdAt).format('DD.MM.YYYY HH:mm')}
+                          {format(new Date(selectedRental.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
                         </Typography>
                       </Box>
                     </Box>
