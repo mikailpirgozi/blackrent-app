@@ -80,8 +80,6 @@ export default function CustomerListNew() {
   const [displayedCustomers, setDisplayedCustomers] = useState(20); // Start with 20 items
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Moved after filteredCustomers definition
-
   // Handlers
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
