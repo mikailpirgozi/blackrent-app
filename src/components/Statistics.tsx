@@ -84,6 +84,7 @@ import { sk } from 'date-fns/locale';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import StatisticsMobile from './statistics/StatisticsMobile';
+import { logger } from '../utils/smartLogger';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -152,7 +153,7 @@ const Statistics: React.FC = () => {
       filterEndDate = new Date();
     }
 
-    console.log('📊 Filter period:', {
+    logger.debug('Statistics filter period', {
       timeRange,
       filterYear,
       filterMonth,
@@ -174,10 +175,11 @@ const Statistics: React.FC = () => {
       return isInPeriod && isBlackHolding;
     });
 
-    console.log('📈 Filtered data:', {
+    logger.performance('Statistics data processed', {
       rentals: filteredRentals.length,
       expenses: filteredExpenses.length,
-      totalExpenseAmount: filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0)
+      totalExpenseAmount: filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0),
+      timeRange
     });
 
     // NOVÉ METRIKY
