@@ -76,27 +76,31 @@ export interface FilterState {
 interface RentalAdvancedFiltersProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
-  onReset: () => void;
-  onSavePreset: () => void;
-  availableStatuses: string[];
-  availableCompanies: string[];
-  availablePaymentMethods: string[];
-  availableVehicleBrands: string[];
-  availableInsuranceCompanies: string[];
-  availableInsuranceTypes: string[];
+  onReset?: () => void;
+  onSavePreset?: () => void;
+  availableStatuses?: string[];
+  availableCompanies?: string[];
+  availablePaymentMethods?: string[];
+  availableVehicleBrands?: string[];
+  availableInsuranceCompanies?: string[];
+  availableInsuranceTypes?: string[];
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
   filters,
   onFiltersChange,
-  onReset,
-  onSavePreset,
-  availableStatuses,
-  availableCompanies,
-  availablePaymentMethods,
-  availableVehicleBrands,
-  availableInsuranceCompanies,
-  availableInsuranceTypes
+  onReset = () => {},
+  onSavePreset = () => {},
+  availableStatuses = [],
+  availableCompanies = [],
+  availablePaymentMethods = [],
+  availableVehicleBrands = [],
+  availableInsuranceCompanies = [],
+  availableInsuranceTypes = [],
+  searchQuery = '',
+  onSearchChange = () => {}
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));

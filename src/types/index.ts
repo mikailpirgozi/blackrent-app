@@ -22,6 +22,7 @@ export interface Vehicle {
   ownerCompanyId?: string; // 🏢 ID vlastníckej firmy
   assignedMechanicId?: string; // 🔨 ID priradeného mechanika
   stk?: Date; // 📋 STK platnosť do
+  imageUrl?: string; // 🖼️ URL obrázka vozidla
 }
 
 export interface PricingTier {

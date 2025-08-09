@@ -19,13 +19,38 @@ export function debounce<T extends (...args: any[]) => any>(
 export function measurePerformance<T>(
   name: string,
   fn: () => T
+): T;
+export function measurePerformance<T>(
+  fn: () => T,
+  name: string
+): T;
+export function measurePerformance<T>(
+  nameOrFn: string | (() => T),
+  fnOrName?: (() => T) | string
 ): T {
+  let name: string;
+  let fn: () => T;
+  
+  if (typeof nameOrFn === 'string') {
+    name = nameOrFn;
+    fn = fnOrName as () => T;
+  } else {
+    fn = nameOrFn;
+    name = fnOrName as string;
+  }
+  
   const start = performance.now();
   const result = fn();
   const end = performance.now();
   console.log(`⚡ ${name}: ${(end - start).toFixed(2)}ms`);
   return result;
 }
+
+export type DebounceOptions = {
+  ttl?: number;
+  maxConcurrent?: number;
+  onDuplicate?: () => void;
+};
 
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
