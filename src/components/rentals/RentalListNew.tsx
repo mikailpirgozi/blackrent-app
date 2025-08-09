@@ -1781,6 +1781,127 @@ export default function RentalListNew() {
     }
   ], [protocols, loadingProtocols, state.vehicles, getVehicleByRental]);
 
+  // 📱 MOBILE CARD RENDERER - s action buttons
+  const mobileCardRenderer = useCallback((rental: Rental, index: number) => {
+    const vehicle = getVehicleByRental(rental);
+    const hasHandover = !!protocols[rental.id]?.handover;
+    const hasReturn = !!protocols[rental.id]?.return;
+    const isLoadingProtocolStatus = loadingProtocols.includes(rental.id);
+
+    return (
+      <Card 
+        key={rental.id}
+        sx={{ 
+          mb: 2,
+          borderRadius: 2,
+          boxShadow: theme.shadows[2],
+          '&:hover': { 
+            boxShadow: theme.shadows[4],
+            transform: 'translateY(-1px)',
+            transition: 'all 0.2s ease'
+          }
+        }}
+      >
+        <CardContent>
+          {/* Header with vehicle info */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.primary.main, fontSize: '1.1rem' }}>
+                {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Bez vozidla'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {vehicle?.licensePlate || 'Bez ŠPZ'} • {rental.customerName}
+              </Typography>
+            </Box>
+            <Chip
+              label={rental.status || 'Neznámy'}
+              color={rental.status === 'active' ? 'success' : 'default'}
+              size="small"
+            />
+          </Box>
+
+          {/* Dates and price */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              📅 {format(new Date(rental.startDate), 'dd.MM.yyyy')} - {format(new Date(rental.endDate), 'dd.MM.yyyy')}
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+              💰 {rental.totalPrice ? `€${rental.totalPrice}` : 'Nezadané'}
+            </Typography>
+          </Box>
+
+          {/* Protocol status */}
+          {(hasHandover || hasReturn) && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                Protokoly:
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {hasHandover && (
+                  <Chip label="✅ Prevzatie" size="small" color="success" />
+                )}
+                {hasReturn && (
+                  <Chip label="✅ Vrátenie" size="small" color="success" />
+                )}
+              </Box>
+            </Box>
+          )}
+
+          {/* ACTION BUTTONS - HLAVNÉ TLAČIDLÁ */}
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<HandoverIcon />}
+              onClick={(e) => { e.stopPropagation(); handleCreateHandover(rental); }}
+              sx={{ 
+                flex: 1,
+                minWidth: '120px',
+                bgcolor: theme.palette.primary.main,
+                '&:hover': { bgcolor: theme.palette.primary.dark }
+              }}
+            >
+              Prevzatie
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<ReturnIcon />}
+              onClick={(e) => { e.stopPropagation(); handleCreateReturn(rental); }}
+              sx={{ 
+                flex: 1,
+                minWidth: '120px',
+                bgcolor: theme.palette.secondary.main,
+                '&:hover': { bgcolor: theme.palette.secondary.dark }
+              }}
+            >
+              Vrátenie
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={(e) => { e.stopPropagation(); handleEdit(rental); }}
+              sx={{ minWidth: '80px' }}
+            >
+              Upraviť
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={(e) => { e.stopPropagation(); handleDelete(rental.id); }}
+              sx={{ minWidth: '80px' }}
+            >
+              Zmazať
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  }, [protocols, loadingProtocols, getVehicleByRental, theme, handleCreateHandover, handleCreateReturn, handleEdit, handleDelete]);
+
   // Get unique values for filter dropdowns
   const uniqueStatuses = useMemo(() => {
     const rentals = state.rentals || [];
