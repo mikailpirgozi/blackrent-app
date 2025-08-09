@@ -44,7 +44,7 @@ const InsuranceList = lazy(() => import('./components/insurances/InsuranceList')
 const Statistics = lazy(() => import('./components/Statistics'));
 const UserManagement = lazy(() => import('./components/users/IntegratedUserManagement'));
 const SettlementList = lazy(() => import('./components/settlements/SettlementListNew'));
-const AvailabilityPage = lazy(() => import('./pages/AvailabilityPageNew'));
+// OLD: const AvailabilityPage = lazy(() => import('./pages/AvailabilityPageNew')); // REMOVED - replaced by Smart version
 const SmartAvailabilityPage = lazy(() => import('./pages/SmartAvailabilityPage'));
 const VehicleOwnershipTransfer = lazy(() => import('./components/admin/VehicleOwnershipTransfer'));
 
@@ -209,6 +209,7 @@ const AppContent: React.FC = () => {
                     
 
                     
+                    {/* OLD AVAILABILITY - REMOVED (was memory monster with 28,997 DOM elements)
                     <Route path="/availability" element={
                       <ProtectedRoute>
                         <Layout>
@@ -218,6 +219,17 @@ const AppContent: React.FC = () => {
                             </Suspense>
                           </ErrorBoundary>
                         </Layout>
+                      </ProtectedRoute>
+                    } /> */}
+                    
+                    {/* NEW SMART AVAILABILITY - Optimized replacement */}
+                    <Route path="/availability" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <Suspense fallback={<PageLoader />}>
+                            <SmartAvailabilityPage />
+                          </Suspense>
+                        </ErrorBoundary>
                       </ProtectedRoute>
                     } />
                     
