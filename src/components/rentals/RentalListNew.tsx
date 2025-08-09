@@ -79,6 +79,7 @@ import RentalAdvancedFilters from './RentalAdvancedFilters';
 
 import { debounce, measurePerformance } from '../../utils/debounce';
 import { MobileRentalRow } from './MobileRentalRow';
+import { FixedSizeList as List } from 'react-window';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
@@ -1870,10 +1871,27 @@ export default function RentalListNew() {
     console.log('💾 Ukladám filter preset:', advancedFilters);
   };
   
-  // Filter rentals based on all filters
+  // Filter rentals based on all filters with 30 item limit for mobile performance
   const filteredRentals = useMemo(() => {
     const rentals = state.rentals || [];
     let filtered = rentals;
+    
+    // 🚀 PERFORMANCE: Apply smart default filter first to reduce dataset
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    // Default to "najbližších 7 dní" for better performance
+    if (advancedFilters.timeFilter === 'all' && !searchQuery.trim()) {
+      filtered = filtered.filter(rental => {
+        const startDate = new Date(rental.startDate);
+        const endDate = new Date(rental.endDate);
+        return (startDate >= now && startDate <= sevenDaysFromNow) || 
+               (endDate >= now && endDate <= sevenDaysFromNow) ||
+               (startDate <= now && endDate >= now); // Currently running
+      });
+      console.log(`🎯 Smart filter applied: ${filtered.length} rentals in next 7 days`);
+    }
     
     // Search query filter
     if (searchQuery.trim()) {
@@ -2041,12 +2059,52 @@ export default function RentalListNew() {
       });
     }
     
-    return filtered;
+    // 🚀 MOBILE PERFORMANCE: Limit to 30 items max to prevent browser crashes
+    const limitedFiltered = filtered.slice(0, 30);
+    console.log(`📊 Filtered rentals: ${filtered.length} total → ${limitedFiltered.length} displayed (max 30)`);
+    
+    return limitedFiltered;
       }, [state.rentals, searchQuery, advancedFilters, protocols, handleCreateReturn, handleDelete, handleDeleteProtocol, handleOpenGallery, handleViewProtocols, getVehicleByRental]);
   
   // Get unique values for filters (already declared above)
   
-  // Card renderer for mobile/card view
+  // 🚀 VIRTUALIZED RENTAL ROW for react-window
+  const VirtualizedRentalRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const rental = filteredRentals[index];
+    if (!rental) return null;
+    
+    const vehicle = getVehicleByRental(rental);
+    const hasHandover = !!protocols[rental.id]?.handover;
+    const hasReturn = !!protocols[rental.id]?.return;
+    const isLoadingProtocolStatus = loadingProtocols.includes(rental.id);
+    const protocolStatusLoaded = protocolStatusMap[rental.id] !== undefined;
+
+    return (
+      <div style={style}>
+        <MobileRentalRow
+          rental={rental}
+          vehicle={vehicle}
+          index={index}
+          totalRentals={filteredRentals.length}
+          hasHandover={hasHandover}
+          hasReturn={hasReturn}
+          isLoadingProtocolStatus={isLoadingProtocolStatus}
+          protocolStatusLoaded={protocolStatusLoaded}
+          onEdit={handleEdit}
+          onOpenProtocolMenu={(rental, type) => {
+            if (type === 'handover') {
+              handleCreateHandover(rental);
+            } else {
+              handleCreateReturn(rental);
+            }
+          }}
+          onCheckProtocols={() => {}} // Simplified for now
+        />
+      </div>
+    );
+  }, [filteredRentals, protocols, loadingProtocols, protocolStatusMap, getVehicleByRental, handleEdit, handleCreateHandover, handleCreateReturn]);
+
+  // Card renderer for mobile/card view (fallback)
   const renderRentalCard = useCallback((rental: Rental, index: number) => {
     const hasHandover = !!protocols[rental.id]?.handover;
     const hasReturn = !!protocols[rental.id]?.return;
@@ -3323,9 +3381,22 @@ export default function RentalListNew() {
               </Box>
             </Box>
 
-            {/* Mobilné prenájmy rows */}
-            <Box>
-              {filteredRentals.map((rental, index) => {
+            {/* 🚀 VIRTUALIZED Mobilné prenájmy rows - pre performance */}
+            <Box sx={{ height: 600, width: '100%' }}>
+              <List
+                height={600}
+                width="100%"
+                itemCount={filteredRentals.length}
+                itemSize={120}
+                itemData={filteredRentals}
+              >
+                {VirtualizedRentalRow}
+              </List>
+            </Box>
+            
+            {/* FALLBACK: Tradičný rendering pre debug */}
+            <Box sx={{ display: 'none' }}>
+              {filteredRentals.slice(0, 5).map((rental, index) => {
                 const vehicle = getVehicleByRental(rental);
                 
                 // 🔄 NOVÉ: Detekcia flexibilného prenájmu
@@ -3740,6 +3811,8 @@ export default function RentalListNew() {
                 );
               })}
             </Box>
+            
+            {/* END OF FALLBACK - original mobile rendering disabled */}
           </CardContent>
         </Card>
       ) : (
