@@ -122,12 +122,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
     });
   };
 
-  console.log('🔄 ReturnProtocolForm render:', { open, handoverProtocol: !!handoverProtocol, rental: !!rental });
-
-  if (!open) {
-    console.log('❌ ReturnProtocolForm: Dialog not open');
-    return null;
-  }
+  if (!open) return null;
   
   // Validácia handoverProtocol
   if (!handoverProtocol) {
@@ -143,8 +138,6 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       </Box>
     );
   }
-
-  console.log('✅ ReturnProtocolForm: Rendering main form with handover protocol:', handoverProtocol.id);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
