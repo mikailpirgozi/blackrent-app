@@ -8,7 +8,8 @@
  */
 
 import React, { memo } from 'react';
-import { Box, Typography, Chip, Fade } from '@mui/material';
+import { Box, Typography, Chip, Fade, IconButton } from '@mui/material';
+import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
 
 interface MobileRentalRowProps {
@@ -23,6 +24,7 @@ interface MobileRentalRowProps {
   onEdit: (rental: any) => void;
   onOpenProtocolMenu: (rental: any, type: 'handover' | 'return') => void;
   onCheckProtocols: (rental: any) => void;
+  onDelete?: (id: string) => void;
 }
 
 export const MobileRentalRow = memo<MobileRentalRowProps>(({
@@ -36,7 +38,8 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
   protocolStatusLoaded,
   onEdit,
   onOpenProtocolMenu,
-  onCheckProtocols
+  onCheckProtocols,
+  onDelete
 }) => {
   // 🎯 Memoized styles to prevent recalculation
   const rowStyles = React.useMemo(() => ({
@@ -221,19 +224,45 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
           <Fade in timeout={600}>
             <Chip
               size="small"
-              label={hasHandover ? '🚗→' : '⏳'}
-              title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
+              label={hasHandover ? '🚗→' : '⏳→'}
+              title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Vytvoriť odovzdávací protokol'}
               onClick={handleHandoverClick}
-              sx={chipStyles.handover}
+              sx={{
+                ...chipStyles.handover,
+                bgcolor: hasHandover ? '#4caf50' : '#ff9800',
+                '&:hover': hasHandover ? {
+                  bgcolor: '#388e3c',
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
+                  animation: 'bounce 0.6s ease'
+                } : {
+                  bgcolor: '#f57c00',
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 4px 12px rgba(255,152,0,0.4)'
+                }
+              }}
             />
           </Fade>
           <Fade in timeout={800}>
             <Chip
               size="small"
-              label={hasReturn ? '←🚗' : '⏳'}
-              title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Protokol neexistuje'}
+              label={hasReturn ? '←🚗' : '⏳←'}
+              title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Vytvoriť preberací protokol'}
               onClick={handleReturnClick}
-              sx={chipStyles.return}
+              sx={{
+                ...chipStyles.return,
+                bgcolor: hasReturn ? '#4caf50' : '#ff9800',
+                '&:hover': hasReturn ? {
+                  bgcolor: '#388e3c',
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
+                  animation: 'bounce 0.6s ease'
+                } : {
+                  bgcolor: '#f57c00',
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 4px 12px rgba(255,152,0,0.4)'
+                }
+              }}
             />
           </Fade>
           
@@ -283,6 +312,65 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
                 }}
               />
             )
+          )}
+        </Box>
+        
+        {/* Action buttons row */}
+        <Box sx={{ 
+          display: 'flex', 
+          gap: { xs: 0.5, sm: 0.75 }, 
+          mt: { xs: 1, sm: 1.5 }, 
+          justifyContent: 'flex-start',
+          flexWrap: 'wrap'
+        }}>
+          {/* Edit Button */}
+          <IconButton
+            size="small"
+            title="Upraviť prenájom"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(rental);
+            }}
+            sx={{ 
+              bgcolor: '#2196f3', 
+              color: 'white',
+              width: { xs: 36, sm: 32 },
+              height: { xs: 36, sm: 32 },
+              '&:hover': { 
+                bgcolor: '#1976d2',
+                transform: 'scale(1.1)',
+                boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+          
+          {/* Delete Button */}
+          {onDelete && (
+            <IconButton
+              size="small"
+              title="Zmazať prenájom"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(rental.id);
+              }}
+              sx={{ 
+                bgcolor: '#f44336', 
+                color: 'white',
+                width: { xs: 36, sm: 32 },
+                height: { xs: 36, sm: 32 },
+                '&:hover': { 
+                  bgcolor: '#d32f2f',
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 4px 12px rgba(244,67,54,0.4)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
           )}
         </Box>
       </Box>
