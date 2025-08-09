@@ -1005,7 +1005,11 @@ export default function RentalListNew() {
         return;
       }
       
-      console.log('⚡ CACHED: Handover protocol found, no return protocol exists. Proceeding instantly...');
+      console.log('⚡ CACHED: Handover protocol found, no return protocol exists. Loading handover protocol...');
+      
+      // ⚡ NAČÍTAJ HANDOVER PROTOKOL PRED OTVORENÍM RETURN DIALOGU
+      await loadProtocolsForRental(rental.id);
+      
       setSelectedRentalForProtocol(rental);
       setOpenReturnDialog(true);
       
@@ -1030,7 +1034,11 @@ export default function RentalListNew() {
           return;
         }
         
-        console.log('✅ Handover protocol found, no return protocol exists (fallback). Proceeding...');
+        console.log('✅ Handover protocol found, no return protocol exists (fallback). Loading protocols...');
+        
+        // ⚡ NAČÍTAJ PROTOKOLY PRED OTVORENÍM RETURN DIALOGU
+        await loadProtocolsForRental(rental.id);
+        
         setSelectedRentalForProtocol(rental);
         setOpenReturnDialog(true);
       } catch (fallbackError) {
@@ -1038,7 +1046,7 @@ export default function RentalListNew() {
         alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
       }
     }
-  }, [protocolStatusMap, protocols]);
+  }, [protocolStatusMap, protocols, loadProtocolsForRental]);
 
     const handleSaveReturn = async (protocolData: any) => {
     try {
