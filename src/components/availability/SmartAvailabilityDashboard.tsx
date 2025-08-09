@@ -199,45 +199,47 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
       logger.cache('Using cached availability data for calculation');
       calendarData = cachedData.calendar || [];
     } else {
-      // ⚡ REAL API CALL: Fetch fresh data from /availability/calendar
+      // ⚡ FALLBACK: Use existing vehicle/rental data to calculate availability
       try {
-        logger.api('Fetching fresh availability data from API', { dateFrom, dateTo });
+        logger.api('Using existing data to calculate availability (fallback)', { dateFrom, dateTo, vehiclesCount: availableVehicles.length });
         
-        const response = await fetch(
-          `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/availability/calendar?` + 
-          `startDate=${dateFrom}&endDate=${dateTo}&fields=calendar,vehicles,unavailabilities&optimize=true`,
-          {
-            headers: {
-              'Authorization': `Bearer ${authState?.token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`API responded with ${response.status}: ${response.statusText}`);
-        }
-
-        const apiData = await response.json();
+        // Create calendar data from existing rentals and vehicles
+        calendarData = dateRange.map(date => {
+          const dayRentals = state.rentals?.filter(rental => {
+            const startDate = new Date(rental.startDate);
+            const endDate = new Date(rental.endDate);
+            const currentDate = new Date(date);
+            return currentDate >= startDate && currentDate <= endDate;
+          }) || [];
+          
+          return {
+            date,
+            vehicles: availableVehicles.map(vehicle => {
+              const vehicleRental = dayRentals.find(rental => rental.vehicleId === vehicle.id);
+              
+              return {
+                vehicleId: vehicle.id,
+                status: vehicleRental ? 'rented' : 'available',
+                customer_name: vehicleRental?.customerName,
+                rental_id: vehicleRental?.id,
+                reason: vehicleRental ? 'Prenájom' : undefined
+              };
+            })
+          };
+        });
         
-        if (!apiData.success) {
-          throw new Error(apiData.error || 'API returned unsuccessful response');
-        }
-
-        calendarData = apiData.data.calendar || [];
+        // ⚡ CACHE: Store calculated data for future use
+        cacheHelpers.calendar.set(cacheKey, { calendar: calendarData });
         
-        // ⚡ CACHE: Store fresh data for future use (5 minutes TTL)
-        cacheHelpers.calendar.set(cacheKey, apiData.data);
-        
-        logger.performance('Real API data loaded successfully', {
+        logger.performance('Availability calculated from existing data', {
           calendarDays: calendarData.length,
-          vehicles: apiData.data.vehicles?.length || 0,
-          unavailabilities: apiData.data.unavailabilities?.length || 0,
+          vehicles: availableVehicles.length,
+          rentals: state.rentals?.length || 0,
           cacheKey
         });
         
       } catch (error) {
-        logger.error('Failed to fetch availability data from API', { error, dateFrom, dateTo });
+        logger.error('Failed to calculate availability from existing data', { error, dateFrom, dateTo });
         
         // ⚠️ FALLBACK: Return empty data structure to prevent crashes
         calendarData = [];
