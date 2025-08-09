@@ -253,7 +253,7 @@ class ApiService {
         return apiCache.getOrFetch(
           cacheKeys.bulkData(),
           async () => {
-            console.log('🌐 Loading bulk data from API...');
+            // Optimalized: Consolidated bulk data loading log
             const startTime = performance.now();
             
             const response = await this.request<{
@@ -276,8 +276,8 @@ class ApiService {
             }>('/bulk/data');
             
             const loadTime = performance.now() - startTime;
-            console.log(`⚡ Bulk data loaded in ${loadTime.toFixed(2)}ms`);
-            console.log(`📊 Data: ${response.vehicles?.length || 0} vehicles, ${response.rentals?.length || 0} rentals, ${response.customers?.length || 0} customers`);
+            // Optimalized: Single consolidated bulk data log
+            console.log(`⚡ Bulk data loaded: ${response.rentals?.length || 0} rentals, ${response.vehicles?.length || 0} vehicles (${loadTime.toFixed(0)}ms)`);
             
             return response;
           },
@@ -308,7 +308,7 @@ class ApiService {
         // 📦 1. CACHE FIRST - skús načítať z cache
         const cached = getProtocolCache();
         if (cached && isCacheFresh()) {
-          console.log('⚡ Using cached protocol status');
+          // Optimalized: Removed redundant log (already logged in protocolCache.ts)
           
           // 🔄 Background refresh - aktualizuj cache na pozadí
           this.refreshProtocolCacheInBackground();
@@ -391,7 +391,10 @@ class ApiService {
    */
   private async refreshProtocolCacheInBackground(): Promise<void> {
     try {
-      console.log('🔄 Refreshing protocol cache in background...');
+      // Optimalized: Reduced background refresh logging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Refreshing protocol cache in background...');
+      }
       
       const response = await this.request<any>('/protocols/bulk-status');
       
@@ -415,7 +418,9 @@ class ApiService {
       }));
       
       setProtocolCache(transformedData);
-      console.log('✅ Background cache refresh completed');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Background cache refresh completed');
+      }
       
     } catch (error) {
       console.warn('⚠️ Background cache refresh failed:', error);

@@ -29,15 +29,15 @@ export function useWebSocket() {
     // Inicializácia WebSocket client
     clientRef.current = getWebSocketClient();
 
-    // Event handlers
+    // Event handlers - optimalized logging
     const handleConnect = () => {
       setIsConnected(true);
-      console.log('🟢 WebSocket hook: Connected');
+      // Removed redundant log - already logged in websocket-client.ts
     };
 
     const handleDisconnect = () => {
       setIsConnected(false);
-      console.log('🔴 WebSocket hook: Disconnected');
+      // Removed redundant log - already logged in websocket-client.ts
     };
 
     const handleConnectedUsers = (data: { count: number; users: any[] }) => {

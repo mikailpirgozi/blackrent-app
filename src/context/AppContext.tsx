@@ -574,21 +574,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const bulkData = await apiService.getBulkData();
       
       const bulkTime = Date.now() - startTime;
-      logger.perf(`✅ BULK: Všetky dáta načítané v ${bulkTime}ms jedným requestom!`);
-      logger.perf('📊 BULK: Metadata:', bulkData.metadata);
-      
-      logger.perf('✅ Dáta úspešne načítané cez BULK:', { 
-        vehicles: bulkData.vehicles.length, 
-        rentals: bulkData.rentals.length, 
-        expenses: bulkData.expenses.length,
-        insurances: bulkData.insurances.length,
-        customers: bulkData.customers.length,
-        companies: bulkData.companies.length,
-        insurers: bulkData.insurers.length,
-        settlements: bulkData.settlements.length,
-        vehicleDocuments: bulkData.vehicleDocuments.length,
-        insuranceClaims: bulkData.insuranceClaims.length,
-      });
+      // Optimalized: Reduced bulk logging - already logged by API service
+      if (process.env.NODE_ENV === 'development') {
+        logger.perf(`✅ BULK: Všetky dáta načítané v ${bulkTime}ms jedným requestom!`);
+        logger.perf('📊 BULK: Metadata:', bulkData.metadata);
+      }
       
       // 🗄️ UNIFIED CACHE: Store data in unified cache system
       cacheHelpers.vehicles.set(bulkData.vehicles);
