@@ -78,6 +78,7 @@ const allMenuItems = [
   { text: 'Databáza vozidiel', icon: <CarRental />, path: '/vehicles', resource: 'vehicles' as const },
   { text: 'Zákazníci', icon: <GroupOutlined />, path: '/customers', resource: 'customers' as const },
   { text: 'Dostupnosť áut', icon: <CalendarToday />, path: '/availability', resource: 'vehicles' as const }, // availability uses vehicles permissions
+  { text: '🚀 Smart Dostupnosť', icon: <CalendarToday />, path: '/availability-smart', resource: 'vehicles' as const }, // new smart availability
   { text: 'Náklady', icon: <AttachMoney />, path: '/expenses', resource: 'expenses' as const },
   { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'finances' as const },
   { text: 'Poistky/STK/Dialničné', icon: <SecurityOutlined />, path: '/insurances', resource: 'insurances' as const },
