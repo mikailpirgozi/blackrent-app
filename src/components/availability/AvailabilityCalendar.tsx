@@ -45,6 +45,7 @@ import { Rental, VehicleUnavailability, VehicleCategory } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useDebounce } from '../../utils/performance';
+import { logger } from '../../utils/smartLogger';
 import RentalForm from '../rentals/RentalForm';
 
 // Custom isToday function to avoid hot reload issues
@@ -641,7 +642,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         setUnavailabilities(currentData.data.unavailabilities);
         setProgressiveLoading(prev => ({ ...prev, current: true }));
         
-        console.log('✅ PHASE 1 COMPLETE: Current month loaded', {
+        logger.performance('Calendar Phase 1 complete', {
           days: currentData.data.calendar.length,
           vehicles: currentData.data.vehicles.length
         });
@@ -660,7 +661,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         setUnavailabilities(prev => [...pastData.data.unavailabilities, ...prev]);
         setProgressiveLoading(prev => ({ ...prev, past: true }));
         
-        console.log('✅ PHASE 2 COMPLETE: Past data loaded', {
+        logger.performance('Calendar Phase 2 complete', {
           additionalDays: pastData.data.calendar.length
         });
       }
@@ -675,7 +676,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         setUnavailabilities(prev => [...prev, ...futureData.data.unavailabilities]);
         setProgressiveLoading(prev => ({ ...prev, future: true, complete: true }));
         
-        console.log('✅ PHASE 3 COMPLETE: Future data loaded', {
+        logger.performance('Calendar Phase 3 complete', {
           additionalDays: futureData.data.calendar.length
         });
       }

@@ -74,6 +74,7 @@ import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
 import { Rental } from '../../types';
 import { useRentalUpdates } from '../../hooks/useWebSocket';
+import { logger } from '../../utils/smartLogger';
 import EmailParser from './EmailParser';
 import RentalAdvancedFilters from './RentalAdvancedFilters';
 
@@ -158,7 +159,7 @@ const VehicleOwnerDisplay: React.FC<{
 };
 
 export default function RentalListNew() {
-  console.log('🔄 RentalListNew component render');
+  logger.render('RentalListNew');
   
   const { state, createRental, updateRental, deleteRental } = useApp();
   const theme = useTheme();
@@ -185,7 +186,7 @@ export default function RentalListNew() {
   
   // 🔴 Real-time updates hook
   useRentalUpdates((type, rental, rentalId) => {
-    console.log('🔴 WebSocket rental update:', type, rental, rentalId);
+    logger.debug('WebSocket rental update', { type, rentalId });
     
     // Auto-refresh rental list when changes occur
     if (type === 'created' || type === 'updated' || type === 'deleted') {
