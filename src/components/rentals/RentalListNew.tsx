@@ -92,7 +92,8 @@ import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTabl
 
 // 🚀 LAZY LOADING: Protocols loaded only when needed
 const HandoverProtocolForm = React.lazy(() => import('../protocols/HandoverProtocolForm'));
-const ReturnProtocolForm = React.lazy(() => import('../protocols/ReturnProtocolForm'));
+// ⚡ TEMPORARY FIX: Direct import instead of lazy loading for ReturnProtocolForm
+import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 
 // Types
 interface FilterState {
@@ -4746,20 +4747,13 @@ export default function RentalListNew() {
         <DialogTitle>Preberací protokol</DialogTitle>
         <DialogContent>
           {selectedRentalForProtocol && (
-            <React.Suspense fallback={
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-                <CircularProgress />
-                <Typography sx={{ ml: 2 }}>Načítavam protokol...</Typography>
-              </Box>
-            }>
-              <ReturnProtocolForm
-                open={openReturnDialog}
-                onClose={() => setOpenReturnDialog(false)}
-                rental={selectedRentalForProtocol}
-                handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
-                onSave={handleSaveReturn}
-              />
-            </React.Suspense>
+            <ReturnProtocolForm
+              open={openReturnDialog}
+              onClose={() => setOpenReturnDialog(false)}
+              rental={selectedRentalForProtocol}
+              handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
+              onSave={handleSaveReturn}
+            />
           )}
         </DialogContent>
       </Dialog>
