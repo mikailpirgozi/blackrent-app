@@ -27,9 +27,6 @@ import { Stack } from '@mui/system';
 // Using HTML5 date inputs instead of MUI date pickers for simplicity
 import {
   CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
-  CheckCircle as AvailableIcon,
-  Cancel as RentedIcon,
   Build as MaintenanceIcon,
   Refresh as RefreshIcon,
   ChevronLeft as ChevronLeftIcon,
@@ -1008,37 +1005,6 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       vehicle.category && selectedCategories.includes(vehicle.category)
     );
   }, [filteredVehicles, propCategoryFilter]);
-
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'available': return 'success';
-      case 'rented': return 'error';
-      case 'flexible': return 'warning'; // 🔄 NOVÉ: Oranžová farba pre flexibilné
-      case 'maintenance': return 'warning';
-      case 'service': return 'primary';
-      case 'repair': return 'error';
-      case 'blocked': return 'secondary';
-      case 'cleaning': return 'info';
-      case 'inspection': return 'default';
-      default: return 'default';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'available': return <AvailableIcon fontSize="small" />;
-      case 'rented': return <RentedIcon fontSize="small" />;
-      case 'flexible': return <CarIcon fontSize="small" />; // 🔄 NOVÉ: Ikona pre flexibilné
-      case 'maintenance': return <MaintenanceIcon fontSize="small" />;
-      case 'service': return <MaintenanceIcon fontSize="small" />;
-      case 'repair': return <MaintenanceIcon fontSize="small" />;
-      case 'blocked': return <RentedIcon fontSize="small" />;
-      case 'cleaning': return <RefreshIcon fontSize="small" />;
-      case 'inspection': return <AvailableIcon fontSize="small" />;
-      default: return <CarIcon fontSize="small" />;
-    }
-  };
 
   const getStatusText = (status: string) => {
     switch (status) {
