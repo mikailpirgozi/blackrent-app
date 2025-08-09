@@ -837,22 +837,28 @@ export default function RentalListNew() {
     }
   };
 
-  // Monitor state changes
+  // Monitor state changes - optimalized mobile debug logging
   React.useEffect(() => {
-    console.log('🔄 MOBILE DEBUG: openHandoverDialog state changed:', openHandoverDialog);
-    if (!openHandoverDialog) {
-      console.log('❌ MOBILE DEBUG: Modal was closed! Investigating...');
-      console.log('❌ MOBILE DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
-      console.log('❌ MOBILE DEBUG: Current URL:', window.location.href);
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 MOBILE DEBUG: openHandoverDialog state changed:', openHandoverDialog);
+      if (!openHandoverDialog) {
+        console.log('❌ MOBILE DEBUG: Modal was closed! Investigating...');
+        console.log('❌ MOBILE DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
+        console.log('❌ MOBILE DEBUG: Current URL:', window.location.href);
+      }
     }
   }, [openHandoverDialog, selectedRentalForProtocol]);
 
   // Handover Protocol handlers
   const handleCreateHandover = async (rental: Rental) => {
     console.log('📝 Creating handover protocol for rental:', rental.id);
-    console.log('🔍 MOBILE DEBUG: handleCreateHandover called');
-    console.log('🔍 MOBILE DEBUG: rental object:', rental);
-    console.log('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
+    // Optimalized: Mobile debug logs only in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 MOBILE DEBUG: handleCreateHandover called');
+      console.log('🔍 MOBILE DEBUG: rental object:', rental);
+      console.log('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
+    }
     
     // logMobile('INFO', 'RentalList', 'Handover protocol creation started', {
     //   rentalId: rental.id,
@@ -2717,7 +2723,8 @@ export default function RentalListNew() {
       const bulkProtocolStatus = await apiService.getBulkProtocolStatus();
       const loadTime = Date.now() - startTime;
       
-      console.log(`✅ BACKGROUND: Protocol status loaded in ${loadTime}ms for ${bulkProtocolStatus.length} rentals`);
+      // Optimalized: Consolidated protocol status loading log
+      console.log(`✅ Protocol status loaded: ${bulkProtocolStatus.length} rentals (${loadTime}ms)`);
       
       // Konvertuj array na map pre rýchly lookup
       const statusMap: Record<string, {
@@ -2735,8 +2742,6 @@ export default function RentalListNew() {
       setProtocolStatusMap(statusMap);
       setProtocolStatusLoaded(true);
       
-      console.log('🎉 BACKGROUND: Protocol status icons will now appear in rental list!');
-      
       // 🚀 SMART PRELOADING: Preload protokoly pre rentaly ktoré sú viditeľné a majú protokoly
       setTimeout(() => {
         preloadVisibleProtocols(statusMap);
@@ -2751,7 +2756,7 @@ export default function RentalListNew() {
 
   // 🚀 SMART PROTOCOL PRELOADING - preloaduj protokoly pre viditeľné rentaly
   const preloadVisibleProtocols = useCallback(async (statusMap: Record<string, {hasHandoverProtocol: boolean, hasReturnProtocol: boolean}>) => {
-    console.log('🎯 PRELOAD: Starting smart protocol preloading...');
+    // Optimalized: Reduced preload logging
     
     // Získaj viditeľné rentaly (prvých 10-20)
     const visibleRentals = filteredRentals.slice(0, 15);
@@ -2767,7 +2772,10 @@ export default function RentalListNew() {
         preloadPromises.push(
           loadProtocolsForRental(rental.id).then(() => {
             preloadCount++;
-            console.log(`✅ PRELOAD: Protocol preloaded for rental ${rental.id} (${preloadCount})`);
+            // Only log individual preloads in development
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`✅ PRELOAD: Protocol preloaded for rental ${rental.id} (${preloadCount})`);
+            }
           }).catch((error) => {
             console.warn(`⚠️ PRELOAD: Failed to preload protocol for rental ${rental.id}:`, error);
           })
@@ -2780,8 +2788,10 @@ export default function RentalListNew() {
       }
     }
     
+    // Optimalized: Single consolidated preload log
+    console.log(`🎯 Smart preload: ${preloadPromises.length} protocols needed`);
+    
     if (preloadPromises.length > 0) {
-      console.log(`🚀 PRELOAD: Starting ${preloadPromises.length} protocol preload requests...`);
       
       try {
         // ⚡ Sequencial loading aby sme nezaťažili server
@@ -2790,12 +2800,13 @@ export default function RentalListNew() {
           // Krátka pauza medzi requestmi
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        console.log(`✅ PRELOAD: Completed ${preloadCount} protocol preloads`);
+        // Only log success if protocols were actually preloaded
+        if (preloadCount > 0) {
+          console.log(`✅ Smart preload completed: ${preloadCount} protocols`);
+        }
       } catch (error) {
         console.error('❌ PRELOAD: Some preload requests failed:', error);
       }
-    } else {
-      console.log('💡 PRELOAD: No protocols need preloading (all cached or no protocols exist)');
     }
   }, [filteredRentals, protocols, loadProtocolsForRental]);
 

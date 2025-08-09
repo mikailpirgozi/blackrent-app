@@ -39,7 +39,10 @@ export const setProtocolCache = (protocols: CachedProtocolStatus[]): void => {
     };
     
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-    console.log(`✅ Protocol cache saved: ${protocols.length} records`);
+    // Optimalized: Only log in development or when cache is large
+    if (process.env.NODE_ENV === 'development' || protocols.length > 500) {
+      console.log(`✅ Protocol cache saved: ${protocols.length} records`);
+    }
   } catch (error) {
     console.warn('⚠️ Failed to save protocol cache:', error);
   }
@@ -77,7 +80,8 @@ export const getProtocolCache = (): CachedProtocolStatus[] | null => {
       returnCreatedAt: item.returnCreatedAt ? new Date(item.returnCreatedAt) : undefined
     }));
     
-    console.log(`📦 Protocol cache hit: ${protocols.length} records (age: ${Math.round(age/1000)}s)`);
+    // Optimalized: Consolidated cache hit log
+    console.log(`📦 Protocol status: ${protocols.length} records loaded (age: ${Math.round(age/1000)}s, cached)`);
     return protocols;
     
   } catch (error) {

@@ -224,31 +224,40 @@ export class StorageManager {
     }
     
     try {
-      console.log('🔍 Testing storage capabilities...');
-      
-      // Test localStorage
+      // Optimalized: Consolidated storage testing with single log
       const testKey = 'blackrent_test';
       const testValue = 'test_value';
       
+      // Test localStorage
       localStorage.setItem(testKey, testValue);
       const localResult = localStorage.getItem(testKey);
       localStorage.removeItem(testKey);
-      
-      console.log('📦 localStorage test:', localResult === testValue ? '✅ OK' : '❌ FAIL');
       
       // Test cookies
       this.setCookie('test', testValue, 1);
       const cookieResult = this.getCookie('test');
       this.removeCookie('test');
       
-      console.log('🍪 Cookies test:', cookieResult === testValue ? '✅ OK' : '❌ FAIL');
-      
       // Test sessionStorage
       sessionStorage.setItem(testKey, testValue);
       const sessionResult = sessionStorage.getItem(testKey);
       sessionStorage.removeItem(testKey);
       
-      console.log('🗂️ sessionStorage test:', sessionResult === testValue ? '✅ OK' : '❌ FAIL');
+      // Optimalized: Single consolidated storage test result
+      const localOK = localResult === testValue;
+      const cookieOK = cookieResult === testValue;
+      const sessionOK = sessionResult === testValue;
+      const allOK = localOK && cookieOK && sessionOK;
+      
+      if (allOK) {
+        console.log('✅ Storage: All tests passed');
+      } else {
+        console.warn('⚠️ Storage issues:', {
+          localStorage: localOK ? 'OK' : 'FAIL',
+          cookies: cookieOK ? 'OK' : 'FAIL',
+          sessionStorage: sessionOK ? 'OK' : 'FAIL'
+        });
+      }
       
       // Označiť ako dokončené
       this.storageTestDone = true;

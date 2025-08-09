@@ -89,7 +89,10 @@ export class WebSocketClient {
       ? 'https://blackrent-app-production-4d6f.up.railway.app'
       : 'http://localhost:3001';
     
-    console.log('🔴 Connecting to WebSocket:', baseUrl);
+    // Optimalized logging - reduced verbosity
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔴 Connecting to WebSocket:', baseUrl);
+    }
     
     this.socket = io(baseUrl, {
       transports: ['websocket', 'polling'],
@@ -107,6 +110,7 @@ export class WebSocketClient {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
+      // Optimalized: Single consolidated log for connection
       console.log('✅ WebSocket connected:', this.socket?.id);
       this.reconnectAttempts = 0;
       

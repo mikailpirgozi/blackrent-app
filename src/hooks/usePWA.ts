@@ -27,6 +27,10 @@ interface PWAActions {
   getVersion: () => Promise<string>;
 }
 
+// Global singleton to prevent duplicate SW registrations
+let isInitialized = false;
+let globalSWRegistration: ServiceWorkerRegistration | null = null;
+
 export const usePWA = (): PWAState & PWAActions => {
   const { showError } = useError();
   
@@ -36,18 +40,27 @@ export const usePWA = (): PWAState & PWAActions => {
     isOffline: !navigator.onLine,
     isUpdateAvailable: false,
     installPrompt: null,
-    swRegistration: null,
+    swRegistration: globalSWRegistration,
   });
 
   const refreshing = useRef(false);
 
-  // Initialize PWA features
+  // Initialize PWA features - singleton pattern to prevent duplicates
   useEffect(() => {
-    initializePWA();
-    setupEventListeners();
+    if (!isInitialized) {
+      isInitialized = true;
+      initializePWA();
+      setupEventListeners();
+    } else if (globalSWRegistration) {
+      // If already initialized, just update state with existing registration
+      setState(prev => ({ ...prev, swRegistration: globalSWRegistration }));
+    }
     
     return () => {
-      removeEventListeners();
+      // Don't remove event listeners if other instances are still using them
+      if (isInitialized) {
+        removeEventListeners();
+      }
     };
   }, []);
 
@@ -67,6 +80,7 @@ export const usePWA = (): PWAState & PWAActions => {
       if ('serviceWorker' in navigator) {
         const registration = await registerServiceWorker();
         if (registration) {
+          globalSWRegistration = registration; // Store globally
           setState(prev => ({ ...prev, swRegistration: registration }));
           console.log('✅ PWA: Service Worker successfully initialized');
         } else {
