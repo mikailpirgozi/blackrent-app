@@ -148,7 +148,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (token && user) {
         logger.auth('✅ Session data found for user:', user.username);
-        logger.debug('🔐 Token preview:', token.substring(0, 20) + '...');
+        // logger.debug('🔐 Token preview:', token.substring(0, 20) + '...'); // SECURITY: Disabled token logging
         
         // OPTIMISTIC RESTORE - obnoviť session OKAMŽITE bez čakania na validáciu
         logger.auth('🚀 Optimistic session restore - obnovujem okamžite');
@@ -320,7 +320,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('✅ Login API successful!');
       console.log('👤 User:', result.user.username);
       console.log('🔑 Token received:', !!result.token);
-      console.log('🔑 Token preview:', result.token ? result.token.substring(0, 20) + '...' : 'NO TOKEN');
+      // console.log('🔑 Token preview:', result.token ? result.token.substring(0, 20) + '...' : 'NO TOKEN'); // SECURITY: Disabled
       
       // VŽDY nastav remember me na true pre perzistentné prihlásenie
       const persistentRememberMe = true;

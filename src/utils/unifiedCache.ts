@@ -158,7 +158,7 @@ class UnifiedCacheSystem {
     }
 
     this.cache.set(key, entry);
-    logger.cache(`Cache SET for key: ${key} (size: ${size} bytes)`);
+    // logger.cache(`Cache SET for key: ${key} (size: ${size} bytes)`); // VERBOSE: Disabled to reduce spam
   }
 
   /**

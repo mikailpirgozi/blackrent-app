@@ -570,7 +570,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const startTime = Date.now();
       
       // ⚡ PHASE 3: SINGLE BULK API CALL - všetky dáta jedným requestom
-      logger.debug('📦 BULK: Vykonávam jediný API request...');
+      // logger.debug('📦 BULK: Vykonávam jediný API request...'); // VERBOSE: Disabled - already logged by API service
       const bulkData = await apiService.getBulkData();
       
       const bulkTime = Date.now() - startTime;
