@@ -64,6 +64,28 @@ export declare class PostgresDatabase {
     updateVehicle(vehicle: Vehicle): Promise<void>;
     deleteVehicle(id: string): Promise<void>;
     getRentalsForDateRange(startDate: Date, endDate: Date): Promise<Rental[]>;
+    getRentalsPaginated(params: {
+        limit: number;
+        offset: number;
+        search?: string;
+        dateFilter?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        company?: string;
+        status?: string;
+        protocolStatus?: string;
+        paymentMethod?: string;
+        paymentStatus?: string;
+        vehicleBrand?: string;
+        priceMin?: string;
+        priceMax?: string;
+        userId?: string;
+        userRole?: string;
+    }): Promise<{
+        rentals: Rental[];
+        total: number;
+    }>;
+    private transformRowToRental;
     getRentals(): Promise<Rental[]>;
     private safeJsonParse;
     createRental(rentalData: {

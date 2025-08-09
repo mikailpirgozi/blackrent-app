@@ -581,6 +581,56 @@ class ApiService {
     return this.request<Rental[]>('/rentals');
   }
 
+  // 🚀 NOVÝ: Paginated rentals s filtrami
+  async getRentalsPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    dateFilter?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    company?: string;
+    status?: string;
+    protocolStatus?: string;
+    paymentMethod?: string;
+    paymentStatus?: string;
+    vehicleBrand?: string;
+    priceMin?: string;
+    priceMax?: string;
+  } = {}): Promise<{
+    rentals: Rental[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/rentals/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      rentals: Rental[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   async getRental(id: string): Promise<Rental> {
     return this.request<Rental>(`/rentals/${id}`);
   }

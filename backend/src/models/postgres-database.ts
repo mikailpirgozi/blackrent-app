@@ -2468,6 +2468,270 @@ export class PostgresDatabase {
     }
   }
 
+  // 🚀 NOVÁ METÓDA: Paginated rentals s filtrami
+  async getRentalsPaginated(params: {
+    limit: number;
+    offset: number;
+    search?: string;
+    dateFilter?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    company?: string;
+    status?: string;
+    protocolStatus?: string;
+    paymentMethod?: string;
+    paymentStatus?: string;
+    vehicleBrand?: string;
+    priceMin?: string;
+    priceMax?: string;
+    userId?: string;
+    userRole?: string;
+  }): Promise<{ rentals: Rental[]; total: number }> {
+    const client = await this.pool.connect();
+    try {
+      console.log('🚀 Loading paginated rentals with filters:', params);
+
+      // Základný WHERE clause
+      let whereConditions: string[] = ['1=1'];
+      const queryParams: any[] = [];
+      let paramIndex = 1;
+
+      // 🔍 SEARCH filter - live vyhľadávanie
+      if (params.search && params.search.trim()) {
+        whereConditions.push(`(
+          r.customer_name ILIKE $${paramIndex} OR 
+          r.order_number ILIKE $${paramIndex} OR 
+          v.license_plate ILIKE $${paramIndex} OR
+          v.brand ILIKE $${paramIndex} OR
+          v.model ILIKE $${paramIndex}
+        )`);
+        queryParams.push(`%${params.search.trim()}%`);
+        paramIndex++;
+      }
+
+      // 📅 DATE filter
+      if (params.dateFilter && params.dateFilter !== 'all') {
+        const today = new Date();
+        let startDate, endDate;
+
+        switch (params.dateFilter) {
+          case 'today':
+            startDate = new Date(today.setHours(0, 0, 0, 0));
+            endDate = new Date(today.setHours(23, 59, 59, 999));
+            break;
+          case 'week':
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+            weekStart.setHours(0, 0, 0, 0);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            weekEnd.setHours(23, 59, 59, 999);
+            startDate = weekStart;
+            endDate = weekEnd;
+            break;
+          case 'month':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+            break;
+          case 'custom':
+            if (params.dateFrom) startDate = new Date(params.dateFrom);
+            if (params.dateTo) endDate = new Date(params.dateTo);
+            break;
+        }
+
+        if (startDate) {
+          whereConditions.push(`r.start_date >= $${paramIndex}`);
+          queryParams.push(startDate);
+          paramIndex++;
+        }
+        if (endDate) {
+          whereConditions.push(`r.start_date <= $${paramIndex}`);
+          queryParams.push(endDate);
+          paramIndex++;
+        }
+      }
+
+      // 🏢 COMPANY filter
+      if (params.company && params.company !== 'all') {
+        whereConditions.push(`(r.company = $${paramIndex} OR c.name = $${paramIndex})`);
+        queryParams.push(params.company);
+        paramIndex++;
+      }
+
+      // ⚡ STATUS filter
+      if (params.status && params.status !== 'all') {
+        if (params.status === 'active') {
+          whereConditions.push(`r.status IN ('confirmed', 'ongoing')`);
+        } else if (params.status === 'completed') {
+          whereConditions.push(`r.status = 'completed'`);
+        } else {
+          whereConditions.push(`r.status = $${paramIndex}`);
+          queryParams.push(params.status);
+          paramIndex++;
+        }
+      }
+
+      // 💳 PAYMENT METHOD filter
+      if (params.paymentMethod && params.paymentMethod !== 'all') {
+        whereConditions.push(`r.payment_method = $${paramIndex}`);
+        queryParams.push(params.paymentMethod);
+        paramIndex++;
+      }
+
+      // 💰 PAYMENT STATUS filter
+      if (params.paymentStatus && params.paymentStatus !== 'all') {
+        if (params.paymentStatus === 'paid') {
+          whereConditions.push(`r.paid = true`);
+        } else if (params.paymentStatus === 'unpaid') {
+          whereConditions.push(`r.paid = false`);
+        }
+      }
+
+      // 🚗 VEHICLE BRAND filter
+      if (params.vehicleBrand && params.vehicleBrand !== 'all') {
+        whereConditions.push(`v.brand = $${paramIndex}`);
+        queryParams.push(params.vehicleBrand);
+        paramIndex++;
+      }
+
+      // 💵 PRICE RANGE filter
+      if (params.priceMin && !isNaN(parseFloat(params.priceMin))) {
+        whereConditions.push(`r.total_price >= $${paramIndex}`);
+        queryParams.push(parseFloat(params.priceMin));
+        paramIndex++;
+      }
+      if (params.priceMax && !isNaN(parseFloat(params.priceMax))) {
+        whereConditions.push(`r.total_price <= $${paramIndex}`);
+        queryParams.push(parseFloat(params.priceMax));
+        paramIndex++;
+      }
+
+      const whereClause = whereConditions.join(' AND ');
+
+      // Count query pre pagination
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM rentals r
+        LEFT JOIN vehicles v ON r.vehicle_id = v.id
+        LEFT JOIN companies c ON v.company_id = c.id
+        WHERE ${whereClause}
+      `;
+
+      const countResult = await client.query(countQuery, queryParams);
+      const total = parseInt(countResult.rows[0].total);
+
+      // Main query s LIMIT a OFFSET
+      const mainQuery = `
+        SELECT 
+          r.id, r.vehicle_id, r.start_date, r.end_date, 
+          r.total_price, r.commission, r.payment_method, r.paid, r.status, 
+          r.customer_name, r.created_at, r.order_number, r.deposit, 
+          r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
+          r.rental_type, r.is_flexible, r.flexible_end_date, r.can_be_overridden,
+          r.override_priority, r.notification_threshold, r.auto_extend, r.override_history,
+          v.brand, v.model, v.license_plate, v.pricing, v.commission as v_commission, v.status as v_status,
+          c.name as company_name, v.company as vehicle_company
+        FROM rentals r
+        LEFT JOIN vehicles v ON r.vehicle_id = v.id
+        LEFT JOIN companies c ON v.company_id = c.id
+        WHERE ${whereClause}
+        ORDER BY r.created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+
+      queryParams.push(params.limit, params.offset);
+      const result = await client.query(mainQuery, queryParams);
+
+      console.log(`📊 Paginated query: ${result.rows.length}/${total} rentals (limit: ${params.limit}, offset: ${params.offset})`);
+
+      // Transform data to Rental objects
+      const rentals = result.rows.map((row) => this.transformRowToRental(row));
+
+      // Apply permission filtering for non-admin users
+      let filteredRentals = rentals;
+      if (params.userRole !== 'admin' && params.userId) {
+        const userCompanyAccess = await this.getUserCompanyAccess(params.userId);
+        const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+        
+        const allowedCompanyNames = await Promise.all(
+          allowedCompanyIds.map(async (companyId) => {
+            try {
+              return await this.getCompanyNameById(companyId);
+            } catch (error) {
+              return null;
+            }
+          })
+        );
+        const validCompanyNames = allowedCompanyNames.filter(name => name !== null);
+        
+        filteredRentals = rentals.filter(rental => {
+          if (rental.vehicle && rental.vehicle.ownerCompanyId) {
+            return allowedCompanyIds.includes(rental.vehicle.ownerCompanyId);
+          } else if (rental.vehicle && rental.vehicle.company) {
+            return validCompanyNames.includes(rental.vehicle.company);
+          }
+          return false;
+        });
+
+        console.log('🔐 Permission filtering applied:', {
+          originalCount: rentals.length,
+          filteredCount: filteredRentals.length
+        });
+      }
+
+      return {
+        rentals: filteredRentals,
+        total: filteredRentals.length // Adjust total if filtered
+      };
+
+    } catch (error) {
+      console.error('Error in getRentalsPaginated:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  // 🔧 HELPER: Transform database row to Rental object
+  private transformRowToRental(row: any): Rental {
+    return {
+      id: row.id?.toString() || '',
+      vehicleId: row.vehicle_id?.toString(),
+      customerId: row.customer_id?.toString(),
+      customerName: row.customer_name || 'Neznámy zákazník',
+      startDate: new Date(row.start_date),
+      endDate: new Date(row.end_date),
+      totalPrice: parseFloat(row.total_price) || 0,
+      commission: parseFloat(row.commission) || 0,
+      paymentMethod: row.payment_method || 'cash',
+      paid: Boolean(row.paid),
+      status: row.status || 'active',
+      createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+      orderNumber: row.order_number || undefined,
+      deposit: row.deposit ? parseFloat(row.deposit) : undefined,
+      allowedKilometers: row.allowed_kilometers || undefined,
+      dailyKilometers: row.daily_kilometers || undefined,
+      handoverPlace: row.handover_place || undefined,
+      company: row.company || undefined,
+      // Flexibilné prenájmy polia
+      rentalType: row.rental_type || 'standard',
+      isFlexible: Boolean(row.is_flexible),
+      flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
+      // Vehicle information from JOIN
+      vehicle: row.brand ? {
+        id: row.vehicle_id?.toString() || '',
+        brand: row.brand,
+        model: row.model,
+        licensePlate: row.license_plate,
+        company: row.vehicle_company || row.company_name || 'N/A',
+        pricing: row.pricing ? (typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing) : [],
+        commission: row.v_commission ? (typeof row.v_commission === 'string' ? JSON.parse(row.v_commission) : row.v_commission) : { type: 'percentage', value: 0 },
+        status: row.v_status || 'available',
+        ownerCompanyId: row.company_id || undefined
+      } : undefined
+    };
+  }
+
   async getRentals(): Promise<Rental[]> {
     const client = await this.pool.connect();
     try {
