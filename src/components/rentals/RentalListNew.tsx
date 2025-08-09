@@ -836,37 +836,7 @@ export default function RentalListNew() {
     }
   };
 
-  // Monitor state changes - optimalized mobile debug logging
-  React.useEffect(() => {
-    // Only log in development mode
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 MOBILE DEBUG: openHandoverDialog state changed:', openHandoverDialog);
-      if (!openHandoverDialog) {
-        console.log('❌ MOBILE DEBUG: Handover Modal was closed! Investigating...');
-        console.log('❌ MOBILE DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
-        console.log('❌ MOBILE DEBUG: Current URL:', window.location.href);
-      }
-    }
-  }, [openHandoverDialog, selectedRentalForProtocol]);
 
-  // Monitor return dialog state changes
-  React.useEffect(() => {
-    // Only log in development mode
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 RETURN DEBUG: openReturnDialog state changed:', openReturnDialog);
-      if (!openReturnDialog) {
-        console.log('❌ RETURN DEBUG: Return Modal was closed! Investigating...');
-        console.log('❌ RETURN DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
-        console.log('❌ RETURN DEBUG: protocols loaded:', selectedRentalForProtocol ? !!protocols[selectedRentalForProtocol.id] : 'no rental selected');
-        console.log('❌ RETURN DEBUG: handover protocol:', selectedRentalForProtocol ? protocols[selectedRentalForProtocol.id]?.handover?.id : 'no rental selected');
-      } else {
-        console.log('✅ RETURN DEBUG: Return Modal opened!');
-        console.log('✅ RETURN DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
-        console.log('✅ RETURN DEBUG: protocols loaded:', selectedRentalForProtocol ? !!protocols[selectedRentalForProtocol.id] : 'no rental selected');
-        console.log('✅ RETURN DEBUG: handover protocol:', selectedRentalForProtocol ? protocols[selectedRentalForProtocol.id]?.handover?.id : 'no rental selected');
-      }
-    }
-  }, [openReturnDialog, selectedRentalForProtocol, protocols]);
 
   // Handover Protocol handlers
   const handleCreateHandover = useCallback(async (rental: Rental) => {
@@ -1023,68 +993,44 @@ export default function RentalListNew() {
         return;
       }
       
-      console.log('⚡ CACHED: Handover protocol found, no return protocol exists. Loading handover protocol...');
-      
       // ⚡ NAČÍTAJ HANDOVER PROTOKOL PRED OTVORENÍM RETURN DIALOGU
       const protocolData = await loadProtocolsForRental(rental.id);
       
-      console.log('🔄 RETURN DEBUG: Protocol data returned from loadProtocolsForRental:', protocolData);
-      
       if (!protocolData || !protocolData.handover) {
-        console.error('❌ RETURN DEBUG: No handover protocol data returned!');
         alert('Chyba pri načítaní odovzdávacieho protokolu. Skúste to znovu.');
         return;
       }
       
-      console.log('🔄 RETURN DEBUG: Setting selectedRentalForProtocol to:', rental.id);
       setSelectedRentalForProtocol(rental);
-      
-      console.log('🔄 RETURN DEBUG: Setting openReturnDialog to true');
       setOpenReturnDialog(true);
-      
-      console.log('🔄 RETURN DEBUG: Handover protocol available:', protocolData.handover.id);
       
     } catch (error) {
       console.error('❌ Error checking cached protocols:', error);
       
-      // 🔄 FALLBACK: Ak cache zlyhá, použij starý spôsob
-      console.log('🔄 Falling back to API call...');
-      try {
-        const protocolsData = await apiService.getProtocolsByRental(rental.id);
-        console.log('📝 Fresh protocols data (fallback):', protocolsData);
-        
-        if (!protocolsData.handoverProtocols || protocolsData.handoverProtocols.length === 0) {
-          alert('⚠️ UPOZORNENIE: Najprv musíte vytvoriť odovzdávací protokol!\n\nPreberací protokol nemožno vytvoriť bez existujúceho odovzdávacieho protokolu.');
-          console.error('❌ No handover protocol found for rental:', rental.id);
-          return;
-        }
-        
-        if (protocolsData.returnProtocols && protocolsData.returnProtocols.length > 0) {
-          alert('⚠️ UPOZORNENIE: Pre toto vozidlo už existuje preberací protokol!\n\nNemôžete vytvoriť ďalší preberací protokol pre to isté vozidlo. Ak potrebujete upraviť protokol, kontaktujte administrátora.');
-          console.warn('❌ Return protocol already exists for rental:', rental.id);
-          return;
-        }
-        
-        console.log('✅ Handover protocol found, no return protocol exists (fallback). Loading protocols...');
-        
-        // ⚡ NAČÍTAJ PROTOKOLY PRED OTVORENÍM RETURN DIALOGU
-        const protocolData = await loadProtocolsForRental(rental.id);
-        
-        console.log('🔄 RETURN DEBUG (fallback): Protocol data returned:', protocolData);
-        
-        if (!protocolData || !protocolData.handover) {
-          console.error('❌ RETURN DEBUG (fallback): No handover protocol data returned!');
-          alert('Chyba pri načítaní odovzdávacieho protokolu. Skúste to znovu.');
-          return;
-        }
-        
-        console.log('🔄 RETURN DEBUG (fallback): Setting selectedRentalForProtocol to:', rental.id);
-        setSelectedRentalForProtocol(rental);
-        
-        console.log('🔄 RETURN DEBUG (fallback): Setting openReturnDialog to true');
-        setOpenReturnDialog(true);
-        
-        console.log('🔄 RETURN DEBUG (fallback): Handover protocol available:', protocolData.handover.id);
+              // 🔄 FALLBACK: Ak cache zlyhá, použij starý spôsob
+        try {
+          const protocolsData = await apiService.getProtocolsByRental(rental.id);
+          
+          if (!protocolsData.handoverProtocols || protocolsData.handoverProtocols.length === 0) {
+            alert('⚠️ UPOZORNENIE: Najprv musíte vytvoriť odovzdávací protokol!\n\nPreberací protokol nemožno vytvoriť bez existujúceho odovzdávacieho protokolu.');
+            return;
+          }
+          
+          if (protocolsData.returnProtocols && protocolsData.returnProtocols.length > 0) {
+            alert('⚠️ UPOZORNENIE: Pre toto vozidlo už existuje preberací protokol!\n\nNemôžete vytvoriť ďalší preberací protokol pre to isté vozidlo. Ak potrebujete upraviť protokol, kontaktujte administrátora.');
+            return;
+          }
+          
+          // ⚡ NAČÍTAJ PROTOKOLY PRED OTVORENÍM RETURN DIALOGU
+          const protocolData = await loadProtocolsForRental(rental.id);
+          
+          if (!protocolData || !protocolData.handover) {
+            alert('Chyba pri načítaní odovzdávacieho protokolu. Skúste to znovu.');
+            return;
+          }
+          
+          setSelectedRentalForProtocol(rental);
+          setOpenReturnDialog(true);
       } catch (fallbackError) {
         console.error('❌ Fallback API call also failed:', fallbackError);
         alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
