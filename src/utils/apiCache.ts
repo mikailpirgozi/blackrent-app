@@ -42,7 +42,7 @@ class FrontendApiCache {
   private deduplicator = new RequestDeduplicator();
   private stats = { hits: 0, misses: 0 };
   private maxSize = 500; // Max cache entries
-  private defaultTTL = 5 * 60 * 1000; // 5 minutes
+  private defaultTTL = 10 * 60 * 1000; // 10 minutes - optimized for performance
 
   /**
    * Get cached data or fetch new
@@ -286,7 +286,10 @@ export const cacheKeys = {
   statistics: (timeRange?: string, userId?: string) => 
     `statistics:${timeRange || 'month'}:${userId || 'all'}`,
   user: (userId: string) => `user:${userId}`,
-  permissions: (userId: string) => `permissions:${userId}`
+  permissions: (userId: string) => `permissions:${userId}`,
+  // 🆕 NEW CACHE KEYS for optimizations
+  bulkData: () => 'bulk:data:all',
+  vehicleOwnership: () => 'vehicles:ownership:history'
 };
 
 // Entity-specific cache helpers

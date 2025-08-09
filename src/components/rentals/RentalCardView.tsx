@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   Box,
   Card,
@@ -725,4 +725,4 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
   );
 };
 
-export default RentalCardView; 
+export default memo(RentalCardView); 
