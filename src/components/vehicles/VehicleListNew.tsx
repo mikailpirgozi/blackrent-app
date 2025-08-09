@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { FixedSizeList as List } from 'react-window';
 import {
   Box,
   Button,
@@ -246,9 +247,9 @@ export default function VehicleListNew() {
     }
   };
 
-  // 🚀 ENHANCED: Filtered vehicles using new unified filter system
+  // 🚀 ENHANCED: Filtered vehicles using new unified filter system with 30 item limit
   const filteredVehicles = useMemo(() => {
-    return getFullyFilteredVehicles({
+    const vehicles = getFullyFilteredVehicles({
       search: searchQuery,
       brand: filterBrand,
       model: filterModel,
@@ -261,6 +262,12 @@ export default function VehicleListNew() {
       showMaintenance,
       showOther
     });
+    
+    // 🚀 MOBILE PERFORMANCE: Limit to 30 vehicles max to prevent browser crashes
+    const limitedVehicles = vehicles.slice(0, 30);
+    console.log(`📊 Filtered vehicles: ${vehicles.length} total → ${limitedVehicles.length} displayed (max 30)`);
+    
+    return limitedVehicles;
   }, [
     searchQuery,
     filterBrand,
@@ -303,6 +310,108 @@ export default function VehicleListNew() {
       </div>
     );
   }
+
+  // 🚀 VIRTUALIZED VEHICLE ROW for react-window
+  const VirtualizedVehicleRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const vehicle = filteredVehicles[index];
+    if (!vehicle) return null;
+
+    return (
+      <div style={style}>
+        <Box 
+          key={vehicle.id}
+          sx={{ 
+            display: 'flex',
+            alignItems: 'center',
+            p: 0,
+            borderBottom: index < filteredVehicles.length - 1 ? '1px solid #e0e0e0' : 'none',
+            '&:hover': { backgroundColor: '#f8f9fa' },
+            minHeight: 72,
+            cursor: 'pointer'
+          }}
+          onClick={() => handleEdit(vehicle)}
+        >
+          {/* Vozidlo column */}
+          <Box sx={{ 
+            width: 200,
+            minWidth: 200,
+            p: 2,
+            borderRight: '1px solid #e0e0e0',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center'
+          }}>
+            <Typography variant="subtitle2" sx={{ 
+              fontWeight: 600, 
+              color: '#1976d2',
+              mb: 0.5
+            }}>
+              {vehicle.brand} {vehicle.model}
+            </Typography>
+            <Typography variant="caption" sx={{ 
+              color: '#666',
+              fontSize: '0.7rem'
+            }}>
+              ID: {vehicle.id.slice(0, 8)}...
+            </Typography>
+          </Box>
+          
+          {/* ŠPZ column */}
+          <Box sx={{ 
+            width: 120,
+            minWidth: 120,
+            p: 2,
+            borderRight: '1px solid #e0e0e0',
+            textAlign: 'center'
+          }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {vehicle.licensePlate || 'N/A'}
+            </Typography>
+          </Box>
+          
+          {/* Status column */}
+          <Box sx={{ 
+            width: 100,
+            minWidth: 100,
+            p: 2,
+            borderRight: '1px solid #e0e0e0',
+            textAlign: 'center'
+          }}>
+            <Chip
+              icon={getStatusIcon(vehicle.status)}
+              label={vehicle.status || 'N/A'}
+              size="small"
+              color={vehicle.status === 'available' ? 'success' : 
+                     vehicle.status === 'rented' ? 'warning' : 'default'}
+              sx={{ fontSize: '0.7rem' }}
+            />
+          </Box>
+          
+          {/* Akcie column */}
+          <Box sx={{ 
+            flex: 1,
+            p: 2,
+            display: 'flex',
+            gap: 1,
+            justifyContent: 'center'
+          }}>
+            <Tooltip title="Upraviť vozidlo">
+              <IconButton 
+                size="small" 
+                color="primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(vehicle);
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+      </div>
+    );
+  }, [filteredVehicles, handleEdit]);
 
   // CSV funkcionalita
   const handleExportCSV = async () => {
@@ -1102,9 +1211,22 @@ export default function VehicleListNew() {
               </Box>
             </Box>
 
-            {/* Desktop Vehicle Rows */}
-            <Box>
-              {filteredVehicles.map((vehicle, index) => (
+            {/* 🚀 VIRTUALIZED Desktop Vehicle Rows - pre performance */}
+            <Box sx={{ height: 600, width: '100%' }}>
+              <List
+                height={600}
+                width="100%"
+                itemCount={filteredVehicles.length}
+                itemSize={72}
+                itemData={filteredVehicles}
+              >
+                {VirtualizedVehicleRow}
+              </List>
+            </Box>
+            
+            {/* FALLBACK: Tradičný rendering pre debug */}
+            <Box sx={{ display: 'none' }}>
+              {filteredVehicles.slice(0, 5).map((vehicle, index) => (
                 <Box 
                   key={vehicle.id}
                   sx={{ 
@@ -1329,6 +1451,8 @@ export default function VehicleListNew() {
                 </Box>
               ))}
             </Box>
+            
+            {/* END OF FALLBACK - original vehicle rendering disabled */}
           </CardContent>
         </Card>
       )}
