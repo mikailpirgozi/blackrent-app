@@ -159,7 +159,7 @@ const VehicleOwnerDisplay: React.FC<{
 };
 
 export default function RentalListNew() {
-  logger.render('RentalListNew');
+  logger.render('RentalListNew render', { timestamp: Date.now() });
   
   const { state, createRental, updateRental, deleteRental } = useApp();
   const theme = useTheme();
@@ -186,11 +186,11 @@ export default function RentalListNew() {
   
   // 🔴 Real-time updates hook
   useRentalUpdates((type, rental, rentalId) => {
-    logger.debug('WebSocket rental update', { type, rentalId });
+    logger.debug('WebSocket rental update', { type, rentalId, timestamp: Date.now() });
     
     // Auto-refresh rental list when changes occur
     if (type === 'created' || type === 'updated' || type === 'deleted') {
-      // Trigger refresh of rental data (you might want to optimize this)
+      logger.performance('Rental list refresh triggered', { reason: type, rentalId });
       window.dispatchEvent(new Event('rental-list-refresh'));
     }
   });
@@ -293,8 +293,7 @@ export default function RentalListNew() {
 
   // Debug wrapper for setGalleryOpen
   const setGalleryOpen = (value: boolean) => {
-    console.log(`🎭 setGalleryOpen called with:`, value, '(using useRef)');
-    console.trace(`🔍 setGalleryOpen stack trace:`);
+    logger.debug('Gallery state change', { value, timestamp: Date.now() });
     galleryOpenRef.current = value;
     forceUpdate({}); // Force re-render to update UI
   };
@@ -308,7 +307,7 @@ export default function RentalListNew() {
       return null;
     }
     
-    console.log('🔍 Načítavam protokoly pre:', rentalId);
+    logger.api('Loading protocols for rental', { rentalId });
     setLoadingProtocols(prev => [...prev, rentalId]);
     
     try {
@@ -329,9 +328,12 @@ export default function RentalListNew() {
           )[0] 
         : undefined;
       
-      console.log('🔍 API response:', data);
-      console.log('🔍 Latest handover:', latestHandover);
-      console.log('🔍 Latest return:', latestReturn);
+      logger.api('Protocols API response', { 
+        hasData: !!data, 
+        handoverCount: data?.handoverProtocols?.length || 0,
+        returnCount: data?.returnProtocols?.length || 0,
+        rentalId 
+      });
       
       const protocolData = {
         handover: latestHandover,
@@ -346,7 +348,7 @@ export default function RentalListNew() {
       // ⚡ RETURN načítané dáta pre okamžité použitie
       return protocolData;
     } catch (error) {
-      console.error('❌ Chyba pri načítaní protokolov:', error);
+      logger.error('Failed to load protocols', { rentalId, error });
       return null;
     } finally {
       setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
@@ -355,19 +357,19 @@ export default function RentalListNew() {
 
   // Funkcia pre zobrazenie protokolov na požiadanie
   const handleViewProtocols = async (rental: Rental) => {
-    console.log('🔍 Checking protocols for rental:', rental.id, {
+    logger.debug('Checking protocols for rental', {
+      rentalId: rental.id,
       hasProtocols: !!protocols[rental.id],
-      protocolKeys: Object.keys(protocols),
-      currentProtocol: protocols[rental.id]
+      protocolCount: Object.keys(protocols).length
     });
     
     // Ak už sú protokoly načítané, nechaj ich zobrazené
     if (protocols[rental.id]) {
-      console.log('✅ Protocols already loaded, skipping API call');
+      logger.cache('Protocols already loaded, using cache');
       return;
     }
     
-    console.log('🔍 Načítavam protokoly pre prenájom:', rental.id);
+    logger.api('Loading protocols for rental', { rentalId: rental.id });
     await loadProtocolsForRental(rental.id);
     // Note: loadProtocolsForRental už updatuje protocols state, takže netreba žiadnu dodatočnú logiku
   };
