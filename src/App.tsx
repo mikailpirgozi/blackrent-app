@@ -1,4 +1,3 @@
-import './utils/dayjs-setup';
 import './styles/custom-font.css'; // Aeonik font
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
@@ -9,7 +8,7 @@ import { ErrorProvider } from './context/ErrorContext';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ThemeProvider, useThemeMode } from './context/ThemeContext';
 
 // Performance optimization imports
@@ -90,7 +89,7 @@ const AppContent: React.FC = () => {
         <ErrorToastContainer />
         {/* PWA Install moved to sidebar - no auto-popup */}
         <OfflineIndicator position="top" showDetails={true} />
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
           <AuthProvider>
             <PermissionsProvider>
               <AppProvider>
