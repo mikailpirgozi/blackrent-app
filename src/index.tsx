@@ -25,12 +25,11 @@ window.addEventListener('error', (event) => {
 
 // Initialize error handling for manifest.json and performance monitoring
 if (process.env.NODE_ENV === 'development') {
+  // ⚡ PERFORMANCE: Disabled verbose Web Vitals logging to reduce console spam
   import('./utils/webVitals').then(({ debugPerformance, reportWebVitals }) => {
-    debugPerformance();
+    // debugPerformance(); // Disabled - too verbose
     
-    // Initialize Web Vitals monitoring
-    reportWebVitals((data) => {
-      console.log('📊 Web Vitals:', data);
-    });
+    // Initialize Web Vitals monitoring (silent mode)
+    reportWebVitals(); // No callback = silent monitoring
   });
 }
