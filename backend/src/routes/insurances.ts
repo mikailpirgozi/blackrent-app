@@ -7,6 +7,153 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+// GET /api/insurances/paginated - Paginated insurances with filters
+router.get('/paginated', 
+  authenticateToken,
+  checkPermission('insurances', 'read'),
+  async (req: Request, res: Response) => {
+    try {
+      const {
+        page = '1',
+        limit = '50',
+        search = '',
+        type = '',
+        insurerId = '',
+        vehicleId = '',
+        status = '',
+        dateFrom = '',
+        dateTo = ''
+      } = req.query;
+
+      const pageNum = parseInt(page as string, 10);
+      const limitNum = parseInt(limit as string, 10);
+      const offset = (pageNum - 1) * limitNum;
+
+      let insurances = await postgresDatabase.getInsurances();
+      
+      console.log('🛡️ Insurances PAGINATED GET - user:', { 
+        role: req.user?.role, 
+        userId: req.user?.id, 
+        totalInsurances: insurances.length,
+        page: pageNum,
+        limit: limitNum
+      });
+      
+      // 🏢 COMPANY OWNER - filter len poistky vlastných vozidiel
+      if (req.user?.role === 'company_owner' && req.user.companyId) {
+        const vehicles = await postgresDatabase.getVehicles();
+        const companyVehicleIds = vehicles
+          .filter(v => v.ownerCompanyId === req.user?.companyId)
+          .map(v => v.id);
+        
+        insurances = insurances.filter(i => 
+          i.vehicleId && companyVehicleIds.includes(i.vehicleId)
+        );
+      }
+
+      // 🔍 Apply filters
+      let filteredInsurances = [...insurances];
+
+      // Search filter
+      if (search) {
+        const searchLower = search.toString().toLowerCase();
+        filteredInsurances = filteredInsurances.filter(i => 
+          i.policyNumber?.toLowerCase().includes(searchLower) ||
+          i.type?.toLowerCase().includes(searchLower) ||
+          i.note?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      // Type filter
+      if (type) {
+        filteredInsurances = filteredInsurances.filter(i => 
+          i.type === type.toString()
+        );
+      }
+
+      // Insurer filter
+      if (insurerId) {
+        filteredInsurances = filteredInsurances.filter(i => 
+          i.insurerId === insurerId.toString()
+        );
+      }
+
+      // Vehicle filter
+      if (vehicleId) {
+        filteredInsurances = filteredInsurances.filter(i => 
+          i.vehicleId === vehicleId.toString()
+        );
+      }
+
+      // Status filter
+      if (status) {
+        filteredInsurances = filteredInsurances.filter(i => 
+          i.status === status.toString()
+        );
+      }
+
+      // Date filters
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom.toString());
+        filteredInsurances = filteredInsurances.filter(i => {
+          if (!i.startDate) return false;
+          const insuranceDate = new Date(i.startDate);
+          return insuranceDate >= fromDate;
+        });
+      }
+
+      if (dateTo) {
+        const toDate = new Date(dateTo.toString());
+        filteredInsurances = filteredInsurances.filter(i => {
+          if (!i.endDate) return false;
+          const insuranceDate = new Date(i.endDate);
+          return insuranceDate <= toDate;
+        });
+      }
+
+      // Sort by start date (newest first)
+      filteredInsurances.sort((a, b) => {
+        const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return dateB - dateA;
+      });
+
+      // Calculate pagination
+      const totalItems = filteredInsurances.length;
+      const totalPages = Math.ceil(totalItems / limitNum);
+      const hasMore = pageNum < totalPages;
+
+      // Get paginated results
+      const paginatedInsurances = filteredInsurances.slice(offset, offset + limitNum);
+
+      console.log('📄 Paginated insurances:', {
+        totalItems,
+        currentPage: pageNum,
+        totalPages,
+        hasMore,
+        resultsCount: paginatedInsurances.length
+      });
+
+      res.json({
+        success: true,
+        insurances: paginatedInsurances,
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalItems,
+          hasMore,
+          itemsPerPage: limitNum
+        }
+      });
+    } catch (error) {
+      console.error('Get paginated insurances error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri získavaní poistení'
+      });
+    }
+  });
+
 // 🔍 CONTEXT FUNCTIONS
 const getInsuranceContext = async (req: Request) => {
   const insuranceId = req.params.id;

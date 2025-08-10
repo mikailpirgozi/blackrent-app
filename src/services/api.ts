@@ -773,6 +773,51 @@ class ApiService {
     return this.request<Insurance[]>('/insurances');
   }
 
+  // 🚀 NOVÝ: Paginated insurances s filtrami
+  async getInsurancesPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: string;
+    insurerId?: string;
+    vehicleId?: string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  } = {}): Promise<{
+    insurances: Insurance[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/insurances/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      insurances: Insurance[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   async createInsurance(insurance: Insurance): Promise<void> {
     return this.request<void>('/insurances', {
       method: 'POST',
