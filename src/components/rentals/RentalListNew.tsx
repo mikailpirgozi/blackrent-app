@@ -240,7 +240,7 @@ export default function RentalListNew() {
           delete (window as any).__rentalListScrollHandler;
         }
       };
-    }, [rentalListRef, scrollContainerRef, loadMore, hasMore, paginatedLoading, filteredRentals.length, isMobile]);
+    }, [rentalListRef, scrollContainerRef, loadMore, hasMore, paginatedLoading, paginatedRentals.length, isMobile]);
   
   // ⚡ BACKGROUND PROTOCOL LOADING STATE
   const [protocolStatusMap, setProtocolStatusMap] = useState<Record<string, {
