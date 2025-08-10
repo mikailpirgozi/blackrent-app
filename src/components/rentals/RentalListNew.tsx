@@ -190,9 +190,10 @@ export default function RentalListNew() {
     refresh: refreshPaginated
   } = useInfiniteRentals();
   
-  // Create a scrollable container ref for infinite scroll detection
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  useInfiniteScroll(scrollContainerRef, loadMore, hasMore && !paginatedLoading);
+      // Create a scrollable container ref for infinite scroll detection
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    // 🚀 PRELOADING: Trigger at 70% scroll for seamless UX - users never see empty space
+    useInfiniteScroll(scrollContainerRef, loadMore, hasMore && !paginatedLoading, 0.7);
   
   // ⚡ BACKGROUND PROTOCOL LOADING STATE
   const [protocolStatusMap, setProtocolStatusMap] = useState<Record<string, {
