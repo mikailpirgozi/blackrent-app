@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -13,7 +13,7 @@ import {
   Alert,
   useMediaQuery,
   useTheme,
-
+  CircularProgress,
   Card,
   CardContent,
   Collapse,
@@ -54,6 +54,8 @@ import { apiService } from '../../services/api';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { EnhancedLoading } from '../common/EnhancedLoading';
+import { useInfiniteVehicles } from '../../hooks/useInfiniteVehicles';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 
 const getStatusColor = (status: VehicleStatus): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
   switch (status) {
@@ -104,21 +106,16 @@ const getStatusIcon = (status: VehicleStatus) => {
 };
 
 export default function VehicleListNew() {
-  const { state, createVehicle, updateVehicle, deleteVehicle, getFullyFilteredVehicles } = useApp();
+  const { state, createVehicle, updateVehicle, deleteVehicle } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // States
   const [currentTab, setCurrentTab] = useState(0); // 🆕 Tab state
-  const [searchQuery, setSearchQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [loading, setLoading] = useState(false);
-  
-  // 🚀 INFINITE SCROLL STATES
-  const [displayedVehicles, setDisplayedVehicles] = useState(20); // Start with 20 items
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   // ✅ NOVÉ: State pre hromadné mazanie
   const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set());
@@ -138,6 +135,21 @@ export default function VehicleListNew() {
   const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false);
   const [selectedVehicleHistory, setSelectedVehicleHistory] = useState<Vehicle | null>(null);
   const [ownershipHistory, setOwnershipHistory] = useState<any[]>([]);
+
+  // 🚀 INFINITE SCROLL - použitie nového hooku
+  const {
+    vehicles,
+    loading,
+    hasMore,
+    searchTerm,
+    setSearchTerm,
+    loadMore,
+    refresh,
+    updateFilters
+  } = useInfiniteVehicles();
+
+  // 🚀 Infinite scroll detection
+  useInfiniteScroll(scrollContainerRef, loadMore, hasMore && !loading, 0.7);
 
   // Handlers
   const handleEdit = (vehicle: Vehicle) => {
@@ -171,12 +183,10 @@ export default function VehicleListNew() {
   const handleDelete = async (vehicleId: string) => {
     if (window.confirm('Naozaj chcete vymazať toto vozidlo?')) {
       try {
-        setLoading(true);
         await deleteVehicle(vehicleId);
+        refresh(); // Refresh data after delete
       } catch (error) {
         console.error('Error deleting vehicle:', error);
-      } finally {
-        setLoading(false);
       }
     }
   };
@@ -188,17 +198,15 @@ export default function VehicleListNew() {
 
   const handleSubmit = async (vehicleData: Vehicle) => {
     try {
-      setLoading(true);
       if (editingVehicle) {
         await updateVehicle(vehicleData);
       } else {
         await createVehicle(vehicleData);
       }
       handleCloseDialog();
+      refresh(); // Refresh data after save
     } catch (error) {
       console.error('Error saving vehicle:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -212,11 +220,12 @@ export default function VehicleListNew() {
   // 🏢 Save company
   const handleSaveCompany = async (vehicleId: string, companyId: string) => {
     try {
-      const vehicle = filteredVehicles.find(v => v.id === vehicleId);
+      const vehicle = vehicles.find(v => v.id === vehicleId);
       if (!vehicle) return;
 
       const updatedVehicle = { ...vehicle, ownerCompanyId: companyId };
       await updateVehicle(updatedVehicle);
+      refresh(); // Refresh data after update
       console.log('✅ Company saved:', companyId, 'for vehicle:', vehicleId);
     } catch (error) {
       console.error('❌ Error saving company:', error);
@@ -226,10 +235,9 @@ export default function VehicleListNew() {
   // 🤖 Auto-assign owners based on company names
   const handleAutoAssignOwners = async () => {
     try {
-      setLoading(true);
       let updatedCount = 0;
       
-      for (const vehicle of filteredVehicles) {
+      for (const vehicle of vehicles) {
         // Skip if already has company assigned
         if (vehicle.company && vehicle.company.trim()) {
           continue;
@@ -245,74 +253,47 @@ export default function VehicleListNew() {
     } catch (error) {
       console.error('❌ Error auto-assigning owners:', error);
       alert('Chyba pri automatickom priradzovaní majiteľov');
-    } finally {
-      setLoading(false);
     }
   };
 
-  // 🚀 ENHANCED: Filtered vehicles using new unified filter system
-  const filteredVehicles = useMemo(() => {
-    return getFullyFilteredVehicles({
-      search: searchQuery,
-      brand: filterBrand,
-      model: filterModel,
-      company: filterCompany,
-      status: filterStatus as any, // Type casting for backwards compatibility
-      category: filterCategory,
-      // Status group filters (backwards compatibility)
-      showAvailable,
-      showRented,
-      showMaintenance,
-      showOther
-    });
+  // 🚀 Update filters when they change
+  useEffect(() => {
+    const filters: any = {};
+    
+    if (filterBrand) filters.brand = filterBrand;
+    if (filterModel) filters.model = filterModel;
+    if (filterCompany) filters.company = filterCompany;
+    if (filterCategory !== 'all') filters.category = filterCategory;
+    if (filterStatus) filters.status = filterStatus;
+    
+    // Status visibility filters
+    const statusFilters = [];
+    if (!showAvailable) statusFilters.push('available');
+    if (!showRented) statusFilters.push('rented');
+    if (!showMaintenance) statusFilters.push('maintenance');
+    if (!showOther) statusFilters.push('other');
+    
+    if (statusFilters.length > 0) {
+      filters.excludeStatuses = statusFilters;
+    }
+    
+    updateFilters(filters);
   }, [
-    searchQuery,
     filterBrand,
     filterModel,
     filterCompany,
-    filterStatus,
     filterCategory,
+    filterStatus,
     showAvailable,
     showRented,
     showMaintenance,
     showOther,
-    getFullyFilteredVehicles // 🎯 Enhanced filter function
+    updateFilters
   ]);
 
-  // 🚀 INFINITE SCROLL LOGIC (after filteredVehicles definition)
-  const loadMoreVehicles = useCallback(() => {
-    if (isLoadingMore || displayedVehicles >= filteredVehicles.length) return;
-    
-    setIsLoadingMore(true);
-    
-    // Simulate loading delay for better UX
-    setTimeout(() => {
-      setDisplayedVehicles(prev => Math.min(prev + 20, filteredVehicles.length));
-      setIsLoadingMore(false);
-    }, 300);
-  }, [isLoadingMore, displayedVehicles, filteredVehicles.length]);
-
-  // Reset displayed count when filters change
-  useEffect(() => {
-    setDisplayedVehicles(20);
-  }, [searchQuery, filterBrand, filterModel, filterCompany, filterStatus, filterCategory, showAvailable, showRented, showMaintenance, showOther]);
-
-  // Infinite scroll event handler
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    
-    // Load more when user scrolls to 80% of the content
-    if (scrollTop + clientHeight >= scrollHeight * 0.8) {
-      loadMoreVehicles();
-    }
-  }, [loadMoreVehicles]);
-
-  // Get vehicles to display (limited by infinite scroll)
-  const vehiclesToDisplay = useMemo(() => {
-    return filteredVehicles.slice(0, displayedVehicles);
-  }, [filteredVehicles, displayedVehicles]);
-
-  const hasMore = displayedVehicles < filteredVehicles.length;
+  // Use vehicles from hook instead of filteredVehicles
+  const filteredVehicles = vehicles;
+  const vehiclesToDisplay = vehicles;
 
   // Get unique values for filters
   const uniqueBrands = [...new Set(state.vehicles.map(v => v.brand))].sort();
@@ -658,8 +639,8 @@ export default function VehicleListNew() {
             <TextField
               fullWidth
               placeholder="Hľadať vozidlá..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: '#666', mr: 1 }} />,
               }}
