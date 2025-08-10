@@ -200,3 +200,88 @@ export function useContainerInfiniteScroll(
     return () => container.removeEventListener('scroll', handleContainerScroll);
   }, [containerRef, onLoadMore, shouldLoad, preloadThreshold]);
 }
+
+// 🎯 NEW: Item-based infinite scroll - triggers based on visible item index
+export function useItemBasedInfiniteScroll(
+  containerRef: React.RefObject<HTMLDivElement>,
+  onLoadMore: () => void,
+  shouldLoad: boolean,
+  totalItems: number,
+  itemSelector: string = '[data-rental-item]',
+  triggerAtItem: number | 'auto' = 'auto' // 'auto' = 85% of items
+) {
+  const loadingRef = useRef(false);
+  const lastTriggerTime = useRef(0);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let debounceTimer: NodeJS.Timeout;
+
+    const handleScroll = () => {
+      if (!shouldLoad || loadingRef.current || totalItems === 0) return;
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        // Get all rental items
+        const items = container.querySelectorAll(itemSelector);
+        if (items.length === 0) return;
+
+        // Find the last visible item
+        const containerRect = container.getBoundingClientRect();
+        let lastVisibleIndex = -1;
+
+        items.forEach((item, index) => {
+          const itemRect = item.getBoundingClientRect();
+          // Check if item is at least partially visible
+          if (itemRect.top < containerRect.bottom && itemRect.bottom > containerRect.top) {
+            lastVisibleIndex = Math.max(lastVisibleIndex, index);
+          }
+        });
+
+        // Calculate trigger point
+        const triggerIndex = triggerAtItem === 'auto' 
+          ? Math.floor(totalItems * 0.85) - 1  // 85% of items
+          : triggerAtItem - 1;
+
+        // Time-based throttling
+        const now = Date.now();
+        const timeSinceLastTrigger = now - lastTriggerTime.current;
+        const minTimeBetweenTriggers = 2000; // 2 seconds
+
+        // Trigger if we've scrolled past the trigger item
+        if (lastVisibleIndex >= triggerIndex && 
+            !loadingRef.current &&
+            timeSinceLastTrigger > minTimeBetweenTriggers) {
+          console.log(`📜 Item-based scroll triggered: Item ${lastVisibleIndex + 1}/${totalItems} visible (trigger at ${triggerIndex + 1})`);
+          loadingRef.current = true;
+          lastTriggerTime.current = now;
+          onLoadMore();
+          
+          // Reset loading flag after delay
+          setTimeout(() => {
+            loadingRef.current = false;
+          }, 3000);
+        }
+      }, 150); // Debounce
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Also check on initial render and when items change
+    setTimeout(handleScroll, 100);
+
+    return () => {
+      clearTimeout(debounceTimer);
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [containerRef, onLoadMore, shouldLoad, totalItems, itemSelector, triggerAtItem]);
+
+  // Reset loading flag when shouldLoad changes
+  useEffect(() => {
+    if (!shouldLoad) {
+      loadingRef.current = false;
+    }
+  }, [shouldLoad]);
+}
