@@ -23,7 +23,8 @@ import {
   MenuItem,
   Checkbox,
   Grid,
-  Divider
+  Divider,
+  Fade
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -40,6 +41,13 @@ import {
   Search as SearchIcon,
   FilterList as FilterListIcon,
   Refresh as RefreshIcon,
+  DirectionsCar as CarIcon,
+  Person as PersonIcon,
+  Business as BusinessIcon,
+  Schedule as ScheduleIcon,
+  GetApp as ExportIcon,
+  CloudDownload as DownloadIcon,
+  List as ListIcon
 
 } from '@mui/icons-material';
 import { format } from 'date-fns';
@@ -54,6 +62,7 @@ import { MobileRentalRow } from './MobileRentalRow';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
+import { FixedSizeList as List } from 'react-window';
 import RentalForm from './RentalForm';
 import PDFViewer from '../common/PDFViewer';
 import ProtocolGallery from '../common/ProtocolGallery';
@@ -152,7 +161,6 @@ export default function RentalListNew() {
     error: paginatedError,
     searchTerm: paginatedSearchTerm,
     setSearchTerm: setPaginatedSearchTerm,
-    loadMore,
     loadMore
   } = useInfiniteRentals();
   
