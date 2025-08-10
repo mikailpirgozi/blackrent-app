@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -51,19 +51,21 @@ import CustomerRentalHistory from './CustomerRentalHistory';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
+import { useInfiniteCustomers } from '../../hooks/useInfiniteCustomers';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 
 export default function CustomerListNew() {
   const { state, createCustomer, updateCustomer, deleteCustomer, updateRental } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // States
-  const [searchQuery, setSearchQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
   const [importError, setImportError] = useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
@@ -76,9 +78,20 @@ export default function CustomerListNew() {
   const [showWithPhone, setShowWithPhone] = useState(true);
   const [showWithoutPhone, setShowWithoutPhone] = useState(true);
   
-  // 🚀 INFINITE SCROLL STATES
-  const [displayedCustomers, setDisplayedCustomers] = useState(20); // Start with 20 items
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // 🚀 INFINITE SCROLL - použitie nového hooku
+  const {
+    customers,
+    loading,
+    hasMore,
+    searchTerm,
+    setSearchTerm,
+    loadMore,
+    refresh,
+    updateFilters
+  } = useInfiniteCustomers();
+
+  // 🚀 Infinite scroll detection
+  useInfiniteScroll(scrollContainerRef, loadMore, hasMore && !loading, 0.7);
 
   // Handlers
   const handleEdit = (customer: Customer) => {
@@ -89,12 +102,10 @@ export default function CustomerListNew() {
   const handleDelete = async (customerId: string) => {
     if (window.confirm('Naozaj chcete vymazať tohto zákazníka?')) {
       try {
-        setLoading(true);
         await deleteCustomer(customerId);
+        refresh(); // Refresh data after delete
       } catch (error) {
         console.error('Error deleting customer:', error);
-      } finally {
-        setLoading(false);
       }
     }
   };
@@ -170,23 +181,21 @@ export default function CustomerListNew() {
 
   const handleSubmit = async (customerData: Customer) => {
     try {
-      setLoading(true);
       if (editingCustomer) {
         await updateCustomer(customerData);
       } else {
         await createCustomer(customerData);
       }
       handleCloseDialog();
+      refresh(); // Refresh data after save
     } catch (error) {
       console.error('Error saving customer:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleImportExistingCustomers = async () => {
     try {
-      setLoading(true);
+      setLocalLoading(true);
       // Získam všetkých unikátnych zákazníkov z prenájmov
       const existingCustomerNames = Array.from(new Set(state.rentals.map(r => r.customerName).filter(Boolean)));
       
@@ -234,7 +243,7 @@ export default function CustomerListNew() {
       console.error('Chyba pri importe zákazníkov:', error);
       alert('Chyba pri importe zákazníkov');
     } finally {
-      setLoading(false);
+      setLocalLoading(false);
     }
   };
 
