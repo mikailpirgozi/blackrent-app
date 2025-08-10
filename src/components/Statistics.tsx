@@ -4,7 +4,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Paper,
   Grid,
   FormControl,
   InputLabel,
@@ -22,14 +21,9 @@ import {
   useTheme,
   useMediaQuery,
   Button,
-  Collapse,
-  IconButton,
   Avatar,
   Divider,
   Alert,
-  Fade,
-  Skeleton,
-  Badge,
   LinearProgress,
 } from '@mui/material';
 import {
@@ -55,15 +49,10 @@ import {
   AttachMoney as MoneyIcon,
   DirectionsCar as CarIcon,
   Person as PersonIcon,
-  Receipt as ReceiptIcon,
   CalendarToday as CalendarIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon,
   Refresh as RefreshIcon,
-  Download as DownloadIcon,
-  FilterList as FilterListIcon,
   Assessment as AssessmentIcon,
   Euro as EuroIcon,
   ShowChart as ShowChartIcon,
@@ -82,7 +71,6 @@ import { useApp } from '../context/AppContext';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInDays, isAfter, isBefore, startOfYear, endOfYear, getDaysInMonth } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import StatisticsMobile from './statistics/StatisticsMobile';
 import { logger } from '../utils/smartLogger';
 
@@ -451,10 +439,6 @@ const Statistics: React.FC = () => {
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
-  };
-
-  const toggleMonthExpansion = (monthKey: string) => {
-    setExpandedMonth(expandedMonth === monthKey ? null : monthKey);
   };
 
   // Custom Tooltip pre grafy
