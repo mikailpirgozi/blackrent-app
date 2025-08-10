@@ -197,7 +197,7 @@ export default function RentalListNew() {
           
           // For mobile virtualized list
           if (isMobile && e && e.scrollOffset !== undefined) {
-            const totalHeight = filteredRentals.length * 160; // itemSize * count
+            const totalHeight = paginatedRentals.length * 160; // itemSize * count
             const viewportHeight = 600;
             const maxScroll = totalHeight - viewportHeight;
             scrollPercentage = e.scrollOffset / maxScroll;
