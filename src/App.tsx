@@ -23,8 +23,8 @@ import { initializeCriticalResources } from './utils/criticalResources';
 
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ErrorToastContainer from './components/common/ErrorToastContainer';
-import PWAInstallPrompt from './components/common/PWAInstallPrompt';
-import PWAStatus from './components/common/PWAStatus';
+// import PWAInstallPrompt from './components/common/PWAInstallPrompt';
+// import PWAStatus from './components/common/PWAStatus';
 import OfflineIndicator from './components/common/OfflineIndicator';
 import Layout from './components/Layout';
 import LoginForm from './components/auth/LoginForm';
@@ -36,7 +36,7 @@ import { Suspense, lazy } from 'react';
 
 const VehicleList = lazy(() => import('./components/vehicles/VehicleListNew'));
 const RentalList = lazy(() => import('./components/rentals/RentalListNew'));
-const ImapEmailMonitoring = lazy(() => import('./components/admin/ImapEmailMonitoring'));
+// const ImapEmailMonitoring = lazy(() => import('./components/admin/ImapEmailMonitoring'));
 const EmailManagementDashboard = lazy(() => import('./components/admin/EmailManagementDashboard'));
 const CustomerList = lazy(() => import('./components/customers/CustomerListNew'));
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));
@@ -46,7 +46,7 @@ const UserManagement = lazy(() => import('./components/users/IntegratedUserManag
 const SettlementList = lazy(() => import('./components/settlements/SettlementListNew'));
 // OLD: const AvailabilityPage = lazy(() => import('./pages/AvailabilityPageNew')); // REMOVED - replaced by Smart version
 const SmartAvailabilityPage = lazy(() => import('./pages/SmartAvailabilityPage'));
-const VehicleOwnershipTransfer = lazy(() => import('./components/admin/VehicleOwnershipTransfer'));
+// const VehicleOwnershipTransfer = lazy(() => import('./components/admin/VehicleOwnershipTransfer'));
 
 // OPTIMALIZOVANÝ Loading component pre lazy loaded routes
 const PageLoader = () => (

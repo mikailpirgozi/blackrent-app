@@ -38,6 +38,15 @@ declare module '@mui/material/styles' {
 export const darkTheme = createTheme({
   gradients: darkGradients,
   customShadows: darkShadows,
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 768, // Znížené z 960px na 768px pre lepšiu desktop detekciu
+      lg: 1024,
+      xl: 1280,
+    },
+  },
   palette: {
     mode: 'dark',
     primary: {
