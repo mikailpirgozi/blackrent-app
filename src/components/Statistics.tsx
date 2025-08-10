@@ -4,7 +4,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Paper,
   Grid,
   FormControl,
   InputLabel,
@@ -22,14 +21,9 @@ import {
   useTheme,
   useMediaQuery,
   Button,
-  Collapse,
-  IconButton,
   Avatar,
   Divider,
   Alert,
-  Fade,
-  Skeleton,
-  Badge,
   LinearProgress,
 } from '@mui/material';
 import {
@@ -55,15 +49,10 @@ import {
   AttachMoney as MoneyIcon,
   DirectionsCar as CarIcon,
   Person as PersonIcon,
-  Receipt as ReceiptIcon,
   CalendarToday as CalendarIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon,
   Refresh as RefreshIcon,
-  Download as DownloadIcon,
-  FilterList as FilterListIcon,
   Assessment as AssessmentIcon,
   Euro as EuroIcon,
   ShowChart as ShowChartIcon,
@@ -82,7 +71,6 @@ import { useApp } from '../context/AppContext';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInDays, isAfter, isBefore, startOfYear, endOfYear, getDaysInMonth } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import StatisticsMobile from './statistics/StatisticsMobile';
 import { logger } from '../utils/smartLogger';
 
@@ -114,9 +102,12 @@ const Statistics: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [tabValue, setTabValue] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'month' | 'year' | 'all'>('month');
   
@@ -453,10 +444,6 @@ const Statistics: React.FC = () => {
     setTabValue(newValue);
   };
 
-  const toggleMonthExpansion = (monthKey: string) => {
-    setExpandedMonth(expandedMonth === monthKey ? null : monthKey);
-  };
-
   // Custom Tooltip pre grafy
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -529,92 +516,6 @@ const Statistics: React.FC = () => {
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
               vs. predch. obdobie
             </Typography>
-          </Box>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  // Komponenta pre TOP štatistiky
-  const TopStatCard = ({ 
-    title, 
-    icon, 
-    data, 
-    primaryValue, 
-    secondaryValue, 
-    gradient,
-    percentage 
-  }: {
-    title: string;
-    icon: React.ReactNode;
-    data: any;
-    primaryValue: string;
-    secondaryValue: string;
-    gradient: string;
-    percentage?: number;
-  }) => (
-    <Card sx={{ 
-      height: '100%',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-      transition: 'all 0.2s ease',
-      '&:hover': {
-        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-        transform: 'translateY(-4px)',
-      }
-    }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Avatar sx={{ 
-            bgcolor: 'transparent',
-            background: gradient,
-            width: 56,
-            height: 56
-          }}>
-            {icon}
-          </Avatar>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#667eea' }}>
-              {title}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {data ? (data.vehicle ? `${data.vehicle.brand} ${data.vehicle.model}` : data.customerName) : 'N/A'}
-            </Typography>
-          </Box>
-          <TrophyIcon sx={{ color: '#ffd700', fontSize: 32 }} />
-        </Box>
-        
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: '#667eea', mb: 0.5 }}>
-            {primaryValue}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {secondaryValue}
-          </Typography>
-        </Box>
-        
-        {percentage !== undefined && (
-          <Box sx={{ mt: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                Vyťaženosť
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: '#667eea' }}>
-                {percentage.toFixed(1)}%
-              </Typography>
-            </Box>
-            <LinearProgress 
-              variant="determinate" 
-              value={Math.min(percentage, 100)} 
-              sx={{
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: '#e0e0e0',
-                '& .MuiLinearProgress-bar': {
-                  background: gradient,
-                  borderRadius: 4,
-                }
-              }}
-            />
           </Box>
         )}
       </CardContent>

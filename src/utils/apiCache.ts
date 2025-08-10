@@ -8,7 +8,7 @@
  * - Offline support
  */
 
-import { debounce, RequestDeduplicator } from './debounce';
+import { RequestDeduplicator } from './debounce';
 
 interface CacheEntry<T> {
   data: T;

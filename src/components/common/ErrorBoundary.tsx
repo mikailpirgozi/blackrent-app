@@ -180,7 +180,7 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       const { level = 'component', maxRetries = 2 } = this.props;
-      const { error, errorInfo, retryCount, showDetails } = this.state;
+      const { error, retryCount, showDetails } = this.state;
       const canRetry = retryCount < maxRetries;
 
       // Different layouts based on error level

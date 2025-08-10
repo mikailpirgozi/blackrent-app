@@ -16,7 +16,6 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Card,
-  CardContent,
   Typography,
   Grid,
   Chip,
@@ -46,7 +45,6 @@ import {
   FormControlLabel
 } from '@mui/material';
 import {
-  CalendarToday as CalendarIcon,
   DirectionsCar as CarIcon,
   CheckCircle as AvailableIcon,
   Cancel as UnavailableIcon,
@@ -54,7 +52,6 @@ import {
   Refresh as RefreshIcon,
   FilterList as FilterIcon,
   Visibility as ViewIcon,
-  Add as AddIcon,
   ArrowBack as ArrowBackIcon,
   ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
@@ -64,9 +61,8 @@ import { sk } from 'date-fns/locale';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { logger } from '../../utils/smartLogger';
-import { cacheHelpers, smartInvalidation } from '../../utils/unifiedCache';
+import { cacheHelpers } from '../../utils/unifiedCache';
 import { VehicleCategory } from '../../types';
-import { apiService } from '../../services/api';
 
 interface AvailabilityData {
   vehicleId: string;

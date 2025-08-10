@@ -494,8 +494,10 @@ export const initializeCriticalResources = () => {
   });
 };
 
-export default {
+const criticalResourcesExports = {
   criticalResourceManager,
   criticalCSSManager,
   initializeCriticalResources,
 };
+
+export default criticalResourcesExports;

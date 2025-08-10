@@ -19,7 +19,6 @@ import {
   Refresh as RefreshIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  Wifi as WifiIcon,
   WifiOff as WifiOffIcon,
 } from '@mui/icons-material';
 import { useError } from '../../context/ErrorContext';
@@ -215,9 +214,6 @@ export const ErrorToastContainer: React.FC = () => {
         return b.timestamp.getTime() - a.timestamp.getTime();
       });
   }, [errors]);
-
-  // Get the most recent error for Snackbar positioning
-  const latestError = sortedErrors[0];
 
   return (
     <>

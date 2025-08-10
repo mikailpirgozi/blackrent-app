@@ -8,7 +8,6 @@ import {
   Typography,
   Grid,
   Chip,
-  Button,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -16,8 +15,6 @@ import {
   Close,
   NavigateBefore,
   NavigateNext,
-  Fullscreen,
-  FullscreenExit,
   Download,
   PhotoLibrary,
   PlayArrow,

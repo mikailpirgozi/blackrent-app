@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { Box, Container } from '@mui/material';
+import { Container } from '@mui/material';
 import SmartAvailabilityDashboard from '../components/availability/SmartAvailabilityDashboard';
 import Layout from '../components/Layout';
 
