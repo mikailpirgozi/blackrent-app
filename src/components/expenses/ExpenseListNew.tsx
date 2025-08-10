@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -46,6 +46,8 @@ import ExpenseForm from './ExpenseForm';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { Vehicle } from '../../types';
+import { useInfiniteExpenses } from '../../hooks/useInfiniteExpenses';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 
 const getCategoryIcon = (category: ExpenseCategory) => {
   switch (category) {
@@ -79,7 +81,6 @@ const getCategoryColor = (category: ExpenseCategory): 'primary' | 'secondary' | 
 
 const ExpenseListNew: React.FC = () => {
   const { 
-    getFilteredExpenses, 
     getFilteredVehicles, 
     deleteExpense, 
     createExpense, 
@@ -89,18 +90,44 @@ const ExpenseListNew: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
 
   // Get data from context
-  const expenses = getFilteredExpenses();
   const vehicles = getFilteredVehicles();
 
   // States
-  const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ExpenseCategory | 'all'>('all');
   const [companyFilter, setCompanyFilter] = useState('');
   const [vehicleFilter, setVehicleFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  // 🚀 INFINITE SCROLL: Use the new hook
+  const {
+    expenses,
+    loading,
+    error,
+    hasMore,
+    totalCount,
+    currentPage,
+    searchTerm,
+    setSearchTerm,
+    loadMore,
+    refresh,
+    updateFilters
+  } = useInfiniteExpenses({
+    category: categoryFilter === 'all' ? undefined : categoryFilter,
+    vehicleId: vehicleFilter || undefined
+  });
+
+  // 🚀 INFINITE SCROLL: Scroll container ref
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // 🚀 INFINITE SCROLL: Use the scroll hook with 70% threshold
+  useInfiniteScroll(
+    scrollContainerRef,
+    loadMore,
+    hasMore && !loading,
+    0.7 // 70% scroll threshold for preloading
+  );
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [loading, setLoading] = useState(false);
 
   // Get unique values for filters
   const uniqueCompanies = useMemo(() => 
@@ -110,21 +137,16 @@ const ExpenseListNew: React.FC = () => {
 
   const uniqueCategories: ExpenseCategory[] = ['fuel', 'service', 'insurance', 'other'];
 
-  // Filtered expenses
-  const filteredExpenses = useMemo(() => {
-    return expenses.filter((expense: Expense) => {
-      const matchesSearch = !searchQuery || 
-        expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        expense.note?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        expense.company.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesCategory = categoryFilter === 'all' || expense.category === categoryFilter;
-      const matchesCompany = !companyFilter || expense.company === companyFilter;
-      const matchesVehicle = !vehicleFilter || expense.vehicleId === vehicleFilter;
-      
-      return matchesSearch && matchesCategory && matchesCompany && matchesVehicle;
+  // 🚀 INFINITE SCROLL: Update filters when they change
+  useEffect(() => {
+    updateFilters({
+      category: categoryFilter === 'all' ? undefined : categoryFilter,
+      vehicleId: vehicleFilter || undefined
     });
-  }, [expenses, searchQuery, categoryFilter, companyFilter, vehicleFilter]);
+  }, [categoryFilter, vehicleFilter, updateFilters]);
+
+  // Use expenses directly from infinite scroll hook - already filtered server-side
+  const filteredExpenses = expenses;
 
   // Calculate totals
   const totalAmount = useMemo(() => 
@@ -160,19 +182,16 @@ const ExpenseListNew: React.FC = () => {
 
   const handleDeleteExpense = async (expense: Expense) => {
     if (window.confirm(`Naozaj chcete zmazať náklad "${expense.description}"?`)) {
-      setLoading(true);
       try {
         await deleteExpense(expense.id);
+        refresh(); // Refresh data after delete
       } catch (error) {
         console.error('Error deleting expense:', error);
-      } finally {
-        setLoading(false);
       }
     }
   };
 
   const handleFormSubmit = async (expenseData: Partial<Expense>) => {
-    setLoading(true);
     try {
       if (editingExpense && expenseData.id) {
         await updateExpense({ ...editingExpense, ...expenseData } as Expense);
@@ -181,10 +200,9 @@ const ExpenseListNew: React.FC = () => {
       }
       setFormOpen(false);
       setEditingExpense(null);
+      refresh(); // Refresh data after save
     } catch (error) {
       console.error('Error saving expense:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -237,7 +255,7 @@ const ExpenseListNew: React.FC = () => {
   };
 
   const clearFilters = () => {
-    setSearchQuery('');
+    setSearchTerm('');
     setCategoryFilter('all');
     setCompanyFilter('');
     setVehicleFilter('');
@@ -311,8 +329,8 @@ const ExpenseListNew: React.FC = () => {
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <TextField
               placeholder="Hľadať náklady..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
               }}
@@ -488,15 +506,32 @@ const ExpenseListNew: React.FC = () => {
         </Grid>
       </Grid>
 
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-          <CircularProgress />
-        </Box>
-      )}
-
       {/* Mobile Layout */}
       {isMobile ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box 
+          ref={scrollContainerRef}
+          sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: 1,
+            maxHeight: 'calc(100vh - 400px)',
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: '#f1f1f1',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#888',
+              borderRadius: '4px',
+              '&:hover': {
+                backgroundColor: '#555',
+              },
+            },
+          }}
+        >
           {filteredExpenses.length === 0 ? (
             <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
               <CardContent sx={{ textAlign: 'center', py: 4 }}>
@@ -507,7 +542,7 @@ const ExpenseListNew: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            filteredExpenses.map((expense: Expense) => {
+            filteredExpenses.map((expense) => {
               const vehicle = expense.vehicleId ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId) : null;
               
               return (
@@ -621,6 +656,39 @@ const ExpenseListNew: React.FC = () => {
               );
             })
           )}
+          
+          {/* 🚀 INFINITE SCROLL: Loading indicator */}
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={30} />
+            </Box>
+          )}
+          
+          {/* 🚀 INFINITE SCROLL: Load more button (as fallback) */}
+          {hasMore && !loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={loadMore}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  px: 3
+                }}
+              >
+                Načítať ďalšie ({totalCount - filteredExpenses.length} zostáva)
+              </Button>
+            </Box>
+          )}
+          
+          {/* 🚀 INFINITE SCROLL: End of list message */}
+          {!hasMore && filteredExpenses.length > 0 && (
+            <Box sx={{ textAlign: 'center', py: 2, color: 'text.secondary' }}>
+              <Typography variant="body2">
+                Zobrazené všetky výdavky ({filteredExpenses.length})
+              </Typography>
+            </Box>
+          )}
         </Box>
       ) : (
         /* Desktop Layout */
@@ -651,7 +719,27 @@ const ExpenseListNew: React.FC = () => {
             </Box>
           </Box>
           
-          <Box sx={{ maxHeight: '600px', overflow: 'auto' }}>
+          <Box 
+            ref={scrollContainerRef}
+            sx={{ 
+              maxHeight: '600px', 
+              overflow: 'auto',
+              '&::-webkit-scrollbar': {
+                width: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: '#f1f1f1',
+                borderRadius: '4px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#888',
+                borderRadius: '4px',
+                '&:hover': {
+                  backgroundColor: '#555',
+                },
+              },
+            }}
+          >
             {filteredExpenses.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <ReceiptIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
@@ -660,7 +748,7 @@ const ExpenseListNew: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              filteredExpenses.map((expense: Expense, index: number) => {
+              filteredExpenses.map((expense, index: number) => {
                 const vehicle = expense.vehicleId ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId) : null;
                 
                 return (
@@ -755,6 +843,39 @@ const ExpenseListNew: React.FC = () => {
                   </Box>
                 );
               })
+            )}
+            
+            {/* 🚀 INFINITE SCROLL: Loading indicator */}
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={30} />
+              </Box>
+            )}
+            
+            {/* 🚀 INFINITE SCROLL: Load more button (as fallback) */}
+            {hasMore && !loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <Button
+                  variant="outlined"
+                  onClick={loadMore}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    px: 3
+                  }}
+                >
+                  Načítať ďalšie ({totalCount - filteredExpenses.length} zostáva)
+                </Button>
+              </Box>
+            )}
+            
+            {/* 🚀 INFINITE SCROLL: End of list message */}
+            {!hasMore && filteredExpenses.length > 0 && (
+              <Box sx={{ textAlign: 'center', py: 2, color: 'text.secondary' }}>
+                <Typography variant="body2">
+                  Zobrazené všetky výdavky ({filteredExpenses.length})
+                </Typography>
+              </Box>
             )}
           </Box>
         </Card>
