@@ -78,7 +78,7 @@ export default function Layout({ children }: LayoutProps) {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   
   // 📱 PWA hooks
-  const { isInstallable } = usePWA();
+  const { isInstallable, promptInstall } = usePWA();
   
   // 🛡️ Error handling state
   const [currentError, setCurrentError] = useState<EnhancedError | null>(null);
@@ -143,13 +143,7 @@ export default function Layout({ children }: LayoutProps) {
     permissions.canRead(item.resource)
   );
 
-  // Nájdi aktívny index pre bottom navigation
-  React.useEffect(() => {
-    const activeIndex = menuItems.findIndex(item => location.pathname === item.path);
-    if (activeIndex !== -1) {
-      setBottomNavValue(activeIndex);
-    }
-  }, [location.pathname, menuItems]);
+
 
   // Oprava navigácie pre správne fungovanie
   const handleNavigate = (path: string) => {
