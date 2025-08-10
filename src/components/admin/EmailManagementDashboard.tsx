@@ -45,7 +45,6 @@ import {
   Email as EmailIcon,
   PlayArrow as StartIcon,
   Stop as StopIcon,
-  Settings as SettingsIcon,
   CheckCircle as TestIcon,
   Schedule as PendingIcon,
   ExpandMore as ExpandMoreIcon,
@@ -55,7 +54,6 @@ import {
   Euro as EuroIcon,
   CalendarToday as CalendarIcon,
   LocationOn as LocationIcon,
-  Edit as EditIcon,
   NotificationsNone as NotificationIcon,
   CheckCircle,
 } from '@mui/icons-material';
