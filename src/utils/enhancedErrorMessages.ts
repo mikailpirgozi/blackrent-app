@@ -27,7 +27,7 @@ export const getEnhancedErrorMessage = (
   error: any, 
   context: ErrorContext = {}
 ): EnhancedErrorMessage => {
-  const { action, entity, location } = context;
+  const { action, entity } = context;
   
   // Network/Connection errors
   if (isNetworkError(error)) {

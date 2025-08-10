@@ -7,9 +7,7 @@ import {
   Badge,
   IconButton,
   Menu,
-  MenuItem,
   Typography,
-  Paper,
   List,
   ListItem,
   ListItemText,
@@ -29,8 +27,6 @@ import {
   DirectionsCar as CarIcon,
   Person as PersonIcon,
   Info as InfoIcon,
-  Warning as WarningIcon,
-  Error as ErrorIcon,
   Wifi as WiFiIcon,
   WifiOff as WiFiOffIcon,
   Clear as ClearIcon,
@@ -77,23 +73,6 @@ const RealTimeNotifications: React.FC = () => {
         return <InfoIcon color="warning" />;
       default:
         return <NotificationsIcon />;
-    }
-  };
-
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'rental_created':
-      case 'customer_created':
-        return 'success';
-      case 'rental_updated':
-      case 'vehicle_updated':
-        return 'info';
-      case 'rental_deleted':
-        return 'error';
-      case 'system':
-        return 'warning';
-      default:
-        return 'default';
     }
   };
 

@@ -139,7 +139,7 @@ class UnifiedCacheSystem {
    * Set cache entry
    */
   set<T>(key: string, value: T, options: CacheOptions = {}): void {
-    const { ttl = this.defaultTTL, tags = [], priority = 'normal' } = options;
+    const { ttl = this.defaultTTL, tags = [] } = options;
     
     const size = this.calculateSize(value);
     const entry: CacheEntry<T> = {

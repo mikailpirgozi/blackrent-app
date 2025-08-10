@@ -12,26 +12,17 @@ import {
   ListItemText,
   Toolbar,
   Typography,
-  BottomNavigation,
-  BottomNavigationAction,
   Menu,
   MenuItem,
   Avatar,
   Divider,
   Chip,
-  Button,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  DirectionsCar,
-  Receipt,
   AttachMoney,
-  Assessment,
-  Security,
-  People,
   AccountCircle,
   Logout,
-  MoreVert,
   Lock as LockIcon,
   DashboardOutlined,
   CarRental,
@@ -43,13 +34,6 @@ import {
   LightMode,
   DarkMode,
   CalendarToday,
-  SwapHoriz,
-  HomeOutlined,
-  TimeToLeave,
-  PersonOutlined,
-  BarChartOutlined,
-  MoreHorizOutlined,
-  NotificationsNoneOutlined,
   Email,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -65,10 +49,7 @@ import { EnhancedError } from '../utils/errorHandling';
 import RealTimeNotifications from './common/RealTimeNotifications';
 import MobileNavigation from './common/MobileNavigation';
 import { usePWA } from '../hooks/usePWA';
-import { GetApp as InstallIcon, PhoneIphone as MobileIcon } from '@mui/icons-material';
-import PWAInstallPrompt from './common/PWAInstallPrompt';
 import MobileDebugPanel from './common/MobileDebugPanel';
-import PWAStatus from './common/PWAStatus';
 
 const drawerWidth = 280;
 
@@ -93,12 +74,11 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [bottomNavValue, setBottomNavValue] = useState(0);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   
   // 📱 PWA hooks
-  const { isInstallable, promptInstall } = usePWA();
+  const { isInstallable } = usePWA();
   
   // 🛡️ Error handling state
   const [currentError, setCurrentError] = useState<EnhancedError | null>(null);
@@ -108,10 +88,6 @@ export default function Layout({ children }: LayoutProps) {
   const [successStats, setSuccessStats] = useState<{ count?: number; duration?: number } | undefined>(undefined);
   
   // Error handling functions
-  const handleError = (error: EnhancedError) => {
-    setCurrentError(error);
-  };
-  
   const handleErrorClose = () => {
     setCurrentError(null);
   };
@@ -123,11 +99,6 @@ export default function Layout({ children }: LayoutProps) {
   };
   
   // Success handling functions
-  const handleSuccess = (message: string, stats?: { count?: number; duration?: number }) => {
-    setSuccessMessage(message);
-    setSuccessStats(stats);
-  };
-  
   const handleSuccessClose = () => {
     setSuccessMessage(null);
     setSuccessStats(undefined);
@@ -186,14 +157,7 @@ export default function Layout({ children }: LayoutProps) {
     navigate(path);
   };
 
-  // 📱 PWA install handler
-  const handlePWAInstall = async () => {
-    try {
-      await promptInstall();
-    } catch (error) {
-      console.error('PWA install failed:', error);
-    }
-  };
+
 
   const drawer = (
     <Box 

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Button, Typography, Box, CircularProgress, Alert, Chip } from '@mui/material';
+import { Button, Typography, Box, CircularProgress, Alert } from '@mui/material';
 import { CloudUpload, Delete, Visibility } from '@mui/icons-material';
 
 // Railway backend URL

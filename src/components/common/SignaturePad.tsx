@@ -149,7 +149,7 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
       console.log('✅ Automaticky načítavam signature template');
       loadSignatureTemplate();
     }
-  }, [signerRole, state.user?.signatureTemplate, hasSignature]);
+  }, [signerRole, state.user?.signatureTemplate, hasSignature, loadSignatureTemplate]);
 
   const handleSave = () => {
     const canvas = canvasRef.current;
