@@ -16,25 +16,72 @@ export function useInfiniteScroll(
   shouldLoad: boolean,
   preloadThreshold: number = 0.7 // Default: 70% scroll position
 ) {
+  const loadingRef = useRef(false);
+  const lastScrollTop = useRef(0);
+  const lastTriggerTime = useRef(0);
+
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) return;
 
-    const handleScroll = () => {
-      if (!shouldLoad) return;
+    let debounceTimer: NodeJS.Timeout;
 
-      const { scrollTop, scrollHeight, clientHeight } = element;
-      const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
-      
-      // 🚀 PRELOADING: Trigger when user reaches 70% of scroll
-      if (scrollPercentage >= preloadThreshold) {
-        onLoadMore();
-      }
+    const handleScroll = () => {
+      if (!shouldLoad || loadingRef.current) return;
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const { scrollTop, scrollHeight, clientHeight } = element;
+        
+        // Only trigger if scrolling down
+        if (scrollTop <= lastScrollTop.current) {
+          lastScrollTop.current = scrollTop;
+          return;
+        }
+        lastScrollTop.current = scrollTop;
+        
+        const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
+        
+        // 🚀 PRELOADING: Trigger when user reaches threshold
+        // But add a minimum scroll height check to avoid triggering too early
+        const minScrollHeight = 500; // Minimum scroll height in pixels
+        const hasEnoughContent = scrollHeight - clientHeight > minScrollHeight;
+        
+        // Add time-based throttling - don't trigger more than once per 2 seconds
+        const now = Date.now();
+        const timeSinceLastTrigger = now - lastTriggerTime.current;
+        const minTimeBetweenTriggers = 2000; // 2 seconds
+        
+        if (scrollPercentage >= preloadThreshold && 
+            hasEnoughContent && 
+            !loadingRef.current &&
+            timeSinceLastTrigger > minTimeBetweenTriggers) {
+          console.log(`📜 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}%`);
+          loadingRef.current = true;
+          lastTriggerTime.current = now;
+          onLoadMore();
+          
+          // Reset loading flag after a longer delay
+          setTimeout(() => {
+            loadingRef.current = false;
+          }, 3000); // 3 seconds delay
+        }
+      }, 150); // Debounce for 150ms
     };
 
-    element.addEventListener('scroll', handleScroll);
-    return () => element.removeEventListener('scroll', handleScroll);
+    element.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      clearTimeout(debounceTimer);
+      element.removeEventListener('scroll', handleScroll);
+    };
   }, [scrollRef, onLoadMore, shouldLoad, preloadThreshold]);
+  
+  // Reset loading flag when shouldLoad changes to false (loading completed)
+  useEffect(() => {
+    if (!shouldLoad) {
+      loadingRef.current = false;
+    }
+  }, [shouldLoad]);
 }
 
 // Advanced version with options and enhanced preloading

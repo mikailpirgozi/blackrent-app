@@ -70,6 +70,9 @@ import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 // 🚀 LAZY LOADING: Protocols loaded only when needed
 const HandoverProtocolForm = React.lazy(() => import('../protocols/HandoverProtocolForm'));
 
+// Constants
+const ITEMS_PER_PAGE = 50; // Number of items loaded per page
+
 // Types
 interface FilterState {
   // Základné filtre - arrays pre multi-select
@@ -161,13 +164,16 @@ export default function RentalListNew() {
     error: paginatedError,
     searchTerm: paginatedSearchTerm,
     setSearchTerm: setPaginatedSearchTerm,
+    currentPage,
     loadMore
   } = useInfiniteRentals();
   
       // Create a scrollable container ref for infinite scroll detection
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     // 🚀 PRELOADING: Trigger at 70% scroll for seamless UX - users never see empty space
-    useInfiniteScroll(scrollContainerRef, loadMore, hasMore && !paginatedLoading, 0.7);
+    // 📱 MOBILE: Use higher threshold for mobile devices to prevent early loading
+    const scrollThreshold = isMobile ? 0.85 : 0.75; // 85% for mobile, 75% for desktop
+    useInfiniteScroll(scrollContainerRef, loadMore, hasMore && !paginatedLoading, scrollThreshold);
   
   // ⚡ BACKGROUND PROTOCOL LOADING STATE
   const [protocolStatusMap, setProtocolStatusMap] = useState<Record<string, {
@@ -4415,31 +4421,50 @@ export default function RentalListNew() {
       )}
       
       {paginatedLoading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-          <CircularProgress size={20} />
-          <Typography variant="body2" sx={{ ml: 1, color: 'text.secondary' }}>
-            Načítavam ďalšie prenájmy...
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          p: 3,
+          backgroundColor: 'rgba(25, 118, 210, 0.08)',
+          borderRadius: 2,
+          m: 2
+        }}>
+          <CircularProgress size={24} />
+          <Typography variant="body1" sx={{ ml: 2, color: 'primary.main', fontWeight: 500 }}>
+            Načítavam ďalšie prenájmy... (strana {currentPage + 1})
           </Typography>
         </Box>
       )}
       
       {!paginatedLoading && hasMore && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
           <Button 
-            variant="text" 
+            variant="contained" 
             onClick={loadMore}
-            size="small"
-            sx={{ color: 'text.secondary' }}
+            size="medium"
+            startIcon={<RefreshIcon />}
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none',
+              px: 3
+            }}
           >
-            Načítať ďalších 50 prenájmov
+            Načítať ďalších {ITEMS_PER_PAGE} prenájmov
           </Button>
         </Box>
       )}
       
       {!hasMore && paginatedRentals.length > 0 && (
-        <Box sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
-          <Typography variant="body2">
-            Všetky prenájmy načítané ({paginatedRentals.length} celkom)
+        <Box sx={{ 
+          textAlign: 'center', 
+          p: 3, 
+          backgroundColor: 'rgba(76, 175, 80, 0.08)',
+          borderRadius: 2,
+          m: 2
+        }}>
+          <Typography variant="body1" color="success.main" fontWeight={500}>
+            ✅ Všetky prenájmy načítané ({paginatedRentals.length} celkom)
           </Typography>
         </Box>
       )}

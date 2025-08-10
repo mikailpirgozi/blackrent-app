@@ -51,7 +51,10 @@ export function useInfiniteRentals(initialFilters: RentalFilters = {}): UseInfin
   filtersRef.current = filters;
 
   const loadRentals = useCallback(async (page: number, isNewSearch: boolean = false) => {
-    if (loadingRef.current) return;
+    if (loadingRef.current) {
+      console.log('⏸️ Load already in progress, skipping...');
+      return;
+    }
     
     loadingRef.current = true;
     setLoading(true);
@@ -70,9 +73,21 @@ export function useInfiniteRentals(initialFilters: RentalFilters = {}): UseInfin
 
       const newRentals = result.rentals;
       
+      // Validate response
+      if (!result || !Array.isArray(newRentals)) {
+        throw new Error('Invalid response format');
+      }
+      
       setRentals(prev => {
         // If new search, replace all. Otherwise append.
-        return isNewSearch ? newRentals : [...prev, ...newRentals];
+        const updatedRentals = isNewSearch ? newRentals : [...prev, ...newRentals];
+        
+        // Remove duplicates based on rental ID
+        const uniqueRentals = Array.from(
+          new Map(updatedRentals.map(rental => [rental.id, rental])).values()
+        );
+        
+        return uniqueRentals;
       });
       
       setTotalCount(result.pagination.totalItems);
@@ -97,7 +112,10 @@ export function useInfiniteRentals(initialFilters: RentalFilters = {}): UseInfin
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore && !initialLoad) {
+      console.log(`📚 Load more triggered - Page ${currentPage + 1}, hasMore: ${hasMore}, loading: ${loading}`);
       loadRentals(currentPage + 1, false);
+    } else {
+      console.log(`⏸️ Load more skipped - loading: ${loading}, hasMore: ${hasMore}, initialLoad: ${initialLoad}`);
     }
   }, [loading, hasMore, currentPage, loadRentals, initialLoad]);
 
@@ -130,17 +148,26 @@ export function useInfiniteRentals(initialFilters: RentalFilters = {}): UseInfin
   // Filter changes
   useEffect(() => {
     if (!initialLoad) {
-      loadRentals(1, true);
+      // Debounce filter changes to avoid rapid re-fetching
+      const timer = setTimeout(() => {
+        loadRentals(1, true);
+      }, 300);
+      return () => clearTimeout(timer);
     }
   }, [filters]); // Only depend on filters, not loadRentals to avoid infinite loop
 
   // Search term changes - trigger new search
   useEffect(() => {
     if (!initialLoad) {
+      // Reset pagination and load new results
       setCurrentPage(1);
       setRentals([]);
       setHasMore(true);
-      loadRentals(1, true);
+      // Debounce search to avoid rapid API calls
+      const timer = setTimeout(() => {
+        loadRentals(1, true);
+      }, 300);
+      return () => clearTimeout(timer);
     }
   }, [searchTerm]); // New search when search term changes
 
