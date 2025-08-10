@@ -210,9 +210,13 @@ export default function RentalListNew() {
             console.log(`💻 Desktop scroll: ${Math.round(scrollPercentage * 100)}%`);
           }
           
-          // Trigger at 85% scroll of the rental list
-          if (scrollPercentage >= 0.85 && !isLoading) {
-            console.log(`📜 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}%`);
+          // 📱 MOBILE: Use 70% threshold for earlier loading on mobile
+          // 💻 DESKTOP: Use 85% threshold
+          const threshold = isMobile ? 0.70 : 0.85;
+          
+          // Trigger at appropriate threshold
+          if (scrollPercentage >= threshold && !isLoading) {
+            console.log(`📜 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}% (threshold: ${Math.round(threshold * 100)}%, ${isMobile ? 'mobile' : 'desktop'})`);
             isLoading = true;
             loadMore();
             setTimeout(() => { isLoading = false; }, 3000);
