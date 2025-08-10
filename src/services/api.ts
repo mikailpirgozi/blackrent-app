@@ -223,6 +223,50 @@ class ApiService {
     );
   }
 
+  // 🚀 NOVÝ: Paginated vehicles s filtrami
+  async getVehiclesPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    brand?: string;
+    model?: string;
+    company?: string;
+    category?: string;
+    status?: string;
+  } = {}): Promise<{
+    vehicles: Vehicle[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/vehicles/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      vehicles: Vehicle[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   async getVehicle(id: string): Promise<Vehicle> {
     return this.request<Vehicle>(`/vehicles/${id}`);
   }
