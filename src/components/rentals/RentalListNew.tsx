@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect, memo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -22,13 +22,8 @@ import {
   Select,
   MenuItem,
   Checkbox,
-  FormControlLabel,
   Grid,
-  Divider,
-  FormGroup,
-  Fade,
-  Grow,
-  Zoom
+  Divider
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -45,31 +40,9 @@ import {
   Search as SearchIcon,
   FilterList as FilterListIcon,
   Refresh as RefreshIcon,
-  ViewList as ViewListIcon,
-  CalendarToday as CalendarIcon,
-  Business as BusinessIcon,
-  Person as PersonIcon,
-  DirectionsCar as CarIcon,
-  Schedule as ScheduleIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Clear as ClearIcon,
-  GetApp as ExportIcon,
-  CloudDownload as DownloadIcon,
-  MoreVert as MoreIcon,
-  Close as CloseIcon,
-  Check as CheckIcon,
-  ArrowForward as ArrowForwardIcon,
-  ArrowBack as ArrowBackIcon,
-  PlayArrow as PlayArrowIcon,
-  LocalShipping as LocalShippingIcon,
-  Home as HomeIcon,
-  CreditCard as CreditCardIcon,
-  AccountCircle as AccountIcon,
-  Folder as FolderIcon
+
 } from '@mui/icons-material';
-import { format, parseISO, addDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
-import { sk } from 'date-fns/locale';
+import { format } from 'date-fns';
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
 import { Rental } from '../../types';
@@ -77,20 +50,13 @@ import { useRentalUpdates } from '../../hooks/useWebSocket';
 import { logger } from '../../utils/smartLogger';
 import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
-import EmailParser from './EmailParser';
-import RentalAdvancedFilters from './RentalAdvancedFilters';
-
-import { debounce, measurePerformance } from '../../utils/debounce';
 import { MobileRentalRow } from './MobileRentalRow';
-import { FixedSizeList as List } from 'react-window';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
-// import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
 import RentalForm from './RentalForm';
 import PDFViewer from '../common/PDFViewer';
 import ProtocolGallery from '../common/ProtocolGallery';
-import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 // 🚀 LAZY LOADING: Protocols loaded only when needed
 const HandoverProtocolForm = React.lazy(() => import('../protocols/HandoverProtocolForm'));
@@ -172,7 +138,7 @@ export default function RentalListNew() {
   // State management
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
-  const [selected, setSelected] = useState<string[]>([]);
+  // const [selected, setSelected] = useState<string[]>([]); // Nepoužívané - odstránené
   const [protocols, setProtocols] = useState<Record<string, { handover?: any; return?: any }>>({});
   const [loadingProtocols, setLoadingProtocols] = useState<string[]>([]);
   const [, setImportError] = useState<string>('');
@@ -187,7 +153,7 @@ export default function RentalListNew() {
     searchTerm: paginatedSearchTerm,
     setSearchTerm: setPaginatedSearchTerm,
     loadMore,
-    refresh: refreshPaginated
+    loadMore
   } = useInfiniteRentals();
   
       // Create a scrollable container ref for infinite scroll detection
@@ -302,19 +268,19 @@ export default function RentalListNew() {
   
 
   
-  // Column visibility
-  const [visibleColumns, setVisibleColumns] = useState({
-    vehicle: true,
-    company: true,
-    customer: true,
-    dates: true,
-    price: true,
-    commission: true,
-    payment: true,
-    paid: true,
-    status: true,
-    protocols: true
-  });
+  // Column visibility - nepoužívané, odstránené
+  // const [visibleColumns, setVisibleColumns] = useState({
+  //   vehicle: true,
+  //   company: true,
+  //   customer: true,
+  //   dates: true,
+  //   price: true,
+  //   commission: true,
+  //   payment: true,
+  //   paid: true,
+  //   status: true,
+  //   protocols: true
+  // });
   
   // Protocol dialogs
   const [openHandoverDialog, setOpenHandoverDialog] = useState(false);
@@ -330,7 +296,7 @@ export default function RentalListNew() {
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [galleryVideos, setGalleryVideos] = useState<any[]>([]);
   const [galleryTitle, setGalleryTitle] = useState('');
-  const [, forceUpdate] = useState({});
+  // const [, forceUpdate] = useState({}); // Nepoužívané - odstránené
   
   // Protocol menu state
   const [protocolMenuOpen, setProtocolMenuOpen] = useState(false);
@@ -348,7 +314,7 @@ export default function RentalListNew() {
   const setGalleryOpen = (value: boolean) => {
     logger.debug('Gallery state change', { value, timestamp: Date.now() });
     galleryOpenRef.current = value;
-    forceUpdate({}); // Force re-render to update UI
+    // forceUpdate({}); // Force re-render to update UI - odstránené
   };
   
   const galleryOpen = galleryOpenRef.current;
