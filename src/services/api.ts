@@ -755,6 +755,57 @@ class ApiService {
     }>(endpoint);
   }
 
+  // 🚀 NOVÝ: Paginated availability s filtrami
+  async getAvailabilityPaginated(params: {
+    vehiclePage?: number;
+    vehicleLimit?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    search?: string;
+    categories?: string[];
+    brands?: string[];
+    companies?: string[];
+    locations?: string[];
+    availableOnly?: boolean;
+    minAvailabilityPercent?: number;
+  } = {}): Promise<{
+    vehicles: any[];
+    pagination: {
+      currentVehiclePage: number;
+      totalVehiclePages: number;
+      totalVehicles: number;
+      hasMoreVehicles: boolean;
+      vehiclesPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Handle array parameters specially
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach(v => queryParams.append(key, String(v)));
+        } else if (value !== '') {
+          queryParams.append(key, String(value));
+        }
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/availability/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      vehicles: any[];
+      pagination: {
+        currentVehiclePage: number;
+        totalVehiclePages: number;
+        totalVehicles: number;
+        hasMoreVehicles: boolean;
+        vehiclesPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   async createCustomer(customer: Customer): Promise<void> {
     const result = await this.request<void>('/customers', {
       method: 'POST',
