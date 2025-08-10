@@ -169,6 +169,7 @@ export default function RentalListNew() {
   
       // Create a scrollable container ref for infinite scroll detection
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const rentalListRef = useRef<HTMLDivElement>(null); // 🎯 NEW: Ref for rental list container
     // 🚀 PRELOADING: Trigger at 70% scroll for seamless UX - users never see empty space
     // 📱 MOBILE: Use higher threshold for mobile devices to prevent early loading
     const scrollThreshold = isMobile ? 0.85 : 0.75; // 85% for mobile, 75% for desktop
@@ -180,75 +181,66 @@ export default function RentalListNew() {
     
     // Use simple scroll detection with item count check
     useEffect(() => {
-      const container = scrollContainerRef.current;
+      // 🎯 FIXED: Use rental list container, not main container
+      const container = rentalListRef.current || scrollContainerRef.current;
       if (!container || !hasMore || paginatedLoading) return;
       
       let debounceTimer: NodeJS.Timeout;
       let isLoading = false;
       
-      const handleScroll = () => {
+      const handleScroll = (e?: any) => {
         if (isLoading) return;
         
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-          // For mobile with virtualization, check scroll position
-          if (isMobile) {
-            // Find the List component's scroll container
-            const listContainer = container.querySelector('.ReactVirtualized__List') || 
-                                container.querySelector('[role="list"]') ||
-                                container;
-            
-            const { scrollTop, scrollHeight, clientHeight } = listContainer as HTMLElement;
-            const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
-            
-            // Trigger at 85% scroll
-            if (scrollPercentage >= 0.85 && !isLoading) {
-              console.log(`📜 Mobile scroll triggered at ${Math.round(scrollPercentage * 100)}%`);
-              isLoading = true;
-              loadMore();
-              setTimeout(() => { isLoading = false; }, 3000);
-            }
-          } else {
-            // For desktop, count visible items
-            const items = container.querySelectorAll('[data-rental-item]');
-            if (items.length === 0) return;
-            
-            // Check if we're near the end of current items
-            const containerRect = container.getBoundingClientRect();
-            let lastVisibleIndex = -1;
-            
-            items.forEach((item, index) => {
-              const rect = item.getBoundingClientRect();
-              if (rect.top < containerRect.bottom) {
-                lastVisibleIndex = index;
-              }
-            });
-            
-            // Trigger when viewing item 43+ out of 50
-            if (lastVisibleIndex >= triggerAtItem && !isLoading) {
-              console.log(`📜 Desktop scroll triggered at item ${lastVisibleIndex + 1}/${currentItemsShown}`);
-              isLoading = true;
-              loadMore();
-              setTimeout(() => { isLoading = false; }, 3000);
-            }
+          let scrollPercentage = 0;
+          
+          // For mobile virtualized list
+          if (isMobile && e && e.scrollOffset !== undefined) {
+            const totalHeight = filteredRentals.length * 160; // itemSize * count
+            const viewportHeight = 600;
+            const maxScroll = totalHeight - viewportHeight;
+            scrollPercentage = e.scrollOffset / maxScroll;
+            console.log(`📱 Mobile virtual scroll: ${Math.round(scrollPercentage * 100)}%`);
+          } 
+          // For desktop regular scroll
+          else if (!isMobile && container) {
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            scrollPercentage = scrollTop / (scrollHeight - clientHeight);
+            console.log(`💻 Desktop scroll: ${Math.round(scrollPercentage * 100)}%`);
+          }
+          
+          // Trigger at 85% scroll of the rental list
+          if (scrollPercentage >= 0.85 && !isLoading) {
+            console.log(`📜 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}%`);
+            isLoading = true;
+            loadMore();
+            setTimeout(() => { isLoading = false; }, 3000);
           }
         }, 200);
       };
       
-      container.addEventListener('scroll', handleScroll, { passive: true });
-      // Also listen on window for mobile
+      // For desktop, listen to container scroll
+      if (!isMobile && container) {
+        container.addEventListener('scroll', handleScroll, { passive: true });
+      }
+      
+      // Store handler for mobile virtualized list
       if (isMobile) {
-        window.addEventListener('scroll', handleScroll, { passive: true });
+        // Handler will be called from List's onScroll prop
+        (window as any).__rentalListScrollHandler = handleScroll;
       }
       
       return () => {
         clearTimeout(debounceTimer);
-        container.removeEventListener('scroll', handleScroll);
+        if (!isMobile && container) {
+          container.removeEventListener('scroll', handleScroll);
+        }
         if (isMobile) {
-          window.removeEventListener('scroll', handleScroll);
+          delete (window as any).__rentalListScrollHandler;
         }
       };
-    }, [scrollContainerRef, loadMore, hasMore, paginatedLoading, paginatedRentals.length, isMobile, triggerAtItem]);
+    }, [rentalListRef, scrollContainerRef, loadMore, hasMore, paginatedLoading, filteredRentals.length, isMobile]);
   
   // ⚡ BACKGROUND PROTOCOL LOADING STATE
   const [protocolStatusMap, setProtocolStatusMap] = useState<Record<string, {
@@ -3266,13 +3258,24 @@ export default function RentalListNew() {
             </Box>
 
             {/* 🚀 VIRTUALIZED Mobilné prenájmy rows - pre performance */}
-            <Box sx={{ height: 600, width: '100%' }}>
+            <Box ref={isMobile ? rentalListRef : undefined} sx={{ height: 600, width: '100%' }}>
               <List
                 height={600}
                 width="100%"
                 itemCount={filteredRentals.length}
                 itemSize={160}
                 itemData={filteredRentals}
+                onScroll={({ scrollOffset }) => {
+                  // 🎯 Track scroll position for mobile virtualized list
+                  if (isMobile && rentalListRef.current) {
+                    const scrollPercentage = scrollOffset / (filteredRentals.length * 160 - 600);
+                    console.log(`📱 Mobile List scroll: ${Math.round(scrollPercentage * 100)}%`);
+                  }
+                  // Call the infinite scroll handler
+                  if ((window as any).__rentalListScrollHandler) {
+                    (window as any).__rentalListScrollHandler({ scrollOffset });
+                  }
+                }}
               >
                 {VirtualizedRentalRow}
               </List>
@@ -3812,7 +3815,28 @@ export default function RentalListNew() {
             </Box>
 
             {/* Desktop prenájmy rows */}
-            <Box>
+            <Box 
+              ref={rentalListRef}
+              sx={{ 
+                maxHeight: 'calc(100vh - 400px)', // Adjust based on header/filter height
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                position: 'relative',
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: '#f1f1f1',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: '#888',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb:hover': {
+                  background: '#555',
+                },
+              }}
+            >
               {filteredRentals.map((rental, index) => {
                 const vehicle = getVehicleByRental(rental);
                 
