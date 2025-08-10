@@ -9,7 +9,7 @@ import {
   TextField,
 } from '@mui/material';
 import { useApp } from '../../context/AppContext';
-import { Expense, ExpenseCategory } from '../../types';
+import { Expense } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ExpenseFormProps {
@@ -19,7 +19,7 @@ interface ExpenseFormProps {
 }
 
 export default function ExpenseForm({ expense, onSave, onCancel }: ExpenseFormProps) {
-  const { state, dispatch, createCompany } = useApp();
+  const { state, createCompany } = useApp();
   const [addingCompany, setAddingCompany] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
   const [formData, setFormData] = useState<Partial<Expense>>({

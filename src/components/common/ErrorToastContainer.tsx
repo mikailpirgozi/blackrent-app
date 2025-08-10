@@ -215,9 +215,6 @@ export const ErrorToastContainer: React.FC = () => {
       });
   }, [errors]);
 
-  // Get the most recent error for Snackbar positioning
-  const latestError = sortedErrors[0];
-
   return (
     <>
       <NetworkStatusIndicator isOnline={isOnline} />

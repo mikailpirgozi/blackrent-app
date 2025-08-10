@@ -16,9 +16,6 @@ import {
   CardContent,
   Collapse,
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Checkbox,
   FormControlLabel,
   Grid,
@@ -34,14 +31,10 @@ import {
   FilterList as FilterListIcon,
   Phone as PhoneIcon,
   Email as EmailIcon,
-  Person as PersonIcon,
-  CalendarToday as CalendarIcon,
-  Business as BusinessIcon,
   Download as DownloadIcon,
   Upload as UploadIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
 import { useApp } from '../../context/AppContext';
 import { Customer } from '../../types';
 import CustomerForm from './CustomerForm';
@@ -62,8 +55,6 @@ export default function CustomerListNew() {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(false);
-  const [importError, setImportError] = useState('');
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   // Filters
   const [filterName, setFilterName] = useState('');

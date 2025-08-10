@@ -12,7 +12,6 @@ import {
   Button,
   Alert,
   Chip,
-  ListItemIcon,
   Divider,
   Dialog,
   DialogTitle,
@@ -33,10 +32,7 @@ import {
   VolumeOff as QuietIcon,
   Error as ErrorIcon,
   Warning as WarningIcon,
-  Info as InfoIcon,
 } from '@mui/icons-material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 import { 
   pushNotificationService, 
@@ -78,7 +74,7 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
     
     try {
       // Initialize service
-      const initialized = await pushNotificationService.initialize();
+      await pushNotificationService.initialize();
       
       // Get status
       const status = await pushNotificationService.getSubscriptionStatus();
