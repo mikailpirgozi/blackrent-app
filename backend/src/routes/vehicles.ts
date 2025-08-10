@@ -5,8 +5,143 @@ import { authenticateToken, requireRole } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { cacheResponse, invalidateCache, userSpecificCache } from '../middleware/cache-middleware';
 import { v4 as uuidv4 } from 'uuid';
+import { textIncludes } from '../utils/textNormalization';
 
 const router = Router();
+
+// GET /api/vehicles/paginated - Paginated vehicles with filters
+router.get('/paginated', 
+  authenticateToken,
+  checkPermission('vehicles', 'read'),
+  async (req: Request, res: Response) => {
+    try {
+      const {
+        page = '1',
+        limit = '50',
+        search = '',
+        brand = '',
+        model = '',
+        company = '',
+        category = '',
+        status = ''
+      } = req.query;
+
+      const pageNum = parseInt(page as string, 10);
+      const limitNum = parseInt(limit as string, 10);
+      const offset = (pageNum - 1) * limitNum;
+
+      let vehicles = await postgresDatabase.getVehicles();
+      
+      console.log('🚗 Vehicles PAGINATED GET - user:', { 
+        role: req.user?.role, 
+        userId: req.user?.id, 
+        totalVehicles: vehicles.length,
+        page: pageNum,
+        limit: limitNum
+      });
+      
+      // 🔐 NON-ADMIN USERS - filter podľa company permissions
+      if (req.user?.role !== 'admin' && req.user) {
+        const user = req.user;
+        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
+        const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+        
+        vehicles = vehicles.filter(v => {
+          return v.ownerCompanyId && allowedCompanyIds.includes(v.ownerCompanyId);
+        });
+      }
+
+      // 🔍 Apply filters
+      let filteredVehicles = [...vehicles];
+
+      // Search filter - bez diakritiky
+      if (search) {
+        const searchTerm = search.toString();
+        filteredVehicles = filteredVehicles.filter(v => 
+          textIncludes(v.brand, searchTerm) ||
+          textIncludes(v.model, searchTerm) ||
+          textIncludes(v.licensePlate, searchTerm) ||
+          textIncludes(v.company, searchTerm)
+        );
+      }
+
+      // Brand filter
+      if (brand) {
+        filteredVehicles = filteredVehicles.filter(v => 
+          v.brand === brand.toString()
+        );
+      }
+
+      // Model filter
+      if (model) {
+        filteredVehicles = filteredVehicles.filter(v => 
+          v.model === model.toString()
+        );
+      }
+
+      // Company filter
+      if (company) {
+        filteredVehicles = filteredVehicles.filter(v => 
+          v.company === company.toString()
+        );
+      }
+
+      // Category filter
+      if (category) {
+        filteredVehicles = filteredVehicles.filter(v => 
+          v.category === category.toString()
+        );
+      }
+
+      // Status filter
+      if (status) {
+        filteredVehicles = filteredVehicles.filter(v => 
+          v.status === status.toString()
+        );
+      }
+
+      // Sort by brand and model
+      filteredVehicles.sort((a, b) => {
+        const brandCompare = (a.brand || '').localeCompare(b.brand || '');
+        if (brandCompare !== 0) return brandCompare;
+        return (a.model || '').localeCompare(b.model || '');
+      });
+
+      // Calculate pagination
+      const totalItems = filteredVehicles.length;
+      const totalPages = Math.ceil(totalItems / limitNum);
+      const hasMore = pageNum < totalPages;
+
+      // Get paginated results
+      const paginatedVehicles = filteredVehicles.slice(offset, offset + limitNum);
+
+      console.log('📄 Paginated vehicles:', {
+        totalItems,
+        currentPage: pageNum,
+        totalPages,
+        hasMore,
+        resultsCount: paginatedVehicles.length
+      });
+
+      res.json({
+        success: true,
+        vehicles: paginatedVehicles,
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalItems,
+          hasMore,
+          itemsPerPage: limitNum
+        }
+      });
+    } catch (error) {
+      console.error('Get paginated vehicles error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri získavaní vozidiel'
+      });
+    }
+  });
 
 // 🔍 CONTEXT FUNCTIONS
 const getVehicleContext = async (req: Request) => {

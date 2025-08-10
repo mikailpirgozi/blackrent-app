@@ -2496,17 +2496,31 @@ export class PostgresDatabase {
       const queryParams: any[] = [];
       let paramIndex = 1;
 
-      // 🔍 SEARCH filter - live vyhľadávanie
+      // 🔍 SEARCH filter - live vyhľadávanie bez diakritiky
       if (params.search && params.search.trim()) {
+        // Použijeme kombináciu ILIKE pre základné vyhľadávanie
+        // a dodatočné podmienky pre vyhľadávanie bez diakritiky
+        const searchPattern = `%${params.search.trim()}%`;
+        
+        // Vytvoríme normalizovaný search term
+        const normalizedSearch = params.search.trim()
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, ''); // Odstráni diakritiku
+        
         whereConditions.push(`(
           r.customer_name ILIKE $${paramIndex} OR 
           r.order_number ILIKE $${paramIndex} OR 
           v.license_plate ILIKE $${paramIndex} OR
           v.brand ILIKE $${paramIndex} OR
-          v.model ILIKE $${paramIndex}
+          v.model ILIKE $${paramIndex} OR
+          LOWER(TRANSLATE(r.customer_name, 'áäčďéíľĺňóôŕšťúýžÁÄČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ', 'aacdeilllnoorrstuyzAACDEILLNOORSTUYZ')) LIKE LOWER(TRANSLATE($${paramIndex + 1}, 'áäčďéíľĺňóôŕšťúýžÁÄČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ', 'aacdeilllnoorrstuyzAACDEILLNOORSTUYZ')) OR
+          LOWER(TRANSLATE(v.brand, 'áäčďéíľĺňóôŕšťúýžÁÄČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ', 'aacdeilllnoorrstuyzAACDEILLNOORSTUYZ')) LIKE LOWER(TRANSLATE($${paramIndex + 1}, 'áäčďéíľĺňóôŕšťúýžÁÄČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ', 'aacdeilllnoorrstuyzAACDEILLNOORSTUYZ')) OR
+          LOWER(TRANSLATE(v.model, 'áäčďéíľĺňóôŕšťúýžÁÄČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ', 'aacdeilllnoorrstuyzAACDEILLNOORSTUYZ')) LIKE LOWER(TRANSLATE($${paramIndex + 1}, 'áäčďéíľĺňóôŕšťúýžÁÄČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ', 'aacdeilllnoorrstuyzAACDEILLNOORSTUYZ'))
         )`);
-        queryParams.push(`%${params.search.trim()}%`);
-        paramIndex++;
+        queryParams.push(searchPattern);
+        queryParams.push(searchPattern);
+        paramIndex += 2;
       }
 
       // 📅 DATE filter

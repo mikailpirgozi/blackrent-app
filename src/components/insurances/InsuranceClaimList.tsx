@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -23,8 +23,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  TablePagination
+  Paper
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -47,6 +46,8 @@ import { InsuranceClaim } from '../../types';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import InsuranceClaimForm from './InsuranceClaimForm';
+import { useInfiniteInsuranceClaims } from '../../hooks/useInfiniteInsuranceClaims';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 
 const getIncidentTypeInfo = (type: string) => {
   switch (type) {
@@ -88,40 +89,43 @@ export default function InsuranceClaimList() {
     deleteInsuranceClaim
   } = useApp();
   
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingClaim, setEditingClaim] = useState<InsuranceClaim | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterVehicle, setFilterVehicle] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  
+  // 🚀 INFINITE SCROLL - použitie nového hooku
+  const {
+    claims,
+    loading,
+    hasMore,
+    searchTerm,
+    setSearchTerm,
+    loadMore,
+    refresh,
+    updateFilters
+  } = useInfiniteInsuranceClaims();
 
-  // Get insurance claims from state
-  const claims = state.insuranceClaims || [];
+  // 🚀 Infinite scroll detection
+  useInfiniteScroll(scrollContainerRef, loadMore, hasMore && !loading, 0.7);
 
-  // Filter claims
-  const filteredClaims = useMemo(() => {
-    return claims.filter(claim => {
-      const matchesSearch = !searchQuery || 
-        claim.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (claim.claimNumber && claim.claimNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (claim.location && claim.location.toLowerCase().includes(searchQuery.toLowerCase()));
-      
-      const matchesVehicle = !filterVehicle || claim.vehicleId === filterVehicle;
-      const matchesStatus = !filterStatus || claim.status === filterStatus;
-      const matchesType = !filterType || claim.incidentType === filterType;
-      
-      return matchesSearch && matchesVehicle && matchesStatus && matchesType;
-    });
-  }, [claims, searchQuery, filterVehicle, filterStatus, filterType]);
+  // 🚀 Update filters when they change
+  useEffect(() => {
+    const filters: any = {};
+    
+    if (filterStatus) filters.status = filterStatus;
+    if (filterType) filters.incidentType = filterType;
+    // Note: vehicleId filter would need to be added to the hook
+    
+    updateFilters(filters);
+  }, [filterStatus, filterType, updateFilters]);
 
-  // Paginated claims
-  const paginatedClaims = useMemo(() => {
-    const startIndex = page * rowsPerPage;
-    return filteredClaims.slice(startIndex, startIndex + rowsPerPage);
-  }, [filteredClaims, page, rowsPerPage]);
+  // Use claims from hook
+  const filteredClaims = claims;
+  const paginatedClaims = claims;
 
   const handleAdd = () => {
     setEditingClaim(null);
@@ -137,6 +141,7 @@ export default function InsuranceClaimList() {
     if (window.confirm('Naozaj chcete vymazať túto poistnú udalosť?')) {
       try {
         await deleteInsuranceClaim(id);
+        refresh(); // Refresh data after delete
       } catch (error) {
         alert('Chyba pri mazaní poistnej udalosti');
       }
@@ -152,6 +157,7 @@ export default function InsuranceClaimList() {
       }
       setOpenDialog(false);
       setEditingClaim(null);
+      refresh(); // Refresh data after save
     } catch (error) {
       console.error('Chyba pri ukladaní poistnej udalosti:', error);
       alert('Chyba pri ukladaní poistnej udalosti: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
@@ -159,22 +165,13 @@ export default function InsuranceClaimList() {
   };
 
   const clearFilters = () => {
-    setSearchQuery('');
+    setSearchTerm('');
     setFilterVehicle('');
     setFilterStatus('');
     setFilterType('');
   };
 
-  const hasActiveFilters = searchQuery || filterVehicle || filterStatus || filterType;
-
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+  const hasActiveFilters = searchTerm || filterVehicle || filterStatus || filterType;
 
   if (!state.insuranceClaims) {
     return (
@@ -283,8 +280,8 @@ export default function InsuranceClaimList() {
           <Box sx={{ display: 'flex', gap: 2, mb: showFilters ? 2 : 0, flexWrap: 'wrap' }}>
             <TextField
               placeholder="Vyhľadať udalosť..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
               }}
@@ -296,7 +293,7 @@ export default function InsuranceClaimList() {
               onClick={() => setShowFilters(!showFilters)}
               sx={{ whiteSpace: 'nowrap' }}
             >
-              Filtre {hasActiveFilters && `(${[searchQuery, filterVehicle, filterStatus, filterType].filter(Boolean).length})`}
+              Filtre {hasActiveFilters && `(${[searchTerm, filterVehicle, filterStatus, filterType].filter(Boolean).length})`}
             </Button>
             {hasActiveFilters && (
               <Button
@@ -391,7 +388,14 @@ export default function InsuranceClaimList() {
         </Card>
       ) : (
         <>
-          <TableContainer component={Paper} sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          <TableContainer 
+            ref={scrollContainerRef}
+            component={Paper} 
+            sx={{ 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              maxHeight: '70vh',
+              overflowY: 'auto'
+            }}>
             <Table>
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
@@ -502,17 +506,34 @@ export default function InsuranceClaimList() {
               </TableBody>
             </Table>
           </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={filteredClaims.length}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            labelRowsPerPage="Riadkov na stránku:"
-            labelDisplayedRows={({ from, to, count }) => `${from}–${to} z ${count}`}
-          />
+          
+          {/* Load More Button */}
+          {hasMore && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <Button
+                variant="outlined"
+                onClick={loadMore}
+                disabled={loading}
+                sx={{ minWidth: 200 }}
+              >
+                {loading ? 'Načítavam...' : 'Načítať ďalšie'}
+              </Button>
+            </Box>
+          )}
+          
+          {/* Loading indicator */}
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          )}
+          
+          {/* End of list message */}
+          {!hasMore && claims.length > 0 && (
+            <Box sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
+              <Typography variant="body2">Koniec zoznamu</Typography>
+            </Box>
+          )}
         </>
       )}
 

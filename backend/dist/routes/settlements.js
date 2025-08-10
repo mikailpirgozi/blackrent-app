@@ -36,7 +36,118 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
+const textNormalization_1 = require("../utils/textNormalization");
 const router = (0, express_1.Router)();
+// GET /api/settlements/paginated - Paginated settlements with filters
+router.get('/paginated', auth_1.authenticateToken, async (req, res) => {
+    try {
+        const { page = '1', limit = '50', search = '', company = '', status = '', periodFrom = '', periodTo = '', minAmount = '', maxAmount = '' } = req.query;
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+        const offset = (pageNum - 1) * limitNum;
+        let settlements = await postgres_database_1.postgresDatabase.getSettlements();
+        console.log('💰 Settlements PAGINATED GET - user:', {
+            role: req.user?.role,
+            companyId: req.user?.companyId,
+            totalSettlements: settlements.length,
+            page: pageNum,
+            limit: limitNum
+        });
+        // 🔐 NON-ADMIN USERS - filter podľa company permissions
+        if (req.user?.role !== 'admin' && req.user) {
+            const user = req.user;
+            const userCompanyAccess = await postgres_database_1.postgresDatabase.getUserCompanyAccess(user.id);
+            const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+            const companies = await postgres_database_1.postgresDatabase.getCompanies();
+            const allowedCompanyNames = companies
+                .filter(c => allowedCompanyIds.includes(c.id))
+                .map(c => c.name);
+            settlements = settlements.filter(s => s.company && allowedCompanyNames.includes(s.company));
+        }
+        // 🔍 Apply filters
+        let filteredSettlements = [...settlements];
+        // Search filter - bez diakritiky
+        if (search) {
+            const searchTerm = search.toString();
+            filteredSettlements = filteredSettlements.filter(s => (0, textNormalization_1.textIncludes)(s.company, searchTerm) ||
+                (0, textNormalization_1.textIncludes)(s.period, searchTerm) ||
+                (0, textNormalization_1.textIncludes)(s.id, searchTerm));
+        }
+        // Company filter
+        if (company) {
+            filteredSettlements = filteredSettlements.filter(s => s.company === company.toString());
+        }
+        // Status filter
+        if (status) {
+            filteredSettlements = filteredSettlements.filter(s => s.status === status.toString());
+        }
+        // Period filters
+        if (periodFrom) {
+            const fromDate = new Date(periodFrom.toString());
+            filteredSettlements = filteredSettlements.filter(s => {
+                if (!s.createdAt)
+                    return false;
+                const settlementDate = new Date(s.createdAt);
+                return settlementDate >= fromDate;
+            });
+        }
+        if (periodTo) {
+            const toDate = new Date(periodTo.toString());
+            filteredSettlements = filteredSettlements.filter(s => {
+                if (!s.createdAt)
+                    return false;
+                const settlementDate = new Date(s.createdAt);
+                return settlementDate <= toDate;
+            });
+        }
+        // Amount filters
+        if (minAmount) {
+            const min = parseFloat(minAmount.toString());
+            filteredSettlements = filteredSettlements.filter(s => (s.totalIncome || 0) >= min);
+        }
+        if (maxAmount) {
+            const max = parseFloat(maxAmount.toString());
+            filteredSettlements = filteredSettlements.filter(s => (s.totalIncome || 0) <= max);
+        }
+        // Sort by created date (newest first)
+        filteredSettlements.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        });
+        // Calculate pagination
+        const totalItems = filteredSettlements.length;
+        const totalPages = Math.ceil(totalItems / limitNum);
+        const hasMore = pageNum < totalPages;
+        // Get paginated results
+        const paginatedSettlements = filteredSettlements.slice(offset, offset + limitNum);
+        console.log('📄 Paginated settlements:', {
+            totalItems,
+            currentPage: pageNum,
+            totalPages,
+            hasMore,
+            resultsCount: paginatedSettlements.length
+        });
+        res.json({
+            success: true,
+            settlements: paginatedSettlements,
+            pagination: {
+                currentPage: pageNum,
+                totalPages,
+                totalItems,
+                hasMore,
+                itemsPerPage: limitNum
+            }
+        });
+    }
+    catch (error) {
+        console.error('Get paginated settlements error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri získavaní vyúčtovaní'
+        });
+    }
+});
 // GET /api/settlements - Získanie všetkých vyúčtovaní
 router.get('/', auth_1.authenticateToken, async (req, res) => {
     try {

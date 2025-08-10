@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -47,6 +47,8 @@ import { sk } from 'date-fns/locale';
 import SettlementDetail from './SettlementDetail';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
+import { useInfiniteSettlements } from '../../hooks/useInfiniteSettlements';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 
 const SettlementListNew: React.FC = () => {
   const { 
@@ -60,18 +62,44 @@ const SettlementListNew: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
 
   // Get data from context
-  const settlements = state.settlements || [];
   const vehicles = getFilteredVehicles();
   const companies = state.companies || [];
 
   // States
-  const [searchQuery, setSearchQuery] = useState('');
   const [companyFilter, setCompanyFilter] = useState('');
   const [vehicleFilter, setVehicleFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
-  const [loading, setLoading] = useState(false);
+
+  // 🚀 INFINITE SCROLL: Use the new hook
+  const {
+    settlements,
+    loading,
+    error,
+    hasMore,
+    totalCount,
+    currentPage,
+    searchTerm,
+    setSearchTerm,
+    loadMore,
+    refresh,
+    updateFilters
+  } = useInfiniteSettlements({
+    company: companyFilter,
+    // Add more filters as needed
+  });
+
+  // 🚀 INFINITE SCROLL: Scroll container ref
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // 🚀 INFINITE SCROLL: Use the scroll hook with 70% threshold
+  useInfiniteScroll(
+    scrollContainerRef,
+    loadMore,
+    hasMore && !loading,
+    0.7 // 70% scroll threshold for preloading
+  );
 
   // New settlement creation states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -90,42 +118,39 @@ const SettlementListNew: React.FC = () => {
 
   // Get unique companies from settlements for filtering
   const settlementsCompanies = useMemo(() => 
-    Array.from(new Set(settlements.map((s: Settlement) => s.company).filter((company): company is string => Boolean(company)))).sort(),
+    Array.from(new Set(settlements.map(s => s.company).filter((company): company is string => Boolean(company)))).sort(),
     [settlements]
   );
 
-  // Filtered settlements
-  const filteredSettlements = useMemo(() => {
-    return settlements.filter((settlement: Settlement) => {
-      const matchesSearch = !searchQuery || 
-        settlement.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        settlement.id.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesCompany = !companyFilter || settlement.company === companyFilter;
-      const matchesVehicle = !vehicleFilter || settlement.vehicleId === vehicleFilter;
-      
-      return matchesSearch && matchesCompany && matchesVehicle;
+  // 🚀 INFINITE SCROLL: Update filters when they change
+  useEffect(() => {
+    updateFilters({
+      company: companyFilter,
+      // Add vehicle filter if needed in the API
     });
-  }, [settlements, searchQuery, companyFilter, vehicleFilter]);
+  }, [companyFilter, updateFilters]);
+
+  // Use settlements directly from infinite scroll hook - already filtered server-side
+  const filteredSettlements = settlements;
 
   // Calculate totals
   const totalIncome = useMemo(() => 
-    filteredSettlements.reduce((sum: number, settlement: Settlement) => sum + settlement.totalIncome, 0),
+    filteredSettlements.reduce((sum: number, settlement) => sum + settlement.totalIncome, 0),
     [filteredSettlements]
   );
 
   const totalExpenses = useMemo(() => 
-    filteredSettlements.reduce((sum: number, settlement: Settlement) => sum + settlement.totalExpenses, 0),
+    filteredSettlements.reduce((sum: number, settlement) => sum + settlement.totalExpenses, 0),
     [filteredSettlements]
   );
 
   const totalProfit = useMemo(() => 
-    filteredSettlements.reduce((sum: number, settlement: Settlement) => sum + settlement.profit, 0),
+    filteredSettlements.reduce((sum: number, settlement) => sum + settlement.profit, 0),
     [filteredSettlements]
   );
 
   const totalCommission = useMemo(() => 
-    filteredSettlements.reduce((sum: number, settlement: Settlement) => sum + settlement.totalCommission, 0),
+    filteredSettlements.reduce((sum: number, settlement) => sum + settlement.totalCommission, 0),
     [filteredSettlements]
   );
 
@@ -184,7 +209,6 @@ const SettlementListNew: React.FC = () => {
       return;
     }
 
-    setLoading(true);
     try {
       const settlementData = {
         period: {
@@ -215,12 +239,12 @@ const SettlementListNew: React.FC = () => {
       console.error('Error creating settlement:', error);
       alert('Chyba pri vytváraní vyúčtovania');
     } finally {
-      setLoading(false);
+      // Loading is handled by the hook
     }
   };
 
   const handleExportCSV = () => {
-    const csvData = filteredSettlements.map((settlement: Settlement) => ({
+    const csvData = filteredSettlements.map((settlement) => ({
       'ID': settlement.id,
       'Obdobie od': format(new Date(settlement.period.from), 'dd.MM.yyyy'),
       'Obdobie do': format(new Date(settlement.period.to), 'dd.MM.yyyy'),
@@ -240,7 +264,7 @@ const SettlementListNew: React.FC = () => {
   };
 
   const clearFilters = () => {
-    setSearchQuery('');
+    setSearchTerm('');
     setCompanyFilter('');
     setVehicleFilter('');
   };
@@ -290,8 +314,8 @@ const SettlementListNew: React.FC = () => {
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <TextField
               placeholder="Hľadať vyúčtovanie..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
               }}
@@ -459,7 +483,30 @@ const SettlementListNew: React.FC = () => {
 
       {/* Mobile Layout */}
       {isMobile ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box 
+          ref={scrollContainerRef}
+          sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: 1,
+            maxHeight: 'calc(100vh - 400px)',
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: '#f1f1f1',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#888',
+              borderRadius: '4px',
+              '&:hover': {
+                backgroundColor: '#555',
+              },
+            },
+          }}
+        >
           {filteredSettlements.length === 0 ? (
             <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
               <CardContent sx={{ textAlign: 'center', py: 4 }}>
@@ -470,7 +517,7 @@ const SettlementListNew: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            filteredSettlements.map((settlement: Settlement) => {
+            filteredSettlements.map((settlement) => {
               const vehicle = settlement.vehicleId ? vehicles.find((v: any) => v.id === settlement.vehicleId) : null;
               const isProfit = settlement.profit >= 0;
               
@@ -593,6 +640,39 @@ const SettlementListNew: React.FC = () => {
               );
             })
           )}
+          
+          {/* 🚀 INFINITE SCROLL: Loading indicator */}
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={30} />
+            </Box>
+          )}
+          
+          {/* 🚀 INFINITE SCROLL: Load more button (as fallback) */}
+          {hasMore && !loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={loadMore}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  px: 3
+                }}
+              >
+                Načítať ďalšie ({totalCount - filteredSettlements.length} zostáva)
+              </Button>
+            </Box>
+          )}
+          
+          {/* 🚀 INFINITE SCROLL: End of list message */}
+          {!hasMore && filteredSettlements.length > 0 && (
+            <Box sx={{ textAlign: 'center', py: 2, color: 'text.secondary' }}>
+              <Typography variant="body2">
+                Zobrazené všetky vyúčtovania ({filteredSettlements.length})
+              </Typography>
+            </Box>
+          )}
         </Box>
       ) : (
         /* Desktop Layout */
@@ -624,7 +704,27 @@ const SettlementListNew: React.FC = () => {
             </Box>
           </Box>
           
-          <Box sx={{ maxHeight: '600px', overflow: 'auto' }}>
+          <Box 
+            ref={scrollContainerRef}
+            sx={{ 
+              maxHeight: '600px', 
+              overflow: 'auto',
+              '&::-webkit-scrollbar': {
+                width: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: '#f1f1f1',
+                borderRadius: '4px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#888',
+                borderRadius: '4px',
+                '&:hover': {
+                  backgroundColor: '#555',
+                },
+              },
+            }}
+          >
             {filteredSettlements.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <ReportIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
@@ -633,7 +733,7 @@ const SettlementListNew: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              filteredSettlements.map((settlement: Settlement, index: number) => {
+              filteredSettlements.map((settlement, index: number) => {
                 const vehicle = settlement.vehicleId ? vehicles.find((v: any) => v.id === settlement.vehicleId) : null;
                 const isProfit = settlement.profit >= 0;
                 
@@ -740,6 +840,39 @@ const SettlementListNew: React.FC = () => {
                   </Box>
                 );
               })
+            )}
+            
+            {/* 🚀 INFINITE SCROLL: Loading indicator */}
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={30} />
+              </Box>
+            )}
+            
+            {/* 🚀 INFINITE SCROLL: Load more button (as fallback) */}
+            {hasMore && !loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <Button
+                  variant="outlined"
+                  onClick={loadMore}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    px: 3
+                  }}
+                >
+                  Načítať ďalšie ({totalCount - filteredSettlements.length} zostáva)
+                </Button>
+              </Box>
+            )}
+            
+            {/* 🚀 INFINITE SCROLL: End of list message */}
+            {!hasMore && filteredSettlements.length > 0 && (
+              <Box sx={{ textAlign: 'center', py: 2, color: 'text.secondary' }}>
+                <Typography variant="body2">
+                  Zobrazené všetky vyúčtovania ({filteredSettlements.length})
+                </Typography>
+              </Box>
             )}
           </Box>
         </Card>

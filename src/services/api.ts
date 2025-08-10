@@ -223,6 +223,50 @@ class ApiService {
     );
   }
 
+  // 🚀 NOVÝ: Paginated vehicles s filtrami
+  async getVehiclesPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    brand?: string;
+    model?: string;
+    company?: string;
+    category?: string;
+    status?: string;
+  } = {}): Promise<{
+    vehicles: Vehicle[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/vehicles/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      vehicles: Vehicle[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   async getVehicle(id: string): Promise<Vehicle> {
     return this.request<Vehicle>(`/vehicles/${id}`);
   }
@@ -669,6 +713,144 @@ class ApiService {
     );
   }
 
+  // 🚀 NOVÝ: Paginated customers s filtrami
+  async getCustomersPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    hasEmail?: boolean;
+    hasPhone?: boolean;
+    company?: string;
+  } = {}): Promise<{
+    customers: Customer[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/customers/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      customers: Customer[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
+  // 🚀 NOVÝ: Paginated insurance claims s filtrami
+  async getInsuranceClaimsPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    insuranceId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    minAmount?: number;
+    maxAmount?: number;
+  } = {}): Promise<{
+    claims: InsuranceClaim[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/insurance-claims/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      claims: InsuranceClaim[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
+  // 🚀 NOVÝ: Paginated availability s filtrami
+  async getAvailabilityPaginated(params: {
+    vehiclePage?: number;
+    vehicleLimit?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    search?: string;
+    categories?: string[];
+    brands?: string[];
+    companies?: string[];
+    locations?: string[];
+    availableOnly?: boolean;
+    minAvailabilityPercent?: number;
+  } = {}): Promise<{
+    vehicles: any[];
+    pagination: {
+      currentVehiclePage: number;
+      totalVehiclePages: number;
+      totalVehicles: number;
+      hasMoreVehicles: boolean;
+      vehiclesPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Handle array parameters specially
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach(v => queryParams.append(key, String(v)));
+        } else if (value !== '') {
+          queryParams.append(key, String(value));
+        }
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/availability/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      vehicles: any[];
+      pagination: {
+        currentVehiclePage: number;
+        totalVehiclePages: number;
+        totalVehicles: number;
+        hasMoreVehicles: boolean;
+        vehiclesPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   async createCustomer(customer: Customer): Promise<void> {
     const result = await this.request<void>('/customers', {
       method: 'POST',
@@ -704,6 +886,52 @@ class ApiService {
     return this.request<Expense[]>('/expenses');
   }
 
+  // 🚀 NOVÝ: Paginated expenses s filtrami
+  async getExpensesPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    vehicleId?: string;
+    rentalId?: string;
+  } = {}): Promise<{
+    expenses: Expense[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/expenses/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      expenses: Expense[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   async createExpense(expense: Expense): Promise<void> {
     return this.request<void>('/expenses', {
       method: 'POST',
@@ -725,6 +953,51 @@ class ApiService {
   // Poistky
   async getInsurances(): Promise<Insurance[]> {
     return this.request<Insurance[]>('/insurances');
+  }
+
+  // 🚀 NOVÝ: Paginated insurances s filtrami
+  async getInsurancesPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: string;
+    insurerId?: string;
+    vehicleId?: string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  } = {}): Promise<{
+    insurances: Insurance[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/insurances/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      insurances: Insurance[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
   }
 
   async createInsurance(insurance: Insurance): Promise<void> {
@@ -840,6 +1113,51 @@ class ApiService {
   // Vyúčtovania
   async getSettlements(): Promise<Settlement[]> {
     return this.request<Settlement[]>('/settlements');
+  }
+
+  // 🚀 NOVÝ: Paginated settlements s filtrami
+  async getSettlementsPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    company?: string;
+    status?: string;
+    periodFrom?: string;
+    periodTo?: string;
+    minAmount?: number;
+    maxAmount?: number;
+  } = {}): Promise<{
+    settlements: Settlement[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/settlements/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      settlements: Settlement[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
   }
 
   async getSettlement(id: string): Promise<Settlement> {

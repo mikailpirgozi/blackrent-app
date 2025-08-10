@@ -4,7 +4,123 @@ const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
 const permissions_1 = require("../middleware/permissions");
+const textNormalization_1 = require("../utils/textNormalization");
 const router = (0, express_1.Router)();
+// GET /api/expenses/paginated - Paginated expenses with filters
+router.get('/paginated', auth_1.authenticateToken, (0, permissions_1.checkPermission)('expenses', 'read'), async (req, res) => {
+    try {
+        const { page = '1', limit = '50', search = '', category = '', dateFrom = '', dateTo = '', minAmount = '', maxAmount = '', vehicleId = '', rentalId = '' } = req.query;
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+        const offset = (pageNum - 1) * limitNum;
+        let expenses = await postgres_database_1.postgresDatabase.getExpenses();
+        console.log('💰 Expenses PAGINATED GET - user:', {
+            role: req.user?.role,
+            userId: req.user?.id,
+            totalExpenses: expenses.length,
+            page: pageNum,
+            limit: limitNum
+        });
+        // 🔐 NON-ADMIN USERS - filter podľa company permissions
+        if (req.user?.role !== 'admin' && req.user) {
+            const user = req.user;
+            const userCompanyAccess = await postgres_database_1.postgresDatabase.getUserCompanyAccess(user.id);
+            const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+            const companies = await postgres_database_1.postgresDatabase.getCompanies();
+            const allowedCompanyNames = companies
+                .filter(c => allowedCompanyIds.includes(c.id))
+                .map(c => c.name);
+            expenses = expenses.filter(e => e.company && allowedCompanyNames.includes(e.company));
+        }
+        // 🔍 Apply filters
+        let filteredExpenses = [...expenses];
+        // Search filter - bez diakritiky
+        if (search) {
+            const searchTerm = search.toString();
+            filteredExpenses = filteredExpenses.filter(e => (0, textNormalization_1.textIncludes)(e.description, searchTerm) ||
+                (0, textNormalization_1.textIncludes)(e.company, searchTerm) ||
+                (0, textNormalization_1.textIncludes)(e.note, searchTerm) ||
+                (0, textNormalization_1.textIncludes)(e.category, searchTerm));
+        }
+        // Category filter
+        if (category) {
+            filteredExpenses = filteredExpenses.filter(e => e.category === category.toString());
+        }
+        // Date filters
+        if (dateFrom) {
+            const fromDate = new Date(dateFrom.toString());
+            filteredExpenses = filteredExpenses.filter(e => {
+                if (!e.date)
+                    return false;
+                const expenseDate = new Date(e.date);
+                return expenseDate >= fromDate;
+            });
+        }
+        if (dateTo) {
+            const toDate = new Date(dateTo.toString());
+            filteredExpenses = filteredExpenses.filter(e => {
+                if (!e.date)
+                    return false;
+                const expenseDate = new Date(e.date);
+                return expenseDate <= toDate;
+            });
+        }
+        // Amount filters
+        if (minAmount) {
+            const min = parseFloat(minAmount.toString());
+            filteredExpenses = filteredExpenses.filter(e => (e.amount || 0) >= min);
+        }
+        if (maxAmount) {
+            const max = parseFloat(maxAmount.toString());
+            filteredExpenses = filteredExpenses.filter(e => (e.amount || 0) <= max);
+        }
+        // Vehicle filter
+        if (vehicleId) {
+            filteredExpenses = filteredExpenses.filter(e => e.vehicleId === vehicleId.toString());
+        }
+        // Rental filter
+        if (rentalId) {
+            filteredExpenses = filteredExpenses.filter(e => e.rentalId === rentalId.toString());
+        }
+        // Sort by date (newest first)
+        filteredExpenses.sort((a, b) => {
+            const dateA = a.date ? new Date(a.date).getTime() : 0;
+            const dateB = b.date ? new Date(b.date).getTime() : 0;
+            return dateB - dateA;
+        });
+        // Calculate pagination
+        const totalItems = filteredExpenses.length;
+        const totalPages = Math.ceil(totalItems / limitNum);
+        const hasMore = pageNum < totalPages;
+        // Get paginated results
+        const paginatedExpenses = filteredExpenses.slice(offset, offset + limitNum);
+        console.log('📄 Paginated expenses:', {
+            totalItems,
+            currentPage: pageNum,
+            totalPages,
+            hasMore,
+            resultsCount: paginatedExpenses.length
+        });
+        res.json({
+            success: true,
+            expenses: paginatedExpenses,
+            pagination: {
+                currentPage: pageNum,
+                totalPages,
+                totalItems,
+                hasMore,
+                itemsPerPage: limitNum
+            }
+        });
+    }
+    catch (error) {
+        console.error('Get paginated expenses error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri získavaní výdavkov'
+        });
+    }
+});
 // 🔍 CONTEXT FUNCTIONS
 const getExpenseContext = async (req) => {
     const expenseId = req.params.id;

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -51,19 +51,21 @@ import CustomerRentalHistory from './CustomerRentalHistory';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
+import { useInfiniteCustomers } from '../../hooks/useInfiniteCustomers';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 
 export default function CustomerListNew() {
   const { state, createCustomer, updateCustomer, deleteCustomer, updateRental } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // States
-  const [searchQuery, setSearchQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
   const [importError, setImportError] = useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
@@ -76,9 +78,20 @@ export default function CustomerListNew() {
   const [showWithPhone, setShowWithPhone] = useState(true);
   const [showWithoutPhone, setShowWithoutPhone] = useState(true);
   
-  // 🚀 INFINITE SCROLL STATES
-  const [displayedCustomers, setDisplayedCustomers] = useState(20); // Start with 20 items
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // 🚀 INFINITE SCROLL - použitie nového hooku
+  const {
+    customers,
+    loading,
+    hasMore,
+    searchTerm,
+    setSearchTerm,
+    loadMore,
+    refresh,
+    updateFilters
+  } = useInfiniteCustomers();
+
+  // 🚀 Infinite scroll detection
+  useInfiniteScroll(scrollContainerRef, loadMore, hasMore && !loading, 0.7);
 
   // Handlers
   const handleEdit = (customer: Customer) => {
@@ -89,12 +102,10 @@ export default function CustomerListNew() {
   const handleDelete = async (customerId: string) => {
     if (window.confirm('Naozaj chcete vymazať tohto zákazníka?')) {
       try {
-        setLoading(true);
         await deleteCustomer(customerId);
+        refresh(); // Refresh data after delete
       } catch (error) {
         console.error('Error deleting customer:', error);
-      } finally {
-        setLoading(false);
       }
     }
   };
@@ -170,23 +181,21 @@ export default function CustomerListNew() {
 
   const handleSubmit = async (customerData: Customer) => {
     try {
-      setLoading(true);
       if (editingCustomer) {
         await updateCustomer(customerData);
       } else {
         await createCustomer(customerData);
       }
       handleCloseDialog();
+      refresh(); // Refresh data after save
     } catch (error) {
       console.error('Error saving customer:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleImportExistingCustomers = async () => {
     try {
-      setLoading(true);
+      setLocalLoading(true);
       // Získam všetkých unikátnych zákazníkov z prenájmov
       const existingCustomerNames = Array.from(new Set(state.rentals.map(r => r.customerName).filter(Boolean)));
       
@@ -234,97 +243,45 @@ export default function CustomerListNew() {
       console.error('Chyba pri importe zákazníkov:', error);
       alert('Chyba pri importe zákazníkov');
     } finally {
-      setLoading(false);
+      setLocalLoading(false);
     }
   };
 
-  // Filtered customers
-  const filteredCustomers = useMemo(() => {
-    return state.customers.filter(customer => {
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        if (
-          !(customer.name || '').toLowerCase().includes(query) &&
-          !(customer.email || '').toLowerCase().includes(query) &&
-          !(customer.phone || '').toLowerCase().includes(query)
-        ) {
-          return false;
-        }
-      }
-
-      // Name filter
-      if (filterName && !(customer.name || '').toLowerCase().includes(filterName.toLowerCase())) {
-        return false;
-      }
-
-      // Email filter
-      if (filterEmail && !(customer.email || '').toLowerCase().includes(filterEmail.toLowerCase())) {
-        return false;
-      }
-
-      // Phone filter
-      if (filterPhone && !(customer.phone || '').includes(filterPhone)) {
-        return false;
-      }
-
-      // Email/Phone existence filters
-      const hasEmail = !!customer.email;
-      const hasPhone = !!customer.phone;
-      
-      if (!showWithEmail && hasEmail) return false;
-      if (!showWithoutEmail && !hasEmail) return false;
-      if (!showWithPhone && hasPhone) return false;
-      if (!showWithoutPhone && !hasPhone) return false;
-
-      return true;
-    });
+  // 🚀 Update filters when they change
+  useEffect(() => {
+    const filters: any = {};
+    
+    // Email/Phone existence filters
+    if (!showWithEmail && !showWithoutEmail) {
+      // Show nothing if both are unchecked
+      filters.hasEmail = 'none';
+    } else if (!showWithEmail) {
+      filters.hasEmail = false;
+    } else if (!showWithoutEmail) {
+      filters.hasEmail = true;
+    }
+    
+    if (!showWithPhone && !showWithoutPhone) {
+      // Show nothing if both are unchecked
+      filters.hasPhone = 'none';
+    } else if (!showWithPhone) {
+      filters.hasPhone = false;
+    } else if (!showWithoutPhone) {
+      filters.hasPhone = true;
+    }
+    
+    updateFilters(filters);
   }, [
-    state.customers,
-    searchQuery,
-    filterName,
-    filterEmail,
-    filterPhone,
     showWithEmail,
     showWithoutEmail,
     showWithPhone,
-    showWithoutPhone
+    showWithoutPhone,
+    updateFilters
   ]);
 
-  // 🚀 INFINITE SCROLL LOGIC (after filteredCustomers definition)
-  const loadMoreCustomers = useCallback(() => {
-    if (isLoadingMore || displayedCustomers >= filteredCustomers.length) return;
-    
-    setIsLoadingMore(true);
-    
-    // Simulate loading delay for better UX
-    setTimeout(() => {
-      setDisplayedCustomers(prev => Math.min(prev + 20, filteredCustomers.length));
-      setIsLoadingMore(false);
-    }, 300);
-  }, [isLoadingMore, displayedCustomers, filteredCustomers.length]);
-
-  // Reset displayed count when filters change
-  useEffect(() => {
-    setDisplayedCustomers(20);
-  }, [searchQuery, filterName, filterEmail, filterPhone, showWithEmail, showWithoutEmail, showWithPhone, showWithoutPhone]);
-
-  // Infinite scroll event handler
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    
-    // Load more when user scrolls to 80% of the content
-    if (scrollTop + clientHeight >= scrollHeight * 0.8) {
-      loadMoreCustomers();
-    }
-  }, [loadMoreCustomers]);
-
-  // Get customers to display (limited by infinite scroll)
-  const customersToDisplay = useMemo(() => {
-    return filteredCustomers.slice(0, displayedCustomers);
-  }, [filteredCustomers, displayedCustomers]);
-
-  const hasMore = displayedCustomers < filteredCustomers.length;
+  // Use customers from hook instead of filteredCustomers
+  const filteredCustomers = customers;
+  const customersToDisplay = customers;
 
   // Get customer rental count
   const getCustomerRentalCount = (customerId: string) => {
@@ -418,8 +375,8 @@ export default function CustomerListNew() {
             <TextField
               fullWidth
               placeholder="Hľadať zákazníkov..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: '#666', mr: 1 }} />,
               }}
@@ -506,7 +463,7 @@ export default function CustomerListNew() {
           Zobrazených {customersToDisplay.length} z {filteredCustomers.length} zákazníkov
           {filteredCustomers.length !== state.customers.length && ` (filtrovaných z ${state.customers.length})`}
         </Typography>
-        {isLoadingMore && (
+        {loading && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CircularProgress size={16} />
             <Typography variant="body2" color="text.secondary">
@@ -523,8 +480,8 @@ export default function CustomerListNew() {
         <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
           <CardContent sx={{ p: 0 }}>
             <Box 
+              ref={scrollContainerRef}
               sx={{ maxHeight: '70vh', overflowY: 'auto' }}
-              onScroll={handleScroll}
             >
               {customersToDisplay.map((customer, index) => (
                 <Box 
@@ -768,8 +725,8 @@ export default function CustomerListNew() {
                 }}>
                   <Button
                     variant="outlined"
-                    onClick={loadMoreCustomers}
-                    disabled={isLoadingMore}
+                    onClick={loadMore}
+                    disabled={loading}
                     sx={{
                       minWidth: 200,
                       py: 1.5,
@@ -779,8 +736,22 @@ export default function CustomerListNew() {
                       fontWeight: 600
                     }}
                   >
-                    {isLoadingMore ? 'Načítavam...' : `Načítať ďalších (${filteredCustomers.length - displayedCustomers} zostáva)`}
+                    {loading ? 'Načítavam...' : 'Načítať ďalšie'}
                   </Button>
+                </Box>
+              )}
+              
+              {/* Loading indicator */}
+              {loading && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              )}
+              
+              {/* End of list message */}
+              {!hasMore && customers.length > 0 && (
+                <Box sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
+                  <Typography variant="body2">Koniec zoznamu</Typography>
                 </Box>
               )}
             </Box>
@@ -887,8 +858,8 @@ export default function CustomerListNew() {
 
             {/* Desktop Customer Rows */}
             <Box 
+              ref={scrollContainerRef}
               sx={{ maxHeight: '70vh', overflowY: 'auto' }}
-              onScroll={handleScroll}
             >
               {customersToDisplay.map((customer, index) => (
                 <Box 
@@ -1153,8 +1124,8 @@ export default function CustomerListNew() {
                 }}>
                   <Button
                     variant="outlined"
-                    onClick={loadMoreCustomers}
-                    disabled={isLoadingMore}
+                    onClick={loadMore}
+                    disabled={loading}
                     sx={{
                       minWidth: 200,
                       py: 1.5,
@@ -1164,8 +1135,22 @@ export default function CustomerListNew() {
                       fontWeight: 600
                     }}
                   >
-                    {isLoadingMore ? 'Načítavam...' : `Načítať ďalších (${filteredCustomers.length - displayedCustomers} zostáva)`}
+                    {loading ? 'Načítavam...' : 'Načítať ďalšie'}
                   </Button>
+                </Box>
+              )}
+              
+              {/* Loading indicator */}
+              {loading && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              )}
+              
+              {/* End of list message */}
+              {!hasMore && customers.length > 0 && (
+                <Box sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
+                  <Typography variant="body2">Koniec zoznamu</Typography>
                 </Box>
               )}
             </Box>

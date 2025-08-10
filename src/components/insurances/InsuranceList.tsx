@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -31,7 +31,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  TablePagination,
   Tabs,
   Tab
 } from '@mui/material';
@@ -64,6 +63,8 @@ import { format, isAfter, addDays, parseISO, isValid } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
 import InsuranceClaimList from './InsuranceClaimList';
+import { useInfiniteInsurances } from '../../hooks/useInfiniteInsurances';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 
 // Unified document type for table display
 interface UnifiedDocument {
@@ -154,22 +155,49 @@ export default function InsuranceList() {
   const [activeTab, setActiveTab] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDocument, setEditingDocument] = useState<any>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterVehicle, setFilterVehicle] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // 🚀 INFINITE SCROLL: Use the new hook for insurances
+  const {
+    insurances,
+    loading,
+    error,
+    hasMore,
+    totalCount,
+    currentPage,
+    searchTerm,
+    setSearchTerm,
+    loadMore,
+    refresh,
+    updateFilters
+  } = useInfiniteInsurances({
+    type: filterType || undefined,
+    vehicleId: filterVehicle || undefined,
+    status: filterStatus || undefined
+  });
+
+  // 🚀 INFINITE SCROLL: Scroll container ref
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // 🚀 INFINITE SCROLL: Use the scroll hook with 70% threshold
+  useInfiniteScroll(
+    scrollContainerRef,
+    loadMore,
+    hasMore && !loading,
+    0.7 // 70% scroll threshold for preloading
+  );
 
   // Convert data to unified format
   const unifiedDocuments = useMemo(() => {
     const docs: UnifiedDocument[] = [];
     
-    // Add insurances
-    if (state.insurances) {
-      state.insurances.forEach(insurance => {
+    // Add insurances from infinite scroll
+    if (insurances) {
+      insurances.forEach(insurance => {
         docs.push({
           id: insurance.id,
           vehicleId: insurance.vehicleId,
@@ -207,7 +235,16 @@ export default function InsuranceList() {
     }
     
     return docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [state.insurances, state.vehicleDocuments]);
+  }, [insurances, state.vehicleDocuments]);
+
+  // 🚀 INFINITE SCROLL: Update filters when they change
+  useEffect(() => {
+    updateFilters({
+      type: filterType || undefined,
+      vehicleId: filterVehicle || undefined,
+      status: filterStatus || undefined
+    });
+  }, [filterType, filterVehicle, filterStatus, updateFilters]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -238,11 +275,11 @@ export default function InsuranceList() {
       const vehicle = state.vehicles?.find(v => v.id === doc.vehicleId);
       const vehicleText = vehicle ? `${vehicle.brand} ${vehicle.model} ${vehicle.licensePlate}` : '';
       
-      const matchesSearch = !searchQuery || 
-        (doc.policyNumber && doc.policyNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (doc.documentNumber && doc.documentNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (doc.company && doc.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        vehicleText.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = !searchTerm || 
+        (doc.policyNumber && doc.policyNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (doc.documentNumber && doc.documentNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (doc.company && doc.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        vehicleText.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesVehicle = !filterVehicle || doc.vehicleId === filterVehicle;
       const matchesCompany = !filterCompany || doc.company === filterCompany;
@@ -252,7 +289,7 @@ export default function InsuranceList() {
       
       return matchesSearch && matchesVehicle && matchesCompany && matchesType && matchesStatus;
     });
-  }, [unifiedDocuments, searchQuery, filterVehicle, filterCompany, filterType, filterStatus, state.vehicles]);
+  }, [unifiedDocuments, searchTerm, filterVehicle, filterCompany, filterType, filterStatus, state.vehicles]);
 
   const handleAdd = () => {
     setEditingDocument(null);
@@ -387,23 +424,16 @@ export default function InsuranceList() {
   };
 
   const clearFilters = () => {
-    setSearchQuery('');
+    setSearchTerm('');
     setFilterVehicle('');
     setFilterCompany('');
     setFilterType('');
     setFilterStatus('');
   };
 
-  const hasActiveFilters = searchQuery || filterVehicle || filterCompany || filterType || filterStatus;
+  const hasActiveFilters = searchTerm || filterVehicle || filterCompany || filterType || filterStatus;
 
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+  // Removed pagination handlers - using infinite scroll instead
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -552,8 +582,8 @@ export default function InsuranceList() {
           <Box sx={{ display: 'flex', gap: 2, mb: showFilters ? 2 : 0, flexWrap: 'wrap' }}>
             <TextField
               placeholder="Vyhľadať dokument..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
               }}
@@ -565,7 +595,7 @@ export default function InsuranceList() {
               onClick={() => setShowFilters(!showFilters)}
               sx={{ whiteSpace: 'nowrap' }}
             >
-              Filtre {hasActiveFilters && `(${Object.values({ searchQuery, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})`}
+              Filtre {hasActiveFilters && `(${Object.values({ searchTerm, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})`}
             </Button>
             {hasActiveFilters && (
               <Button
@@ -704,7 +734,27 @@ export default function InsuranceList() {
 
           {/* Documents Table */}
       <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <TableContainer>
+        <TableContainer
+          ref={scrollContainerRef}
+          sx={{ 
+            maxHeight: 600,
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: '#f1f1f1',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#888',
+              borderRadius: '4px',
+              '&:hover': {
+                backgroundColor: '#555',
+              },
+            },
+          }}
+        >
           <Table>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
@@ -721,7 +771,6 @@ export default function InsuranceList() {
             </TableHead>
             <TableBody>
               {filteredDocuments
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((doc, index) => {
                                      const vehicle = state.vehicles?.find(v => v.id === doc.vehicleId);
                   const expiryStatus = getExpiryStatus(doc.validTo);
@@ -831,19 +880,39 @@ export default function InsuranceList() {
           </Table>
         </TableContainer>
         
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          component="div"
-          count={filteredDocuments.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Riadkov na stránku:"
-          labelDisplayedRows={({ from, to, count }) => 
-            `${from}–${to} z ${count !== -1 ? count : `viac ako ${to}`}`
-          }
-        />
+        
+        {/* 🚀 INFINITE SCROLL: Loading indicator */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+            <CircularProgress size={30} />
+          </Box>
+        )}
+        
+        {/* 🚀 INFINITE SCROLL: Load more button (as fallback) */}
+        {hasMore && !loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={loadMore}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                px: 3
+              }}
+            >
+              Načítať ďalšie ({totalCount - insurances.length} zostáva)
+            </Button>
+          </Box>
+        )}
+        
+        {/* 🚀 INFINITE SCROLL: End of list message */}
+        {!hasMore && insurances.length > 0 && (
+          <Box sx={{ textAlign: 'center', py: 2, color: 'text.secondary' }}>
+            <Typography variant="body2">
+              Zobrazené všetky poistenia ({insurances.length})
+            </Typography>
+          </Box>
+        )}
       </Card>
 
       {/* Empty State */}
