@@ -3,6 +3,7 @@ import { postgresDatabase } from '../models/postgres-database';
 import { Settlement, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { textIncludes } from '../utils/textNormalization';
 
 const router = Router();
 
@@ -52,13 +53,13 @@ router.get('/paginated', authenticateToken, async (req: Request, res: Response) 
     // 🔍 Apply filters
     let filteredSettlements = [...settlements];
 
-    // Search filter
+    // Search filter - bez diakritiky
     if (search) {
-      const searchLower = search.toString().toLowerCase();
+      const searchTerm = search.toString();
       filteredSettlements = filteredSettlements.filter(s => 
-        s.company?.toLowerCase().includes(searchLower) ||
-        s.period?.toLowerCase().includes(searchLower) ||
-        s.id?.toLowerCase().includes(searchLower)
+        textIncludes(s.company, searchTerm) ||
+        textIncludes(s.period, searchTerm) ||
+        textIncludes(s.id, searchTerm)
       );
     }
 

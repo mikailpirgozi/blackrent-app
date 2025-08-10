@@ -4,6 +4,7 @@ import { Insurance, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
+import { textIncludes } from '../utils/textNormalization';
 
 const router = Router();
 
@@ -54,13 +55,13 @@ router.get('/paginated',
       // 🔍 Apply filters
       let filteredInsurances = [...insurances];
 
-      // Search filter
+      // Search filter - bez diakritiky
       if (search) {
-        const searchLower = search.toString().toLowerCase();
+        const searchTerm = search.toString();
         filteredInsurances = filteredInsurances.filter(i => 
-          i.policyNumber?.toLowerCase().includes(searchLower) ||
-          i.type?.toLowerCase().includes(searchLower) ||
-          i.note?.toLowerCase().includes(searchLower)
+          textIncludes(i.policyNumber, searchTerm) ||
+          textIncludes(i.type, searchTerm) ||
+          textIncludes(i.note, searchTerm)
         );
       }
 

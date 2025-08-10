@@ -5,6 +5,7 @@ import { authenticateToken, requireRole } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { cacheResponse, invalidateCache, userSpecificCache } from '../middleware/cache-middleware';
 import { v4 as uuidv4 } from 'uuid';
+import { textIncludes } from '../utils/textNormalization';
 
 const router = Router();
 
@@ -53,14 +54,14 @@ router.get('/paginated',
       // 🔍 Apply filters
       let filteredVehicles = [...vehicles];
 
-      // Search filter
+      // Search filter - bez diakritiky
       if (search) {
-        const searchLower = search.toString().toLowerCase();
+        const searchTerm = search.toString();
         filteredVehicles = filteredVehicles.filter(v => 
-          v.brand?.toLowerCase().includes(searchLower) ||
-          v.model?.toLowerCase().includes(searchLower) ||
-          v.licensePlate?.toLowerCase().includes(searchLower) ||
-          v.company?.toLowerCase().includes(searchLower)
+          textIncludes(v.brand, searchTerm) ||
+          textIncludes(v.model, searchTerm) ||
+          textIncludes(v.licensePlate, searchTerm) ||
+          textIncludes(v.company, searchTerm)
         );
       }
 

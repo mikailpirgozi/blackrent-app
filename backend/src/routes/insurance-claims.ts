@@ -3,6 +3,7 @@ import { postgresDatabase } from '../models/postgres-database';
 import { InsuranceClaim, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
+import { textIncludes } from '../utils/textNormalization';
 
 const router = Router();
 
@@ -53,14 +54,14 @@ router.get('/paginated',
       // 🔍 Apply filters
       let filteredClaims = [...claims];
 
-      // Search filter
+      // Search filter - bez diakritiky
       if (search) {
-        const searchLower = search.toString().toLowerCase();
+        const searchTerm = search.toString();
         filteredClaims = filteredClaims.filter(c => 
-          c.description?.toLowerCase().includes(searchLower) ||
-          c.claimNumber?.toLowerCase().includes(searchLower) ||
-          c.location?.toLowerCase().includes(searchLower) ||
-          c.incidentType?.toLowerCase().includes(searchLower)
+          textIncludes(c.description, searchTerm) ||
+          textIncludes(c.claimNumber, searchTerm) ||
+          textIncludes(c.location, searchTerm) ||
+          textIncludes(c.incidentType, searchTerm)
         );
       }
 

@@ -4,6 +4,7 @@ import { Expense, ApiResponse, ExpenseCategory } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
+import { textIncludes } from '../utils/textNormalization';
 
 const router = Router();
 
@@ -59,14 +60,14 @@ router.get('/paginated',
       // 🔍 Apply filters
       let filteredExpenses = [...expenses];
 
-      // Search filter
+      // Search filter - bez diakritiky
       if (search) {
-        const searchLower = search.toString().toLowerCase();
+        const searchTerm = search.toString();
         filteredExpenses = filteredExpenses.filter(e => 
-          e.description?.toLowerCase().includes(searchLower) ||
-          e.company?.toLowerCase().includes(searchLower) ||
-          e.note?.toLowerCase().includes(searchLower) ||
-          e.category?.toLowerCase().includes(searchLower)
+          textIncludes(e.description, searchTerm) ||
+          textIncludes(e.company, searchTerm) ||
+          textIncludes(e.note, searchTerm) ||
+          textIncludes(e.category, searchTerm)
         );
       }
 

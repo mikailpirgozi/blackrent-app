@@ -4,6 +4,7 @@ import { Customer, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { cacheResponse, invalidateCache, userSpecificCache } from '../middleware/cache-middleware';
 import { v4 as uuidv4 } from 'uuid';
+import { textIncludes } from '../utils/textNormalization';
 
 const router = Router();
 
@@ -63,14 +64,14 @@ router.get('/paginated',
       // 🔍 Apply filters
       let filteredCustomers = [...customers];
 
-      // Search filter
+      // Search filter - bez diakritiky
       if (search) {
-        const searchLower = search.toString().toLowerCase();
+        const searchTerm = search.toString();
         filteredCustomers = filteredCustomers.filter(c => 
-          c.name?.toLowerCase().includes(searchLower) ||
-          c.email?.toLowerCase().includes(searchLower) ||
-          c.phone?.toLowerCase().includes(searchLower) ||
-          c.company?.toLowerCase().includes(searchLower)
+          textIncludes(c.name, searchTerm) ||
+          textIncludes(c.email, searchTerm) ||
+          textIncludes(c.phone, searchTerm) ||
+          textIncludes(c.company, searchTerm)
         );
       }
 
