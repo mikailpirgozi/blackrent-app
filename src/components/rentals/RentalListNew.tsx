@@ -211,8 +211,9 @@ export default function RentalListNew() {
           }
           
           // 📱 MOBILE: Use 70% threshold for earlier loading on mobile
-          // 💻 DESKTOP: Use 85% threshold
-          const threshold = isMobile ? 0.70 : 0.85;
+          // 💻 DESKTOP: Use 70% threshold for earlier loading
+          // 🎯 UNIFIED: Use 70% threshold for both mobile and desktop
+          const threshold = 0.70;
           
           // Trigger at appropriate threshold
           if (scrollPercentage >= threshold && !isLoading) {
