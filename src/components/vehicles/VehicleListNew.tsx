@@ -121,6 +121,7 @@ export default function VehicleListNew() {
   const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set());
   const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
   const [showBulkActions, setShowBulkActions] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
 
   // Filters
   const [filterBrand, setFilterBrand] = useState('');
@@ -345,7 +346,7 @@ export default function VehicleListNew() {
     if (!file) return;
 
     // Zobraz loading state
-    setLoading(true);
+    setLocalLoading(true);
 
     Papa.parse(file, {
       complete: async (results: any) => {
@@ -362,7 +363,7 @@ export default function VehicleListNew() {
           );
           
           if (!progressDialog) {
-            setLoading(false);
+            setLocalLoading(false);
             return;
           }
           
@@ -394,7 +395,7 @@ export default function VehicleListNew() {
           // Aj tak skús refresh - možno sa import dokončil
           setTimeout(() => window.location.reload(), 2000);
         } finally {
-          setLoading(false);
+          setLocalLoading(false);
         }
       },
       header: false,
@@ -402,7 +403,7 @@ export default function VehicleListNew() {
       error: (error: any) => {
         console.error('❌ Papa Parse error:', error);
         alert(`❌ Chyba pri čítaní CSV súboru: ${error.message}`);
-        setLoading(false);
+        setLocalLoading(false);
       }
     });
     
@@ -446,7 +447,7 @@ export default function VehicleListNew() {
     
     if (!confirmed) return;
     
-    setLoading(true);
+    setLocalLoading(true);
     let deletedCount = 0;
     let errorCount = 0;
     
@@ -479,7 +480,7 @@ export default function VehicleListNew() {
       console.error('❌ Bulk delete error:', error);
       alert('❌ Chyba pri hromadnom mazaní vozidiel.');
     } finally {
-      setLoading(false);
+      setLocalLoading(false);
     }
   };
 
@@ -523,10 +524,10 @@ export default function VehicleListNew() {
               size="small"
               startIcon={<DeleteIcon />}
               onClick={handleBulkDelete}
-              disabled={loading}
+              disabled={localLoading}
               sx={{ minWidth: 120 }}
             >
-              {loading ? 'Mažem...' : 'Zmazať vybrané'}
+              {localLoading ? 'Mažem...' : 'Zmazať vybrané'}
             </Button>
             <Button
               variant="outlined"
@@ -800,7 +801,7 @@ export default function VehicleListNew() {
             showMessage={false} 
           />
         )}
-        {isLoadingMore && (
+        {loading && (
           <EnhancedLoading 
             variant="inline" 
             message="Načítavam ďalšie..." 
@@ -815,8 +816,8 @@ export default function VehicleListNew() {
         <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
           <CardContent sx={{ p: 0 }}>
             <Box 
+              ref={scrollContainerRef}
               sx={{ maxHeight: '70vh', overflowY: 'auto' }}
-              onScroll={handleScroll}
             >
               {vehiclesToDisplay.map((vehicle, index) => (
                 <Box
@@ -1042,8 +1043,8 @@ export default function VehicleListNew() {
                 }}>
                   <Button
                     variant="outlined"
-                    onClick={loadMoreVehicles}
-                    disabled={isLoadingMore}
+                    onClick={loadMore}
+                    disabled={loading}
                     sx={{
                       minWidth: 200,
                       py: 1.5,
@@ -1053,8 +1054,22 @@ export default function VehicleListNew() {
                       fontWeight: 600
                     }}
                   >
-                    {isLoadingMore ? 'Načítavam...' : `Načítať ďalších (${filteredVehicles.length - displayedVehicles} zostáva)`}
+                    {loading ? 'Načítavam...' : 'Načítať ďalšie'}
                   </Button>
+                </Box>
+              )}
+              
+              {/* Loading indicator */}
+              {loading && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              )}
+              
+              {/* End of list message */}
+              {!hasMore && vehicles.length > 0 && (
+                <Box sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
+                  <Typography variant="body2">Koniec zoznamu</Typography>
                 </Box>
               )}
             </Box>
@@ -1064,6 +1079,10 @@ export default function VehicleListNew() {
         /* DESKTOP TABLE VIEW */
         <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
           <CardContent sx={{ p: 0 }}>
+            <Box 
+              ref={scrollContainerRef}
+              sx={{ maxHeight: '80vh', overflowY: 'auto' }}
+            >
             {/* Desktop Header */}
             <Box sx={{ 
               display: 'flex',
@@ -1162,7 +1181,6 @@ export default function VehicleListNew() {
             {/* Desktop Vehicle Rows */}
             <Box 
               sx={{ maxHeight: '70vh', overflowY: 'auto' }}
-              onScroll={handleScroll}
             >
               {vehiclesToDisplay.map((vehicle, index) => (
                 <Box 
@@ -1399,8 +1417,8 @@ export default function VehicleListNew() {
                 }}>
                   <Button
                     variant="outlined"
-                    onClick={loadMoreVehicles}
-                    disabled={isLoadingMore}
+                    onClick={loadMore}
+                    disabled={loading}
                     sx={{
                       minWidth: 200,
                       py: 1.5,
@@ -1410,10 +1428,25 @@ export default function VehicleListNew() {
                       fontWeight: 600
                     }}
                   >
-                    {isLoadingMore ? 'Načítavam...' : `Načítať ďalších (${filteredVehicles.length - displayedVehicles} zostáva)`}
+                    {loading ? 'Načítavam...' : 'Načítať ďalšie'}
                   </Button>
                 </Box>
               )}
+              
+              {/* Loading indicator */}
+              {loading && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              )}
+              
+              {/* End of list message */}
+              {!hasMore && vehicles.length > 0 && (
+                <Box sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
+                  <Typography variant="body2">Koniec zoznamu</Typography>
+                </Box>
+              )}
+            </Box>
             </Box>
           </CardContent>
         </Card>
@@ -1430,8 +1463,8 @@ export default function VehicleListNew() {
             variant="contained"
             color="primary"
             onClick={handleAutoAssignOwners}
-            disabled={loading}
-            startIcon={loading ? <EnhancedLoading variant="button" showMessage={false} /> : undefined}
+            disabled={localLoading}
+            startIcon={localLoading ? <EnhancedLoading variant="button" showMessage={false} /> : undefined}
             sx={{
               bgcolor: '#2196f3',
               '&:hover': { bgcolor: '#1976d2' },
