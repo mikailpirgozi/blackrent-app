@@ -45,6 +45,7 @@ import {
   Switch,
   FormControlLabel
 } from '@mui/material';
+import VirtualizedAvailabilityTable from './VirtualizedAvailabilityTable';
 import {
   CalendarToday as CalendarIcon,
   DirectionsCar as CarIcon,
@@ -127,6 +128,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   const [loading, setLoading] = useState(false);
   const [availabilityData, setAvailabilityData] = useState<AvailabilityData[]>([]);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [useVirtualization, setUseVirtualization] = useState(true); // 🚀 Virtualizácia defaultne zapnutá
   
   // ⚡ PROGRESSIVE LOADING STATE
   const [loadMoreState, setLoadMoreState] = useState<LoadMoreState>({
@@ -638,6 +640,24 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           >
             Filtre
           </Button>
+          {/* 🚀 Prepínač virtualizácie - len pre desktop */}
+          {!isMobile && (
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  checked={useVirtualization}
+                  onChange={(e) => setUseVirtualization(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  Virtuálny scrolling {useVirtualization ? '✓' : ''}
+                </Typography>
+              }
+            />
+          )}
         </Stack>
 
         {/* Summary */}
@@ -684,8 +704,28 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
             </Card>
           ))}
         </Stack>
+      ) : useVirtualization ? (
+        /* 🚀 Virtualizovaná tabuľka */
+        <VirtualizedAvailabilityTable
+          data={filteredData.map(vehicle => ({
+            ...vehicle,
+            vehicleName: `${vehicle.brand} ${vehicle.licensePlate}`,
+          }))}
+          dateRange={{
+            from: new Date(filters.dateFrom),
+            to: new Date(filters.dateTo)
+          }}
+          onVehicleClick={(vehicleId) => {
+            console.log('Vehicle clicked:', vehicleId);
+            // Tu môžete pridať logiku pre kliknutie na vozidlo
+          }}
+          onDayClick={(vehicleId, date) => {
+            console.log('Day clicked:', vehicleId, date);
+            // Tu môžete pridať logiku pre kliknutie na deň
+          }}
+        />
       ) : (
-        /* Desktop Table View */
+        /* Desktop Table View - štandardná tabuľka */
         <TableContainer component={Paper} variant="outlined">
           <Table size="small">
             <TableHead>
