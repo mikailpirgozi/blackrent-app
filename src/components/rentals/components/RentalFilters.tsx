@@ -17,7 +17,21 @@ import {
   FilterList as FilterIcon,
   Clear as ClearIcon
 } from '@mui/icons-material';
-import { RentalFiltersInterface } from '../RentalListInfinite';
+interface RentalFiltersInterface {
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  status?: string;
+  paymentMethod?: string;
+  company?: string;
+  vehicleBrand?: string;
+  timeFilter?: string;
+  dateFilter?: string;
+  priceMin?: string;
+  priceMax?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
 
 interface RentalFiltersProps {
   filters: RentalFiltersInterface;

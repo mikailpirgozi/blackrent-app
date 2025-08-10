@@ -7,15 +7,15 @@ export const exportRentalsToCSV = (rentals: Rental[], vehicles: Vehicle[]) => {
   const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
   
   const csvData = rentals.map(rental => {
-    const vehicle = vehicleMap.get(rental.vehicleId);
+    const vehicle = vehicleMap.get(rental.vehicleId || '');
     return {
       'ID': rental.id,
       'Zákazník': rental.customerName || '',
       'Vozidlo': vehicle ? `${vehicle.brand} ${vehicle.model}` : '',
       'ŠPZ': vehicle?.licensePlate || '',
       'Firma': vehicle?.company || '',
-      'Od': format(parseISO(rental.startDate), 'dd.MM.yyyy', { locale: sk }),
-      'Do': format(parseISO(rental.endDate), 'dd.MM.yyyy', { locale: sk }),
+      'Od': rental.startDate ? format(rental.startDate instanceof Date ? rental.startDate : parseISO(rental.startDate), 'dd.MM.yyyy', { locale: sk }) : '',
+      'Do': rental.endDate ? format(rental.endDate instanceof Date ? rental.endDate : parseISO(rental.endDate), 'dd.MM.yyyy', { locale: sk }) : '',
       'Cena': rental.totalPrice || 0,
       'Stav': rental.status || '',
       'Platba': rental.paymentMethod || '',
@@ -49,7 +49,7 @@ export const applyRentalFilters = (
   const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
   
   return rentals.filter(rental => {
-    const vehicle = vehicleMap.get(rental.vehicleId);
+    const vehicle = vehicleMap.get(rental.vehicleId || '');
     
     // Search filter
     if (searchQuery) {
@@ -85,8 +85,9 @@ export const applyRentalFilters = (
 
     // Date range filter
     if (filters.dateFrom || filters.dateTo) {
-      const rentalStart = parseISO(rental.startDate);
-      const rentalEnd = parseISO(rental.endDate);
+      if (!rental.startDate || !rental.endDate) return false;
+      const rentalStart = rental.startDate instanceof Date ? rental.startDate : parseISO(rental.startDate);
+      const rentalEnd = rental.endDate instanceof Date ? rental.endDate : parseISO(rental.endDate);
       
       if (filters.dateFrom) {
         const filterStart = startOfDay(parseISO(filters.dateFrom));
@@ -125,7 +126,7 @@ export const getUniqueFilterValues = (rentals: Rental[], vehicles: Vehicle[]) =>
     if (rental.status) statuses.add(rental.status);
     if (rental.paymentMethod) paymentMethods.add(rental.paymentMethod);
     
-    const vehicle = vehicleMap.get(rental.vehicleId);
+    const vehicle = vehicleMap.get(rental.vehicleId || '');
     if (vehicle?.company) companies.add(vehicle.company);
     if (vehicle?.brand) vehicleBrands.add(vehicle.brand);
   });
