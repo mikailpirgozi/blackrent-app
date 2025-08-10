@@ -704,6 +704,52 @@ class ApiService {
     return this.request<Expense[]>('/expenses');
   }
 
+  // 🚀 NOVÝ: Paginated expenses s filtrami
+  async getExpensesPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    vehicleId?: string;
+    rentalId?: string;
+  } = {}): Promise<{
+    expenses: Expense[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/expenses/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      expenses: Expense[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   async createExpense(expense: Expense): Promise<void> {
     return this.request<void>('/expenses', {
       method: 'POST',
@@ -840,6 +886,51 @@ class ApiService {
   // Vyúčtovania
   async getSettlements(): Promise<Settlement[]> {
     return this.request<Settlement[]>('/settlements');
+  }
+
+  // 🚀 NOVÝ: Paginated settlements s filtrami
+  async getSettlementsPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    company?: string;
+    status?: string;
+    periodFrom?: string;
+    periodTo?: string;
+    minAmount?: number;
+    maxAmount?: number;
+  } = {}): Promise<{
+    settlements: Settlement[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/settlements/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      settlements: Settlement[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
   }
 
   async getSettlement(id: string): Promise<Settlement> {
