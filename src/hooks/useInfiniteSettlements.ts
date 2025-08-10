@@ -1,19 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiService } from '../services/api';
+import { Settlement } from '../types';
 import { logger } from '../utils/smartLogger';
-
-interface Settlement {
-  id: string;
-  companyId: string;
-  companyName: string;
-  period: string;
-  totalRevenue: number;
-  totalCommission: number;
-  status: 'pending' | 'paid' | 'cancelled';
-  createdAt: Date;
-  paidAt?: Date;
-  rentals: any[];
-}
 
 interface SettlementFilters {
   search?: string;

@@ -118,7 +118,7 @@ const SettlementListNew: React.FC = () => {
 
   // Get unique companies from settlements for filtering
   const settlementsCompanies = useMemo(() => 
-    Array.from(new Set(settlements.map((s: Settlement) => s.company).filter((company): company is string => Boolean(company)))).sort(),
+    Array.from(new Set(settlements.map(s => s.company).filter((company): company is string => Boolean(company)))).sort(),
     [settlements]
   );
 
@@ -135,22 +135,22 @@ const SettlementListNew: React.FC = () => {
 
   // Calculate totals
   const totalIncome = useMemo(() => 
-    filteredSettlements.reduce((sum: number, settlement: Settlement) => sum + settlement.totalIncome, 0),
+    filteredSettlements.reduce((sum: number, settlement) => sum + settlement.totalIncome, 0),
     [filteredSettlements]
   );
 
   const totalExpenses = useMemo(() => 
-    filteredSettlements.reduce((sum: number, settlement: Settlement) => sum + settlement.totalExpenses, 0),
+    filteredSettlements.reduce((sum: number, settlement) => sum + settlement.totalExpenses, 0),
     [filteredSettlements]
   );
 
   const totalProfit = useMemo(() => 
-    filteredSettlements.reduce((sum: number, settlement: Settlement) => sum + settlement.profit, 0),
+    filteredSettlements.reduce((sum: number, settlement) => sum + settlement.profit, 0),
     [filteredSettlements]
   );
 
   const totalCommission = useMemo(() => 
-    filteredSettlements.reduce((sum: number, settlement: Settlement) => sum + settlement.totalCommission, 0),
+    filteredSettlements.reduce((sum: number, settlement) => sum + settlement.totalCommission, 0),
     [filteredSettlements]
   );
 
@@ -209,7 +209,6 @@ const SettlementListNew: React.FC = () => {
       return;
     }
 
-    setLoading(true);
     try {
       const settlementData = {
         period: {
@@ -240,12 +239,12 @@ const SettlementListNew: React.FC = () => {
       console.error('Error creating settlement:', error);
       alert('Chyba pri vytváraní vyúčtovania');
     } finally {
-      setLoading(false);
+      // Loading is handled by the hook
     }
   };
 
   const handleExportCSV = () => {
-    const csvData = filteredSettlements.map((settlement: Settlement) => ({
+    const csvData = filteredSettlements.map((settlement) => ({
       'ID': settlement.id,
       'Obdobie od': format(new Date(settlement.period.from), 'dd.MM.yyyy'),
       'Obdobie do': format(new Date(settlement.period.to), 'dd.MM.yyyy'),
@@ -265,7 +264,7 @@ const SettlementListNew: React.FC = () => {
   };
 
   const clearFilters = () => {
-    setSearchQuery('');
+    setSearchTerm('');
     setCompanyFilter('');
     setVehicleFilter('');
   };
@@ -315,8 +314,8 @@ const SettlementListNew: React.FC = () => {
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <TextField
               placeholder="Hľadať vyúčtovanie..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
               }}
@@ -518,7 +517,7 @@ const SettlementListNew: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            filteredSettlements.map((settlement: Settlement) => {
+            filteredSettlements.map((settlement) => {
               const vehicle = settlement.vehicleId ? vehicles.find((v: any) => v.id === settlement.vehicleId) : null;
               const isProfit = settlement.profit >= 0;
               
@@ -734,7 +733,7 @@ const SettlementListNew: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              filteredSettlements.map((settlement: Settlement, index: number) => {
+              filteredSettlements.map((settlement, index: number) => {
                 const vehicle = settlement.vehicleId ? vehicles.find((v: any) => v.id === settlement.vehicleId) : null;
                 const isProfit = settlement.profit >= 0;
                 
