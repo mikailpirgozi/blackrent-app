@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect, memo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -22,13 +22,9 @@ import {
   Select,
   MenuItem,
   Checkbox,
-  FormControlLabel,
   Grid,
   Divider,
-  FormGroup,
-  Fade,
-  Grow,
-  Zoom
+  Fade
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -45,31 +41,16 @@ import {
   Search as SearchIcon,
   FilterList as FilterListIcon,
   Refresh as RefreshIcon,
-  ViewList as ViewListIcon,
-  CalendarToday as CalendarIcon,
-  Business as BusinessIcon,
-  Person as PersonIcon,
   DirectionsCar as CarIcon,
+  Person as PersonIcon,
+  Business as BusinessIcon,
   Schedule as ScheduleIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Clear as ClearIcon,
   GetApp as ExportIcon,
   CloudDownload as DownloadIcon,
-  MoreVert as MoreIcon,
-  Close as CloseIcon,
-  Check as CheckIcon,
-  ArrowForward as ArrowForwardIcon,
-  ArrowBack as ArrowBackIcon,
-  PlayArrow as PlayArrowIcon,
-  LocalShipping as LocalShippingIcon,
-  Home as HomeIcon,
-  CreditCard as CreditCardIcon,
-  AccountCircle as AccountIcon,
-  Folder as FolderIcon
+  List as ListIcon
+
 } from '@mui/icons-material';
-import { format, parseISO, addDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
-import { sk } from 'date-fns/locale';
+import { format } from 'date-fns';
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
 import { Rental } from '../../types';
@@ -77,20 +58,14 @@ import { useRentalUpdates } from '../../hooks/useWebSocket';
 import { logger } from '../../utils/smartLogger';
 import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
-import EmailParser from './EmailParser';
-import RentalAdvancedFilters from './RentalAdvancedFilters';
-
-import { debounce, measurePerformance } from '../../utils/debounce';
 import { MobileRentalRow } from './MobileRentalRow';
-import { FixedSizeList as List } from 'react-window';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
-// import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
+import { FixedSizeList as List } from 'react-window';
 import RentalForm from './RentalForm';
 import PDFViewer from '../common/PDFViewer';
 import ProtocolGallery from '../common/ProtocolGallery';
-import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 // 🚀 LAZY LOADING: Protocols loaded only when needed
 const HandoverProtocolForm = React.lazy(() => import('../protocols/HandoverProtocolForm'));
@@ -172,7 +147,7 @@ export default function RentalListNew() {
   // State management
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
-  const [selected, setSelected] = useState<string[]>([]);
+  // const [selected, setSelected] = useState<string[]>([]); // Nepoužívané - odstránené
   const [protocols, setProtocols] = useState<Record<string, { handover?: any; return?: any }>>({});
   const [loadingProtocols, setLoadingProtocols] = useState<string[]>([]);
   const [, setImportError] = useState<string>('');
@@ -186,13 +161,13 @@ export default function RentalListNew() {
     error: paginatedError,
     searchTerm: paginatedSearchTerm,
     setSearchTerm: setPaginatedSearchTerm,
-    loadMore,
-    refresh: refreshPaginated
+    loadMore
   } = useInfiniteRentals();
   
-  // Create a scrollable container ref for infinite scroll detection
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  useInfiniteScroll(scrollContainerRef, loadMore, hasMore && !paginatedLoading);
+      // Create a scrollable container ref for infinite scroll detection
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    // 🚀 PRELOADING: Trigger at 70% scroll for seamless UX - users never see empty space
+    useInfiniteScroll(scrollContainerRef, loadMore, hasMore && !paginatedLoading, 0.7);
   
   // ⚡ BACKGROUND PROTOCOL LOADING STATE
   const [protocolStatusMap, setProtocolStatusMap] = useState<Record<string, {
@@ -301,19 +276,19 @@ export default function RentalListNew() {
   
 
   
-  // Column visibility
-  const [visibleColumns, setVisibleColumns] = useState({
-    vehicle: true,
-    company: true,
-    customer: true,
-    dates: true,
-    price: true,
-    commission: true,
-    payment: true,
-    paid: true,
-    status: true,
-    protocols: true
-  });
+  // Column visibility - nepoužívané, odstránené
+  // const [visibleColumns, setVisibleColumns] = useState({
+  //   vehicle: true,
+  //   company: true,
+  //   customer: true,
+  //   dates: true,
+  //   price: true,
+  //   commission: true,
+  //   payment: true,
+  //   paid: true,
+  //   status: true,
+  //   protocols: true
+  // });
   
   // Protocol dialogs
   const [openHandoverDialog, setOpenHandoverDialog] = useState(false);
@@ -329,7 +304,7 @@ export default function RentalListNew() {
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [galleryVideos, setGalleryVideos] = useState<any[]>([]);
   const [galleryTitle, setGalleryTitle] = useState('');
-  const [, forceUpdate] = useState({});
+  // const [, forceUpdate] = useState({}); // Nepoužívané - odstránené
   
   // Protocol menu state
   const [protocolMenuOpen, setProtocolMenuOpen] = useState(false);
@@ -347,7 +322,7 @@ export default function RentalListNew() {
   const setGalleryOpen = (value: boolean) => {
     logger.debug('Gallery state change', { value, timestamp: Date.now() });
     galleryOpenRef.current = value;
-    forceUpdate({}); // Force re-render to update UI
+    // forceUpdate({}); // Force re-render to update UI - odstránené
   };
   
   const galleryOpen = galleryOpenRef.current;
@@ -1483,440 +1458,6 @@ export default function RentalListNew() {
       alert('Chyba pri mazaní protokolu. Skúste to znovu.');
     }
   };
-
-  // Column definitions for ResponsiveTable
-  const columns: ResponsiveTableColumn[] = useMemo(() => [
-    {
-      id: 'vehicle',
-      label: 'Vozidlo',
-      width: { xs: '120px', md: '150px' },
-      render: (value, rental: Rental) => {
-        // Použijem helper funkciu pre konzistenciu
-        const vehicle = getVehicleByRental(rental);
-        
-        return (
-        <Box>
-          <Typography variant="body2" fontWeight="bold">
-              {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Bez vozidla'}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-              {vehicle?.licensePlate || 'N/A'}
-          </Typography>
-        </Box>
-        );
-      }
-    },
-    {
-      id: 'customerName',
-      label: 'Zákazník',
-      width: { xs: '100px', md: '130px' }
-    },
-    {
-      id: 'startDate',
-      label: 'Od',
-      width: { xs: '80px', md: '100px' },
-      render: (value) => {
-        const date = value instanceof Date ? value : new Date(value);
-        return !isNaN(date.getTime()) ? format(date, 'dd.MM.yyyy', { locale: sk }) : 'N/A';
-      }
-    },
-    {
-      id: 'endDate',
-      label: 'Do',
-      width: { xs: '80px', md: '100px' },
-      render: (value) => {
-        const date = value instanceof Date ? value : new Date(value);
-        return !isNaN(date.getTime()) ? format(date, 'dd.MM.yyyy', { locale: sk }) : 'N/A';
-      }
-    },
-    {
-      id: 'totalPrice',
-      label: 'Cena (€)',
-      width: { xs: '80px', md: '100px' },
-      render: (value) => (
-        <Typography variant="body2" fontWeight="bold">
-          {typeof value === 'number' ? value.toFixed(2) : '0.00'} €
-        </Typography>
-      )
-    },
-    {
-      id: 'protocols',
-      label: 'Protokoly',
-      width: { xs: '120px', md: '150px' },
-      render: (value, rental: Rental) => {
-        // Definuj hasHandover a hasReturn pre tento rental
-        const rentalProtocols = protocols[rental.id];
-        const hasHandover = !!rentalProtocols?.handover;
-        const hasReturn = !!rentalProtocols?.return;
-        
-        return (
-        <Box>
-          {/* Hlavné tlačidlá pre vytvorenie protokolov */}
-          <Box sx={{ display: 'flex', gap: 0.5, mb: 1, justifyContent: 'center' }}>
-                          <Tooltip title="Odovzdávací protokol">
-              <IconButton
-                size="small"
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  handleCreateHandover(rental); 
-                }}
-                color="primary"
-                sx={{ 
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' },
-                  width: 32,
-                  height: 32
-                }}
-              >
-                <HandoverIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-                          <Tooltip title="Preberací protokol">
-              <IconButton
-                size="small"
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  handleCreateReturn(rental); 
-                }}
-                color="primary"
-                sx={{ 
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' },
-                  width: 32,
-                  height: 32
-                }}
-              >
-                <ReturnIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-
-          {/* Stav protokolov - kompaktný */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {/* Handover protokol */}
-            {protocols[rental.id]?.handover ? (
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 0.5,
-                p: 0.5,
-                bgcolor: 'success.light',
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'success.main'
-              }}>
-                <CheckCircleIcon color="success" fontSize="small" />
-                <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 500 }}>
-                  Prevzatie
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 0.25, ml: 'auto' }}>
-                  <Tooltip title="Stiahnuť PDF">
-                    <IconButton
-                      size="small"
-                      component="a"
-                      href={protocols[rental.id]?.handover?.pdfUrl}
-                      target="_blank"
-                      download
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'success.main',
-                        '&:hover': { bgcolor: 'success.light' }
-                      }}
-                    >
-                      <PDFIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Galerie obrázkov">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenGallery(rental, 'handover');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'primary.main',
-                        '&:hover': { bgcolor: 'primary.light' }
-                      }}
-                    >
-                      <GalleryIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'handover');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '&:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </Box>
-            ) : (
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 0.5,
-                p: 0.5,
-                bgcolor: 'grey.100',
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'grey.300'
-              }}>
-                <ErrorIcon color="disabled" fontSize="small" />
-                <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                  Bez prevzatia
-                </Typography>
-                <Tooltip title="Zobraziť protokoly">
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewProtocols(rental);
-                    }}
-                    disabled={loadingProtocols.includes(rental.id)}
-                    sx={{ 
-                      width: 24, 
-                      height: 24,
-                      ml: 'auto',
-                      color: 'primary.main',
-                      '&:hover': { bgcolor: 'primary.light' }
-                    }}
-                  >
-                    <VisibilityIcon sx={{ fontSize: 16 }} />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            )}
-
-            {/* Return protokol */}
-            {protocols[rental.id]?.return ? (
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 0.5,
-                p: 0.5,
-                bgcolor: 'success.light',
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'success.main'
-              }}>
-                <CheckCircleIcon color="success" fontSize="small" />
-                <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 500 }}>
-                  Vrátenie
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 0.25, ml: 'auto' }}>
-                  <Tooltip title="Stiahnuť PDF">
-                    <IconButton
-                      size="small"
-                      component="a"
-                      href={protocols[rental.id]?.return?.pdfUrl}
-                      target="_blank"
-                      download
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'success.main',
-                        '&:hover': { bgcolor: 'success.light' }
-                      }}
-                    >
-                      <PDFIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Galerie obrázkov">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenGallery(rental, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'primary.main',
-                        '&:hover': { bgcolor: 'primary.light' }
-                      }}
-                    >
-                      <GalleryIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Vymazať protokol">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProtocol(rental.id, 'return');
-                      }}
-                      sx={{ 
-                        width: 24, 
-                        height: 24,
-                        color: 'error.main',
-                        '&:hover': { bgcolor: 'error.light' }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </Box>
-            ) : protocols[rental.id]?.handover ? (
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 0.5,
-                p: 0.5,
-                bgcolor: 'warning.light',
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'warning.main'
-              }}>
-                <PendingIcon color="warning" fontSize="small" />
-                <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 500 }}>
-                  Čaká na vrátenie
-                </Typography>
-                <Tooltip title="Zobraziť protokoly">
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewProtocols(rental);
-                    }}
-                    disabled={loadingProtocols.includes(rental.id)}
-                    sx={{ 
-                      width: 24, 
-                      height: 24,
-                      ml: 'auto',
-                      color: 'warning.main',
-                      '&:hover': { bgcolor: 'warning.light' }
-                    }}
-                  >
-                    <VisibilityIcon sx={{ fontSize: 16 }} />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            ) : (
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 0.5,
-                p: 0.5,
-                bgcolor: 'grey.100',
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'grey.300'
-              }}>
-                <ErrorIcon color="disabled" fontSize="small" />
-                <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                  Bez vrátenia
-                </Typography>
-                <Tooltip title="Zobraziť protokoly">
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewProtocols(rental);
-                    }}
-                    disabled={loadingProtocols.includes(rental.id)}
-                    sx={{ 
-                      width: 24, 
-                      height: 24,
-                      ml: 'auto',
-                      color: 'primary.main',
-                      '&:hover': { bgcolor: 'primary.light' }
-                    }}
-                  >
-                    <VisibilityIcon sx={{ fontSize: 16 }} />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            )}
-          </Box>
-
-          {/* Loading indikátor */}
-          {loadingProtocols.includes(rental.id) && (
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1, 
-              justifyContent: 'center',
-              p: 1,
-              bgcolor: 'info.light',
-              borderRadius: 1,
-              mb: 2
-            }}>
-              <CircularProgress size={16} />
-              <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-                Načítavam protokoly...
-              </Typography>
-            </Box>
-          )}
-
-          {/* Tlačidlo na skrytie protokolov ak sú zobrazené */}
-          {protocols[rental.id] && (
-            <Box sx={{ mt: 0.5, textAlign: 'center' }}>
-              <Button
-                size="small"
-                variant="text"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleHideProtocols(rental.id);
-                }}
-                sx={{ 
-                  fontSize: '0.65rem',
-                  minWidth: 'auto',
-                  p: 0.25,
-                  color: 'text.secondary',
-                  '&:hover': { bgcolor: 'grey.100' }
-                }}
-              >
-                Skryť
-              </Button>
-            </Box>
-          )}
-        </Box>
-        );
-      }
-    },
-    {
-      id: 'actions',
-      label: 'Akcie',
-      width: { xs: '120px', md: '150px' },
-      render: (value, rental: Rental) => (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={e => { e.stopPropagation(); handleEdit(rental); }}
-            sx={{ minWidth: 'auto', p: 0.5 }}
-          >
-            <EditIcon fontSize="small" />
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            onClick={e => { e.stopPropagation(); handleDelete(rental.id); }}
-            sx={{ minWidth: 'auto', p: 0.5 }}
-          >
-            <DeleteIcon fontSize="small" />
-          </Button>
-        </Box>
-      )
-    }
-  ], [protocols, loadingProtocols, state.vehicles, getVehicleByRental]);
 
   // 📱 MOBILE CARD RENDERER - s action buttons
   const mobileCardRenderer = useCallback((rental: Rental, index: number) => {
