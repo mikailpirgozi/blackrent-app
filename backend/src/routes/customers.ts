@@ -7,6 +7,133 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+// GET /api/customers/paginated - Paginated customers with filters
+router.get('/paginated', 
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    try {
+      const {
+        page = '1',
+        limit = '50',
+        search = '',
+        hasEmail = '',
+        hasPhone = '',
+        company = ''
+      } = req.query;
+
+      const pageNum = parseInt(page as string, 10);
+      const limitNum = parseInt(limit as string, 10);
+      const offset = (pageNum - 1) * limitNum;
+
+      let customers = await postgresDatabase.getCustomers();
+      
+      console.log('👥 Customers PAGINATED GET - user:', { 
+        role: req.user?.role, 
+        userId: req.user?.id, 
+        totalCustomers: customers.length,
+        page: pageNum,
+        limit: limitNum
+      });
+      
+      // 🔐 NON-ADMIN USERS - filter podľa company permissions
+      if (req.user?.role !== 'admin' && req.user) {
+        const user = req.user;
+        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
+        const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+        
+        const rentals = await postgresDatabase.getRentals();
+        const vehicles = await postgresDatabase.getVehicles();
+        
+        const allowedCustomerIds = new Set<string>();
+        
+        rentals.forEach(rental => {
+          if (!rental.customerId || !rental.vehicleId) return;
+          
+          const vehicle = vehicles.find(v => v.id === rental.vehicleId);
+          if (!vehicle || !vehicle.ownerCompanyId) return;
+          
+          if (allowedCompanyIds.includes(vehicle.ownerCompanyId)) {
+            allowedCustomerIds.add(rental.customerId);
+          }
+        });
+        
+        customers = customers.filter(c => allowedCustomerIds.has(c.id));
+      }
+
+      // 🔍 Apply filters
+      let filteredCustomers = [...customers];
+
+      // Search filter
+      if (search) {
+        const searchLower = search.toString().toLowerCase();
+        filteredCustomers = filteredCustomers.filter(c => 
+          c.name?.toLowerCase().includes(searchLower) ||
+          c.email?.toLowerCase().includes(searchLower) ||
+          c.phone?.toLowerCase().includes(searchLower) ||
+          c.company?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      // Email filter
+      if (hasEmail === 'true') {
+        filteredCustomers = filteredCustomers.filter(c => c.email && c.email.length > 0);
+      } else if (hasEmail === 'false') {
+        filteredCustomers = filteredCustomers.filter(c => !c.email || c.email.length === 0);
+      }
+
+      // Phone filter
+      if (hasPhone === 'true') {
+        filteredCustomers = filteredCustomers.filter(c => c.phone && c.phone.length > 0);
+      } else if (hasPhone === 'false') {
+        filteredCustomers = filteredCustomers.filter(c => !c.phone || c.phone.length === 0);
+      }
+
+      // Company filter
+      if (company) {
+        filteredCustomers = filteredCustomers.filter(c => 
+          c.company === company.toString()
+        );
+      }
+
+      // Sort by name
+      filteredCustomers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+      // Calculate pagination
+      const totalItems = filteredCustomers.length;
+      const totalPages = Math.ceil(totalItems / limitNum);
+      const hasMore = pageNum < totalPages;
+
+      // Get paginated results
+      const paginatedCustomers = filteredCustomers.slice(offset, offset + limitNum);
+
+      console.log('📄 Paginated customers:', {
+        totalItems,
+        currentPage: pageNum,
+        totalPages,
+        hasMore,
+        resultsCount: paginatedCustomers.length
+      });
+
+      res.json({
+        success: true,
+        customers: paginatedCustomers,
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalItems,
+          hasMore,
+          itemsPerPage: limitNum
+        }
+      });
+    } catch (error) {
+      console.error('Get paginated customers error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri získavaní zákazníkov'
+      });
+    }
+  });
+
 // GET /api/customers - Získanie všetkých zákazníkov s cache
 router.get('/', 
   authenticateToken,

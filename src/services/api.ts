@@ -713,6 +713,48 @@ class ApiService {
     );
   }
 
+  // 🚀 NOVÝ: Paginated customers s filtrami
+  async getCustomersPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    hasEmail?: boolean;
+    hasPhone?: boolean;
+    company?: string;
+  } = {}): Promise<{
+    customers: Customer[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/customers/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      customers: Customer[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   async createCustomer(customer: Customer): Promise<void> {
     const result = await this.request<void>('/customers', {
       method: 'POST',
