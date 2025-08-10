@@ -2152,24 +2152,24 @@ export default function RentalListNew() {
     
     // 🚀 PERFORMANCE: Apply smart default filter first to reduce dataset
     const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // Removed unused date variables (thirtyDaysAgo, sevenDaysFromNow)
     
-    // Default to "najbližších 7 dní" for better performance
-    if (advancedFilters.timeFilter === 'all' && !debouncedSearchQuery.trim()) {
-      filtered = filtered.filter(rental => {
-        const startDate = new Date(rental.startDate);
-        const endDate = new Date(rental.endDate);
-        return (startDate >= now && startDate <= sevenDaysFromNow) || 
-               (endDate >= now && endDate <= sevenDaysFromNow) ||
-               (startDate <= now && endDate >= now); // Currently running
-      });
-      logger.performance('Smart filter applied', { 
-        filteredCount: filtered.length, 
-        totalCount: rentals.length, 
-        period: 'next 7 days' 
-      });
-    }
+    // REMOVED: Smart default filter - show all rentals
+    // Default to "najbližších 7 dní" for better performance - DISABLED
+    // if (advancedFilters.timeFilter === 'all' && !debouncedSearchQuery.trim()) {
+    //   filtered = filtered.filter(rental => {
+    //     const startDate = new Date(rental.startDate);
+    //     const endDate = new Date(rental.endDate);
+    //     return (startDate >= now && startDate <= sevenDaysFromNow) || 
+    //            (endDate >= now && endDate <= sevenDaysFromNow) ||
+    //            (startDate <= now && endDate >= now); // Currently running
+    //   });
+    //   logger.performance('Smart filter applied', { 
+    //     filteredCount: filtered.length, 
+    //     totalCount: rentals.length, 
+    //     period: 'next 7 days' 
+    //   });
+    // }
     
     // Search query filter - LIVE SEARCH s debouncing
     if (debouncedSearchQuery.trim()) {
@@ -2336,10 +2336,11 @@ export default function RentalListNew() {
       });
     }
     
-    // 🚀 MOBILE PERFORMANCE: Limit to 30 items max to prevent browser crashes
-    const limitedFiltered = filtered.slice(0, 30);
+    // REMOVED: Mobile performance limit - show all rentals
+    // 🚀 MOBILE PERFORMANCE: Limit to 30 items max to prevent browser crashes - DISABLED
+    // const limitedFiltered = filtered.slice(0, 30);
     
-    return limitedFiltered;
+    return filtered;
       }, [state.rentals, debouncedSearchQuery, advancedFilters, protocols, handleCreateReturn, handleDelete, handleDeleteProtocol, handleOpenGallery, handleViewProtocols, getVehicleByRental]);
   
   // Get unique values for filters (already declared above)
