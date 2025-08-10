@@ -2681,7 +2681,7 @@ export class PostgresDatabase {
 
       return {
         rentals: filteredRentals,
-        total: filteredRentals.length // Adjust total if filtered
+        total: total // Use the database count, not filtered count
       };
 
     } catch (error) {

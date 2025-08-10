@@ -74,14 +74,13 @@ import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
 import { Rental } from '../../types';
 import { useRentalUpdates } from '../../hooks/useWebSocket';
+import { logger } from '../../utils/smartLogger';
 import EmailParser from './EmailParser';
 import RentalAdvancedFilters from './RentalAdvancedFilters';
 
 import { debounce, measurePerformance } from '../../utils/debounce';
 import { MobileRentalRow } from './MobileRentalRow';
-// import { FixedSizeList as List } from 'react-window'; // Replaced with infinite scroll
-import { useInfiniteRentals } from '../../hooks/useInfiniteData';
-import { RentalScrollContainer } from '../../components/common/InfiniteScrollContainer';
+import { FixedSizeList as List } from 'react-window';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
@@ -90,22 +89,21 @@ import RentalForm from './RentalForm';
 import PDFViewer from '../common/PDFViewer';
 import ProtocolGallery from '../common/ProtocolGallery';
 import ResponsiveTable, { ResponsiveTableColumn } from '../common/ResponsiveTable';
-
+import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
 // 🚀 LAZY LOADING: Protocols loaded only when needed
 const HandoverProtocolForm = React.lazy(() => import('../protocols/HandoverProtocolForm'));
-const ReturnProtocolForm = React.lazy(() => import('../protocols/ReturnProtocolForm'));
 
 // Types
 interface FilterState {
-  // Základné filtre
-  status: string;
-  paymentMethod: string;
-  company: string;
+  // Základné filtre - arrays pre multi-select
+  status: string[];
+  paymentMethod: string[];
+  company: string[];
   dateFrom: string;
   dateTo: string;
   priceMin: string;
   priceMax: string;
-  protocolStatus: string;
+  protocolStatus: string[];
   
   // Rozšírené filtre
   customerName: string;
@@ -160,11 +158,14 @@ const VehicleOwnerDisplay: React.FC<{
 };
 
 export default function RentalListNew() {
-  console.log('🔄 RentalListNew component render');
+  // ⚡ PERFORMANCE: Only log renders in development
+  if (process.env.NODE_ENV === 'development') {
+    logger.render('RentalListNew render', { timestamp: Date.now() });
+  }
   
   const { state, createRental, updateRental, deleteRental } = useApp();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // 768px breakpoint
 
   // State management
   const [openDialog, setOpenDialog] = useState(false);
@@ -185,41 +186,67 @@ export default function RentalListNew() {
   const [isLoadingProtocolStatus, setIsLoadingProtocolStatus] = useState(false);
   const [protocolStatusLoaded, setProtocolStatusLoaded] = useState(false);
   
-  // 🔴 Real-time updates hook
-  useRentalUpdates((type, rental, rentalId) => {
-    console.log('🔴 WebSocket rental update:', type, rental, rentalId);
-    
-    // Auto-refresh rental list when changes occur
-    if (type === 'created' || type === 'updated' || type === 'deleted') {
-      // Trigger refresh of rental data (you might want to optimize this)
+  // ⚡ OPTIMIZED: Real-time updates hook with debouncing
+  const debouncedRefresh = useCallback(() => {
+    // ⚡ PERFORMANCE: Debounce multiple rapid updates
+    const timeoutId = setTimeout(() => {
       window.dispatchEvent(new Event('rental-list-refresh'));
-    }
-  });
+    }, 100); // 100ms debounce
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
 
-  // Helper function to get vehicle data by vehicleId
-  const getVehicleByRental = useCallback((rental: Rental) => {
-    return rental.vehicleId ? state.vehicles.find(v => v.id === rental.vehicleId) : null;
+  useRentalUpdates(useCallback((type: string, rental?: Rental, rentalId?: string) => {
+    logger.debug('WebSocket rental update', { type, rentalId, timestamp: Date.now() });
+    
+    // ⚡ PERFORMANCE: Smart updates with debouncing
+    if (type === 'created' || type === 'updated' || type === 'deleted') {
+      logger.performance('Rental list refresh triggered', { reason: type, rentalId });
+      debouncedRefresh();
+    }
+  }, [debouncedRefresh]));
+
+  // ⚡ OPTIMIZED: Memoized vehicle lookup map for performance
+  const vehicleLookupMap = useMemo(() => {
+    const map = new Map();
+    state.vehicles.forEach(vehicle => {
+      map.set(vehicle.id, vehicle);
+    });
+    return map;
   }, [state.vehicles]);
+
+  // ⚡ OPTIMIZED: Helper function using lookup map
+  const getVehicleByRental = useCallback((rental: Rental) => {
+    return rental.vehicleId ? vehicleLookupMap.get(rental.vehicleId) || null : null;
+  }, [vehicleLookupMap]);
   
   // 🎯 SNAPSHOT LOGIC: Už nepotrebujeme getVehicleOwnerAtDate - všetko je v rental.vehicleCompanySnapshot!
   
-  // Search and filter state
+  // Search and filter state - LIVE SEARCH s debouncing
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  
 
-  
+  // 🚀 LIVE SEARCH - debouncing pre lepší performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Advanced filters state
   const [advancedFilters, setAdvancedFilters] = useState({
-    // Základné filtre
-    status: 'all',
-    paymentMethod: 'all',
-    company: 'all',
+    // Základné filtre - arrays pre multi-select
+    status: [] as string[],
+    paymentMethod: [] as string[],
+    company: [] as string[],
     dateFrom: '',
     dateTo: '',
     priceMin: '',
     priceMax: '',
-    protocolStatus: 'all',
+    protocolStatus: [] as string[],
     
     // Rozšírené filtre
     customerName: '',
@@ -247,8 +274,7 @@ export default function RentalListNew() {
     showOnlyCompleted: false
   });
   
-  // Show advanced filters
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
   
   // Column visibility
   const [visibleColumns, setVisibleColumns] = useState({
@@ -294,8 +320,7 @@ export default function RentalListNew() {
 
   // Debug wrapper for setGalleryOpen
   const setGalleryOpen = (value: boolean) => {
-    console.log(`🎭 setGalleryOpen called with:`, value, '(using useRef)');
-    console.trace(`🔍 setGalleryOpen stack trace:`);
+    logger.debug('Gallery state change', { value, timestamp: Date.now() });
     galleryOpenRef.current = value;
     forceUpdate({}); // Force re-render to update UI
   };
@@ -309,7 +334,7 @@ export default function RentalListNew() {
       return null;
     }
     
-    console.log('🔍 Načítavam protokoly pre:', rentalId);
+    logger.api('Loading protocols for rental', { rentalId });
     setLoadingProtocols(prev => [...prev, rentalId]);
     
     try {
@@ -330,9 +355,12 @@ export default function RentalListNew() {
           )[0] 
         : undefined;
       
-      console.log('🔍 API response:', data);
-      console.log('🔍 Latest handover:', latestHandover);
-      console.log('🔍 Latest return:', latestReturn);
+      logger.api('Protocols API response', { 
+        hasData: !!data, 
+        handoverCount: data?.handoverProtocols?.length || 0,
+        returnCount: data?.returnProtocols?.length || 0,
+        rentalId 
+      });
       
       const protocolData = {
         handover: latestHandover,
@@ -347,7 +375,7 @@ export default function RentalListNew() {
       // ⚡ RETURN načítané dáta pre okamžité použitie
       return protocolData;
     } catch (error) {
-      console.error('❌ Chyba pri načítaní protokolov:', error);
+      logger.error('Failed to load protocols', { rentalId, error });
       return null;
     } finally {
       setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
@@ -356,19 +384,19 @@ export default function RentalListNew() {
 
   // Funkcia pre zobrazenie protokolov na požiadanie
   const handleViewProtocols = async (rental: Rental) => {
-    console.log('🔍 Checking protocols for rental:', rental.id, {
+    logger.debug('Checking protocols for rental', {
+      rentalId: rental.id,
       hasProtocols: !!protocols[rental.id],
-      protocolKeys: Object.keys(protocols),
-      currentProtocol: protocols[rental.id]
+      protocolCount: Object.keys(protocols).length
     });
     
     // Ak už sú protokoly načítané, nechaj ich zobrazené
     if (protocols[rental.id]) {
-      console.log('✅ Protocols already loaded, skipping API call');
+      logger.cache('Protocols already loaded, using cache');
       return;
     }
     
-    console.log('🔍 Načítavam protokoly pre prenájom:', rental.id);
+    logger.api('Loading protocols for rental', { rentalId: rental.id });
     await loadProtocolsForRental(rental.id);
     // Note: loadProtocolsForRental už updatuje protocols state, takže netreba žiadnu dodatočnú logiku
   };
@@ -461,7 +489,7 @@ export default function RentalListNew() {
           
           // Najskôr spracujeme všetky riadky a vytvoríme zákazníkov, firmy a vozidlá ak je potrebné
           for (const row of results.data as any[]) {
-            console.log('Processing row:', row);
+            logger.debug('Processing CSV row', { rowIndex: results.data.indexOf(row) });
             
             // 1. VYTVORENIE ZÁKAZNÍKA AK NEEXISTUJE
             const customerName = row.customerName || 'Neznámy zákazník';
@@ -494,9 +522,9 @@ export default function RentalListNew() {
                 };
                 await apiService.createCustomer(newCustomer);
                 createdCustomers.push(newCustomer);
-                console.log(`👤 Vytvorený nový zákazník: ${customerName}`);
+                logger.info('Customer created during import', { customerName });
               } catch (error) {
-                console.error(`❌ Chyba pri vytváraní zákazníka ${customerName}:`, error);
+                logger.error('Failed to create customer during import', { customerName, error });
               }
             }
 
@@ -526,16 +554,16 @@ export default function RentalListNew() {
                 };
                 await apiService.createCompany(newCompany);
                 createdCompanies.push(newCompany);
-                console.log(`🏢 Vytvorená nová firma: ${companyName}`);
+                logger.info('Company created during import', { companyName });
               } catch (error) {
-                console.error(`❌ Chyba pri vytváraní firmy ${companyName}:`, error);
+                logger.error('Failed to create company during import', { companyName, error });
               }
             }
 
             // 3. VYTVORENIE VOZIDLA AK NEEXISTUJE
             const licensePlate = row.licensePlate;
             if (!licensePlate) {
-              console.warn('⚠️ Chýba ŠPZ, preskakujem riadok');
+              logger.warn('Missing license plate, skipping row', { rowIndex: results.data.indexOf(row) });
               continue;
             }
             
@@ -556,7 +584,7 @@ export default function RentalListNew() {
                 );
                 
                 if (!finalCompany) {
-                  console.warn(`⚠️ Chýba firma pre vozidlo ${licensePlate}, preskakujem`);
+                  logger.warn('Missing company for vehicle, skipping', { licensePlate });
                   continue;
                 }
                 
@@ -582,9 +610,9 @@ export default function RentalListNew() {
                 };
                 await apiService.createVehicle(newVehicle);
                 createdVehicles.push(newVehicle);
-                console.log(`🚗 Vytvorené nové vozidlo: ${licensePlate} (${row.brand} ${row.model})`);
+                logger.info('Vehicle created during import', { licensePlate, brand: row.brand, model: row.model });
               } catch (error) {
-                console.error(`❌ Chyba pri vytváraní vozidla ${licensePlate}:`, error);
+                logger.error('Failed to create vehicle during import', { licensePlate, error });
                 continue;
               }
             }
@@ -652,7 +680,10 @@ export default function RentalListNew() {
             // automaticky nastav platbu priamo majiteľovi vozidla
             if (vehicle && !row.paymentMethod) {
               finalPaymentMethod = 'direct_to_owner';
-              console.log(`🏢 Automaticky nastavená platba priamo majiteľovi pre vozidlo ${vehicle.licensePlate} (${vehicle.company})`);
+              logger.info('Auto-assigned direct payment to vehicle owner', { 
+                licensePlate: vehicle.licensePlate, 
+                company: vehicle.company 
+              });
             }
 
             // Automatické počítanie provízie na základe vozidla ak nie je zadaná
@@ -663,12 +694,20 @@ export default function RentalListNew() {
               : 0);
             
             if (!row.commission && vehicle?.commission) {
-              console.log(`💰 Automaticky vypočítaná provízia pre vozidlo ${vehicle.licensePlate}: ${finalCommission}€ (${vehicle.commission.type}: ${vehicle.commission.value})`);
+              logger.info('Auto-calculated commission for vehicle', {
+                licensePlate: vehicle.licensePlate,
+                commission: finalCommission,
+                type: vehicle.commission.type,
+                value: vehicle.commission.value
+              });
             }
 
             // Log informácií o majiteľovi/firme vozidla
             if (vehicle) {
-              console.log(`🚗 Priradené vozidlo ${vehicle.licensePlate} - Majiteľ: ${vehicle.company}`);
+              logger.debug('Vehicle assigned to rental', { 
+                licensePlate: vehicle.licensePlate, 
+                owner: vehicle.company 
+              });
             }
 
             const startDate = parseDate(row.startDate);
@@ -692,7 +731,11 @@ export default function RentalListNew() {
             });
             
             if (duplicateRental) {
-              console.warn(`⚠️ Duplicitný prenájom pre vozidlo ${vehicle?.licensePlate} na dátum ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}, preskakujem`);
+              logger.warn('Duplicate rental detected, skipping', {
+                licensePlate: vehicle?.licensePlate,
+                startDate: startDate.toLocaleDateString(),
+                endDate: endDate.toLocaleDateString()
+              });
               continue;
             }
 
@@ -729,20 +772,28 @@ export default function RentalListNew() {
             try {
               await apiService.createRental(newRental);
               imported.push(newRental);
-              console.log(`✅ Importovaný prenájom: ${customerName} - ${vehicle?.licensePlate} (${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()})`);
+              logger.info('Rental imported successfully', {
+                customer: customerName,
+                licensePlate: vehicle?.licensePlate,
+                startDate: startDate.toLocaleDateString(),
+                endDate: endDate.toLocaleDateString()
+              });
             } catch (error) {
-              console.error(`❌ Chyba pri vytváraní prenájmu:`, error);
+              logger.error('Failed to create rental during import', { error });
             }
           }
           
-          console.log(`🎉 Import dokončený: ${imported.length} prenájmov úspešne importovaných`);
+          logger.info('CSV import completed successfully', { 
+            importedCount: imported.length,
+            totalRows: results.data.length 
+          });
           setImportError('');
           
           // Refresh dát
           window.location.reload();
           
         } catch (error) {
-          console.error('❌ Chyba pri importe CSV:', error);
+          logger.error('CSV import failed', { error });
           setImportError('Chyba pri importe CSV súboru');
         }
         
@@ -752,17 +803,17 @@ export default function RentalListNew() {
     });
   }
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     setEditingRental(null);
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleEdit = (rental: Rental) => {
+  const handleEdit = useCallback((rental: Rental) => {
     setEditingRental(rental);
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (window.confirm('Naozaj chcete vymazať tento prenájom?')) {
       try {
         await deleteRental(id);
@@ -772,7 +823,7 @@ export default function RentalListNew() {
         alert('Chyba pri mazaní prenájmu. Skúste to znovu.');
       }
     }
-  };
+  }, [deleteRental]);
 
   const handleSave = async (rental: Rental) => {
     try {
@@ -792,22 +843,47 @@ export default function RentalListNew() {
     }
   };
 
-  // Monitor state changes
+  // Monitor state changes - optimalized mobile debug logging
   React.useEffect(() => {
-    console.log('🔄 MOBILE DEBUG: openHandoverDialog state changed:', openHandoverDialog);
-    if (!openHandoverDialog) {
-      console.log('❌ MOBILE DEBUG: Modal was closed! Investigating...');
-      console.log('❌ MOBILE DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
-      console.log('❌ MOBILE DEBUG: Current URL:', window.location.href);
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 MOBILE DEBUG: openHandoverDialog state changed:', openHandoverDialog);
+      if (!openHandoverDialog) {
+        console.log('❌ MOBILE DEBUG: Handover Modal was closed! Investigating...');
+        console.log('❌ MOBILE DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
+        console.log('❌ MOBILE DEBUG: Current URL:', window.location.href);
+      }
     }
   }, [openHandoverDialog, selectedRentalForProtocol]);
 
+  // Monitor return dialog state changes
+  React.useEffect(() => {
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 RETURN DEBUG: openReturnDialog state changed:', openReturnDialog);
+      if (!openReturnDialog) {
+        console.log('❌ RETURN DEBUG: Return Modal was closed! Investigating...');
+        console.log('❌ RETURN DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
+        console.log('❌ RETURN DEBUG: protocols loaded:', selectedRentalForProtocol ? !!protocols[selectedRentalForProtocol.id] : 'no rental selected');
+        console.log('❌ RETURN DEBUG: handover protocol:', selectedRentalForProtocol ? protocols[selectedRentalForProtocol.id]?.handover?.id : 'no rental selected');
+      } else {
+        console.log('✅ RETURN DEBUG: Return Modal opened!');
+        console.log('✅ RETURN DEBUG: selectedRentalForProtocol:', selectedRentalForProtocol?.id);
+        console.log('✅ RETURN DEBUG: protocols loaded:', selectedRentalForProtocol ? !!protocols[selectedRentalForProtocol.id] : 'no rental selected');
+        console.log('✅ RETURN DEBUG: handover protocol:', selectedRentalForProtocol ? protocols[selectedRentalForProtocol.id]?.handover?.id : 'no rental selected');
+      }
+    }
+  }, [openReturnDialog, selectedRentalForProtocol, protocols]);
+
   // Handover Protocol handlers
-  const handleCreateHandover = async (rental: Rental) => {
+  const handleCreateHandover = useCallback(async (rental: Rental) => {
     console.log('📝 Creating handover protocol for rental:', rental.id);
-    console.log('🔍 MOBILE DEBUG: handleCreateHandover called');
-    console.log('🔍 MOBILE DEBUG: rental object:', rental);
-    console.log('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
+    // Optimalized: Mobile debug logs only in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 MOBILE DEBUG: handleCreateHandover called');
+      console.log('🔍 MOBILE DEBUG: rental object:', rental);
+      console.log('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
+    }
     
     // logMobile('INFO', 'RentalList', 'Handover protocol creation started', {
     //   rentalId: rental.id,
@@ -877,7 +953,7 @@ export default function RentalListNew() {
         alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
       }
     }
-  };
+  }, [protocolStatusMap, protocols]);
 
   const handleSaveHandover = async (protocolData: any) => {
     try {
@@ -924,7 +1000,7 @@ export default function RentalListNew() {
   };
 
   // Return Protocol handlers
-  const handleCreateReturn = async (rental: Rental) => {
+  const handleCreateReturn = useCallback(async (rental: Rental) => {
     console.log('📝 Creating return protocol for rental:', rental.id);
     
     try {
@@ -954,9 +1030,26 @@ export default function RentalListNew() {
         return;
       }
       
-      console.log('⚡ CACHED: Handover protocol found, no return protocol exists. Proceeding instantly...');
+      console.log('⚡ CACHED: Handover protocol found, no return protocol exists. Loading handover protocol...');
+      
+      // ⚡ NAČÍTAJ HANDOVER PROTOKOL PRED OTVORENÍM RETURN DIALOGU
+      const protocolData = await loadProtocolsForRental(rental.id);
+      
+      console.log('🔄 RETURN DEBUG: Protocol data returned from loadProtocolsForRental:', protocolData);
+      
+      if (!protocolData || !protocolData.handover) {
+        console.error('❌ RETURN DEBUG: No handover protocol data returned!');
+        alert('Chyba pri načítaní odovzdávacieho protokolu. Skúste to znovu.');
+        return;
+      }
+      
+      console.log('🔄 RETURN DEBUG: Setting selectedRentalForProtocol to:', rental.id);
       setSelectedRentalForProtocol(rental);
+      
+      console.log('🔄 RETURN DEBUG: Setting openReturnDialog to true');
       setOpenReturnDialog(true);
+      
+      console.log('🔄 RETURN DEBUG: Handover protocol available:', protocolData.handover.id);
       
     } catch (error) {
       console.error('❌ Error checking cached protocols:', error);
@@ -979,15 +1072,32 @@ export default function RentalListNew() {
           return;
         }
         
-        console.log('✅ Handover protocol found, no return protocol exists (fallback). Proceeding...');
+        console.log('✅ Handover protocol found, no return protocol exists (fallback). Loading protocols...');
+        
+        // ⚡ NAČÍTAJ PROTOKOLY PRED OTVORENÍM RETURN DIALOGU
+        const protocolData = await loadProtocolsForRental(rental.id);
+        
+        console.log('🔄 RETURN DEBUG (fallback): Protocol data returned:', protocolData);
+        
+        if (!protocolData || !protocolData.handover) {
+          console.error('❌ RETURN DEBUG (fallback): No handover protocol data returned!');
+          alert('Chyba pri načítaní odovzdávacieho protokolu. Skúste to znovu.');
+          return;
+        }
+        
+        console.log('🔄 RETURN DEBUG (fallback): Setting selectedRentalForProtocol to:', rental.id);
         setSelectedRentalForProtocol(rental);
+        
+        console.log('🔄 RETURN DEBUG (fallback): Setting openReturnDialog to true');
         setOpenReturnDialog(true);
+        
+        console.log('🔄 RETURN DEBUG (fallback): Handover protocol available:', protocolData.handover.id);
       } catch (fallbackError) {
         console.error('❌ Fallback API call also failed:', fallbackError);
         alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
       }
     }
-  };
+  }, [protocolStatusMap, protocols, loadProtocolsForRental]);
 
     const handleSaveReturn = async (protocolData: any) => {
     try {
@@ -1783,6 +1893,146 @@ export default function RentalListNew() {
     }
   ], [protocols, loadingProtocols, state.vehicles, getVehicleByRental]);
 
+  // 📱 MOBILE CARD RENDERER - s action buttons
+  const mobileCardRenderer = useCallback((rental: Rental, index: number) => {
+    const vehicle = getVehicleByRental(rental);
+    const hasHandover = !!protocols[rental.id]?.handover;
+    const hasReturn = !!protocols[rental.id]?.return;
+    const isLoadingProtocolStatus = loadingProtocols.includes(rental.id);
+
+    return (
+      <Card 
+        key={rental.id}
+        sx={{ 
+          mb: 2,
+          borderRadius: 2,
+          boxShadow: theme.shadows[2],
+          '&:hover': { 
+            boxShadow: theme.shadows[4],
+            transform: 'translateY(-1px)',
+            transition: 'all 0.2s ease'
+          }
+        }}
+      >
+        <CardContent>
+          {/* Header with vehicle info */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.primary.main, fontSize: '1.1rem' }}>
+                {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Bez vozidla'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {vehicle?.licensePlate || 'Bez ŠPZ'} • {rental.customerName}
+              </Typography>
+            </Box>
+            <Chip
+              label={rental.status || 'Neznámy'}
+              color={rental.status === 'active' ? 'success' : 'default'}
+              size="small"
+            />
+          </Box>
+
+          {/* Dates and price */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              📅 {format(new Date(rental.startDate), 'dd.MM.yyyy')} - {format(new Date(rental.endDate), 'dd.MM.yyyy')}
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+              💰 {rental.totalPrice ? `€${rental.totalPrice}` : 'Nezadané'}
+            </Typography>
+          </Box>
+
+          {/* Protocol status */}
+          {(hasHandover || hasReturn) && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                Protokoly:
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {hasHandover && (
+                  <Chip label="✅ Prevzatie" size="small" color="success" />
+                )}
+                {hasReturn && (
+                  <Chip label="✅ Vrátenie" size="small" color="success" />
+                )}
+              </Box>
+            </Box>
+          )}
+
+          {/* ACTION BUTTONS - HLAVNÉ TLAČIDLÁ */}
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<EditIcon />}
+              onClick={(e) => { e.stopPropagation(); handleEdit(rental); }}
+              sx={{ 
+                flex: 1,
+                minWidth: '100px',
+                bgcolor: theme.palette.primary.main,
+                '&:hover': { bgcolor: theme.palette.primary.dark }
+              }}
+            >
+              Upraviť
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<HandoverIcon />}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if (hasHandover) {
+                  // handleOpenProtocolMenu(rental, 'handover');
+                } else {
+                  handleCreateHandover(rental);
+                }
+              }}
+              sx={{ 
+                flex: 1,
+                minWidth: '120px',
+                bgcolor: hasHandover ? theme.palette.success.main : theme.palette.warning.main,
+                '&:hover': { bgcolor: hasHandover ? theme.palette.success.dark : theme.palette.warning.dark }
+              }}
+            >
+              {hasHandover ? 'Zobraz prevzatie' : 'Prevzatie'}
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<ReturnIcon />}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if (hasReturn) {
+                  // handleOpenProtocolMenu(rental, 'return');
+                } else {
+                  handleCreateReturn(rental);
+                }
+              }}
+              sx={{ 
+                flex: 1,
+                minWidth: '120px',
+                bgcolor: hasReturn ? theme.palette.info.main : theme.palette.success.main,
+                '&:hover': { bgcolor: hasReturn ? theme.palette.info.dark : theme.palette.success.dark }
+              }}
+            >
+              {hasReturn ? 'Zobraz vrátenie' : 'Vrátenie'}
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={(e) => { e.stopPropagation(); handleDelete(rental.id); }}
+              sx={{ minWidth: '80px' }}
+            >
+              Zmazať
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  }, [protocols, loadingProtocols, getVehicleByRental, theme, handleCreateHandover, handleCreateReturn, handleEdit, handleDelete]);
+
   // Get unique values for filter dropdowns
   const uniqueStatuses = useMemo(() => {
     const rentals = state.rentals || [];
@@ -1825,16 +2075,17 @@ export default function RentalListNew() {
   // Reset all filters function
   const resetAllFilters = () => {
     setSearchQuery('');
+    setDebouncedSearchQuery('');
     setAdvancedFilters({
-      // Základné filtre
-      status: 'all',
-      paymentMethod: 'all',
-      company: 'all',
+      // Základné filtre - arrays pre multi-select
+      status: [],
+      paymentMethod: [],
+      company: [],
       dateFrom: '',
       dateTo: '',
       priceMin: '',
       priceMax: '',
-      protocolStatus: 'all',
+      protocolStatus: [],
       
       // Rozšírené filtre
       customerName: '',
@@ -1868,26 +2119,61 @@ export default function RentalListNew() {
     setAdvancedFilters(newFilters);
   };
 
+  // Multi-select helper functions
+  const toggleFilterValue = (filterKey: keyof FilterState, value: string) => {
+    const currentValues = advancedFilters[filterKey] as string[];
+    const newValues = Array.isArray(currentValues) 
+      ? currentValues.includes(value)
+        ? currentValues.filter(v => v !== value)
+        : [...currentValues, value]
+      : [value];
+    
+    setAdvancedFilters({
+      ...advancedFilters,
+      [filterKey]: newValues
+    });
+  };
+
+  const isFilterValueSelected = (filterKey: keyof FilterState, value: string): boolean => {
+    const currentValues = advancedFilters[filterKey] as string[];
+    return Array.isArray(currentValues) && currentValues.includes(value);
+  };
+
   // Save filter preset
   const handleSaveFilterPreset = () => {
     // TODO: Implement preset saving
-    console.log('💾 Ukladám filter preset:', advancedFilters);
+    logger.debug('Saving filter preset', { filters: advancedFilters });
   };
   
-  // 🚀 INFINITE SCROLL: Use infinite data hook instead of manual filtering
-  const infiniteRentals = useInfiniteRentals({
-    data: state.rentals || [],
-    pageSize: 15, // Load 15 rentals at a time
-    searchQuery,
-    filters: advancedFilters,
-    sortFn: (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime() // Newest first
-  });
-
-  // Compatibility layer for existing code
-  const filteredRentals = infiniteRentals.displayedItems;
-
-  // Get unique values for filters (already declared above)
-      const query = searchQuery.toLowerCase();
+  // Filter rentals based on all filters with 30 item limit for mobile performance
+  const filteredRentals = useMemo(() => {
+    const rentals = state.rentals || [];
+    let filtered = rentals;
+    
+    // 🚀 PERFORMANCE: Apply smart default filter first to reduce dataset
+    const now = new Date();
+    // Removed unused date variables (thirtyDaysAgo, sevenDaysFromNow)
+    
+    // REMOVED: Smart default filter - show all rentals
+    // Default to "najbližších 7 dní" for better performance - DISABLED
+    // if (advancedFilters.timeFilter === 'all' && !debouncedSearchQuery.trim()) {
+    //   filtered = filtered.filter(rental => {
+    //     const startDate = new Date(rental.startDate);
+    //     const endDate = new Date(rental.endDate);
+    //     return (startDate >= now && startDate <= sevenDaysFromNow) || 
+    //            (endDate >= now && endDate <= sevenDaysFromNow) ||
+    //            (startDate <= now && endDate >= now); // Currently running
+    //   });
+    //   logger.performance('Smart filter applied', { 
+    //     filteredCount: filtered.length, 
+    //     totalCount: rentals.length, 
+    //     period: 'next 7 days' 
+    //   });
+    // }
+    
+    // Search query filter - LIVE SEARCH s debouncing
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase();
       filtered = filtered.filter(rental => {
         const vehicle = getVehicleByRental(rental);
         return rental.customerName?.toLowerCase().includes(query) ||
@@ -1901,21 +2187,21 @@ export default function RentalListNew() {
     // Advanced filters
     const filters = advancedFilters;
     
-    // Status filter
-    if (filters.status !== 'all') {
-      filtered = filtered.filter(rental => rental.status === filters.status);
+    // Status filter - multi-select
+    if (Array.isArray(filters.status) && filters.status.length > 0) {
+      filtered = filtered.filter(rental => rental.status && filters.status.includes(rental.status));
     }
     
-    // Payment method filter
-    if (filters.paymentMethod !== 'all') {
-      filtered = filtered.filter(rental => rental.paymentMethod === filters.paymentMethod);
+    // Payment method filter - multi-select
+    if (Array.isArray(filters.paymentMethod) && filters.paymentMethod.length > 0) {
+      filtered = filtered.filter(rental => filters.paymentMethod.includes(rental.paymentMethod));
     }
     
-    // Company filter
-    if (filters.company !== 'all') {
+    // Company filter - multi-select
+    if (Array.isArray(filters.company) && filters.company.length > 0) {
       filtered = filtered.filter(rental => {
         const vehicle = getVehicleByRental(rental);
-        return vehicle?.company === filters.company;
+        return vehicle?.company && filters.company.includes(vehicle.company);
       });
     }
     
@@ -1941,22 +2227,21 @@ export default function RentalListNew() {
       filtered = filtered.filter(rental => rental.totalPrice <= maxPrice);
     }
     
-    // Protocol status filter
-    if (filters.protocolStatus !== 'all') {
+    // Protocol status filter - multi-select
+    if (Array.isArray(filters.protocolStatus) && filters.protocolStatus.length > 0) {
       filtered = filtered.filter(rental => {
         const rentalProtocols = protocols[rental.id];
-        if (!rentalProtocols) return filters.protocolStatus === 'none';
+        const hasHandover = !!rentalProtocols?.handover;
+        const hasReturn = !!rentalProtocols?.return;
         
-        const hasHandover = !!rentalProtocols.handover;
-        const hasReturn = !!rentalProtocols.return;
-        
-        switch (filters.protocolStatus) {
-          case 'none': return !hasHandover && !hasReturn;
-          case 'handover': return hasHandover && !hasReturn;
-          case 'return': return !hasHandover && hasReturn;
-          case 'both': return hasHandover && hasReturn;
-          default: return true;
-        }
+        return filters.protocolStatus.some(status => {
+          switch (status) {
+            case 'none': return !hasHandover && !hasReturn;
+            case 'partial': return (hasHandover && !hasReturn) || (!hasHandover && hasReturn);
+            case 'complete': return hasHandover && hasReturn;
+            default: return false;
+          }
+        });
       });
     }
 
@@ -2051,12 +2336,12 @@ export default function RentalListNew() {
       });
     }
     
-    // 🚀 MOBILE PERFORMANCE: Limit to 30 items max to prevent browser crashes
-    const limitedFiltered = filtered.slice(0, 30);
-    console.log(`📊 Filtered rentals: ${filtered.length} total → ${limitedFiltered.length} displayed (max 30)`);
+    // REMOVED: Mobile performance limit - show all rentals
+    // 🚀 MOBILE PERFORMANCE: Limit to 30 items max to prevent browser crashes - DISABLED
+    // const limitedFiltered = filtered.slice(0, 30);
     
-    return limitedFiltered;
-      }, [state.rentals, searchQuery, advancedFilters, protocols, handleCreateReturn, handleDelete, handleDeleteProtocol, handleOpenGallery, handleViewProtocols, getVehicleByRental]);
+    return filtered;
+      }, [state.rentals, debouncedSearchQuery, advancedFilters, protocols, handleCreateReturn, handleDelete, handleDeleteProtocol, handleOpenGallery, handleViewProtocols, getVehicleByRental]);
   
   // Get unique values for filters (already declared above)
   
@@ -2066,8 +2351,18 @@ export default function RentalListNew() {
     if (!rental) return null;
     
     const vehicle = getVehicleByRental(rental);
-    const hasHandover = !!protocols[rental.id]?.handover;
-    const hasReturn = !!protocols[rental.id]?.return;
+    
+    // ⚡ OPTIMALIZÁCIA: Použiť background loaded protocol status
+    const backgroundStatus = protocolStatusMap[rental.id];
+    const fallbackProtocols = protocols[rental.id];
+    
+    const hasHandover = backgroundStatus 
+      ? backgroundStatus.hasHandoverProtocol 
+      : !!fallbackProtocols?.handover;
+    const hasReturn = backgroundStatus 
+      ? backgroundStatus.hasReturnProtocol 
+      : !!fallbackProtocols?.return;
+      
     const isLoadingProtocolStatus = loadingProtocols.includes(rental.id);
     const protocolStatusLoaded = protocolStatusMap[rental.id] !== undefined;
 
@@ -2085,16 +2380,25 @@ export default function RentalListNew() {
           onEdit={handleEdit}
           onOpenProtocolMenu={(rental, type) => {
             if (type === 'handover') {
-              handleCreateHandover(rental);
+              if (hasHandover) {
+                handleOpenProtocolMenu(rental, 'handover');
+              } else {
+                handleCreateHandover(rental);
+              }
             } else {
-              handleCreateReturn(rental);
+              if (hasReturn) {
+                handleOpenProtocolMenu(rental, 'return');
+              } else {
+                handleCreateReturn(rental);
+              }
             }
           }}
           onCheckProtocols={() => {}} // Simplified for now
+          onDelete={handleDelete}
         />
       </div>
     );
-  }, [filteredRentals, protocols, loadingProtocols, protocolStatusMap, getVehicleByRental, handleEdit, handleCreateHandover, handleCreateReturn]);
+  }, [filteredRentals, protocols, loadingProtocols, protocolStatusMap, getVehicleByRental, handleEdit, handleCreateHandover, handleCreateReturn, handleDelete, handleOpenProtocolMenu]);
 
   // Card renderer for mobile/card view (fallback)
   const renderRentalCard = useCallback((rental: Rental, index: number) => {
@@ -2536,7 +2840,8 @@ export default function RentalListNew() {
       const bulkProtocolStatus = await apiService.getBulkProtocolStatus();
       const loadTime = Date.now() - startTime;
       
-      console.log(`✅ BACKGROUND: Protocol status loaded in ${loadTime}ms for ${bulkProtocolStatus.length} rentals`);
+      // Optimalized: Consolidated protocol status loading log
+      console.log(`✅ Protocol status loaded: ${bulkProtocolStatus.length} rentals (${loadTime}ms)`);
       
       // Konvertuj array na map pre rýchly lookup
       const statusMap: Record<string, {
@@ -2554,8 +2859,6 @@ export default function RentalListNew() {
       setProtocolStatusMap(statusMap);
       setProtocolStatusLoaded(true);
       
-      console.log('🎉 BACKGROUND: Protocol status icons will now appear in rental list!');
-      
       // 🚀 SMART PRELOADING: Preload protokoly pre rentaly ktoré sú viditeľné a majú protokoly
       setTimeout(() => {
         preloadVisibleProtocols(statusMap);
@@ -2570,7 +2873,7 @@ export default function RentalListNew() {
 
   // 🚀 SMART PROTOCOL PRELOADING - preloaduj protokoly pre viditeľné rentaly
   const preloadVisibleProtocols = useCallback(async (statusMap: Record<string, {hasHandoverProtocol: boolean, hasReturnProtocol: boolean}>) => {
-    console.log('🎯 PRELOAD: Starting smart protocol preloading...');
+    // Optimalized: Reduced preload logging
     
     // Získaj viditeľné rentaly (prvých 10-20)
     const visibleRentals = filteredRentals.slice(0, 15);
@@ -2586,7 +2889,10 @@ export default function RentalListNew() {
         preloadPromises.push(
           loadProtocolsForRental(rental.id).then(() => {
             preloadCount++;
-            console.log(`✅ PRELOAD: Protocol preloaded for rental ${rental.id} (${preloadCount})`);
+            // Only log individual preloads in development
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`✅ PRELOAD: Protocol preloaded for rental ${rental.id} (${preloadCount})`);
+            }
           }).catch((error) => {
             console.warn(`⚠️ PRELOAD: Failed to preload protocol for rental ${rental.id}:`, error);
           })
@@ -2599,8 +2905,10 @@ export default function RentalListNew() {
       }
     }
     
+    // Optimalized: Single consolidated preload log
+    console.log(`🎯 Smart preload: ${preloadPromises.length} protocols needed`);
+    
     if (preloadPromises.length > 0) {
-      console.log(`🚀 PRELOAD: Starting ${preloadPromises.length} protocol preload requests...`);
       
       try {
         // ⚡ Sequencial loading aby sme nezaťažili server
@@ -2609,12 +2917,13 @@ export default function RentalListNew() {
           // Krátka pauza medzi requestmi
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        console.log(`✅ PRELOAD: Completed ${preloadCount} protocol preloads`);
+        // Only log success if protocols were actually preloaded
+        if (preloadCount > 0) {
+          console.log(`✅ Smart preload completed: ${preloadCount} protocols`);
+        }
       } catch (error) {
         console.error('❌ PRELOAD: Some preload requests failed:', error);
       }
-    } else {
-      console.log('💡 PRELOAD: No protocols need preloading (all cached or no protocols exist)');
     }
   }, [filteredRentals, protocols, loadProtocolsForRental]);
 
@@ -2805,22 +3114,17 @@ export default function RentalListNew() {
             }}>
 
 
-              {/* Filter Button */}
-              <Button
-                variant="outlined"
-                startIcon={<FilterListIcon />}
+              {/* 🚀 KOMPAKTNÉ FILTRE - len ikonka */}
+              <IconButton
                 onClick={() => setShowFilters(!showFilters)}
                 size="small"
                 sx={{
                   borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  transition: 'all 0.3s ease',
+                  border: '1px solid',
                   borderColor: showFilters ? 'primary.main' : 'rgba(0,0,0,0.23)',
                   bgcolor: showFilters ? 'primary.main' : 'transparent',
                   color: showFilters ? 'white' : 'inherit',
-                  fontSize: { xs: '0.75rem', md: '0.875rem' },
-                  px: { xs: 1, md: 2 },
+                  transition: 'all 0.3s ease',
                   '&:hover': {
                     bgcolor: showFilters ? 'primary.dark' : 'rgba(0,0,0,0.04)',
                     transform: 'translateY(-1px)',
@@ -2828,38 +3132,8 @@ export default function RentalListNew() {
                   }
                 }}
               >
-                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Základné filtre</Box>
-                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>Filtre</Box>
-                {showFilters ? '▼' : '▶'}
-              </Button>
-
-              {/* Advanced Filters Button */}
-              <Button
-                variant="outlined"
-                startIcon={<FilterListIcon />}
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                size="small"
-                sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  transition: 'all 0.3s ease',
-                  borderColor: showAdvancedFilters ? 'secondary.main' : 'rgba(0,0,0,0.23)',
-                  bgcolor: showAdvancedFilters ? 'secondary.main' : 'transparent',
-                  color: showAdvancedFilters ? 'white' : 'inherit',
-                  fontSize: { xs: '0.75rem', md: '0.875rem' },
-                  px: { xs: 1, md: 2 },
-                  '&:hover': {
-                    bgcolor: showAdvancedFilters ? 'secondary.dark' : 'rgba(0,0,0,0.04)',
-                    transform: 'translateY(-1px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                  }
-                }}
-              >
-                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Rozšírené filtre</Box>
-                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>Rozšírené</Box>
-                {showAdvancedFilters ? '▼' : '▶'}
-              </Button>
+                <FilterListIcon fontSize="small" />
+              </IconButton>
 
               {/* Reset Button */}
               <Button
@@ -2889,433 +3163,412 @@ export default function RentalListNew() {
           </Box>
 
           {/* Search results info */}
-          {(searchQuery || advancedFilters.status !== 'all' || advancedFilters.paymentMethod !== 'all' || advancedFilters.company !== 'all' || advancedFilters.dateFrom || advancedFilters.dateTo || advancedFilters.priceMin || advancedFilters.priceMax || advancedFilters.protocolStatus !== 'all') && (
+          {(searchQuery || 
+            (Array.isArray(advancedFilters.status) && advancedFilters.status.length > 0) || 
+            (Array.isArray(advancedFilters.paymentMethod) && advancedFilters.paymentMethod.length > 0) || 
+            (Array.isArray(advancedFilters.company) && advancedFilters.company.length > 0) || 
+            advancedFilters.dateFrom || advancedFilters.dateTo || advancedFilters.priceMin || advancedFilters.priceMax || 
+            (Array.isArray(advancedFilters.protocolStatus) && advancedFilters.protocolStatus.length > 0)) && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Zobrazených: {filteredRentals.length} z {state.rentals?.length || 0} prenájmov
             </Typography>
           )}
 
+          {/* 🚀 RÝCHLE FILTRE - len tie najdôležitejšie */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1, 
+            flexWrap: 'wrap', 
+            mb: 2,
+            alignItems: 'center'
+          }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+              Rýchle filtre:
+              {/* Počet označených filtrov */}
+              {(() => {
+                const totalSelected = 
+                  (Array.isArray(advancedFilters.paymentMethod) ? advancedFilters.paymentMethod.length : 0) +
+                  (Array.isArray(advancedFilters.status) ? advancedFilters.status.length : 0) +
+                  (Array.isArray(advancedFilters.protocolStatus) ? advancedFilters.protocolStatus.length : 0);
+                return totalSelected > 0 ? (
+                  <Chip 
+                    label={totalSelected} 
+                    size="small" 
+                    color="primary" 
+                    variant="filled"
+                    sx={{ 
+                      ml: 1, 
+                      height: 20, 
+                      fontSize: '0.7rem',
+                      fontWeight: 'bold'
+                    }} 
+                  />
+                ) : null;
+              })()}
+            </Typography>
+            
+            {/* Spôsob platby */}
+            {uniquePaymentMethods.slice(0, 3).map(method => {
+              const getPaymentMethodLabel = (method: string) => {
+                switch(method) {
+                  case 'cash': return 'Hotovosť';
+                  case 'bank_transfer': return 'Bankový prevod';
+                  case 'direct_to_owner': return 'Priamo majiteľovi';
+                  case 'card': return 'Kartou';
+                  case 'crypto': return 'Kryptomeny';
+                  default: return method;
+                }
+              };
+              
+              return (
+                <Chip
+                  key={method}
+                  label={getPaymentMethodLabel(method)}
+                  size="small"
+                  variant={isFilterValueSelected('paymentMethod', method) ? 'filled' : 'outlined'}
+                  color={isFilterValueSelected('paymentMethod', method) ? 'primary' : 'default'}
+                  onClick={() => toggleFilterValue('paymentMethod', method)}
+                  sx={{ 
+                    borderRadius: 2,
+                    '&:hover': { transform: 'translateY(-1px)' },
+                    transition: 'all 0.2s ease',
+                    // Výrazné zvýraznenie označených filtrov
+                    ...(isFilterValueSelected('paymentMethod', method) && {
+                      fontWeight: 'bold',
+                      boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
+                      border: '2px solid',
+                      borderColor: 'primary.main'
+                    })
+                  }}
+                />
+              );
+            })}
+
+            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+            {/* Stav prenájmu */}
+            <Chip
+              label="Aktívne"
+              size="small"
+              variant={isFilterValueSelected('status', 'active') ? 'filled' : 'outlined'}
+              color={isFilterValueSelected('status', 'active') ? 'success' : 'default'}
+              onClick={() => toggleFilterValue('status', 'active')}
+              sx={{ 
+                borderRadius: 2,
+                '&:hover': { transform: 'translateY(-1px)' },
+                transition: 'all 0.2s ease',
+                // Výrazné zvýraznenie označených filtrov
+                ...(isFilterValueSelected('status', 'active') && {
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)',
+                  border: '2px solid',
+                  borderColor: 'success.main'
+                })
+              }}
+            />
+            <Chip
+              label="Čakajúci"
+              size="small"
+              variant={isFilterValueSelected('status', 'pending') ? 'filled' : 'outlined'}
+              color={isFilterValueSelected('status', 'pending') ? 'warning' : 'default'}
+              onClick={() => toggleFilterValue('status', 'pending')}
+              sx={{ 
+                borderRadius: 2,
+                '&:hover': { transform: 'translateY(-1px)' },
+                transition: 'all 0.2s ease',
+                // Výrazné zvýraznenie označených filtrov
+                ...(isFilterValueSelected('status', 'pending') && {
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 8px rgba(237, 108, 2, 0.3)',
+                  border: '2px solid',
+                  borderColor: 'warning.main'
+                })
+              }}
+            />
+            <Chip
+              label="Ukončené"
+              size="small"
+              variant={isFilterValueSelected('status', 'completed') ? 'filled' : 'outlined'}
+              color={isFilterValueSelected('status', 'completed') ? 'info' : 'default'}
+              onClick={() => toggleFilterValue('status', 'completed')}
+              sx={{ 
+                borderRadius: 2,
+                '&:hover': { transform: 'translateY(-1px)' },
+                transition: 'all 0.2s ease',
+                // Výrazné zvýraznenie označených filtrov
+                ...(isFilterValueSelected('status', 'completed') && {
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 8px rgba(2, 136, 209, 0.3)',
+                  border: '2px solid',
+                  borderColor: 'info.main'
+                })
+              }}
+            />
+
+            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+            {/* Stavy protokolov */}
+            <Chip
+              label="Bez protokolu"
+              size="small"
+              variant={isFilterValueSelected('protocolStatus', 'none') ? 'filled' : 'outlined'}
+              color={isFilterValueSelected('protocolStatus', 'none') ? 'warning' : 'default'}
+              onClick={() => toggleFilterValue('protocolStatus', 'none')}
+              sx={{ 
+                borderRadius: 2,
+                '&:hover': { transform: 'translateY(-1px)' },
+                transition: 'all 0.2s ease',
+                // Výrazné zvýraznenie označených filtrov
+                ...(isFilterValueSelected('protocolStatus', 'none') && {
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 8px rgba(237, 108, 2, 0.3)',
+                  border: '2px solid',
+                  borderColor: 'warning.main'
+                })
+              }}
+            />
+            <Chip
+              label="Kompletné"
+              size="small"
+              variant={isFilterValueSelected('protocolStatus', 'complete') ? 'filled' : 'outlined'}
+              color={isFilterValueSelected('protocolStatus', 'complete') ? 'success' : 'default'}
+              onClick={() => toggleFilterValue('protocolStatus', 'complete')}
+              sx={{ 
+                borderRadius: 2,
+                '&:hover': { transform: 'translateY(-1px)' },
+                transition: 'all 0.2s ease',
+                // Výrazné zvýraznenie označených filtrov
+                ...(isFilterValueSelected('protocolStatus', 'complete') && {
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)',
+                  border: '2px solid',
+                  borderColor: 'success.main'
+                })
+              }}
+            />
+          </Box>
+
           {/* Pokročilé filtre */}
           <Collapse in={showFilters}>
             <Divider sx={{ my: 2 }} />
-            <Grid container spacing={3}>
-              {/* Základné filtre */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <FilterListIcon fontSize="small" />
-                  Základné filtre
-                </Typography>
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {/* Status */}
-                  <FormControl size="small" fullWidth>
-                    <InputLabel>Stav prenájmu</InputLabel>
-                    <Select
-                      value={advancedFilters.status}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, status: e.target.value })}
-                      label="Stav prenájmu"
-                    >
-                      <MenuItem value="all">Všetky stavy</MenuItem>
-                      {uniqueStatuses.map(status => (
-                        <MenuItem key={status} value={status}>{status}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  {/* Payment Method */}
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <FilterListIcon fontSize="small" />
+                Filtre
+              </Typography>
+              
+              <Grid container spacing={3}>
+                {/* Spôsob platby */}
+                <Grid item xs={12} sm={6} md={4}>
                   <FormControl size="small" fullWidth>
                     <InputLabel>Spôsob platby</InputLabel>
                     <Select
-                      value={advancedFilters.paymentMethod}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, paymentMethod: e.target.value })}
+                      multiple
+                      value={Array.isArray(advancedFilters.paymentMethod) ? advancedFilters.paymentMethod : []}
+                      onChange={(e) => handleAdvancedFiltersChange({ 
+                        ...advancedFilters, 
+                        paymentMethod: Array.isArray(e.target.value) ? e.target.value : [e.target.value]
+                      })}
                       label="Spôsob platby"
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {(selected as string[]).map((value) => {
+                            const getPaymentMethodLabel = (method: string) => {
+                              switch(method) {
+                                case 'cash': return 'Hotovosť';
+                                case 'bank_transfer': return 'Bankový prevod';
+                                case 'direct_to_owner': return 'Priamo majiteľovi';
+                                case 'card': return 'Kartou';
+                                case 'crypto': return 'Kryptomeny';
+                                default: return method;
+                              }
+                            };
+                            return (
+                              <Chip key={value} label={getPaymentMethodLabel(value)} size="small" />
+                            );
+                          })}
+                        </Box>
+                      )}
                     >
-                      <MenuItem value="all">Všetky spôsoby</MenuItem>
-                      {uniquePaymentMethods.map(method => (
-                        <MenuItem key={method} value={method}>{method}</MenuItem>
-                      ))}
+                      {uniquePaymentMethods.map(method => {
+                        const getPaymentMethodLabel = (method: string) => {
+                          switch(method) {
+                            case 'cash': return 'Hotovosť';
+                            case 'bank_transfer': return 'Bankový prevod';
+                            case 'direct_to_owner': return 'Priamo majiteľovi';
+                            case 'card': return 'Kartou';
+                            case 'crypto': return 'Kryptomeny';
+                            default: return method;
+                          }
+                        };
+                        return (
+                          <MenuItem key={method} value={method}>
+                            <Checkbox checked={isFilterValueSelected('paymentMethod', method)} />
+                            {getPaymentMethodLabel(method)}
+                          </MenuItem>
+                        );
+                      })}
                     </Select>
                   </FormControl>
+                </Grid>
 
-                  {/* Company */}
-                  <FormControl size="small" fullWidth>
-                    <InputLabel>Firma</InputLabel>
-                    <Select
-                      value={advancedFilters.company}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, company: e.target.value })}
-                      label="Firma"
-                    >
-                      <MenuItem value="all">Všetky firmy</MenuItem>
-                      {uniqueCompanies.map(company => (
-                        <MenuItem key={company} value={company}>{company}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-              </Grid>
-
-              {/* Pokročilé filtre */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CalendarIcon fontSize="small" />
-                  Pokročilé filtre
-                </Typography>
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {/* Date Range */}
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField
-                      label="Od dátumu"
-                      type="date"
-                      size="small"
-                      value={advancedFilters.dateFrom}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, dateFrom: e.target.value })}
-                      InputLabelProps={{ shrink: true }}
-                      sx={{ flex: 1 }}
-                    />
-                    <TextField
-                      label="Do dátumu"
-                      type="date"
-                      size="small"
-                      value={advancedFilters.dateTo}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, dateTo: e.target.value })}
-                      InputLabelProps={{ shrink: true }}
-                      sx={{ flex: 1 }}
-                    />
-                  </Box>
-
-                  {/* Price Range */}
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField
-                      label="Min. cena (€)"
-                      type="number"
-                      size="small"
-                      value={advancedFilters.priceMin}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, priceMin: e.target.value })}
-                      sx={{ flex: 1 }}
-                    />
-                    <TextField
-                      label="Max. cena (€)"
-                      type="number"
-                      size="small"
-                      value={advancedFilters.priceMax}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, priceMax: e.target.value })}
-                      sx={{ flex: 1 }}
-                    />
-                  </Box>
-
-                  {/* Protocol Status */}
+                {/* Stavy protokolov */}
+                <Grid item xs={12} sm={6} md={4}>
                   <FormControl size="small" fullWidth>
                     <InputLabel>Stav protokolov</InputLabel>
                     <Select
-                      value={advancedFilters.protocolStatus}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, protocolStatus: e.target.value })}
+                      multiple
+                      value={Array.isArray(advancedFilters.protocolStatus) ? advancedFilters.protocolStatus : []}
+                      onChange={(e) => handleAdvancedFiltersChange({ 
+                        ...advancedFilters, 
+                        protocolStatus: Array.isArray(e.target.value) ? e.target.value : [e.target.value]
+                      })}
                       label="Stav protokolov"
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {(selected as string[]).map((value) => {
+                            const getStatusLabel = (status: string) => {
+                              switch(status) {
+                                case 'none': return 'Bez protokolu';
+                                case 'partial': return 'Čiastočné';
+                                case 'complete': return 'Kompletné';
+                                default: return status;
+                              }
+                            };
+                            return (
+                              <Chip key={value} label={getStatusLabel(value)} size="small" />
+                            );
+                          })}
+                        </Box>
+                      )}
                     >
-                      <MenuItem value="all">Všetky stavy</MenuItem>
-                      <MenuItem value="none">Bez protokolov</MenuItem>
-                      <MenuItem value="handover">Len preberací protokol</MenuItem>
-                      <MenuItem value="return">Len vrátený protokol</MenuItem>
-                      <MenuItem value="both">Kompletné protokoly</MenuItem>
+                      <MenuItem value="none">
+                        <Checkbox checked={isFilterValueSelected('protocolStatus', 'none')} />
+                        Bez protokolu
+                      </MenuItem>
+                      <MenuItem value="partial">
+                        <Checkbox checked={isFilterValueSelected('protocolStatus', 'partial')} />
+                        Čiastočné
+                      </MenuItem>
+                      <MenuItem value="complete">
+                        <Checkbox checked={isFilterValueSelected('protocolStatus', 'complete')} />
+                        Kompletné
+                      </MenuItem>
                     </Select>
                   </FormControl>
-                </Box>
-              </Grid>
+                </Grid>
 
-              {/* Rozšírené filtre */}
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PersonIcon fontSize="small" />
-                  Rozšírené filtre
-                </Typography>
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {/* Customer Name */}
-                  <TextField
-                    label="Meno zákazníka"
-                    size="small"
-                    value={advancedFilters.customerName}
-                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, customerName: e.target.value })}
-                    sx={{ flex: 1 }}
-                  />
-
-                  {/* Vehicle Brand */}
+                {/* Firma */}
+                <Grid item xs={12} sm={6} md={4}>
                   <FormControl size="small" fullWidth>
-                    <InputLabel>Značka vozidla</InputLabel>
+                    <InputLabel>Firma</InputLabel>
                     <Select
-                      value={advancedFilters.vehicleBrand}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, vehicleBrand: e.target.value })}
-                      label="Značka vozidla"
+                      multiple
+                      value={Array.isArray(advancedFilters.company) ? advancedFilters.company : []}
+                      onChange={(e) => handleAdvancedFiltersChange({ 
+                        ...advancedFilters, 
+                        company: Array.isArray(e.target.value) ? e.target.value : [e.target.value]
+                      })}
+                      label="Firma"
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {(selected as string[]).map((value) => (
+                            <Chip key={value} label={value} size="small" />
+                          ))}
+                        </Box>
+                      )}
                     >
-                      <MenuItem value="all">Všetky značky</MenuItem>
-                      {uniqueVehicleBrands.map(brand => (
-                        <MenuItem key={brand} value={brand}>{brand}</MenuItem>
+                      {uniqueCompanies.map(company => (
+                        <MenuItem key={company} value={company}>
+                          <Checkbox checked={isFilterValueSelected('company', company)} />
+                          {company}
+                        </MenuItem>
                       ))}
                     </Select>
                   </FormControl>
+                </Grid>
 
-                  {/* Vehicle Model */}
-                  <TextField
-                    label="Model vozidla"
-                    size="small"
-                    value={advancedFilters.vehicleModel}
-                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, vehicleModel: e.target.value })}
-                    sx={{ flex: 1 }}
-                  />
-
-                  {/* License Plate */}
-                  <TextField
-                    label="Registrované číslo"
-                    size="small"
-                    value={advancedFilters.licensePlate}
-                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, licensePlate: e.target.value })}
-                    sx={{ flex: 1 }}
-                  />
-
-                  {/* Customer Email */}
-                  <TextField
-                    label="Email zákazníka"
-                    size="small"
-                    value={advancedFilters.customerEmail}
-                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, customerEmail: e.target.value })}
-                    sx={{ flex: 1 }}
-                  />
-
-                  {/* Customer Phone */}
-                  <TextField
-                    label="Telefón zákazníka"
-                    size="small"
-                    value={advancedFilters.customerPhone}
-                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, customerPhone: e.target.value })}
-                    sx={{ flex: 1 }}
-                  />
-
-                  {/* Customer Company */}
-                  <TextField
-                    label="Spoločnosť zákazníka"
-                    size="small"
-                    value={advancedFilters.customerCompany}
-                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, customerCompany: e.target.value })}
-                    sx={{ flex: 1 }}
-                  />
-
-                  {/* Insurance Company */}
+                {/* Stav prenájmu */}
+                <Grid item xs={12} sm={6} md={4}>
                   <FormControl size="small" fullWidth>
-                    <InputLabel>Spoločnosť poistenia</InputLabel>
+                    <InputLabel>Stav prenájmu</InputLabel>
                     <Select
-                      value={advancedFilters.insuranceCompany}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, insuranceCompany: e.target.value })}
-                      label="Spoločnosť poistenia"
+                      multiple
+                      value={Array.isArray(advancedFilters.status) ? advancedFilters.status : []}
+                      onChange={(e) => handleAdvancedFiltersChange({ 
+                        ...advancedFilters, 
+                        status: Array.isArray(e.target.value) ? e.target.value : [e.target.value]
+                      })}
+                      label="Stav prenájmu"
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {(selected as string[]).map((value) => {
+                            const getStatusLabel = (status: string) => {
+                              switch(status) {
+                                case 'active': return 'Aktívne';
+                                case 'pending': return 'Čakajúci';
+                                case 'completed': return 'Ukončené';
+                                case 'cancelled': return 'Zrušené';
+                                default: return status;
+                              }
+                            };
+                            return (
+                              <Chip key={value} label={getStatusLabel(value)} size="small" />
+                            );
+                          })}
+                        </Box>
+                      )}
                     >
-                      <MenuItem value="all">Všetky spoločnosti</MenuItem>
-                      {uniqueInsuranceCompanies.map(company => (
-                        <MenuItem key={company} value={company}>{company}</MenuItem>
-                      ))}
+                      <MenuItem value="active">
+                        <Checkbox checked={isFilterValueSelected('status', 'active')} />
+                        Aktívne
+                      </MenuItem>
+                      <MenuItem value="pending">
+                        <Checkbox checked={isFilterValueSelected('status', 'pending')} />
+                        Čakajúci
+                      </MenuItem>
+                      <MenuItem value="completed">
+                        <Checkbox checked={isFilterValueSelected('status', 'completed')} />
+                        Ukončené
+                      </MenuItem>
+                      <MenuItem value="cancelled">
+                        <Checkbox checked={isFilterValueSelected('status', 'cancelled')} />
+                        Zrušené
+                      </MenuItem>
                     </Select>
                   </FormControl>
+                </Grid>
 
-                  {/* Insurance Type */}
-                  <FormControl size="small" fullWidth>
-                    <InputLabel>Typ poistenia</InputLabel>
-                    <Select
-                      value={advancedFilters.insuranceType}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, insuranceType: e.target.value })}
-                      label="Typ poistenia"
-                    >
-                      <MenuItem value="all">Všetky typy</MenuItem>
-                      {uniqueInsuranceTypes.map(type => (
-                        <MenuItem key={type} value={type}>{type}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  {/* Payment Status */}
-                  <FormControl size="small" fullWidth>
-                    <InputLabel>Stav platby</InputLabel>
-                    <Select
-                      value={advancedFilters.paymentStatus}
-                      onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, paymentStatus: e.target.value })}
-                      label="Stav platby"
-                    >
-                      <MenuItem value="all">Všetky stavy</MenuItem>
-                      <MenuItem value="paid">Uhradené</MenuItem>
-                      <MenuItem value="unpaid">Nezahradené</MenuItem>
-                      <MenuItem value="partial">Čiastočne uhradené</MenuItem>
-                    </Select>
-                  </FormControl>
-
-                  {/* Show Only Active */}
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={advancedFilters.showOnlyActive}
-                        onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, showOnlyActive: e.target.checked })}
-                        size="small"
-                      />
-                    }
-                    label="Použiť len aktívne prenájmy"
+                {/* Dátum od */}
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Dátum od"
+                    type="date"
+                    value={advancedFilters.dateFrom || ''}
+                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, dateFrom: e.target.value })}
+                    InputLabelProps={{ shrink: true }}
                   />
+                </Grid>
 
-                  {/* Show Only Overdue */}
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={advancedFilters.showOnlyOverdue}
-                        onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, showOnlyOverdue: e.target.checked })}
-                        size="small"
-                      />
-                    }
-                    label="Použiť len preverované prenájmy"
+                {/* Dátum do */}
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Dátum do"
+                    type="date"
+                    value={advancedFilters.dateTo || ''}
+                    onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, dateTo: e.target.value })}
+                    InputLabelProps={{ shrink: true }}
                   />
-
-                  {/* Show Only Completed */}
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={advancedFilters.showOnlyCompleted}
-                        onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, showOnlyCompleted: e.target.checked })}
-                        size="small"
-                      />
-                    }
-                    label="Použiť len dokončené prenájmy"
-                  />
-                </Box>
+                </Grid>
               </Grid>
-
-              {/* Zobrazenie stĺpcov */}
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <ViewListIcon fontSize="small" />
-                  Zobrazenie stĺpcov
-                </Typography>
-                
-                <FormGroup row>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={visibleColumns.vehicle}
-                        onChange={(e) => setVisibleColumns(prev => ({ ...prev, vehicle: e.target.checked }))}
-                        size="small"
-                      />
-                    }
-                    label="Vozidlo"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={visibleColumns.company}
-                        onChange={(e) => setVisibleColumns(prev => ({ ...prev, company: e.target.checked }))}
-                        size="small"
-                      />
-                    }
-                    label="Firma"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={visibleColumns.customer}
-                        onChange={(e) => setVisibleColumns(prev => ({ ...prev, customer: e.target.checked }))}
-                        size="small"
-                      />
-                    }
-                    label="Zákazník"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={visibleColumns.dates}
-                        onChange={(e) => setVisibleColumns(prev => ({ ...prev, dates: e.target.checked }))}
-                        size="small"
-                      />
-                    }
-                    label="Dátumy"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={visibleColumns.price}
-                        onChange={(e) => setVisibleColumns(prev => ({ ...prev, price: e.target.checked }))}
-                        size="small"
-                      />
-                    }
-                    label="Cena"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={visibleColumns.commission}
-                        onChange={(e) => setVisibleColumns(prev => ({ ...prev, commission: e.target.checked }))}
-                        size="small"
-                      />
-                    }
-                    label="Provízia"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={visibleColumns.payment}
-                        onChange={(e) => setVisibleColumns(prev => ({ ...prev, payment: e.target.checked }))}
-                        size="small"
-                      />
-                    }
-                    label="Platba"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={visibleColumns.paid}
-                        onChange={(e) => setVisibleColumns(prev => ({ ...prev, paid: e.target.checked }))}
-                        size="small"
-                      />
-                    }
-                    label="Uhradené"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={visibleColumns.status}
-                        onChange={(e) => setVisibleColumns(prev => ({ ...prev, status: e.target.checked }))}
-                        size="small"
-                      />
-                    }
-                    label="Stav"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={visibleColumns.protocols}
-                        onChange={(e) => setVisibleColumns(prev => ({ ...prev, protocols: e.target.checked }))}
-                        size="small"
-                      />
-                    }
-                    label="Protokoly"
-                  />
-                </FormGroup>
-              </Grid>
-            </Grid>
-          </Collapse>
-
-          {/* Rozšírené filtre */}
-          <Collapse in={showAdvancedFilters}>
-            <Box sx={{ mt: 2 }}>
-              <RentalAdvancedFilters
-                filters={advancedFilters}
-                onFiltersChange={handleAdvancedFiltersChange}
-                onReset={resetAllFilters}
-                onSavePreset={handleSaveFilterPreset}
-                availableStatuses={uniqueStatuses}
-                availableCompanies={uniqueCompanies}
-                availablePaymentMethods={uniquePaymentMethods}
-                availableVehicleBrands={uniqueVehicleBrands}
-                availableInsuranceCompanies={uniqueInsuranceCompanies}
-                availableInsuranceTypes={uniqueInsuranceTypes}
-              />
             </Box>
           </Collapse>
         </CardContent>
       </Card>
-
-
 
       {/* Content based on view mode */}
       {isMobile ? (
@@ -3379,7 +3632,7 @@ export default function RentalListNew() {
                 height={600}
                 width="100%"
                 itemCount={filteredRentals.length}
-                itemSize={120}
+                itemSize={160}
                 itemData={filteredRentals}
               >
                 {VirtualizedRentalRow}
@@ -3712,30 +3965,51 @@ export default function RentalListNew() {
                         justifyContent: 'flex-start',
                         flexWrap: 'wrap'
                       }}>
-                        {/* Create Handover Protocol Button */}
+                        {/* Edit Rental Button */}
                         <IconButton
                           size="small"
-                          title={hasHandover ? "Protokol už existuje" : "Vytvoriť odovzdávací protokol"}
+                          title="Upraviť prenájom"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!hasHandover) {
-                              handleCreateHandover(rental);
-                            }
+                            handleEdit(rental);
                           }}
-                          disabled={hasHandover}
                           sx={{ 
-                            bgcolor: hasHandover ? '#ccc' : '#ff9800', 
+                            bgcolor: '#2196f3', 
                             color: 'white',
                             width: { xs: 36, sm: 32 },
                             height: { xs: 36, sm: 32 },
-                            '&:hover': !hasHandover ? { 
-                              bgcolor: '#f57c00',
+                            '&:hover': { 
+                              bgcolor: '#1976d2',
                               transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(255,152,0,0.4)'
-                            } : {},
-                            '&:disabled': {
-                              bgcolor: '#ccc',
-                              color: '#999'
+                              boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        
+                        {/* Create/View Handover Protocol Button */}
+                        <IconButton
+                          size="small"
+                          title={hasHandover ? "Zobraziť odovzdávací protokol" : "Vytvoriť odovzdávací protokol"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (hasHandover) {
+                              handleOpenProtocolMenu(rental, 'handover');
+                            } else {
+                              handleCreateHandover(rental);
+                            }
+                          }}
+                          sx={{ 
+                            bgcolor: hasHandover ? '#4caf50' : '#ff9800', 
+                            color: 'white',
+                            width: { xs: 36, sm: 32 },
+                            height: { xs: 36, sm: 32 },
+                            '&:hover': { 
+                              bgcolor: hasHandover ? '#388e3c' : '#f57c00',
+                              transform: 'scale(1.1)',
+                              boxShadow: hasHandover ? '0 4px 12px rgba(76,175,80,0.4)' : '0 4px 12px rgba(255,152,0,0.4)'
                             },
                             transition: 'all 0.2s ease'
                           }}
@@ -3743,30 +4017,27 @@ export default function RentalListNew() {
                           <HandoverIcon fontSize="small" />
                         </IconButton>
                         
-                        {/* Create Return Protocol Button */}
+                        {/* Create/View Return Protocol Button */}
                         <IconButton
                           size="small"
-                          title={hasReturn ? "Protokol už existuje" : "Vytvoriť preberací protokol"}
+                          title={hasReturn ? "Zobraziť preberací protokol" : "Vytvoriť preberací protokol"}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!hasReturn) {
+                            if (hasReturn) {
+                              handleOpenProtocolMenu(rental, 'return');
+                            } else {
                               handleCreateReturn(rental);
                             }
                           }}
-                          disabled={hasReturn}
                           sx={{ 
-                            bgcolor: hasReturn ? '#ccc' : '#4caf50', 
+                            bgcolor: hasReturn ? '#2196f3' : '#4caf50', 
                             color: 'white',
                             width: { xs: 36, sm: 32 },
                             height: { xs: 36, sm: 32 },
-                            '&:hover': !hasReturn ? { 
-                              bgcolor: '#388e3c',
+                            '&:hover': { 
+                              bgcolor: hasReturn ? '#1976d2' : '#388e3c',
                               transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(76,175,80,0.4)'
-                            } : {},
-                            '&:disabled': {
-                              bgcolor: '#ccc',
-                              color: '#999'
+                              boxShadow: hasReturn ? '0 4px 12px rgba(33,150,243,0.4)' : '0 4px 12px rgba(76,175,80,0.4)'
                             },
                             transition: 'all 0.2s ease'
                           }}
@@ -4461,20 +4732,13 @@ export default function RentalListNew() {
         <DialogTitle>Preberací protokol</DialogTitle>
         <DialogContent>
           {selectedRentalForProtocol && (
-            <React.Suspense fallback={
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-                <CircularProgress />
-                <Typography sx={{ ml: 2 }}>Načítavam protokol...</Typography>
-              </Box>
-            }>
-              <ReturnProtocolForm
-                open={openReturnDialog}
-                onClose={() => setOpenReturnDialog(false)}
-                rental={selectedRentalForProtocol}
-                handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
-                onSave={handleSaveReturn}
-              />
-            </React.Suspense>
+            <ReturnProtocolForm
+              open={openReturnDialog}
+              onClose={() => setOpenReturnDialog(false)}
+              rental={selectedRentalForProtocol}
+              handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
+              onSave={handleSaveReturn}
+            />
           )}
         </DialogContent>
       </Dialog>

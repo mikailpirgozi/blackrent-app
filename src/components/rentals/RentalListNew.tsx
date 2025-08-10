@@ -75,6 +75,8 @@ import { apiService } from '../../services/api';
 import { Rental } from '../../types';
 import { useRentalUpdates } from '../../hooks/useWebSocket';
 import { logger } from '../../utils/smartLogger';
+import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import EmailParser from './EmailParser';
 import RentalAdvancedFilters from './RentalAdvancedFilters';
 
@@ -165,7 +167,7 @@ export default function RentalListNew() {
   
   const { state, createRental, updateRental, deleteRental } = useApp();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // 768px breakpoint
 
   // State management
   const [openDialog, setOpenDialog] = useState(false);
@@ -175,6 +177,22 @@ export default function RentalListNew() {
   const [loadingProtocols, setLoadingProtocols] = useState<string[]>([]);
   const [, setImportError] = useState<string>('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  // 🚀 GMAIL APPROACH: Replace state.rentals with paginated loading
+  const {
+    rentals: paginatedRentals,
+    loading: paginatedLoading,
+    hasMore,
+    error: paginatedError,
+    searchTerm: paginatedSearchTerm,
+    setSearchTerm: setPaginatedSearchTerm,
+    loadMore,
+    refresh: refreshPaginated
+  } = useInfiniteRentals();
+  
+  // Create a scrollable container ref for infinite scroll detection
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  useInfiniteScroll(scrollContainerRef, loadMore, hasMore && !paginatedLoading);
   
   // ⚡ BACKGROUND PROTOCOL LOADING STATE
   const [protocolStatusMap, setProtocolStatusMap] = useState<Record<string, {
@@ -227,14 +245,21 @@ export default function RentalListNew() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  // 🚀 LIVE SEARCH - debouncing pre lepší performance
+  // 🚀 GMAIL APPROACH: Connect search with infinite rentals
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-    }, 300); // 300ms delay
+    }, 500); // 500ms debounce
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Update infinite rentals search when debounced search changes
+  useEffect(() => {
+    setPaginatedSearchTerm(debouncedSearchQuery);
+  }, [debouncedSearchQuery, setPaginatedSearchTerm]);
+
+
 
   // Advanced filters state
   const [advancedFilters, setAdvancedFilters] = useState({
@@ -2035,34 +2060,34 @@ export default function RentalListNew() {
 
   // Get unique values for filter dropdowns
   const uniqueStatuses = useMemo(() => {
-    const rentals = state.rentals || [];
+    const rentals = paginatedRentals || [];
     const statuses = new Set(rentals.map(rental => rental.status).filter(Boolean));
     return Array.from(statuses).sort() as string[];
-  }, [state.rentals]);
+  }, [paginatedRentals]);
 
   const uniqueCompanies = useMemo(() => {
-    const rentals = state.rentals || [];
+    const rentals = paginatedRentals || [];
     const companies = new Set(rentals.map(rental => {
       const vehicle = getVehicleByRental(rental);
       return vehicle?.company;
     }).filter(Boolean));
     return Array.from(companies).sort() as string[];
-  }, [state.rentals, getVehicleByRental]);
+  }, [paginatedRentals, getVehicleByRental]);
 
   const uniquePaymentMethods = useMemo(() => {
-    const rentals = state.rentals || [];
+    const rentals = paginatedRentals || [];
     const methods = new Set(rentals.map(rental => rental.paymentMethod).filter(Boolean));
     return Array.from(methods).sort() as string[];
-  }, [state.rentals]);
+  }, [paginatedRentals]);
 
   const uniqueVehicleBrands = useMemo(() => {
-    const rentals = state.rentals || [];
+    const rentals = paginatedRentals || [];
     const brands = new Set(rentals.map(rental => {
       const vehicle = getVehicleByRental(rental);
       return vehicle?.brand;
     }).filter(Boolean));
     return Array.from(brands).sort() as string[];
-  }, [state.rentals, getVehicleByRental]);
+  }, [paginatedRentals, getVehicleByRental]);
 
   const uniqueInsuranceCompanies = useMemo(() => {
     return [] as string[];
@@ -2147,7 +2172,7 @@ export default function RentalListNew() {
   
   // Filter rentals based on all filters with 30 item limit for mobile performance
   const filteredRentals = useMemo(() => {
-    const rentals = state.rentals || [];
+    const rentals = paginatedRentals || [];
     let filtered = rentals;
     
     // 🚀 PERFORMANCE: Apply smart default filter first to reduce dataset
@@ -2171,18 +2196,9 @@ export default function RentalListNew() {
     //   });
     // }
     
-    // Search query filter - LIVE SEARCH s debouncing
-    if (debouncedSearchQuery.trim()) {
-      const query = debouncedSearchQuery.toLowerCase();
-      filtered = filtered.filter(rental => {
-        const vehicle = getVehicleByRental(rental);
-        return rental.customerName?.toLowerCase().includes(query) ||
-               vehicle?.brand?.toLowerCase().includes(query) ||
-               vehicle?.model?.toLowerCase().includes(query) ||
-               vehicle?.licensePlate?.toLowerCase().includes(query) ||
-               vehicle?.company?.toLowerCase().includes(query);
-      });
-    }
+    // 🚀 GMAIL APPROACH: Skip client-side search - server already filtered!
+    // Search is now handled server-side via useInfiniteRentals hook
+    // No need for client-side filtering on already filtered paginatedRentals
     
     // Advanced filters
     const filters = advancedFilters;
@@ -2929,7 +2945,7 @@ export default function RentalListNew() {
 
   // ⚡ TRIGGER BACKGROUND LOADING po načítaní rentals
   React.useEffect(() => {
-    if (state.rentals.length > 0 && !protocolStatusLoaded && !isLoadingProtocolStatus) {
+    if (paginatedRentals.length > 0 && !protocolStatusLoaded && !isLoadingProtocolStatus) {
       // Spusti na pozadí za 100ms aby sa nestratila rýchlosť UI
       const timer = setTimeout(() => {
         loadProtocolStatusInBackground();
@@ -2937,10 +2953,10 @@ export default function RentalListNew() {
       
       return () => clearTimeout(timer);
     }
-  }, [state.rentals.length, protocolStatusLoaded, isLoadingProtocolStatus, loadProtocolStatusInBackground]);
+  }, [paginatedRentals.length, protocolStatusLoaded, isLoadingProtocolStatus, loadProtocolStatusInBackground]);
 
   return (
-    <Box>
+    <Box ref={scrollContainerRef} sx={{ height: '100vh', overflow: 'auto' }}>
       {/* Enhanced Header */}
       <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
         <CardContent sx={{ p: { xs: 2, md: 3 } }}>
@@ -2965,12 +2981,12 @@ export default function RentalListNew() {
                 Správa a prehľad všetkých prenájmov vozidiel
               </Typography>
             </Box>
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: { xs: 'stretch', sm: 'center' }, 
-              gap: 2 
-            }}>
+                          <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'stretch', sm: 'center' }, 
+                gap: 2 
+              }}>
               <Box sx={{ 
                 textAlign: { xs: 'center', md: 'right' }, 
                 mr: { xs: 0, md: 2 },
@@ -4849,6 +4865,43 @@ export default function RentalListNew() {
           </Box>
         </DialogContent>
       </Dialog>
+
+      {/* 🚀 GMAIL APPROACH: Invisible infinite scroll indicators */}
+      {paginatedError && (
+        <Alert severity="error" sx={{ m: 2 }}>
+          Chyba pri načítavaní: {paginatedError}
+        </Alert>
+      )}
+      
+      {paginatedLoading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+          <CircularProgress size={20} />
+          <Typography variant="body2" sx={{ ml: 1, color: 'text.secondary' }}>
+            Načítavam ďalšie prenájmy...
+          </Typography>
+        </Box>
+      )}
+      
+      {!paginatedLoading && hasMore && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+          <Button 
+            variant="text" 
+            onClick={loadMore}
+            size="small"
+            sx={{ color: 'text.secondary' }}
+          >
+            Načítať ďalších 50 prenájmov
+          </Button>
+        </Box>
+      )}
+      
+      {!hasMore && paginatedRentals.length > 0 && (
+        <Box sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
+          <Typography variant="body2">
+            Všetky prenájmy načítané ({paginatedRentals.length} celkom)
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 } 
