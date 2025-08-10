@@ -1459,7 +1459,8 @@ export default function RentalListNew() {
     }
   };
 
-  // Column definitions for ResponsiveTable
+  // Column definitions for ResponsiveTable - COMMENTED OUT (ResponsiveTable component was removed)
+  /*
   const columns: ResponsiveTableColumn[] = useMemo(() => [
     {
       id: 'vehicle',
@@ -1892,6 +1893,7 @@ export default function RentalListNew() {
       )
     }
   ], [protocols, loadingProtocols, state.vehicles, getVehicleByRental]);
+  */
 
   // 📱 MOBILE CARD RENDERER - s action buttons
   const mobileCardRenderer = useCallback((rental: Rental, index: number) => {
