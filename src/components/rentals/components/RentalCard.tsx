@@ -33,7 +33,7 @@ export function RentalCard({ rental, onEdit, index }: RentalCardProps) {
   const vehicle = state.vehicles.find(v => v.id === rental.vehicleId);
   
   // Status color mapping
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
     switch (status) {
       case 'active': return 'success';
       case 'completed': return 'default';
