@@ -57,7 +57,7 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
   const [isRetrying, setIsRetrying] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
-  const { isOnline, networkQuality } = useNetworkStatus();
+  const { isOnline } = useNetworkStatus();
 
   // Show toast when error appears
   useEffect(() => {

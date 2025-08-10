@@ -102,9 +102,12 @@ const Statistics: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [tabValue, setTabValue] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'month' | 'year' | 'all'>('month');
   

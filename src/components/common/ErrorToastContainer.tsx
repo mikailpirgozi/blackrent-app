@@ -19,7 +19,6 @@ import {
   Refresh as RefreshIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  Wifi as WifiIcon,
   WifiOff as WifiOffIcon,
 } from '@mui/icons-material';
 import { useError } from '../../context/ErrorContext';
