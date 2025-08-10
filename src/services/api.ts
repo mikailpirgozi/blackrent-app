@@ -755,6 +755,51 @@ class ApiService {
     }>(endpoint);
   }
 
+  // 🚀 NOVÝ: Paginated insurance claims s filtrami
+  async getInsuranceClaimsPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    insuranceId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    minAmount?: number;
+    maxAmount?: number;
+  } = {}): Promise<{
+    claims: InsuranceClaim[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Pridaj všetky parametre do query stringu
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/insurance-claims/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      claims: InsuranceClaim[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   // 🚀 NOVÝ: Paginated availability s filtrami
   async getAvailabilityPaginated(params: {
     vehiclePage?: number;
