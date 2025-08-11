@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -6,8 +6,6 @@ import {
   CardContent,
   Chip,
   Dialog,
-  DialogContent,
-  DialogTitle,
   IconButton,
   Typography,
   TextField,
@@ -16,7 +14,6 @@ import {
   Select,
   MenuItem,
   Grid,
-  Stack,
   Divider,
   useMediaQuery,
   useTheme,
@@ -30,8 +27,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  TablePagination,
   Tabs,
   Tab
 } from '@mui/material';
@@ -42,28 +37,26 @@ import {
   Search as SearchIcon,
   FilterList as FilterListIcon,
   DirectionsCar as CarIcon,
-  Business as BusinessIcon,
   Security as SecurityIcon,
-  Event as EventIcon,
-  Euro as EuroIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Schedule as ScheduleIcon,
   Assessment as ReportIcon,
-  Receipt as ReceiptIcon,
   Close as CloseIcon,
   Assignment as AssignmentIcon,
   LocalShipping as HighwayIcon,
   Build as BuildIcon,
-  AttachFile as FileIcon
+  AttachFile as FileIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
-import { Insurance, PaymentFrequency, VehicleDocument, DocumentType } from '../../types';
+import { Insurance, PaymentFrequency, VehicleDocument } from '../../types';
 import { format, isAfter, addDays, parseISO, isValid } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
 import InsuranceClaimList from './InsuranceClaimList';
+import { useInfiniteInsurances } from '../../hooks/useInfiniteInsurances';
 
 // Unified document type for table display
 interface UnifiedDocument {
@@ -140,7 +133,6 @@ const getDocumentTypeInfo = (type: string) => {
 export default function InsuranceList() {
   const { 
     state, 
-    dispatch, 
     createInsurance, 
     updateInsurance,
     deleteInsurance,
@@ -151,6 +143,20 @@ export default function InsuranceList() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
+  // 🚀 NEW: Infinite scroll for insurances
+  const {
+    insurances,
+    loading,
+    error,
+    hasMore,
+    loadMore,
+    refresh,
+    totalCount,
+    filters,
+    setFilters,
+    setSearchTerm
+  } = useInfiniteInsurances();
+  
   const [activeTab, setActiveTab] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDocument, setEditingDocument] = useState<any>(null);
@@ -160,32 +166,43 @@ export default function InsuranceList() {
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Convert data to unified format
+  // 🔄 Synchronize search and filters with infinite scroll hook
+  useEffect(() => {
+    setSearchTerm(searchQuery);
+  }, [searchQuery, setSearchTerm]);
+
+  useEffect(() => {
+    setFilters({
+      search: searchQuery,
+      type: filterType || undefined,
+      company: filterCompany || undefined,
+      status: filterStatus as any || 'all',
+      vehicleId: filterVehicle || undefined,
+    });
+  }, [searchQuery, filterType, filterCompany, filterStatus, filterVehicle, setFilters]);
+
+  // 🚀 NEW: Convert infinite scroll insurances to unified format
   const unifiedDocuments = useMemo(() => {
     const docs: UnifiedDocument[] = [];
     
-    // Add insurances
-    if (state.insurances) {
-      state.insurances.forEach(insurance => {
-        docs.push({
-          id: insurance.id,
-          vehicleId: insurance.vehicleId,
-          type: 'insurance',
-          policyNumber: insurance.policyNumber,
-          validFrom: insurance.validFrom,
-          validTo: insurance.validTo,
-          price: insurance.price,
-          company: insurance.company,
-          paymentFrequency: insurance.paymentFrequency,
-          filePath: insurance.filePath,
-          createdAt: insurance.validTo, // Use validTo as fallback for sorting
-          originalData: insurance
-        });
+    // Add insurances from infinite scroll
+    insurances.forEach(insurance => {
+      docs.push({
+        id: insurance.id,
+        vehicleId: insurance.vehicleId,
+        type: 'insurance',
+        policyNumber: insurance.policyNumber,
+        validFrom: insurance.validFrom,
+        validTo: insurance.validTo,
+        price: insurance.price,
+        company: insurance.company,
+        paymentFrequency: insurance.paymentFrequency,
+        filePath: insurance.filePath,
+        createdAt: insurance.validTo, // Use validTo as fallback since createdAt doesn't exist
+        originalData: insurance
       });
-    }
+    });
     
     // Add vehicle documents
     if (state.vehicleDocuments) {
@@ -207,7 +224,7 @@ export default function InsuranceList() {
     }
     
     return docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [state.insurances, state.vehicleDocuments]);
+  }, [insurances, state.vehicleDocuments]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -232,9 +249,16 @@ export default function InsuranceList() {
     return { total, validDocs, expiringDocs, expiredDocs, totalValue };
   }, [unifiedDocuments]);
 
-  // Filtered documents
+  // 🚀 NEW: Filtered documents (server-side filtering for insurances, client-side for vehicle documents)
   const filteredDocuments = useMemo(() => {
+    // Insurance filtering is handled server-side, so we only need to filter vehicle documents
     return unifiedDocuments.filter((doc) => {
+      // For insurances, server already filtered them
+      if (doc.type === 'insurance') {
+        return true;
+      }
+      
+      // For vehicle documents, apply client-side filtering
       const vehicle = state.vehicles?.find(v => v.id === doc.vehicleId);
       const vehicleText = vehicle ? `${vehicle.brand} ${vehicle.model} ${vehicle.licensePlate}` : '';
       
@@ -396,13 +420,9 @@ export default function InsuranceList() {
 
   const hasActiveFilters = searchQuery || filterVehicle || filterCompany || filterType || filterStatus;
 
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+  // 🚀 NEW: Refresh handler for infinite scroll
+  const handleRefresh = () => {
+    refresh();
   };
 
   return (
@@ -720,9 +740,7 @@ export default function InsuranceList() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredDocuments
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((doc, index) => {
+              {filteredDocuments.map((doc, index) => {
                                      const vehicle = state.vehicles?.find(v => v.id === doc.vehicleId);
                   const expiryStatus = getExpiryStatus(doc.validTo);
                   const typeInfo = getDocumentTypeInfo(doc.type);
@@ -831,19 +849,28 @@ export default function InsuranceList() {
           </Table>
         </TableContainer>
         
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          component="div"
-          count={filteredDocuments.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Riadkov na stránku:"
-          labelDisplayedRows={({ from, to, count }) => 
-            `${from}–${to} z ${count !== -1 ? count : `viac ako ${to}`}`
-          }
-        />
+        {/* 🚀 NEW: Infinite scroll loading indicator */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+            <CircularProgress />
+          </Box>
+        )}
+        
+        {/* 🚀 NEW: Load more button for manual loading */}
+        {hasMore && !loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+            <Button variant="outlined" onClick={loadMore}>
+              Načítať viac ({totalCount - insurances.length} zostáva)
+            </Button>
+          </Box>
+        )}
+        
+        {/* 🚀 NEW: Error handling */}
+        {error && (
+          <Alert severity="error" sx={{ m: 2 }}>
+            {error}
+          </Alert>
+        )}
       </Card>
 
       {/* Empty State */}
