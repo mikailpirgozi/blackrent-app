@@ -7,6 +7,59 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+// Helper function for filtering insurances based on query parameters
+const filterInsurances = (insurances: Insurance[], query: any) => {
+  let filtered = [...insurances];
+  
+  // Search filter
+  if (query.search) {
+    const searchTerm = query.search.toLowerCase();
+    filtered = filtered.filter(insurance => 
+      insurance.type?.toLowerCase().includes(searchTerm) ||
+      insurance.company?.toLowerCase().includes(searchTerm) ||
+      insurance.policyNumber?.toLowerCase().includes(searchTerm)
+    );
+  }
+  
+  // Type filter
+  if (query.type) {
+    filtered = filtered.filter(insurance => insurance.type === query.type);
+  }
+  
+  // Company filter
+  if (query.company) {
+    filtered = filtered.filter(insurance => insurance.company === query.company);
+  }
+  
+  // Status filter (valid, expiring, expired)
+  if (query.status && query.status !== 'all') {
+    const today = new Date();
+    const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+    filtered = filtered.filter(insurance => {
+      const validTo = new Date(insurance.validTo);
+      
+      switch (query.status) {
+        case 'valid':
+          return validTo > thirtyDaysFromNow;
+        case 'expiring':
+          return validTo > today && validTo <= thirtyDaysFromNow;
+        case 'expired':
+          return validTo <= today;
+        default:
+          return true;
+      }
+    });
+  }
+  
+  // Vehicle filter
+  if (query.vehicleId) {
+    filtered = filtered.filter(insurance => insurance.vehicleId === query.vehicleId);
+  }
+  
+  return filtered;
+};
+
 // 🔍 CONTEXT FUNCTIONS
 const getInsuranceContext = async (req: Request) => {
   const insuranceId = req.params.id;
@@ -53,6 +106,70 @@ router.get('/',
       res.status(500).json({
         success: false,
         error: 'Chyba pri získavaní poistiek'
+      });
+    }
+  });
+
+// GET /api/insurances/paginated - Získanie poistiek s pagináciou a filtrovaním
+router.get('/paginated', 
+  authenticateToken,
+  checkPermission('insurances', 'read'),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      console.log('📄 INSURANCES: Paginated request:', req.query);
+      
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = (page - 1) * limit;
+      
+      // Load all insurances first
+      let allInsurances = await postgresDatabase.getInsurances();
+      
+      // 🏢 COMPANY OWNER - filter len poistky vlastných vozidiel
+      if (req.user?.role === 'company_owner' && req.user.companyId) {
+        const vehicles = await postgresDatabase.getVehicles();
+        const companyVehicleIds = vehicles
+          .filter(v => v.ownerCompanyId === req.user?.companyId)
+          .map(v => v.id);
+        
+        allInsurances = allInsurances.filter(i => 
+          i.vehicleId && companyVehicleIds.includes(i.vehicleId)
+        );
+      }
+      
+      // Apply filters
+      const filteredInsurances = filterInsurances(allInsurances, req.query);
+      
+      // Sort by valid to date (newest first) since createdAt might not exist
+      filteredInsurances.sort((a, b) => 
+        new Date(b.validTo).getTime() - new Date(a.validTo).getTime()
+      );
+      
+      // Apply pagination
+      const paginatedInsurances = filteredInsurances.slice(offset, offset + limit);
+      const totalCount = filteredInsurances.length;
+      const totalPages = Math.ceil(totalCount / limit);
+      
+      console.log(`📄 INSURANCES: Returning page ${page}/${totalPages} (${paginatedInsurances.length}/${totalCount} items)`);
+      
+      res.json({
+        success: true,
+        data: {
+          data: paginatedInsurances,
+          pagination: {
+            page,
+            limit,
+            total: totalCount,
+            totalPages,
+            hasMore: page < totalPages
+          }
+        }
+      });
+    } catch (error) {
+      console.error('❌ INSURANCES: Paginated error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri načítavaní poistiek'
       });
     }
   });

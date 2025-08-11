@@ -728,6 +728,10 @@ class ApiService {
     return this.request<Insurance[]>('/insurances');
   }
 
+  async getInsurancesPaginated(params: string): Promise<any> {
+    return this.request<any>(`/insurances/paginated?${params}`);
+  }
+
   async createInsurance(insurance: Insurance): Promise<void> {
     return this.request<void>('/insurances', {
       method: 'POST',
