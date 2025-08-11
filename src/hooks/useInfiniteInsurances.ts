@@ -85,7 +85,7 @@ export function useInfiniteInsurances(initialFilters: InsuranceFilters = {}): Us
     } finally {
       setLoading(false);
     }
-  }, [filters, loading]);
+  }, [filters]);
 
   // 📄 Load more insurances (next page)
   const loadMore = useCallback(() => {
@@ -110,8 +110,12 @@ export function useInfiniteInsurances(initialFilters: InsuranceFilters = {}): Us
   // 🎯 Initial load and filter changes
   useEffect(() => {
     console.log('🎯 useInfiniteInsurances: Filters changed, refreshing...', filters);
-    refresh();
-  }, [filters.search, filters.type, filters.company, filters.status, filters.vehicleId, refresh]);
+    // Priame volanie refresh logiky namiesto funkcie aby sme predišli infinite loop
+    setInsurances([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    loadInsurances(1, true);
+  }, [filters.search, filters.type, filters.company, filters.status, filters.vehicleId, loadInsurances]);
 
   // 📊 Memoized return value for performance
   return useMemo(() => ({
