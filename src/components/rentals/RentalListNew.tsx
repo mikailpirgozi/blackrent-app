@@ -4050,11 +4050,8 @@ export default function RentalListNew() {
                           handleEdit(rental);
                         }}
                         sx={{ 
-                          ...mobileStyles.touchTarget,
                           bgcolor: '#2196f3', 
-                          color: 'white', 
-                          minWidth: TOUCH_TARGETS.COMFORTABLE,
-                          minHeight: TOUCH_TARGETS.COMFORTABLE,
+                          color: 'white',
                           '&:hover': { 
                             bgcolor: '#1976d2',
                             transform: 'scale(1.05)',
@@ -4080,11 +4077,8 @@ export default function RentalListNew() {
                           }
                         }}
                         sx={{ 
-                          ...mobileStyles.touchTarget,
                           bgcolor: hasHandover ? '#4caf50' : '#ff9800', 
                           color: 'white',
-                          minWidth: TOUCH_TARGETS.COMFORTABLE,
-                          minHeight: TOUCH_TARGETS.COMFORTABLE,
                           '&:hover': { 
                             bgcolor: hasHandover ? '#388e3c' : '#f57c00',
                             transform: 'scale(1.05)',
@@ -4112,8 +4106,6 @@ export default function RentalListNew() {
                         sx={{ 
                           bgcolor: hasReturn ? '#2196f3' : '#4caf50', 
                           color: 'white',
-                          width: 36,
-                          height: 36,
                           '&:hover': { 
                             bgcolor: hasReturn ? '#1976d2' : '#388e3c',
                             transform: 'scale(1.1)',
@@ -4134,8 +4126,6 @@ export default function RentalListNew() {
                         sx={{ 
                           bgcolor: '#f44336', 
                           color: 'white',
-                          width: 36,
-                          height: 36,
                           '&:hover': { 
                             bgcolor: '#d32f2f',
                             transform: 'scale(1.1)',
