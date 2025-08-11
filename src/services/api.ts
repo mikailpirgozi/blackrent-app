@@ -32,25 +32,11 @@ import {
   createApiErrorHandler,
   handleApiResponse 
 } from '../utils/apiErrorHandler';
+import { getApiBaseUrl, API_BASE_URL as BASE_URL } from '../utils/apiUrl';
 
-const getApiBaseUrl = () => {
-  // V produkcii používame Railway URL
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://blackrent-app-production-4d6f.up.railway.app/api';
-  }
-  
-  // V developmente - dynamické API URL pre sieťový prístup
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  
-  // Pre development vždy používaj localhost
-  return 'http://localhost:3001/api';
-};
-
-// Export as function to ensure fresh evaluation
+// Export for compatibility
 export const getApiBaseUrlDynamic = getApiBaseUrl;
-export const API_BASE_URL = 'http://localhost:3001/api'; // Force localhost for development
+export const API_BASE_URL = BASE_URL;
 
 
 

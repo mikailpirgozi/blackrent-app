@@ -36,6 +36,7 @@ import { ProtocolImage, ProtocolVideo } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import Alert from '@mui/material/Alert';
 import NativeCamera from './NativeCamera';
+import { getApiBaseUrl } from '../../utils/apiUrl';
 
 interface SerialPhotoCaptureProps {
   open: boolean;
@@ -106,9 +107,7 @@ export default function SerialPhotoCapture({
     formData.append('mediaType', mediaType);
     formData.append('label', file.name);
 
-    const apiBaseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
-      : 'http://localhost:3001/api';
+    const apiBaseUrl = getApiBaseUrl();
     
     const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
       method: 'POST',
@@ -141,9 +140,7 @@ export default function SerialPhotoCapture({
 
     // ✅ NOVÝ SYSTÉM: Signed URL upload
     try {
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
-        : 'http://localhost:3001/api';
+      const apiBaseUrl = getApiBaseUrl();
       
       // 🚀 NOVÝ SYSTÉM: Signed URL upload
       console.log('🔄 Getting presigned URL for:', {

@@ -3,6 +3,7 @@
 
 import { io, Socket } from 'socket.io-client';
 import { Rental, Vehicle, Customer } from '../types';
+import { getBaseUrl } from '../utils/apiUrl';
 
 // Event typy pre TypeScript
 export interface WebSocketEvents {
@@ -85,9 +86,7 @@ export class WebSocketClient {
 
   private connect() {
     // WebSocket server beží na root, nie na /api ako REST API
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://blackrent-app-production-4d6f.up.railway.app'
-      : 'http://localhost:3001';
+    const baseUrl = getBaseUrl();
     
     // Optimalized logging - reduced verbosity
     if (process.env.NODE_ENV === 'development') {

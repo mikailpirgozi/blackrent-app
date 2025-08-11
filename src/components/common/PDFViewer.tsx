@@ -17,6 +17,7 @@ import {
   PictureAsPdf as PDFIcon,
   OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
+import { getApiBaseUrl } from '../../utils/apiUrl';
 
 interface PDFViewerProps {
   open: boolean;
@@ -45,9 +46,7 @@ export default function PDFViewer({
     
     try {
       // Najprv skús načítať protokol aby získal pdfUrl
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
-      : 'http://localhost:3001/api';
+      const apiBaseUrl = getApiBaseUrl();
       const protocolUrl = `${apiBaseUrl}/protocols/${protocolType}/${protocolId}`;
       console.log('🔍 Loading protocol from:', protocolUrl);
       
@@ -90,24 +89,8 @@ export default function PDFViewer({
 
   // Generovanie PDF URL (fallback)
   const generatePDFUrl = () => {
-    // Použi rovnakú logiku ako v api.ts
-    let baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app';
-    
-    if (process.env.REACT_APP_API_BASE_URL) {
-      baseUrl = process.env.REACT_APP_API_BASE_URL;
-    } else if (window.location.hostname.includes('railway.app')) {
-      baseUrl = `${window.location.origin}/api`;
-    } else if (window.location.hostname === 'mikailpirgozi.github.io') {
-      baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
-    } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      baseUrl = 'http://localhost:3001/api';
-    } else {
-      baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
-    }
-    
-    // Ak baseUrl už obsahuje /api, nepridávaj ho
-    const apiPath = baseUrl.includes('/api') ? '' : '/api';
-    return `${baseUrl}${apiPath}/protocols/${protocolType}/${protocolId}/pdf`;
+    const baseUrl = getApiBaseUrl();
+    return `${baseUrl}/protocols/${protocolType}/${protocolId}/pdf`;
   };
 
   // Download URL - použij existujúce PDF URL ak existuje
@@ -118,23 +101,8 @@ export default function PDFViewer({
     }
     
     // Fallback na generovanie
-    let baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app';
-    
-    if (process.env.REACT_APP_API_BASE_URL) {
-      baseUrl = process.env.REACT_APP_API_BASE_URL;
-    } else if (window.location.hostname.includes('railway.app')) {
-      baseUrl = `${window.location.origin}/api`;
-    } else if (window.location.hostname === 'mikailpirgozi.github.io') {
-      baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
-    } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      baseUrl = 'http://localhost:3001/api';
-    } else {
-      baseUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
-    }
-    
-    // Ak baseUrl už obsahuje /api, nepridávaj ho
-    const apiPath = baseUrl.includes('/api') ? '' : '/api';
-    return `${baseUrl}${apiPath}/protocols/${protocolType}/${protocolId}/download`;
+    const baseUrl = getApiBaseUrl();
+    return `${baseUrl}/protocols/${protocolType}/${protocolId}/download`;
   };
 
   // Načítanie PDF

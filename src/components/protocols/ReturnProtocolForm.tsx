@@ -29,6 +29,7 @@ import { v4 as uuidv4 } from 'uuid';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
 import { useAuth } from '../../context/AuthContext';
+import { getApiBaseUrl } from '../../utils/apiUrl';
 
 interface ReturnProtocolFormProps {
   open: boolean;
@@ -327,9 +328,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       console.log('🧹 Cleaned protocol for DB:', cleanedProtocol);
 
       // API call
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
-        : 'http://localhost:3001/api';
+      const apiBaseUrl = getApiBaseUrl();
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
       console.log('🚀 Sending return protocol to API...');

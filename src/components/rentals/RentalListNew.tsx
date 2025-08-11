@@ -58,6 +58,7 @@ import { useRentalUpdates } from '../../hooks/useWebSocket';
 import { logger } from '../../utils/smartLogger';
 import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
 import { MobileRentalRow } from './MobileRentalRow';
+import { getMobileStyles, TOUCH_TARGETS } from '../../utils/mobileResponsive';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
@@ -66,6 +67,7 @@ import RentalForm from './RentalForm';
 import PDFViewer from '../common/PDFViewer';
 import ProtocolGallery from '../common/ProtocolGallery';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
+import { getBaseUrl } from '../../utils/apiUrl';
 // 🚀 LAZY LOADING: Protocols loaded only when needed
 const HandoverProtocolForm = React.lazy(() => import('../protocols/HandoverProtocolForm'));
 
@@ -145,6 +147,7 @@ export default function RentalListNew() {
   const { state, createRental, updateRental, deleteRental } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // 768px breakpoint
+  const mobileStyles = getMobileStyles(theme);
 
   // State management
   const [openDialog, setOpenDialog] = useState(false);
@@ -201,13 +204,17 @@ export default function RentalListNew() {
             const viewportHeight = 600;
             const maxScroll = totalHeight - viewportHeight;
             scrollPercentage = e.scrollOffset / maxScroll;
-            console.log(`📱 Mobile virtual scroll: ${Math.round(scrollPercentage * 100)}%`);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`📱 Mobile virtual scroll: ${Math.round(scrollPercentage * 100)}%`);
+            }
           } 
           // For desktop regular scroll
           else if (!isMobile && container) {
             const { scrollTop, scrollHeight, clientHeight } = container;
             scrollPercentage = scrollTop / (scrollHeight - clientHeight);
-            console.log(`💻 Desktop scroll: ${Math.round(scrollPercentage * 100)}%`);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`💻 Desktop scroll: ${Math.round(scrollPercentage * 100)}%`);
+            }
           }
           
           // 📱 MOBILE: Use 70% threshold for earlier loading on mobile
@@ -217,7 +224,9 @@ export default function RentalListNew() {
           
           // Trigger at appropriate threshold
           if (scrollPercentage >= threshold && !isLoading) {
-            console.log(`📜 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}% (threshold: ${Math.round(threshold * 100)}%, ${isMobile ? 'mobile' : 'desktop'})`);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`📜 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}% (threshold: ${Math.round(threshold * 100)}%, ${isMobile ? 'mobile' : 'desktop'})`);
+            }
             isLoading = true;
             loadMore();
             setTimeout(() => { isLoading = false; }, 3000);
@@ -1405,9 +1414,7 @@ export default function RentalListNew() {
             window.open(pdfUrl, '_blank');
           } else {
             // Ak nemá pdfUrl, použij authenticated fetch pre generovanie PDF na požiadanie
-                            const apiBaseUrl = process.env.NODE_ENV === 'production' 
-                  ? 'https://blackrent-app-production-4d6f.up.railway.app'
-                  : 'http://localhost:3001';
+            const apiBaseUrl = getBaseUrl();
                 const proxyUrl = `${apiBaseUrl}/api/protocols/pdf/${protocol.id}`;
             console.log('⚡ PDF DOWNLOAD: Using proxy URL:', proxyUrl);
             
@@ -1688,11 +1695,11 @@ export default function RentalListNew() {
   const uniqueCompanies = useMemo(() => {
     const rentals = paginatedRentals || [];
     const companies = new Set(rentals.map(rental => {
-      const vehicle = getVehicleByRental(rental);
+      const vehicle = vehicleLookupMap.get(rental.vehicleId);
       return vehicle?.company;
     }).filter(Boolean));
     return Array.from(companies).sort() as string[];
-  }, [paginatedRentals, getVehicleByRental]);
+  }, [paginatedRentals, vehicleLookupMap]);
 
   const uniquePaymentMethods = useMemo(() => {
     const rentals = paginatedRentals || [];
@@ -1703,11 +1710,11 @@ export default function RentalListNew() {
   const uniqueVehicleBrands = useMemo(() => {
     const rentals = paginatedRentals || [];
     const brands = new Set(rentals.map(rental => {
-      const vehicle = getVehicleByRental(rental);
+      const vehicle = vehicleLookupMap.get(rental.vehicleId);
       return vehicle?.brand;
     }).filter(Boolean));
     return Array.from(brands).sort() as string[];
-  }, [paginatedRentals, getVehicleByRental]);
+  }, [paginatedRentals, vehicleLookupMap]);
 
   const uniqueInsuranceCompanies = useMemo(() => {
     return [] as string[];
@@ -1790,194 +1797,12 @@ export default function RentalListNew() {
     logger.debug('Saving filter preset', { filters: advancedFilters });
   };
   
-  // Filter rentals based on all filters with 30 item limit for mobile performance
+  // 🚀 OPTIMALIZÁCIA: Server-side filtering namiesto client-side
   const filteredRentals = useMemo(() => {
-    const rentals = paginatedRentals || [];
-    let filtered = rentals;
-    
-    // 🚀 PERFORMANCE: Apply smart default filter first to reduce dataset
-    const now = new Date();
-    // Removed unused date variables (thirtyDaysAgo, sevenDaysFromNow)
-    
-    // REMOVED: Smart default filter - show all rentals
-    // Default to "najbližších 7 dní" for better performance - DISABLED
-    // if (advancedFilters.timeFilter === 'all' && !debouncedSearchQuery.trim()) {
-    //   filtered = filtered.filter(rental => {
-    //     const startDate = new Date(rental.startDate);
-    //     const endDate = new Date(rental.endDate);
-    //     return (startDate >= now && startDate <= sevenDaysFromNow) || 
-    //            (endDate >= now && endDate <= sevenDaysFromNow) ||
-    //            (startDate <= now && endDate >= now); // Currently running
-    //   });
-    //   logger.performance('Smart filter applied', { 
-    //     filteredCount: filtered.length, 
-    //     totalCount: rentals.length, 
-    //     period: 'next 7 days' 
-    //   });
-    // }
-    
-    // 🚀 GMAIL APPROACH: Skip client-side search - server already filtered!
-    // Search is now handled server-side via useInfiniteRentals hook
-    // No need for client-side filtering on already filtered paginatedRentals
-    
-    // Advanced filters
-    const filters = advancedFilters;
-    
-    // Status filter - multi-select
-    if (Array.isArray(filters.status) && filters.status.length > 0) {
-      filtered = filtered.filter(rental => rental.status && filters.status.includes(rental.status));
-    }
-    
-    // Payment method filter - multi-select
-    if (Array.isArray(filters.paymentMethod) && filters.paymentMethod.length > 0) {
-      filtered = filtered.filter(rental => filters.paymentMethod.includes(rental.paymentMethod));
-    }
-    
-    // Company filter - multi-select
-    if (Array.isArray(filters.company) && filters.company.length > 0) {
-      filtered = filtered.filter(rental => {
-        const vehicle = getVehicleByRental(rental);
-        return vehicle?.company && filters.company.includes(vehicle.company);
-      });
-    }
-    
-    // Date range filter
-    if (filters.dateFrom) {
-      const fromDate = new Date(filters.dateFrom);
-      filtered = filtered.filter(rental => new Date(rental.startDate) >= fromDate);
-    }
-    
-    if (filters.dateTo) {
-      const toDate = new Date(filters.dateTo);
-      filtered = filtered.filter(rental => new Date(rental.endDate) <= toDate);
-    }
-    
-    // Price range filter
-    if (filters.priceMin) {
-      const minPrice = parseFloat(filters.priceMin);
-      filtered = filtered.filter(rental => rental.totalPrice >= minPrice);
-    }
-    
-    if (filters.priceMax) {
-      const maxPrice = parseFloat(filters.priceMax);
-      filtered = filtered.filter(rental => rental.totalPrice <= maxPrice);
-    }
-    
-    // Protocol status filter - multi-select
-    if (Array.isArray(filters.protocolStatus) && filters.protocolStatus.length > 0) {
-      filtered = filtered.filter(rental => {
-        const rentalProtocols = protocols[rental.id];
-        const hasHandover = !!rentalProtocols?.handover;
-        const hasReturn = !!rentalProtocols?.return;
-        
-        return filters.protocolStatus.some(status => {
-          switch (status) {
-            case 'none': return !hasHandover && !hasReturn;
-            case 'partial': return (hasHandover && !hasReturn) || (!hasHandover && hasReturn);
-            case 'complete': return hasHandover && hasReturn;
-            default: return false;
-          }
-        });
-      });
-    }
-
-    // Customer name filter
-    if (filters.customerName) {
-      filtered = filtered.filter(rental => 
-        rental.customerName?.toLowerCase().includes(filters.customerName.toLowerCase())
-      );
-    }
-
-    // Vehicle brand filter
-    if (filters.vehicleBrand !== 'all') {
-      filtered = filtered.filter(rental => {
-        const vehicle = getVehicleByRental(rental);
-        return vehicle?.brand === filters.vehicleBrand;
-      });
-    }
-
-    // Vehicle model filter
-    if (filters.vehicleModel) {
-      filtered = filtered.filter(rental => {
-        const vehicle = getVehicleByRental(rental);
-        return vehicle?.model?.toLowerCase().includes(filters.vehicleModel.toLowerCase());
-      });
-    }
-
-    // License plate filter
-    if (filters.licensePlate) {
-      filtered = filtered.filter(rental => {
-        const vehicle = getVehicleByRental(rental);
-        return vehicle?.licensePlate?.toLowerCase().includes(filters.licensePlate.toLowerCase());
-      });
-    }
-
-    // Customer email filter
-    if (filters.customerEmail) {
-      filtered = filtered.filter(rental => 
-        rental.customerEmail?.toLowerCase().includes(filters.customerEmail.toLowerCase())
-      );
-    }
-
-    // Customer phone filter
-    if (filters.customerPhone) {
-      filtered = filtered.filter(rental => 
-        rental.customerPhone?.includes(filters.customerPhone)
-      );
-    }
-
-    // Customer company filter - removed as property doesn't exist
-
-    // Insurance company filter - removed as property doesn't exist
-
-    // Insurance type filter - removed as property doesn't exist
-
-    // Payment status filter
-    if (filters.paymentStatus !== 'all') {
-      filtered = filtered.filter(rental => {
-        switch (filters.paymentStatus) {
-          case 'paid': return rental.paid === true;
-          case 'unpaid': return rental.paid === false;
-          case 'partial': return rental.paid === null || rental.paid === undefined;
-          default: return true;
-        }
-      });
-    }
-
-    // Show only active rentals
-    if (filters.showOnlyActive) {
-      filtered = filtered.filter(rental => {
-        const now = new Date();
-        const startDate = new Date(rental.startDate);
-        const endDate = new Date(rental.endDate);
-        return now >= startDate && now <= endDate;
-      });
-    }
-
-    // Show only overdue rentals
-    if (filters.showOnlyOverdue) {
-      filtered = filtered.filter(rental => {
-        const now = new Date();
-        const endDate = new Date(rental.endDate);
-        return now > endDate;
-      });
-    }
-
-    // Show only completed rentals
-    if (filters.showOnlyCompleted) {
-      filtered = filtered.filter(rental => {
-        const now = new Date();
-        const endDate = new Date(rental.endDate);
-        return now > endDate;
-      });
-    }
-    
-    // REMOVED: Mobile performance limit - show all rentals
-    // 🚀 MOBILE PERFORMANCE: Limit to 30 items max to prevent browser crashes - DISABLED
-    // const limitedFiltered = filtered.slice(0, 30);
-    
-    return filtered;
-      }, [state.rentals, debouncedSearchQuery, advancedFilters, protocols, handleCreateReturn, handleDelete, handleDeleteProtocol, handleOpenGallery, handleViewProtocols, getVehicleByRental]);
+    // Server už vyfiltroval dáta cez useInfiniteRentals + getRentalsPaginated
+    // Nepotrebujeme duplicitné client-side filtering!
+    return paginatedRentals || [];
+  }, [paginatedRentals]);
   
   // Get unique values for filters (already declared above)
   
@@ -3274,7 +3099,9 @@ export default function RentalListNew() {
                   // 🎯 Track scroll position for mobile virtualized list
                   if (isMobile && rentalListRef.current) {
                     const scrollPercentage = scrollOffset / (filteredRentals.length * 160 - 600);
-                    console.log(`📱 Mobile List scroll: ${Math.round(scrollPercentage * 100)}%`);
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log(`📱 Mobile List scroll: ${Math.round(scrollPercentage * 100)}%`);
+                    }
                   }
                   // Call the infinite scroll handler
                   if ((window as any).__rentalListScrollHandler) {
@@ -4216,21 +4043,25 @@ export default function RentalListNew() {
                       flexWrap: 'wrap'
                     }}>
                       <IconButton
-                        size="small"
+                        size="medium"
                         title="Upraviť prenájom"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEdit(rental);
                         }}
                         sx={{ 
+                          ...mobileStyles.touchTarget,
                           bgcolor: '#2196f3', 
                           color: 'white', 
-                          width: 36,
-                          height: 36,
+                          minWidth: TOUCH_TARGETS.COMFORTABLE,
+                          minHeight: TOUCH_TARGETS.COMFORTABLE,
                           '&:hover': { 
                             bgcolor: '#1976d2',
-                            transform: 'scale(1.1)',
+                            transform: 'scale(1.05)',
                             boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
+                          },
+                          '&:active': {
+                            transform: 'scale(0.95)',
                           },
                           transition: 'all 0.2s ease'
                         }}
@@ -4238,7 +4069,7 @@ export default function RentalListNew() {
                         <EditIcon fontSize="small" />
                       </IconButton>
                       <IconButton
-                        size="small"
+                        size="medium"
                         title={hasHandover ? "Zobraziť odovzdávací protokol" : "Vytvoriť odovzdávací protokol"}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -4249,14 +4080,18 @@ export default function RentalListNew() {
                           }
                         }}
                         sx={{ 
+                          ...mobileStyles.touchTarget,
                           bgcolor: hasHandover ? '#4caf50' : '#ff9800', 
                           color: 'white',
-                          width: 36,
-                          height: 36,
+                          minWidth: TOUCH_TARGETS.COMFORTABLE,
+                          minHeight: TOUCH_TARGETS.COMFORTABLE,
                           '&:hover': { 
                             bgcolor: hasHandover ? '#388e3c' : '#f57c00',
-                            transform: 'scale(1.1)',
+                            transform: 'scale(1.05)',
                             boxShadow: hasHandover ? '0 4px 12px rgba(76,175,80,0.4)' : '0 4px 12px rgba(255,152,0,0.4)'
+                          },
+                          '&:active': {
+                            transform: 'scale(0.95)',
                           },
                           transition: 'all 0.2s ease'
                         }}

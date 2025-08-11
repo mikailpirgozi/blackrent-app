@@ -32,6 +32,7 @@ import SignaturePad from '../common/SignaturePad';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { getSmartDefaults, cacheFormDefaults, cacheCompanyDefaults } from '../../utils/protocolFormCache';
+import { getApiBaseUrl } from '../../utils/apiUrl';
 // import { initializeMobileStabilizer, getMobileStabilizer } from '../../utils/mobileStabilizer';
 // import { useMobileRecovery } from '../../hooks/useMobileRecovery';
 // import { getMobilePerformanceOptimizer } from '../../utils/mobilePerformance';
@@ -95,16 +96,18 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     };
   }, []);
 
-  // Log open state changes
+  // Log open state changes only in development
   React.useEffect(() => {
-    console.log('🔍 MOBILE DEBUG: HandoverProtocolForm open state changed:', open);
-    console.log('🔍 MOBILE DEBUG: rental ID:', rental?.id);
-    console.log('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
-    
-    if (open) {
-      console.log('✅ MOBILE DEBUG: HandoverProtocolForm is OPENING');
-    } else {
-      console.log('❌ MOBILE DEBUG: HandoverProtocolForm is CLOSING');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 MOBILE DEBUG: HandoverProtocolForm open state changed:', open);
+      console.log('🔍 MOBILE DEBUG: rental ID:', rental?.id);
+      console.log('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
+      
+      if (open) {
+        console.log('✅ MOBILE DEBUG: HandoverProtocolForm is OPENING');
+      } else {
+        console.log('❌ MOBILE DEBUG: HandoverProtocolForm is CLOSING');
+      }
     }
     
     // logMobile('INFO', 'HandoverProtocol', `Modal ${open ? 'opened' : 'closed'}`, {
@@ -414,9 +417,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       console.log('🧹 Cleaned handover protocol for DB:', cleanedProtocol);
 
       // 🚀 QUICK SAVE: Uloženie protokolu s flag-om pre background PDF
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
-        : 'http://localhost:3001/api';
+      const apiBaseUrl = getApiBaseUrl();
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
       console.log('⚡ QUICK SAVE: Sending protocol data...');

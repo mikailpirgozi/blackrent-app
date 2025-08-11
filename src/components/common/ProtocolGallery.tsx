@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { ProtocolImage, ProtocolVideo } from '../../types';
 import logger from '../../utils/logger';
+import { getApiBaseUrl } from '../../utils/apiUrl';
 
 interface ProtocolGalleryProps {
   open: boolean;
@@ -138,9 +139,7 @@ export default function ProtocolGallery({
         const urlParts = r2Url.split('/');
         // Zober všetky časti po doméne ako key (preskoč https:// a doménu)
         const key = urlParts.slice(3).join('/');
-        const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
-        : 'http://localhost:3001/api';
+        const apiBaseUrl = getApiBaseUrl();
       const proxyUrl = `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
         console.log('🔄 Converting R2 URL to proxy:', r2Url, '→', proxyUrl);
         return proxyUrl;

@@ -53,6 +53,7 @@ import VehicleForm from './VehicleForm';
 import { apiService } from '../../services/api';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
+import { getApiBaseUrl } from '../../utils/apiUrl';
 import { EnhancedLoading } from '../common/EnhancedLoading';
 
 const getStatusColor = (status: VehicleStatus): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
@@ -150,9 +151,7 @@ export default function VehicleListNew() {
       setSelectedVehicleHistory(vehicle);
       // Použijem fetch API namiesto private request metódy
       const token = localStorage.getItem('token');
-              const apiBaseUrl = process.env.NODE_ENV === 'production' 
-          ? 'https://blackrent-app-production-4d6f.up.railway.app/api'
-          : 'http://localhost:3001/api';
+      const apiBaseUrl = getApiBaseUrl();
         const response = await fetch(`${apiBaseUrl}/vehicles/${vehicle.id}/ownership-history`, {
         headers: {
           'Authorization': `Bearer ${token}`,
