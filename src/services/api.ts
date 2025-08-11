@@ -44,13 +44,13 @@ const getApiBaseUrl = () => {
     return process.env.REACT_APP_API_URL;
   }
   
-  // Automatická detekcia - použije hostname z prehliadača s portom 3001
-  const hostname = window.location.hostname;
-  const protocol = window.location.protocol;
-  return `${protocol}//${hostname}:3001/api`;
+  // Pre development vždy používaj localhost
+  return 'http://localhost:3001/api';
 };
 
-export const API_BASE_URL = getApiBaseUrl();
+// Export as function to ensure fresh evaluation
+export const getApiBaseUrlDynamic = getApiBaseUrl;
+export const API_BASE_URL = 'http://localhost:3001/api'; // Force localhost for development
 
 
 
@@ -619,6 +619,7 @@ class ApiService {
     const queryString = queryParams.toString();
     const endpoint = `/rentals/paginated${queryString ? `?${queryString}` : ''}`;
     
+    // 🔧 OPRAVA: request() už automaticky extrahuje data z {success, data} response
     return this.request<{
       rentals: Rental[];
       pagination: {

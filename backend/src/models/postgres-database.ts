@@ -2489,23 +2489,32 @@ export class PostgresDatabase {
   }): Promise<{ rentals: Rental[]; total: number }> {
     const client = await this.pool.connect();
     try {
-      console.log('🚀 Loading paginated rentals with filters:', params);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🚀 Loading paginated rentals with filters:', params);
+      }
 
       // Základný WHERE clause
       let whereConditions: string[] = ['1=1'];
       const queryParams: any[] = [];
       let paramIndex = 1;
 
-      // 🔍 SEARCH filter - live vyhľadávanie
+      // 🔍 SEARCH filter - live vyhľadávanie s normalizáciou diakritiky
       if (params.search && params.search.trim()) {
+        // Normalizujeme search query (odstránime diakritiku)
+        const normalizedSearch = params.search.trim()
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+        
+        // 🔍 NORMALIZOVANÉ VYHĽADÁVANIE: unaccent() + LOWER() pre diakritiku
         whereConditions.push(`(
-          r.customer_name ILIKE $${paramIndex} OR 
-          r.order_number ILIKE $${paramIndex} OR 
-          v.license_plate ILIKE $${paramIndex} OR
-          v.brand ILIKE $${paramIndex} OR
-          v.model ILIKE $${paramIndex}
+          LOWER(unaccent(r.customer_name)) ILIKE $${paramIndex} OR 
+          LOWER(unaccent(r.order_number)) ILIKE $${paramIndex} OR 
+          LOWER(unaccent(v.license_plate)) ILIKE $${paramIndex} OR
+          LOWER(unaccent(v.brand)) ILIKE $${paramIndex} OR
+          LOWER(unaccent(v.model)) ILIKE $${paramIndex}
         )`);
-        queryParams.push(`%${params.search.trim()}%`);
+        queryParams.push(`%${normalizedSearch}%`);
         paramIndex++;
       }
 
@@ -2685,7 +2694,9 @@ export class PostgresDatabase {
       };
 
     } catch (error) {
-      console.error('Error in getRentalsPaginated:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error in getRentalsPaginated:', error);
+      }
       throw error;
     } finally {
       client.release();
