@@ -1107,13 +1107,13 @@ export default function RentalListNew() {
       
       if (!hasHandover) {
         console.log('⚡ CACHED: No handover protocol found for rental:', rental.id);
-        alert('⚠️ UPOZORNENIE: Najprv musíte vytvoriť odovzdávací protokol!\n\nPreberací protokol nemožno vytvoriť bez existujúceho odovzdávacieho protokolu.');
+        alert('⚠️ UPOZORNENIE: Najprv musíte vytvoriť odovzdávací protokol!\n\nVrátny protokol nemožno vytvoriť bez existujúceho odovzdávacieho protokolu.');
         return;
       }
       
       if (hasReturn) {
         console.log('⚡ CACHED: Return protocol already exists for rental:', rental.id);
-        alert('⚠️ UPOZORNENIE: Pre toto vozidlo už existuje preberací protokol!\n\nNemôžete vytvoriť ďalší preberací protokol pre to isté vozidlo. Ak potrebujete upraviť protokol, kontaktujte administrátora.');
+        alert('⚠️ UPOZORNENIE: Pre toto vozidlo už existuje vrátny protokol!\n\nNemôžete vytvoriť ďalší vrátny protokol pre to isté vozidlo. Ak potrebujete upraviť protokol, kontaktujte administrátora.');
         return;
       }
       
@@ -1148,13 +1148,13 @@ export default function RentalListNew() {
         console.log('📝 Fresh protocols data (fallback):', protocolsData);
         
         if (!protocolsData.handoverProtocols || protocolsData.handoverProtocols.length === 0) {
-          alert('⚠️ UPOZORNENIE: Najprv musíte vytvoriť odovzdávací protokol!\n\nPreberací protokol nemožno vytvoriť bez existujúceho odovzdávacieho protokolu.');
+          alert('⚠️ UPOZORNENIE: Najprv musíte vytvoriť odovzdávací protokol!\n\nVrátny protokol nemožno vytvoriť bez existujúceho odovzdávacieho protokolu.');
           console.error('❌ No handover protocol found for rental:', rental.id);
           return;
         }
         
         if (protocolsData.returnProtocols && protocolsData.returnProtocols.length > 0) {
-          alert('⚠️ UPOZORNENIE: Pre toto vozidlo už existuje preberací protokol!\n\nNemôžete vytvoriť ďalší preberací protokol pre to isté vozidlo. Ak potrebujete upraviť protokol, kontaktujte administrátora.');
+          alert('⚠️ UPOZORNENIE: Pre toto vozidlo už existuje vrátny protokol!\n\nNemôžete vytvoriť ďalší vrátny protokol pre to isté vozidlo. Ak potrebujete upraviť protokol, kontaktujte administrátora.');
           console.warn('❌ Return protocol already exists for rental:', rental.id);
           return;
         }
@@ -1199,7 +1199,7 @@ export default function RentalListNew() {
       });
       await loadProtocolsForRental(protocolData.rentalId);
       
-      alert('Preberací protokol úspešne dokončený!');
+      alert('Vrátny protokol úspešne dokončený!');
       setOpenReturnDialog(false);
       setSelectedRentalForProtocol(null);
     } catch (error) {
@@ -1994,8 +1994,8 @@ export default function RentalListNew() {
             
             {/* Protokolové tlačidlá - kompaktné */}
             <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-              {/* Preberací protokol */}
-              <Tooltip title={hasHandover ? "Preberací protokol je vytvorený" : "Vytvoriť preberací protokol"}>
+              {/* Odovzdávací protokol */}
+              <Tooltip title={hasHandover ? "Odovzdávací protokol je vytvorený" : "Vytvoriť odovzdávací protokol"}>
                 <IconButton
                   size="medium"
                   onClick={(e) => { 
@@ -2022,8 +2022,8 @@ export default function RentalListNew() {
                 </IconButton>
               </Tooltip>
 
-              {/* Vratný protokol */}
-              <Tooltip title={hasReturn ? "Vratný protokol je vytvorený" : hasHandover ? "Vytvoriť vratný protokol" : "Najprv vytvorte preberací protokol"}>
+              {/* Vrátny protokol */}
+              <Tooltip title={hasReturn ? "Vrátny protokol je vytvorený" : hasHandover ? "Vytvoriť vrátny protokol" : "Najprv vytvorte odovzdávací protokol"}>
                 <IconButton
                   size="medium"
                   onClick={(e) => { 
@@ -3494,7 +3494,7 @@ export default function RentalListNew() {
                         {/* Create/View Return Protocol Button */}
                         <IconButton
                           size="small"
-                          title={hasReturn ? "Zobraziť preberací protokol" : "Vytvoriť preberací protokol"}
+                          title={hasReturn ? "Zobraziť vrátny protokol" : "Vytvoriť vrátny protokol"}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (hasReturn) {
@@ -4100,7 +4100,7 @@ export default function RentalListNew() {
                       </IconButton>
                       <IconButton
                         size="small"
-                        title={hasReturn ? "Zobraziť preberací protokol" : "Vytvoriť preberací protokol"}
+                        title={hasReturn ? "Zobraziť vrátny protokol" : "Vytvoriť vrátny protokol"}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (hasReturn) {
@@ -4233,7 +4233,7 @@ export default function RentalListNew() {
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>Preberací protokol</DialogTitle>
+        <DialogTitle>Vrátny protokol</DialogTitle>
         <DialogContent>
           {selectedRentalForProtocol && (
             <ReturnProtocolForm
@@ -4282,7 +4282,7 @@ export default function RentalListNew() {
           gap: 1
         }}>
           {selectedProtocolType === 'handover' ? '🚗→' : '←🚗'}
-          {selectedProtocolType === 'handover' ? 'Odovzdávací protokol' : 'Preberací protokol'}
+          {selectedProtocolType === 'handover' ? 'Odovzdávací protokol' : 'Vrátny protokol'}
         </DialogTitle>
         <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
