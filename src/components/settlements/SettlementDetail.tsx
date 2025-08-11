@@ -35,7 +35,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { Settlement } from '../../types';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../services/api';
@@ -204,8 +204,15 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CalendarIcon sx={{ fontSize: 18 }} />
             <Typography variant="body1">
-              Obdobie: {format(settlement.period.from, 'dd.MM.yyyy', { locale: sk })} - 
-              {format(settlement.period.to, 'dd.MM.yyyy', { locale: sk })}
+              Obdobie: {format(
+                settlement.period.from instanceof Date ? settlement.period.from : parseISO(settlement.period.from), 
+                'dd.MM.yyyy', 
+                { locale: sk }
+              )} - {format(
+                settlement.period.to instanceof Date ? settlement.period.to : parseISO(settlement.period.to), 
+                'dd.MM.yyyy', 
+                { locale: sk }
+              )}
             </Typography>
           </Box>
         </CardContent>
