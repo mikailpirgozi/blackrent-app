@@ -32,11 +32,12 @@ import {
   createApiErrorHandler,
   handleApiResponse 
 } from '../utils/apiErrorHandler';
-import { getApiBaseUrl, API_BASE_URL as BASE_URL } from '../utils/apiUrl';
+import { getApiBaseUrl } from '../utils/apiUrl';
 
 // Export for compatibility
 export const getApiBaseUrlDynamic = getApiBaseUrl;
-export const API_BASE_URL = BASE_URL;
+// Dynamické získanie API URL namiesto statickej konštanty
+export const getAPI_BASE_URL = () => getApiBaseUrl();
 
 
 
@@ -61,7 +62,7 @@ class ApiService {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = `${getAPI_BASE_URL()}${endpoint}`;
     const token = this.getAuthToken();
 
     const config: RequestInit = {
@@ -144,10 +145,10 @@ class ApiService {
   }
 
   async login(username: string, password: string): Promise<{ user: any; token: string }> {
-    console.log('🔗 API Service - Making login request to:', `${API_BASE_URL}/auth/login`);
+    console.log('🔗 API Service - Making login request to:', `${getAPI_BASE_URL()}/auth/login`);
     console.log('🔗 API Service - Request body:', { username, password: '***' });
     
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${getAPI_BASE_URL()}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -495,7 +496,7 @@ class ApiService {
 
   // CSV Export/Import pre vozidlá
   async exportVehiclesCSV(): Promise<Blob> {
-    const response = await fetch(`${API_BASE_URL}/vehicles/export/csv`, {
+    const response = await fetch(`${getAPI_BASE_URL()}/vehicles/export/csv`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -518,7 +519,7 @@ class ApiService {
 
   // CSV Export/Import pre zákazníkov
   async exportCustomersCSV(): Promise<Blob> {
-    const response = await fetch(`${API_BASE_URL}/customers/export/csv`, {
+    const response = await fetch(`${getAPI_BASE_URL()}/customers/export/csv`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -541,7 +542,7 @@ class ApiService {
 
   // CSV Export/Import pre náklady
   async exportExpensesCSV(): Promise<Blob> {
-    const response = await fetch(`${API_BASE_URL}/expenses/export/csv`, {
+    const response = await fetch(`${getAPI_BASE_URL()}/expenses/export/csv`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -857,7 +858,7 @@ class ApiService {
 
   // Protokoly
   async getProtocolsByRental(rentalId: string): Promise<{ handoverProtocols: any[]; returnProtocols: any[] }> {
-    const url = `${API_BASE_URL}/protocols/rental/${rentalId}`;
+    const url = `${getAPI_BASE_URL()}/protocols/rental/${rentalId}`;
     const token = this.getAuthToken();
     
     const config: RequestInit = {

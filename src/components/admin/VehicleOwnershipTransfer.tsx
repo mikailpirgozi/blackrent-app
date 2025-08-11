@@ -42,7 +42,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
-import { apiService, API_BASE_URL } from '../../services/api';
+import { apiService, getAPI_BASE_URL } from '../../services/api';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 
@@ -166,7 +166,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
     
     const historyPromises = vehicles.map(async (vehicle) => {
       try {
-        const response = await fetch(`${API_BASE_URL}/vehicles/${vehicle.id}/ownership-history`, {
+        const response = await fetch(`${getAPI_BASE_URL()}/vehicles/${vehicle.id}/ownership-history`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
           }
@@ -221,7 +221,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
     setMessage(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/vehicles/${selectedVehicleId}/transfer-ownership`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/vehicles/${selectedVehicleId}/transfer-ownership`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -285,7 +285,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/vehicles/ownership-history/${editingTransfer.id}`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/vehicles/ownership-history/${editingTransfer.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -327,7 +327,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/vehicles/ownership-history/${transferToDelete.id}`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/vehicles/ownership-history/${transferToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`

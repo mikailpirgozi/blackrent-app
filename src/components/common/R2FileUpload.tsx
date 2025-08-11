@@ -3,7 +3,7 @@ import { Button, Typography, Box, CircularProgress, Alert, Chip } from '@mui/mat
 import { CloudUpload, Delete, Visibility } from '@mui/icons-material';
 
 // Railway backend URL
-const API_BASE_URL = 'https://blackrent-app-production-4d6f.up.railway.app/api';
+import { getApiBaseUrl } from '../../utils/apiUrl';
 
 interface R2FileUploadProps {
   type: 'vehicle' | 'protocol' | 'document';
@@ -129,12 +129,12 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
         formData.append('type', type);
         formData.append('entityId', entityId);
 
-        console.log('🔍 R2 UPLOAD - Sending to backend:', `${API_BASE_URL}/files/upload`);
+        console.log('🔍 R2 UPLOAD - Sending to backend:', `${getApiBaseUrl()}/files/upload`);
 
         // Get auth token
         const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
 
-        const response = await fetch(`${API_BASE_URL}/files/upload`, {
+        const response = await fetch(`${getApiBaseUrl()}/files/upload`, {
           method: 'POST',
           headers: {
             ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -187,7 +187,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
     try {
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
-      const response = await fetch(`${API_BASE_URL}/files/${encodeURIComponent(fileKey)}`, {
+      const response = await fetch(`${getApiBaseUrl()}/files/${encodeURIComponent(fileKey)}`, {
         method: 'DELETE',
         headers: {
           ...(token && { 'Authorization': `Bearer ${token}` }),

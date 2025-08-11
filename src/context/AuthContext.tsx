@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { User, AuthState, LoginCredentials, UserCompanyAccess } from '../types';
-import { apiService, API_BASE_URL } from '../services/api';
+import { apiService, getAPI_BASE_URL } from '../services/api';
 import { StorageManager } from '../utils/storage';
 import logger from '../utils/logger';
 
@@ -106,7 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const validateToken = async (token: string): Promise<boolean> => {
     try {
       console.log('🔍 Validating token...');
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/auth/me`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -131,7 +131,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       logger.auth('🔄 Spúšťam session restore...');
       logger.info('📍 Location:', window.location.href);
-      logger.info('🔗 API Base URL:', API_BASE_URL);
+      logger.info('🔗 API Base URL:', getAPI_BASE_URL());
       
       // Otestuj storage schopnosti
       StorageManager.testStorage();
@@ -312,7 +312,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('👤 Username:', credentials.username);
       console.log('💾 Remember me:', rememberMe);
       console.log('🌐 Location:', window.location.href);
-      console.log('🔗 API Base URL:', API_BASE_URL);
+      console.log('🔗 API Base URL:', getAPI_BASE_URL());
       
       console.log('📡 Making login request to apiService.login...');
       const result = await apiService.login(credentials.username, credentials.password);

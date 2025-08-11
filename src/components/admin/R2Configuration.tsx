@@ -24,7 +24,7 @@ import {
   Download as DownloadIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
-import { apiService as api, API_BASE_URL } from '../../services/api';
+import { apiService as api, getAPI_BASE_URL } from '../../services/api';
 
 interface R2Status {
   configured: boolean;
@@ -45,7 +45,7 @@ export default function R2Configuration() {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/migration/r2-status`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/migration/r2-status`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ export default function R2Configuration() {
     setSuccess(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/migration/migrate-to-r2`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/migration/migrate-to-r2`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

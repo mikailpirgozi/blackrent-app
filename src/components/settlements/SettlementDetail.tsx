@@ -38,7 +38,7 @@ import { Settlement } from '../../types';
 import { format, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { useAuth } from '../../context/AuthContext';
-import { API_BASE_URL } from '../../services/api';
+import { getAPI_BASE_URL } from '../../services/api';
 
 interface SettlementDetailProps {
   settlement: Settlement;
@@ -116,7 +116,7 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
 
     setPdfLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/settlements/${settlement.id}/pdf`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/settlements/${settlement.id}/pdf`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${state.token}`,

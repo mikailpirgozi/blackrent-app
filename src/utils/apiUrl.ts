@@ -44,14 +44,16 @@ export const getBaseUrl = (): string => {
 };
 
 /**
- * Pre kompatibilitu s existujúcim kódom
+ * Pre kompatibilitu s existujúcim kódom - teraz dynamické
  */
-export const API_BASE_URL = getApiBaseUrl();
+export const API_BASE_URL = () => getApiBaseUrl();
 
-// Debug log
-console.log('🔗 API_BASE_URL nastavené na:', API_BASE_URL);
-console.log('🌍 Environment:', {
-  NODE_ENV: process.env.NODE_ENV,
-  hostname: typeof window !== 'undefined' ? window.location.hostname : 'undefined',
-  origin: typeof window !== 'undefined' ? window.location.origin : 'undefined'
-});
+// Debug log - len v browseri
+if (typeof window !== 'undefined') {
+  console.log('🔗 API_BASE_URL nastavené na:', getApiBaseUrl());
+  console.log('🌍 Environment:', {
+    NODE_ENV: process.env.NODE_ENV,
+    hostname: window.location.hostname,
+    origin: window.location.origin
+  });
+}

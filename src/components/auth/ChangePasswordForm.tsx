@@ -11,7 +11,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
-import { API_BASE_URL } from '../../services/api';
+import { getAPI_BASE_URL } from '../../services/api';
 
 interface ChangePasswordFormProps {
   open: boolean;
@@ -49,7 +49,7 @@ export default function ChangePasswordForm({ open, onClose }: ChangePasswordForm
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

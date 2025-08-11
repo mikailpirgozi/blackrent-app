@@ -1,7 +1,7 @@
 // 🔔 Push Notifications Frontend Service
 // Complete push notification management for BlackRent
 
-import { API_BASE_URL } from './api';
+import { getAPI_BASE_URL } from './api';
 
 interface PushSubscriptionData {
   endpoint: string;
@@ -88,7 +88,7 @@ class PushNotificationService {
   // Get VAPID public key from server
   private async getVapidPublicKey(): Promise<string | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/push/vapid-key`);
+      const response = await fetch(`${getAPI_BASE_URL()}/push/vapid-key`);
       const data = await response.json();
       return data.publicKey;
     } catch (error) {
@@ -194,7 +194,7 @@ class PushNotificationService {
     try {
       const token = this.getAuthToken();
       
-      const response = await fetch(`${API_BASE_URL}/push/subscription`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/push/subscription`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -220,7 +220,7 @@ class PushNotificationService {
     try {
       const token = this.getAuthToken();
       
-      const response = await fetch(`${API_BASE_URL}/push/subscription`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/push/subscription`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -277,7 +277,7 @@ class PushNotificationService {
     try {
       const token = this.getAuthToken();
       
-      const response = await fetch(`${API_BASE_URL}/push/preferences`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/push/preferences`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -301,7 +301,7 @@ class PushNotificationService {
     try {
       const token = this.getAuthToken();
       
-      const response = await fetch(`${API_BASE_URL}/push/preferences`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/push/preferences`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -323,7 +323,7 @@ class PushNotificationService {
     try {
       const token = this.getAuthToken();
       
-      const response = await fetch(`${API_BASE_URL}/push/send`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/push/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -393,7 +393,7 @@ class PushNotificationService {
       if (startDate) params.append('startDate', startDate.toISOString());
       if (endDate) params.append('endDate', endDate.toISOString());
       
-      const response = await fetch(`${API_BASE_URL}/push/analytics?${params}`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/push/analytics?${params}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
