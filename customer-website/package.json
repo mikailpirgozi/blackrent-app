@@ -1,0 +1,47 @@
+{
+  "name": "blackrent-customer-website",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "dev:safe": "./scripts/safe-dev.sh",
+    "dev:clean": "rm -rf .next && npm run dev",
+    "build": "next build",
+    "build:clean": "rm -rf .next && npm run build",
+    "start": "next start -p 3002",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "validate-svg": "node scripts/svg-validator.js",
+    "pre-check": "npm run validate-svg && npm run lint && npm run type-check",
+    "health-check": "npm run validate-svg && npm run build:clean",
+    "images:optimize": "node scripts/optimize-images.js"
+  },
+  "dependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.4.20",
+    "clsx": "^2.1.1",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.18",
+    "framer-motion": "^11.15.0",
+    "next": "^14.2.18",
+    "postcss": "^8.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.18",
+    "postcss": "^8.5.4",
+    "sharp": "^0.33.5",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .bg-fotka-oper-tora {
+    background-image: url(/assets/fotka-oper-tora.jpeg);
+  }
+  .font-sf-pro {
+    font-family: "SF Pro", ui-sans-serif, system-ui, sans-serif;
+  }
+  .font-poppins {
+    font-family: Poppins, ui-sans-serif, system-ui, sans-serif;
+  }
+}

@@ -1,0 +1,14 @@
+export default function BgRectangle3({ className = "" }: BgRectangle3Props) {
+  return (
+    <div className={`${className}`}>
+      <svg width="100%" height="100%" style={{"overflow":"visible"}} preserveAspectRatio="none" viewBox="0 0 202 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 8C0 3.58172 3.58172 0 8 0H178C182.418 0 186 3.58172 186 8V38.1115C186 39.3534 186.289 40.5783 186.845 41.6892L193.95 55.9003C196.529 61.0576 191.058 66.5288 185.9 63.9502L171.689 56.8446C170.578 56.2892 169.353 56 168.111 56H8C3.58172 56 0 52.4183 0 48V8Z" fill="#FAFFDC"/>
+      </svg>
+      
+    </div>
+  );
+}
+
+interface BgRectangle3Props {
+  className?: string;
+}
