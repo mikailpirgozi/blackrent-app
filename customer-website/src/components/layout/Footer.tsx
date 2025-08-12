@@ -1,20 +1,20 @@
 'use client'
 
 import { Icon } from '@/components/ui/Icon'
-import Pattern from '@/components/firejet/assets/Pattern'
-import Pattern1 from '@/components/firejet/assets/Pattern1'
 
 export default function Footer() {
   return (
-    <footer className="relative bg-blackrent-dark">
+    <footer className="relative bg-blackrent-dark overflow-hidden">
       {/* Pattern Background - layout_PF6YK3 (umiestnený dole vo footeri) */}
-      <div className="absolute right-0 top-0 z-0 opacity-20 select-none pointer-events-none">
-        <div className="relative w-[476px] h-[982px]">
-          <Pattern className="absolute inset-0" />
-        </div>
-        {/* dolný rohový blok vzoru podľa figmy */}
-        <div className="absolute bottom-0 right-0 w-[200px] h-[200px]">
-          <Pattern1 className="w-full h-full" />
+      <div className="absolute right-0 top-0 z-0 opacity-20 select-none pointer-events-none overflow-hidden">
+        <div className="w-[476px] h-[904px]">
+          <svg xmlns="http://www.w3.org/2000/svg" width="476" height="904" viewBox="0 0 476 904" fill="none" className="w-full h-full">
+            <path d="M129.28 164H0V243.36H96.4L141.04 288L96.4 332.64H0V412H129.28L198.4 342.88L143.52 288L198.4 233.12L129.28 164Z" fill="#0F0F14"/>
+            <path d="M129.28 492H0V571.36H96.4L141.04 616L96.4 660.64H0V740H129.28L198.4 670.88L143.52 616L198.4 561.12L129.28 492Z" fill="#0F0F14"/>
+            <path d="M407.04 0H277.76V79.36H374.16L418.8 124L374.16 168.64H277.76V248H407.04L476.16 178.88L421.28 124L476.16 69.12L407.04 0Z" fill="#0F0F14"/>
+            <path d="M407.04 328H277.76V407.36H374.16L418.8 452L374.16 496.64H277.76V576H407.04L476.16 506.88L421.28 452L476.16 397.12L407.04 328Z" fill="#0F0F14"/>
+            <path d="M407.04 656H277.76V735.36H374.16L418.8 780L374.16 824.64H277.76V904H407.04L476.16 834.88L421.28 780L476.16 725.12L407.04 656Z" fill="#0F0F14"/>
+          </svg>
         </div>
       </div>
 
@@ -28,7 +28,7 @@ export default function Footer() {
         </div>
 
         {/* Footer Content Grid - layout_66N2EZ */}
-        <div className="font-poppins flex flex-wrap items-start justify-between gap-y-[88px] w-1328 min-[1318px]:flex-nowrap">
+        <div className="font-poppins flex flex-wrap items-start justify-between gap-y-[88px] w-[1328px] min-[1318px]:flex-nowrap">
           {/* Newsletter Section - layout_NO2BUA */}
           <div className="flex flex-col gap-10 w-[422px]">
             <div className="flex flex-col gap-8">
@@ -107,8 +107,8 @@ export default function Footer() {
       </div>
 
       {/* Under Footer - layout_52KY5B */}
-      <div className="flex items-center gap-2 px-[200px] w-1728 h-24 mx-auto bg-black">
-        <p className="font-poppins font-normal text-xs leading-8 text-blackrent-border w-[855px] h-2">
+      <div className="flex items-center gap-2 px-[200px] w-[1728px] h-24 mx-auto" style={{background: '#000000'}}>
+        <p className="font-poppins font-normal text-xs leading-8 text-blackrent-border">
           © 2024 blackrent.sk | Obchodné podmienky | Pravidlá pre súbory cookies | Reklamačný poriadok | Ochrana osobných údajov
         </p>
       </div>

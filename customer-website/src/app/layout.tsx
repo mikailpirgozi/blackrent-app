@@ -23,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="sk">
-      <body className="min-h-screen antialiased">
+      <body className="antialiased">
         {children}
       </body>
     </html>

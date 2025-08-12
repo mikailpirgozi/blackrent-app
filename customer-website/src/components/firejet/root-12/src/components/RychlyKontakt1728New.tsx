@@ -2,7 +2,6 @@ import Ellipse from "./assets/Ellipse";
 import Icon24Px from "./assets/Icon24Px";
 import Line from "./assets/Line";
 import Icon24Px1 from "./assets/Icon24Px1";
-import Pattern from "./assets/Pattern";
 
 export default function RychlyKontakt1728New({
   className = "",
@@ -39,7 +38,6 @@ export default function RychlyKontakt1728New({
           info@blackrent.sk
         </div>
       </div>
-      <Pattern className="absolute inset-y-0 left-0 z-[5] w-[304px]" />
     </div>
   );
 }

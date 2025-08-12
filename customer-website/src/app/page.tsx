@@ -12,7 +12,7 @@ import Footer from '@/components/layout/Footer'
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-blackrent-dark">
+    <main className="bg-blackrent-dark">
       <Header />
       <HeroSection />
       <FilterSection />

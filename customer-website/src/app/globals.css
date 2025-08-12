@@ -25,13 +25,23 @@
   --accent-secondary: #F0FF98;
 }
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: auto;
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Poppins', 'SF Pro', system-ui, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
 }
 
 /* CUSTOM CLASSES */
