@@ -6,10 +6,10 @@ import Pattern1 from '@/components/firejet/assets/Pattern1'
 
 export default function Footer() {
   return (
-    <footer className="bg-blackrent-dark">
+    <footer className="relative bg-blackrent-dark">
       {/* Pattern Background - layout_PF6YK3 (umiestnený dole vo footeri) */}
-      <div className="absolute right-0 bottom-24 z-0 opacity-10 select-none pointer-events-none">
-        <div className="relative w-[476px] h-[448px]">
+      <div className="absolute right-0 top-0 z-0 opacity-20 select-none pointer-events-none">
+        <div className="relative w-[476px] h-[982px]">
           <Pattern className="absolute inset-0" />
         </div>
         {/* dolný rohový blok vzoru podľa figmy */}
