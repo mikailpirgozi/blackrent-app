@@ -1,4 +1,4 @@
-import { ElementPonukaVozidiel } from "../../components/anima/sections/ElementPonukaVozidiel";
+import { ElementPonukaVozidiel } from "../../components/anima/sections/ElementPonukaVozidiel/ElementPonukaVozidiel";
 
 export default function VozidlaPage() {
   return <ElementPonukaVozidiel />;

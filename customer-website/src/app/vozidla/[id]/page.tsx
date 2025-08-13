@@ -1,4 +1,4 @@
-import { ElementDetailVozidla } from "../../../components/anima/sections/ElementDetailVozidla";
+import { ElementDetailVozidla } from "../../../components/anima/sections/ElementDetailVozidla/ElementDetailVozidla";
 
 interface Props {
   params: {
