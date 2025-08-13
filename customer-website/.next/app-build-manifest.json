@@ -2,42 +2,44 @@
   "pages": {
     "/_not-found/page": [
       "static/chunks/webpack-97a6b0af6cbb2497.js",
-      "static/chunks/fd9d1056-62e6c2a24fd9a7e0.js",
-      "static/chunks/117-70635e08f8377bb6.js",
+      "static/chunks/fd9d1056-9e191f0896c1d560.js",
+      "static/chunks/117-c90bd862f1d306db.js",
       "static/chunks/main-app-d65f6df1750d4f72.js",
-      "static/chunks/app/_not-found/page-2da2250712b3cd20.js"
+      "static/chunks/app/_not-found/page-c8219ab21dbb5ed7.js"
     ],
     "/layout": [
       "static/chunks/webpack-97a6b0af6cbb2497.js",
-      "static/chunks/fd9d1056-62e6c2a24fd9a7e0.js",
-      "static/chunks/117-70635e08f8377bb6.js",
+      "static/chunks/fd9d1056-9e191f0896c1d560.js",
+      "static/chunks/117-c90bd862f1d306db.js",
       "static/chunks/main-app-d65f6df1750d4f72.js",
-      "static/css/1941b7090d1021cd.css",
+      "static/css/db3149d7c7f3ba3a.css",
       "static/css/64bee3ceacf1dac1.css",
       "static/chunks/app/layout-b288007459e3d675.js"
     ],
     "/page": [
       "static/chunks/webpack-97a6b0af6cbb2497.js",
-      "static/chunks/fd9d1056-62e6c2a24fd9a7e0.js",
-      "static/chunks/117-70635e08f8377bb6.js",
+      "static/chunks/fd9d1056-9e191f0896c1d560.js",
+      "static/chunks/117-c90bd862f1d306db.js",
       "static/chunks/main-app-d65f6df1750d4f72.js",
-      "static/chunks/app/page-0a8b9a7b052e6eac.js"
+      "static/chunks/972-6b3a9bf8677b6a45.js",
+      "static/chunks/313-310f53e774a90907.js",
+      "static/chunks/app/page-8638e33512afbd5d.js"
     ],
     "/vozidla/[id]/page": [
       "static/chunks/webpack-97a6b0af6cbb2497.js",
-      "static/chunks/fd9d1056-62e6c2a24fd9a7e0.js",
-      "static/chunks/117-70635e08f8377bb6.js",
+      "static/chunks/fd9d1056-9e191f0896c1d560.js",
+      "static/chunks/117-c90bd862f1d306db.js",
       "static/chunks/main-app-d65f6df1750d4f72.js",
-      "static/chunks/648-ac2db336396c6ad6.js",
-      "static/chunks/app/vozidla/[id]/page-d650d1684778eb3c.js"
+      "static/chunks/972-6b3a9bf8677b6a45.js",
+      "static/chunks/app/vozidla/[id]/page-222fbcf9f807fddf.js"
     ],
     "/vozidla/page": [
       "static/chunks/webpack-97a6b0af6cbb2497.js",
-      "static/chunks/fd9d1056-62e6c2a24fd9a7e0.js",
-      "static/chunks/117-70635e08f8377bb6.js",
+      "static/chunks/fd9d1056-9e191f0896c1d560.js",
+      "static/chunks/117-c90bd862f1d306db.js",
       "static/chunks/main-app-d65f6df1750d4f72.js",
-      "static/chunks/648-ac2db336396c6ad6.js",
-      "static/chunks/app/vozidla/page-595090d894ac7f57.js"
+      "static/chunks/972-6b3a9bf8677b6a45.js",
+      "static/chunks/app/vozidla/page-dd3f666f8005a72b.js"
     ]
   }
 }
