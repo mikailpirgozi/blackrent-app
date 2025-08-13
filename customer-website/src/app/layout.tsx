@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import '../styles/filter-animations.css'
 
 export const metadata: Metadata = {
   title: 'BlackRent.sk - Prenájom áut',

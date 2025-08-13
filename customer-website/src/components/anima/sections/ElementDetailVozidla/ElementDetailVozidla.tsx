@@ -98,9 +98,69 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
   // Promo code state
   const [isPromoExpanded, setIsPromoExpanded] = useState(false);
   const [promoCode, setPromoCode] = useState("");
+  const [email, setEmail] = useState("");
+
+  // Share and Save state
+  const [isVehicleSaved, setIsVehicleSaved] = useState(false);
 
   // FAQ state
   const [expandedFAQ, setExpandedFAQ] = useState<Record<number, boolean>>({});
+
+  // Image modal state
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // Vehicle images array
+  const vehicleImages = [
+    {
+      id: 1,
+      url: "https://c.animaapp.com/nwqz0he8/img/frame-170@2x.png",
+      thumbnailUrl: "https://c.animaapp.com/nwqz0he8/img/frame-170@2x.png",
+      alt: "Ford Mustang - hlavný obrázok"
+    },
+    {
+      id: 2,
+      url: "https://c.animaapp.com/nwqz0he8/img/frame-170-3.png",
+      thumbnailUrl: "https://c.animaapp.com/nwqz0he8/img/frame-170-3.png",
+      alt: "Ford Mustang - detail interiéru"
+    },
+    {
+      id: 3,
+      url: "https://c.animaapp.com/nwqz0he8/img/frame-169-2@2x.png",
+      thumbnailUrl: "https://c.animaapp.com/nwqz0he8/img/frame-169-2@2x.png",
+      alt: "Ford Mustang - bočný pohľad"
+    },
+    {
+      id: 4,
+      url: "https://c.animaapp.com/nwqz0he8/img/frame-170-6@2x.png",
+      thumbnailUrl: "https://c.animaapp.com/nwqz0he8/img/frame-170-6@2x.png",
+      alt: "Ford Mustang - zadný pohľad"
+    },
+    {
+      id: 5,
+      url: "https://c.animaapp.com/nwqz0he8/img/frame-167-2@2x.png",
+      thumbnailUrl: "https://c.animaapp.com/nwqz0he8/img/frame-167-2@2x.png",
+      alt: "Ford Mustang - motor"
+    },
+    {
+      id: 6,
+      url: "https://c.animaapp.com/nwqz0he8/img/frame-168-2@2x.png",
+      thumbnailUrl: "https://c.animaapp.com/nwqz0he8/img/frame-168-2@2x.png",
+      alt: "Ford Mustang - koleso"
+    },
+    {
+      id: 7,
+      url: "https://c.animaapp.com/nwqz0he8/img/frame-170-4@2x.png",
+      thumbnailUrl: "https://c.animaapp.com/nwqz0he8/img/frame-170-4@2x.png",
+      alt: "Ford Mustang - prístrojová doska"
+    },
+    {
+      id: 8,
+      url: "https://c.animaapp.com/nwqz0he8/img/frame-167-1@2x.png",
+      thumbnailUrl: "https://c.animaapp.com/nwqz0he8/img/frame-167-1@2x.png",
+      alt: "Ford Mustang - sedadlá"
+    }
+  ];
 
   // Refs for click outside
   const formRef = useRef<HTMLFormElement>(null);
@@ -119,6 +179,137 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
       [index]: !prev[index]
     }));
   };
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Newsletter subscription:", email);
+    setEmail("");
+  };
+
+  // Share and Save handlers
+  const handleShareVehicle = async () => {
+    const vehicleUrl = window.location.href;
+    const vehicleTitle = "Ford Mustang - BlackRent";
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: vehicleTitle,
+          text: "Pozrite si toto úžasné vozidlo na prenájom!",
+          url: vehicleUrl,
+        });
+        console.log("Vehicle shared successfully");
+      } catch (error) {
+        console.log("Error sharing:", error);
+        // Fallback to clipboard
+        handleCopyToClipboard(vehicleUrl);
+      }
+    } else {
+      // Fallback to clipboard for browsers that don't support Web Share API
+      handleCopyToClipboard(vehicleUrl);
+    }
+  };
+
+  const handleCopyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // You could add a toast notification here
+      console.log("Link copied to clipboard");
+    } catch (error) {
+      console.log("Failed to copy to clipboard:", error);
+    }
+  };
+
+  const handleSaveVehicle = () => {
+    setIsVehicleSaved(!isVehicleSaved);
+    console.log(isVehicleSaved ? "Vehicle removed from saved" : "Vehicle saved");
+    // Here you could also save to localStorage or send to backend
+    if (!isVehicleSaved) {
+      localStorage.setItem("savedVehicles", JSON.stringify([...JSON.parse(localStorage.getItem("savedVehicles") || "[]"), "ford-mustang"]));
+    } else {
+      const saved = JSON.parse(localStorage.getItem("savedVehicles") || "[]");
+      localStorage.setItem("savedVehicles", JSON.stringify(saved.filter((id: string) => id !== "ford-mustang")));
+    }
+  };
+
+  // Image modal handlers
+  const handleImageClick = (imageIndex: number) => {
+    setSelectedImageIndex(imageIndex);
+    setIsImageModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsImageModalOpen(false);
+  };
+
+  const handlePreviousImage = () => {
+    setSelectedImageIndex(prev => 
+      prev === 0 ? vehicleImages.length - 1 : prev - 1
+    );
+  };
+
+  const handleNextImage = () => {
+    setSelectedImageIndex(prev => 
+      prev === vehicleImages.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  // Keyboard navigation for modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isImageModalOpen) return;
+      
+      switch (event.key) {
+        case 'Escape':
+          handleCloseModal();
+          break;
+        case 'ArrowLeft':
+          handlePreviousImage();
+          break;
+        case 'ArrowRight':
+          handleNextImage();
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isImageModalOpen, handleCloseModal, handlePreviousImage, handleNextImage]);
+
+  // Footer data from Anima
+  const navigationLinks = [
+    { label: "Ponuka vozidiel", href: "/vozidla", active: false },
+    { label: "Služby", href: "/services", active: false },
+    { label: "Store", href: "/store", active: false },
+    { label: "Kontakt", href: "/contact", active: false },
+    { label: "O nás", href: "/about", active: true },
+    { label: "Prihlásenie a Registrácia", href: "/auth", active: false },
+  ];
+
+  const socialMediaLinks = [
+    {
+      icon: "https://c.animaapp.com/nwqz0he8/img/icon-24-px-133.svg",
+      href: "https://facebook.com/blackrent",
+      alt: "Facebook",
+    },
+    {
+      icon: "https://c.animaapp.com/nwqz0he8/img/icon-24-px-134.svg", 
+      href: "https://instagram.com/blackrent",
+      alt: "Instagram",
+    },
+    {
+      icon: "https://c.animaapp.com/nwqz0he8/img/icon-24-px-135.svg",
+      href: "https://tiktok.com/@blackrent",
+      alt: "TikTok",
+    },
+  ];
+
+  const footerLinks = [
+    "Obchodné podmienky",
+    "Pravidlá pre súbory cookies", 
+    "Reklamačný poriadok",
+    "Ochrana osobných údajov",
+  ];
 
   const selectOption = (fieldId: string, option: string) => {
     setFormFields(prev => prev.map(field => 
@@ -162,6 +353,12 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
     };
   }, []);
 
+  // Handle booking form submission
+  const handleBookingSubmit = () => {
+    console.log('Booking submitted with data:', formFields);
+    // TODO: Implement actual booking submission logic
+  };
+
   return (
     <div
       className="w-screen grid [align-items:start] bg-colors-black-100 justify-items-center"
@@ -170,11 +367,11 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
       <div
         className={`bg-colors-black-100 relative ${
           screenWidth < 744 
-            ? "w-[360px] h-[3800px]" 
+            ? "w-[360px] h-[3950px]" 
             : screenWidth >= 744 && screenWidth < 1440
-              ? "w-[744px] h-[1900px]" 
+              ? "w-[744px] h-[2300px]" 
               : screenWidth >= 1440 && screenWidth < 1680 
-                ? "w-[1440px] h-[3600px] overflow-hidden" 
+                ? "w-[1440px] h-[3800px] overflow-hidden" 
                 : screenWidth >= 1680 
                   ? "w-[1728px] h-[3200px]" 
                   : ""
@@ -184,7 +381,12 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
         {screenWidth < 744 && (
           <>
             {/* Hero Image */}
-            <div className="flex w-[328px] h-64 items-end justify-end gap-2 p-4 absolute top-48 left-4 rounded-2xl overflow-hidden bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170@2x.png)] bg-cover bg-[50%_50%]">
+            <div 
+              className="flex w-[328px] h-64 items-end justify-end gap-2 p-4 absolute top-48 left-4 rounded-2xl overflow-hidden bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200"
+              onClick={() => handleImageClick(0)}
+              role="button"
+              aria-label="Zobraziť obrázok vozidla v plnej veľkosti"
+            >
               <div className="inline-flex items-center gap-1 px-4 py-2 relative flex-[0_0_auto] bg-[#00000080] rounded-lg">
                 <div className="relative w-6 h-6 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-65.svg)] bg-cover bg-[50%_50%]" />
                 <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-xs tracking-[0] leading-6 whitespace-nowrap">
@@ -329,13 +531,38 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
 
             {/* Vehicle Gallery - Mobile */}
             <div className="flex flex-col w-[328px] items-start gap-6 absolute top-[560px] left-4">
-              <div className="w-[328px] h-[220px] rounded-2xl bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-3.png)] relative bg-cover bg-[50%_50%]" />
+              <div 
+                className="w-[328px] h-[220px] rounded-2xl bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-3.png)] relative bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                onClick={() => handleImageClick(1)}
+                role="button"
+                aria-label="Zobraziť detail interiéru vozidla"
+              />
               
               <div className="flex flex-wrap w-[328px] items-center gap-2 relative flex-[0_0_auto]">
-                <div className="relative flex-1 grow h-16 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-169-2@2x.png)] bg-cover bg-[50%_50%]" />
-                <div className="flex-1 grow h-16 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-6@2x.png)] relative bg-cover bg-[50%_50%]" />
-                <div className="relative flex-1 grow h-16 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-167-2@2x.png)] bg-cover bg-[50%_50%]" />
-                <div className="relative flex-1 grow h-16 rounded-lg overflow-hidden bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-168-2@2x.png)] bg-cover bg-[50%_50%]">
+                <div 
+                  className="relative flex-1 grow h-16 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-169-2@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                  onClick={() => handleImageClick(2)}
+                  role="button"
+                  aria-label="Zobraziť bočný pohľad na vozidlo"
+                />
+                <div 
+                  className="flex-1 grow h-16 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-6@2x.png)] relative bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                  onClick={() => handleImageClick(3)}
+                  role="button"
+                  aria-label="Zobraziť zadný pohľad na vozidlo"
+                />
+                <div 
+                  className="relative flex-1 grow h-16 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-167-2@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                  onClick={() => handleImageClick(4)}
+                  role="button"
+                  aria-label="Zobraziť motor vozidla"
+                />
+                <div 
+                  className="relative flex-1 grow h-16 rounded-lg overflow-hidden bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-168-2@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200"
+                  onClick={() => handleImageClick(5)}
+                  role="button"
+                  aria-label="Zobraziť všetky obrázky vozidla"
+                >
                   <div className="inline-flex items-center justify-center gap-1 relative top-6 left-6">
                     <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-1000 text-xs tracking-[0] leading-6 whitespace-nowrap">
                       viac
@@ -483,19 +710,90 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                   "Čo ak dostanem pokutu?"
                 ].map((question, index) => (
                   <div key={index} className="flex flex-col items-start gap-2 p-4 relative self-stretch w-full flex-[0_0_auto] bg-colors-black-600 rounded-lg">
-                    <div className="flex items-center justify-between relative self-stretch w-full flex-[0_0_auto]">
-                      <div className="relative flex-1 [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-sm tracking-[0] leading-5">
+                    <button
+                      type="button"
+                      onClick={() => toggleFAQ(index)}
+                      className="flex items-center justify-between relative self-stretch w-full flex-[0_0_auto] cursor-pointer hover:opacity-80 transition-opacity"
+                    >
+                      <div className="relative flex-1 [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-sm tracking-[0] leading-5 text-left">
                         {question}
                       </div>
-                      <div className="relative w-5 h-5 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-filled-120.svg)] bg-cover bg-[50%_50%]" />
-                    </div>
+                      <div className={`relative w-5 h-5 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-filled-120.svg)] bg-cover bg-[50%_50%] transition-transform duration-200 ${expandedFAQ[index] ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {expandedFAQ[index] && (
+                      <div className="relative self-stretch w-full mt-2 pt-2 border-t border-colors-black-500">
+                        <div className="[font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-200 text-sm leading-5">
+                          {index === 0 && "V cene prenájmu je zahrnuté základné poistenie, slovenská diaľničná známka, dane a poplatky."}
+                          {index === 1 && "Vozidlo je odovzdané v čistom stave s plnou nádržou paliva a kompletnou výbavou."}
+                          {index === 2 && "Môžete cestovať do krajín EÚ podľa zvoleného balíčka. Základný balíček pokrýva Slovensko, Česko a Rakúsko."}
+                          {index === 3 && "Cestovanie mimo EÚ je možné po individuálnom posúdení. Kontaktujte nás pre viac informácií."}
+                          {index === 4 && "Akceptujeme platby kartou, bankovým prevodom alebo hotovosťou pri prevzatí."}
+                          {index === 5 && "Áno, všetky naše vozidlá majú platnú slovenskú diaľničnú známku."}
+                          {index === 6 && "Preprava zvierat je možná po predchádzajúcej dohode a za dodržania hygienických podmienok."}
+                          {index === 7 && "Pokuty sú účtované nájomcovi spolu s administratívnym poplatkom."}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
 
+            {/* Rychly kontakt - Mobile */}
+            <div className="flex flex-col w-[328px] items-center gap-6 p-6 absolute top-[2400px] left-4 bg-[#F0F0F5] rounded-2xl">
+              {/* Operator Avatar */}
+              <div className="relative w-16 h-16 rounded-full border border-solid border-[#F0F0F5] bg-[url(/operator-avatar-728c4b.jpg)] bg-cover bg-[50%_50%]">
+                {/* Online Status Indicator */}
+                <div className="absolute w-3 h-3 bottom-1 right-1 bg-[#3CEB82] rounded-full border border-solid border-[#F0F0F5]" />
+              </div>
+
+              <div className="flex flex-col items-center gap-4 relative">
+                <div className="flex flex-col items-center gap-2 relative">
+                  <h3 className="relative [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-[#283002] text-lg text-center tracking-[0] leading-6">
+                    Potrebujete poradiť? Sme tu pre vás.
+                  </h3>
+                  <p className="relative [font-family:'Poppins',Helvetica] font-medium text-[#A0A0A5] text-sm text-center tracking-[0] leading-5">
+                    Sme na príjme Po–Pia 08:00–17:00
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-center gap-3 relative">
+                  <a
+                    href="tel:+421910666949"
+                    className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                    aria-label="Zavolajte nám na číslo +421 910 666 949"
+                  >
+                    <img
+                      className="relative w-5 h-5"
+                      alt="Phone icon"
+                      src="/figma-assets/Icon 24 px.svg"
+                    />
+                    <span className="[font-family:'Poppins',Helvetica] font-medium text-[#646469] text-sm tracking-[0] leading-5">
+                      +421 910 666 949
+                    </span>
+                  </a>
+
+                  <a
+                    href="mailto:info@blackrent.sk"
+                    className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                    aria-label="Napíšte nám e-mail na info@blackrent.sk"
+                  >
+                    <img
+                      className="relative w-5 h-5"
+                      alt="Email icon"
+                      src="/figma-assets/Icon 24 px.svg"
+                    />
+                    <span className="[font-family:'Poppins',Helvetica] font-medium text-[#646469] text-sm tracking-[0] leading-5">
+                      info@blackrent.sk
+                    </span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
             {/* Booking Sidebar - Mobile */}
-            <div className="flex flex-col w-[328px] items-center gap-6 absolute top-[2600px] left-4 bg-colors-black-200 rounded-2xl overflow-hidden border border-solid border-colors-black-600">
+            <div className="flex flex-col w-[328px] items-center gap-6 absolute top-[2750px] left-4 bg-colors-black-200 rounded-2xl overflow-hidden border border-solid border-colors-black-600">
               <div className="flex flex-col items-start gap-6 px-4 py-6 relative self-stretch w-full flex-[0_0_auto] bg-colors-black-400">
                 <div className="relative w-fit [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-colors-light-yellow-accent-700 text-lg tracking-[0] leading-6 whitespace-nowrap">
                   Prenájom vozidla
@@ -503,42 +801,166 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
 
                 <div className="flex flex-col items-start gap-4 relative self-stretch w-full flex-[0_0_auto]">
                   <div className="flex flex-col items-start gap-3 relative self-stretch w-full flex-[0_0_auto]">
-                    <div className="flex h-10 items-center gap-0.5 pl-3 pr-2 py-0 relative self-stretch w-full bg-colors-black-600 rounded-lg">
-                      <div className="flex items-center gap-1 relative flex-1 grow">
-                        <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                          Miesto vyzdvihnutia
+                    {/* Pickup Location Dropdown */}
+                    <div className="relative self-stretch w-full">
+                      <div 
+                        className="flex h-10 items-center gap-0.5 pl-3 pr-2 py-0 relative self-stretch w-full bg-colors-black-600 rounded-lg cursor-pointer hover:bg-colors-black-500 transition-colors duration-200"
+                        onClick={() => toggleDropdown("pickup-location")}
+                        role="button"
+                        aria-expanded={openDropdowns["pickup-location"]}
+                        aria-haspopup="listbox"
+                      >
+                        <div className="flex items-center gap-1 relative flex-1 grow">
+                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
+                            {formFields.find(f => f.id === "pickup-location")?.value || "Miesto vyzdvihnutia"}
+                          </div>
                         </div>
+                        <div className={`relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-109.svg)] bg-cover bg-[50%_50%] transition-transform duration-200 ${openDropdowns["pickup-location"] ? 'rotate-180' : ''}`} />
                       </div>
-                      <div className="relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-109.svg)] bg-cover bg-[50%_50%]" />
+                      
+                      {/* Dropdown Options */}
+                      {openDropdowns["pickup-location"] && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-colors-black-600 rounded-lg shadow-lg border border-colors-black-500 z-10 max-h-48 overflow-y-auto">
+                          {formFields.find(f => f.id === "pickup-location")?.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="px-3 py-2 hover:bg-colors-black-500 cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                              onClick={() => {
+                                setFormFields(prev => prev.map(field => 
+                                  field.id === "pickup-location" ? { ...field, value: option } : field
+                                ));
+                                toggleDropdown("pickup-location");
+                              }}
+                            >
+                              <div className="[font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm">
+                                {option}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex h-10 items-center gap-0.5 pl-3 pr-2 py-0 relative self-stretch w-full bg-colors-black-600 rounded-lg">
-                      <div className="flex items-center gap-1 relative flex-1 grow">
-                        <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                          Miesto vrátenia
+                    {/* Return Location Dropdown */}
+                    <div className="relative self-stretch w-full">
+                      <div 
+                        className="flex h-10 items-center gap-0.5 pl-3 pr-2 py-0 relative self-stretch w-full bg-colors-black-600 rounded-lg cursor-pointer hover:bg-colors-black-500 transition-colors duration-200"
+                        onClick={() => toggleDropdown("return-location")}
+                        role="button"
+                        aria-expanded={openDropdowns["return-location"]}
+                        aria-haspopup="listbox"
+                      >
+                        <div className="flex items-center gap-1 relative flex-1 grow">
+                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
+                            {formFields.find(f => f.id === "return-location")?.value || "Miesto vrátenia"}
+                          </div>
                         </div>
+                        <div className={`relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-109.svg)] bg-cover bg-[50%_50%] transition-transform duration-200 ${openDropdowns["return-location"] ? 'rotate-180' : ''}`} />
                       </div>
-                      <div className="relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-109.svg)] bg-cover bg-[50%_50%]" />
+                      
+                      {/* Dropdown Options */}
+                      {openDropdowns["return-location"] && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-colors-black-600 rounded-lg shadow-lg border border-colors-black-500 z-10 max-h-48 overflow-y-auto">
+                          {formFields.find(f => f.id === "return-location")?.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="px-3 py-2 hover:bg-colors-black-500 cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                              onClick={() => {
+                                setFormFields(prev => prev.map(field => 
+                                  field.id === "return-location" ? { ...field, value: option } : field
+                                ));
+                                toggleDropdown("return-location");
+                              }}
+                            >
+                              <div className="[font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm">
+                                {option}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex flex-col items-start gap-3 relative self-stretch w-full flex-[0_0_auto]">
-                    <div className="flex h-10 items-center gap-0.5 pl-3 pr-2 py-0 relative self-stretch w-full bg-colors-black-600 rounded-lg">
-                      <div className="flex items-center gap-1 relative flex-1 grow">
-                        <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                          Deň vyzdvihnutia
+                    {/* Pickup Date Dropdown */}
+                    <div className="relative self-stretch w-full">
+                      <div 
+                        className="flex h-10 items-center gap-0.5 pl-3 pr-2 py-0 relative self-stretch w-full bg-colors-black-600 rounded-lg cursor-pointer hover:bg-colors-black-500 transition-colors duration-200"
+                        onClick={() => toggleDropdown("pickup-date")}
+                        role="button"
+                        aria-expanded={openDropdowns["pickup-date"]}
+                        aria-haspopup="listbox"
+                      >
+                        <div className="flex items-center gap-1 relative flex-1 grow">
+                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
+                            {formFields.find(f => f.id === "pickup-date")?.value || "Deň vyzdvihnutia"}
+                          </div>
                         </div>
+                        <div className={`relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-109.svg)] bg-cover bg-[50%_50%] transition-transform duration-200 ${openDropdowns["pickup-date"] ? 'rotate-180' : ''}`} />
                       </div>
-                      <div className="relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-109.svg)] bg-cover bg-[50%_50%]" />
+                      
+                      {/* Dropdown Options */}
+                      {openDropdowns["pickup-date"] && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-colors-black-600 rounded-lg shadow-lg border border-colors-black-500 z-10 max-h-48 overflow-y-auto">
+                          {formFields.find(f => f.id === "pickup-date")?.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="px-3 py-2 hover:bg-colors-black-500 cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                              onClick={() => {
+                                setFormFields(prev => prev.map(field => 
+                                  field.id === "pickup-date" ? { ...field, value: option } : field
+                                ));
+                                toggleDropdown("pickup-date");
+                              }}
+                            >
+                              <div className="[font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm">
+                                {option}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex h-10 items-center gap-0.5 pl-3 pr-2 py-0 relative self-stretch w-full bg-colors-black-600 rounded-lg">
-                      <div className="flex items-center gap-1 relative flex-1 grow">
-                        <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                          Deň vrátenia
+                    {/* Return Date Dropdown */}
+                    <div className="relative self-stretch w-full">
+                      <div 
+                        className="flex h-10 items-center gap-0.5 pl-3 pr-2 py-0 relative self-stretch w-full bg-colors-black-600 rounded-lg cursor-pointer hover:bg-colors-black-500 transition-colors duration-200"
+                        onClick={() => toggleDropdown("return-date")}
+                        role="button"
+                        aria-expanded={openDropdowns["return-date"]}
+                        aria-haspopup="listbox"
+                      >
+                        <div className="flex items-center gap-1 relative flex-1 grow">
+                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
+                            {formFields.find(f => f.id === "return-date")?.value || "Deň vrátenia"}
+                          </div>
                         </div>
+                        <div className={`relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-109.svg)] bg-cover bg-[50%_50%] transition-transform duration-200 ${openDropdowns["return-date"] ? 'rotate-180' : ''}`} />
                       </div>
-                      <div className="relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-109.svg)] bg-cover bg-[50%_50%]" />
+                      
+                      {/* Dropdown Options */}
+                      {openDropdowns["return-date"] && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-colors-black-600 rounded-lg shadow-lg border border-colors-black-500 z-10 max-h-48 overflow-y-auto">
+                          {formFields.find(f => f.id === "return-date")?.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="px-3 py-2 hover:bg-colors-black-500 cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                              onClick={() => {
+                                setFormFields(prev => prev.map(field => 
+                                  field.id === "return-date" ? { ...field, value: option } : field
+                                ));
+                                toggleDropdown("return-date");
+                              }}
+                            >
+                              <div className="[font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm">
+                                {option}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -552,7 +974,7 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
             </div>
 
             {/* Footer Section - Mobile */}
-            <div className="flex flex-col items-center w-[360px] absolute left-0 top-[3200px] bg-colors-black-100">
+            <div className="flex flex-col items-center w-[360px] absolute left-0 top-[3350px] bg-colors-black-100">
               <div className="flex flex-col items-start w-[328px] px-0 py-12 relative flex-[0_0_auto]">
                 <div className="relative w-[160px] h-6 bg-[url(https://c.animaapp.com/nwqz0he8/img/blackrent-logo-10.svg)] bg-cover bg-[50%_50%] mb-8" />
                 
@@ -639,12 +1061,26 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                     Ponuka vozidiel
                   </div>
                 </Link>
-                <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap">
-                  O nás
-                </div>
-                <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap">
-                  Kontakt
-                </div>
+                <Link href="/services">
+                  <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap cursor-pointer hover:text-colors-light-yellow-accent-700 transition-colors">
+                    Služby
+                  </div>
+                </Link>
+                <Link href="/store">
+                  <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap cursor-pointer hover:text-colors-light-yellow-accent-700 transition-colors">
+                    Store
+                  </div>
+                </Link>
+                <Link href="/about">
+                  <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap cursor-pointer hover:text-colors-light-yellow-accent-700 transition-colors">
+                    O nás
+                  </div>
+                </Link>
+                <Link href="/contact">
+                  <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap cursor-pointer hover:text-colors-light-yellow-accent-700 transition-colors">
+                    Kontakt
+                  </div>
+                </Link>
               </div>
             </div>
 
@@ -717,13 +1153,38 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
 
             {/* Vehicle Gallery - Tablet */}
             <div className="flex flex-col w-[680px] items-start gap-8 absolute top-[240px] left-8">
-              <div className="w-[680px] h-[380px] rounded-2xl bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-3.png)] relative bg-cover bg-[50%_50%]" />
+              <div 
+                className="w-[680px] h-[380px] rounded-2xl bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-3.png)] relative bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                onClick={() => handleImageClick(1)}
+                role="button"
+                aria-label="Zobraziť detail interiéru vozidla"
+              />
               
               <div className="flex flex-wrap w-[680px] items-center gap-4 relative flex-[0_0_auto]">
-                <div className="relative flex-1 grow h-20 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-169-2@2x.png)] bg-cover bg-[50%_50%]" />
-                <div className="flex-1 grow h-20 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-6@2x.png)] relative bg-cover bg-[50%_50%]" />
-                <div className="relative flex-1 grow h-20 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-167-2@2x.png)] bg-cover bg-[50%_50%]" />
-                <div className="relative flex-1 grow h-20 rounded-lg overflow-hidden bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-168-2@2x.png)] bg-cover bg-[50%_50%]">
+                <div 
+                  className="relative flex-1 grow h-20 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-169-2@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                  onClick={() => handleImageClick(2)}
+                  role="button"
+                  aria-label="Zobraziť bočný pohľad na vozidlo"
+                />
+                <div 
+                  className="flex-1 grow h-20 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-6@2x.png)] relative bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                  onClick={() => handleImageClick(3)}
+                  role="button"
+                  aria-label="Zobraziť zadný pohľad na vozidlo"
+                />
+                <div 
+                  className="relative flex-1 grow h-20 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-167-2@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                  onClick={() => handleImageClick(4)}
+                  role="button"
+                  aria-label="Zobraziť motor vozidla"
+                />
+                <div 
+                  className="relative flex-1 grow h-20 rounded-lg overflow-hidden bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-168-2@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200"
+                  onClick={() => handleImageClick(5)}
+                  role="button"
+                  aria-label="Zobraziť všetky obrázky vozidla"
+                >
                   <div className="inline-flex items-center justify-center gap-1 relative top-8 left-16">
                     <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-1000 text-sm tracking-[0] leading-6 whitespace-nowrap">
                       viac
@@ -899,6 +1360,408 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                 ))}
               </div>
             </div>
+
+            {/* FAQ Section - Tablet */}
+            <div className="flex flex-col w-[680px] items-start gap-8 absolute top-[1200px] left-8">
+              <div className="relative w-fit [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-colors-light-yellow-accent-700 text-2xl tracking-[0] leading-7 whitespace-nowrap">
+                Časté otázky
+              </div>
+
+              <div className="flex flex-col gap-4 relative self-stretch w-full flex-[0_0_auto]">
+                {[
+                  "Čo je zahrnuté v cene prenájmu?",
+                  "V akom stave je vozidlo pri odovzdaní?",
+                  "Do ktorých krajín môžem vycestovať?",
+                  "Môžem cestovať mimo Európskej Únie?",
+                  "Ako môžem platiť za prenájom?",
+                  "Majú vozidlá diaľničnú známku?",
+                  "Je možná preprava zvierat?",
+                  "Čo ak dostanem pokutu?"
+                ].map((question, index) => (
+                  <div key={index} className="flex flex-col items-start gap-3 p-4 relative self-stretch w-full flex-[0_0_auto] bg-colors-black-600 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => toggleFAQ(index + 100)} // offset for tablet
+                      className="flex items-center justify-between relative self-stretch w-full flex-[0_0_auto] cursor-pointer hover:opacity-80 transition-opacity"
+                    >
+                      <div className="relative flex-1 [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-base tracking-[0] leading-6 text-left">
+                        {question}
+                      </div>
+                      <div className={`relative w-6 h-6 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-filled-120.svg)] bg-cover bg-[50%_50%] transition-transform duration-200 ${expandedFAQ[index + 100] ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {expandedFAQ[index + 100] && (
+                      <div className="relative self-stretch w-full mt-2 pt-2 border-t border-colors-black-500">
+                        <div className="[font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-200 text-base leading-6">
+                          {index === 0 && "V cene prenájmu je zahrnuté základné poistenie, slovenská diaľničná známka, dane a poplatky."}
+                          {index === 1 && "Vozidlo je odovzdané v čistom stave s plnou nádržou paliva a kompletnou výbavou."}
+                          {index === 2 && "Môžete cestovať do krajín EÚ podľa zvoleného balíčka. Základný balíček pokrýva Slovensko, Česko a Rakúsko."}
+                          {index === 3 && "Cestovanie mimo EÚ je možné po individuálnom posúdení. Kontaktujte nás pre viac informácií."}
+                          {index === 4 && "Akceptujeme platby kartou, bankovým prevodom alebo hotovosťou pri prevzatí."}
+                          {index === 5 && "Áno, všetky naše vozidlá majú platnú slovenskú diaľničnú známku."}
+                          {index === 6 && "Preprava zvierat je možná po predchádzajúcej dohode a za dodržania hygienických podmienok."}
+                          {index === 7 && "Pokuty sú účtované nájomcovi spolu s administratívnym poplatkom."}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Booking Sidebar - Tablet 744px */}
+            <div className="flex flex-col w-[328px] items-center gap-6 absolute top-[1400px] left-[408px] bg-colors-black-200 rounded-2xl overflow-hidden border border-solid border-colors-black-600">
+              <div className="flex flex-col items-start gap-6 px-4 py-6 relative self-stretch w-full flex-[0_0_auto] bg-colors-black-400">
+                <div className="relative w-fit [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-colors-light-yellow-accent-700 text-lg tracking-[0] leading-6 whitespace-nowrap">
+                  Prenájom vozidla
+                </div>
+
+                <div className="flex flex-col items-start gap-4 relative self-stretch w-full flex-[0_0_auto]">
+                  <div className="flex flex-col items-start gap-3 relative self-stretch w-full flex-[0_0_auto]">
+                    {/* Pickup Location Dropdown */}
+                    <div className="relative self-stretch w-full flex-[0_0_auto]">
+                      <div 
+                        className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative self-stretch w-full bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                        onClick={() => toggleDropdown("pickup-location-744")}
+                        role="button"
+                        aria-expanded={openDropdowns["pickup-location-744"]}
+                        aria-haspopup="listbox"
+                      >
+                        <div className="flex items-center gap-1 relative flex-1 grow">
+                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                            {formFields.find(f => f.id === "pickup-location")?.value || "Miesto vyzdvihnutia"}
+                          </div>
+                        </div>
+                        <img
+                          className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["pickup-location-744"] ? 'rotate-180' : ''}`}
+                          alt="Arrow Down"
+                          src="/figma-assets/icon-16px-arrow-down.svg"
+                        />
+                      </div>
+                      
+                      {/* Dropdown Options */}
+                      {openDropdowns["pickup-location-744"] && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                          {formFields.find(f => f.id === "pickup-location")?.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                              onClick={() => {
+                                setFormFields(prev => prev.map(field => 
+                                  field.id === "pickup-location" ? { ...field, value: option } : field
+                                ));
+                                toggleDropdown("pickup-location-744");
+                              }}
+                            >
+                              <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                {option}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Return Location Dropdown */}
+                    <div className="relative self-stretch w-full flex-[0_0_auto]">
+                      <div 
+                        className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative self-stretch w-full bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                        onClick={() => toggleDropdown("return-location-744")}
+                        role="button"
+                        aria-expanded={openDropdowns["return-location-744"]}
+                        aria-haspopup="listbox"
+                      >
+                        <div className="flex items-center gap-1 relative flex-1 grow">
+                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                            {formFields.find(f => f.id === "return-location")?.value || "Miesto vrátenia"}
+                          </div>
+                        </div>
+                        <img
+                          className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["return-location-744"] ? 'rotate-180' : ''}`}
+                          alt="Arrow Down"
+                          src="/figma-assets/icon-16px-arrow-down.svg"
+                        />
+                      </div>
+                      
+                      {/* Dropdown Options */}
+                      {openDropdowns["return-location-744"] && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                          {formFields.find(f => f.id === "return-location")?.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                              onClick={() => {
+                                setFormFields(prev => prev.map(field => 
+                                  field.id === "return-location" ? { ...field, value: option } : field
+                                ));
+                                toggleDropdown("return-location-744");
+                              }}
+                            >
+                              <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                {option}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 relative self-stretch w-full flex-[0_0_auto]">
+                    {/* Pickup Date Dropdown */}
+                    <div className="relative flex-1 grow">
+                      <div 
+                        className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                        onClick={() => toggleDropdown("pickup-date-744")}
+                        role="button"
+                        aria-expanded={openDropdowns["pickup-date-744"]}
+                        aria-haspopup="listbox"
+                      >
+                        <div className="flex items-center gap-1 relative flex-1 grow">
+                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                            {formFields.find(f => f.id === "pickup-date")?.value || "Deň vyzdvihnutia"}
+                          </div>
+                        </div>
+                        <img
+                          className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["pickup-date-744"] ? 'rotate-180' : ''}`}
+                          alt="Arrow Down"
+                          src="/figma-assets/icon-16px-arrow-down.svg"
+                        />
+                      </div>
+                      
+                      {/* Dropdown Options */}
+                      {openDropdowns["pickup-date-744"] && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                          {formFields.find(f => f.id === "pickup-date")?.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                              onClick={() => {
+                                setFormFields(prev => prev.map(field => 
+                                  field.id === "pickup-date" ? { ...field, value: option } : field
+                                ));
+                                toggleDropdown("pickup-date-744");
+                              }}
+                            >
+                              <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                {option}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Return Date Dropdown */}
+                    <div className="relative flex-1 grow">
+                      <div 
+                        className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                        onClick={() => toggleDropdown("return-date-744")}
+                        role="button"
+                        aria-expanded={openDropdowns["return-date-744"]}
+                        aria-haspopup="listbox"
+                      >
+                        <div className="flex items-center gap-1 relative flex-1 grow">
+                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                            {formFields.find(f => f.id === "return-date")?.value || "Deň vrátenia"}
+                          </div>
+                        </div>
+                        <img
+                          className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["return-date-744"] ? 'rotate-180' : ''}`}
+                          alt="Arrow Down"
+                          src="/figma-assets/icon-16px-arrow-down.svg"
+                        />
+                      </div>
+                      
+                      {/* Dropdown Options */}
+                      {openDropdowns["return-date-744"] && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                          {formFields.find(f => f.id === "return-date")?.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                              onClick={() => {
+                                setFormFields(prev => prev.map(field => 
+                                  field.id === "return-date" ? { ...field, value: option } : field
+                                ));
+                                toggleDropdown("return-date-744");
+                              }}
+                            >
+                              <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                {option}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 relative self-stretch w-full flex-[0_0_auto]">
+                    {/* Pickup Time Dropdown */}
+                    <div className="relative flex-1 grow">
+                      <div 
+                        className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                        onClick={() => toggleDropdown("pickup-time-744")}
+                        role="button"
+                        aria-expanded={openDropdowns["pickup-time-744"]}
+                        aria-haspopup="listbox"
+                      >
+                        <div className="flex items-center gap-1 relative flex-1 grow">
+                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                            {formFields.find(f => f.id === "pickup-time")?.value || "Čas vyzdvihnutia"}
+                          </div>
+                        </div>
+                        <img
+                          className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["pickup-time-744"] ? 'rotate-180' : ''}`}
+                          alt="Arrow Down"
+                          src="/figma-assets/icon-16px-arrow-down.svg"
+                        />
+                      </div>
+                      
+                      {/* Dropdown Options */}
+                      {openDropdowns["pickup-time-744"] && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                          {formFields.find(f => f.id === "pickup-time")?.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                              onClick={() => {
+                                setFormFields(prev => prev.map(field => 
+                                  field.id === "pickup-time" ? { ...field, value: option } : field
+                                ));
+                                toggleDropdown("pickup-time-744");
+                              }}
+                            >
+                              <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                {option}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Return Time Dropdown */}
+                    <div className="relative flex-1 grow">
+                      <div 
+                        className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                        onClick={() => toggleDropdown("return-time-744")}
+                        role="button"
+                        aria-expanded={openDropdowns["return-time-744"]}
+                        aria-haspopup="listbox"
+                      >
+                        <div className="flex items-center gap-1 relative flex-1 grow">
+                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                            {formFields.find(f => f.id === "return-time")?.value || "Čas vrátenia"}
+                          </div>
+                        </div>
+                        <img
+                          className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["return-time-744"] ? 'rotate-180' : ''}`}
+                          alt="Arrow Down"
+                          src="/figma-assets/icon-16px-arrow-down.svg"
+                        />
+                      </div>
+                      
+                      {/* Dropdown Options */}
+                      {openDropdowns["return-time-744"] && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                          {formFields.find(f => f.id === "return-time")?.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                              onClick={() => {
+                                setFormFields(prev => prev.map(field => 
+                                  field.id === "return-time" ? { ...field, value: option } : field
+                                ));
+                                toggleDropdown("return-time-744");
+                              }}
+                            >
+                              <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                {option}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-start gap-6 px-4 py-6 relative self-stretch w-full flex-[0_0_auto]">
+                <div className="flex items-center justify-between relative self-stretch w-full flex-[0_0_auto]">
+                  <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap">
+                    Celková cena
+                  </div>
+                  <div className="relative w-fit [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-colors-light-yellow-accent-700 text-xl tracking-[0] leading-7 whitespace-nowrap">
+                    €89
+                  </div>
+                </div>
+
+                <button 
+                  className="flex w-full h-12 items-center justify-center gap-2 px-6 py-3 relative bg-colors-light-yellow-accent-700 rounded-lg hover:bg-colors-light-yellow-accent-600 transition-colors duration-200"
+                  onClick={handleBookingSubmit}
+                  aria-label="Rezervovať vozidlo"
+                >
+                  <div className="relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-colors-black-100 text-base tracking-[0] leading-6 whitespace-nowrap">
+                    Rezervovať
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Rychly kontakt - Tablet */}
+            <div className="flex flex-col w-[680px] items-center gap-8 p-8 absolute top-[1800px] left-8 bg-[#F0F0F5] rounded-2xl">
+              {/* Operator Avatar */}
+              <div className="relative w-20 h-20 rounded-full border border-solid border-[#F0F0F5] bg-[url(/operator-avatar-728c4b.jpg)] bg-cover bg-[50%_50%]">
+                {/* Online Status Indicator */}
+                <div className="absolute w-4 h-4 bottom-1 right-1 bg-[#3CEB82] rounded-full border border-solid border-[#F0F0F5]" />
+              </div>
+
+              <div className="flex flex-col items-center gap-6 relative">
+                <div className="flex flex-col items-center gap-3 relative">
+                  <h3 className="relative [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-[#283002] text-xl text-center tracking-[0] leading-7">
+                    Potrebujete poradiť? Sme tu pre vás.
+                  </h3>
+                  <p className="relative [font-family:'Poppins',Helvetica] font-medium text-[#A0A0A5] text-base text-center tracking-[0] leading-6">
+                    Sme na príjme Po–Pia 08:00–17:00
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-6 relative">
+                  <a
+                    href="tel:+421910666949"
+                    className="flex items-center gap-3 px-6 py-3 bg-white rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                    aria-label="Zavolajte nám na číslo +421 910 666 949"
+                  >
+                    <img
+                      className="relative w-6 h-6"
+                      alt="Phone icon"
+                      src="/figma-assets/Icon 24 px.svg"
+                    />
+                    <span className="[font-family:'Poppins',Helvetica] font-medium text-[#646469] text-base tracking-[0] leading-6">
+                      +421 910 666 949
+                    </span>
+                  </a>
+
+                  <a
+                    href="mailto:info@blackrent.sk"
+                    className="flex items-center gap-3 px-6 py-3 bg-white rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                    aria-label="Napíšte nám e-mail na info@blackrent.sk"
+                  >
+                    <img
+                      className="relative w-6 h-6"
+                      alt="Email icon"
+                      src="/figma-assets/Icon 24 px.svg"
+                    />
+                    <span className="[font-family:'Poppins',Helvetica] font-medium text-[#646469] text-base tracking-[0] leading-6">
+                      info@blackrent.sk
+                    </span>
+                  </a>
+                </div>
+              </div>
+            </div>
           </>
         )}
 
@@ -908,7 +1771,7 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
             {/* Navigation - 1440px */}
             <div className="flex w-[1440px] h-[88px] items-center justify-between px-8 py-0 absolute left-0 top-0">
               <Link href="/">
-                <div className="h-8 bg-[url(https://c.animaapp.com/nwqz0he8/img/vector-25.svg)] bg-cover bg-[50%_50%] relative w-[214px] cursor-pointer" />
+                <div className="h-8 bg-[url(https://c.animaapp.com/nwqz0he8/img/vector-25.svg)] bg-cover bg-[50%_50%] relative w-[214px] cursor-pointer hover:opacity-80 transition-opacity" />
               </Link>
               <div className="flex items-center gap-8">
                 <Link href="/vozidla">
@@ -916,12 +1779,26 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                     Ponuka vozidiel
                   </div>
                 </Link>
-                <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap">
-                  O nás
-                </div>
-                <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap">
-                  Kontakt
-                </div>
+                <Link href="/services">
+                  <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap cursor-pointer hover:text-colors-light-yellow-accent-700 transition-colors">
+                    Služby
+                  </div>
+                </Link>
+                <Link href="/store">
+                  <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap cursor-pointer hover:text-colors-light-yellow-accent-700 transition-colors">
+                    Store
+                  </div>
+                </Link>
+                <Link href="/about">
+                  <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap cursor-pointer hover:text-colors-light-yellow-accent-700 transition-colors">
+                    O nás
+                  </div>
+                </Link>
+                <Link href="/contact">
+                  <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap cursor-pointer hover:text-colors-light-yellow-accent-700 transition-colors">
+                    Kontakt
+                  </div>
+                </Link>
               </div>
             </div>
 
@@ -997,14 +1874,39 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
               <div className="inline-flex flex-col items-start gap-10 relative flex-[0_0_auto]">
                 <div className="inline-flex flex-col items-start gap-8 relative flex-[0_0_auto]">
                   {/* Main Image */}
-                  <div className="w-[640px] h-[432px] rounded-2xl bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-3.png)] relative bg-cover bg-[50%_50%]" />
+                  <div 
+                    className="w-[640px] h-[432px] rounded-2xl bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-3.png)] relative bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                    onClick={() => handleImageClick(1)}
+                    role="button"
+                    aria-label="Zobraziť detail interiéru vozidla"
+                  />
 
                   {/* Thumbnail Gallery */}
                   <div className="flex flex-wrap w-[640px] items-center gap-[36px_24px] relative flex-[0_0_auto]">
-                    <div className="relative flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-169-1@2x.png)] bg-cover bg-[50%_50%]" />
-                    <div className="flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-4@2x.png)] relative bg-cover bg-[50%_50%]" />
-                    <div className="relative flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-167-1@2x.png)] bg-cover bg-[50%_50%]" />
-                    <div className="relative flex-1 grow h-24 rounded-lg overflow-hidden bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-168-2@2x.png)] bg-cover bg-[50%_50%]">
+                    <div 
+                      className="relative flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-169-1@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                      onClick={() => handleImageClick(2)}
+                      role="button"
+                      aria-label="Zobraziť bočný pohľad na vozidlo"
+                    />
+                    <div 
+                      className="flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-4@2x.png)] relative bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                      onClick={() => handleImageClick(6)}
+                      role="button"
+                      aria-label="Zobraziť prístrojovú dosku vozidla"
+                    />
+                    <div 
+                      className="relative flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-167-1@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                      onClick={() => handleImageClick(7)}
+                      role="button"
+                      aria-label="Zobraziť sedadlá vozidla"
+                    />
+                    <div 
+                      className="relative flex-1 grow h-24 rounded-lg overflow-hidden bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-168-2@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200"
+                      onClick={() => handleImageClick(5)}
+                      role="button"
+                      aria-label="Zobraziť všetky obrázky vozidla"
+                    >
                       <div className="inline-flex items-center justify-center gap-1 relative top-9 left-[57px]">
                         <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-1000 text-sm tracking-[0] leading-6 whitespace-nowrap">
                           viac
@@ -1483,14 +2385,26 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                   {/* Left Column */}
                   <div className="flex flex-col gap-4 relative flex-1 grow">
                     <div className="flex flex-col items-start gap-2 p-6 relative self-stretch w-full flex-[0_0_auto] bg-colors-black-600 rounded-lg">
-                      <div className="flex items-center justify-between relative self-stretch w-full flex-[0_0_auto]">
+                      <button
+                        type="button"
+                        onClick={() => toggleFAQ(200)} // offset for 1440px
+                        className="flex items-center justify-between relative self-stretch w-full flex-[0_0_auto] cursor-pointer hover:opacity-80 transition-opacity"
+                      >
                         <div className="flex items-center gap-2 relative flex-1 grow">
                           <div className="relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
                             Čo je zahrnuté v cene prenájmu?
                           </div>
                         </div>
-                        <div className="relative w-6 h-6 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-filled-120.svg)] bg-cover bg-[50%_50%]" />
-                      </div>
+                        <div className={`relative w-6 h-6 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-filled-120.svg)] bg-cover bg-[50%_50%] transition-transform duration-200 ${expandedFAQ[200] ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {expandedFAQ[200] && (
+                        <div className="relative self-stretch w-full mt-2 pt-2 border-t border-colors-black-500">
+                          <div className="[font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-200 text-sm leading-6">
+                            V cene prenájmu je zahrnuté základné poistenie, slovenská diaľničná známka, dane a poplatky.
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col items-start gap-2 p-6 relative self-stretch w-full flex-[0_0_auto] bg-colors-black-600 rounded-lg">
@@ -1610,8 +2524,62 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
               </div>
             </div>
 
+            {/* Rychly kontakt - Desktop 1440px */}
+            <div className="flex flex-col w-[1120px] items-center gap-10 p-12 absolute left-40 top-[2900px] bg-[#F0F0F5] rounded-2xl">
+              {/* Operator Avatar */}
+              <div className="relative w-24 h-24 rounded-full border border-solid border-[#F0F0F5] bg-[url(/operator-avatar-728c4b.jpg)] bg-cover bg-[50%_50%]">
+                {/* Online Status Indicator */}
+                <div className="absolute w-5 h-5 bottom-1 right-1 bg-[#3CEB82] rounded-full border border-solid border-[#F0F0F5]" />
+              </div>
+
+              <div className="flex flex-col items-center gap-8 relative">
+                <div className="flex flex-col items-center gap-4 relative">
+                  <h3 className="relative [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-[#283002] text-2xl text-center tracking-[0] leading-7">
+                    Potrebujete poradiť? Sme tu pre vás.
+                  </h3>
+                  <p className="relative [font-family:'Poppins',Helvetica] font-medium text-[#A0A0A5] text-lg text-center tracking-[0] leading-6">
+                    Sme na príjme Po–Pia 08:00–17:00
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-8 relative">
+                  <a
+                    href="tel:+421910666949"
+                    className="flex items-center gap-4 px-8 py-4 bg-white rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                    aria-label="Zavolajte nám na číslo +421 910 666 949"
+                  >
+                    <img
+                      className="relative w-6 h-6"
+                      alt="Phone icon"
+                      src="/figma-assets/Icon 24 px.svg"
+                    />
+                    <span className="[font-family:'Poppins',Helvetica] font-medium text-[#646469] text-lg tracking-[0] leading-6">
+                      +421 910 666 949
+                    </span>
+                  </a>
+
+                  <div className="w-px h-8 bg-[#BEBEC3]" />
+
+                  <a
+                    href="mailto:info@blackrent.sk"
+                    className="flex items-center gap-4 px-8 py-4 bg-white rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                    aria-label="Napíšte nám e-mail na info@blackrent.sk"
+                  >
+                    <img
+                      className="relative w-6 h-6"
+                      alt="Email icon"
+                      src="/figma-assets/Icon 24 px.svg"
+                    />
+                    <span className="[font-family:'Poppins',Helvetica] font-medium text-[#646469] text-lg tracking-[0] leading-6">
+                      info@blackrent.sk
+                    </span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
             {/* Footer Section - Desktop 1440px */}
-            <div className="flex flex-col items-center w-[1440px] absolute left-0 top-[3000px] bg-colors-black-100">
+            <div className="flex flex-col items-center w-[1440px] absolute left-0 top-[3200px] bg-colors-black-100">
               {/* Newsletter Section */}
               <div className="flex items-start justify-between w-[1120px] px-0 py-20 relative flex-[0_0_auto]">
                 <div className="relative w-[214px] h-8 bg-[url(https://c.animaapp.com/nwqz0he8/img/blackrent-logo-10.svg)] bg-cover bg-[50%_50%]" />
@@ -1726,92 +2694,278 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                 <div className="flex flex-col items-start gap-6 relative self-stretch w-full flex-[0_0_auto]">
                   <div className="flex flex-col items-start gap-4 relative self-stretch w-full flex-[0_0_auto]">
                     <div className="flex items-start gap-4 relative self-stretch w-full flex-[0_0_auto]">
-                      <div className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg">
-                        <div className="flex items-center gap-1 relative flex-1 grow">
-                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
-                            Miesto vyzdvihnutia
+                      {/* Pickup Location Dropdown */}
+                      <div className="relative flex-1 grow">
+                        <div 
+                          className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                          onClick={() => toggleDropdown("pickup-location-1728")}
+                          role="button"
+                          aria-expanded={openDropdowns["pickup-location-1728"]}
+                          aria-haspopup="listbox"
+                        >
+                          <div className="flex items-center gap-1 relative flex-1 grow">
+                            <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                              {formFields.find(f => f.id === "pickup-location")?.value || "Miesto vyzdvihnutia"}
+                            </div>
                           </div>
+                          <img
+                            className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["pickup-location-1728"] ? 'rotate-180' : ''}`}
+                            alt="Arrow Down"
+                            src="/figma-assets/icon-16px-arrow-down.svg"
+                          />
                         </div>
-                        <img
-                          className="relative w-5 h-5"
-                          alt="Arrow Down"
-                          src="/figma-assets/icon-16px-arrow-down.svg"
-                        />
+                        
+                        {/* Dropdown Options */}
+                        {openDropdowns["pickup-location-1728"] && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                            {formFields.find(f => f.id === "pickup-location")?.options.map((option, index) => (
+                              <div
+                                key={index}
+                                className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                                onClick={() => {
+                                  setFormFields(prev => prev.map(field => 
+                                    field.id === "pickup-location" ? { ...field, value: option } : field
+                                  ));
+                                  toggleDropdown("pickup-location-1728");
+                                }}
+                              >
+                                <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                  {option}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-start gap-4 relative self-stretch w-full flex-[0_0_auto]">
-                      <div className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg">
-                        <div className="flex items-center gap-1 relative flex-1 grow">
-                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
-                            Miesto vrátenia
+                      {/* Return Location Dropdown */}
+                      <div className="relative flex-1 grow">
+                        <div 
+                          className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                          onClick={() => toggleDropdown("return-location-1728")}
+                          role="button"
+                          aria-expanded={openDropdowns["return-location-1728"]}
+                          aria-haspopup="listbox"
+                        >
+                          <div className="flex items-center gap-1 relative flex-1 grow">
+                            <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                              {formFields.find(f => f.id === "return-location")?.value || "Miesto vrátenia"}
+                            </div>
                           </div>
+                          <img
+                            className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["return-location-1728"] ? 'rotate-180' : ''}`}
+                            alt="Arrow Down"
+                            src="/figma-assets/icon-16px-arrow-down.svg"
+                          />
                         </div>
-                        <img
-                          className="relative w-5 h-5"
-                          alt="Arrow Down"
-                          src="/figma-assets/icon-16px-arrow-down.svg"
-                        />
+                        
+                        {/* Dropdown Options */}
+                        {openDropdowns["return-location-1728"] && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                            {formFields.find(f => f.id === "return-location")?.options.map((option, index) => (
+                              <div
+                                key={index}
+                                className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                                onClick={() => {
+                                  setFormFields(prev => prev.map(field => 
+                                    field.id === "return-location" ? { ...field, value: option } : field
+                                  ));
+                                  toggleDropdown("return-location-1728");
+                                }}
+                              >
+                                <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                  {option}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-start gap-4 relative self-stretch w-full flex-[0_0_auto]">
-                      <div className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg">
-                        <div className="flex items-center gap-1 relative flex-1 grow">
-                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
-                            Deň vyzdvihnutia
+                      {/* Pickup Date Dropdown */}
+                      <div className="relative flex-1 grow">
+                        <div 
+                          className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                          onClick={() => toggleDropdown("pickup-date-1728")}
+                          role="button"
+                          aria-expanded={openDropdowns["pickup-date-1728"]}
+                          aria-haspopup="listbox"
+                        >
+                          <div className="flex items-center gap-1 relative flex-1 grow">
+                            <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                              {formFields.find(f => f.id === "pickup-date")?.value || "Deň vyzdvihnutia"}
+                            </div>
                           </div>
+                          <img
+                            className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["pickup-date-1728"] ? 'rotate-180' : ''}`}
+                            alt="Arrow Down"
+                            src="/figma-assets/icon-16px-arrow-down.svg"
+                          />
                         </div>
-                        <img
-                          className="relative w-5 h-5"
-                          alt="Arrow Down"
-                          src="/figma-assets/icon-16px-arrow-down.svg"
-                        />
+                        
+                        {/* Dropdown Options */}
+                        {openDropdowns["pickup-date-1728"] && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                            {formFields.find(f => f.id === "pickup-date")?.options.map((option, index) => (
+                              <div
+                                key={index}
+                                className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                                onClick={() => {
+                                  setFormFields(prev => prev.map(field => 
+                                    field.id === "pickup-date" ? { ...field, value: option } : field
+                                  ));
+                                  toggleDropdown("pickup-date-1728");
+                                }}
+                              >
+                                <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                  {option}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-start gap-4 relative self-stretch w-full flex-[0_0_auto]">
-                      <div className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg">
-                        <div className="flex items-center gap-1 relative flex-1 grow">
-                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
-                            Deň vrátenia
+                      {/* Return Date Dropdown */}
+                      <div className="relative flex-1 grow">
+                        <div 
+                          className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                          onClick={() => toggleDropdown("return-date-1728")}
+                          role="button"
+                          aria-expanded={openDropdowns["return-date-1728"]}
+                          aria-haspopup="listbox"
+                        >
+                          <div className="flex items-center gap-1 relative flex-1 grow">
+                            <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                              {formFields.find(f => f.id === "return-date")?.value || "Deň vrátenia"}
+                            </div>
                           </div>
+                          <img
+                            className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["return-date-1728"] ? 'rotate-180' : ''}`}
+                            alt="Arrow Down"
+                            src="/figma-assets/icon-16px-arrow-down.svg"
+                          />
                         </div>
-                        <img
-                          className="relative w-5 h-5"
-                          alt="Arrow Down"
-                          src="/figma-assets/icon-16px-arrow-down.svg"
-                        />
+                        
+                        {/* Dropdown Options */}
+                        {openDropdowns["return-date-1728"] && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                            {formFields.find(f => f.id === "return-date")?.options.map((option, index) => (
+                              <div
+                                key={index}
+                                className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                                onClick={() => {
+                                  setFormFields(prev => prev.map(field => 
+                                    field.id === "return-date" ? { ...field, value: option } : field
+                                  ));
+                                  toggleDropdown("return-date-1728");
+                                }}
+                              >
+                                <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                  {option}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-start gap-4 relative self-stretch w-full flex-[0_0_auto]">
-                      <div className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg">
-                        <div className="flex items-center gap-1 relative flex-1 grow">
-                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
-                            Čas vyzdvihnutia
+                      {/* Pickup Time Dropdown */}
+                      <div className="relative flex-1 grow">
+                        <div 
+                          className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                          onClick={() => toggleDropdown("pickup-time-1728")}
+                          role="button"
+                          aria-expanded={openDropdowns["pickup-time-1728"]}
+                          aria-haspopup="listbox"
+                        >
+                          <div className="flex items-center gap-1 relative flex-1 grow">
+                            <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                              {formFields.find(f => f.id === "pickup-time")?.value || "Čas vyzdvihnutia"}
+                            </div>
                           </div>
+                          <img
+                            className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["pickup-time-1728"] ? 'rotate-180' : ''}`}
+                            alt="Arrow Down"
+                            src="/figma-assets/icon-16px-arrow-down.svg"
+                          />
                         </div>
-                        <img
-                          className="relative w-5 h-5"
-                          alt="Arrow Down"
-                          src="/figma-assets/icon-16px-arrow-down.svg"
-                        />
+                        
+                        {/* Dropdown Options */}
+                        {openDropdowns["pickup-time-1728"] && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                            {formFields.find(f => f.id === "pickup-time")?.options.map((option, index) => (
+                              <div
+                                key={index}
+                                className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                                onClick={() => {
+                                  setFormFields(prev => prev.map(field => 
+                                    field.id === "pickup-time" ? { ...field, value: option } : field
+                                  ));
+                                  toggleDropdown("pickup-time-1728");
+                                }}
+                              >
+                                <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                  {option}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-start gap-4 relative self-stretch w-full flex-[0_0_auto]">
-                      <div className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg">
-                        <div className="flex items-center gap-1 relative flex-1 grow">
-                          <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
-                            Čas vrátenia
+                      {/* Return Time Dropdown */}
+                      <div className="relative flex-1 grow">
+                        <div 
+                          className="flex h-10 items-center gap-0.5 pl-4 pr-3 py-0 relative flex-1 grow bg-[#1E1E23] rounded-lg cursor-pointer hover:bg-[#28282D] transition-colors duration-200"
+                          onClick={() => toggleDropdown("return-time-1728")}
+                          role="button"
+                          aria-expanded={openDropdowns["return-time-1728"]}
+                          aria-haspopup="listbox"
+                        >
+                          <div className="flex items-center gap-1 relative flex-1 grow">
+                            <div className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm tracking-[0] leading-[1.7142857142857142em] whitespace-nowrap">
+                              {formFields.find(f => f.id === "return-time")?.value || "Čas vrátenia"}
+                            </div>
                           </div>
+                          <img
+                            className={`relative w-5 h-5 transition-transform duration-200 ${openDropdowns["return-time-1728"] ? 'rotate-180' : ''}`}
+                            alt="Arrow Down"
+                            src="/figma-assets/icon-16px-arrow-down.svg"
+                          />
                         </div>
-                        <img
-                          className="relative w-5 h-5"
-                          alt="Arrow Down"
-                          src="/figma-assets/icon-16px-arrow-down.svg"
-                        />
+                        
+                        {/* Dropdown Options */}
+                        {openDropdowns["return-time-1728"] && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1E23] rounded-lg shadow-lg border border-[#28282D] z-10 max-h-48 overflow-y-auto">
+                            {formFields.find(f => f.id === "return-time")?.options.map((option, index) => (
+                              <div
+                                key={index}
+                                className="px-4 py-2 hover:bg-[#28282D] cursor-pointer transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+                                onClick={() => {
+                                  setFormFields(prev => prev.map(field => 
+                                    field.id === "return-time" ? { ...field, value: option } : field
+                                  ));
+                                  toggleDropdown("return-time-1728");
+                                }}
+                              >
+                                <div className="[font-family:'Poppins',Helvetica] font-medium text-[#BEBEC3] text-sm">
+                                  {option}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1881,15 +3035,38 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                   </div>
                 </div>
 
-                <div className="flex flex-col h-10 items-start justify-center gap-4 p-4 relative self-stretch w-full bg-colors-black-600 rounded-lg">
-                  <div className="gap-1.5 flex-[0_0_auto] mt-[-4.00px] mb-[-4.00px] flex items-center relative self-stretch w-full">
-                    <div className="relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-110.svg)] bg-cover bg-[50%_50%]" />
+                {/* Mám promokód - Mobile */}
+                <div className={`flex-col items-start justify-center gap-4 p-4 self-stretch w-full bg-colors-black-600 rounded-lg flex relative transition-all duration-300 ${isPromoExpanded ? 'h-auto' : 'h-10'}`}>
+                  <button
+                    type="button"
+                    onClick={() => setIsPromoExpanded(!isPromoExpanded)}
+                    className="items-center gap-1.5 self-stretch w-full flex-[0_0_auto] flex relative hover:opacity-80 transition-opacity"
+                  >
+                    <div className={`relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-110.svg)] bg-cover bg-[50%_50%] transition-transform ${isPromoExpanded ? 'rotate-45' : ''}`} />
                     <div className="flex-1 grow flex items-center justify-between relative">
                       <div className="relative w-fit mt-[-0.50px] [font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
                         Mám promokód
                       </div>
                     </div>
-                  </div>
+                  </button>
+                  
+                  {isPromoExpanded && (
+                    <div className="flex flex-col gap-2 self-stretch w-full mt-2">
+                      <input
+                        type="text"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        placeholder="Zadajte promokód"
+                        className="w-full px-3 py-2 bg-colors-black-700 text-colors-white-800 text-sm rounded-md border border-colors-black-800 focus:border-colors-light-yellow-accent-700 focus:outline-none transition-colors"
+                      />
+                      <button
+                        type="button"
+                        className="w-full px-4 py-2 bg-colors-light-yellow-accent-700 text-colors-black-100 text-sm font-medium rounded-md hover:bg-colors-light-yellow-accent-600 transition-colors"
+                      >
+                        Použiť
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col items-start gap-2 relative self-stretch w-full flex-[0_0_auto]">
@@ -1909,38 +3086,41 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                     </div>
                   </div>
 
-                  <div className="justify-around pl-4 pr-0 py-0 flex h-8 items-center gap-2 relative self-stretch w-full">
-                    <div className="flex items-center gap-1.5 relative flex-1 grow">
-                      <div className="relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-84.svg)] bg-cover bg-[50%_50%]" />
-                      <div className="relative flex-1 [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-sm tracking-[0] leading-6">
-                        Slovenská republika
+                  {/* Radio Options - Mobile */}
+                  {travelOptions.map((option, index) => (
+                    <div key={option.id} className="justify-around pl-4 pr-0 py-0 flex h-8 items-center gap-2 relative self-stretch w-full">
+                      <div className="flex items-center gap-1.5 relative flex-1 grow">
+                        <button
+                          type="button"
+                          onClick={() => handleTravelOptionChange(option.id)}
+                          className="relative w-4 h-4 cursor-pointer hover:scale-105 transition-transform"
+                        >
+                          {option.isSelected ? (
+                            <div className="relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-84.svg)] bg-cover bg-[50%_50%]" />
+                          ) : (
+                            <div className="relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-85.svg)] bg-cover bg-[50%_50%] hover:opacity-80 transition-opacity" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTravelOptionChange(option.id)}
+                          className="relative flex-1 text-left cursor-pointer hover:text-colors-light-yellow-accent-700 transition-colors"
+                        >
+                          <p className="[font-family:'Poppins',Helvetica] font-normal text-colors-white-800 text-sm tracking-[0] leading-6">
+                            <span className={option.isSelected ? "font-medium" : "font-medium"}>
+                              {option.label}
+                              {option.description && " "}
+                            </span>
+                            {option.description && (
+                              <span className="[font-family:'Poppins',Helvetica] font-normal text-[#f0f0f5] text-sm tracking-[0] leading-6">
+                                {option.description}
+                              </span>
+                            )}
+                          </p>
+                        </button>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="justify-around pl-4 pr-0 py-0 flex h-8 items-center gap-2 relative self-stretch w-full">
-                    <div className="flex items-center gap-1.5 relative flex-1 grow">
-                      <div className="relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-85.svg)] bg-cover bg-[50%_50%]" />
-                      <p className="relative flex-1 [font-family:'Poppins',Helvetica] font-normal text-colors-white-800 text-sm tracking-[0] leading-6">
-                        <span className="font-medium">Európska únia </span>
-                        <span className="[font-family:'Poppins',Helvetica] font-normal text-[#f0f0f5] text-sm tracking-[0] leading-6">
-                          (+ 50 €)
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="justify-around pl-4 pr-0 py-0 flex h-8 items-center gap-2 relative self-stretch w-full">
-                    <div className="flex items-center gap-1.5 relative flex-1 grow">
-                      <div className="relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-85.svg)] bg-cover bg-[50%_50%]" />
-                      <p className="relative flex-1 [font-family:'Poppins',Helvetica] font-normal text-colors-white-800 text-sm tracking-[0] leading-6">
-                        <span className="font-medium">Mimo EU </span>
-                        <span className="[font-family:'Poppins',Helvetica] font-normal text-colors-white-800 text-sm tracking-[0] leading-6">
-                          (individuálne posúdenie, kontaktujte nás)
-                        </span>
-                      </p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -2095,7 +3275,13 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                   {/* Action Buttons */}
                   <div className="flex items-center justify-center gap-1 relative flex-[0_0_auto]" style={{gap: '4px'}}>
                     {/* Share Button */}
-                    <div className="flex w-10 h-10 items-center justify-center gap-2 relative rounded-lg cursor-pointer hover:bg-colors-black-700 transition-colors" style={{padding: '8px'}}>
+                    <button
+                      type="button"
+                      onClick={handleShareVehicle}
+                      className="flex w-10 h-10 items-center justify-center gap-2 relative rounded-lg cursor-pointer hover:bg-colors-black-700 transition-colors"
+                      style={{padding: '8px'}}
+                      aria-label="Zdieľať vozidlo"
+                    >
                       <div className="relative w-6 h-6">
                         <img
                           className="relative w-6 h-6"
@@ -2103,15 +3289,29 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                           src="/figma-assets/Icon 24 px (1).svg"
                         />
                       </div>
-                    </div>
+                    </button>
                     {/* Heart Button */}
-                    <div className="flex w-10 h-10 items-center justify-center gap-2 relative rounded-lg cursor-pointer hover:bg-colors-black-700 transition-colors" style={{padding: '8px'}}>
+                    <button
+                      type="button"
+                      onClick={handleSaveVehicle}
+                      className="flex w-10 h-10 items-center justify-center gap-2 relative rounded-lg cursor-pointer hover:bg-colors-black-700 transition-colors"
+                      style={{padding: '8px'}}
+                      aria-label={isVehicleSaved ? "Odstrániť z obľúbených" : "Pridať do obľúbených"}
+                    >
                       <div className="relative w-6 h-6">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="#BEBEC3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path 
+                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" 
+                            stroke={isVehicleSaved ? "#F0FF98" : "#BEBEC3"} 
+                            fill={isVehicleSaved ? "#F0FF98" : "none"}
+                            strokeWidth="2" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                            className="transition-colors duration-200"
+                          />
                         </svg>
                       </div>
-                    </div>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2122,14 +3322,39 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
               <div className="inline-flex flex-col items-start gap-10 relative flex-[0_0_auto]">
                 <div className="inline-flex flex-col items-start gap-8 relative flex-[0_0_auto]">
                   {/* Main Image */}
-                  <div className="w-[761px] h-[432px] rounded-2xl bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-5.png)] relative bg-cover bg-[50%_50%]" />
+                  <div 
+                    className="w-[761px] h-[432px] rounded-2xl bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-5.png)] relative bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                    onClick={() => handleImageClick(0)}
+                    role="button"
+                    aria-label="Zobraziť hlavný obrázok vozidla"
+                  />
 
                   {/* Thumbnail Gallery */}
                   <div className="flex flex-wrap w-[761px] items-center gap-[36px_24px] relative flex-[0_0_auto]">
-                    <div className="relative flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-169-2@2x.png)] bg-cover bg-[50%_50%]" />
-                    <div className="flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-6@2x.png)] relative bg-cover bg-[50%_50%]" />
-                    <div className="relative flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-167-2@2x.png)] bg-cover bg-[50%_50%]" />
-                    <div className="relative flex-1 grow h-24 rounded-lg overflow-hidden bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-168-2@2x.png)] bg-cover bg-[50%_50%]">
+                    <div 
+                      className="relative flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-169-2@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                      onClick={() => handleImageClick(2)}
+                      role="button"
+                      aria-label="Zobraziť bočný pohľad na vozidlo"
+                    />
+                    <div 
+                      className="flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-170-6@2x.png)] relative bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                      onClick={() => handleImageClick(3)}
+                      role="button"
+                      aria-label="Zobraziť zadný pohľad na vozidlo"
+                    />
+                    <div 
+                      className="relative flex-1 grow h-24 rounded-lg bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-167-2@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200" 
+                      onClick={() => handleImageClick(4)}
+                      role="button"
+                      aria-label="Zobraziť motor vozidla"
+                    />
+                    <div 
+                      className="relative flex-1 grow h-24 rounded-lg overflow-hidden bg-[url(https://c.animaapp.com/nwqz0he8/img/frame-168-2@2x.png)] bg-cover bg-[50%_50%] cursor-pointer hover:opacity-90 transition-opacity duration-200"
+                      onClick={() => handleImageClick(5)}
+                      role="button"
+                      aria-label="Zobraziť všetky obrázky vozidla"
+                    >
                       <div className="inline-flex items-center justify-center gap-1 relative top-9 left-[57px]">
                         <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-1000 text-sm tracking-[0] leading-6 whitespace-nowrap">
                           viac
@@ -2975,9 +4200,10 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
               </form>
             </div>
 
-            {/* FAQ + Footer Section - Desktop 1728px */}
-            <div className="flex flex-col w-[1728px] items-center gap-2 px-2 py-50 absolute left-0 top-[3048px] bg-colors-black-300 rounded-t-[40px]">
-              {/* FAQ Section - Frame 359 */}
+                          {/* FAQ + Footer Section - Desktop 1728px */}
+              <div className="flex flex-col w-[1728px] items-center gap-2 pt-[200px] pb-0 px-2 absolute left-0 top-[3048px] bg-colors-black-300 rounded-t-[40px]">
+              
+              {/* FAQ Section - Frame 359 - NAVRCHU */}
               <div className="flex flex-col items-center gap-[120px] relative">
                 {/* FAQ Title */}
                 <div className="relative w-[300px] h-6 [font-family:'SF_Pro',Helvetica] font-[650] text-[40px] leading-[0.6em] text-center text-[#F0FF98]">
@@ -3014,24 +4240,23 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                         answer: "Akceptujeme platby kreditnou kartou, bankovým prevodom alebo hotovosťou. Depozit je možné zložiť len kreditnou kartou."
                       }
                     ].map((faq, index) => (
-                      <div key={index} className="flex flex-col justify-center items-stretch gap-2 px-6 py-4 pl-6 bg-[#1E1E23] rounded-lg">
+                      <div key={index} className="flex flex-col justify-center items-stretch gap-2 pt-4 pr-4 pb-4 pl-6 bg-[#1E1E23] rounded-lg">
                         <div 
-                          className="flex justify-between items-center gap-[269px] cursor-pointer"
+                          className="flex justify-between items-center cursor-pointer"
                           onClick={() => toggleFAQ(index)}
                         >
-                          <div className="flex items-center gap-2">
-                            <div className="[font-family:'Poppins',Helvetica] font-semibold text-[#F0F0F5] text-sm leading-[1.7142857142857142em]">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="[font-family:'Poppins',Helvetica] font-semibold text-[#F0F0F5] text-sm leading-[1.7142857142857142em] whitespace-nowrap overflow-hidden text-ellipsis">
                               {faq.question}
                             </div>
                           </div>
                           <div className="w-6 h-6 flex items-center justify-center">
                             <img 
-                              src="/figma-assets/arrow-small-down.svg" 
+                              src="/figma-assets/Icon 24 px filled.svg" 
                               alt="Toggle FAQ"
-                              className={`w-[10px] h-[6px] transition-transform duration-200 ${
+                              className={`w-6 h-6 transition-transform duration-200 ${
                                 expandedFAQ[index] ? 'rotate-180' : ''
                               }`}
-                              style={{ filter: 'brightness(0) saturate(100%) invert(85%) sepia(100%) saturate(1000%) hue-rotate(60deg) brightness(110%) contrast(100%)' }}
                             />
                           </div>
                         </div>
@@ -3074,24 +4299,23 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                         answer: "Rezerváciu môžete zrušiť do 24 hodín pred začiatkom prenájmu bez poplatku. Pri neskoršom zrušení účtujeme 50% z ceny prenájmu."
                       }
                     ].map((faq, index) => (
-                      <div key={index + 6} className="flex flex-col justify-center items-stretch gap-2 px-6 py-4 pl-6 bg-[#1E1E23] rounded-lg">
+                      <div key={index + 6} className="flex flex-col justify-center items-stretch gap-2 pt-4 pr-4 pb-4 pl-6 bg-[#1E1E23] rounded-lg">
                         <div 
-                          className="flex justify-between items-center gap-[272px] cursor-pointer"
+                          className="flex justify-between items-center cursor-pointer"
                           onClick={() => toggleFAQ(index + 6)}
                         >
-                          <div className="flex items-center gap-2">
-                            <div className="[font-family:'Poppins',Helvetica] font-semibold text-[#F0F0F5] text-sm leading-[1.7142857142857142em]">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="[font-family:'Poppins',Helvetica] font-semibold text-[#F0F0F5] text-sm leading-[1.7142857142857142em] whitespace-nowrap overflow-hidden text-ellipsis">
                               {faq.question}
                             </div>
                           </div>
                           <div className="w-6 h-6 flex items-center justify-center">
                             <img 
-                              src="/figma-assets/arrow-small-down.svg" 
+                              src="/figma-assets/Icon 24 px filled.svg" 
                               alt="Toggle FAQ"
-                              className={`w-[10px] h-[6px] transition-transform duration-200 ${
+                              className={`w-6 h-6 transition-transform duration-200 ${
                                 expandedFAQ[index + 6] ? 'rotate-180' : ''
                               }`}
-                              style={{ filter: 'brightness(0) saturate(100%) invert(85%) sepia(100%) saturate(1000%) hue-rotate(60deg) brightness(110%) contrast(100%)' }}
                             />
                           </div>
                         </div>
@@ -3108,99 +4332,230 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                 </div>
               </div>
 
-              {/* Footer Content */}
-                <div className="flex items-start justify-between w-[1328px] px-0 py-20 relative flex-[0_0_auto]">
-                  {/* Logo */}
-                  <div className="relative w-[214.4px] h-8 bg-[url(https://c.animaapp.com/nwqz0he8/img/blackrent-logo-10.svg)] bg-cover bg-[50%_50%]" />
+              {/* Rychly kontakt 1728 new - POD FAQ */}
+              <div className="flex flex-col w-[1328px] items-center pt-24 pb-[72px] px-0 relative mt-20 bg-[#F0F0F5] rounded-3xl">
+                {/* Operator Avatar */}
+                <div className="absolute w-[104px] h-[104px] -top-12 left-[612px] rounded-[99px] border border-solid border-[#F0F0F5] bg-[url(/operator-avatar-728c4b.jpg)] bg-cover bg-[50%_50%]" />
 
-                  <div className="flex items-start gap-20 relative flex-[0_0_auto]">
-                    {/* Newsletter Section */}
-                    <div className="flex flex-col items-start gap-10 relative w-[422px]">
-                      <div className="flex flex-col items-start gap-8 relative self-stretch w-full flex-[0_0_auto]">
-                        <div className="relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-xl tracking-[0] leading-6 whitespace-nowrap">
-                          Newsletter
-                        </div>
-                        <p className="relative self-stretch [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-400 text-sm tracking-[0] leading-5">
-                          Prihláste sa na newsletter a získajte 5€ voucher na prenájom vozidla z našej autopožičovňe.
-                        </p>
-                      </div>
+                {/* Online Status Indicator */}
+                <div className="absolute w-3.5 h-3.5 top-[29px] left-[697px] bg-[#3CEB82] rounded-[7px] border border-solid border-[#F0F0F5]" />
 
-                      <div className="flex items-center justify-between gap-2 px-4 py-2 relative self-stretch w-full flex-[0_0_auto] bg-colors-black-600 rounded-[99px]">
-                        <div className="flex items-center gap-2 relative flex-1 grow">
-                          <div className="relative w-6 h-6 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-132.svg)] bg-cover bg-[50%_50%]" />
-                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                            Váš e-mail
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-center gap-1.5 px-5 py-2 relative flex-[0_0_auto] bg-colors-light-yellow-accent-700 rounded-[99px]">
-                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-colors-black-100 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                            Potvrdiť
-                          </div>
-                          <div className="relative w-4 h-4 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-16-px-103.svg)] bg-cover bg-[50%_50%]" />
-                        </div>
+                <div className="inline-flex flex-col items-center gap-10 relative flex-[0_0_auto]">
+                  <header className="inline-flex flex-col items-start gap-4 relative flex-[0_0_auto]">
+                    <h1 className="relative w-[874px] h-6 mt-[-1.00px] [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-[#283002] text-[32px] text-center tracking-[0] leading-6 whitespace-nowrap">
+                      Potrebujete poradiť? Sme tu pre vás.
+                    </h1>
+
+                    <p className="relative w-[874px] h-4 [font-family:'Poppins',Helvetica] font-medium text-[#A0A0A5] text-base text-center tracking-[0] leading-6 whitespace-nowrap">
+                      Sme na príjme Po–Pia 08:00–17:00
+                    </p>
+                  </header>
+
+                  <div className="flex h-10 items-center justify-center gap-4 relative self-stretch w-full">
+                    <div className="inline-flex items-center justify-center gap-2 relative flex-[0_0_auto]">
+                      <img
+                        className="relative w-6 h-6"
+                        alt="Phone icon"
+                        src="/figma-assets/Icon 24 px.svg"
+                      />
+
+                      <div className="inline-flex flex-col items-start gap-4 relative flex-[0_0_auto]">
+                        <a
+                          className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#646469] text-xl tracking-[0] leading-6 whitespace-nowrap hover:text-[#283002] transition-colors duration-200"
+                          href="tel:+421910666949"
+                          aria-label="Zavolajte nám na číslo +421 910 666 949"
+                        >
+                          +421 910 666 949
+                        </a>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-10 relative flex-[0_0_auto]">
-                      {/* Site Map */}
-                      <div className="flex flex-col items-start gap-8 relative w-[195px]">
-                        <div className="relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-xl tracking-[0] leading-6 whitespace-nowrap">
-                          Mapa stránok
-                        </div>
-                        <div className="flex flex-col items-start gap-6 relative flex-[0_0_auto]">
-                          <Link href="/vozidla">
-                            <div className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap cursor-pointer hover:text-colors-light-yellow-accent-700 transition-colors">
-                              Ponuka vozidiel
-                            </div>
-                          </Link>
-                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                            Služby
-                          </div>
-                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                            Store
-                          </div>
-                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                            Kontakt
-                          </div>
-                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                            O nás
-                          </div>
-                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                            Prihlásenie a Registrácia
-                          </div>
-                        </div>
+                    <img
+                      className="relative self-stretch w-px mt-[-0.50px] mb-[-0.50px]"
+                      alt="Divider line"
+                      src="/figma-assets/Line.svg"
+                    />
+
+                    <div className="inline-flex items-center gap-2 relative flex-[0_0_auto]">
+                      <img
+                        className="relative w-6 h-6"
+                        alt="Email icon"
+                        src="/figma-assets/Icon 24 px.svg"
+                      />
+
+                      <div className="inline-flex flex-col items-start gap-4 relative flex-[0_0_auto]">
+                        <a
+                          className="relative w-fit mt-[-1.00px] [font-family:'Poppins',Helvetica] font-medium text-[#646469] text-xl tracking-[0] leading-6 whitespace-nowrap hover:text-[#283002] transition-colors duration-200"
+                          href="mailto:info@blackrent.sk"
+                          aria-label="Napíšte nám e-mail na info@blackrent.sk"
+                        >
+                          info@blackrent.sk
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Background Pattern */}
+                <div className="absolute w-[304px] h-[304px] top-0 left-0 rounded-3xl overflow-hidden">
+                  <div className="relative w-[294px] h-[660px]">
+                    <img
+                      className="absolute w-[294px] h-[304px] top-0 left-0"
+                      alt="Decorative background vector"
+                      src="/figma-assets/Frame.svg"
+                    />
+                  </div>
+                </div>
+              </div>
+
+                              {/* Footer Content - Frame 2608550 - posunuté nižšie pod Rychly kontakt */}
+                <div className="flex flex-col gap-20 relative mt-20 w-[1328px]">
+                  {/* Logo */}
+                  <img
+                    className="relative w-[214.4px] h-8"
+                    alt="BlackRent company logo"
+                    src="/brands/blackrent-logo.svg"
+                  />
+
+                  {/* Frame 2608546 */}
+                  <div className="flex gap-[258px] w-[1328px]">
+                    {/* Newsletter Section - Frame 1028 */}
+                    <div className="flex flex-col gap-10 w-[422px]">
+                      <div className="flex flex-col gap-8 self-stretch">
+                        <h3 className="w-[109px] h-4 [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-xl tracking-[0] leading-6 whitespace-nowrap">
+                          Newsletter
+                        </h3>
+                        <p className="self-stretch h-8 [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-200 text-sm tracking-[0] leading-5">
+                          <span className="[font-family:'Poppins',Helvetica] font-normal text-[#a0a0a5] text-sm tracking-[0] leading-5">
+                            Prihláste sa na newsletter a získajte{" "}
+                          </span>
+                          <span className="font-semibold">5€ voucher </span>
+                          <span className="[font-family:'Poppins',Helvetica] font-normal text-[#a0a0a5] text-sm tracking-[0] leading-5">
+                            na prenájom vozidla z našej autopožičovňe.
+                          </span>
+                        </p>
                       </div>
 
-                      {/* Company Info & Social */}
-                      <div className="flex flex-col items-start gap-10 relative w-[195px]">
-                        <div className="flex flex-col items-start gap-8 relative flex-[0_0_auto]">
-                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-xl tracking-[0] leading-6 whitespace-nowrap">
+                      <form
+                        onSubmit={handleNewsletterSubmit}
+                        className="flex w-[422px] items-center justify-between pl-4 pr-2 py-2 bg-colors-black-600 rounded-[99px] overflow-hidden"
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          <img
+                            className="relative w-6 h-6"
+                            alt="Email icon"
+                            src="/figma-assets/Icon 24 px.svg"
+                          />
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Váš e-mail"
+                            required
+                            className="flex-1 [font-family:'Poppins',Helvetica] font-medium text-colors-dark-gray-900 text-sm tracking-[0] leading-6 bg-transparent border-none outline-none placeholder:text-colors-dark-gray-900"
+                            aria-label="Zadajte váš e-mail pre newsletter"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="inline-flex h-10 items-center justify-center gap-1.5 pl-5 pr-4 py-2 bg-colors-light-yellow-accent-100 rounded-[99px] hover:bg-colors-light-yellow-accent-200 transition-colors duration-200"
+                          aria-label="Potvrdiť prihlásenie na newsletter"
+                        >
+                          <span className="[font-family:'Poppins',Helvetica] font-semibold text-colors-dark-yellow-accent-100 text-sm tracking-[0] leading-6 whitespace-nowrap">
+                            Potvrdiť
+                          </span>
+                          <img
+                            className="relative w-4 h-4"
+                            alt="Submit arrow icon"
+                            src="/figma-assets/arrow-small-down.svg"
+                          />
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Frame 2608547 */}
+                    <div className="flex justify-between gap-8 flex-1">
+                      {/* Mapa stránok - Frame 504 */}
+                      <div className="flex flex-col gap-8 w-[195px]">
+                        <h3 className="h-4 [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-xl tracking-[0] leading-6">
+                          Mapa stránok
+                        </h3>
+                        <nav aria-label="Site navigation">
+                          <div className="[font-family:'Poppins',Helvetica] font-normal text-sm tracking-[0] leading-6">
+                            {navigationLinks.map((link, index) => (
+                              <div key={index} className="mb-1">
+                                <a
+                                  href={link.href}
+                                  className={`hover:underline transition-colors duration-200 ${
+                                    link.active
+                                      ? "text-[#f0ff98] font-medium"
+                                      : "text-[#FAFAFF] hover:text-colors-white-800"
+                                  }`}
+                                >
+                                  {link.label}
+                                </a>
+                              </div>
+                            ))}
+                          </div>
+                        </nav>
+                      </div>
+
+                      {/* Frame 2608548 */}
+                      <div className="flex flex-col gap-10 w-[195px]">
+                        {/* Sídlo spoločnosti - Frame 1030 */}
+                        <div className="flex flex-col gap-8">
+                          <h3 className="h-4 [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-xl tracking-[0] leading-6">
                             Sídlo spoločnosti
-                          </div>
-                          <div className="flex flex-col items-start gap-4 relative flex-[0_0_auto]">
-                            <div className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-400 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                              Rozmarínová 211/3
-                            </div>
-                            <div className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-400 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                              91101 Trenčín
-                            </div>
-                            <div className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-400 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                              +421 910 666 949
-                            </div>
-                            <div className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-400 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                              info@blackrent.sk
-                            </div>
-                          </div>
+                          </h3>
+                          <address className="[font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-200 text-sm tracking-[0] leading-6 not-italic">
+                            <p className="m-0">Rozmarínová 211/3</p>
+                            <p className="m-0">91101 Trenčín</p>
+                            <p className="m-0">
+                              <a
+                                href="tel:+421910666949"
+                                className="text-colors-ligh-gray-200 hover:text-colors-white-800 transition-colors duration-200"
+                              >
+                                +421 910 666 949
+                              </a>
+                            </p>
+                            <p className="m-0">
+                              <a
+                                href="mailto:info@blackrent.sk"
+                                className="text-colors-ligh-gray-200 hover:text-colors-white-800 transition-colors duration-200"
+                              >
+                                info@blackrent.sk
+                              </a>
+                            </p>
+                          </address>
                         </div>
 
-                        <div className="flex flex-col items-start gap-4 relative flex-[0_0_auto]">
-                          <div className="relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-xl tracking-[0] leading-6 whitespace-nowrap">
-                            Sledujte nás
+                        {/* Frame 2608549 */}
+                        <div className="flex flex-col gap-8">
+                          {/* Sledujte nás - Frame 1032 */}
+                          <div className="flex flex-col gap-10">
+                            <h3 className="h-4 [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-xl tracking-[0] leading-6">
+                              Sledujte nás
+                            </h3>
                           </div>
-                          <div className="flex items-start gap-4 relative flex-[0_0_auto]">
-                            <div className="relative w-6 h-6 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-133.svg)] bg-cover bg-[50%_50%]" />
-                            <div className="relative w-6 h-6 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-134.svg)] bg-cover bg-[50%_50%]" />
-                            <div className="relative w-6 h-6 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-135.svg)] bg-cover bg-[50%_50%]" />
+                          {/* Frame 296 */}
+                          <div className="inline-flex gap-4" role="list">
+                            {socialMediaLinks.map((social, index) => (
+                              <a
+                                key={index}
+                                href={social.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:opacity-80 transition-opacity duration-200"
+                                aria-label={`Sledujte nás na ${social.alt}`}
+                                role="listitem"
+                              >
+                                <img
+                                  className="relative w-6 h-6"
+                                  alt={`${social.alt} icon`}
+                                  src={social.icon}
+                                />
+                              </a>
+                            ))}
                           </div>
                         </div>
                       </div>
@@ -3209,15 +4564,140 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                 </div>
 
                 {/* Copyright */}
-                <div className="flex items-center justify-center w-[1728px] h-24 px-40 py-0 relative flex-[0_0_auto] bg-colors-black-200">
-                  <p className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-ligh-gray-800 text-xs tracking-[0] leading-6 whitespace-nowrap">
-                    © 2024 blackrent.sk | Obchodné podmienky | Pravidlá pre súbory cookies | Reklamačný poriadok | Ochrana osobných údajov
+                <div className="flex w-[1728px] h-24 items-center gap-2 px-[200px] py-0 relative bg-black">
+                  <p className="relative w-[855px] h-2 [font-family:'Poppins',Helvetica] font-normal text-colors-black-1000 text-xs tracking-[0] leading-6 whitespace-nowrap">
+                    © 2024 blackrent.sk | {footerLinks.join(" | ")}
                   </p>
                 </div>
               </div>
 
 
           </>
+        )}
+
+        {/* Image Modal */}
+        {isImageModalOpen && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-95"
+            onClick={handleCloseModal}
+          >
+            {/* Modal Content */}
+            <div 
+              className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={handleCloseModal}
+                className="absolute -top-12 right-0 z-10 w-10 h-10 flex items-center justify-center bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full transition-all duration-200"
+                aria-label="Zavrieť galériu"
+              >
+                <svg 
+                  className="w-6 h-6 text-white" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M6 18L18 6M6 6l12 12" 
+                  />
+                </svg>
+              </button>
+
+              {/* Image Counter */}
+              <div className="absolute -top-12 left-0 z-10 text-white text-sm font-medium">
+                {selectedImageIndex + 1} / {vehicleImages.length}
+              </div>
+
+              {/* Main Image */}
+              <div className="relative">
+                <img
+                  src={vehicleImages[selectedImageIndex].url}
+                  alt={vehicleImages[selectedImageIndex].alt}
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                />
+
+                {/* Navigation Arrows */}
+                {vehicleImages.length > 1 && (
+                  <>
+                    {/* Previous Button */}
+                    <button
+                      onClick={handlePreviousImage}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full transition-all duration-200"
+                      aria-label="Predchádzajúci obrázok"
+                    >
+                      <svg 
+                        className="w-6 h-6 text-white" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M15 19l-7-7 7-7" 
+                        />
+                      </svg>
+                    </button>
+
+                    {/* Next Button */}
+                    <button
+                      onClick={handleNextImage}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full transition-all duration-200"
+                      aria-label="Ďalší obrázok"
+                    >
+                      <svg 
+                        className="w-6 h-6 text-white" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M9 5l7 7-7 7" 
+                        />
+                      </svg>
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Image Description */}
+              <div className="mt-4 text-center">
+                <p className="text-white text-sm font-medium">
+                  {vehicleImages[selectedImageIndex].alt}
+                </p>
+              </div>
+
+              {/* Thumbnail Navigation */}
+              <div className="flex gap-2 mt-6 max-w-full overflow-x-auto px-4">
+                {vehicleImages.map((image, index) => (
+                  <button
+                    key={image.id}
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                      index === selectedImageIndex 
+                        ? 'border-[#F0FF98] opacity-100' 
+                        : 'border-transparent opacity-60 hover:opacity-80'
+                    }`}
+                    aria-label={`Zobraziť ${image.alt}`}
+                  >
+                    <img
+                      src={image.thumbnailUrl}
+                      alt={image.alt}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
