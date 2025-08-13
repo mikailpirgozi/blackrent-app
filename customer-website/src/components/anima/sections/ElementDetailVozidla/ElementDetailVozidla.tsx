@@ -99,6 +99,9 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
   const [isPromoExpanded, setIsPromoExpanded] = useState(false);
   const [promoCode, setPromoCode] = useState("");
 
+  // FAQ state
+  const [expandedFAQ, setExpandedFAQ] = useState<Record<number, boolean>>({});
+
   // Refs for click outside
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -107,6 +110,13 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
     setOpenDropdowns(prev => ({
       ...prev,
       [fieldId]: !prev[fieldId]
+    }));
+  };
+
+  const toggleFAQ = (index: number) => {
+    setExpandedFAQ(prev => ({
+      ...prev,
+      [index]: !prev[index]
     }));
   };
 
@@ -2967,58 +2977,138 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
 
             {/* FAQ + Footer Section - Desktop 1728px */}
             <div className="flex flex-col w-[1728px] items-center gap-2 px-2 py-50 absolute left-0 top-[3048px] bg-colors-black-300 rounded-t-[40px]">
-              <div className="flex flex-col items-center gap-30 relative self-stretch w-full flex-[0_0_auto]">
-                <div className="relative w-fit [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-colors-light-yellow-accent-700 text-[40px] tracking-[0] leading-6 whitespace-nowrap">
+              {/* FAQ Section - Frame 359 */}
+              <div className="flex flex-col items-center gap-[120px] relative">
+                {/* FAQ Title */}
+                <div className="relative w-[300px] h-6 [font-family:'SF_Pro',Helvetica] font-[650] text-[40px] leading-[0.6em] text-center text-[#F0FF98]">
                   Časté otázky
                 </div>
-                <div className="flex items-start gap-8 relative self-stretch w-full flex-[0_0_auto]">
+                
+                {/* FAQ Content - Frame 358 */}
+                <div className="flex gap-8 relative">
                   {/* Left Column */}
-                  <div className="flex flex-col gap-4 relative flex-1 grow">
+                  <div className="flex flex-col gap-4 w-[567px]">
                     {[
-                      "Čo je zahrnuté v cene prenájmu?",
-                      "V akom stave je vozidlo pri odovzdaní nájomcovi?",
-                      "Do ktorých krajín môžem s vozidlom vycestovať?",
-                      "Môžem cestovať aj do krajín mimo Európskej Únie?",
-                      "Môžem vozidlo prevziať / odovzdať aj mimo otváracích hodín?",
-                      "Ako môžem platiť za prenájom vozidla?"
-                    ].map((question, index) => (
-                      <div key={index} className="flex flex-col items-start gap-2 p-6 relative self-stretch w-full flex-[0_0_auto] bg-colors-black-600 rounded-lg">
-                        <div className="flex items-center justify-between relative self-stretch w-full flex-[0_0_auto]">
-                          <div className="flex items-center gap-2 relative flex-1 grow">
-                            <div className="relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                              {question}
+                      {
+                        question: "Čo je zahrnuté v cene prenájmu?",
+                        answer: "V cene prenájmu je zahrnuté základné poistenie vozidla, neobmedzené kilometre v rámci Slovenska a základná technická podpora. Nie sú zahrnuté palivá, diaľničné známky a dodatočné poistenie."
+                      },
+                      {
+                        question: "V akom stave je vozidlo pri odovzdaní nájomcovi?",
+                        answer: "Všetky vozidlá sú pred odovzdaním dôkladne vyčistené a technicky skontrolované. Vozidlo dostanete s plnou nádržou paliva a v bezchybnom technickom stave."
+                      },
+                      {
+                        question: "Do ktorých krajín môžem s vozidlom vycestovať?",
+                        answer: "Základný balík umožňuje cestovanie po Slovensku, Česku a Rakúsku. Za príplatok môžete rozšíriť na ďalšie krajiny EÚ."
+                      },
+                      {
+                        question: "Môžem cestovať aj do krajín mimo Európskej Únie?",
+                        answer: "Cestovanie mimo EÚ je možné po individuálnom posúdení a schválení. Kontaktujte nás pre viac informácií o podmienkach."
+                      },
+                      {
+                        question: "Môžem vozidlo prevziať / odovzdať aj mimo otváracích hodín?",
+                        answer: "Áno, ponúkame službu prevzatia a odovzdania vozidla mimo otváracích hodín za príplatok 20€. Službu je potrebné dohodnúť vopred."
+                      },
+                      {
+                        question: "Ako môžem platiť za prenájom vozidla?",
+                        answer: "Akceptujeme platby kreditnou kartou, bankovým prevodom alebo hotovosťou. Depozit je možné zložiť len kreditnou kartou."
+                      }
+                    ].map((faq, index) => (
+                      <div key={index} className="flex flex-col justify-center items-stretch gap-2 px-6 py-4 pl-6 bg-[#1E1E23] rounded-lg">
+                        <div 
+                          className="flex justify-between items-center gap-[269px] cursor-pointer"
+                          onClick={() => toggleFAQ(index)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="[font-family:'Poppins',Helvetica] font-semibold text-[#F0F0F5] text-sm leading-[1.7142857142857142em]">
+                              {faq.question}
                             </div>
                           </div>
-                          <div className="relative w-6 h-6 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-filled-120.svg)] bg-cover bg-[50%_50%]" />
+                          <div className="w-6 h-6 flex items-center justify-center">
+                            <img 
+                              src="/figma-assets/arrow-small-down.svg" 
+                              alt="Toggle FAQ"
+                              className={`w-[10px] h-[6px] transition-transform duration-200 ${
+                                expandedFAQ[index] ? 'rotate-180' : ''
+                              }`}
+                              style={{ filter: 'brightness(0) saturate(100%) invert(85%) sepia(100%) saturate(1000%) hue-rotate(60deg) brightness(110%) contrast(100%)' }}
+                            />
+                          </div>
                         </div>
+                        {expandedFAQ[index] && (
+                          <div className="mt-4 pt-4 border-t border-[#37373C]">
+                            <p className="[font-family:'Poppins',Helvetica] font-normal text-[#A0A0A5] text-sm leading-[1.4285714285714286em]">
+                              {faq.answer}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
+                  
                   {/* Right Column */}
-                  <div className="flex flex-col gap-4 relative flex-1 grow">
+                  <div className="flex flex-col gap-4 w-[567px]">
                     {[
-                      "Majú vozidlá diaľničnú známku?",
-                      "Je možná preprava zvierat?",
-                      "Ako mám postupovať keď viem, že budem meškať?",
-                      "Čo znamená jeden deň prenájmu?",
-                      "Čo ak dostanem pokutu?",
-                      "Aké sú podmienky stornácie rezervácie?"
-                    ].map((question, index) => (
-                      <div key={index} className="flex flex-col items-start gap-2 p-6 relative self-stretch w-full flex-[0_0_auto] bg-colors-black-600 rounded-lg">
-                        <div className="flex items-center justify-between relative self-stretch w-full flex-[0_0_auto]">
-                          <div className="flex items-center gap-2 relative flex-1 grow">
-                            <div className="relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-                              {question}
+                      {
+                        question: "Majú vozidlá diaľničnú známku?",
+                        answer: "Áno, všetky naše vozidlá majú platnú diaľničnú známku pre Slovensko. Pre ostatné krajiny si diaľničné známky zabezpečte sami."
+                      },
+                      {
+                        question: "Je možná preprava zvierat?",
+                        answer: "Preprava zvierat je povolená za dodržania hygienických podmienok. Za dodatočné čistenie vozidla účtujeme poplatok 50€."
+                      },
+                      {
+                        question: "Ako mám postupovať keď viem, že budem meškať?",
+                        answer: "Okamžite nás kontaktujte na +421 910 666 949. Meškanie do 1 hodiny je bez poplatku, každá ďalšia hodina je spoplatnená 10€."
+                      },
+                      {
+                        question: "Čo znamená jeden deň prenájmu?",
+                        answer: "Jeden deň prenájmu predstavuje 24-hodinové obdobie od času prevzatia vozidla. Prekročenie času je spoplatnené ako ďalší deň."
+                      },
+                      {
+                        question: "Čo ak dostanem pokutu?",
+                        answer: "Všetky pokuty a poplatky počas prenájmu znáša nájomca. Administratívny poplatok za vybavenie pokuty je 25€."
+                      },
+                      {
+                        question: "Aké sú podmienky stornácie rezervácie?",
+                        answer: "Rezerváciu môžete zrušiť do 24 hodín pred začiatkom prenájmu bez poplatku. Pri neskoršom zrušení účtujeme 50% z ceny prenájmu."
+                      }
+                    ].map((faq, index) => (
+                      <div key={index + 6} className="flex flex-col justify-center items-stretch gap-2 px-6 py-4 pl-6 bg-[#1E1E23] rounded-lg">
+                        <div 
+                          className="flex justify-between items-center gap-[272px] cursor-pointer"
+                          onClick={() => toggleFAQ(index + 6)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="[font-family:'Poppins',Helvetica] font-semibold text-[#F0F0F5] text-sm leading-[1.7142857142857142em]">
+                              {faq.question}
                             </div>
                           </div>
-                          <div className="relative w-6 h-6 bg-[url(https://c.animaapp.com/nwqz0he8/img/icon-24-px-filled-120.svg)] bg-cover bg-[50%_50%]" />
+                          <div className="w-6 h-6 flex items-center justify-center">
+                            <img 
+                              src="/figma-assets/arrow-small-down.svg" 
+                              alt="Toggle FAQ"
+                              className={`w-[10px] h-[6px] transition-transform duration-200 ${
+                                expandedFAQ[index + 6] ? 'rotate-180' : ''
+                              }`}
+                              style={{ filter: 'brightness(0) saturate(100%) invert(85%) sepia(100%) saturate(1000%) hue-rotate(60deg) brightness(110%) contrast(100%)' }}
+                            />
+                          </div>
                         </div>
+                        {expandedFAQ[index + 6] && (
+                          <div className="mt-4 pt-4 border-t border-[#37373C]">
+                            <p className="[font-family:'Poppins',Helvetica] font-normal text-[#A0A0A5] text-sm leading-[1.4285714285714286em]">
+                              {faq.answer}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
+              </div>
 
-                {/* Footer Content */}
+              {/* Footer Content */}
                 <div className="flex items-start justify-between w-[1328px] px-0 py-20 relative flex-[0_0_auto]">
                   {/* Logo */}
                   <div className="relative w-[214.4px] h-8 bg-[url(https://c.animaapp.com/nwqz0he8/img/blackrent-logo-10.svg)] bg-cover bg-[50%_50%]" />
@@ -3125,7 +3215,6 @@ export const ElementDetailVozidla = ({ vehicleId }: Props): JSX.Element => {
                   </p>
                 </div>
               </div>
-            </div>
 
 
           </>
