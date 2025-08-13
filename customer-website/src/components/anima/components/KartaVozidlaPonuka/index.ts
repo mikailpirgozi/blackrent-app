@@ -1,0 +1,1 @@
+export { KartaVozidlaPonuka } from "./KartaVozidlaPonuka";

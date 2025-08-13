@@ -2,12 +2,12 @@
 
 import React, { useState } from "react";
 import { useWindowWidth } from "../../../../hooks/useWindowWidth";
-import { BackToTopButton } from "../../components/BackToTopButton";
-import { FaqRychlyKontakt } from "../../components/FaqRychlyKontakt";
-import { FaqRychlyKontaktFooter1728 } from "../../components/FaqRychlyKontaktFooter1728";
-import { Filtracia } from "../../components/Filtracia";
+import { BackToTopButton } from "../../components/BackToTopButton/BackToTopButton";
+import { FaqRychlyKontakt } from "../../components/FaqRychlyKontakt/FaqRychlyKontakt";
+import { FaqRychlyKontaktFooter1728 } from "../../components/FaqRychlyKontaktFooter1728/FaqRychlyKontaktFooter1728";
+import { Filtracia } from "../../components/Filtracia/Filtracia";
 import { EnhancedFiltracia } from "../../components/Filtracia/EnhancedFiltracia";
-import { FooterTablet } from "../../components/FooterTablet";
+import { FooterTablet } from "../../components/FooterTablet/FooterTablet";
 import { IconPx } from "../../components/IconPx";
 import { ArrowIcon } from "../../components/ArrowIcon";
 import { KartaVozidlaHomepage744 } from "../../components/KartaVozidlaHomepage744";
@@ -834,4 +834,3 @@ export const ElementPonukaVozidiel = (): JSX.Element => {
     </div>
   );
 };
-

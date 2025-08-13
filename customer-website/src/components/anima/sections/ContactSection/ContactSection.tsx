@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import {
   Accordion,
@@ -58,6 +60,37 @@ const socialIcons = [
 ];
 
 export const ContactSection = (): JSX.Element => {
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) return;
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      alert("Prosím zadajte platný e-mail");
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      console.log('Newsletter subscription:', email);
+      // Here you can add API call to subscribe user
+      
+      // Success feedback
+      alert("Ďakujeme za prihlásenie k newsletteru!");
+      setEmail("");
+    } catch (error) {
+      alert("Nastala chyba. Skúste to prosím znovu.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <section className="flex flex-col items-center bg-[#0f0f14] rounded-[40px_40px_0px_0px] relative">
       <div className="flex flex-col w-full max-w-[1728px] items-center gap-2 pt-16 md:pt-24 lg:pt-[200px] pb-32 md:pb-48 lg:pb-60 px-2 bg-[#0f0f14] rounded-[40px_40px_0px_0px] overflow-hidden">
@@ -227,30 +260,40 @@ export const ContactSection = (): JSX.Element => {
                     </p>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row w-full items-center justify-between pl-4 pr-2 py-2 bg-[#1e1e23] rounded-[99px] overflow-hidden gap-2 sm:gap-0">
-                    <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
-                      <img
-                        className="w-6 h-6"
-                        alt="Icon px"
-                        src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px.svg"
-                      />
-                      <Input
-                        placeholder="Váš e-mail"
-                        className="flex-1 [font-family:'Poppins',Helvetica] font-medium text-[#646469] text-sm bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </div>
+                  <form onSubmit={handleNewsletterSubmit}>
+                    <div className="flex flex-col sm:flex-row w-full items-center justify-between pl-4 pr-2 py-2 bg-[#1e1e23] rounded-[99px] overflow-hidden gap-2 sm:gap-0">
+                      <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
+                        <img
+                          className="w-6 h-6"
+                          alt="Icon px"
+                          src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px.svg"
+                        />
+                        <Input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Váš e-mail"
+                          disabled={isSubmitting}
+                          className="flex-1 [font-family:'Poppins',Helvetica] font-medium text-[#f0f0f5] text-sm bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-[#646469]"
+                        />
+                      </div>
 
-                    <Button className="gap-1.5 px-5 py-2 bg-[#d7ff14] rounded-[99px] hover:bg-[#c7ef04] h-auto w-full sm:w-auto">
-                      <span className="font-semibold text-[#141900] text-sm [font-family:'Poppins',Helvetica] tracking-[0] leading-6 whitespace-nowrap">
-                        Potvrdiť
-                      </span>
-                      <img
-                        className="w-4 h-4"
-                        alt="Icon px"
-                        src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-16-px-4.svg"
-                      />
-                    </Button>
-                  </div>
+                      <Button 
+                        type="submit"
+                        disabled={isSubmitting || !email.trim()}
+                        className="gap-1.5 px-5 py-2 bg-[#d7ff14] rounded-[99px] hover:bg-[#c7ef04] h-auto w-full sm:w-auto disabled:opacity-50"
+                      >
+                        <span className="font-semibold text-[#141900] text-sm [font-family:'Poppins',Helvetica] tracking-[0] leading-6 whitespace-nowrap">
+                          {isSubmitting ? "..." : "Potvrdiť"}
+                        </span>
+                        <img
+                          className="w-4 h-4"
+                          alt="Icon px"
+                          src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-16-px-4.svg"
+                        />
+                      </Button>
+                    </div>
+                  </form>
                 </div>
 
                 {/* Navigation sections */}

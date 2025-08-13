@@ -1,11 +1,12 @@
 import React from "react";
+import Link from "next/link";
 import { Button } from "../../../ui/Button";
 import { Card, CardContent } from "../../../ui/card";
 import { Badge } from "../../../ui/badge";
 import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuLink } from "../../../ui/navigation-menu";
 
 const navigationItems = [
-  { label: "Ponuka vozidiel", href: "#" },
+  { label: "Ponuka vozidiel", href: "/vozidla" },
   { label: "Služby", href: "#" },
   { label: "Store", href: "#" },
   { label: "O nás", href: "#" },
@@ -263,18 +264,20 @@ export const FeaturedItemsSection = (): JSX.Element => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 lg:gap-6">
-            <Button className="inline-flex items-center gap-2 pl-4 lg:pl-6 pr-1 py-1 bg-[#f0ff98] rounded-[99px] backdrop-blur-[20px] backdrop-brightness-[100%] [-webkit-backdrop-filter:blur(20px)_brightness(100%)] hover:bg-[#e8ff80] h-auto text-sm lg:text-base">
-              <div className="[font-family:'Poppins',Helvetica] font-semibold text-[#141900] tracking-[0] leading-8 whitespace-nowrap">
-                Ponuka vozidiel
-              </div>
-              <div className="flex w-8 h-8 items-center justify-center bg-[#141900] rounded-[99px] overflow-hidden">
-                <img
-                  className="w-6 h-6"
-                  alt="Icon px"
-                  src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px-6.svg"
-                />
-              </div>
-            </Button>
+            <Link href="/vozidla">
+              <Button className="inline-flex items-center gap-2 pl-4 lg:pl-6 pr-1 py-1 bg-[#f0ff98] rounded-[99px] backdrop-blur-[20px] backdrop-brightness-[100%] [-webkit-backdrop-filter:blur(20px)_brightness(100%)] hover:bg-[#e8ff80] h-auto text-sm lg:text-base">
+                <div className="[font-family:'Poppins',Helvetica] font-semibold text-[#141900] tracking-[0] leading-8 whitespace-nowrap">
+                  Ponuka vozidiel
+                </div>
+                <div className="flex w-8 h-8 items-center justify-center bg-[#141900] rounded-[99px] overflow-hidden">
+                  <img
+                    className="w-6 h-6"
+                    alt="Icon px"
+                    src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px-6.svg"
+                  />
+                </div>
+              </Button>
+            </Link>
             <Button variant="secondary" className="inline-flex h-10 items-center gap-2.5 px-4 lg:px-6 py-1 bg-[#28282d] rounded-[99px] backdrop-blur-[20px] backdrop-brightness-[100%] [-webkit-backdrop-filter:blur(20px)_brightness(100%)] hover:bg-[#323238] h-auto text-sm lg:text-base">
               <div className="[font-family:'Poppins',Helvetica] font-medium text-[#f0f0f5] tracking-[0] leading-8 whitespace-nowrap">
                 Naše služby
