@@ -5,10 +5,10 @@ import {
   AccordionContent,
   AccordionItem,
 } from "../../../ui/accordion";
-import { Button } from "../../../ui/button";
+import { Button } from "../../../ui/Button";
 import { Card, CardContent } from "../../../ui/card";
 import { Input } from "../../../ui/input";
-import Icon24PxFilled from "../../../firejet/assets/Icon24PxFilled";
+
 import { cn } from "../../../../lib/utils";
 
 // Custom AccordionTrigger without default icon
@@ -79,7 +79,9 @@ export const ContactSection = (): JSX.Element => {
                       <span className="[font-family:'Poppins',Helvetica] font-semibold text-[#f0f0f5] text-sm md:text-base tracking-[0] leading-6 text-left pr-4">
                         {question}
                       </span>
-                      <Icon24PxFilled className="accordion-icon h-6 w-6 shrink-0 transition-transform duration-200" />
+                      <svg className="accordion-icon h-6 w-6 shrink-0 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </CustomAccordionTrigger>
                     <AccordionContent className="px-4 md:px-6 pb-4">
                       <div className="[font-family:'Poppins',Helvetica] font-normal text-[#a0a0a5] text-sm md:text-base">
@@ -103,7 +105,9 @@ export const ContactSection = (): JSX.Element => {
                       <span className="[font-family:'Poppins',Helvetica] font-semibold text-[#f0f0f5] text-sm md:text-base tracking-[0] leading-6 text-left pr-4">
                         {question}
                       </span>
-                      <Icon24PxFilled className="accordion-icon h-6 w-6 shrink-0 transition-transform duration-200" />
+                      <svg className="accordion-icon h-6 w-6 shrink-0 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </CustomAccordionTrigger>
                     <AccordionContent className="px-4 md:px-6 pb-4">
                       <div className="[font-family:'Poppins',Helvetica] font-normal text-[#a0a0a5] text-sm md:text-base">

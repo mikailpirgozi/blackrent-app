@@ -8,7 +8,7 @@ import { HeroSection } from "@/components/anima/sections/HeroSection/HeroSection
 import { ReviewsSection } from "@/components/anima/sections/ReviewsSection/ReviewsSection";
 
 export default function Home() {
-  const noteCards = [];
+  const noteCards: any[] = [];
 
   return (
     <div className="w-full flex flex-col bg-[#05050a] relative overflow-x-hidden">

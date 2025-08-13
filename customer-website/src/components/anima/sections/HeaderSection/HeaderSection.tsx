@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "../../../ui/button";
+import { Button } from "../../../ui/Button";
 import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuLink } from "../../../ui/navigation-menu";
 
 const navigationItems = [
