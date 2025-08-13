@@ -6,7 +6,7 @@ import Icon24PxRoot3 from '@/components/firejet/assets/Icon24PxRoot3'
 
 export default function Header() {
   return (
-    <header className="fixed top-0 left-0 right-0 z-[1000] bg-blackrent-dark">
+    <header className="sticky top-0 left-0 right-0 z-[1000] bg-blackrent-dark">
       <div className="flex w-full flex-wrap items-center gap-x-[816px] gap-y-4 px-8 py-6 leading-[normal] min-[1718px]:flex-nowrap">
         {/* BlackRent Logo */}
         <BlackrentLogoRoot3 className="h-8 w-52" />

@@ -2,7 +2,7 @@ export default function Line({ className = "" }: LineProps) {
   return (
     <div className={`${className}`}>
       <svg width="100%" height="100%" style={{"overflow":"visible"}} preserveAspectRatio="none" viewBox="0 0 1 41" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M1 1L1 41" stroke="#BEBEC3" stroke-linecap="round"/>
+      <path d="M1 1L1 41" stroke="#BEBEC3" strokeLinecap="round"/>
       </svg>
       
     </div>

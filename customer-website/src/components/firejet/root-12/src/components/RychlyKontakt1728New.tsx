@@ -10,9 +10,25 @@ export default function RychlyKontakt1728New({
     <div
       className={`relative mx-auto flex w-[1328px] flex-col items-center gap-4 rounded-3xl bg-blackrent-white-800 px-0 pt-24 pb-[72px] leading-[normal] ${className}`}
     >
-      {/* Operator avatar - 48px nad kartou, bez bieleho rámu */}
-      <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-[6] w-[104px] h-[104px] overflow-hidden rounded-full">
-        <img src="/assets/fotka-oper-tora.jpeg" alt="Operátor" className="w-[104px] h-[104px] rounded-full object-cover" />
+      {/* Operator avatar - 96px nad kartou podľa 1728 new layout */}
+      <div 
+        className="absolute z-[6] w-[104px] h-[104px] p-2 flex flex-col items-start gap-2 rounded-[99px] border border-[#F0F0F5] overflow-hidden"
+        style={{
+          position: 'absolute',
+          left: '612px',
+          top: '-96px',
+          display: 'flex',
+          width: '104px',
+          height: '104px',
+          padding: '8px',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '8px',
+          borderRadius: '99px',
+          border: '1px solid var(--White-800, #F0F0F5)',
+          background: 'url(/assets/fotka-oper-tora.jpeg) lightgray 0px -7.084px / 100% 149.982% no-repeat'
+        }}
+      >
         <Ellipse className="absolute right-2 bottom-2 h-3.5 w-3.5" />
       </div>
       <div className="z-[2] flex flex-col items-center justify-center self-stretch pt-6 [max-width:874px]" >
