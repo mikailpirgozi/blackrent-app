@@ -16,7 +16,12 @@
     "validate-svg": "node scripts/svg-validator.js",
     "pre-check": "npm run validate-svg && npm run lint && npm run type-check",
     "health-check": "npm run validate-svg && npm run build:clean",
-    "images:optimize": "node scripts/optimize-images.js"
+    "images:optimize": "node scripts/optimize-images.js",
+    "protect": "./scripts/protect-structure.sh",
+    "safe-start": "npm run protect && npm run dev",
+    "commit-check": "npm run protect && npm run lint",
+    "backup": "./scripts/backup-critical.sh",
+    "restore-help": "echo 'Pre obnovenie: cp backups/YYYYMMDD_HHMMSS/page.tsx src/app/'"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",
