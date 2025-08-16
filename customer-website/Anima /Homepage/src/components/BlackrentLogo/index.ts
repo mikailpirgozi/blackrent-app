@@ -1,0 +1,1 @@
+export { BlackrentLogo } from "./BlackrentLogo";

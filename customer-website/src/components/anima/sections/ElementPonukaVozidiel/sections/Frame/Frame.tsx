@@ -24,11 +24,11 @@ export const Frame = (): JSX.Element => {
 
       <div className="absolute w-[480px] h-[88px] top-[168px] -left-4">
         <div className="relative h-[88px]">
-          <div className="absolute w-[264px] h-[88px] top-0 left-0 rounded-[40px] bg-[url(https://c.animaapp.com/h23eak6p/img/obrazok@2x.png)] bg-cover bg-[50%_50%]" />
+          <div className="absolute w-[264px] h-[88px] top-0 left-0 rounded-[40px] bg-[url(/assets/misc/obrazok@2x.png)] bg-cover bg-[50%_50%]" />
 
-          <div className="w-[264px] left-[88px] bg-[url(https://c.animaapp.com/h23eak6p/img/obrazok-1@2x.png)] absolute h-[88px] top-0 rounded-[40px] bg-cover bg-[50%_50%]" />
+          <div className="w-[264px] left-[88px] bg-[url(/assets/misc/obrazok-1@2x.png)] absolute h-[88px] top-0 rounded-[40px] bg-cover bg-[50%_50%]" />
 
-          <div className="w-[277px] left-[203px] bg-[url(https://c.animaapp.com/h23eak6p/img/obrazok-2@2x.png)] absolute h-[88px] top-0 rounded-[40px] bg-cover bg-[50%_50%]" />
+          <div className="w-[277px] left-[203px] bg-[url(/assets/misc/obrazok-2@2x.png)] absolute h-[88px] top-0 rounded-[40px] bg-cover bg-[50%_50%]" />
         </div>
       </div>
     </div>

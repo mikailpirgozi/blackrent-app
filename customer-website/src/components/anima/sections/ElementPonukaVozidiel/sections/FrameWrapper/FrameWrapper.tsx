@@ -17,27 +17,27 @@ export const FrameWrapper = (): JSX.Element => {
           <IconPxFilled
             className="!relative !left-[unset] !top-[unset]"
             type="star-small"
-            typeStarSmall="https://c.animaapp.com/h23eak6p/img/icon-24-px-filled-91.svg"
+            typeStarSmall="/assets/misc/icon-24-px-filled-91.svg"
           />
           <IconPxFilled
             className="!relative !left-[unset] !top-[unset]"
             type="star-small"
-            typeStarSmall="https://c.animaapp.com/h23eak6p/img/icon-24-px-filled-91.svg"
+            typeStarSmall="/assets/misc/icon-24-px-filled-91.svg"
           />
           <IconPxFilled
             className="!relative !left-[unset] !top-[unset]"
             type="star-small"
-            typeStarSmall="https://c.animaapp.com/h23eak6p/img/icon-24-px-filled-91.svg"
+            typeStarSmall="/assets/misc/icon-24-px-filled-91.svg"
           />
           <IconPxFilled
             className="!relative !left-[unset] !top-[unset]"
             type="star-small"
-            typeStarSmall="https://c.animaapp.com/h23eak6p/img/icon-24-px-filled-91.svg"
+            typeStarSmall="/assets/misc/icon-24-px-filled-91.svg"
           />
           <IconPxFilled
             className="!relative !left-[unset] !top-[unset]"
             type="star-small-half"
-            typeStarSmallHalf="https://c.animaapp.com/h23eak6p/img/icon-24-px-filled-92.svg"
+            typeStarSmallHalf="/assets/misc/icon-24-px-filled-92.svg"
           />
         </div>
       </div>

@@ -1,0 +1,1 @@
+export { TypBike } from "./TypBike";

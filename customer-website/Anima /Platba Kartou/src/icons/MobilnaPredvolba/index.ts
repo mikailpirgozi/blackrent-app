@@ -1,0 +1,1 @@
+export { MobilnaPredvolba } from "./MobilnaPredvolba";

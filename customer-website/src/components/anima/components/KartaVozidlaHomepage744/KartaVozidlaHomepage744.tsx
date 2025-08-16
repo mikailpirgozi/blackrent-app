@@ -1,9 +1,12 @@
+"use client";
+
 /*
 We're constantly improving the code you see. 
 Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcNg&d=1152665201300829
 */
 
 import React from "react";
+import Link from "next/link";
 import { TypArrowTopRightWrapper } from "../TypArrowTopRightWrapper";
 import { Arrow32Icon } from "../Arrow32Icon";
 
@@ -11,20 +14,23 @@ interface Props {
   type: "tag-DPH" | "hover" | "tag-discount-DPH" | "default";
   nHAdVozidlaClassName?: any;
   typArrowTopRightWrapperTypArrowTopRight?: string;
+  vehicleId?: string;
 }
 
 export const KartaVozidlaHomepage744 = ({
   type,
   nHAdVozidlaClassName,
-  typArrowTopRightWrapperTypArrowTopRight = "https://c.animaapp.com/h23eak6p/img/icon-32-px-12.svg",
+  typArrowTopRightWrapperTypArrowTopRight = "/assets/misc/icon-32-px-12.svg",
+  vehicleId = "vozidlo-default",
 }: Props): JSX.Element => {
   return (
-    <div
-      className={`w-[332px] flex flex-col items-start gap-[23px] p-4 h-[392px] overflow-hidden rounded-3xl justify-around relative transition-all duration-200 hover:scale-105 ${type === "hover" ? "bg-colors-black-600" : "bg-colors-black-400 hover:bg-colors-black-600"}`}
-    >
+    <Link href={`/vozidla/${vehicleId}`}>
+      <div
+        className={`w-[332px] flex flex-col items-start gap-[23px] p-4 h-[392px] overflow-hidden rounded-3xl justify-around relative transition-all duration-200 hover:scale-105 cursor-pointer ${type === "hover" ? "bg-colors-black-600" : "bg-colors-black-400 hover:bg-colors-black-600"}`}
+      >
       <div className="w-full flex self-stretch flex-col items-start grow gap-6 flex-1 relative">
         <div
-          className={`w-full self-stretch bg-cover h-56 rounded-lg bg-[50%_50%] relative ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "flex" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "items-start" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "gap-1" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "p-2" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "bg-[url(https://c.animaapp.com/h23eak6p/img/n-h-ad-vozidla-39@2x.png)]" : "bg-[url(https://c.animaapp.com/h23eak6p/img/n-h-ad-vozidla-9@2x.png)]"} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "overflow-hidden" : ""} ${nHAdVozidlaClassName}`}
+          className={`w-full self-stretch bg-cover h-56 rounded-lg bg-[50%_50%] relative ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "flex" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "items-start" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "gap-1" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "p-2" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "bg-[url(/assets/misc/n-h-ad-vozidla-39@2x.png)]" : "bg-[url(/assets/misc/n-h-ad-vozidla-9@2x.png)]"} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "overflow-hidden" : ""} ${nHAdVozidlaClassName}`}
         >
           {["tag-DPH", "tag-discount-DPH"].includes(type) && (
             <div
@@ -88,6 +94,7 @@ export const KartaVozidlaHomepage744 = ({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </Link>
   );
 };

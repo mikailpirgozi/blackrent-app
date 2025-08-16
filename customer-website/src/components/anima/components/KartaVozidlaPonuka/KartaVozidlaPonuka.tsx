@@ -23,7 +23,7 @@ export const KartaVozidlaPonuka = ({
   type = "default",
   className,
   nHAdVozidlaClassName,
-  typArrowTopRightWrapperTypArrowTopRight = "https://c.animaapp.com/h23eak6p/img/icon-32-px-12.svg",
+  typArrowTopRightWrapperTypArrowTopRight = "/assets/misc/icon-32-px-12.svg",
   tlaTkoClassName,
   vehicleId = "bmw-x5",
 }: Props): JSX.Element => {
@@ -34,7 +34,7 @@ export const KartaVozidlaPonuka = ({
       >
       <div className="flex flex-col items-start gap-4 relative flex-1 self-stretch w-full grow">
         <div
-          className={`relative self-stretch w-full h-40 rounded-lg bg-cover bg-[50%_50%] ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "flex" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "items-start" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "gap-1" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "p-2" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "bg-[url(https://c.animaapp.com/h23eak6p/img/n-h-ad-vozidla-39@2x.png)]" : "bg-[url(https://c.animaapp.com/h23eak6p/img/n-h-ad-vozidla-12@2x.png)]"} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "overflow-hidden" : ""} ${nHAdVozidlaClassName}`}
+          className={`relative self-stretch w-full h-40 rounded-lg bg-cover bg-[50%_50%] ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "flex" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "items-start" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "gap-1" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "p-2" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "bg-[url(/assets/misc/n-h-ad-vozidla-39@2x.png)]" : "bg-[url(/assets/misc/n-h-ad-vozidla-12@2x.png)]"} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "overflow-hidden" : ""} ${nHAdVozidlaClassName}`}
         >
           {["tag-DPH", "tag-discount-DPH"].includes(type) && (
             <div

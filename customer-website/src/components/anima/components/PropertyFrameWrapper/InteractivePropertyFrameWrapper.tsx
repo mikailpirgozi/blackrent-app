@@ -121,7 +121,7 @@ export const InteractivePropertyFrameWrapper = ({
                 <IconPxFilled
                   className="!relative !left-[unset] !top-[unset]"
                   type="arrow-small-down"
-                  typeArrowSmall="https://c.animaapp.com/h23eak6p/img/icon-24-px-filled-136.svg"
+                  typeArrowSmall="/assets/misc/icon-24-px-filled-136.svg"
                 />
               </div>
             </div>

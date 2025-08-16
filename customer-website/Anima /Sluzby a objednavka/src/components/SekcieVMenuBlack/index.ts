@@ -1,0 +1,1 @@
+export { SekcieVMenuBlack } from "./SekcieVMenuBlack";

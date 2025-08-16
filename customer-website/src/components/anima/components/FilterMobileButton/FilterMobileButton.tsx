@@ -22,7 +22,7 @@ export const FilterMobileButton = ({
       <TypMenuWrapper
         className="!relative !left-[unset] !top-[unset]"
         typ="filter-1"
-        typFilter="https://c.animaapp.com/h23eak6p/img/icon-24-px-60.svg"
+        typFilter="/assets/misc/icon-24-px-60.svg"
       />
       <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base text-center tracking-[0] leading-6 whitespace-nowrap">
         Filtrácia

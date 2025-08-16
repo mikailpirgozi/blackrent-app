@@ -17,7 +17,7 @@ export const InteractiveFilterTags = ({
   type,
   className = "",
   text = "Bluetooth",
-  iconPxTypArrowDown = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
+  iconPxTypArrowDown = "/assets/misc/icon-16-px-32.svg",
   isSelected = false,
   onToggle,
   onClick,

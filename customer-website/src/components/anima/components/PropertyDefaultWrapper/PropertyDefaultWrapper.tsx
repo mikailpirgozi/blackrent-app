@@ -3,22 +3,21 @@ We're constantly improving the code you see.
 Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcNg&d=1152665201300829
 */
 
-"use client";
-
+import PropTypes from "prop-types";
 import React from "react";
-import { InteractiveEMailNewsletter } from "../EMailNewsletter";
-import { TypMenuWrapper } from "../TypMenuWrapper";
+import { Icon24Px51 } from "../../icons/Icon24Px51";
+import { TypFacebook } from "../../icons/TypFacebook";
+import { TypInstagram } from "../../icons/TypInstagram";
+import { EMailNewsletter } from "../EMailNewsletter";
 
 interface Props {
-  property1?: "default";
+  property1: "default";
   className: any;
-  blackrentLogo?: string;
 }
 
 export const PropertyDefaultWrapper = ({
   property1,
   className,
-  blackrentLogo = "https://c.animaapp.com/h23eak6p/img/blackrent-logo-3.svg",
 }: Props): JSX.Element => {
   return (
     <div
@@ -28,16 +27,12 @@ export const PropertyDefaultWrapper = ({
         <img
           className="absolute w-[252px] h-[349px] top-0 left-0"
           alt="Vector"
-          src="https://c.animaapp.com/h23eak6p/img/vector-24.svg"
+          src="/assets/figma-assets/vector-26.svg"
         />
       </div>
 
       <div className="flex flex-col w-[506px] items-start gap-16 relative">
-        <img
-          className="relative w-[214.4px] h-8"
-          alt="Blackrent logo"
-          src={blackrentLogo}
-        />
+        <div className="relative w-[214.4px] h-8 bg-[url(/img/vector-30.svg)] bg-[100%_100%]" />
 
         <div className="flex flex-col items-start gap-6 relative self-stretch w-full flex-[0_0_auto]">
           <div className="flex flex-col items-start gap-6 relative self-stretch w-full flex-[0_0_auto]">
@@ -58,13 +53,9 @@ export const PropertyDefaultWrapper = ({
             </p>
           </div>
 
-          <InteractiveEMailNewsletter
+          <EMailNewsletter
             className="!self-stretch !flex-[0_0_auto] !w-full"
             type="default-b"
-            onSubmit={async (email) => {
-              console.log('Newsletter subscription:', email);
-              // Here you can add API call to subscribe user
-            }}
           />
         </div>
 
@@ -109,25 +100,17 @@ export const PropertyDefaultWrapper = ({
             </div>
 
             <div className="inline-flex items-start gap-4 relative flex-[0_0_auto]">
-              <TypMenuWrapper
-                className="!relative !left-[unset] !top-[unset]"
-                typ="facebook"
-                typFacebook="https://c.animaapp.com/h23eak6p/img/icon-24-px-88.svg"
-              />
-              <TypMenuWrapper
-                className="!relative !left-[unset] !top-[unset]"
-                typ="instagram"
-                typInstagram="https://c.animaapp.com/h23eak6p/img/icon-24-px-89.svg"
-              />
-              <TypMenuWrapper
-                className="!relative !left-[unset] !top-[unset]"
-                typ="tik-tok"
-                typTiktok="https://c.animaapp.com/h23eak6p/img/icon-24-px-90.svg"
-              />
+              <TypFacebook className="!relative !w-6 !h-6" color="#A0A0A5" />
+              <TypInstagram className="!relative !w-6 !h-6" color="#A0A0A5" />
+              <Icon24Px51 className="!relative !w-6 !h-6" color="#A0A0A5" />
             </div>
           </div>
         </div>
       </div>
     </div>
   );
+};
+
+PropertyDefaultWrapper.propTypes = {
+  property1: PropTypes.oneOf(["default"]),
 };

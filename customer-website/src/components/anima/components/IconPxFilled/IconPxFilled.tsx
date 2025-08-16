@@ -16,9 +16,9 @@ interface Props {
 export const IconPxFilled = ({
   type,
   className,
-  typeStarSmall = "https://c.animaapp.com/h23eak6p/img/type-star-small.svg",
-  typeStarSmallHalf = "https://c.animaapp.com/h23eak6p/img/type-star-small-half.svg",
-  typeArrowSmall = "https://c.animaapp.com/h23eak6p/img/type-arrow-small-down.svg",
+  typeStarSmall = "/assets/misc/type-star-small.svg",
+  typeStarSmallHalf = "/assets/misc/type-star-small-half.svg",
+  typeArrowSmall = "/assets/misc/type-arrow-small-down.svg",
 }: Props): JSX.Element => {
   return (
     <img

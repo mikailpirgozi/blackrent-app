@@ -28,16 +28,16 @@ export const TypeVyplneneDniWrapper = ({
   type,
   className,
   frameClassName,
-  iconPxTypArrowDown = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxImg = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown1 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown2 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown3 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown4 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown5 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown6 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown7 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  filterTagsIconPxTypArrowDown = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
+  iconPxTypArrowDown = "/assets/misc/icon-16-px-32.svg",
+  iconPxImg = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown1 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown2 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown3 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown4 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown5 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown6 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown7 = "/assets/misc/icon-16-px-32.svg",
+  filterTagsIconPxTypArrowDown = "/assets/misc/icon-16-px-32.svg",
 }: Props): JSX.Element => {
   return (
     <div
@@ -100,7 +100,7 @@ export const TypeVyplneneDniWrapper = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-14-2.svg"
+        src="/assets/misc/line-14-2.svg"
       />
 
       <div className="flex h-4 items-center gap-2 px-2 py-0 relative self-stretch w-full">
@@ -121,7 +121,7 @@ export const TypeVyplneneDniWrapper = ({
             <img
               className="absolute w-[244px] h-1 top-2 left-0"
               alt="Line"
-              src="https://c.animaapp.com/h23eak6p/img/line-5-4.svg"
+              src="/assets/misc/line-5-4.svg"
             />
 
             <div className="absolute w-5 h-5 top-0 left-56 bg-colors-light-yellow-accent-100 rounded-[10px] border-2 border-solid border-colors-black-600" />
@@ -151,19 +151,19 @@ export const TypeVyplneneDniWrapper = ({
             <img
               className="absolute w-[53px] h-1 top-2 left-0"
               alt="Line"
-              src="https://c.animaapp.com/h23eak6p/img/line-6-7.svg"
+              src="/assets/misc/line-6-7.svg"
             />
 
             <img
               className="w-[58px] left-[178px] absolute h-1 top-2"
               alt="Line"
-              src="https://c.animaapp.com/h23eak6p/img/line-8-5.svg"
+              src="/assets/misc/line-8-5.svg"
             />
 
             <img
               className="absolute w-[132px] h-1 top-2 left-12"
               alt="Line"
-              src="https://c.animaapp.com/h23eak6p/img/line-7-6.svg"
+              src="/assets/misc/line-7-6.svg"
             />
 
             <div className="left-10 absolute w-5 h-5 top-0 bg-colors-light-yellow-accent-100 rounded-[10px] border-2 border-solid border-colors-black-600" />
@@ -176,7 +176,7 @@ export const TypeVyplneneDniWrapper = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-11-2.svg"
+        src="/assets/misc/line-11-2.svg"
       />
 
       <div className="h-4 pl-2 pr-4 py-4 flex items-center gap-2 relative self-stretch w-full">
@@ -202,7 +202,7 @@ export const TypeVyplneneDniWrapper = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-11-2.svg"
+        src="/assets/misc/line-11-2.svg"
       />
 
       <div className="flex h-4 pl-2 pr-4 py-4 self-stretch w-full items-center gap-2 relative">
@@ -228,7 +228,7 @@ export const TypeVyplneneDniWrapper = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-11-2.svg"
+        src="/assets/misc/line-11-2.svg"
       />
 
       <div className="flex h-4 items-center gap-2 pl-2 pr-4 py-4 relative self-stretch w-full">
@@ -272,19 +272,19 @@ export const TypeVyplneneDniWrapper = ({
               <img
                 className="absolute w-[49px] h-1 top-2 left-0"
                 alt="Line"
-                src="https://c.animaapp.com/h23eak6p/img/line-6-8.svg"
+                src="/assets/misc/line-6-8.svg"
               />
 
               <img
                 className="w-[74px] left-[170px] absolute h-1 top-2"
                 alt="Line"
-                src="https://c.animaapp.com/h23eak6p/img/line-8-6.svg"
+                src="/assets/misc/line-8-6.svg"
               />
 
               <img
                 className="absolute w-[156px] h-1 top-2 left-8"
                 alt="Line"
-                src="https://c.animaapp.com/h23eak6p/img/line-7-8.svg"
+                src="/assets/misc/line-7-8.svg"
               />
 
               <div className="left-6 absolute w-5 h-5 top-0 bg-colors-light-yellow-accent-100 rounded-[10px] border-2 border-solid border-colors-black-600" />
@@ -340,7 +340,7 @@ export const TypeVyplneneDniWrapper = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-14-2.svg"
+        src="/assets/misc/line-14-2.svg"
       />
 
       <div className="flex h-4 items-center gap-2 pl-2 pr-4 py-4 relative self-stretch w-full">
@@ -392,7 +392,7 @@ export const TypeVyplneneDniWrapper = ({
 
         <TlacitkoNaTmavemWrapper
           className="!pl-6 !pr-5 !py-4"
-          iconPx="https://c.animaapp.com/h23eak6p/img/icon-24-px-86.svg"
+          iconPx="/assets/misc/icon-24-px-86.svg"
           iconPxClassName="!mt-[-4.00px] !mb-[-4.00px]"
           text="Vyhľadať"
           tlacitkoNaTmavem="normal"

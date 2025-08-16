@@ -1,0 +1,1 @@
+export { TypPrevodovka } from "./TypPrevodovka";

@@ -4,15 +4,15 @@ import { Card, CardContent } from "../../../ui/card";
 
 const searchFields = [
   {
-    icon: "https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px-2.svg",
+    icon: "/assets/misc/icon-pin-24px.svg",
     placeholder: "Miesto vyzdvihnutia"
   },
   {
-    icon: "https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px-4.svg",
+    icon: "/assets/misc/icon-calendar-24px.svg",
     placeholder: "Dátum vyzdvihnutia"
   },
   {
-    icon: "https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px-4.svg",
+    icon: "/assets/misc/icon-calendar-24px.svg",
     placeholder: "Dátum vrátenia"
   }
 ] as const;
@@ -55,7 +55,7 @@ export const FilterSection = (): JSX.Element => {
             <img
               className="relative w-6 h-6"
               alt="Search icon"
-              src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px-8.svg"
+              src="/assets/misc/icon-search-dark-24px.svg"
             />
           </Button>
         </div>

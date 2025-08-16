@@ -1,0 +1,1 @@
+export { TypeStarSmall } from "./TypeStarSmall";

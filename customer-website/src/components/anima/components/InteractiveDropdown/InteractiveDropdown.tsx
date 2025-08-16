@@ -24,7 +24,7 @@ export const InteractiveDropdown = ({
   value,
   onChange,
   className = "",
-  iconPxTypArrowDown = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
+  iconPxTypArrowDown = "/assets/misc/icon-16-px-32.svg",
   isActive = false,
 }: Props): JSX.Element => {
   const [isOpen, setIsOpen] = useState(false);

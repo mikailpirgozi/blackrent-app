@@ -1,22 +1,22 @@
 import React from "react";
 
 const brandLogos = [
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-3.svg", alt: "Audi" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-4.svg", alt: "BMW" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-15.svg", alt: "Chevrolet" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut.svg", alt: "Dodge" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-1.svg", alt: "Ford" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-11.svg", alt: "Hyundai" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-13.svg", alt: "Iveco" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-12.svg", alt: "Jaguar" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-5.svg", alt: "Mercedes" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-10.svg", alt: "Mustang" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-14.svg", alt: "Nissan" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-6.svg", alt: "Opel" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-2.svg", alt: "Porsche" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-9.svg", alt: "Skoda" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-7.svg", alt: "Tesla" },
-  { src: "https://c.animaapp.com/me95zzp7lVICYW/img/loga-aut-8.svg", alt: "Volkswagen" }
+  { src: "/assets/logos/audi-logo.svg", alt: "Audi" },
+  { src: "/assets/logos/bmw-logo.svg", alt: "BMW" },
+  { src: "/assets/logos/chevrolet-logo.svg", alt: "Chevrolet" },
+  { src: "/assets/logos/dodge-logo.svg", alt: "Dodge" },
+  { src: "/assets/logos/ford-logo.svg", alt: "Ford" },
+  { src: "/assets/logos/hyundai-logo.svg", alt: "Hyundai" },
+  { src: "/assets/logos/iveco-logo.svg", alt: "Iveco" },
+  { src: "/assets/logos/jaguar-logo.svg", alt: "Jaguar" },
+  { src: "/assets/logos/mercedes-logo.svg", alt: "Mercedes" },
+  { src: "/assets/logos/mustang-logo.svg", alt: "Mustang" },
+  { src: "/assets/logos/nissan-logo.svg", alt: "Nissan" },
+  { src: "/assets/logos/opel-logo.svg", alt: "Opel" },
+  { src: "/assets/logos/porsche-logo.svg", alt: "Porsche" },
+  { src: "/assets/logos/skoda-logo.svg", alt: "Skoda" },
+  { src: "/assets/logos/tesla-logo.svg", alt: "Tesla" },
+  { src: "/assets/logos/volkswagen-logo.svg", alt: "Volkswagen" }
 ] as const;
 
 export const BrandLogosSection = (): JSX.Element => {

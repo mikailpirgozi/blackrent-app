@@ -54,9 +54,9 @@ const faqData = [
 ];
 
 const socialIcons = [
-  "https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px-14.svg",
-  "https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px-3.svg",
-  "https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px-5.svg",
+  "/assets/misc/icon-24-px-14.svg",
+  "/assets/misc/icon-24-px-3.svg",
+  "/assets/misc/icon-24-px-5.svg",
 ];
 
 export const ContactSection = (): JSX.Element => {
@@ -160,7 +160,7 @@ export const ContactSection = (): JSX.Element => {
         <Card className="absolute bottom-[1100px] md:bottom-[1300px] lg:bottom-[992px] left-1/2 transform -translate-x-1/2 flex flex-col w-[95%] md:w-[90%] lg:w-full max-w-[1328px] items-center pt-16 md:pt-20 lg:pt-24 pb-12 md:pb-16 lg:pb-[72px] px-4 md:px-6 lg:px-0 bg-[#f0f0f5] rounded-2xl lg:rounded-3xl border-none overflow-hidden z-20">
           <CardContent className="relative w-full p-0">
             <div 
-              className="absolute w-[80px] md:w-[90px] lg:w-[104px] h-[80px] md:h-[90px] lg:h-[104px] left-1/2 md:left-[55%] lg:left-[612px] top-[-60px] md:top-[-80px] lg:top-[-144px] transform -translate-x-1/2 md:transform-none lg:transform-none rounded-[99px] border border-solid border-[#f0f0f5] bg-[url(/figma-assets/operator-avatar.webp)] bg-no-repeat bg-[0px_-7.084px] bg-[length:100%_149.982%]"
+              className="absolute w-[80px] md:w-[90px] lg:w-[104px] h-[80px] md:h-[90px] lg:h-[104px] left-1/2 md:left-[55%] lg:left-[612px] top-[-60px] md:top-[-80px] lg:top-[-144px] transform -translate-x-1/2 md:transform-none lg:transform-none rounded-[99px] border border-solid border-[#f0f0f5] bg-[url(/assets/misc/operator-avatar.webp)] bg-no-repeat bg-[0px_-7.084px] bg-[length:100%_149.982%]"
               style={{
                 display: 'flex',
                 padding: '8px',
@@ -169,7 +169,7 @@ export const ContactSection = (): JSX.Element => {
                 gap: '8px',
                 borderRadius: '99px',
                 border: '1px solid var(--White-800, #F0F0F5)',
-                background: 'url(/figma-assets/operator-avatar.webp) lightgray 0px -7.084px / 100% 149.982% no-repeat'
+                background: 'url(/assets/misc/operator-avatar.webp) lightgray 0px -7.084px / 100% 149.982% no-repeat'
               }}
             />
 
@@ -191,7 +191,7 @@ export const ContactSection = (): JSX.Element => {
                   <img
                     className="w-5 md:w-6 h-5 md:h-6"
                     alt="Phone icon"
-                    src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px-1.svg"
+                    src="/assets/misc/icon-24-px-1.svg"
                   />
                   <a
                     className="[font-family:'Poppins',Helvetica] font-medium text-[#646469] text-lg md:text-xl tracking-[0] leading-6 whitespace-nowrap"
@@ -206,14 +206,14 @@ export const ContactSection = (): JSX.Element => {
                 <img
                   className="hidden md:block self-stretch w-px"
                   alt="Line"
-                  src="https://c.animaapp.com/me95zzp7lVICYW/img/line-9.svg"
+                  src="/assets/misc/line-9.svg"
                 />
 
                 <div className="flex items-center gap-2">
                   <img
                     className="w-5 md:w-6 h-5 md:h-6"
                     alt="Email icon"
-                    src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px.svg"
+                    src="/assets/misc/icon-24-px.svg"
                   />
                   <div className="[font-family:'Poppins',Helvetica] font-medium text-[#646469] text-lg md:text-xl tracking-[0] leading-6 whitespace-nowrap">
                     info@blackrent.sk
@@ -223,7 +223,7 @@ export const ContactSection = (): JSX.Element => {
             </div>
 
             <div className="absolute w-[200px] h-[210px] bottom-[-50px] left-[-120px] rounded-3xl overflow-hidden">
-              <div className="w-full h-full bg-[url(/assets/contact-pattern.svg)] bg-no-repeat bg-cover" />
+              <div className="w-full h-full bg-[url(/assets/misc/Vector.svg)] bg-no-repeat bg-cover" />
             </div>
           </CardContent>
         </Card>
@@ -235,7 +235,7 @@ export const ContactSection = (): JSX.Element => {
               <img
                 className="w-full h-full"
                 alt="Vector"
-                src="https://c.animaapp.com/me95zzp7lVICYW/img/vector.svg"
+                src="/assets/misc/Vector.svg"
               />
             </div>
 
@@ -244,7 +244,7 @@ export const ContactSection = (): JSX.Element => {
               <img
                 className="w-[214.4px] h-8 mx-auto lg:mx-0 lg:ml-0"
                 alt="Blackrent logo"
-                src="https://c.animaapp.com/me95zzp7lVICYW/img/blackrent-logo.svg"
+                src="/assets/logos/blackrent-logo.svg"
               />
 
               <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
@@ -266,7 +266,7 @@ export const ContactSection = (): JSX.Element => {
                         <img
                           className="w-6 h-6"
                           alt="Icon px"
-                          src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px.svg"
+                          src="/assets/misc/icon-24-px.svg"
                         />
                         <Input
                           type="email"
@@ -289,7 +289,7 @@ export const ContactSection = (): JSX.Element => {
                         <img
                           className="w-4 h-4"
                           alt="Icon px"
-                          src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-16-px-4.svg"
+                          src="/assets/misc/icon-16-px-4.svg"
                         />
                       </Button>
                     </div>

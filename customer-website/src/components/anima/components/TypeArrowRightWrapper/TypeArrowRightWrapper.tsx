@@ -15,7 +15,7 @@ export const TypeArrowRightWrapper = ({ type }: Props): JSX.Element => {
       <img
         className="relative w-6 h-6 mt-[-4.00px] mb-[-4.00px] ml-[-4.00px] mr-[-4.00px]"
         alt="Icon px"
-        src="https://c.animaapp.com/h23eak6p/img/icon-24-px-85.svg"
+        src="/assets/misc/icon-24-px-85.svg"
       />
     </div>
   );

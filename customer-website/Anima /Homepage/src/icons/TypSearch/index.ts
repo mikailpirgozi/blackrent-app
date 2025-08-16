@@ -1,0 +1,1 @@
+export { TypSearch } from "./TypSearch";

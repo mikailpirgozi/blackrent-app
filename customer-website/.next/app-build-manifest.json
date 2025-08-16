@@ -1,45 +1,30 @@
 {
   "pages": {
-    "/_not-found/page": [
-      "static/chunks/webpack-97a6b0af6cbb2497.js",
-      "static/chunks/fd9d1056-9e191f0896c1d560.js",
-      "static/chunks/117-c90bd862f1d306db.js",
-      "static/chunks/main-app-d65f6df1750d4f72.js",
-      "static/chunks/app/_not-found/page-c8219ab21dbb5ed7.js"
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
     ],
     "/layout": [
-      "static/chunks/webpack-97a6b0af6cbb2497.js",
-      "static/chunks/fd9d1056-9e191f0896c1d560.js",
-      "static/chunks/117-c90bd862f1d306db.js",
-      "static/chunks/main-app-d65f6df1750d4f72.js",
-      "static/css/db3149d7c7f3ba3a.css",
-      "static/css/64bee3ceacf1dac1.css",
-      "static/chunks/app/layout-b288007459e3d675.js"
-    ],
-    "/page": [
-      "static/chunks/webpack-97a6b0af6cbb2497.js",
-      "static/chunks/fd9d1056-9e191f0896c1d560.js",
-      "static/chunks/117-c90bd862f1d306db.js",
-      "static/chunks/main-app-d65f6df1750d4f72.js",
-      "static/chunks/972-6b3a9bf8677b6a45.js",
-      "static/chunks/313-310f53e774a90907.js",
-      "static/chunks/app/page-8638e33512afbd5d.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
     ],
     "/vozidla/[id]/page": [
-      "static/chunks/webpack-97a6b0af6cbb2497.js",
-      "static/chunks/fd9d1056-9e191f0896c1d560.js",
-      "static/chunks/117-c90bd862f1d306db.js",
-      "static/chunks/main-app-d65f6df1750d4f72.js",
-      "static/chunks/972-6b3a9bf8677b6a45.js",
-      "static/chunks/app/vozidla/[id]/page-222fbcf9f807fddf.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/vozidla/[id]/page.js"
     ],
     "/vozidla/page": [
-      "static/chunks/webpack-97a6b0af6cbb2497.js",
-      "static/chunks/fd9d1056-9e191f0896c1d560.js",
-      "static/chunks/117-c90bd862f1d306db.js",
-      "static/chunks/main-app-d65f6df1750d4f72.js",
-      "static/chunks/972-6b3a9bf8677b6a45.js",
-      "static/chunks/app/vozidla/page-dd3f666f8005a72b.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/vozidla/page.js"
+    ],
+    "/tabulka-objednavky/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/tabulka-objednavky/page.js"
     ]
   }
 }

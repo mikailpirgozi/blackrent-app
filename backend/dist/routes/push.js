@@ -15,9 +15,14 @@ const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@blackrent.sk';
 // Initialize web-push with VAPID keys
-if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-    web_push_1.default.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-    console.log('✅ Web Push VAPID keys configured');
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && VAPID_PUBLIC_KEY !== 'your-vapid-public-key' && VAPID_PRIVATE_KEY !== 'your-vapid-private-key') {
+    try {
+        web_push_1.default.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+        console.log('✅ Web Push VAPID keys configured');
+    }
+    catch (error) {
+        console.warn('⚠️ VAPID keys configuration failed:', error);
+    }
 }
 else {
     console.warn('⚠️ VAPID keys not configured - push notifications will not work');

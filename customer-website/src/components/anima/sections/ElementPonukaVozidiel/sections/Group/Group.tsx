@@ -25,7 +25,7 @@ export const Group = ({ onFilterClick }: GroupProps): JSX.Element => {
           <img
             className="relative w-px h-[15px] object-cover"
             alt="Line"
-            src="https://c.animaapp.com/h23eak6p/img/line-3-6.svg"
+            src="/assets/misc/line-3-6.svg"
           />
 
           <div className="inline-flex items-center gap-1 relative flex-[0_0_auto]">
@@ -43,7 +43,7 @@ export const Group = ({ onFilterClick }: GroupProps): JSX.Element => {
         <img
           className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px]"
           alt="Line"
-          src="https://c.animaapp.com/h23eak6p/img/line-8-4.svg"
+          src="/assets/misc/line-8-4.svg"
         />
 
         <div className="flex w-[359px] h-14 items-center justify-center px-4 py-0 relative ml-[-15.50px] mr-[-15.50px]" style={{gap: '8px'}}>
@@ -71,7 +71,7 @@ export const Group = ({ onFilterClick }: GroupProps): JSX.Element => {
           <img
             className="absolute w-5 h-5 top-0.5 left-0.5"
             alt="Filter icon"
-            src="https://c.animaapp.com/h23eak6p/img/icon-24-px-60.svg"
+            src="/assets/misc/icon-24-px-60.svg"
           />
         </div>
         <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-base text-center tracking-[0] leading-6 whitespace-nowrap">

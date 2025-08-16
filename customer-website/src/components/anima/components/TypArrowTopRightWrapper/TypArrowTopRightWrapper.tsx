@@ -14,7 +14,7 @@ interface Props {
 export const TypArrowTopRightWrapper = ({
   typ,
   className,
-  typArrowTopRight = "https://c.animaapp.com/h23eak6p/img/typ-arrow-top-right.png",
+  typArrowTopRight = "/assets/misc/typ-arrow-top-right.png",
 }: Props): JSX.Element => {
   return (
     <img

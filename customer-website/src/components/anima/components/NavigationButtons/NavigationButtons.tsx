@@ -15,7 +15,7 @@ export const NavigationButtons = ({ type }: Props): JSX.Element => {
     <div className="flex w-6 h-6 items-center justify-center gap-2 p-2 relative rounded">
       <IconPx
         className="!mr-[-4.00px] !mt-[-4.00px] !ml-[-4.00px] !mb-[-4.00px] !relative !left-[unset] !top-[unset]"
-        img="https://c.animaapp.com/h23eak6p/img/icon-16-px-41.svg"
+        img="/assets/misc/icon-16-px-41.svg"
         typ="arrow-right_1"
       />
     </div>

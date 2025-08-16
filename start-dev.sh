@@ -35,6 +35,8 @@ echo "🔧 Porty vyčistené"
 # Spustenie backendu
 echo "🚀 Spúšťam backend server..."
 cd backend
+# Nastav RUN_MIGRATIONS=false aby sa migrácie nespúšťali duplicitne
+export RUN_MIGRATIONS=false
 npm run dev > ../logs/backend.log 2>&1 &
 BACKEND_PID=$!
 cd ..

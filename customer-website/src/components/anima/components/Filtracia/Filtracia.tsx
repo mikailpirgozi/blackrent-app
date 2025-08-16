@@ -26,16 +26,16 @@ interface Props {
 export const Filtracia = ({
   type,
   className,
-  iconPxTypArrowDown = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxImg = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown1 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown2 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown3 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown4 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown5 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown6 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  iconPxTypArrowDown7 = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
-  filterTagsIconPxTypArrowDown = "https://c.animaapp.com/h23eak6p/img/icon-16-px-32.svg",
+  iconPxTypArrowDown = "/assets/misc/icon-16-px-32.svg",
+  iconPxImg = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown1 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown2 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown3 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown4 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown5 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown6 = "/assets/misc/icon-16-px-32.svg",
+  iconPxTypArrowDown7 = "/assets/misc/icon-16-px-32.svg",
+  filterTagsIconPxTypArrowDown = "/assets/misc/icon-16-px-32.svg",
 }: Props): JSX.Element => {
   return (
     <div
@@ -96,7 +96,7 @@ export const Filtracia = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-14-3.svg"
+        src="/assets/misc/line-14-3.svg"
       />
 
       <div className="flex h-4 items-center gap-2 px-2 py-0 relative self-stretch w-full">
@@ -117,7 +117,7 @@ export const Filtracia = ({
             <img
               className="absolute w-[184px] h-1 top-2 left-0"
               alt="Line"
-              src="https://c.animaapp.com/h23eak6p/img/line-5-6.svg"
+              src="/assets/misc/line-5-6.svg"
             />
 
             <div className="absolute w-5 h-5 top-0 left-[172px] bg-colors-light-yellow-accent-100 rounded-[10px] border-2 border-solid border-colors-black-600" />
@@ -147,19 +147,19 @@ export const Filtracia = ({
             <img
               className="absolute w-[35px] h-1 top-2 left-3.5"
               alt="Line"
-              src="https://c.animaapp.com/h23eak6p/img/line-6-11.svg"
+              src="/assets/misc/line-6-11.svg"
             />
 
             <img
               className="w-[54px] left-[130px] absolute h-1 top-2"
               alt="Line"
-              src="https://c.animaapp.com/h23eak6p/img/line-8-7.svg"
+              src="/assets/misc/line-8-7.svg"
             />
 
             <img
               className="absolute w-[172px] h-1 top-2 left-3"
               alt="Line"
-              src="https://c.animaapp.com/h23eak6p/img/line-7-9.svg"
+              src="/assets/misc/line-7-9.svg"
             />
 
             <div className="absolute w-5 h-5 top-0 left-0 bg-colors-light-yellow-accent-100 rounded-[10px] border-2 border-solid border-colors-black-600" />
@@ -172,7 +172,7 @@ export const Filtracia = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-11-3.svg"
+        src="/assets/misc/line-11-3.svg"
       />
 
       <div className="h-4 pl-2 pr-4 py-4 flex items-center gap-2 relative self-stretch w-full">
@@ -198,7 +198,7 @@ export const Filtracia = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-11-3.svg"
+        src="/assets/misc/line-11-3.svg"
       />
 
       <div className="flex h-4 pl-2 pr-4 py-4 self-stretch w-full items-center gap-2 relative">
@@ -224,7 +224,7 @@ export const Filtracia = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-11-3.svg"
+        src="/assets/misc/line-11-3.svg"
       />
 
       <div className="flex h-4 items-center gap-2 pl-2 pr-4 py-4 relative self-stretch w-full">
@@ -268,19 +268,19 @@ export const Filtracia = ({
               <img
                 className="absolute w-[35px] h-1 top-2 left-3.5"
                 alt="Line"
-                src="https://c.animaapp.com/h23eak6p/img/line-6-11.svg"
+                src="/assets/misc/line-6-11.svg"
               />
 
               <img
                 className="w-[18px] left-[162px] absolute h-1 top-2"
                 alt="Line"
-                src="https://c.animaapp.com/h23eak6p/img/line-8-8.svg"
+                src="/assets/misc/line-8-8.svg"
               />
 
               <img
                 className="absolute w-[157px] h-1 top-2 left-3"
                 alt="Line"
-                src="https://c.animaapp.com/h23eak6p/img/line-7-11.svg"
+                src="/assets/misc/line-7-11.svg"
               />
 
               <div className="absolute w-5 h-5 top-0 left-0 bg-colors-light-yellow-accent-100 rounded-[10px] border-2 border-solid border-colors-black-600" />
@@ -336,7 +336,7 @@ export const Filtracia = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-14-3.svg"
+        src="/assets/misc/line-14-3.svg"
       />
 
       <div className="flex h-4 items-center gap-2 pl-2 pr-4 py-4 relative self-stretch w-full">
@@ -388,7 +388,7 @@ export const Filtracia = ({
 
         <TlacitkoNaTmavemWrapper
           className="!pl-6 !pr-5 !py-4"
-          iconPx="https://c.animaapp.com/h23eak6p/img/icon-24-px-86.svg"
+          iconPx="/assets/misc/icon-24-px-86.svg"
           iconPxClassName="!mt-[-4.00px] !mb-[-4.00px]"
           text="Vyhľadať"
           tlacitkoNaTmavem="normal"

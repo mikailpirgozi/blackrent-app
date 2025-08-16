@@ -19,7 +19,7 @@ export const TlacitkoNaTmavemWrapper = ({
   className,
   text = "Button",
   iconPxClassName,
-  iconPx = "https://c.animaapp.com/h23eak6p/img/icon-24-px-18.png",
+  iconPx = "/assets/misc/icon-24-px-18.png",
   onClick,
 }: Props): JSX.Element => {
   return (

@@ -65,7 +65,6 @@ class PDFGenerator {
     // jsPDF podporuje tieto fonty: 'helvetica', 'courier', 'times', 'symbol', 'zapfdingbats'
     // Používame 'helvetica' ako štandardný font
     this.setFontSafely('helvetica');
-    this.doc.setLanguage('sk');
   }
 
   /**

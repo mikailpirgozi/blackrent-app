@@ -23,7 +23,7 @@ export const KartaVozidlaPonukaVozidiel1728 = ({
   type,
   className,
   nHAdVozidlaClassName,
-  typArrowTopRightWrapperTypArrowTopRight = "https://c.animaapp.com/h23eak6p/img/icon-32-px-12.svg",
+  typArrowTopRightWrapperTypArrowTopRight = "/assets/misc/icon-32-px-12.svg",
   vehicleId = "ford-mustang",
 }: Props): JSX.Element => {
   const [state, dispatch] = useReducer(reducer, {
@@ -45,7 +45,7 @@ export const KartaVozidlaPonukaVozidiel1728 = ({
       >
       <div className="w-full flex self-stretch flex-col items-start grow gap-6 flex-1 relative">
         <div
-          className={`w-full self-stretch bg-cover h-56 rounded-lg bg-[50%_50%] relative ${["tag-DPH", "tag-discount-DPH"].includes(state.type) ? "flex" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(state.type) ? "items-start" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(state.type) ? "gap-1" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(state.type) ? "p-2" : ""} ${state.originalType === "default" && state.isHovered ? "bg-[url(https://c.animaapp.com/h23eak6p/img/n-h-ad-vozidla-5@2x.png)]" : state.originalType === "default" ? "bg-[url(https://c.animaapp.com/h23eak6p/img/n-h-ad-vozidla-4@2x.png)]" : "bg-[url(https://c.animaapp.com/h23eak6p/img/n-h-ad-vozidla-39@2x.png)]"} ${["tag-DPH", "tag-discount-DPH"].includes(state.type) ? "overflow-hidden" : ""} ${nHAdVozidlaClassName}`}
+          className={`w-full self-stretch bg-cover h-56 rounded-lg bg-[50%_50%] relative ${["tag-DPH", "tag-discount-DPH"].includes(state.type) ? "flex" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(state.type) ? "items-start" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(state.type) ? "gap-1" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(state.type) ? "p-2" : ""} ${state.originalType === "default" && state.isHovered ? "bg-[url(/assets/misc/n-h-ad-vozidla-5@2x.png)]" : state.originalType === "default" ? "bg-[url(/assets/misc/n-h-ad-vozidla-4@2x.png)]" : "bg-[url(/assets/misc/n-h-ad-vozidla-39@2x.png)]"} ${["tag-DPH", "tag-discount-DPH"].includes(state.type) ? "overflow-hidden" : ""} ${nHAdVozidlaClassName}`}
         >
           {["tag-DPH", "tag-discount-DPH"].includes(state.type) && (
             <div

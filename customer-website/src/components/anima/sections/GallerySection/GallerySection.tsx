@@ -14,7 +14,7 @@ export const GallerySection = (): JSX.Element => {
 
   return (
     <section className="relative w-full bg-[#fafaff] rounded-[40px_40px_0px_0px] overflow-hidden">
-      <div className="absolute w-[476px] h-[982px] top-[586px] left-0 bg-[url(https://c.animaapp.com/me95zzp7lVICYW/img/vector-3.svg)] bg-[100%_100%]" />
+      <div className="absolute w-[476px] h-[982px] top-[586px] left-0 bg-[url(/assets/misc/vector-3.svg)] bg-[100%_100%]" />
 
       <div className="flex flex-col w-[1084px] items-center gap-12 absolute top-[200px] left-[322px]">
         <h2 className="w-[439px] mt-[-1.00px] [font-family:'SF_Pro-ExpandedHeavy',Helvetica] font-[870] text-[#1e1e23] text-5xl text-center tracking-[0] leading-[48px] whitespace-nowrap relative h-8">
@@ -45,7 +45,7 @@ export const GallerySection = (): JSX.Element => {
       <img
         className="absolute w-[648px] h-[688px] top-[448px] left-[540px]"
         alt="Group"
-        src="https://c.animaapp.com/me95zzp7lVICYW/img/group-996.png"
+        src="/assets/misc/group-996.png"
       />
     </section>
   );

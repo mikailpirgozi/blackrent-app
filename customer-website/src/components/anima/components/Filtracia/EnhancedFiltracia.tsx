@@ -22,10 +22,20 @@ interface FilterState {
   features: string[];
 }
 
+interface Vehicle {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  features: string[];
+  available: boolean;
+}
+
 interface Props {
-  type: "default";
+  type?: "default";
   className?: string;
-  onFilterChange?: (filters: FilterState) => void;
+  vehicles: Vehicle[];
+  onFilterChange?: (filteredVehicles: Vehicle[]) => void;
   onSearch?: (filters: FilterState) => void;
 }
 
@@ -101,8 +111,9 @@ const availableFeatures = [
 ];
 
 export const EnhancedFiltracia = ({
-  type,
+  type = "default",
   className = "",
+  vehicles,
   onFilterChange,
   onSearch,
 }: Props): JSX.Element => {
@@ -123,6 +134,45 @@ export const EnhancedFiltracia = ({
   });
 
   const [showAllFeatures, setShowAllFeatures] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [availableOnly, setAvailableOnly] = useState(false);
+  
+  // Filter vehicles based on current filters
+  const filteredVehicles = React.useMemo(() => {
+    return (vehicles || []).filter(vehicle => {
+      // Search term filter
+      if (searchTerm && !vehicle.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+      }
+      
+      // Category filter
+      if (selectedCategory !== "all" && vehicle.category !== selectedCategory) {
+        return false;
+      }
+      
+      // Price range filter
+      const min = minPrice ? parseFloat(minPrice) : 0;
+      const max = maxPrice ? parseFloat(maxPrice) : Infinity;
+      if (vehicle.price < min || vehicle.price > max) {
+        return false;
+      }
+      
+      // Availability filter
+      if (availableOnly && !vehicle.available) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [vehicles, searchTerm, selectedCategory, minPrice, maxPrice, availableOnly]);
+  
+  // Notify parent of filtered vehicles whenever filters change
+  React.useEffect(() => {
+    onFilterChange?.(filteredVehicles);
+  }, [filteredVehicles, onFilterChange]);
 
   const updateFilter = (key: keyof FilterState, value: any) => {
     const newFilters = { ...filters, [key]: value };
@@ -158,14 +208,21 @@ export const EnhancedFiltracia = ({
       features: [],
     };
     setFilters(defaultFilters);
-    onFilterChange?.(defaultFilters);
+    setSearchTerm("");
+    setSelectedCategory("all");
+    setMinPrice("");
+    setMaxPrice("");
+    setAvailableOnly(false);
+    onFilterChange?.(vehicles); // Return all vehicles
   };
 
   const visibleFeatures = showAllFeatures ? availableFeatures : availableFeatures.slice(0, 8);
 
   return (
     <div
-      className={`flex flex-col w-64 items-center gap-6 pt-6 pb-10 px-4 relative bg-colors-black-400 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg ${className}`}
+      role="region"
+      aria-label="Filtre"
+      className={`flex flex-col w-[308px] items-center gap-6 pt-6 pb-10 px-4 relative bg-colors-black-400 rounded-2xl overflow-hidden ${className}`}
     >
       {/* Dostupnosť Section */}
       <div className="h-4 items-center gap-2 px-2 py-0 flex relative self-stretch w-full">
@@ -208,7 +265,7 @@ export const EnhancedFiltracia = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-14-3.svg"
+        src="/assets/misc/line-14-3.svg"
       />
 
       {/* Cena Section */}
@@ -244,7 +301,7 @@ export const EnhancedFiltracia = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-11-3.svg"
+        src="/assets/misc/line-11-3.svg"
       />
 
       {/* Autopožičovňa Section */}
@@ -266,7 +323,7 @@ export const EnhancedFiltracia = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-11-3.svg"
+        src="/assets/misc/line-11-3.svg"
       />
 
       {/* Značka vozidla Section */}
@@ -288,7 +345,7 @@ export const EnhancedFiltracia = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-11-3.svg"
+        src="/assets/misc/line-11-3.svg"
       />
 
       {/* Parametre vozidla Section */}
@@ -349,7 +406,7 @@ export const EnhancedFiltracia = ({
       <img
         className="relative self-stretch w-full h-px ml-[-0.50px] mr-[-0.50px] object-cover"
         alt="Line"
-        src="https://c.animaapp.com/h23eak6p/img/line-14-3.svg"
+        src="/assets/misc/line-14-3.svg"
       />
 
       {/* Výbava Section */}
@@ -379,28 +436,14 @@ export const EnhancedFiltracia = ({
           />
         </div>
 
-        <div className="flex flex-col gap-4 w-full">
-          <TlacitkoNaTmavemWrapper
-            className="!pl-6 !pr-5 !py-4 transition-all duration-200 hover:scale-105 active:scale-95"
-            iconPx="https://c.animaapp.com/h23eak6p/img/icon-24-px-86.svg"
-            iconPxClassName="!mt-[-4.00px] !mb-[-4.00px]"
-            text="Vyhľadať"
-            tlacitkoNaTmavem="normal"
-            onClick={handleSearch}
-          />
-          
-          <button
-            onClick={resetFilters}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-colors-black-600 hover:bg-colors-black-500 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span className="[font-family:'Poppins',Helvetica] font-medium text-colors-ligh-gray-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
-              Resetovať filtre
-            </span>
-          </button>
-        </div>
+        <TlacitkoNaTmavemWrapper
+          className="!pl-6 !pr-5 !py-4 transition-all duration-200 hover:scale-105 active:scale-95"
+          iconPx="/assets/misc/icon-search-dark-24px.svg"
+          iconPxClassName="!mt-[-4.00px] !mb-[-4.00px]"
+          text="Vyhľadať"
+          tlacitkoNaTmavem="normal"
+          onClick={handleSearch}
+        />
       </div>
     </div>
   );

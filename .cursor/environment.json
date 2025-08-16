@@ -1,0 +1,11 @@
+{
+  "agentCanUpdateSnapshot": true,
+  "snapshot": "snapshot-20250714-352273ca-b11e-496e-ba90-61609e1eebaa",
+  "stepTimeout": 60000,
+  "commandTimeout": 60000,
+  "skipLongRunningCommands": true,
+  "preferCodeGeneration": true,
+  "autoSkipBlocking": true,
+  "progressTimeout": 30000,
+  "progressSkipMessage": "No progress, skipping…"
+}

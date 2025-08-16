@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigationType, createRoutesFromChildren, matchRoutes } from 'react-router-dom';
 import * as Sentry from "@sentry/react";
+import { browserTracingIntegration, replayIntegration } from "@sentry/react";
 
 // Sentry konfigurácia pre BlackRent frontend
 export const initSentry = () => {
@@ -28,17 +29,8 @@ export const initSentry = () => {
     
     // Integrácie
     integrations: [
-      new Sentry.BrowserTracing({
-        // Automaticky zachytí navigation transitions
-        routingInstrumentation: Sentry.reactRouterV6Instrumentation(
-          React.useEffect,
-          useLocation,
-          useNavigationType,
-          createRoutesFromChildren,
-          matchRoutes
-        ),
-      }),
-      new Sentry.Replay({
+      browserTracingIntegration(),
+      replayIntegration({
         // Replay len pre error sessions na produkcii
         maskAllText: true,
         blockAllMedia: true,
@@ -46,7 +38,7 @@ export const initSentry = () => {
     ],
     
     // Filter out známe chyby
-    beforeSend(event: Sentry.Event) {
+    beforeSend(event: Sentry.ErrorEvent) {
       // Ignoruj development errors
       if (process.env.NODE_ENV === 'development') {
         console.log('🐛 Sentry event (dev):', event);
@@ -113,5 +105,5 @@ export const reportMessage = (message: string, level: 'info' | 'warning' | 'erro
 
 // Performance tracing
 export const startTransaction = (name: string, op: string) => {
-  return Sentry.startTransaction({ name, op });
+  return Sentry.startSpan({ name, op }, () => {});
 }; 

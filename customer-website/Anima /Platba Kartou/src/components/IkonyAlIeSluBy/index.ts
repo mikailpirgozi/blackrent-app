@@ -1,0 +1,1 @@
+export { IkonyAlIeSluBy } from "./IkonyAlIeSluBy";

@@ -1,0 +1,1 @@
+export { TlacitkoNaTmavememWrapper } from "./TlacitkoNaTmavememWrapper";

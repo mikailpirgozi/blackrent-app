@@ -27,13 +27,13 @@ interface Props {
 export const TypMenuWrapper = ({
   typ,
   className,
-  typFilter = "https://c.animaapp.com/h23eak6p/img/typ-filter-1.svg",
-  typMessage = "https://c.animaapp.com/h23eak6p/img/typ-message.svg",
-  typFacebook = "https://c.animaapp.com/h23eak6p/img/typ-facebook.svg",
-  typInstagram = "https://c.animaapp.com/h23eak6p/img/typ-instagram.svg",
-  typTiktok = "https://c.animaapp.com/h23eak6p/img/typ-tiktok.svg",
-  typMobil = "https://c.animaapp.com/h23eak6p/img/typ-mobil.svg",
-  typMenu = "https://c.animaapp.com/h23eak6p/img/typ-menu.svg",
+  typFilter = "/assets/misc/typ-filter-1.svg",
+  typMessage = "/assets/misc/typ-message.svg",
+  typFacebook = "/assets/misc/typ-facebook.svg",
+  typInstagram = "/assets/misc/typ-instagram.svg",
+  typTiktok = "/assets/misc/typ-tiktok.svg",
+  typMobil = "/assets/misc/typ-mobil.svg",
+  typMenu = "/assets/misc/typ-menu.svg",
 }: Props): JSX.Element => {
   return (
     <img

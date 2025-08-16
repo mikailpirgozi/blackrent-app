@@ -39,12 +39,12 @@ export const HeroSection = (): JSX.Element => {
             <img
               className="w-6 h-6"
               alt="Icon px"
-              src="https://c.animaapp.com/me95zzp7lVICYW/img/icon-24-px-9.svg"
+              src="/assets/misc/icon-24-px-9.svg"
             />
           </Button>
         </div>
 
-        <div className="flex-1 self-stretch min-h-[424px] rounded-[32px] bg-blend-multiply bg-[url(https://c.animaapp.com/me95zzp7lVICYW/img/frame-968.png)] bg-cover bg-[50%_50%] relative">
+        <div className="flex-1 self-stretch min-h-[424px] rounded-[32px] bg-blend-multiply bg-[url(/assets/misc/frame-968.png)] bg-cover bg-[50%_50%] relative">
           <div className="absolute bottom-7 left-1/2 transform -translate-x-1/2 flex items-center justify-center gap-2">
             {paginationDots.map((dot, index) => (
               <div

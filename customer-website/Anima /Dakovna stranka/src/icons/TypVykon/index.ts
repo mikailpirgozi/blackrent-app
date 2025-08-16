@@ -1,0 +1,1 @@
+export { TypVykon } from "./TypVykon";

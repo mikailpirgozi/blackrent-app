@@ -3,10 +3,11 @@ We're constantly improving the code you see.
 Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcNg&d=1152665201300829
 */
 
+import PropTypes from "prop-types";
 import React from "react";
 
 interface Props {
-  state?: "default";
+  state: "default";
   className: any;
 }
 
@@ -19,7 +20,7 @@ export const Store = ({ state, className }: Props): JSX.Element => {
         <img
           className="absolute w-5 h-5 top-0.5 left-0.5"
           alt="Union"
-          src="https://c.animaapp.com/h23eak6p/img/union-3.svg"
+          src="/assets/figma-assets/union-9.svg"
         />
       </div>
 
@@ -28,4 +29,8 @@ export const Store = ({ state, className }: Props): JSX.Element => {
       </div>
     </div>
   );
+};
+
+Store.propTypes = {
+  state: PropTypes.oneOf(["default"]),
 };

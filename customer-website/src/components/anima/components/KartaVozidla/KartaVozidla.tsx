@@ -18,7 +18,7 @@ interface Props {
 export const KartaVozidla = ({
   type,
   nHAdVozidlaClassName,
-  typArrowTopRightWrapperTypArrowTopRight = "https://c.animaapp.com/h23eak6p/img/icon-32-px-12.svg",
+  typArrowTopRightWrapperTypArrowTopRight = "/assets/misc/icon-32-px-12.svg",
   className,
   frameClassName,
 }: Props): JSX.Element => {
@@ -30,7 +30,7 @@ export const KartaVozidla = ({
         className={`w-full flex self-stretch flex-col items-start grow gap-6 flex-1 relative ${frameClassName}`}
       >
         <div
-          className={`w-full self-stretch bg-cover h-56 rounded-lg bg-[50%_50%] relative ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "flex" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "items-start" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "gap-1" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "p-2" : ""} ${type === "default" ? "bg-[url(https://c.animaapp.com/h23eak6p/img/n-h-ad-vozidla@2x.png)]" : (type === "hover") ? "bg-[url(https://c.animaapp.com/h23eak6p/img/n-h-ad-vozidla-1@2x.png)]" : "bg-[url(https://c.animaapp.com/h23eak6p/img/n-h-ad-vozidla-39@2x.png)]"} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "overflow-hidden" : ""} ${nHAdVozidlaClassName}`}
+          className={`w-full self-stretch bg-cover h-56 rounded-lg bg-[50%_50%] relative ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "flex" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "items-start" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "gap-1" : ""} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "p-2" : ""} ${type === "default" ? "bg-[url(/assets/misc/n-h-ad-vozidla@2x.png)]" : (type === "hover") ? "bg-[url(/assets/misc/n-h-ad-vozidla-1@2x.png)]" : "bg-[url(/assets/misc/n-h-ad-vozidla-39@2x.png)]"} ${["tag-DPH", "tag-discount-DPH"].includes(type) ? "overflow-hidden" : ""} ${nHAdVozidlaClassName}`}
         >
           {["tag-DPH", "tag-discount-DPH"].includes(type) && (
             <div

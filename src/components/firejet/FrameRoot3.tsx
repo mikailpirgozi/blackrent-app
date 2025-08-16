@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Icon24Px1Root3 from "./assets/Icon24Px1Root3";
 
 export default function FrameRoot3({ className = "" }: FrameRoot3Props) {

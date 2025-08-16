@@ -18,7 +18,7 @@ export const BackToTopButton = ({ className }: Props): JSX.Element => {
       <IconPx
         className="!relative !left-[unset] !top-[unset]"
         typ="arrow-top"
-        typArrowTop="https://c.animaapp.com/h23eak6p/img/icon-16-px-42.svg"
+        typArrowTop="/assets/misc/icon-16-px-42.svg"
       />
       <div className="relative w-fit [font-family:'Poppins',Helvetica] font-medium text-colors-white-800 text-sm tracking-[0] leading-6 whitespace-nowrap">
         {" "}
