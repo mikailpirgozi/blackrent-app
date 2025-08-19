@@ -254,7 +254,6 @@ router.post('/',
       handoverProtocolId,
       returnProtocolId,
       // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
-      rentalType,
       isFlexible,
       flexibleEndDate
     } = req.body;
@@ -320,7 +319,6 @@ router.post('/',
       handoverProtocolId,
       returnProtocolId,
       // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
-      rentalType: rentalType || 'standard',
       isFlexible: isFlexible || false,
       flexibleEndDate: flexibleEndDate ? new Date(flexibleEndDate) : undefined
     });

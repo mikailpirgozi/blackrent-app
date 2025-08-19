@@ -178,7 +178,6 @@ export declare class PostgresDatabase {
         fuelRefillCost?: number;
         handoverProtocolId?: string;
         returnProtocolId?: string;
-        rentalType?: string;
         isFlexible?: boolean;
         flexibleEndDate?: Date;
         sourceType?: 'manual' | 'email_auto' | 'api_auto';

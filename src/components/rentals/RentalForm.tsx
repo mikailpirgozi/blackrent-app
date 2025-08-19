@@ -59,7 +59,6 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
     paymentMethod: 'cash',
     orderNumber: '',
     // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
-    rentalType: 'standard',
     isFlexible: false,
     flexibleEndDate: undefined,
   });
@@ -123,7 +122,6 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       setFormData({
         ...rental,
         // 🔄 OPTIMALIZOVANÉ: Nastavenie flexibilných polí z existujúceho prenájmu (zjednodušené)
-        rentalType: rental.rentalType || 'standard', 
         isFlexible: rental.isFlexible || false,
         flexibleEndDate: rental.flexibleEndDate,
       });
@@ -572,7 +570,6 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       payments: payments,
       orderNumber: formData.orderNumber || '',
       // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené) 
-      rentalType: formData.rentalType || 'standard',
       isFlexible: formData.isFlexible || false,
       flexibleEndDate: formData.flexibleEndDate,
     };
@@ -876,17 +873,17 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
                   <Select
                               value={formData.isFlexible ? 'flexible' : 'standard'}
           onChange={(e) => {
-            const rentalType = e.target.value as 'standard' | 'flexible' | 'priority';
+            const rentalType = e.target.value as 'standard' | 'flexible';
             const isFlexible = rentalType === 'flexible';
                       handleInputChange('isFlexible', isFlexible);
                       
-                      // 🔄 NOVÉ: Automaticky zapnúť manuálnu cenotvorbu pre flexibilné prenájmy
+                      // 🔄 OPTIMALIZOVANÉ: Automaticky zapnúť manuálnu cenotvorbu pre flexibilné prenájmy
                       if (isFlexible) {
                         setUseManualPricing(true);
                         if (manualPrice === undefined) {
                           setManualPrice((calculatedPrice || 0));
                         }
-                        // 🔄 NOVÉ: Automaticky vyčistiť pole "Dátum do"
+                        // 🔄 OPTIMALIZOVANÉ: Automaticky vyčistiť pole "Dátum do"
                         handleInputChange('endDate', undefined);
                       } else {
                         setUseManualPricing(false);
@@ -896,7 +893,6 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
                   >
                     <MenuItem value="standard">🔒 Štandardný prenájom</MenuItem>
                     <MenuItem value="flexible">🔄 Flexibilný prenájom</MenuItem>
-                    <MenuItem value="priority">⭐ Prioritný prenájom</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -981,22 +977,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
                     </Card>
                   </Grid>
 
-                  <Grid item xs={12}>
-                    <Typography variant="body2" color="info.main" sx={{ 
-                      p: 1.5, 
-                      bgcolor: 'info.light', 
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: 'info.main'
-                    }}>
-                      💡 <strong>Flexibilný prenájom:</strong> Vozidlo sa nezobrazí ako blokované v kalendári. 
-                      Môže byť prepísané iným prenájmom podľa nastavenej priority. 
-                      Zákazník bude upozornený pri konflikte.
-                      <br/><br/>
-                      🎯 <strong>Predpokladané vrátenie:</strong> Orientačný dátum na plánovanie ďalších prenájmov. 
-                      Systém vás upozorní X dní vopred (podľa nastavení) aby ste sa skontaktovali so zákazníkom.
-                    </Typography>
-                  </Grid>
+
                 </>
               )}
             </Grid>

@@ -175,7 +175,7 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('r
     try {
         const { vehicleId, customerId, customerName, startDate, endDate, totalPrice, commission, paymentMethod, discount, customCommission, extraKmCharge, paid, status, handoverPlace, confirmed, payments, history, orderNumber, deposit, allowedKilometers, dailyKilometers, extraKilometerRate, returnConditions, fuelLevel, odometer, returnFuelLevel, returnOdometer, actualKilometers, fuelRefillCost, handoverProtocolId, returnProtocolId, 
         // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
-        rentalType, isFlexible, flexibleEndDate } = req.body;
+        isFlexible, flexibleEndDate } = req.body;
         // 🔄 NOVÁ VALIDÁCIA: Pre flexibilné prenájmy endDate nie je povinné
         if (!customerName || !startDate) {
             return res.status(400).json({
@@ -235,7 +235,6 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('r
             handoverProtocolId,
             returnProtocolId,
             // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
-            rentalType: rentalType || 'standard',
             isFlexible: isFlexible || false,
             flexibleEndDate: flexibleEndDate ? new Date(flexibleEndDate) : undefined
         });

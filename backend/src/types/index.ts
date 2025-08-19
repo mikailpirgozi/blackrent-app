@@ -128,8 +128,7 @@ export interface Rental {
   vehicleCode?: string;
   vehicleName?: string;
   // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
-  rentalType?: 'standard' | 'flexible';  // Odstránené 'priority' - zbytočné
-  isFlexible?: boolean;  // Rýchly boolean check
+  isFlexible?: boolean;  // Hlavný indikátor flexibilného prenájmu
   flexibleEndDate?: Date; // Orientačný koniec pre flexible prenájmy
   // 📧 NOVÉ: Automatické spracovanie emailov
   sourceType?: 'manual' | 'email_auto' | 'api_auto';

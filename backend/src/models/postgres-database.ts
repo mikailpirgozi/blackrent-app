@@ -2407,8 +2407,7 @@ export class PostgresDatabase {
                total_price, commission, payment_method, paid, status, 
                customer_name, created_at, order_number, deposit, 
                allowed_kilometers, daily_kilometers, handover_place,
-               rental_type, is_flexible, flexible_end_date, can_be_overridden,
-               override_priority, notification_threshold, auto_extend, override_history,
+               is_flexible, flexible_end_date,
                company
         FROM rentals 
         WHERE (start_date <= $2 AND end_date >= $1)
@@ -2441,8 +2440,7 @@ export class PostgresDatabase {
             handoverPlace: row.handover_place || undefined,
             // 🏢 COMPANY SNAPSHOT: Historical company field
             company: row.company || 'Neznáma firma',
-            // 🔄 NOVÉ: Flexibilné prenájmy polia
-            rentalType: row.rental_type || 'standard',
+            // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
             isFlexible: Boolean(row.is_flexible),
             flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
           };
@@ -3113,8 +3111,7 @@ export class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
-          r.rental_type, r.is_flexible, r.flexible_end_date, r.can_be_overridden,
-          r.override_priority, r.notification_threshold, r.auto_extend, r.override_history,
+          r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           c.name as company_name, v.company as vehicle_company
         FROM rentals r
@@ -3202,8 +3199,7 @@ export class PostgresDatabase {
       dailyKilometers: row.daily_kilometers || undefined,
       handoverPlace: row.handover_place || undefined,
       company: row.company || undefined,
-      // Flexibilné prenájmy polia
-      rentalType: row.rental_type || 'standard',
+      // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
       isFlexible: Boolean(row.is_flexible),
       flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
       // Vehicle information from JOIN
@@ -3249,8 +3245,7 @@ export class PostgresDatabase {
           r.customer_name, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
-          r.rental_type, r.is_flexible, r.flexible_end_date, r.can_be_overridden,
-          r.override_priority, r.notification_threshold, r.auto_extend, r.override_history,
+          r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           -- 🏢 COMPANY INFO: Pridané pre štatistiky Top firiem
           c.name as company_name, v.company as vehicle_company
@@ -3310,8 +3305,7 @@ export class PostgresDatabase {
         dailyKilometers: row.daily_kilometers || undefined,
         handoverPlace: row.handover_place || undefined,
         company: row.company || undefined,  // 🎯 CLEAN SOLUTION field
-        // 🔄 NOVÉ: Flexibilné prenájmy polia
-        rentalType: row.rental_type || 'standard',
+        // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
         isFlexible: Boolean(row.is_flexible),
         flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
         // 🚗 PRIAMO MAPOVANÉ VEHICLE DATA (ako getVehicles) ✅
@@ -3422,8 +3416,7 @@ export class PostgresDatabase {
     fuelRefillCost?: number;
     handoverProtocolId?: string;
     returnProtocolId?: string;
-    // 🔄 NOVÉ: Flexibilné prenájmy
-    rentalType?: string;
+    // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy
     isFlexible?: boolean;
     flexibleEndDate?: Date;
     // 📧 NOVÉ: Automatické spracovanie emailov
@@ -3457,17 +3450,15 @@ export class PostgresDatabase {
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
           handover_protocol_id, return_protocol_id, company,
-          rental_type, is_flexible, flexible_end_date, can_be_overridden, override_priority, 
-          notification_threshold, auto_extend, override_history,
+          is_flexible, flexible_end_date,
           approval_status, email_content, auto_processed_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37)
         RETURNING id, vehicle_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
           handover_protocol_id, return_protocol_id, company, created_at,
-          rental_type, is_flexible, flexible_end_date, can_be_overridden, override_priority, 
-          notification_threshold, auto_extend, override_history,
+          is_flexible, flexible_end_date,
           approval_status, email_content, auto_processed_at
       `, [
         rentalData.vehicleId || null, 
@@ -3502,7 +3493,6 @@ export class PostgresDatabase {
         rentalData.returnProtocolId || null,
         company,  // 🎯 CLEAN SOLUTION hodnota
         // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy parametre (zjednodušené)
-        rentalData.rentalType || 'standard',
         rentalData.isFlexible || false,
         rentalData.flexibleEndDate || null,
         // 📧 NOVÉ: Automatické spracovanie emailov hodnoty (len existujúce stĺpce)
@@ -3548,7 +3538,6 @@ export class PostgresDatabase {
         company: row.company || undefined,  // 🎯 CLEAN SOLUTION field
         createdAt: new Date(row.created_at),
         // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
-        rentalType: row.rental_type || 'standard',
         isFlexible: Boolean(row.is_flexible),
         flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
         // 📧 NOVÉ: Automatické spracovanie emailov polia (len existujúce stĺpce)
@@ -6200,7 +6189,6 @@ export class PostgresDatabase {
             ar.id as rental_id,
             ar.customer_name,
             ar.is_flexible,
-            ar.rental_type,
             CASE
               WHEN ar.id IS NOT NULL THEN
                 CASE WHEN ar.is_flexible = true THEN 'flexible' ELSE 'rented' END
@@ -6238,7 +6226,6 @@ export class PostgresDatabase {
           rental_id,
           customer_name,
           is_flexible,
-          rental_type,
           unavailability_id,
           unavailability_reason,
           unavailability_type,
@@ -6268,7 +6255,6 @@ export class PostgresDatabase {
           rentalId: row.rental_id,
           customerName: row.customer_name,
           isFlexible: row.is_flexible,
-          rentalType: row.rental_type || 'standard',
           unavailabilityId: row.unavailability_id,
           unavailabilityReason: row.unavailability_reason,
           unavailabilityType: row.unavailability_type,

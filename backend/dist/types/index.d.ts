@@ -101,7 +101,6 @@ export interface Rental {
     returnLocation?: string;
     vehicleCode?: string;
     vehicleName?: string;
-    rentalType?: 'standard' | 'flexible';
     isFlexible?: boolean;
     flexibleEndDate?: Date;
     sourceType?: 'manual' | 'email_auto' | 'api_auto';

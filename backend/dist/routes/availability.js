@@ -30,7 +30,6 @@ function optimizeDataStructure(data) {
             ...(vehicle.rentalId && { ri: vehicle.rentalId }),
             ...(vehicle.customerName && { cn: vehicle.customerName }),
             ...(vehicle.isFlexible && { f: 1 }),
-            ...(vehicle.rentalType !== 'standard' && { rt: vehicle.rentalType }),
             ...(vehicle.unavailabilityType && { ut: vehicle.unavailabilityType })
         }))
     }));

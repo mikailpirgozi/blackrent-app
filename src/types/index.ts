@@ -134,9 +134,8 @@ export interface Rental {
   // 🎯 SNAPSHOT: Zamrazený majiteľ vozidla k dátumu prenájmu
   company?: string;
   // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
-  rentalType?: 'standard' | 'flexible';  // Odstránené 'priority' - zbytočné
-  isFlexible?: boolean;  // Rýchly boolean check  
-  flexibleEndDate?: Date; // Orientačny koniec pre flexible prenájmy
+  isFlexible?: boolean;  // Hlavný indikátor flexibilného prenájmu
+  flexibleEndDate?: Date; // Orientačný koniec pre flexible prenájmy
   // 📧 NOVÉ: Automatické spracovanie emailov
   sourceType?: 'manual' | 'email_auto' | 'api_auto';
   approvalStatus?: 'pending' | 'approved' | 'rejected' | 'spam';
