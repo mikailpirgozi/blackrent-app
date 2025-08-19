@@ -214,6 +214,53 @@ class ApiService {
     return this.request<Vehicle>(`/vehicles/${id}`);
   }
 
+  // 🚀 GMAIL APPROACH: Paginated vehicles s filtrami
+  async getVehiclesPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    company?: string;
+    brand?: string;
+    category?: string;
+    status?: string;
+    yearMin?: string;
+    yearMax?: string;
+    priceMin?: string;
+    priceMax?: string;
+  }): Promise<{
+    vehicles: Vehicle[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Add all parameters to query string
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/vehicles/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      vehicles: Vehicle[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   // ⚡ BULK DATA ENDPOINT - Načíta všetky dáta jedným requestom s AGGRESSIVE CACHING
   async getBulkData(): Promise<{
     vehicles: Vehicle[];
@@ -657,6 +704,48 @@ class ApiService {
     );
   }
 
+  // 🚀 GMAIL APPROACH: Paginated customers s filtrami
+  async getCustomersPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    city?: string;
+    country?: string;
+    hasRentals?: string;
+  }): Promise<{
+    customers: Customer[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Add all parameters to query string
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/customers/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      customers: Customer[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
+  }
+
   async createCustomer(customer: Customer): Promise<void> {
     const result = await this.request<void>('/customers', {
       method: 'POST',
@@ -800,6 +889,48 @@ class ApiService {
         background: true
       }
     );
+  }
+
+  // 🚀 GMAIL APPROACH: Paginated companies s filtrami
+  async getCompaniesPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    city?: string;
+    country?: string;
+    status?: string;
+  }): Promise<{
+    companies: Company[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+      itemsPerPage: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    // Add all parameters to query string
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const endpoint = `/companies/paginated${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<{
+      companies: Company[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+        itemsPerPage: number;
+      };
+    }>(endpoint);
   }
 
   async createCompany(company: Company): Promise<void> {

@@ -730,5 +730,53 @@ router.post('/check-permission', auth_1.authenticateToken, async (req, res) => {
         });
     }
 });
+// 🚀 GMAIL APPROACH: GET /api/advanced-users/paginated - Rýchle vyhľadávanie používateľov
+router.get('/paginated', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin', 'company_owner']), async (req, res) => {
+    try {
+        const { page = 1, limit = 50, search = '', role = 'all', company = 'all', status = 'all' } = req.query;
+        console.log('👤 Users PAGINATED GET - params:', {
+            page, limit, search, role, company, status,
+            requestingUserRole: req.user?.role,
+            requestingUserId: req.user?.id
+        });
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const offset = (pageNum - 1) * limitNum;
+        // Import database here to avoid circular dependencies
+        const { postgresDatabase } = await Promise.resolve().then(() => __importStar(require('../models/postgres-database')));
+        // Získaj paginated users s filtrami
+        const result = await postgresDatabase.getUsersPaginated({
+            limit: limitNum,
+            offset,
+            search: search,
+            role: role,
+            company: company,
+            status: status,
+            userId: req.user?.id,
+            userRole: req.user?.role
+        });
+        console.log(`📊 Found ${result.users.length}/${result.total} users (page ${pageNum})`);
+        res.json({
+            success: true,
+            data: {
+                users: result.users,
+                pagination: {
+                    currentPage: pageNum,
+                    totalPages: Math.ceil(result.total / limitNum),
+                    totalItems: result.total,
+                    hasMore: (pageNum * limitNum) < result.total,
+                    itemsPerPage: limitNum
+                }
+            }
+        });
+    }
+    catch (error) {
+        console.error('Get paginated users error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri získavaní používateľov'
+        });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=advanced-users.js.map

@@ -27,7 +27,8 @@ import {
   Divider,
   FormGroup,
   Tabs,
-  Tab
+  Tab,
+  DialogActions
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -55,6 +56,661 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import { EnhancedLoading } from '../common/EnhancedLoading';
+
+// 🆕 OWNER CARD COMPONENT - Rozbaliteľná karta majiteľa s vozidlami
+interface OwnerCardProps {
+  company: any; // Company type
+  vehicles: Vehicle[];
+  onVehicleUpdate: (vehicleId: string, companyId: string) => Promise<void>;
+  onVehicleEdit: (vehicle: Vehicle) => void;
+}
+
+// 🤝 INVESTOR CARD COMPONENT - Rozbaliteľná karta spoluinvestora s podielmi
+interface InvestorCardProps {
+  investor: any; // CompanyInvestor type
+  shares: any[]; // CompanyInvestorShare[]
+  companies: any[]; // Company[]
+  onShareUpdate: () => void;
+  onAssignShare: (investor: any) => void;
+}
+
+const InvestorCard: React.FC<InvestorCardProps> = ({ investor, shares, companies, onShareUpdate, onAssignShare }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState({
+    firstName: investor.firstName || '',
+    lastName: investor.lastName || '',
+    email: investor.email || '',
+    phone: investor.phone || '',
+    notes: investor.notes || ''
+  });
+
+  const handleSaveInvestorData = async () => {
+    try {
+      console.log('💾 Saving investor data:', investor.id, editData);
+      
+      const response = await fetch(`${getApiBaseUrl()}/company-investors/${investor.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+        },
+        body: JSON.stringify(editData)
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Investor data saved successfully');
+        setEditMode(false);
+        onShareUpdate(); // Refresh data
+      } else {
+        console.error('❌ Failed to save investor data:', result.error);
+        alert(`Chyba pri ukladaní: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Error saving investor data:', error);
+      alert('Chyba pri ukladaní údajov investora');
+    }
+  };
+
+  const totalOwnership = shares.reduce((sum, share) => sum + share.ownershipPercentage, 0);
+
+  return (
+    <Card sx={{ mb: 2, border: '1px solid', borderColor: 'divider' }}>
+      {/* Header - Investor info */}
+      <Box 
+        sx={{ 
+          p: 2, 
+          bgcolor: 'grey.50',
+          cursor: 'pointer',
+          '&:hover': { bgcolor: 'grey.100' }
+        }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              👤 {investor.firstName} {investor.lastName}
+              <Chip 
+                label={`${shares.length} firiem • ${totalOwnership.toFixed(1)}% celkom`} 
+                size="small" 
+                color="primary" 
+                variant="outlined"
+              />
+            </Typography>
+            
+            <Box sx={{ mt: 1, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              {investor.email && (
+                <Typography variant="body2" color="text.secondary">
+                  📧 {investor.email}
+                </Typography>
+              )}
+              {investor.phone && (
+                <Typography variant="body2" color="text.secondary">
+                  📞 {investor.phone}
+                </Typography>
+              )}
+              {shares.length > 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  🏢 {shares.map(s => {
+                    const company = companies.find(c => c.id === s.companyId);
+                    return `${company?.name} (${s.ownershipPercentage}%)`;
+                  }).join(', ')}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditMode(!editMode);
+              }}
+              sx={{ bgcolor: editMode ? 'primary.main' : 'transparent', color: editMode ? 'white' : 'primary.main' }}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small">
+              {expanded ? '🔽' : '▶️'}
+            </IconButton>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Edit Mode */}
+      <Collapse in={editMode}>
+        <Box sx={{ p: 3, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            ✏️ Úprava spoluinvestora
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Meno"
+                value={editData.firstName}
+                onChange={(e) => setEditData(prev => ({ ...prev, firstName: e.target.value }))}
+                size="small"
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Priezvisko"
+                value={editData.lastName}
+                onChange={(e) => setEditData(prev => ({ ...prev, lastName: e.target.value }))}
+                size="small"
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                value={editData.email}
+                onChange={(e) => setEditData(prev => ({ ...prev, email: e.target.value }))}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Telefón"
+                value={editData.phone}
+                onChange={(e) => setEditData(prev => ({ ...prev, phone: e.target.value }))}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Poznámky"
+                value={editData.notes}
+                onChange={(e) => setEditData(prev => ({ ...prev, notes: e.target.value }))}
+                size="small"
+                multiline
+                rows={2}
+              />
+            </Grid>
+          </Grid>
+          
+          <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+            <Button
+              variant="outlined"
+              onClick={() => setEditMode(false)}
+              size="small"
+            >
+              Zrušiť
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSaveInvestorData}
+              size="small"
+            >
+              💾 Uložiť
+            </Button>
+          </Box>
+        </Box>
+      </Collapse>
+
+      {/* Podiely vo firmách - Rozbaliteľné */}
+      <Collapse in={expanded}>
+        <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            💼 Podiely vo firmách ({shares.length})
+          </Typography>
+          
+          {shares.length > 0 ? shares.map((share) => {
+            const company = companies.find(c => c.id === share.companyId);
+            return (
+              <Box
+                key={share.id}
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  p: 2,
+                  mb: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  bgcolor: 'background.paper',
+                  '&:hover': {
+                    bgcolor: 'action.hover'
+                  }
+                }}
+              >
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2">
+                    🏢 {company?.name || 'Neznáma firma'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    💰 Podiel: {share.ownershipPercentage}%
+                    {share.investmentAmount && ` • Investícia: ${share.investmentAmount}€`}
+                    {share.isPrimaryContact && ' • Primárny kontakt'}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Chip
+                    label={`${share.ownershipPercentage}%`}
+                    color="primary"
+                    size="small"
+                    variant={share.isPrimaryContact ? 'filled' : 'outlined'}
+                  />
+                </Box>
+              </Box>
+            );
+          }) : (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+              Žiadne podiely vo firmách. Investor nie je priradený k žiadnej firme.
+            </Typography>
+          )}
+          
+          {/* Tlačidlo pre pridanie nového podielu */}
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => onAssignShare(investor)}
+            >
+              🏢 Priradiť k firme
+            </Button>
+          </Box>
+        </Box>
+      </Collapse>
+    </Card>
+  );
+};
+
+const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdate, onVehicleEdit }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [companyInvestors, setCompanyInvestors] = useState<any[]>([]);
+  const [loadingInvestors, setLoadingInvestors] = useState(false);
+  const [editData, setEditData] = useState({
+    name: company.name || '',
+    ownerName: company.ownerName || '',
+    personalIban: company.personalIban || '',
+    businessIban: company.businessIban || '',
+    contactEmail: company.contactEmail || '',
+    contactPhone: company.contactPhone || '',
+    defaultCommissionRate: company.defaultCommissionRate || 20
+  });
+
+  // 🤝 Načítanie investorov firmy
+  const loadCompanyInvestors = async () => {
+    try {
+      setLoadingInvestors(true);
+      
+      const response = await fetch(`${getApiBaseUrl()}/company-investors/${company.id}/shares`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+        }
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setCompanyInvestors(result.data);
+      }
+    } catch (error) {
+      console.error('❌ Error loading company investors:', error);
+    } finally {
+      setLoadingInvestors(false);
+    }
+  };
+
+  // Načítaj investorov pri rozbalení karty
+  useEffect(() => {
+    if (expanded) {
+      loadCompanyInvestors();
+    }
+  }, [expanded]);
+
+  const handleSaveOwnerData = async () => {
+    try {
+      console.log('💾 Saving owner data for company:', company.id, editData);
+      
+      const response = await fetch(`${getApiBaseUrl()}/companies/${company.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+        },
+        body: JSON.stringify(editData)
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Owner data saved successfully');
+        setEditMode(false);
+        // Refresh companies data
+        window.location.reload(); // Simple refresh - môžeme vylepšiť neskôr
+      } else {
+        console.error('❌ Failed to save owner data:', result.error);
+        alert(`Chyba pri ukladaní: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Error saving owner data:', error);
+      alert('Chyba pri ukladaní údajov majiteľa');
+    }
+  };
+
+  return (
+    <Card sx={{ mb: 2, border: '1px solid', borderColor: 'divider' }}>
+      {/* Header - Majiteľ info */}
+      <Box 
+        sx={{ 
+          p: 2, 
+          bgcolor: 'grey.50',
+          cursor: 'pointer',
+          '&:hover': { bgcolor: 'grey.100' }
+        }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <BusinessIcon color="primary" />
+              {company.name}
+              <Chip 
+                label={`${vehicles.length} vozidiel`} 
+                size="small" 
+                color="primary" 
+                variant="outlined"
+              />
+            </Typography>
+            
+            {/* Základné info o majiteľovi */}
+            <Box sx={{ mt: 1, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              {company.ownerName && (
+                <Typography variant="body2" color="text.secondary">
+                  👤 {company.ownerName}
+                </Typography>
+              )}
+              {company.contactEmail && (
+                <Typography variant="body2" color="text.secondary">
+                  📧 {company.contactEmail}
+                </Typography>
+              )}
+              {company.contactPhone && (
+                <Typography variant="body2" color="text.secondary">
+                  📞 {company.contactPhone}
+                </Typography>
+              )}
+              <Typography variant="body2" color="text.secondary">
+                💰 Provízia: {company.defaultCommissionRate || 20}%
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditMode(!editMode);
+              }}
+              sx={{ bgcolor: editMode ? 'primary.main' : 'transparent', color: editMode ? 'white' : 'primary.main' }}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small">
+              {expanded ? '🔽' : '▶️'}
+            </IconButton>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Edit Mode - Rozšírené informácie */}
+      <Collapse in={editMode}>
+        <Box sx={{ p: 3, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            ✏️ Úprava informácií majiteľa
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Názov firmy/s.r.o."
+                value={editData.name}
+                onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
+                size="small"
+                required
+                sx={{ bgcolor: 'primary.50' }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Meno a priezvisko majiteľa"
+                value={editData.ownerName}
+                onChange={(e) => setEditData(prev => ({ ...prev, ownerName: e.target.value }))}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Kontaktný email"
+                type="email"
+                value={editData.contactEmail}
+                onChange={(e) => setEditData(prev => ({ ...prev, contactEmail: e.target.value }))}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Kontaktný telefón"
+                value={editData.contactPhone}
+                onChange={(e) => setEditData(prev => ({ ...prev, contactPhone: e.target.value }))}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Default provízia (%)"
+                type="number"
+                value={editData.defaultCommissionRate}
+                onChange={(e) => setEditData(prev => ({ ...prev, defaultCommissionRate: parseFloat(e.target.value) || 20 }))}
+                size="small"
+                inputProps={{ min: 0, max: 100, step: 0.1 }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Súkromný IBAN"
+                value={editData.personalIban}
+                onChange={(e) => setEditData(prev => ({ ...prev, personalIban: e.target.value }))}
+                size="small"
+                placeholder="SK89 0000 0000 0000 0000 0000"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Firemný IBAN"
+                value={editData.businessIban}
+                onChange={(e) => setEditData(prev => ({ ...prev, businessIban: e.target.value }))}
+                size="small"
+                placeholder="SK89 0000 0000 0000 0000 0000"
+              />
+            </Grid>
+          </Grid>
+          
+          <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+            <Button
+              variant="outlined"
+              onClick={() => setEditMode(false)}
+              size="small"
+            >
+              Zrušiť
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSaveOwnerData}
+              size="small"
+            >
+              💾 Uložiť
+            </Button>
+          </Box>
+        </Box>
+      </Collapse>
+
+      {/* Vozidlá majiteľa - Rozbaliteľné */}
+      <Collapse in={expanded}>
+        <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            🚗 Vozidlá majiteľa ({vehicles.length})
+          </Typography>
+          
+          {vehicles.map((vehicle) => (
+            <Box
+              key={vehicle.id}
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                p: 2,
+                mb: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                bgcolor: 'background.paper',
+                '&:hover': {
+                  bgcolor: 'action.hover'
+                }
+              }}
+            >
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle2">
+                  {vehicle.brand} {vehicle.model}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  ŠPZ: {vehicle.licensePlate}
+                  {vehicle.year && ` • Rok: ${vehicle.year}`}
+                </Typography>
+                
+                {/* Individuálna provízia vozidla */}
+                <Typography variant="caption" color="text.secondary">
+                  Provízia: {vehicle.commission?.value || company.defaultCommissionRate || 20}%
+                  {vehicle.commission?.value !== company.defaultCommissionRate && (
+                    <Chip label="Vlastná" size="small" sx={{ ml: 1, height: 16 }} />
+                  )}
+                </Typography>
+              </Box>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Chip
+                  label={getStatusText(vehicle.status)}
+                  color={getStatusColor(vehicle.status)}
+                  size="small"
+                />
+                
+                {/* Quick actions */}
+                <Can update="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onVehicleEdit(vehicle);
+                    }}
+                    sx={{ 
+                      bgcolor: '#2196f3', 
+                      color: 'white',
+                      width: 28,
+                      height: 28,
+                      '&:hover': { bgcolor: '#1976d2' }
+                    }}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Can>
+              </Box>
+            </Box>
+          ))}
+
+          {/* Spoluinvestori firmy */}
+          <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              🤝 Spoluinvestori firmy
+            </Typography>
+            
+            {loadingInvestors ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <EnhancedLoading variant="page" showMessage={true} message="Načítavam investorov..." />
+              </Box>
+            ) : companyInvestors.length > 0 ? (
+              companyInvestors.map((share) => (
+                <Box
+                  key={share.id}
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    p: 2,
+                    mb: 1,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    bgcolor: 'primary.50',
+                    '&:hover': {
+                      bgcolor: 'primary.100'
+                    }
+                  }}
+                >
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2">
+                      👤 {share.investor?.firstName} {share.investor?.lastName}
+                      {share.isPrimaryContact && (
+                        <Chip label="Primárny kontakt" size="small" color="primary" sx={{ ml: 1 }} />
+                      )}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {share.investor?.email && `📧 ${share.investor.email}`}
+                      {share.investor?.phone && ` • 📞 ${share.investor.phone}`}
+                    </Typography>
+                    {share.investmentAmount && (
+                      <Typography variant="caption" color="text.secondary">
+                        💰 Investícia: {share.investmentAmount}€
+                      </Typography>
+                    )}
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip
+                      label={`${share.ownershipPercentage}%`}
+                      color="primary"
+                      size="small"
+                      variant={share.isPrimaryContact ? 'filled' : 'outlined'}
+                    />
+                  </Box>
+                </Box>
+              ))
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                Žiadni spoluinvestori pre túto firmu.
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      </Collapse>
+    </Card>
+  );
+};
 
 const getStatusColor = (status: VehicleStatus): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
   switch (status) {
@@ -139,11 +795,209 @@ export default function VehicleListNew() {
   const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false);
   const [selectedVehicleHistory, setSelectedVehicleHistory] = useState<Vehicle | null>(null);
   const [ownershipHistory, setOwnershipHistory] = useState<any[]>([]);
+  
+  // 🆕 State pre vytvorenie novej firmy
+  const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
+  const [newCompanyData, setNewCompanyData] = useState({
+    name: '',
+    ownerName: '',
+    personalIban: '',
+    businessIban: '',
+    contactEmail: '',
+    contactPhone: '',
+    defaultCommissionRate: 20,
+    isActive: true
+  });
+
+  // 🤝 State pre spoluinvestorov
+  const [createInvestorDialogOpen, setCreateInvestorDialogOpen] = useState(false);
+  const [investors, setInvestors] = useState<any[]>([]);
+  const [investorShares, setInvestorShares] = useState<any[]>([]);
+  const [loadingInvestors, setLoadingInvestors] = useState(false);
+  const [assignShareDialogOpen, setAssignShareDialogOpen] = useState(false);
+  const [selectedInvestorForShare, setSelectedInvestorForShare] = useState<any>(null);
+  const [newShareData, setNewShareData] = useState({
+    companyId: '',
+    ownershipPercentage: 0,
+    investmentAmount: 0,
+    isPrimaryContact: false
+  });
+  const [newInvestorData, setNewInvestorData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    notes: ''
+  });
 
   // Handlers
   const handleEdit = (vehicle: Vehicle) => {
     setEditingVehicle(vehicle);
     setOpenDialog(true);
+  };
+
+  // 🏢 Handler pre vytvorenie novej firmy
+  const handleCreateCompany = async () => {
+    try {
+      console.log('🏢 Creating new company:', newCompanyData);
+      
+      const response = await fetch(`${getApiBaseUrl()}/companies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+        },
+        body: JSON.stringify(newCompanyData)
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Company created successfully');
+        setCreateCompanyDialogOpen(false);
+        setNewCompanyData({
+          name: '',
+          ownerName: '',
+          personalIban: '',
+          businessIban: '',
+          contactEmail: '',
+          contactPhone: '',
+          defaultCommissionRate: 20,
+          isActive: true
+        });
+        // Refresh companies data
+        window.location.reload();
+      } else {
+        console.error('❌ Failed to create company:', result.error);
+        alert(`Chyba pri vytváraní firmy: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Error creating company:', error);
+      alert('Chyba pri vytváraní firmy');
+    }
+  };
+
+  // 🤝 Handler pre vytvorenie spoluinvestora
+  const handleCreateInvestor = async () => {
+    try {
+      console.log('🤝 Creating new investor:', newInvestorData);
+      
+      const response = await fetch(`${getApiBaseUrl()}/company-investors`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+        },
+        body: JSON.stringify(newInvestorData)
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Investor created successfully');
+        setCreateInvestorDialogOpen(false);
+        setNewInvestorData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          notes: ''
+        });
+        // Refresh data
+        window.location.reload();
+      } else {
+        console.error('❌ Failed to create investor:', result.error);
+        alert(`Chyba pri vytváraní spoluinvestora: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Error creating investor:', error);
+      alert('Chyba pri vytváraní spoluinvestora');
+    }
+  };
+
+  // 🤝 Načítanie spoluinvestorov
+  const loadInvestors = async () => {
+    try {
+      setLoadingInvestors(true);
+      
+      const response = await fetch(`${getApiBaseUrl()}/company-investors`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+        }
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setInvestors(result.data);
+        
+        // Načítaj shares pre všetkých investorov
+        const allShares = [];
+        for (const company of state.companies || []) {
+          const sharesResponse = await fetch(`${getApiBaseUrl()}/company-investors/${company.id}/shares`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+            }
+          });
+          const sharesResult = await sharesResponse.json();
+          if (sharesResult.success) {
+            allShares.push(...sharesResult.data);
+          }
+        }
+        setInvestorShares(allShares);
+      }
+    } catch (error) {
+      console.error('❌ Error loading investors:', error);
+    } finally {
+      setLoadingInvestors(false);
+    }
+  };
+
+  // Načítaj investorov pri zmene tabu
+  useEffect(() => {
+    if (currentTab === 2) {
+      loadInvestors();
+    }
+  }, [currentTab]);
+
+  // 🤝 Handler pre priradenie podielu
+  const handleAssignShare = async () => {
+    try {
+      console.log('🤝 Assigning share:', newShareData);
+      
+      const response = await fetch(`${getApiBaseUrl()}/company-investors/shares`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+        },
+        body: JSON.stringify({
+          ...newShareData,
+          investorId: selectedInvestorForShare.id
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Share assigned successfully');
+        setAssignShareDialogOpen(false);
+        setSelectedInvestorForShare(null);
+        setNewShareData({
+          companyId: '',
+          ownershipPercentage: 0,
+          investmentAmount: 0,
+          isPrimaryContact: false
+        });
+        loadInvestors(); // Refresh data
+      } else {
+        console.error('❌ Failed to assign share:', result.error);
+        alert(`Chyba pri priradzovaní podielu: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Error assigning share:', error);
+      alert('Chyba pri priradzovaní podielu');
+    }
   };
 
   const handleShowOwnershipHistory = async (vehicle: Vehicle) => {
@@ -222,32 +1076,7 @@ export default function VehicleListNew() {
     }
   };
 
-  // 🤖 Auto-assign owners based on company names
-  const handleAutoAssignOwners = async () => {
-    try {
-      setLoading(true);
-      let updatedCount = 0;
-      
-      for (const vehicle of filteredVehicles) {
-        // Skip if already has company assigned
-        if (vehicle.company && vehicle.company.trim()) {
-          continue;
-        }
-        
-        // This functionality is no longer needed since ownerName was removed
-        // Company assignment is now handled through ownerCompanyId
-        updatedCount++;
-      }
-      
-      console.log(`✅ Automaticky priradených ${updatedCount} majiteľov vozidiel`);
-      alert(`Úspešne priradených ${updatedCount} majiteľov vozidiel na základe názvu firmy.`);
-    } catch (error) {
-      console.error('❌ Error auto-assigning owners:', error);
-      alert('Chyba pri automatickom priradzovaní majiteľov');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   // 🚀 ENHANCED: Filtered vehicles using new unified filter system
   const filteredVehicles = useMemo(() => {
@@ -800,6 +1629,7 @@ export default function VehicleListNew() {
         <Tabs value={currentTab} onChange={handleTabChange} aria-label="vehicle tabs">
           <Tab label="Vozidlá" id="vehicle-tab-0" aria-controls="vehicle-tabpanel-0" />
           <Tab label="👤 Majitelia" id="vehicle-tab-1" aria-controls="vehicle-tabpanel-1" />
+          <Tab label="🤝 Používatelia" id="vehicle-tab-2" aria-controls="vehicle-tabpanel-2" />
         </Tabs>
       </Box>
 
@@ -1466,96 +2296,116 @@ export default function VehicleListNew() {
           </Typography>
           <Button
             variant="contained"
-            color="primary"
-            onClick={handleAutoAssignOwners}
-            disabled={loading}
-            startIcon={loading ? <EnhancedLoading variant="button" showMessage={false} /> : undefined}
-            sx={{
-              bgcolor: '#2196f3',
+            startIcon={<AddIcon />}
+            onClick={() => setCreateCompanyDialogOpen(true)}
+            sx={{ 
+              bgcolor: '#2196f3', 
               '&:hover': { bgcolor: '#1976d2' },
               borderRadius: 2,
               px: 3
             }}
           >
-            🤖 Automaticky priradiť majiteľov
+            🏢 Pridať novú firmu
           </Button>
         </Box>
         
-        {/* Owners Table */}
+        {/* Owners List - Nový dizajn */}
         <Card>
           <CardContent>
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Kliknite na meno majiteľa alebo firmu pre úpravu. Hlavný identifikátor je meno majiteľa.
+                Zoznam majiteľov vozidiel. Kliknite na majiteľa pre zobrazenie/skrytie jeho vozidiel.
               </Typography>
             </Box>
             
-            {filteredVehicles.map((vehicle) => (
-              <Box
-                key={vehicle.id}
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  p: 2,
-                  mb: 1,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  '&:hover': {
-                    backgroundColor: 'action.hover'
-                  }
-                }}
-              >
-                {/* Vehicle Info */}
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6" sx={{ mb: 1 }}>
-                    {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
-                  </Typography>
-                  
-                  {/* Owner Name - Inline Edit */}
-                  {/* Owner Name field removed - ownerName no longer exists in Vehicle interface */}
-                  
-                  {/* Company - Dropdown */}
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="body2" sx={{ mr: 1, minWidth: 80 }}>
-                      🏢 Firma:
-                    </Typography>
-                    <FormControl size="small" variant="standard" sx={{ minWidth: 200 }}>
-                      <Select
-                        value={vehicle.ownerCompanyId || ''}
-                        displayEmpty
-                        onChange={(e) => {
-                          if (e.target.value !== (vehicle.ownerCompanyId || '')) {
-                            handleSaveCompany(vehicle.id, e.target.value);
-                          }
-                        }}
-                      >
-                        <MenuItem value="">
-                          <em>Vyberte firmu...</em>
-                        </MenuItem>
-                        {state.companies?.map((company) => (
-                          <MenuItem key={company.id} value={company.id}>
-                            {company.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-                </Box>
+            {/* Zoznam majiteľov zoskupených podľa firmy */}
+            {state.companies
+              ?.filter(company => company.isActive !== false) // Filtrovanie aktívnych firiem
+              ?.map((company) => {
+                // Nájdi vozidlá pre túto firmu
+                const companyVehicles = filteredVehicles.filter(v => v.ownerCompanyId === company.id);
                 
-                {/* Status */}
-                <Chip
-                  label={getStatusText(vehicle.status)}
-                  color={getStatusColor(vehicle.status)}
-                  size="small"
-                />
-              </Box>
-            ))}
+                if (companyVehicles.length === 0) return null;
+                
+                return (
+                  <OwnerCard 
+                    key={company.id}
+                    company={company}
+                    vehicles={companyVehicles}
+                    onVehicleUpdate={handleSaveCompany}
+                    onVehicleEdit={handleEdit}
+                  />
+                );
+              })
+              ?.filter(Boolean)}
             
-            {filteredVehicles.length === 0 && (
+            {state.companies?.filter(c => c.isActive !== false).length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                Žiadne vozidlá na zobrazenie
+                Žiadni aktívni majitelia vozidiel
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      </TabPanel>
+
+      {/* TAB 2 - POUŽÍVATELIA (SPOLUINVESTORI) */}
+      <TabPanel value={currentTab} index={2}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6">
+            🤝 Správa spoluinvestorov
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateInvestorDialogOpen(true)}
+            sx={{ 
+              bgcolor: '#2196f3', 
+              '&:hover': { bgcolor: '#1976d2' },
+              borderRadius: 2,
+              px: 3
+            }}
+          >
+            👤 Pridať spoluinvestora
+          </Button>
+        </Box>
+        
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Spoluinvestori s % podielmi vo firmách. Môžu byť priradení k viacerým firmám.
+        </Typography>
+
+        {/* Investors List */}
+        <Card>
+          <CardContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Zoznam všetkých spoluinvestorov a ich podiely vo firmách.
+            </Typography>
+            
+            {loadingInvestors ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <EnhancedLoading variant="page" showMessage={true} message="Načítavam spoluinvestorov..." />
+              </Box>
+            ) : investors.length > 0 ? (
+              investors.map((investor) => {
+                // Nájdi podiely tohto investora
+                const investorShares_filtered = investorShares.filter(share => share.investorId === investor.id);
+                
+                return (
+                  <InvestorCard 
+                    key={investor.id}
+                    investor={investor}
+                    shares={investorShares_filtered}
+                    companies={state.companies || []}
+                    onShareUpdate={loadInvestors}
+                    onAssignShare={(investor) => {
+                      setSelectedInvestorForShare(investor);
+                      setAssignShareDialogOpen(true);
+                    }}
+                  />
+                );
+              })
+            ) : (
+              <Typography variant="body2" sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                Žiadni spoluinvestori. Kliknite na "Pridať spoluinvestora" pre vytvorenie nového.
               </Typography>
             )}
           </CardContent>
@@ -1631,6 +2481,258 @@ export default function VehicleListNew() {
             </Box>
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Create Company Dialog */}
+      <Dialog 
+        open={createCompanyDialogOpen} 
+        onClose={() => setCreateCompanyDialogOpen(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>🏢 Pridať novú firmu</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Názov firmy/s.r.o."
+                value={newCompanyData.name}
+                onChange={(e) => setNewCompanyData(prev => ({ ...prev, name: e.target.value }))}
+                required
+                autoFocus
+                sx={{ bgcolor: 'primary.50' }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Meno a priezvisko majiteľa"
+                value={newCompanyData.ownerName}
+                onChange={(e) => setNewCompanyData(prev => ({ ...prev, ownerName: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Kontaktný email"
+                type="email"
+                value={newCompanyData.contactEmail}
+                onChange={(e) => setNewCompanyData(prev => ({ ...prev, contactEmail: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Kontaktný telefón"
+                value={newCompanyData.contactPhone}
+                onChange={(e) => setNewCompanyData(prev => ({ ...prev, contactPhone: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Default provízia (%)"
+                type="number"
+                value={newCompanyData.defaultCommissionRate}
+                onChange={(e) => setNewCompanyData(prev => ({ ...prev, defaultCommissionRate: parseFloat(e.target.value) || 20 }))}
+                inputProps={{ min: 0, max: 100, step: 0.1 }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Súkromný IBAN"
+                value={newCompanyData.personalIban}
+                onChange={(e) => setNewCompanyData(prev => ({ ...prev, personalIban: e.target.value }))}
+                placeholder="SK89 0000 0000 0000 0000 0000"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Firemný IBAN"
+                value={newCompanyData.businessIban}
+                onChange={(e) => setNewCompanyData(prev => ({ ...prev, businessIban: e.target.value }))}
+                placeholder="SK89 0000 0000 0000 0000 0000"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateCompanyDialogOpen(false)}>
+            Zrušiť
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleCreateCompany}
+            disabled={!newCompanyData.name.trim()}
+            startIcon={<AddIcon />}
+          >
+            Vytvoriť firmu
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create Investor Dialog */}
+      <Dialog 
+        open={createInvestorDialogOpen} 
+        onClose={() => setCreateInvestorDialogOpen(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>👤 Pridať spoluinvestora</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Meno"
+                value={newInvestorData.firstName}
+                onChange={(e) => setNewInvestorData(prev => ({ ...prev, firstName: e.target.value }))}
+                required
+                autoFocus
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Priezvisko"
+                value={newInvestorData.lastName}
+                onChange={(e) => setNewInvestorData(prev => ({ ...prev, lastName: e.target.value }))}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                value={newInvestorData.email}
+                onChange={(e) => setNewInvestorData(prev => ({ ...prev, email: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Telefón"
+                value={newInvestorData.phone}
+                onChange={(e) => setNewInvestorData(prev => ({ ...prev, phone: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Poznámky"
+                value={newInvestorData.notes}
+                onChange={(e) => setNewInvestorData(prev => ({ ...prev, notes: e.target.value }))}
+                multiline
+                rows={2}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateInvestorDialogOpen(false)}>
+            Zrušiť
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleCreateInvestor}
+            disabled={!newInvestorData.firstName.trim() || !newInvestorData.lastName.trim()}
+            startIcon={<AddIcon />}
+          >
+            Vytvoriť spoluinvestora
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Assign Share Dialog */}
+      <Dialog 
+        open={assignShareDialogOpen} 
+        onClose={() => setAssignShareDialogOpen(false)} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle>
+          🏢 Priradiť podiel k firme
+          {selectedInvestorForShare && (
+            <Typography variant="subtitle2" color="text.secondary">
+              {selectedInvestorForShare.firstName} {selectedInvestorForShare.lastName}
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <FormControl fullWidth required>
+                <InputLabel>Firma</InputLabel>
+                <Select
+                  value={newShareData.companyId}
+                  label="Firma"
+                  onChange={(e) => setNewShareData(prev => ({ ...prev, companyId: e.target.value }))}
+                >
+                  <MenuItem value="">
+                    <em>Vyberte firmu...</em>
+                  </MenuItem>
+                  {state.companies
+                    ?.filter(c => c.isActive !== false)
+                    ?.map((company) => (
+                      <MenuItem key={company.id} value={company.id}>
+                        {company.name}
+                      </MenuItem>
+                    ))
+                  }
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Vlastnícky podiel (%)"
+                type="number"
+                value={newShareData.ownershipPercentage}
+                onChange={(e) => setNewShareData(prev => ({ ...prev, ownershipPercentage: parseFloat(e.target.value) || 0 }))}
+                inputProps={{ min: 0, max: 100, step: 0.1 }}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Suma investície (€)"
+                type="number"
+                value={newShareData.investmentAmount}
+                onChange={(e) => setNewShareData(prev => ({ ...prev, investmentAmount: parseFloat(e.target.value) || 0 }))}
+                inputProps={{ min: 0, step: 100 }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={newShareData.isPrimaryContact}
+                    onChange={(e) => setNewShareData(prev => ({ ...prev, isPrimaryContact: e.target.checked }))}
+                  />
+                }
+                label="Primárny kontakt firmy"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAssignShareDialogOpen(false)}>
+            Zrušiť
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleAssignShare}
+            disabled={!newShareData.companyId || newShareData.ownershipPercentage <= 0}
+            startIcon={<AddIcon />}
+          >
+            Priradiť podiel
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

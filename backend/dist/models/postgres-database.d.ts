@@ -1,5 +1,5 @@
 import { Pool, PoolClient } from 'pg';
-import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions } from '../types';
+import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions, CompanyInvestor, CompanyInvestorShare } from '../types';
 export declare class PostgresDatabase {
     private pool;
     get dbPool(): Pool;
@@ -65,6 +65,63 @@ export declare class PostgresDatabase {
     updateVehicle(vehicle: Vehicle): Promise<void>;
     deleteVehicle(id: string): Promise<void>;
     getRentalsForDateRange(startDate: Date, endDate: Date): Promise<Rental[]>;
+    getVehiclesPaginated(params: {
+        limit: number;
+        offset: number;
+        search?: string;
+        company?: string;
+        brand?: string;
+        category?: string;
+        status?: string;
+        yearMin?: string;
+        yearMax?: string;
+        priceMin?: string;
+        priceMax?: string;
+        userId?: string;
+        userRole?: string;
+    }): Promise<{
+        vehicles: Vehicle[];
+        total: number;
+    }>;
+    getCompaniesPaginated(params: {
+        limit: number;
+        offset: number;
+        search?: string;
+        city?: string;
+        country?: string;
+        status?: string;
+        userId?: string;
+        userRole?: string;
+    }): Promise<{
+        companies: Company[];
+        total: number;
+    }>;
+    getUsersPaginated(params: {
+        limit: number;
+        offset: number;
+        search?: string;
+        role?: string;
+        company?: string;
+        status?: string;
+        userId?: string;
+        userRole?: string;
+    }): Promise<{
+        users: User[];
+        total: number;
+    }>;
+    getCustomersPaginated(params: {
+        limit: number;
+        offset: number;
+        search?: string;
+        city?: string;
+        country?: string;
+        hasRentals?: string;
+        userId?: string;
+        userRole?: string;
+    }): Promise<{
+        customers: Customer[];
+        total: number;
+    }>;
     getRentalsPaginated(params: {
         limit: number;
         offset: number;
@@ -186,8 +243,65 @@ export declare class PostgresDatabase {
     getCompanies(): Promise<Company[]>;
     createCompany(companyData: {
         name: string;
+        personalIban?: string;
+        businessIban?: string;
+        ownerName?: string;
+        contactEmail?: string;
+        contactPhone?: string;
+        defaultCommissionRate?: number;
+        isActive?: boolean;
     }): Promise<Company>;
+    updateCompany(id: string, companyData: Partial<{
+        name: string;
+        personalIban: string;
+        businessIban: string;
+        ownerName: string;
+        contactEmail: string;
+        contactPhone: string;
+        defaultCommissionRate: number;
+        isActive: boolean;
+        address: string;
+        businessId: string;
+        taxId: string;
+    }>): Promise<Company>;
     deleteCompany(id: string): Promise<void>;
+    getCompanyInvestors(): Promise<CompanyInvestor[]>;
+    createCompanyInvestor(investorData: {
+        firstName: string;
+        lastName: string;
+        email?: string;
+        phone?: string;
+        personalId?: string;
+        address?: string;
+        notes?: string;
+    }): Promise<CompanyInvestor>;
+    updateCompanyInvestor(id: string, updateData: Partial<{
+        firstName: string;
+        lastName: string;
+        email: string;
+        phone: string;
+        personalId: string;
+        address: string;
+        isActive: boolean;
+        notes: string;
+    }>): Promise<CompanyInvestor>;
+    deleteCompanyInvestor(id: string): Promise<void>;
+    getCompanyInvestorShares(companyId: string): Promise<CompanyInvestorShare[]>;
+    createCompanyInvestorShare(shareData: {
+        companyId: string;
+        investorId: string;
+        ownershipPercentage: number;
+        investmentAmount?: number;
+        isPrimaryContact: boolean;
+        profitSharePercentage?: number;
+    }): Promise<CompanyInvestorShare>;
+    updateCompanyInvestorShare(id: string, updateData: Partial<{
+        ownershipPercentage: number;
+        investmentAmount: number;
+        isPrimaryContact: boolean;
+        profitSharePercentage: number;
+    }>): Promise<CompanyInvestorShare>;
+    deleteCompanyInvestorShare(id: string): Promise<void>;
     getInsurers(): Promise<Insurer[]>;
     createInsurer(insurerData: {
         name: string;
@@ -333,25 +447,6 @@ export declare class PostgresDatabase {
         id: string;
         name: string;
     }[]>;
-    getCurrentVehicleOwner(vehicleId: string): Promise<{
-        ownerCompanyId: string;
-        ownerCompanyName: string;
-    } | null>;
-    getVehicleOwnerAtTime(vehicleId: string, timestamp: Date): Promise<{
-        ownerCompanyId: string;
-        ownerCompanyName: string;
-    } | null>;
-    getVehicleOwnershipHistory(vehicleId: string): Promise<{
-        id: string;
-        ownerCompanyId: string;
-        ownerCompanyName: string;
-        validFrom: Date;
-        validTo: Date | null;
-        transferReason: string;
-        transferNotes: string | null;
-    }[]>;
-    transferVehicleOwnership(vehicleId: string, newOwnerCompanyId: string, transferReason?: string, transferNotes?: string | null, transferDate?: Date): Promise<boolean>;
-    getCompanyVehiclesAtTime(companyId: string, timestamp: Date): Promise<Vehicle[]>;
     private validateRentalUpdate;
     private createRentalBackup;
     recoverRentalFromBackup(rentalId: string, backupId?: string): Promise<Rental | null>;
@@ -363,18 +458,6 @@ export declare class PostgresDatabase {
         backupsAvailable: number;
         issues: string[];
     }>;
-    getVehicleOwnerAtDate(vehicleId: string, date: Date): Promise<{
-        ownerCompanyId: string;
-        ownerCompanyName: string;
-    } | null>;
-    updateVehicleOwnershipHistory(historyId: string, updates: {
-        ownerCompanyId: string;
-        transferReason: string;
-        transferNotes?: string;
-        validFrom: Date;
-    }): Promise<void>;
-    checkOwnershipHistoryExists(historyId: string): Promise<boolean>;
-    deleteVehicleOwnershipHistory(historyId: string): Promise<void>;
     getBulkVehicleOwnersAtTime(vehicleTimeChecks: Array<{
         vehicleId: string;
         timestamp: Date;

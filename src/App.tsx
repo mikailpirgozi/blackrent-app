@@ -38,6 +38,7 @@ const VehicleList = lazy(() => import('./components/vehicles/VehicleListNew'));
 const RentalList = lazy(() => import('./components/rentals/RentalListNew'));
 // const ImapEmailMonitoring = lazy(() => import('./components/admin/ImapEmailMonitoring'));
 const EmailManagementDashboard = lazy(() => import('./components/admin/EmailManagementDashboard'));
+
 const CustomerList = lazy(() => import('./components/customers/CustomerListNew'));
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));
 const InsuranceList = lazy(() => import('./components/insurances/InsuranceList'));
@@ -46,7 +47,7 @@ const UserManagement = lazy(() => import('./components/users/IntegratedUserManag
 const SettlementList = lazy(() => import('./components/settlements/SettlementListNew'));
 // OLD: const AvailabilityPage = lazy(() => import('./pages/AvailabilityPageNew')); // REMOVED - replaced by Smart version
 const SmartAvailabilityPage = lazy(() => import('./pages/SmartAvailabilityPage'));
-// const VehicleOwnershipTransfer = lazy(() => import('./components/admin/VehicleOwnershipTransfer'));
+
 
 // OPTIMALIZOVANÝ Loading component pre lazy loaded routes
 const PageLoader = () => (
@@ -139,6 +140,7 @@ const AppContent: React.FC = () => {
                       </ProtectedRoute>
                     } />
                     
+
 
                     <Route path="/customers" element={
                       <ProtectedRoute>

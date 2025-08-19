@@ -1949,40 +1949,8 @@ class PostgresDatabase {
                 stk: row.stk ? new Date(row.stk) : undefined, // 📋 STK date mapping
                 createdAt: new Date(row.created_at)
             }));
-            // 🔧 AUTO-FIX: Automaticky oprav ownerCompanyId pre vozidlá ktoré ho nemajú
-            const vehiclesToFix = vehicles.filter(v => !v.ownerCompanyId && v.company?.trim());
-            if (vehiclesToFix.length > 0) {
-                console.log(`🔧 AUTO-FIX: Found ${vehiclesToFix.length} vehicles without ownerCompanyId, fixing...`);
-                // Získaj všetky firmy pre mapovanie
-                const companiesResult = await client.query('SELECT id, name FROM companies');
-                const companyMap = new Map();
-                companiesResult.rows.forEach(company => {
-                    companyMap.set(company.name.toLowerCase().trim(), company.id);
-                });
-                // Oprav vozidlá
-                for (const vehicle of vehiclesToFix) {
-                    try {
-                        const companyName = vehicle.company.trim();
-                        const companyNameLower = companyName.toLowerCase();
-                        let companyId = companyMap.get(companyNameLower);
-                        // Vytvor firmu ak neexistuje
-                        if (!companyId) {
-                            const newCompanyResult = await client.query('INSERT INTO companies (name) VALUES ($1) RETURNING id', [companyName]);
-                            companyId = newCompanyResult.rows[0].id;
-                            companyMap.set(companyNameLower, companyId);
-                            console.log(`🆕 AUTO-FIX: Created company "${companyName}" with ID ${companyId}`);
-                        }
-                        // Aktualizuj vozidlo
-                        await client.query('UPDATE vehicles SET company_id = $1 WHERE id = $2', [companyId, vehicle.id]);
-                        // Aktualizuj vozidlo v pamäti
-                        vehicle.ownerCompanyId = companyId.toString();
-                        console.log(`✅ AUTO-FIX: ${vehicle.brand} ${vehicle.model} → ${companyName} (${companyId})`);
-                    }
-                    catch (fixError) {
-                        console.error(`❌ AUTO-FIX error for vehicle ${vehicle.id}:`, fixError);
-                    }
-                }
-            }
+            // ✅ AUTO-FIX REMOVED: No longer automatically creating companies or modifying data
+            // All vehicles should have company_id set properly during creation
             return vehicles;
         }
         finally {
@@ -2029,18 +1997,35 @@ class PostgresDatabase {
                     throw new Error(`Vozidlo s ŠPZ ${vehicleData.licensePlate} už existuje v databáze`);
                 }
             }
-            // Nájdi alebo vytvor company UUID
+            // Nájdi alebo vytvor company UUID a použij default províziu
             let ownerCompanyId = null;
+            let defaultCommission = vehicleData.commission;
             if (vehicleData.company && vehicleData.company.trim()) {
                 const companies = await this.getCompanies();
                 const existingCompany = companies.find(c => c.name === vehicleData.company.trim());
                 if (existingCompany) {
                     ownerCompanyId = existingCompany.id;
+                    // 💰 SMART COMMISSION: Ak nie je zadaná vlastná provízia, použi default z firmy
+                    if (!vehicleData.commission ||
+                        (vehicleData.commission.type === 'percentage' && vehicleData.commission.value === 20)) {
+                        defaultCommission = {
+                            type: 'percentage',
+                            value: existingCompany.defaultCommissionRate || 20
+                        };
+                        console.log(`💰 Using company default commission: ${defaultCommission.value}% for ${vehicleData.brand} ${vehicleData.model}`);
+                    }
                 }
                 else {
-                    // Vytvor novú firmu
-                    const newCompany = await this.createCompany({ name: vehicleData.company.trim() });
+                    // Vytvor novú firmu s default províziou
+                    const newCompany = await this.createCompany({
+                        name: vehicleData.company.trim(),
+                        defaultCommissionRate: 20 // Default pre novú firmu
+                    });
                     ownerCompanyId = newCompany.id;
+                    defaultCommission = {
+                        type: 'percentage',
+                        value: 20
+                    };
                 }
             }
             // ✅ OPRAVENÉ: Používame company_id (nie owner_company_id) + VIN
@@ -2053,7 +2038,7 @@ class PostgresDatabase {
                 vehicleData.company,
                 ownerCompanyId, // 🆕 Správne company_id (nie owner_company_id)
                 JSON.stringify(vehicleData.pricing),
-                JSON.stringify(vehicleData.commission),
+                JSON.stringify(defaultCommission),
                 vehicleData.status
             ]);
             const row = result.rows[0];
@@ -2190,6 +2175,410 @@ class PostgresDatabase {
                     throw error;
                 }
             });
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🚀 GMAIL APPROACH: Paginated vehicles s filtrami
+    async getVehiclesPaginated(params) {
+        const client = await this.pool.connect();
+        try {
+            console.log('🚀 Loading paginated vehicles with filters:', params);
+            // Build WHERE clause dynamically
+            const whereClauses = [];
+            const queryParams = [];
+            let paramIndex = 1;
+            // Search filter (brand, model, license plate, VIN)
+            if (params.search && params.search.trim()) {
+                whereClauses.push(`(
+          v.brand ILIKE $${paramIndex} OR 
+          v.model ILIKE $${paramIndex} OR 
+          v.license_plate ILIKE $${paramIndex} OR 
+          v.vin ILIKE $${paramIndex}
+        )`);
+                queryParams.push(`%${params.search.trim()}%`);
+                paramIndex++;
+            }
+            // Company filter
+            if (params.company && params.company !== 'all') {
+                whereClauses.push(`c.name = $${paramIndex}`);
+                queryParams.push(params.company);
+                paramIndex++;
+            }
+            // Brand filter
+            if (params.brand && params.brand !== 'all') {
+                whereClauses.push(`v.brand = $${paramIndex}`);
+                queryParams.push(params.brand);
+                paramIndex++;
+            }
+            // Category filter
+            if (params.category && params.category !== 'all') {
+                whereClauses.push(`v.category = $${paramIndex}`);
+                queryParams.push(params.category);
+                paramIndex++;
+            }
+            // Status filter
+            if (params.status && params.status !== 'all') {
+                whereClauses.push(`v.status = $${paramIndex}`);
+                queryParams.push(params.status);
+                paramIndex++;
+            }
+            // Year range
+            if (params.yearMin) {
+                whereClauses.push(`v.year >= $${paramIndex}`);
+                queryParams.push(parseInt(params.yearMin));
+                paramIndex++;
+            }
+            if (params.yearMax) {
+                whereClauses.push(`v.year <= $${paramIndex}`);
+                queryParams.push(parseInt(params.yearMax));
+                paramIndex++;
+            }
+            // Permission filtering for non-admin users
+            if (params.userRole !== 'admin' && params.userId) {
+                // Get user's allowed companies
+                const userCompanyAccess = await this.getUserCompanyAccess(params.userId);
+                const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+                if (allowedCompanyIds.length > 0) {
+                    const placeholders = allowedCompanyIds.map((_, i) => `$${paramIndex + i}`).join(',');
+                    whereClauses.push(`v.owner_company_id IN (${placeholders})`);
+                    queryParams.push(...allowedCompanyIds);
+                    paramIndex += allowedCompanyIds.length;
+                }
+                else {
+                    // No access to any companies
+                    whereClauses.push('FALSE');
+                }
+            }
+            const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+            // Count query
+            const countQuery = `
+        SELECT COUNT(*) as total
+        FROM vehicles v
+        LEFT JOIN companies c ON v.owner_company_id = c.id
+        ${whereClause}
+      `;
+            // Data query with pagination
+            const dataQuery = `
+        SELECT 
+          v.*,
+          c.name as company_name
+        FROM vehicles v
+        LEFT JOIN companies c ON v.owner_company_id = c.id
+        ${whereClause}
+        ORDER BY v.created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+            // Execute queries in parallel
+            const [countResult, dataResult] = await Promise.all([
+                client.query(countQuery, queryParams),
+                client.query(dataQuery, [...queryParams, params.limit, params.offset])
+            ]);
+            const total = parseInt(countResult.rows[0]?.total || '0');
+            const vehicles = dataResult.rows.map(row => ({
+                id: row.id,
+                brand: row.brand,
+                model: row.model,
+                licensePlate: row.license_plate,
+                vin: row.vin,
+                company: row.company_name || row.company || 'N/A',
+                category: row.category,
+                pricing: row.pricing ? (typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing) : [],
+                commission: row.commission ? (typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission) : { type: 'percentage', value: 0 },
+                status: row.status || 'available',
+                year: row.year,
+                stk: row.stk,
+                ownerCompanyId: row.owner_company_id,
+                createdAt: row.created_at
+            }));
+            return { vehicles, total };
+        }
+        catch (error) {
+            console.error('Error in getVehiclesPaginated:', error);
+            throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🚀 GMAIL APPROACH: Paginated companies s filtrami
+    async getCompaniesPaginated(params) {
+        const client = await this.pool.connect();
+        try {
+            console.log('🚀 Loading paginated companies with filters:', params);
+            // Build WHERE clause dynamically
+            const whereClauses = [];
+            const queryParams = [];
+            let paramIndex = 1;
+            // Search filter (name, email, phone, address)
+            if (params.search && params.search.trim()) {
+                whereClauses.push(`(
+          c.name ILIKE $${paramIndex} OR 
+          c.email ILIKE $${paramIndex} OR 
+          c.phone ILIKE $${paramIndex} OR 
+          c.address ILIKE $${paramIndex}
+        )`);
+                queryParams.push(`%${params.search.trim()}%`);
+                paramIndex++;
+            }
+            // City filter
+            if (params.city && params.city !== 'all') {
+                whereClauses.push(`c.city = $${paramIndex}`);
+                queryParams.push(params.city);
+                paramIndex++;
+            }
+            // Country filter
+            if (params.country && params.country !== 'all') {
+                whereClauses.push(`c.country = $${paramIndex}`);
+                queryParams.push(params.country);
+                paramIndex++;
+            }
+            // Permission filtering for company_owner role
+            if (params.userRole === 'company_owner' && params.userId) {
+                // Company owners can only see their own company
+                const users = await this.getUsers();
+                const user = users.find(u => u.id === params.userId);
+                if (user?.companyId) {
+                    whereClauses.push(`c.id = $${paramIndex}`);
+                    queryParams.push(user.companyId);
+                    paramIndex++;
+                }
+                else {
+                    // No company assigned - return empty
+                    whereClauses.push('FALSE');
+                }
+            }
+            const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+            // Count query
+            const countQuery = `
+        SELECT COUNT(*) as total
+        FROM companies c
+        ${whereClause}
+      `;
+            // Data query with pagination
+            const dataQuery = `
+        SELECT 
+          c.*,
+          COUNT(v.id) as vehicle_count
+        FROM companies c
+        LEFT JOIN vehicles v ON c.id = v.owner_company_id
+        ${whereClause}
+        GROUP BY c.id
+        ORDER BY c.created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+            // Execute queries in parallel
+            const [countResult, dataResult] = await Promise.all([
+                client.query(countQuery, queryParams),
+                client.query(dataQuery, [...queryParams, params.limit, params.offset])
+            ]);
+            const total = parseInt(countResult.rows[0]?.total || '0');
+            const companies = dataResult.rows.map(row => ({
+                id: row.id,
+                name: row.name,
+                email: row.email,
+                phone: row.phone,
+                address: row.address,
+                city: row.city,
+                country: row.country,
+                commissionRate: row.commission_rate || 0,
+                isActive: row.is_active !== false,
+                vehicleCount: parseInt(row.vehicle_count || '0'),
+                createdAt: row.created_at
+            }));
+            return { companies, total };
+        }
+        catch (error) {
+            console.error('Error in getCompaniesPaginated:', error);
+            throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🚀 GMAIL APPROACH: Paginated users s filtrami
+    async getUsersPaginated(params) {
+        const client = await this.pool.connect();
+        try {
+            console.log('🚀 Loading paginated users with filters:', params);
+            // Build WHERE clause dynamically
+            const whereClauses = [];
+            const queryParams = [];
+            let paramIndex = 1;
+            // Search filter (username, email, first_name, last_name)
+            if (params.search && params.search.trim()) {
+                whereClauses.push(`(
+          u.username ILIKE $${paramIndex} OR 
+          u.email ILIKE $${paramIndex} OR 
+          u.first_name ILIKE $${paramIndex} OR 
+          u.last_name ILIKE $${paramIndex}
+        )`);
+                queryParams.push(`%${params.search.trim()}%`);
+                paramIndex++;
+            }
+            // Role filter
+            if (params.role && params.role !== 'all') {
+                whereClauses.push(`u.role = $${paramIndex}`);
+                queryParams.push(params.role);
+                paramIndex++;
+            }
+            // Company filter
+            if (params.company && params.company !== 'all') {
+                whereClauses.push(`c.name = $${paramIndex}`);
+                queryParams.push(params.company);
+                paramIndex++;
+            }
+            // Permission filtering for non-admin users
+            if (params.userRole !== 'admin' && params.userId) {
+                // Non-admin users can only see users from their accessible companies
+                const userCompanyAccess = await this.getUserCompanyAccess(params.userId);
+                const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+                if (allowedCompanyIds.length > 0) {
+                    const placeholders = allowedCompanyIds.map((_, i) => `$${paramIndex + i}`).join(',');
+                    whereClauses.push(`u.company_id IN (${placeholders})`);
+                    queryParams.push(...allowedCompanyIds);
+                    paramIndex += allowedCompanyIds.length;
+                }
+                else {
+                    // No access to any companies
+                    whereClauses.push('FALSE');
+                }
+            }
+            const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+            // Count query
+            const countQuery = `
+        SELECT COUNT(*) as total
+        FROM users u
+        LEFT JOIN companies c ON u.company_id = c.id
+        ${whereClause}
+      `;
+            // Data query with pagination
+            const dataQuery = `
+        SELECT 
+          u.*,
+          c.name as company_name
+        FROM users u
+        LEFT JOIN companies c ON u.company_id = c.id
+        ${whereClause}
+        ORDER BY u.created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+            // Execute queries in parallel
+            const [countResult, dataResult] = await Promise.all([
+                client.query(countQuery, queryParams),
+                client.query(dataQuery, [...queryParams, params.limit, params.offset])
+            ]);
+            const total = parseInt(countResult.rows[0]?.total || '0');
+            const users = dataResult.rows.map(row => ({
+                id: row.id,
+                username: row.username,
+                email: row.email,
+                password: '', // Not returned for security
+                firstName: row.first_name,
+                lastName: row.last_name,
+                role: row.role,
+                companyId: row.company_id,
+                companyName: row.company_name,
+                isActive: row.is_active !== false,
+                createdAt: row.created_at,
+                lastLogin: row.last_login
+            }));
+            return { users, total };
+        }
+        catch (error) {
+            console.error('Error in getUsersPaginated:', error);
+            throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🚀 GMAIL APPROACH: Paginated customers s filtrami
+    async getCustomersPaginated(params) {
+        const client = await this.pool.connect();
+        try {
+            console.log('🚀 Loading paginated customers with filters:', params);
+            // Build WHERE clause dynamically
+            const whereClauses = [];
+            const queryParams = [];
+            let paramIndex = 1;
+            // Search filter (name, email, phone)
+            if (params.search && params.search.trim()) {
+                whereClauses.push(`(
+          c.name ILIKE $${paramIndex} OR 
+          c.email ILIKE $${paramIndex} OR 
+          c.phone ILIKE $${paramIndex}
+        )`);
+                queryParams.push(`%${params.search.trim()}%`);
+                paramIndex++;
+            }
+            // Has rentals filter
+            if (params.hasRentals === 'yes') {
+                whereClauses.push(`EXISTS (SELECT 1 FROM rentals r WHERE r.customer_id = c.id)`);
+            }
+            else if (params.hasRentals === 'no') {
+                whereClauses.push(`NOT EXISTS (SELECT 1 FROM rentals r WHERE r.customer_id = c.id)`);
+            }
+            // Permission filtering for non-admin users
+            if (params.userRole !== 'admin' && params.userId) {
+                // Non-admin users can only see customers who rented from their accessible companies
+                const userCompanyAccess = await this.getUserCompanyAccess(params.userId);
+                const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+                if (allowedCompanyIds.length > 0) {
+                    const placeholders = allowedCompanyIds.map((_, i) => `$${paramIndex + i}`).join(',');
+                    whereClauses.push(`EXISTS (
+            SELECT 1 FROM rentals r 
+            JOIN vehicles v ON r.vehicle_id = v.id 
+            WHERE r.customer_id = c.id 
+            AND v.owner_company_id IN (${placeholders})
+          )`);
+                    queryParams.push(...allowedCompanyIds);
+                    paramIndex += allowedCompanyIds.length;
+                }
+                else {
+                    // No access to any companies
+                    whereClauses.push('FALSE');
+                }
+            }
+            const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+            // Count query
+            const countQuery = `
+        SELECT COUNT(*) as total
+        FROM customers c
+        ${whereClause}
+      `;
+            // Data query with pagination
+            const dataQuery = `
+        SELECT 
+          c.*,
+          COUNT(r.id) as rental_count
+        FROM customers c
+        LEFT JOIN rentals r ON c.id = r.customer_id
+        ${whereClause}
+        GROUP BY c.id
+        ORDER BY c.created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+            // Execute queries in parallel
+            const [countResult, dataResult] = await Promise.all([
+                client.query(countQuery, queryParams),
+                client.query(dataQuery, [...queryParams, params.limit, params.offset])
+            ]);
+            const total = parseInt(countResult.rows[0]?.total || '0');
+            const customers = dataResult.rows.map(row => ({
+                id: row.id,
+                name: row.name,
+                email: row.email,
+                phone: row.phone,
+                rentalCount: parseInt(row.rental_count || '0'),
+                createdAt: row.created_at
+            }));
+            return { customers, total };
+        }
+        catch (error) {
+            console.error('Error in getCustomersPaginated:', error);
+            throw error;
         }
         finally {
             client.release();
@@ -3188,9 +3577,24 @@ class PostgresDatabase {
         try {
             const result = await client.query('SELECT * FROM companies ORDER BY name');
             return result.rows.map(row => ({
-                ...row,
                 id: row.id?.toString() || '',
-                createdAt: new Date(row.created_at)
+                name: row.name,
+                businessId: row.ic, // IC -> businessId mapping
+                taxId: row.dic, // DIC -> taxId mapping
+                address: row.address || '',
+                contactPerson: '', // Legacy field - unused
+                email: row.email || '',
+                phone: row.phone || '',
+                commissionRate: parseFloat(row.default_commission_rate || '20'), // Legacy field
+                isActive: row.is_active !== false,
+                createdAt: new Date(row.created_at),
+                // 🆕 NOVÉ POLIA PRE MAJITEĽOV
+                personalIban: row.personal_iban || '',
+                businessIban: row.business_iban || '',
+                ownerName: row.owner_name || '',
+                contactEmail: row.contact_email || '',
+                contactPhone: row.contact_phone || '',
+                defaultCommissionRate: parseFloat(row.default_commission_rate || '20')
             }));
         }
         finally {
@@ -3201,25 +3605,44 @@ class PostgresDatabase {
         const client = await this.pool.connect();
         try {
             console.log('🏢 Creating company:', companyData.name);
-            // ✅ OPRAVENÉ: Používame len stĺpce ktoré existujú v databáze
-            const result = await client.query('INSERT INTO companies (name) VALUES ($1) RETURNING id, name, address, phone, email, ic, dic, created_at', [companyData.name]);
+            const result = await client.query(`INSERT INTO companies (
+          name, personal_iban, business_iban, owner_name, 
+          contact_email, contact_phone, default_commission_rate, is_active
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+        RETURNING *`, [
+                companyData.name,
+                companyData.personalIban || null,
+                companyData.businessIban || null,
+                companyData.ownerName || null,
+                companyData.contactEmail || null,
+                companyData.contactPhone || null,
+                companyData.defaultCommissionRate || 20.00,
+                companyData.isActive !== false
+            ]);
             console.log('🏢 Company created successfully:', result.rows[0]);
             const row = result.rows[0];
             return {
                 id: row.id.toString(),
                 name: row.name,
-                businessId: row.ic, // ✅ ic -> businessId mapovanie
-                taxId: row.dic, // ✅ dic -> taxId mapovanie
+                businessId: row.ic || '',
+                taxId: row.dic || '',
                 address: row.address || '',
-                contactPerson: '', // Nemáme v databáze, prazdné
+                contactPerson: '', // Legacy field
                 email: row.email || '',
                 phone: row.phone || '',
-                contractStartDate: undefined, // Nemáme v databáze
-                contractEndDate: undefined, // Nemáme v databáze
-                commissionRate: 20.00, // Default hodnota
-                isActive: true, // Default hodnota
+                contractStartDate: undefined,
+                contractEndDate: undefined,
+                commissionRate: parseFloat(row.default_commission_rate || '20'),
+                isActive: row.is_active !== false,
                 createdAt: new Date(row.created_at),
-                updatedAt: undefined // Nemáme v databáze
+                updatedAt: undefined,
+                // 🆕 NOVÉ POLIA
+                personalIban: row.personal_iban || '',
+                businessIban: row.business_iban || '',
+                ownerName: row.owner_name || '',
+                contactEmail: row.contact_email || '',
+                contactPhone: row.contact_phone || '',
+                defaultCommissionRate: parseFloat(row.default_commission_rate || '20')
             };
         }
         catch (error) {
@@ -3230,10 +3653,309 @@ class PostgresDatabase {
             client.release();
         }
     }
+    async updateCompany(id, companyData) {
+        const client = await this.pool.connect();
+        try {
+            console.log('🏢 Updating company:', id, companyData);
+            const result = await client.query(`UPDATE companies SET 
+          name = COALESCE($2, name),
+          personal_iban = COALESCE($3, personal_iban),
+          business_iban = COALESCE($4, business_iban),
+          owner_name = COALESCE($5, owner_name),
+          contact_email = COALESCE($6, contact_email),
+          contact_phone = COALESCE($7, contact_phone),
+          default_commission_rate = COALESCE($8, default_commission_rate),
+          is_active = COALESCE($9, is_active),
+          address = COALESCE($10, address),
+          ic = COALESCE($11, ic),
+          dic = COALESCE($12, dic)
+        WHERE id = $1 
+        RETURNING *`, [
+                id,
+                companyData.name || null,
+                companyData.personalIban || null,
+                companyData.businessIban || null,
+                companyData.ownerName || null,
+                companyData.contactEmail || null,
+                companyData.contactPhone || null,
+                companyData.defaultCommissionRate || null,
+                companyData.isActive ?? null,
+                companyData.address || null,
+                companyData.businessId || null,
+                companyData.taxId || null
+            ]);
+            if (result.rows.length === 0) {
+                throw new Error(`Company ${id} not found`);
+            }
+            const row = result.rows[0];
+            return {
+                id: row.id.toString(),
+                name: row.name,
+                businessId: row.ic || '',
+                taxId: row.dic || '',
+                address: row.address || '',
+                contactPerson: '',
+                email: row.email || '',
+                phone: row.phone || '',
+                contractStartDate: undefined,
+                contractEndDate: undefined,
+                commissionRate: parseFloat(row.default_commission_rate || '20'),
+                isActive: row.is_active !== false,
+                createdAt: new Date(row.created_at),
+                updatedAt: undefined,
+                personalIban: row.personal_iban || '',
+                businessIban: row.business_iban || '',
+                ownerName: row.owner_name || '',
+                contactEmail: row.contact_email || '',
+                contactPhone: row.contact_phone || '',
+                defaultCommissionRate: parseFloat(row.default_commission_rate || '20')
+            };
+        }
+        catch (error) {
+            console.error('❌ Error updating company:', error);
+            throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
     async deleteCompany(id) {
         const client = await this.pool.connect();
         try {
-            await client.query('DELETE FROM companies WHERE id = $1', [id]); // Removed parseInt for UUID
+            await client.query('DELETE FROM companies WHERE id = $1', [id]);
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 🤝 COMPANY INVESTORS METHODS
+    async getCompanyInvestors() {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT * FROM company_investors ORDER BY last_name, first_name');
+            return result.rows.map(row => ({
+                id: row.id,
+                firstName: row.first_name,
+                lastName: row.last_name,
+                email: row.email || '',
+                phone: row.phone || '',
+                personalId: row.personal_id || '',
+                address: row.address || '',
+                isActive: row.is_active !== false,
+                notes: row.notes || '',
+                createdAt: new Date(row.created_at),
+                updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+            }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    async createCompanyInvestor(investorData) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`INSERT INTO company_investors (
+          first_name, last_name, email, phone, personal_id, address, notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        RETURNING *`, [
+                investorData.firstName,
+                investorData.lastName,
+                investorData.email || null,
+                investorData.phone || null,
+                investorData.personalId || null,
+                investorData.address || null,
+                investorData.notes || null
+            ]);
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                firstName: row.first_name,
+                lastName: row.last_name,
+                email: row.email || '',
+                phone: row.phone || '',
+                personalId: row.personal_id || '',
+                address: row.address || '',
+                isActive: row.is_active !== false,
+                notes: row.notes || '',
+                createdAt: new Date(row.created_at),
+                updatedAt: undefined
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async updateCompanyInvestor(id, updateData) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`UPDATE company_investors SET 
+          first_name = COALESCE($2, first_name),
+          last_name = COALESCE($3, last_name),
+          email = COALESCE($4, email),
+          phone = COALESCE($5, phone),
+          personal_id = COALESCE($6, personal_id),
+          address = COALESCE($7, address),
+          is_active = COALESCE($8, is_active),
+          notes = COALESCE($9, notes),
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1 
+        RETURNING *`, [
+                id,
+                updateData.firstName || null,
+                updateData.lastName || null,
+                updateData.email || null,
+                updateData.phone || null,
+                updateData.personalId || null,
+                updateData.address || null,
+                updateData.isActive ?? null,
+                updateData.notes || null
+            ]);
+            if (result.rows.length === 0) {
+                throw new Error(`Company investor ${id} not found`);
+            }
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                firstName: row.first_name,
+                lastName: row.last_name,
+                email: row.email || '',
+                phone: row.phone || '',
+                personalId: row.personal_id || '',
+                address: row.address || '',
+                isActive: row.is_active !== false,
+                notes: row.notes || '',
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at)
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async deleteCompanyInvestor(id) {
+        const client = await this.pool.connect();
+        try {
+            // Najprv vymaž všetky shares
+            await client.query('DELETE FROM company_investor_shares WHERE investor_id = $1', [id]);
+            // Potom vymaž investora
+            await client.query('DELETE FROM company_investors WHERE id = $1', [id]);
+        }
+        finally {
+            client.release();
+        }
+    }
+    async getCompanyInvestorShares(companyId) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`SELECT 
+          s.*,
+          i.first_name, i.last_name, i.email, i.phone,
+          c.name as company_name
+        FROM company_investor_shares s
+        JOIN company_investors i ON s.investor_id = i.id
+        JOIN companies c ON s.company_id = c.id
+        WHERE s.company_id = $1
+        ORDER BY s.ownership_percentage DESC, i.last_name`, [companyId]);
+            return result.rows.map(row => ({
+                id: row.id,
+                companyId: row.company_id.toString(),
+                investorId: row.investor_id,
+                ownershipPercentage: parseFloat(row.ownership_percentage),
+                investmentAmount: row.investment_amount ? parseFloat(row.investment_amount) : undefined,
+                investmentDate: new Date(row.investment_date),
+                isPrimaryContact: row.is_primary_contact,
+                profitSharePercentage: row.profit_share_percentage ? parseFloat(row.profit_share_percentage) : undefined,
+                createdAt: new Date(row.created_at),
+                investor: {
+                    id: row.investor_id,
+                    firstName: row.first_name,
+                    lastName: row.last_name,
+                    email: row.email || '',
+                    phone: row.phone || '',
+                    personalId: '',
+                    address: '',
+                    isActive: true,
+                    createdAt: new Date(),
+                    notes: ''
+                }
+            }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    async createCompanyInvestorShare(shareData) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`INSERT INTO company_investor_shares (
+          company_id, investor_id, ownership_percentage, investment_amount,
+          is_primary_contact, profit_share_percentage
+        ) VALUES ($1, $2, $3, $4, $5, $6) 
+        RETURNING *`, [
+                shareData.companyId,
+                shareData.investorId,
+                shareData.ownershipPercentage,
+                shareData.investmentAmount || null,
+                shareData.isPrimaryContact,
+                shareData.profitSharePercentage || null
+            ]);
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                companyId: row.company_id.toString(),
+                investorId: row.investor_id,
+                ownershipPercentage: parseFloat(row.ownership_percentage),
+                investmentAmount: row.investment_amount ? parseFloat(row.investment_amount) : undefined,
+                investmentDate: new Date(row.investment_date),
+                isPrimaryContact: row.is_primary_contact,
+                profitSharePercentage: row.profit_share_percentage ? parseFloat(row.profit_share_percentage) : undefined,
+                createdAt: new Date(row.created_at)
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async updateCompanyInvestorShare(id, updateData) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`UPDATE company_investor_shares SET 
+          ownership_percentage = COALESCE($2, ownership_percentage),
+          investment_amount = COALESCE($3, investment_amount),
+          is_primary_contact = COALESCE($4, is_primary_contact),
+          profit_share_percentage = COALESCE($5, profit_share_percentage)
+        WHERE id = $1 
+        RETURNING *`, [
+                id,
+                updateData.ownershipPercentage ?? null,
+                updateData.investmentAmount ?? null,
+                updateData.isPrimaryContact ?? null,
+                updateData.profitSharePercentage ?? null
+            ]);
+            if (result.rows.length === 0) {
+                throw new Error(`Company investor share ${id} not found`);
+            }
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                companyId: row.company_id.toString(),
+                investorId: row.investor_id,
+                ownershipPercentage: parseFloat(row.ownership_percentage),
+                investmentAmount: row.investment_amount ? parseFloat(row.investment_amount) : undefined,
+                investmentDate: new Date(row.investment_date),
+                isPrimaryContact: row.is_primary_contact,
+                profitSharePercentage: row.profit_share_percentage ? parseFloat(row.profit_share_percentage) : undefined,
+                createdAt: new Date(row.created_at)
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async deleteCompanyInvestorShare(id) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('DELETE FROM company_investor_shares WHERE id = $1', [id]);
         }
         finally {
             client.release();
@@ -5346,202 +6068,6 @@ class PostgresDatabase {
             client.release();
         }
     }
-    // 🏗️ VEHICLE OWNERSHIP HISTORY FUNCTIONS
-    // Získanie aktuálneho vlastníka vozidla
-    async getCurrentVehicleOwner(vehicleId) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(`
-        SELECT owner_company_id, owner_company_name
-        FROM vehicle_ownership_history
-        WHERE vehicle_id = $1 AND valid_to IS NULL
-        ORDER BY valid_from DESC
-        LIMIT 1
-      `, [vehicleId]);
-            if (result.rows.length === 0) {
-                return null;
-            }
-            return {
-                ownerCompanyId: result.rows[0].owner_company_id,
-                ownerCompanyName: result.rows[0].owner_company_name
-            };
-        }
-        finally {
-            client.release();
-        }
-    }
-    // Získanie vlastníka vozidla v konkrétnom čase
-    async getVehicleOwnerAtTime(vehicleId, timestamp) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(`
-        SELECT owner_company_id, owner_company_name
-        FROM vehicle_ownership_history
-        WHERE vehicle_id = $1 
-          AND valid_from <= $2
-          AND (valid_to IS NULL OR valid_to > $2)
-        ORDER BY valid_from DESC
-        LIMIT 1
-      `, [vehicleId, timestamp]);
-            if (result.rows.length === 0) {
-                return null;
-            }
-            return {
-                ownerCompanyId: result.rows[0].owner_company_id,
-                ownerCompanyName: result.rows[0].owner_company_name
-            };
-        }
-        finally {
-            client.release();
-        }
-    }
-    // Získanie histórie vlastníctva vozidla
-    async getVehicleOwnershipHistory(vehicleId) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(`
-        SELECT 
-          id,
-          owner_company_id,
-          owner_company_name,
-          valid_from,
-          valid_to,
-          transfer_reason,
-          transfer_notes
-        FROM vehicle_ownership_history
-        WHERE vehicle_id = $1
-        ORDER BY valid_from DESC
-      `, [vehicleId]);
-            return result.rows.map(row => ({
-                id: row.id,
-                ownerCompanyId: row.owner_company_id,
-                ownerCompanyName: row.owner_company_name,
-                validFrom: row.valid_from,
-                validTo: row.valid_to,
-                transferReason: row.transfer_reason,
-                transferNotes: row.transfer_notes
-            }));
-        }
-        finally {
-            client.release();
-        }
-    }
-    // Transfer vlastníctva vozidla
-    async transferVehicleOwnership(vehicleId, newOwnerCompanyId, transferReason = 'manual_transfer', transferNotes = null, transferDate = new Date()) {
-        const client = await this.pool.connect();
-        try {
-            await client.query('BEGIN');
-            // 1. Získaj názov novej firmy
-            const companyResult = await client.query(`
-        SELECT name FROM companies WHERE id = $1
-      `, [newOwnerCompanyId]);
-            if (companyResult.rows.length === 0) {
-                throw new Error(`Company with ID ${newOwnerCompanyId} not found`);
-            }
-            const newOwnerCompanyName = companyResult.rows[0].name;
-            // 2. OPRAVA: Skontroluj či existuje ownership historia pre toto vozidlo
-            const existingHistoryResult = await client.query(`
-        SELECT COUNT(*) as count FROM vehicle_ownership_history WHERE vehicle_id = $1
-      `, [vehicleId]);
-            const hasHistory = parseInt(existingHistoryResult.rows[0].count) > 0;
-            // 3. OPRAVA: Ak neexistuje historia, vytvor počiatočný záznam pre aktuálneho majiteľa
-            if (!hasHistory) {
-                console.log(`🔄 Creating initial ownership record for vehicle ${vehicleId}`);
-                // Získaj aktuálneho majiteľa z vehicles tabuľky
-                const vehicleResult = await client.query(`
-          SELECT owner_company_id, company, created_at FROM vehicles WHERE id = $1
-        `, [vehicleId]);
-                if (vehicleResult.rows.length === 0) {
-                    throw new Error(`Vehicle with ID ${vehicleId} not found`);
-                }
-                const currentOwner = vehicleResult.rows[0];
-                const currentOwnerCompanyId = currentOwner.owner_company_id;
-                const currentOwnerCompanyName = currentOwner.company;
-                // OPRAVA: Použij veľmi starý dátum pre initial ownership, nie created_at
-                const vehicleCreatedAt = new Date('2024-01-01'); // Safe past date for initial ownership
-                // Vytvor počiatočný ownership záznam pre súčasného majiteľa
-                await client.query(`
-          INSERT INTO vehicle_ownership_history (
-            vehicle_id, 
-            owner_company_id, 
-            owner_company_name,
-            valid_from, 
-            transfer_reason, 
-            transfer_notes
-          ) VALUES ($1, $2, $3, $4, $5, $6)
-        `, [vehicleId, currentOwnerCompanyId, currentOwnerCompanyName, vehicleCreatedAt, 'initial_setup', 'Initial ownership record created during transfer']);
-                console.log(`✅ Created initial ownership record for ${currentOwnerCompanyName} from ${vehicleCreatedAt.toISOString()}`);
-            }
-            // 4. Ukončí súčasné vlastníctvo (teraz určite existuje záznam)
-            const updateResult = await client.query(`
-        UPDATE vehicle_ownership_history 
-        SET valid_to = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE vehicle_id = $2 AND valid_to IS NULL
-      `, [transferDate, vehicleId]);
-            console.log(`🔄 Ended current ownership for vehicle ${vehicleId}, affected rows: ${updateResult.rowCount}`);
-            // 5. Vytvor nový ownership záznam
-            await client.query(`
-        INSERT INTO vehicle_ownership_history (
-          vehicle_id, 
-          owner_company_id, 
-          owner_company_name,
-          valid_from, 
-          transfer_reason, 
-          transfer_notes
-        ) VALUES ($1, $2, $3, $4, $5, $6)
-      `, [vehicleId, newOwnerCompanyId, newOwnerCompanyName, transferDate, transferReason, transferNotes]);
-            console.log(`✅ Created new ownership record for ${newOwnerCompanyName} from ${transferDate.toISOString()}`);
-            // 6. Aktualizuj vehicles tabuľku pre súčasný stav (oba stĺpce!)
-            await client.query(`
-        UPDATE vehicles 
-        SET owner_company_id = $1, company = $2, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $3
-      `, [newOwnerCompanyId, newOwnerCompanyName, vehicleId]);
-            await client.query('COMMIT');
-            return true;
-        }
-        catch (error) {
-            await client.query('ROLLBACK');
-            console.error('Transfer ownership error:', error);
-            throw error;
-        }
-        finally {
-            client.release();
-        }
-    }
-    // Získanie vozidiel firmy v konkrétnom čase
-    async getCompanyVehiclesAtTime(companyId, timestamp) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(`
-        SELECT DISTINCT v.*
-        FROM vehicles v
-        JOIN vehicle_ownership_history voh ON v.id = voh.vehicle_id
-        WHERE voh.owner_company_id = $1
-          AND voh.valid_from <= $2
-          AND (voh.valid_to IS NULL OR voh.valid_to > $2)
-        ORDER BY v.brand, v.model, v.license_plate
-      `, [companyId, timestamp]);
-            return result.rows.map(row => ({
-                id: row.id,
-                brand: row.brand,
-                model: row.model,
-                year: row.year,
-                licensePlate: row.license_plate,
-                company: row.company,
-                ownerCompanyId: row.owner_company_id?.toString(),
-                pricing: row.pricing,
-                commission: row.commission,
-                status: row.status,
-                stk: row.stk,
-                createdAt: row.created_at,
-                updatedAt: row.updated_at
-            }));
-        }
-        finally {
-            client.release();
-        }
-    }
     // ====================================
     // 🛡️ RENTAL DATA PROTECTION SYSTEM 🛡️
     // ====================================
@@ -5685,97 +6211,6 @@ class PostgresDatabase {
             };
             console.log('🛡️ RENTAL INTEGRITY CHECK:', report);
             return report;
-        }
-        finally {
-            client.release();
-        }
-    }
-    // Získanie majiteľa vozidla k určitému dátumu
-    async getVehicleOwnerAtDate(vehicleId, date) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(`
-        SELECT 
-          owner_company_id,
-          owner_company_name
-        FROM vehicle_ownership_history
-        WHERE vehicle_id = $1
-          AND valid_from <= $2
-          AND (valid_to IS NULL OR valid_to > $2)
-        ORDER BY valid_from DESC
-        LIMIT 1
-      `, [vehicleId, date]);
-            if (result.rows.length === 0) {
-                return null;
-            }
-            const row = result.rows[0];
-            return {
-                ownerCompanyId: row.owner_company_id,
-                ownerCompanyName: row.owner_company_name
-            };
-        }
-        finally {
-            client.release();
-        }
-    }
-    // 📝 Úprava transferu vlastníctva
-    async updateVehicleOwnershipHistory(historyId, updates) {
-        const client = await this.pool.connect();
-        try {
-            // Najprv získaj informácie o firme
-            const companyResult = await client.query('SELECT name FROM companies WHERE id = $1', [updates.ownerCompanyId]);
-            if (companyResult.rows.length === 0) {
-                throw new Error(`Company with ID ${updates.ownerCompanyId} not found`);
-            }
-            const companyName = companyResult.rows[0].name;
-            // Aktualizuj ownership history
-            const result = await client.query(`
-        UPDATE vehicle_ownership_history 
-        SET 
-          owner_company_id = $1,
-          owner_company_name = $2,
-          transfer_reason = $3,
-          transfer_notes = $4,
-          valid_from = $5,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = $6
-      `, [
-                updates.ownerCompanyId,
-                companyName,
-                updates.transferReason,
-                updates.transferNotes || null,
-                updates.validFrom,
-                historyId
-            ]);
-            if (result.rowCount === 0) {
-                throw new Error(`Ownership history record ${historyId} not found`);
-            }
-            console.log(`✅ Updated ownership history ${historyId}`);
-        }
-        finally {
-            client.release();
-        }
-    }
-    // 🔍 Overenie existencie ownership history záznamu
-    async checkOwnershipHistoryExists(historyId) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query('SELECT 1 FROM vehicle_ownership_history WHERE id = $1', [historyId]);
-            return result.rows.length > 0;
-        }
-        finally {
-            client.release();
-        }
-    }
-    // 🗑️ Vymazanie transferu vlastníctva
-    async deleteVehicleOwnershipHistory(historyId) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query('DELETE FROM vehicle_ownership_history WHERE id = $1', [historyId]);
-            if (result.rowCount === 0) {
-                throw new Error(`Ownership history record ${historyId} not found`);
-            }
-            console.log(`✅ Deleted ownership history ${historyId}`);
         }
         finally {
             client.release();

@@ -249,6 +249,38 @@ export interface Company {
     isActive: boolean;
     createdAt: Date;
     updatedAt?: Date;
+    personalIban?: string;
+    businessIban?: string;
+    ownerName?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    defaultCommissionRate?: number;
+}
+export interface CompanyInvestor {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email?: string;
+    phone?: string;
+    personalId?: string;
+    address?: string;
+    isActive: boolean;
+    notes?: string;
+    createdAt: Date;
+    updatedAt?: Date;
+}
+export interface CompanyInvestorShare {
+    id: string;
+    companyId: string;
+    investorId: string;
+    ownershipPercentage: number;
+    investmentAmount?: number;
+    investmentDate: Date;
+    isPrimaryContact: boolean;
+    profitSharePercentage?: number;
+    createdAt: Date;
+    investor?: CompanyInvestor;
+    company?: Company;
 }
 export interface Permission {
     resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | 'expenses' | 'insurances' | '*';

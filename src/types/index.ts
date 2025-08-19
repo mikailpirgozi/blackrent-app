@@ -13,6 +13,7 @@ export interface Vehicle {
   id: string;
   brand: string;
   model: string;
+  year?: number; // 🗓️ Rok výroby vozidla
   licensePlate: string;
   vin?: string; // 🆔 VIN číslo vozidla (17-miestny identifikačný kód)
   company?: string;  // 🛡️ BULLETPROOF: Optional pre zabránenie fallback
@@ -283,18 +284,55 @@ export type UserWithoutPassword = Omit<User, 'password'>;
 export interface Company {
   id: string;
   name: string;
-  businessId?: string; // IČO
-  taxId?: string; // DIČ
+  businessId?: string; // IČO (IC)
+  taxId?: string; // DIČ (DIC)
   address?: string;
   contactPerson?: string;
   email?: string;
   phone?: string;
   contractStartDate?: Date;
   contractEndDate?: Date;
-  commissionRate: number; // % provízia
+  commissionRate: number; // % provízia (legacy field)
   isActive: boolean;
   createdAt: Date;
   updatedAt?: Date;
+  // 🆕 ROZŠÍRENÉ POLIA PRE MAJITEĽOV
+  personalIban?: string; // Súkromný IBAN
+  businessIban?: string; // Firemný IBAN  
+  ownerName?: string; // Meno a priezvisko majiteľa
+  contactEmail?: string; // Kontaktný email
+  contactPhone?: string; // Kontaktný telefón
+  defaultCommissionRate?: number; // Default provízia pre nové vozidlá
+}
+
+// 🤝 SPOLUINVESTORSKÝ SYSTÉM
+export interface CompanyInvestor {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  personalId?: string; // Rodné číslo/ID
+  address?: string;
+  isActive: boolean;
+  notes?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface CompanyInvestorShare {
+  id: string;
+  companyId: string;
+  investorId: string;
+  ownershipPercentage: number; // % podiel (0-100)
+  investmentAmount?: number; // Suma investície
+  investmentDate: Date;
+  isPrimaryContact: boolean;
+  profitSharePercentage?: number; // % z príjmov (môže byť iný ako ownership)
+  createdAt: Date;
+  // Rozšírené info pre UI
+  investor?: CompanyInvestor;
+  company?: Company;
 }
 
 // Permission system interfaces

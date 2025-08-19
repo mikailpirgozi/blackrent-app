@@ -74,7 +74,26 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
   }, [vehicle, state.vehicleDocuments]);
 
   const handleInputChange = (field: keyof Vehicle, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // 💰 SMART COMMISSION: Pri zmene firmy nastav default províziu
+      if (field === 'ownerCompanyId' && value) {
+        const selectedCompany = state.companies?.find(c => c.id === value);
+        if (selectedCompany && selectedCompany.defaultCommissionRate) {
+          // Nastav default províziu len ak aktuálna je 20% (default)
+          if (!prev.commission || prev.commission.value === 20) {
+            updated.commission = {
+              type: 'percentage',
+              value: selectedCompany.defaultCommissionRate || 20
+            };
+            console.log(`💰 Auto-set commission to ${selectedCompany.defaultCommissionRate}% for company ${selectedCompany.name}`);
+          }
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const handlePricingChange = (index: number, field: keyof PricingTier, value: any) => {
@@ -118,10 +137,16 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
     onSave(completeVehicle);
   };
 
+  // 🔍 FILTROVANIE AKTÍVNYCH FIRIEM + company names
   const allCompanies = Array.from(new Set([
-    ...state.companies.map(c => c.name),
+    ...state.companies
+      .filter(c => c.isActive !== false) // Len aktívne firmy
+      .map(c => c.name),
     ...state.vehicles.map(v => v.company).filter((c): c is string => Boolean(c))
   ])).sort();
+
+  // 🏢 AKTÍVNE FIRMY PRE DROPDOWN
+  const activeCompanies = state.companies?.filter(c => c.isActive !== false) || [];
 
   // Helper funkcie pre dokumenty
   const handleAddDocument = async (docData: Partial<VehicleDocument>) => {
@@ -247,18 +272,38 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           placeholder="Zadajte VIN číslo vozidla"
           helperText="17-miestny identifikačný kód vozidla"
         />
-        {/* Firma/Autopožičovňa - Select s možnosťou pridať */}
+        {/* Firma/Autopožičovňa - Select s rozšírenými informáciami */}
         <FormControl fullWidth required>
           <InputLabel>Firma/Autopožičovňa</InputLabel>
           <Select
-            value={formData.company || ''}
+            value={formData.ownerCompanyId || ''}
             label="Firma/Autopožičovňa"
-            onChange={(e) => handleInputChange('company', e.target.value)}
-            renderValue={(selected) => selected || 'Vyberte firmu'}
+            onChange={(e) => {
+              const companyId = e.target.value;
+              const selectedCompany = activeCompanies.find(c => c.id === companyId);
+              if (selectedCompany) {
+                handleInputChange('company', selectedCompany.name);
+                handleInputChange('ownerCompanyId', companyId);
+              }
+            }}
+            renderValue={(selected) => {
+              const company = activeCompanies.find(c => c.id === selected);
+              return company ? company.name : 'Vyberte firmu';
+            }}
           >
-            {allCompanies.map((company) => (
-              <MenuItem key={company} value={company}>
-                {company}
+            <MenuItem value="">
+              <em>Vyberte firmu...</em>
+            </MenuItem>
+            {activeCompanies.map((company) => (
+              <MenuItem key={company.id} value={company.id}>
+                <Box>
+                  <Typography variant="body2">{company.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {company.ownerName && `👤 ${company.ownerName} • `}
+                    💰 Default provízia: {company.defaultCommissionRate || 20}%
+                    {!company.isActive && ' • NEAKTÍVNA'}
+                  </Typography>
+                </Box>
               </MenuItem>
             ))}
             <MenuItem value="__add_new__" onClick={() => setAddingCompany(true)}>
@@ -326,6 +371,22 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
         <FormControl component="fieldset">
           <Typography variant="subtitle1" gutterBottom>
             Provízia
+            {formData.ownerCompanyId && (() => {
+              const selectedCompany = activeCompanies.find(c => c.id === formData.ownerCompanyId);
+              const isUsingDefault = selectedCompany && 
+                formData.commission?.value === selectedCompany.defaultCommissionRate;
+              return (
+                <Chip 
+                  label={isUsingDefault ? 
+                    `Default (${selectedCompany.defaultCommissionRate}%)` : 
+                    'Vlastná hodnota'
+                  }
+                  size="small" 
+                  color={isUsingDefault ? 'primary' : 'secondary'}
+                  sx={{ ml: 1 }}
+                />
+              );
+            })()}
           </Typography>
           <RadioGroup
             row
@@ -348,6 +409,12 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
               value: parseFloat(e.target.value) 
             })}
             sx={{ mt: 1 }}
+            helperText={formData.ownerCompanyId && (() => {
+              const selectedCompany = activeCompanies.find(c => c.id === formData.ownerCompanyId);
+              return selectedCompany ? 
+                `Default provízia firmy: ${selectedCompany.defaultCommissionRate || 20}%` : 
+                '';
+            })()}
           />
         </FormControl>
 

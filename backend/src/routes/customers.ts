@@ -355,4 +355,65 @@ router.post('/import/csv',
   }
 );
 
+// 🚀 GMAIL APPROACH: GET /api/customers/paginated - Rýchle vyhľadávanie zákazníkov
+router.get('/paginated', 
+  authenticateToken,
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { 
+        page = 1, 
+        limit = 50,
+        search = '',
+        city = 'all',
+        country = 'all',
+        hasRentals = 'all'
+      } = req.query;
+
+      console.log('👥 Customers PAGINATED GET - params:', { 
+        page, limit, search, city, country, hasRentals,
+        role: req.user?.role, 
+        userId: req.user?.id
+      });
+
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const offset = (pageNum - 1) * limitNum;
+
+      // Získaj paginated customers s filtrami
+      const result = await postgresDatabase.getCustomersPaginated({
+        limit: limitNum,
+        offset,
+        search: search as string,
+        city: city as string,
+        country: country as string,
+        hasRentals: hasRentals as string,
+        userId: req.user?.id,
+        userRole: req.user?.role
+      });
+
+      console.log(`📊 Found ${result.customers.length}/${result.total} customers (page ${pageNum})`);
+
+      res.json({
+        success: true,
+        data: {
+          customers: result.customers,
+          pagination: {
+            currentPage: pageNum,
+            totalPages: Math.ceil(result.total / limitNum),
+            totalItems: result.total,
+            hasMore: (pageNum * limitNum) < result.total,
+            itemsPerPage: limitNum
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Get paginated customers error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri získavaní zákazníkov'
+      });
+    }
+  }
+);
+
 export default router; 

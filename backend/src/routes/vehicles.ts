@@ -666,290 +666,73 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
   }
 });
 
-// POST /api/vehicles/:id/transfer-ownership - Transfer vlastníctva vozidla
-router.post('/:id/transfer-ownership', 
+// 🚀 GMAIL APPROACH: GET /api/vehicles/paginated - Rýchle vyhľadávanie s pagination
+router.get('/paginated', 
   authenticateToken,
-  requireRole(['admin']), // Len admin môže robiť transfer
+  checkPermission('vehicles', 'read'),
   async (req: Request, res: Response<ApiResponse>) => {
     try {
-      const { id: vehicleId } = req.params;
       const { 
-        newOwnerCompanyId, 
-        transferReason = 'manual_transfer',
-        transferNotes = null,
-        transferDate 
-      } = req.body;
+        page = 1, 
+        limit = 50,
+        search = '',
+        company = 'all',
+        brand = 'all',
+        category = 'all',
+        status = 'all',
+        yearMin = '',
+        yearMax = '',
+        priceMin = '',
+        priceMax = ''
+      } = req.query;
 
-      console.log('🔄 Vehicle Ownership Transfer:', {
-        vehicleId,
-        newOwnerCompanyId,
-        transferReason,
-        transferDate: transferDate || 'now',
-        requestedBy: req.user?.username
+      console.log('🚗 Vehicles PAGINATED GET - params:', { 
+        page, limit, search, company, brand, category,
+        role: req.user?.role, 
+        userId: req.user?.id
       });
 
-      // Validácia
-      if (!newOwnerCompanyId) {
-        return res.status(400).json({
-          success: false,
-          error: 'New owner company ID is required'
-        });
-      }
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const offset = (pageNum - 1) * limitNum;
 
-      // Overenie, že vozidlo existuje
-      const vehicle = await postgresDatabase.getVehicle(vehicleId);
-      if (!vehicle) {
-        return res.status(404).json({
-          success: false,
-          error: 'Vehicle not found'
-        });
-      }
-
-      // Získanie súčasného vlastníka pre logovanie
-      const currentOwner = await postgresDatabase.getCurrentVehicleOwner(vehicleId);
-      
-      // Transfer ownership
-      const transferDate_parsed = transferDate ? new Date(transferDate) : new Date();
-      
-      await postgresDatabase.transferVehicleOwnership(
-        vehicleId,
-        newOwnerCompanyId,
-        transferReason,
-        transferNotes,
-        transferDate_parsed
-      );
-
-      // Získanie nového vlastníka pre response
-      const newOwner = await postgresDatabase.getCurrentVehicleOwner(vehicleId);
-
-      console.log('✅ Vehicle ownership transferred successfully:', {
-        vehicleId,
-        vehicle: `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`,
-        fromCompany: currentOwner?.ownerCompanyName || 'Unknown',
-        toCompany: newOwner?.ownerCompanyName || 'Unknown',
-        transferDate: transferDate_parsed,
-        reason: transferReason
+      // Získaj paginated vehicles s filtrami
+      const result = await postgresDatabase.getVehiclesPaginated({
+        limit: limitNum,
+        offset,
+        search: search as string,
+        company: company as string,
+        brand: brand as string,
+        category: category as string,
+        status: status as string,
+        yearMin: yearMin as string,
+        yearMax: yearMax as string,
+        priceMin: priceMin as string,
+        priceMax: priceMax as string,
+        userId: req.user?.id,
+        userRole: req.user?.role
       });
 
-      res.json({
-        success: true,
-        message: `Vehicle ownership transferred successfully from ${currentOwner?.ownerCompanyName || 'Unknown'} to ${newOwner?.ownerCompanyName || 'Unknown'}`,
-        data: {
-          vehicleId,
-          vehicle: {
-            brand: vehicle.brand,
-            model: vehicle.model,
-            licensePlate: vehicle.licensePlate
-          },
-          previousOwner: currentOwner,
-          newOwner: newOwner,
-          transferDate: transferDate_parsed,
-          transferReason,
-          transferNotes
-        }
-      });
-
-    } catch (error) {
-      console.error('Vehicle ownership transfer error:', error);
-      res.status(500).json({
-        success: false,
-        error: `Transfer failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    }
-  }
-);
-
-// PUT /api/vehicles/ownership-history/:historyId - Úprava transferu vlastníctva
-router.put('/ownership-history/:historyId',
-  authenticateToken,
-  requireRole(['admin']),
-  async (req: Request, res: Response<ApiResponse>) => {
-    try {
-      const { historyId } = req.params;
-      const { 
-        ownerCompanyId,
-        transferReason,
-        transferNotes,
-        validFrom
-      } = req.body;
-
-      console.log('📝 Editing ownership transfer:', {
-        historyId,
-        ownerCompanyId,
-        transferReason,
-        validFrom,
-        requestedBy: req.user?.username
-      });
-
-      // Validácia
-      if (!ownerCompanyId || !transferReason || !validFrom) {
-        return res.status(400).json({
-          success: false,
-          error: 'Required fields: ownerCompanyId, transferReason, validFrom'
-        });
-      }
-
-      await postgresDatabase.updateVehicleOwnershipHistory(historyId, {
-        ownerCompanyId,
-        transferReason,
-        transferNotes,
-        validFrom: new Date(validFrom)
-      });
-
-      console.log('✅ Ownership transfer updated successfully:', historyId);
-
-      res.json({
-        success: true,
-        message: 'Transfer vlastníctva úspešne upravený'
-      });
-
-    } catch (error) {
-      console.error('Update ownership transfer error:', error);
-      res.status(500).json({
-        success: false,
-        error: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    }
-  }
-);
-
-// DELETE /api/vehicles/ownership-history/:historyId - Vymazanie transferu vlastníctva
-router.delete('/ownership-history/:historyId',
-  authenticateToken,
-  requireRole(['admin']),
-  async (req: Request, res: Response<ApiResponse>) => {
-    try {
-      const { historyId } = req.params;
-
-      console.log('🗑️ Deleting ownership transfer:', {
-        historyId,
-        requestedBy: req.user?.username
-      });
-
-      // Overenie, že transfer existuje
-      const exists = await postgresDatabase.checkOwnershipHistoryExists(historyId);
-      if (!exists) {
-        return res.status(404).json({
-          success: false,
-          error: 'Ownership transfer not found'
-        });
-      }
-
-      await postgresDatabase.deleteVehicleOwnershipHistory(historyId);
-
-      console.log('✅ Ownership transfer deleted successfully:', historyId);
-
-      res.json({
-        success: true,
-        message: 'Transfer vlastníctva úspešne vymazaný'
-      });
-
-    } catch (error) {
-      console.error('Delete ownership transfer error:', error);
-      res.status(500).json({
-        success: false,
-        error: `Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    }
-  }
-);
-
-// GET /api/vehicles/:id/ownership-history - História vlastníctva vozidla
-router.get('/:id/ownership-history',
-  authenticateToken,
-  requireRole(['admin']), // Len admin môže vidieť históriu
-  async (req: Request, res: Response<ApiResponse>) => {
-    try {
-      const { id: vehicleId } = req.params;
-
-      // Overenie, že vozidlo existuje
-      const vehicle = await postgresDatabase.getVehicle(vehicleId);
-      if (!vehicle) {
-        return res.status(404).json({
-          success: false,
-          error: 'Vehicle not found'
-        });
-      }
-
-      // Získanie ownership history
-      const history = await postgresDatabase.getVehicleOwnershipHistory(vehicleId);
+      console.log(`📊 Found ${result.vehicles.length}/${result.total} vehicles (page ${pageNum})`);
 
       res.json({
         success: true,
         data: {
-          vehicle: {
-            id: vehicle.id,
-            brand: vehicle.brand,
-            model: vehicle.model,
-            licensePlate: vehicle.licensePlate
-          },
-          ownershipHistory: history
-        }
-      });
-
-    } catch (error) {
-      console.error('Get ownership history error:', error);
-      res.status(500).json({
-        success: false,
-        error: `Failed to get ownership history: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    }
-  }
-);
-
-// GET /api/vehicles/:id/owner-at-date - Získanie majiteľa vozidla k dátumu
-router.get('/:id/owner-at-date',
-  authenticateToken,
-  checkPermission('vehicles', 'read', { getContext: getVehicleContext }),
-  async (req: Request, res: Response<ApiResponse>) => {
-    try {
-      const { id: vehicleId } = req.params;
-      const { date } = req.query;
-
-      if (!date || typeof date !== 'string') {
-        return res.status(400).json({
-          success: false,
-          error: 'Date parameter is required'
-        });
-      }
-
-      const targetDate = new Date(date);
-      if (isNaN(targetDate.getTime())) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid date format'
-        });
-      }
-
-      // Overenie, že vozidlo existuje
-      const vehicle = await postgresDatabase.getVehicle(vehicleId);
-      if (!vehicle) {
-        return res.status(404).json({
-          success: false,
-          error: 'Vehicle not found'
-        });
-      }
-
-      // Získanie majiteľa k dátumu
-      const owner = await postgresDatabase.getVehicleOwnerAtDate(vehicleId, targetDate);
-
-      res.json({
-        success: true,
-        data: {
-          vehicleId,
-          date: targetDate.toISOString(),
-          owner: owner || {
-            ownerCompanyId: null,
-            ownerCompanyName: 'Neznámy majiteľ'
+          vehicles: result.vehicles,
+          pagination: {
+            currentPage: pageNum,
+            totalPages: Math.ceil(result.total / limitNum),
+            totalItems: result.total,
+            hasMore: (pageNum * limitNum) < result.total,
+            itemsPerPage: limitNum
           }
         }
       });
-
     } catch (error) {
-      console.error('Get vehicle owner at date error:', error);
+      console.error('Get paginated vehicles error:', error);
       res.status(500).json({
         success: false,
-        error: `Failed to get vehicle owner: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: 'Chyba pri získavaní vozidiel'
       });
     }
   }

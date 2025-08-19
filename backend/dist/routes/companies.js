@@ -69,6 +69,27 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('c
         });
     }
 });
+// PUT /api/companies/:id - Aktualizácia firmy
+router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('companies', 'update'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const companyData = req.body;
+        console.log('🏢 PUT /api/companies/:id - Updating company', id, companyData);
+        const updatedCompany = await postgres_database_1.postgresDatabase.updateCompany(id, companyData);
+        res.json({
+            success: true,
+            message: 'Firma úspešne aktualizovaná',
+            data: updatedCompany
+        });
+    }
+    catch (error) {
+        console.error('❌ Update company error:', error);
+        res.status(500).json({
+            success: false,
+            error: `Chyba pri aktualizácii firmy: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
+        });
+    }
+});
 // DELETE /api/companies/:id - Vymazanie firmy
 router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('companies', 'delete'), async (req, res) => {
     try {
@@ -84,6 +105,52 @@ router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermissio
         res.status(500).json({
             success: false,
             error: 'Chyba pri vymazávaní firmy'
+        });
+    }
+});
+// 🚀 GMAIL APPROACH: GET /api/companies/paginated - Rýchle vyhľadávanie firiem
+router.get('/paginated', auth_1.authenticateToken, (0, permissions_1.checkPermission)('companies', 'read'), async (req, res) => {
+    try {
+        const { page = 1, limit = 50, search = '', city = 'all', country = 'all', status = 'all' } = req.query;
+        console.log('🏢 Companies PAGINATED GET - params:', {
+            page, limit, search, city, country, status,
+            role: req.user?.role,
+            userId: req.user?.id
+        });
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const offset = (pageNum - 1) * limitNum;
+        // Získaj paginated companies s filtrami
+        const result = await postgres_database_1.postgresDatabase.getCompaniesPaginated({
+            limit: limitNum,
+            offset,
+            search: search,
+            city: city,
+            country: country,
+            status: status,
+            userId: req.user?.id,
+            userRole: req.user?.role
+        });
+        console.log(`📊 Found ${result.companies.length}/${result.total} companies (page ${pageNum})`);
+        res.json({
+            success: true,
+            data: {
+                companies: result.companies,
+                pagination: {
+                    currentPage: pageNum,
+                    totalPages: Math.ceil(result.total / limitNum),
+                    totalItems: result.total,
+                    hasMore: (pageNum * limitNum) < result.total,
+                    itemsPerPage: limitNum
+                }
+            }
+        });
+    }
+    catch (error) {
+        console.error('Get paginated companies error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri získavaní firiem'
         });
     }
 });
