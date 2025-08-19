@@ -2722,7 +2722,7 @@ export class PostgresDatabase {
     return {
       id: row.id?.toString() || '',
       vehicleId: row.vehicle_id?.toString(),
-      vehicleVin: row.vin || null, // 🆔 VIN číslo z JOIN s vehicles
+      vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
       customerId: row.customer_id?.toString(),
       customerName: row.customer_name || 'Neznámy zákazník',
       startDate: new Date(row.start_date),
@@ -2830,7 +2830,7 @@ export class PostgresDatabase {
       const rentals = result.rows.map(row => ({
         id: row.id?.toString() || '',
         vehicleId: row.vehicle_id?.toString(),
-        vehicleVin: row.vin || null, // 🆔 VIN číslo z JOIN s vehicles
+        vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
         customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
         customerName: row.customer_name || 'Neznámy zákazník',
         startDate: new Date(row.start_date),
@@ -3127,7 +3127,7 @@ export class PostgresDatabase {
       return {
         id: row.id,
         vehicleId: row.vehicle_id,
-        vehicleVin: row.vin || null, // 🆔 VIN číslo z JOIN s vehicles
+        vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
         customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
         customerName: row.customer_name,
         startDate: new Date(row.start_date),

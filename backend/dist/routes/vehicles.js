@@ -184,7 +184,7 @@ router.get('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
 // POST /api/vehicles - Vytvorenie nového vozidla s cache invalidation
 router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'create'), (0, cache_middleware_1.invalidateCache)('vehicle'), async (req, res) => {
     try {
-        const { brand, model, licensePlate, company, pricing, commission, status, year } = req.body;
+        const { brand, model, licensePlate, vin, company, pricing, commission, status, year } = req.body;
         if (!brand || !model || !company) {
             return res.status(400).json({
                 success: false,
@@ -196,6 +196,7 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('v
             model,
             year: year || 2024,
             licensePlate: licensePlate || '',
+            vin: vin || null,
             company,
             pricing: pricing || [],
             commission: commission || { type: 'percentage', value: 0 },
@@ -220,7 +221,7 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('v
 router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'update', { getContext: getVehicleContext }), (0, cache_middleware_1.invalidateCache)('vehicle'), async (req, res) => {
     try {
         const { id } = req.params;
-        const { brand, model, licensePlate, company, category, pricing, commission, status, year, stk } = req.body;
+        const { brand, model, licensePlate, vin, company, category, pricing, commission, status, year, stk } = req.body;
         // Skontroluj, či vozidlo existuje
         const existingVehicle = await postgres_database_1.postgresDatabase.getVehicle(id);
         if (!existingVehicle) {
@@ -234,6 +235,7 @@ router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
             brand: brand || existingVehicle.brand,
             model: model || existingVehicle.model,
             licensePlate: licensePlate || existingVehicle.licensePlate,
+            vin: vin !== undefined ? vin : existingVehicle.vin,
             company: company || existingVehicle.company,
             category: category || existingVehicle.category,
             pricing: pricing || existingVehicle.pricing,

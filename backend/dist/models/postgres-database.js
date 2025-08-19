@@ -1934,13 +1934,18 @@ class PostgresDatabase {
         try {
             const result = await client.query('SELECT * FROM vehicles ORDER BY created_at DESC');
             const vehicles = result.rows.map(row => ({
-                ...row,
                 id: row.id?.toString() || '',
+                brand: row.brand,
+                model: row.model,
+                year: row.year,
                 licensePlate: row.license_plate, // Mapovanie column názvu
+                vin: row.vin || null, // 🆔 VIN číslo mapovanie
+                company: row.company,
                 category: row.category || null, // 🚗 Mapovanie category
-                ownerCompanyId: row.owner_company_id?.toString(), // Mapovanie owner_company_id na ownerCompanyId
+                ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
+                status: row.status,
                 stk: row.stk ? new Date(row.stk) : undefined, // 📋 STK date mapping
                 createdAt: new Date(row.created_at)
             }));
@@ -1992,13 +1997,18 @@ class PostgresDatabase {
                 return null;
             const row = result.rows[0];
             return {
-                ...row,
                 id: row.id.toString(),
+                brand: row.brand,
+                model: row.model,
+                year: row.year,
                 licensePlate: row.license_plate, // Mapovanie column názvu
+                vin: row.vin || null, // 🆔 VIN číslo mapovanie
+                company: row.company,
                 category: row.category || null, // 🚗 Mapovanie category
-                ownerCompanyId: row.owner_company_id?.toString(), // Mapovanie owner_company_id na ownerCompanyId
+                ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
+                status: row.status,
                 stk: row.stk ? new Date(row.stk) : undefined, // 📋 STK date mapping
                 createdAt: new Date(row.created_at)
             };
@@ -2033,14 +2043,15 @@ class PostgresDatabase {
                     ownerCompanyId = newCompany.id;
                 }
             }
-            // ✅ OPRAVENÉ: Používame owner_company_id (UUID) konzistentne
-            const result = await client.query('INSERT INTO vehicles (brand, model, year, license_plate, company, owner_company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, brand, model, year, license_plate, company, owner_company_id, pricing, commission, status, created_at', [
+            // ✅ OPRAVENÉ: Používame company_id (nie owner_company_id) + VIN
+            const result = await client.query('INSERT INTO vehicles (brand, model, year, license_plate, vin, company, company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, brand, model, year, license_plate, vin, company, company_id, pricing, commission, status, created_at', [
                 vehicleData.brand,
                 vehicleData.model,
                 vehicleData.year || 2024, // Default rok ak nie je zadaný
                 vehicleData.licensePlate,
+                vehicleData.vin || null, // 🆕 VIN číslo
                 vehicleData.company,
-                ownerCompanyId, // 🆕 Správne owner_company_id (UUID)
+                ownerCompanyId, // 🆕 Správne company_id (nie owner_company_id)
                 JSON.stringify(vehicleData.pricing),
                 JSON.stringify(vehicleData.commission),
                 vehicleData.status
@@ -2056,8 +2067,9 @@ class PostgresDatabase {
                 model: row.model,
                 year: row.year,
                 licensePlate: row.license_plate,
+                vin: row.vin, // 🆕 VIN číslo
                 company: row.company,
-                ownerCompanyId: row.owner_company_id?.toString(), // ✅ OPRAVENÉ: Používame owner_company_id konzistentne
+                ownerCompanyId: row.company_id?.toString(), // ✅ OPRAVENÉ: Používame company_id (nie owner_company_id)
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing,
                 commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission,
                 status: row.status,
@@ -2087,13 +2099,14 @@ class PostgresDatabase {
                     console.log('⚠️ Company update error:', companyError.message);
                 }
             }
-            await client.query('UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, company = $4, category = $5, owner_company_id = $6, pricing = $7, commission = $8, status = $9, year = $10, stk = $11, updated_at = CURRENT_TIMESTAMP WHERE id = $12', [
+            await client.query('UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, vin = $4, company = $5, category = $6, company_id = $7, pricing = $8, commission = $9, status = $10, year = $11, stk = $12 WHERE id = $13', [
                 vehicle.brand,
                 vehicle.model,
                 vehicle.licensePlate,
+                vehicle.vin || null, // 🆔 VIN číslo
                 vehicle.company,
                 vehicle.category || null,
-                vehicle.ownerCompanyId || null,
+                vehicle.ownerCompanyId || null, // 🏢 Mapuje sa na company_id (nie owner_company_id)
                 JSON.stringify(vehicle.pricing),
                 JSON.stringify(vehicle.commission),
                 vehicle.status,
@@ -2324,7 +2337,7 @@ class PostgresDatabase {
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
           r.rental_type, r.is_flexible, r.flexible_end_date, r.can_be_overridden,
           r.override_priority, r.notification_threshold, r.auto_extend, r.override_history,
-          v.brand, v.model, v.license_plate, v.pricing, v.commission as v_commission, v.status as v_status,
+          v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           c.name as company_name, v.company as vehicle_company
         FROM rentals r
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
@@ -2386,6 +2399,7 @@ class PostgresDatabase {
         return {
             id: row.id?.toString() || '',
             vehicleId: row.vehicle_id?.toString(),
+            vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
             customerId: row.customer_id?.toString(),
             customerName: row.customer_name || 'Neznámy zákazník',
             startDate: new Date(row.start_date),
@@ -2412,6 +2426,7 @@ class PostgresDatabase {
                 brand: row.brand,
                 model: row.model,
                 licensePlate: row.license_plate,
+                vin: row.vin || null, // 🆔 VIN číslo
                 company: row.vehicle_company || row.company_name || 'N/A',
                 pricing: row.pricing ? (typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing) : [],
                 commission: row.v_commission ? (typeof row.v_commission === 'string' ? JSON.parse(row.v_commission) : row.v_commission) : { type: 'percentage', value: 0 },
@@ -2447,7 +2462,7 @@ class PostgresDatabase {
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.rental_type, r.is_flexible, r.flexible_end_date, r.can_be_overridden,
           r.override_priority, r.notification_threshold, r.auto_extend, r.override_history,
-          v.brand, v.model, v.license_plate, v.pricing, v.commission as v_commission, v.status as v_status,
+          v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           -- 🏢 COMPANY INFO: Pridané pre štatistiky Top firiem
           c.name as company_name, v.company as vehicle_company
         FROM rentals r
@@ -2485,6 +2500,7 @@ class PostgresDatabase {
             const rentals = result.rows.map(row => ({
                 id: row.id?.toString() || '',
                 vehicleId: row.vehicle_id?.toString(),
+                vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
                 customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
                 customerName: row.customer_name || 'Neznámy zákazník',
                 startDate: new Date(row.start_date),
@@ -2511,6 +2527,7 @@ class PostgresDatabase {
                     brand: row.brand,
                     model: row.model,
                     licensePlate: row.license_plate,
+                    vin: row.vin || null, // 🆔 VIN číslo
                     // 🏢 COMPANY INFO: Pridané pre štatistiky - použije company_name z companies tabuľky alebo fallback na vehicle_company
                     company: row.company_name || row.vehicle_company || 'Bez firmy',
                     pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing || [],
@@ -2710,7 +2727,7 @@ class PostgresDatabase {
         try {
             console.log('🔍 getRental called for ID:', id);
             const result = await client.query(`
-        SELECT r.*, v.brand, v.model, v.license_plate, v.company as vehicle_company 
+        SELECT r.*, v.brand, v.model, v.license_plate, v.vin, v.company as vehicle_company 
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id = v.id 
         WHERE r.id = $1
@@ -2727,6 +2744,7 @@ class PostgresDatabase {
             return {
                 id: row.id,
                 vehicleId: row.vehicle_id,
+                vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
                 customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
                 customerName: row.customer_name,
                 startDate: new Date(row.start_date),
@@ -2766,6 +2784,7 @@ class PostgresDatabase {
                     brand: row.brand,
                     model: row.model,
                     licensePlate: row.license_plate,
+                    vin: row.vin || null, // 🆔 VIN číslo
                     company: row.vehicle_company || 'N/A',
                     pricing: [],
                     commission: { type: 'percentage', value: 0 },

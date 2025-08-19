@@ -5,6 +5,7 @@ export interface Vehicle {
     model: string;
     year?: number;
     licensePlate: string;
+    vin?: string;
     company?: string;
     category?: VehicleCategory;
     pricing: PricingTier[];
@@ -48,6 +49,7 @@ export interface Rental {
     id: string;
     vehicleId?: string;
     vehicle?: Vehicle;
+    vehicleVin?: string;
     customerId?: string;
     customer?: Customer;
     customerName: string;

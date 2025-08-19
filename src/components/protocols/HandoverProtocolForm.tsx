@@ -345,7 +345,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
         rentalData: {
           orderNumber: rental.orderNumber || '',
           vehicle: rental.vehicle || {} as any,
-          vehicleVin: rental.vehicleVin || rental.vehicle?.vin || null, // 🆔 VIN číslo
+          vehicleVin: rental.vehicleVin || rental.vehicle?.vin || undefined, // 🆔 VIN číslo
           customer: rental.customer || {} as any,
           startDate: rental.startDate,
           endDate: rental.endDate,

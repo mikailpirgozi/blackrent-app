@@ -55,6 +55,7 @@ export declare class PostgresDatabase {
         brand: string;
         model: string;
         licensePlate: string;
+        vin?: string;
         company: string;
         pricing: any[];
         commission: any;
