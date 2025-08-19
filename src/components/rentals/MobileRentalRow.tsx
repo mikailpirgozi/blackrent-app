@@ -166,6 +166,15 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
         }}>
           {vehicle?.brand} {vehicle?.model}
         </Typography>
+        {(rental.vehicleVin || vehicle?.vin) && (
+          <Typography variant="caption" sx={{
+            color: '#888',
+            fontSize: { xs: '0.55rem', sm: '0.6rem' },
+            fontFamily: 'monospace'
+          }}>
+            VIN: {(rental.vehicleVin || vehicle?.vin)?.slice(-6)}
+          </Typography>
+        )}
       </Box>
 
       {/* Detaily & Status */}

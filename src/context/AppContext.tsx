@@ -449,6 +449,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         vehicle.brand.toLowerCase().includes(query) ||
         vehicle.model.toLowerCase().includes(query) ||
         vehicle.licensePlate.toLowerCase().includes(query) ||
+        (vehicle.vin && vehicle.vin.toLowerCase().includes(query)) ||
         (vehicle.company && vehicle.company.toLowerCase().includes(query))
       );
     }
@@ -749,10 +750,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateVehicle = async (vehicle: Vehicle): Promise<void> => {
     try {
       await apiService.updateVehicle(vehicle);
-      dispatch({ type: 'UPDATE_VEHICLE', payload: vehicle });
       
-      // 🗄️ UNIFIED CACHE: Smart invalidation
+      // 🗄️ UNIFIED CACHE: Aggressive invalidation - clear ALL vehicle-related cache
+      cacheHelpers.vehicles.invalidate();
       smartInvalidation.onVehicleChange();
+      
+      // 🔄 REFRESH: Reload ALL vehicles to ensure fresh data
+      console.log('🔄 Reloading all vehicles after update...');
+      const freshVehicles = await apiService.getVehicles();
+      dispatch({ type: 'SET_VEHICLES', payload: freshVehicles });
+      
+      console.log('✅ All vehicles reloaded with fresh data');
     } catch (error) {
       console.error('Chyba pri aktualizácii vozidla:', error);
       throw error;

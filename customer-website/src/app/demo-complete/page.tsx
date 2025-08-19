@@ -82,7 +82,7 @@ export default function DemoCompletePage() {
       {/* KOMPLETNÁ FOOTER SEKCIA - PRESNE Z ELEMENTDETAILVOZIDLA */}
       
       {/* FAQ + Footer Section - Desktop 1728px */}
-      <div className="flex flex-col w-full items-center gap-2 pt-[200px] pb-0 px-2 bg-[#0F0F14] rounded-t-[40px]">
+      <div className="flex flex-col w-full items-center gap-2 pt-[200px] pb-0 px-2 bg-[#05050a]">
         
         {/* FAQ Section - Frame 359 - NAVRCHU */}
         <div className="flex flex-col items-center gap-[120px] relative">

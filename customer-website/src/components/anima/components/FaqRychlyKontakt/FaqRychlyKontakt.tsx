@@ -23,7 +23,7 @@ export const FaqRychlyKontakt = ({
 }: Props): JSX.Element => {
   return (
     <div
-      className={`inline-flex flex-col items-center relative bg-colors-black-300 rounded-[80px_80px_0px_0px] ${className}`}
+      className={`inline-flex flex-col items-center relative rounded-[80px_80px_0px_0px] ${className}`}
     >
       <PropertyWrapper className="!flex-[0_0_auto]" property1="variant-4" />
       <div className="inline-flex flex-col items-center pt-56 pb-0 px-0 relative flex-[0_0_auto]">

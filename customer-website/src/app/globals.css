@@ -11,9 +11,25 @@
   font-display: swap;
 }
 
+/* POPPINS FONT - pre text obsah */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
 
 
 /* BLACKRENT CUSTOM CSS */
+
+/* Fix pre responzívne breakpointy - obrázok vozidla */
+@media (min-width: 1440px) and (max-width: 1727px) {
+  #main-vehicle-image {
+    width: 640px !important;
+  }
+}
+
+@media (min-width: 1728px) {
+  #main-vehicle-image {
+    width: 761px !important;
+  }
+}
 :root {
   --bg-primary: #05050A;
   --bg-secondary: #0A0A0F;

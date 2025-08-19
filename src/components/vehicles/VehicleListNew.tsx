@@ -906,6 +906,15 @@ export default function VehicleListNew() {
                     }}>
                       {vehicle.licensePlate}
                     </Typography>
+                    {vehicle.vin && (
+                      <Typography variant="caption" sx={{
+                        color: '#888',
+                        fontSize: { xs: '0.55rem', sm: '0.6rem' },
+                        fontFamily: 'monospace'
+                      }}>
+                        VIN: {vehicle.vin.slice(-6)}
+                      </Typography>
+                    )}
                     <Chip
                       size="small"
                       label={getStatusText(vehicle.status)}
@@ -1106,17 +1115,17 @@ export default function VehicleListNew() {
                 </Typography>
               </Box>
               
-              {/* ŠPZ column */}
+              {/* ŠPZ a VIN column */}
               <Box sx={{ 
-                width: 120,
-                minWidth: 120,
+                width: 140,
+                minWidth: 140,
                 p: 2,
                 borderRight: '1px solid #e0e0e0',
                 display: 'flex',
                 alignItems: 'center'
               }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
-                  📋 ŠPZ
+                  📋 ŠPZ / VIN
                 </Typography>
               </Box>
               
@@ -1221,14 +1230,15 @@ export default function VehicleListNew() {
                     </Typography>
                   </Box>
                   
-                  {/* ŠPZ column */}
+                  {/* ŠPZ a VIN column */}
                   <Box sx={{ 
-                    width: 120,
-                    minWidth: 120,
+                    width: 140,
+                    minWidth: 140,
                     p: 2,
                     borderRight: '1px solid #e0e0e0',
                     display: 'flex',
-                    alignItems: 'center'
+                    flexDirection: 'column',
+                    justifyContent: 'center'
                   }}>
                     <Typography variant="body2" sx={{ 
                       fontWeight: 600,
@@ -1237,6 +1247,16 @@ export default function VehicleListNew() {
                     }}>
                       {vehicle.licensePlate}
                     </Typography>
+                    {vehicle.vin && (
+                      <Typography variant="caption" sx={{
+                        color: '#666',
+                        fontFamily: 'monospace',
+                        fontSize: '0.7rem',
+                        mt: 0.5
+                      }}>
+                        VIN: {vehicle.vin.slice(-8)}
+                      </Typography>
+                    )}
                   </Box>
                   
                   {/* Firma column */}

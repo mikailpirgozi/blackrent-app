@@ -13,7 +13,7 @@ interface Props {
 export const Faq = ({ className }: Props): JSX.Element => {
   return (
     <div
-      className={`flex flex-col w-[360px] items-center gap-10 px-4 py-20 relative bg-colors-black-300 rounded-[24px_24px_0px_0px] overflow-hidden ${className}`}
+      className={`flex flex-col w-[360px] items-center gap-10 px-4 py-20 relative rounded-[24px_24px_0px_0px] overflow-hidden ${className}`}
     >
       <div className="flex flex-col items-center gap-2 relative self-stretch w-full flex-[0_0_auto]">
         <div className="flex flex-col items-center gap-[108px] relative self-stretch w-full flex-[0_0_auto]">

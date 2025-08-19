@@ -134,7 +134,7 @@ export const InteractiveFaq744 = ({
 
   return (
     <div
-      className={`flex w-[744px] items-start justify-center gap-2 px-0 py-[120px] relative bg-colors-black-300 rounded-[40px_40px_0px_0px] overflow-hidden ${className}`}
+      className={`flex w-[744px] items-start justify-center gap-2 px-0 py-[120px] relative rounded-[40px_40px_0px_0px] overflow-hidden ${className}`}
     >
       <div className="inline-flex flex-col items-center gap-20 relative flex-[0_0_auto]">
         <div className="relative w-60 h-6 mt-[-1.00px] [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-colors-light-yellow-accent-700 text-[32px] text-center tracking-[0] leading-6 whitespace-nowrap">

@@ -30,7 +30,7 @@ export const PageFooter: React.FC<PageFooterProps> = ({
     return (
       <div className={`flex flex-col items-center w-full ${className}`}>
         {shouldShowFAQ && (
-          <div className="w-full bg-[#0F0F14] py-8 px-4">
+          <div className="w-full py-8 px-4">
             <div className="flex justify-center">
               <FAQ variant="mobile" />
             </div>

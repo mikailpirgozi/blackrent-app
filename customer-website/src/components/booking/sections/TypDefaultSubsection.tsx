@@ -93,7 +93,7 @@ export const TypDefaultSubsection: React.FC<TypDefaultSubsectionProps> = ({
   };
 
   return (
-    <section className="bg-[#1E1E23] flex flex-col w-[328px] sm:w-[536px] md:w-[680px] items-center gap-4 sm:gap-6 relative rounded-3xl overflow-hidden">
+    <section className="bg-[#1E1E23] flex flex-col w-full items-center gap-4 sm:gap-6 relative rounded-3xl overflow-hidden">
       <div className="flex flex-col items-start gap-6 sm:gap-8 px-4 sm:px-6 md:px-8 py-6 sm:py-8 relative self-stretch w-full flex-[0_0_auto] bg-[#141419] rounded-3xl overflow-hidden">
         <header className="relative w-[206px] h-4 mt-[-1.00px] font-['SF_Pro'] font-semibold text-[#F0FF98] text-xl tracking-[0] leading-7 whitespace-nowrap">
           Prenájom vozidla

@@ -47,7 +47,7 @@ export const TypeAWrapper = ({
   return (
     <div className={`inline-flex flex-col items-start relative ${className}`}>
       <Faq className="!flex-[0_0_auto]" />
-      <div className="inline-flex flex-col h-[1300px] items-center justify-end relative bg-colors-black-300">
+      <div className="inline-flex flex-col h-[1300px] items-center justify-end relative">
         <Component
           blackrentLogoClassName={componentBlackrentLogoClassName}
           className="!flex-[0_0_auto]"

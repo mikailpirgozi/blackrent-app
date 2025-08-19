@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Responzívneho Obrázka</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #05050a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        /* Simulácia Tailwind lg:w-[640px] */
+        @media (min-width: 1024px) {
+            #main-vehicle-image {
+                width: 640px;
+            }
+        }
+        
+        /* Naše custom CSS pravidlá */
+        @media (min-width: 1440px) and (max-width: 1727px) {
+            #main-vehicle-image {
+                width: 640px !important;
+            }
+        }
+
+        @media (min-width: 1728px) {
+            #main-vehicle-image {
+                width: 761px !important;
+            }
+        }
+        
+        #main-vehicle-image {
+            height: 432px;
+            background: url('./assets/vehicle-main-image.png') center/cover;
+            border-radius: 16px;
+            border: 2px solid #f0ff98;
+            margin: 20px 0;
+        }
+        
+        .info {
+            background: #1e1e23;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Responzívneho Obrázka Vozidla</h1>
+    
+    <div class="info">
+        <strong>Aktuálne rozlíšenie:</strong> <span id="resolution"></span><br>
+        <strong>Šírka obrázka:</strong> <span id="image-width"></span>px<br>
+        <strong>Očakávaná šírka:</strong> <span id="expected-width"></span>px
+    </div>
+    
+    <div id="main-vehicle-image"></div>
+    
+    <div class="info">
+        <h3>Breakpointy:</h3>
+        <ul>
+            <li>1024px - 1439px: 640px</li>
+            <li>1440px - 1727px: 640px</li>
+            <li>1728px+: <strong>761px</strong></li>
+        </ul>
+    </div>
+
+    <script>
+        function updateInfo() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const image = document.getElementById('main-vehicle-image');
+            const computedStyle = window.getComputedStyle(image);
+            const actualWidth = parseInt(computedStyle.width);
+            
+            let expectedWidth;
+            if (width >= 1728) {
+                expectedWidth = 761;
+            } else if (width >= 1440) {
+                expectedWidth = 640;
+            } else if (width >= 1024) {
+                expectedWidth = 640;
+            } else {
+                expectedWidth = 'auto';
+            }
+            
+            document.getElementById('resolution').textContent = `${width}x${height}`;
+            document.getElementById('image-width').textContent = actualWidth;
+            document.getElementById('expected-width').textContent = expectedWidth;
+            
+            // Highlight ak sa líši
+            const expectedEl = document.getElementById('expected-width');
+            if (actualWidth !== expectedWidth && expectedWidth !== 'auto') {
+                expectedEl.style.color = '#ff4444';
+                expectedEl.textContent += ' ❌ PROBLÉM!';
+            } else {
+                expectedEl.style.color = '#44ff44';
+                expectedEl.textContent += ' ✅ OK';
+            }
+        }
+        
+        updateInfo();
+        window.addEventListener('resize', updateInfo);
+    </script>
+</body>
+</html>

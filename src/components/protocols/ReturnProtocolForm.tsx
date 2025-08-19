@@ -14,6 +14,8 @@ import {
   IconButton,
   Alert,
   Divider,
+  Grid,
+  Chip,
 } from '@mui/material';
 import {
   Save,
@@ -23,6 +25,7 @@ import {
   SpeedOutlined,
   Calculate,
   Person,
+  DirectionsCar,
 } from '@mui/icons-material';
 import { ReturnProtocol, Rental, HandoverProtocol, ProtocolImage, ProtocolVideo, ProtocolSignature } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -369,9 +372,20 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
     }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" color="text.primary">
-          Preberací protokol - {rental.vehicle?.licensePlate || 'Vozidlo'}
-        </Typography>
+        <Box>
+          <Typography variant="h5" color="text.primary">
+            Preberací protokol - {rental.vehicle?.licensePlate || 'Vozidlo'}
+          </Typography>
+          {(rental.vehicleVin || rental.vehicle?.vin) && (
+            <Typography variant="caption" sx={{
+              color: '#888',
+              fontFamily: 'monospace',
+              display: 'block'
+            }}>
+              VIN: {rental.vehicleVin || rental.vehicle?.vin}
+            </Typography>
+          )}
+        </Box>
         <IconButton onClick={onClose} size="large">
           <Close />
         </IconButton>
@@ -392,6 +406,61 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           Navzäuje na odovzdávací protokol #{handoverProtocol.id?.slice(-8) || 'N/A'} z {handoverProtocol.createdAt ? new Date(handoverProtocol.createdAt).toLocaleString('sk-SK') : 'N/A'}
         </Alert>
       )}
+
+      {/* Informácie o vozidle */}
+      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <CardContent>
+          <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+            <DirectionsCar sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Informácie o vozidle
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={6}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Značka a model
+              </Typography>
+              <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'bold' }}>
+                {rental.vehicle?.brand} {rental.vehicle?.model}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={6}>
+              <Typography variant="subtitle2" color="text.secondary">
+                ŠPZ
+              </Typography>
+              <Chip 
+                label={rental.vehicle?.licensePlate || 'Neuvedené'} 
+                color="secondary" 
+                variant="outlined"
+                sx={{ fontWeight: 'bold' }}
+              />
+            </Grid>
+            {(rental.vehicleVin || rental.vehicle?.vin) && (
+              <Grid item xs={12} sm={6} md={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  VIN číslo
+                </Typography>
+                <Chip 
+                  label={rental.vehicleVin || rental.vehicle?.vin || 'Neuvedené'} 
+                  color="default" 
+                  variant="outlined"
+                  sx={{ fontWeight: 'bold', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                />
+              </Grid>
+            )}
+            <Grid item xs={12} sm={6} md={6}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Stav vozidla
+              </Typography>
+              <Chip 
+                label={rental.vehicle?.status || 'available'} 
+                color={rental.vehicle?.status === 'available' ? 'success' : 'warning'}
+                variant="outlined"
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
       {/* Základné informácie */}
       <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>

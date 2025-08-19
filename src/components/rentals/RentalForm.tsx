@@ -114,7 +114,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
   }));
 
   const vehicleOptions = state.vehicles.map(v => ({
-    label: `${v.brand} ${v.model} (${v.licensePlate})`,
+    label: `${v.brand} ${v.model} (${v.licensePlate})${v.vin ? ` - VIN: ${v.vin.slice(-8)}` : ''}`,
     id: v.id
   }));
 
@@ -635,6 +635,14 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
                 color="secondary"
                 variant="outlined"
               />
+              {selectedVehicle.vin && (
+                <Chip
+                  label={`VIN: ${selectedVehicle.vin}`}
+                  color="default"
+                  variant="outlined"
+                  sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                />
+              )}
               <Chip
                 label={`Provízia: ${selectedVehicle.commission.type === 'percentage' ? selectedVehicle.commission.value + '%' : selectedVehicle.commission.value + '€'}`}
                 color="info"

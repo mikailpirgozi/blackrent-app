@@ -14,6 +14,7 @@ export interface Vehicle {
   brand: string;
   model: string;
   licensePlate: string;
+  vin?: string; // 🆔 VIN číslo vozidla (17-miestny identifikačný kód)
   company?: string;  // 🛡️ BULLETPROOF: Optional pre zabránenie fallback
   category?: VehicleCategory; // 🚗 Kategória vozidla pre filtrovanie (OPTIONAL počas migrácie)
   pricing: PricingTier[];
@@ -67,6 +68,7 @@ export interface Rental {
   id: string;
   vehicleId?: string;
   vehicle?: Vehicle;
+  vehicleVin?: string; // 🆔 VIN číslo vozidla (z JOIN s vehicles)
   customerId?: string;
   customer?: Customer;
   customerName: string;
@@ -471,6 +473,7 @@ export interface HandoverProtocol {
   rentalData: {
     orderNumber: string;
     vehicle: Vehicle;
+    vehicleVin?: string; // 🆔 VIN číslo vozidla
     customer: Customer;
     startDate: Date;
     endDate: Date;
@@ -543,6 +546,7 @@ export interface ReturnProtocol {
   rentalData: {
     orderNumber: string;
     vehicle: Vehicle;
+    vehicleVin?: string; // 🆔 VIN číslo vozidla
     customer: Customer;
     startDate: Date;
     endDate: Date;

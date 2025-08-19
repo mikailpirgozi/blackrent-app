@@ -160,7 +160,7 @@ export const FAQ: React.FC<FAQProps> = ({
 
   if (variant === "desktop-1440") {
     return (
-      <div className={`flex flex-col w-[1120px] items-center gap-[120px] px-8 py-[200px] bg-[#0F0F14] rounded-t-[20px] ${className}`}>
+      <div className={`flex flex-col w-[1120px] items-center gap-[120px] px-8 py-[200px] ${className}`}>
         <div className="[font-family:'SF_Pro',Helvetica] font-[650] text-[#F0FF98] text-[40px] tracking-[0] leading-6 whitespace-nowrap">
           Časté otázky
         </div>
@@ -186,7 +186,7 @@ export const FAQ: React.FC<FAQProps> = ({
 
   // Desktop 1728px variant
   return (
-    <div className={`flex flex-col w-[1728px] items-center gap-2 pt-[200px] pb-0 px-2 bg-[#0F0F14] rounded-t-[40px] ${className}`}>
+    <div className={`flex flex-col w-[1328px] items-center gap-2 pt-[48px] pb-[80px] px-[112px] ${className}`}>
       {/* FAQ Section - Frame 359 */}
       <div className="flex flex-col items-center gap-[120px] relative">
         {/* FAQ Title */}

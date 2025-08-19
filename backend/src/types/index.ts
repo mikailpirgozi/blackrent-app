@@ -15,6 +15,7 @@ export interface Vehicle {
   model: string;
   year?: number;
   licensePlate: string;
+  vin?: string; // 🆔 VIN číslo vozidla (17-miestny identifikačný kód)
   company?: string;  // 🛡️ BULLETPROOF: Optional pre zabránenie fallback
   category?: VehicleCategory; // 🚗 Kategória vozidla pre filtrovanie (OPTIONAL počas migrácie)
   pricing: PricingTier[];
@@ -70,6 +71,7 @@ export interface Rental {
   id: string;
   vehicleId?: string;
   vehicle?: Vehicle;
+  vehicleVin?: string; // 🆔 VIN číslo vozidla (z JOIN s vehicles)
   customerId?: string;
   customer?: Customer;
   customerName: string;

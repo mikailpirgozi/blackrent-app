@@ -108,6 +108,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
       brand: formData.brand || '',
       model: formData.model || '',
       licensePlate: formData.licensePlate || '',
+      vin: formData.vin || undefined, // 🆔 VIN číslo
       company: formData.company || '',
       pricing: formData.pricing || [],
       commission: formData.commission || { type: 'percentage', value: 20 },
@@ -237,6 +238,14 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           value={formData.licensePlate}
           onChange={(e) => handleInputChange('licensePlate', e.target.value)}
           required
+        />
+        <TextField
+          fullWidth
+          label="VIN číslo"
+          value={formData.vin || ''}
+          onChange={(e) => handleInputChange('vin', e.target.value)}
+          placeholder="Zadajte VIN číslo vozidla"
+          helperText="17-miestny identifikačný kód vozidla"
         />
         {/* Firma/Autopožičovňa - Select s možnosťou pridať */}
         <FormControl fullWidth required>

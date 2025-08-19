@@ -7,6 +7,14 @@ const config: Config = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    screens: {
+      'xs': '360px',
+      'sm': '640px', 
+      'md': '744px',
+      'lg': '1024px',
+      'xl': '1440px',
+      '2xl': '1728px',
+    },
     extend: {
       colors: {
         // BlackRent brand colors from Figma - presné hodnoty
@@ -113,6 +121,7 @@ const config: Config = {
       },
       fontFamily: {
         'sf-pro': ['SF Pro', 'system-ui', 'sans-serif'],
+        'poppins': ['Poppins', 'system-ui', 'sans-serif'],
         'sans': ['SF Pro', 'system-ui', 'sans-serif'], // SF Pro as primary, system fallback
       },
       fontSize: {
@@ -164,6 +173,7 @@ const config: Config = {
         '360': '360px',
         '422': '422px',
         '536': '536px',
+        '761': '761px',
         '1102': '1102px',
         '1328': '1328px',
         '1728': '1728px',

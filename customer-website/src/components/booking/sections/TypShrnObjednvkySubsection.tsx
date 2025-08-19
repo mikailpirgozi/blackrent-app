@@ -86,7 +86,7 @@ export const TypShrnObjednvkySubsection: React.FC<TypShrnObjednvkySubsectionProp
   };
 
   return (
-    <div className="pt-0 pb-8 px-0 bg-[#0A0A0F] border-2 border-solid border-[#1E1E23] flex flex-col w-[328px] sm:w-[536px] md:w-[680px] items-center gap-4 sm:gap-6 relative rounded-3xl overflow-hidden">
+    <div className="pt-0 pb-8 px-0 bg-[#0A0A0F] border-2 border-solid border-[#1E1E23] flex flex-col w-[328px] sm:w-[400px] md:w-[680px] lg:w-[448px] xl:w-[448px] 2xl:w-[536px] items-center gap-4 sm:gap-6 relative rounded-3xl overflow-hidden">
       <div className="flex flex-col items-start gap-6 pt-4 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 md:px-8 relative self-stretch w-full flex-[0_0_auto] bg-[#141419] rounded-3xl overflow-hidden">
         {/* Car Summary Card */}
         <div className="flex h-[296px] sm:h-[216px] flex-col sm:flex-row items-start justify-around gap-4 sm:gap-[76px] p-4 sm:p-6 relative self-stretch w-full bg-[#0A0A0F] rounded-2xl overflow-hidden">

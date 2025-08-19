@@ -29,6 +29,7 @@ export interface VehicleLookup {
     brand?: string;
     model?: string;
     licensePlate?: string;
+    vin?: string; // 🆔 VIN číslo pre search
     company?: string;
     category?: string;
   };
@@ -60,9 +61,11 @@ export const applySearchFilter = (
       rental.customerName?.toLowerCase().includes(searchTerm) ||
       rental.customerPhone?.toLowerCase().includes(searchTerm) ||
       rental.customerEmail?.toLowerCase().includes(searchTerm) ||
+      rental.vehicleVin?.toLowerCase().includes(searchTerm) ||
       vehicle?.brand?.toLowerCase().includes(searchTerm) ||
       vehicle?.model?.toLowerCase().includes(searchTerm) ||
       vehicle?.licensePlate?.toLowerCase().includes(searchTerm) ||
+      vehicle?.vin?.toLowerCase().includes(searchTerm) ||
       vehicle?.company?.toLowerCase().includes(searchTerm) ||
       rental.notes?.toLowerCase().includes(searchTerm)
     );

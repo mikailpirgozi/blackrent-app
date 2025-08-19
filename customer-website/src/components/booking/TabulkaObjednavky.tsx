@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 
 // Import všetkých subsections z Anima exportu
@@ -93,7 +95,7 @@ export const TabulkaObjednavky: React.FC<TabulkaObjednavkyProps> = ({
   };
 
   return (
-    <div className="w-full max-w-[328px] sm:max-w-[536px] md:max-w-[680px] mx-auto">
+    <div className="w-full">
       {renderCurrentSubsection()}
     </div>
   );

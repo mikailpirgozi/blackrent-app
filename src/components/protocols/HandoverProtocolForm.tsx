@@ -345,6 +345,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
         rentalData: {
           orderNumber: rental.orderNumber || '',
           vehicle: rental.vehicle || {} as any,
+          vehicleVin: rental.vehicleVin || rental.vehicle?.vin || null, // 🆔 VIN číslo
           customer: rental.customer || {} as any,
           startDate: rental.startDate,
           endDate: rental.endDate,
@@ -669,6 +670,15 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
         <Typography variant="body2" color="text.secondary">
           Zákazník: {rental.customer?.name || rental.customerName}
         </Typography>
+        {(rental.vehicleVin || currentVehicle?.vin) && (
+          <Typography variant="caption" sx={{
+            color: '#888',
+            fontFamily: 'monospace',
+            display: 'block'
+          }}>
+            VIN: {rental.vehicleVin || currentVehicle?.vin}
+          </Typography>
+        )}
       </Box>
 
       {loading && (
@@ -851,6 +861,19 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
                 sx={{ fontWeight: 'bold' }}
               />
             </Grid>
+            {(rental.vehicleVin || currentVehicle?.vin) && (
+              <Grid item xs={12} sm={6} md={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  VIN číslo
+                </Typography>
+                <Chip 
+                  label={rental.vehicleVin || currentVehicle?.vin || 'Neuvedené'} 
+                  color="default" 
+                  variant="outlined"
+                  sx={{ fontWeight: 'bold', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                />
+              </Grid>
+            )}
             <Grid item xs={12} sm={6} md={6}>
               <Typography variant="subtitle2" color="text.secondary">
                 Stav vozidla

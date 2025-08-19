@@ -102,7 +102,7 @@ export default function DemoResponsivePage() {
         
         {/* Desktop 1728px */}
         {screenWidth >= 1728 && (
-          <div className="flex flex-col w-full items-center gap-2 pt-[200px] pb-0 px-2 bg-[#0F0F14] rounded-t-[40px]">
+          <div className="flex flex-col w-full items-center gap-2 pt-[200px] pb-0 px-2 bg-[#05050a]">
             
             {/* FAQ Section - Desktop 1728px */}
             <div className="flex flex-col items-center gap-[120px] relative">
@@ -387,7 +387,7 @@ export default function DemoResponsivePage() {
 
         {/* Desktop 1440px */}
         {screenWidth >= 1440 && screenWidth < 1728 && (
-          <div className="flex flex-col w-full items-center bg-[#0F0F14] rounded-t-[20px]">
+          <div className="flex flex-col w-full items-center bg-[#05050a]">
             {/* FAQ Section */}
             <div className="flex flex-col w-[1120px] items-center gap-[120px] px-8 py-[200px]">
               <div className="[font-family:'SF_Pro',Helvetica] font-[650] text-[#F0FF98] text-[40px] tracking-[0] leading-6 whitespace-nowrap">
@@ -662,7 +662,7 @@ export default function DemoResponsivePage() {
 
         {/* Tablet 744px */}
         {screenWidth >= 744 && screenWidth < 1440 && (
-          <div className="flex flex-col w-full items-center bg-[#0F0F14] rounded-t-[20px]">
+          <div className="flex flex-col w-full items-center bg-[#05050a]">
             {/* FAQ Section */}
             <div className="flex flex-col w-[680px] items-start gap-8 p-8">
               <div className="[font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-[#F0FF98] text-2xl tracking-[0] leading-7 whitespace-nowrap">
@@ -863,7 +863,7 @@ export default function DemoResponsivePage() {
 
         {/* Mobile 360px */}
         {screenWidth < 744 && (
-          <div className="flex flex-col w-full items-center bg-[#0F0F14] rounded-t-[20px]">
+          <div className="flex flex-col w-full items-center bg-[#05050a]">
             {/* FAQ Section */}
             <div className="flex flex-col w-[328px] items-start gap-6 p-4">
               <div className="[font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-[#F0FF98] text-xl tracking-[0] leading-7 whitespace-nowrap">

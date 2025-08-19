@@ -2187,8 +2187,8 @@ export const ElementDetailVozidla = (): JSX.Element => {
               href="tel:+421 910 666 949"
               type="a"
             />
-            <div className="flex flex-col w-[536px] items-center gap-6 absolute top-[280px] left-[993px] bg-colors-black-600 rounded-3xl overflow-hidden">
-              <div className="flex flex-col items-start gap-8 px-6 py-8 relative self-stretch w-full flex-[0_0_auto] bg-colors-black-400 rounded-3xl overflow-hidden">
+            <div className="flex flex-col w-[536px] items-center gap-6 absolute top-[280px] left-[993px] bg-colors-black-200 rounded-3xl overflow-hidden border border-solid border-colors-black-600">
+              <div className="flex flex-col items-start gap-8 px-6 py-8 relative self-stretch w-full flex-[0_0_auto] bg-colors-black-400">
                 <div className="relative w-[206px] h-4 mt-[-1.00px] [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-colors-light-yellow-accent-700 text-xl tracking-[0] leading-7 whitespace-nowrap">
                   Prenájom vozidla
                 </div>

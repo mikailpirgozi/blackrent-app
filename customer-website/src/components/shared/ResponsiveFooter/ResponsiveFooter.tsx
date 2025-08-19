@@ -63,7 +63,7 @@ export const ResponsiveFooter = () => {
     <>
         {/* Desktop 1728px */}
         {screenWidth >= 1728 && (
-          <div className="flex flex-col w-full items-center gap-2 pt-[200px] pb-0 px-2 bg-[#0F0F14] rounded-t-[40px]">
+          <div className="flex flex-col w-full items-center gap-2 pt-[200px] pb-0 px-0 bg-[#05050a]">
             
             {/* FAQ Section - Desktop 1728px */}
             <div className="flex flex-col items-center gap-[120px] relative">
@@ -193,7 +193,7 @@ export const ResponsiveFooter = () => {
             </div>
 
             {/* Quick Contact 1728px */}
-            <div className="flex flex-col w-[1328px] items-center pt-24 pb-[72px] px-0 relative mt-20 bg-[#F0F0F5] rounded-3xl">
+            <div className="flex flex-col w-full items-center pt-24 pb-[72px] px-0 relative mt-20 bg-[#F0F0F5] rounded-3xl">
               <div className="absolute w-[104px] h-[104px] -top-12 left-[612px] rounded-[99px] p-2">
                 <img
                   className="w-full h-full rounded-[99px] object-cover"
@@ -252,9 +252,9 @@ export const ResponsiveFooter = () => {
             </div>
 
             {/* Footer 1728px */}
-            <div className="flex flex-col gap-20 relative mt-20 w-[1328px]">
+            <div className="flex flex-col gap-20 relative mt-20 w-full px-[200px]">
               <div className="relative w-[214.4px] h-8 bg-[#1E1E23]" style={{maskImage: 'url(/assets/brands/blackrent-logo.svg)', maskSize: 'contain', maskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskImage: 'url(/assets/brands/blackrent-logo.svg)', WebkitMaskSize: 'contain', WebkitMaskRepeat: 'no-repeat', WebkitMaskPosition: 'center'}} aria-label="BlackRent company logo" />
-              <div className="flex gap-[258px] w-[1328px]">
+              <div className="flex gap-[258px] w-full max-w-[1328px]">
                 <div className="flex flex-col gap-10 w-[422px]">
                   <div className="flex flex-col gap-8 self-stretch">
                     <h3 className="w-[109px] h-4 font-sf-pro font-semibold text-[#F0F0F5] text-xl tracking-[0] leading-6 whitespace-nowrap">Newsletter</h3>
@@ -348,9 +348,9 @@ export const ResponsiveFooter = () => {
 
         {/* Desktop 1440px */}
         {screenWidth >= 1440 && screenWidth < 1728 && (
-          <div className="flex flex-col w-full items-center bg-[#0F0F14] rounded-t-[20px]">
+          <div className="flex flex-col w-full items-center bg-[#05050a]">
             {/* FAQ Section */}
-            <div className="flex flex-col w-[1120px] items-center gap-[120px] px-8 py-[200px]">
+            <div className="flex flex-col w-full items-center gap-[120px] px-8 py-[200px]">
               <div className="font-sf-pro font-[650] text-[#F0FF98] text-[40px] tracking-[0] leading-6 whitespace-nowrap">
                 Časté otázky
               </div>
@@ -477,7 +477,7 @@ export const ResponsiveFooter = () => {
             </div>
 
             {/* Quick Contact 1440px */}
-            <div className="flex flex-col w-[1120px] items-center pt-16 pb-16 px-8 bg-[#F0F0F5] rounded-2xl mx-auto">
+            <div className="flex flex-col w-full items-center pt-16 pb-16 px-8 bg-[#F0F0F5] rounded-2xl mx-auto">
               <div className="relative w-16 h-16 rounded-full p-1 mb-6">
                 <img
                   className="w-full h-full rounded-full object-cover"
@@ -524,7 +524,7 @@ export const ResponsiveFooter = () => {
             </div>
 
             {/* Footer 1440px */}
-            <div className="flex items-start justify-between w-[1120px] px-0 py-20">
+            <div className="flex items-start justify-between w-full max-w-[1120px] px-8 py-20">
               <div className="relative w-[214px] h-8 bg-[#1E1E23]" style={{maskImage: 'url(/assets/brands/blackrent-logo.svg)', maskSize: 'contain', maskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskImage: 'url(/assets/brands/blackrent-logo.svg)', WebkitMaskSize: 'contain', WebkitMaskRepeat: 'no-repeat', WebkitMaskPosition: 'center'}} aria-label="BlackRent company logo" />
               
               <div className="flex items-start gap-10">
@@ -623,9 +623,9 @@ export const ResponsiveFooter = () => {
 
         {/* Tablet 744px */}
         {screenWidth >= 744 && screenWidth < 1440 && (
-          <div className="flex flex-col w-full items-center bg-[#0F0F14] rounded-t-[20px]">
+          <div className="flex flex-col w-full items-center bg-[#05050a]">
             {/* FAQ Section */}
-            <div className="flex flex-col w-[680px] items-start gap-8 p-8">
+            <div className="flex flex-col w-full items-start gap-8 p-8">
               <div className="font-sf-pro font-normal text-[#F0FF98] text-2xl tracking-[0] leading-7 whitespace-nowrap">
                 Časté otázky
               </div>
@@ -824,9 +824,9 @@ export const ResponsiveFooter = () => {
 
         {/* Mobile 360px */}
         {screenWidth < 744 && (
-          <div className="flex flex-col w-full items-center bg-[#0F0F14] rounded-t-[20px]">
+          <div className="flex flex-col w-full items-center bg-[#05050a]">
             {/* FAQ Section */}
-            <div className="flex flex-col w-[328px] items-start gap-6 p-4">
+            <div className="flex flex-col w-full items-start gap-6 p-4">
               <div className="font-sf-pro font-normal text-[#F0FF98] text-xl tracking-[0] leading-7 whitespace-nowrap">
                 Časté otázky
               </div>

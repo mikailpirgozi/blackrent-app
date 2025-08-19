@@ -72,6 +72,16 @@ const RentalTableRow = memo<RentalTableRowProps>(({
               <Typography variant="caption" color="text.secondary">
                 {rental.vehicle.brand} {rental.vehicle.model}
               </Typography>
+              {(rental.vehicleVin || rental.vehicle.vin) && (
+                <Typography variant="caption" sx={{
+                  color: '#888',
+                  fontSize: '0.65rem',
+                  fontFamily: 'monospace',
+                  display: 'block'
+                }}>
+                  VIN: {(rental.vehicleVin || rental.vehicle.vin)?.slice(-8)}
+                </Typography>
+              )}
             </Box>
           ) : (
             <Typography variant="body2" color="error">

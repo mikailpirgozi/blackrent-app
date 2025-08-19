@@ -19,7 +19,7 @@ interface Props {
 export const FooterTablet = ({ type, className, href }: Props): JSX.Element => {
   return (
     <div
-      className={`inline-flex flex-col items-start gap-12 relative bg-colors-black-300 rounded-[40px_40px_0px_0px] ${className}`}
+      className={`inline-flex flex-col items-start gap-12 relative rounded-[40px_40px_0px_0px] ${className}`}
     >
       <Faq744 className="!flex-[0_0_auto]" type="default" />
       <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">

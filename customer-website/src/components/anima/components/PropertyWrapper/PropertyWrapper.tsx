@@ -18,7 +18,7 @@ export const PropertyWrapper = ({
 }: Props): JSX.Element => {
   return (
     <div
-      className={`flex flex-col w-[1440px] items-center gap-2 pt-[200px] pb-60 px-2 relative bg-colors-black-300 rounded-[40px_40px_0px_0px] overflow-hidden ${className}`}
+      className={`flex flex-col w-[1440px] items-center gap-2 pt-[200px] pb-60 px-2 relative rounded-[40px_40px_0px_0px] overflow-hidden ${className}`}
     >
       <div className="flex flex-col w-[1120px] items-center gap-[120px] relative flex-[0_0_auto]">
         <div className="relative w-[300px] h-10 mt-[-1.00px] [font-family:'SF_Pro-ExpandedSemibold',Helvetica] font-normal text-colors-light-yellow-accent-700 text-[40px] text-center tracking-[0] leading-6">

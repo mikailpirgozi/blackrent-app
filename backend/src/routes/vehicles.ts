@@ -225,7 +225,7 @@ router.post('/',
   invalidateCache('vehicle'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { brand, model, licensePlate, company, pricing, commission, status, year } = req.body;
+    const { brand, model, licensePlate, vin, company, pricing, commission, status, year } = req.body;
 
     if (!brand || !model || !company) {
       return res.status(400).json({
@@ -239,6 +239,7 @@ router.post('/',
       model,
       year: year || 2024,
       licensePlate: licensePlate || '',
+      vin: vin || null,
       company,
       pricing: pricing || [],
       commission: commission || { type: 'percentage', value: 0 },
@@ -269,7 +270,7 @@ router.put('/:id',
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const { brand, model, licensePlate, company, category, pricing, commission, status, year, stk } = req.body;
+    const { brand, model, licensePlate, vin, company, category, pricing, commission, status, year, stk } = req.body;
 
     // Skontroluj, či vozidlo existuje
     const existingVehicle = await postgresDatabase.getVehicle(id);
@@ -285,6 +286,7 @@ router.put('/:id',
       brand: brand || existingVehicle.brand,
       model: model || existingVehicle.model,
       licensePlate: licensePlate || existingVehicle.licensePlate,
+      vin: vin !== undefined ? vin : existingVehicle.vin,
       company: company || existingVehicle.company,
       category: category || existingVehicle.category,
       pricing: pricing || existingVehicle.pricing,
