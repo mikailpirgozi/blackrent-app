@@ -1129,9 +1129,7 @@ class ApiService {
         body: JSON.stringify(completeProtocolData),
       });
       
-      // 🗑️ CACHE INVALIDATION - protokol sa zmenil
-      clearProtocolCache();
-      console.log('🔄 Protocol cache invalidated after handover protocol creation');
+      // 🔴 REMOVED: Redundant cache invalidation - WebSocket updates handle this
       
       return result;
     } catch (error) {
@@ -1158,9 +1156,7 @@ class ApiService {
         body: JSON.stringify(completeProtocolData),
       });
       
-      // 🗑️ CACHE INVALIDATION - protokol sa zmenil
-      clearProtocolCache();
-      console.log('🔄 Protocol cache invalidated after return protocol creation');
+      // 🔴 REMOVED: Redundant cache invalidation - WebSocket updates handle this
       
       return result;
     } catch (error) {
@@ -1177,9 +1173,7 @@ class ApiService {
         method: 'DELETE',
       });
       
-      // 🗑️ CACHE INVALIDATION - protokol sa zmazal
-      clearProtocolCache();
-      console.log('🔄 Protocol cache invalidated after protocol deletion');
+      // 🔴 REMOVED: Redundant cache invalidation - WebSocket updates handle this
       
       return result;
     } catch (error) {

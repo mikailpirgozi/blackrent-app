@@ -782,26 +782,80 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const createRental = async (rental: Rental): Promise<void> => {
     try {
-      await apiService.createRental(rental);
+      // 🚀 OPTIMISTIC CREATE: Okamžite pridaj do UI pred API callom
       dispatch({ type: 'ADD_RENTAL', payload: rental });
+      
+      // Trigger paginated list update cez custom event
+      window.dispatchEvent(new CustomEvent('rental-optimistic-update', { 
+        detail: { rental, action: 'create' }
+      }));
+      
+      logger.debug('⚡ Optimistic create applied for rental:', rental.id);
+      
+      // Server API call na pozadí
+      const createdRental = await apiService.createRental(rental);
+      
+      // Aktualizuj s real dátami zo servera (môže mať iné ID)
+      if (createdRental.id !== rental.id) {
+        dispatch({ type: 'UPDATE_RENTAL', payload: { ...rental, id: createdRental.id } });
+        window.dispatchEvent(new CustomEvent('rental-optimistic-update', { 
+          detail: { rental: { ...rental, id: createdRental.id }, action: 'update' }
+        }));
+      }
+      
+      logger.debug('✅ Server create confirmed for rental:', createdRental.id);
       
       // 🗄️ UNIFIED CACHE: Smart invalidation
       smartInvalidation.onRentalChange();
+      
     } catch (error) {
-      console.error('Chyba pri vytváraní prenájmu:', error);
+      console.error('❌ Chyba pri vytváraní prenájmu:', error);
+      
+      // 🔄 ROLLBACK: Odstráň z UI pri chybe
+      dispatch({ type: 'DELETE_RENTAL', payload: rental.id });
+      window.dispatchEvent(new CustomEvent('rental-optimistic-update', { 
+        detail: { rental, action: 'delete' }
+      }));
+      logger.debug('🔄 Optimistic create rolled back for rental:', rental.id);
+      
       throw error;
     }
   };
 
   const updateRental = async (rental: Rental): Promise<void> => {
+    // 🚀 DUAL OPTIMISTIC UPDATE: Aktualizuj oba state systémy
+    const originalRental = state.rentals.find(r => r.id === rental.id);
+    
     try {
-      await apiService.updateRental(rental);
+      // 1. Okamžitá UI aktualizácia v oboch systémoch
       dispatch({ type: 'UPDATE_RENTAL', payload: rental });
       
-      // 🗄️ UNIFIED CACHE: Smart invalidation
+      // 2. Trigger paginated list update cez custom event
+      window.dispatchEvent(new CustomEvent('rental-optimistic-update', { 
+        detail: { rental, action: 'update' }
+      }));
+      
+      logger.debug('⚡ Dual optimistic update applied for rental:', rental.id);
+      
+      // 3. Server API call na pozadí
+      await apiService.updateRental(rental);
+      logger.debug('✅ Server update confirmed for rental:', rental.id);
+      
+      // 4. Cache invalidation
       smartInvalidation.onRentalChange();
+      
     } catch (error) {
-      console.error('Chyba pri aktualizácii prenájmu:', error);
+      console.error('❌ Chyba pri aktualizácii prenájmu:', error);
+      
+      // 🔄 ROLLBACK: Vráť pôvodné dáta v oboch systémoch
+      if (originalRental) {
+        dispatch({ type: 'UPDATE_RENTAL', payload: originalRental });
+        window.dispatchEvent(new CustomEvent('rental-optimistic-update', { 
+          detail: { rental: originalRental, action: 'rollback' }
+        }));
+        logger.debug('🔄 Dual optimistic update rolled back for rental:', rental.id);
+      }
+      
       throw error;
     }
   };

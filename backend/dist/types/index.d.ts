@@ -508,6 +508,7 @@ export interface HandoverProtocol {
     emailSentAt?: Date;
     createdBy: string;
     notes?: string;
+    quickMode?: boolean;
 }
 export interface ReturnProtocol {
     id: string;

@@ -199,6 +199,39 @@ export class WebSocketService {
   }
 
   /**
+   * Protokol vytvorený - špecifický event pre protokoly
+   */
+  broadcastProtocolCreated(rentalId: string, protocolType: 'handover' | 'return', protocolId: string, createdBy: string) {
+    console.log(`📢 Broadcasting protocol created: ${protocolType} for rental ${rentalId} by ${createdBy}`);
+    
+    this.io.emit('protocol:created', {
+      rentalId,
+      protocolType,
+      protocolId,
+      createdBy,
+      timestamp: new Date().toISOString(),
+      message: `${createdBy} vytvoril ${protocolType === 'handover' ? 'odovzdávací' : 'preberací'} protokol`
+    });
+  }
+
+  /**
+   * Protokol aktualizovaný
+   */
+  broadcastProtocolUpdated(rentalId: string, protocolType: 'handover' | 'return', protocolId: string, updatedBy: string, changes?: string[]) {
+    console.log(`📢 Broadcasting protocol updated: ${protocolType} ${protocolId} by ${updatedBy}`);
+    
+    this.io.emit('protocol:updated', {
+      rentalId,
+      protocolType,
+      protocolId,
+      updatedBy,
+      changes,
+      timestamp: new Date().toISOString(),
+      message: `${updatedBy} aktualizoval ${protocolType === 'handover' ? 'odovzdávací' : 'preberací'} protokol${changes?.length ? ` (${changes.join(', ')})` : ''}`
+    });
+  }
+
+  /**
    * Test broadcast pre všetkých klientov
    */
   broadcastTest(message: string) {

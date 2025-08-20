@@ -54,7 +54,7 @@ import { format } from 'date-fns';
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
 import { Rental } from '../../types';
-import { useRentalUpdates } from '../../hooks/useWebSocket';
+import { useRentalUpdates, useProtocolUpdates } from '../../hooks/useWebSocket';
 import { logger } from '../../utils/smartLogger';
 import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
 import { MobileRentalRow } from './MobileRentalRow';
@@ -167,7 +167,9 @@ export default function RentalListNew() {
     searchTerm: paginatedSearchTerm,
     setSearchTerm: setPaginatedSearchTerm,
     currentPage,
-    loadMore
+    loadMore,
+    updateRentalInList,
+    handleOptimisticDelete
   } = useInfiniteRentals();
   
       // Create a scrollable container ref for infinite scroll detection
@@ -279,10 +281,44 @@ export default function RentalListNew() {
   useRentalUpdates(useCallback((type: string, rental?: Rental, rentalId?: string) => {
     logger.debug('WebSocket rental update', { type, rentalId, timestamp: Date.now() });
     
-    // ⚡ PERFORMANCE: Smart updates with debouncing
-    if (type === 'created' || type === 'updated' || type === 'deleted') {
-      logger.performance('Rental list refresh triggered', { reason: type, rentalId });
+    // ⚡ SMART UPDATE: Aktualizuj konkrétny rental namiesto full refresh
+    if (type === 'updated' && rental) {
+      logger.performance('Smart rental update in list', { rentalId: rental.id });
+      updateRentalInList(rental);
+    } else if (type === 'created' && rental) {
+      logger.performance('Smart rental create in list', { rentalId: rental.id });
+      // Pre WebSocket create events, trigger refresh pre správne dáta zo servera
       debouncedRefresh();
+    } else if (type === 'deleted' && rentalId) {
+      logger.performance('Optimistic delete triggered', { reason: type, rentalId });
+      handleOptimisticDelete(rentalId);
+    }
+  }, [debouncedRefresh, updateRentalInList, handleOptimisticDelete]));
+
+  // 🔴 NEW: Protocol updates hook pre okamžité protocol zmeny
+  useProtocolUpdates(useCallback((type: string, data: any) => {
+    logger.debug('WebSocket protocol update', { type, protocolType: data.protocolType, rentalId: data.rentalId });
+    
+    // ⚡ PERFORMANCE: Okamžitá aktualizácia protokol statusu
+    if (type === 'created') {
+      logger.performance('Protocol created - refreshing rental list', { 
+        protocolType: data.protocolType, 
+        rentalId: data.rentalId 
+      });
+      
+      // 🔴 OPTIMIZED: Len optimistic UI update - žiadny refresh potrebný
+      setProtocolStatusMap(prev => ({
+        ...prev,
+        [data.rentalId]: {
+          ...prev[data.rentalId],
+          hasHandoverProtocol: data.protocolType === 'handover' ? true : (prev[data.rentalId]?.hasHandoverProtocol || false),
+          hasReturnProtocol: data.protocolType === 'return' ? true : (prev[data.rentalId]?.hasReturnProtocol || false),
+          handoverProtocolId: data.protocolType === 'handover' ? data.protocolId : prev[data.rentalId]?.handoverProtocolId,
+          returnProtocolId: data.protocolType === 'return' ? data.protocolId : prev[data.rentalId]?.returnProtocolId,
+        }
+      }));
+      
+      // Protocol sa zobrazí okamžite bez refresh vďaka optimistic update
     }
   }, [debouncedRefresh]));
 
@@ -907,7 +943,7 @@ export default function RentalListNew() {
         console.log('Prenájom úspešne vymazaný');
       } catch (error) {
         console.error('Chyba pri mazaní prenájmu:', error);
-        alert('Chyba pri mazaní prenájmu. Skúste to znovu.');
+        // 🔴 REMOVED: Alert notification
       }
     }
   }, [deleteRental]);
@@ -916,10 +952,10 @@ export default function RentalListNew() {
     try {
       if (editingRental) {
         await updateRental(rental);
-        alert('Prenájom bol úspešne aktualizovaný!');
+        // 🔴 REMOVED: Success notification
       } else {
         await createRental(rental);
-        alert('Prenájom bol úspešne pridaný!');
+        // 🔴 REMOVED: Success notification
       }
       setOpenDialog(false);
       setEditingRental(null);
@@ -1037,7 +1073,7 @@ export default function RentalListNew() {
         setOpenHandoverDialog(true);
       } catch (fallbackError) {
         console.error('❌ Fallback API call also failed:', fallbackError);
-        alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
+        // 🔴 REMOVED: alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
       }
     }
   }, [protocolStatusMap, protocols]);
@@ -1049,13 +1085,7 @@ export default function RentalListNew() {
       const data = await apiService.createHandoverProtocol(protocolData);
       console.log('Handover protocol created:', data);
       
-      // ✅ VYČISTI CACHE A ZNOVU NAČÍTAJ PROTOKOLY
-      setProtocols(prev => {
-        const newProtocols = { ...prev };
-        delete newProtocols[protocolData.rentalId];
-        return newProtocols;
-      });
-      await loadProtocolsForRental(protocolData.rentalId);
+      // 🔴 REMOVED: Redundant protocol loading - WebSocket už triggeruje refresh
 
       // ✅ OPTIMISTIC UPDATE BULK-STATUS
       setProtocolStatusMap(prev => ({
@@ -1066,23 +1096,14 @@ export default function RentalListNew() {
         }
       }));
 
-      // 🔄 REFRESH BULK-STATUS NA POZADÍ (zosúladenie s backendom)
-      setTimeout(() => {
-        try {
-          // dočasne povoliť refresh aj keď už bolo raz načítané
-          setProtocolStatusLoaded(false);
-          loadProtocolStatusInBackground();
-        } catch (e) {
-          console.warn('Bulk-status refresh after handover failed:', e);
-        }
-      }, 100);
+      // 🔴 REMOVED: Redundant bulk status refresh - WebSocket updates sú dostačujúce
       
-      alert('Odovzdávací protokol úspešne dokončený!');
+      // 🔴 REMOVED: Alert notification that was causing UI issues
       setOpenHandoverDialog(false);
       setSelectedRentalForProtocol(null);
     } catch (error) {
       console.error('Chyba pri ukladaní handover protokolu:', error);
-      alert('Chyba pri ukladaní protokolu. Skúste to znovu.');
+      // 🔴 REMOVED: alert('Chyba pri ukladaní protokolu. Skúste to znovu.');
     }
   };
 
@@ -1126,7 +1147,7 @@ export default function RentalListNew() {
       
       if (!protocolData || !protocolData.handover) {
         console.error('❌ RETURN DEBUG: No handover protocol data returned!');
-        alert('Chyba pri načítaní odovzdávacieho protokolu. Skúste to znovu.');
+        // 🔴 REMOVED: alert('Chyba pri načítaní odovzdávacieho protokolu. Skúste to znovu.');
         return;
       }
       
@@ -1168,7 +1189,7 @@ export default function RentalListNew() {
         
         if (!protocolData || !protocolData.handover) {
           console.error('❌ RETURN DEBUG (fallback): No handover protocol data returned!');
-          alert('Chyba pri načítaní odovzdávacieho protokolu. Skúste to znovu.');
+          // 🔴 REMOVED: alert('Chyba pri načítaní odovzdávacieho protokolu. Skúste to znovu.');
           return;
         }
         
@@ -1181,7 +1202,7 @@ export default function RentalListNew() {
         console.log('🔄 RETURN DEBUG (fallback): Handover protocol available:', protocolData.handover.id);
       } catch (fallbackError) {
         console.error('❌ Fallback API call also failed:', fallbackError);
-        alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
+        // 🔴 REMOVED: alert('Chyba pri kontrole existujúcich protokolov. Skúste to znovu.');
       }
     }
   }, [protocolStatusMap, protocols, loadProtocolsForRental]);
@@ -1191,15 +1212,9 @@ export default function RentalListNew() {
       // ✅ OPRAVENÉ: Protokol je už uložený v ReturnProtocolForm, iba aktualizujeme UI
       console.log('Return protocol already saved, updating UI:', protocolData);
       
-      // ✅ VYČISTI CACHE A ZNOVU NAČÍTAJ PROTOKOLY
-      setProtocols(prev => {
-        const newProtocols = { ...prev };
-        delete newProtocols[protocolData.rentalId];
-        return newProtocols;
-      });
-      await loadProtocolsForRental(protocolData.rentalId);
+      // 🔴 REMOVED: Redundant protocol loading - WebSocket už triggeruje refresh
       
-      alert('Preberací protokol úspešne dokončený!');
+      // 🔴 REMOVED: Alert notification that was causing UI issues
       setOpenReturnDialog(false);
       setSelectedRentalForProtocol(null);
     } catch (error) {
@@ -1344,7 +1359,7 @@ export default function RentalListNew() {
       
     } catch (error) {
       console.error('❌ Error opening gallery:', error);
-      alert('Chyba pri otváraní galérie: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
+      // 🔴 REMOVED: alert('Chyba pri otváraní galérie: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
     }
   };
 
@@ -1436,12 +1451,12 @@ export default function RentalListNew() {
               console.log('✅ PDF DOWNLOAD: Success!');
             } else {
               console.error('❌ Chyba pri načítaní PDF:', response.status, response.statusText);
-              alert('Chyba pri otváraní PDF protokolu: ' + response.status);
+              // 🔴 REMOVED: alert('Chyba pri otváraní PDF protokolu: ' + response.status);
             }
           }
         } catch (error) {
           console.error('❌ Chyba pri otváraní PDF:', error);
-          alert('Chyba pri otváraní PDF protokolu: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
+          // 🔴 REMOVED: alert('Chyba pri otváraní PDF protokolu: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
         }
       } else {
         console.error('❌ PDF DOWNLOAD: No protocol found for rental:', selectedProtocolRental.id, selectedProtocolType);
@@ -1540,7 +1555,7 @@ export default function RentalListNew() {
       await loadProtocolsForRental(rentalId);
     } catch (error) {
       console.error('Chyba pri mazaní protokolu:', error);
-      alert('Chyba pri mazaní protokolu. Skúste to znovu.');
+      // 🔴 REMOVED: alert('Chyba pri mazaní protokolu. Skúste to znovu.');
     }
   };
 
@@ -4171,9 +4186,6 @@ export default function RentalListNew() {
           console.log('🚨 MOBILE DEBUG: Dialog onClose triggered!');
           console.log('🚨 MOBILE DEBUG: Modal closing via backdrop click or ESC');
           console.log('🚨 MOBILE DEBUG: timestamp:', new Date().toISOString());
-          
-          // Temporary alert for mobile debugging
-          alert('🚨 MOBILE DEBUG: Dialog zatvorený! Dôvod: backdrop click alebo ESC key');
           
           // logMobile('WARN', 'RentalList', 'Handover modal closing via Dialog onClose', {
           //   timestamp: Date.now(),

@@ -180,14 +180,13 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
 
   const handleSave = async () => {
     if (!formData.location) {
-      alert('Zadajte miesto vrátenia');
+      console.warn('❌ Validation: Miesto vrátenia nie je vyplnené');
       return;
     }
 
     // Kontrola handoverProtocol
     if (!handoverProtocol) {
-      alert('Chyba: Odovzdávací protokol nie je k dispozícii. Najprv vytvorte odovzdávací protokol.');
-      console.error('❌ handoverProtocol is undefined');
+      console.error('❌ handoverProtocol is undefined - cannot create return protocol');
       return;
     }
 
@@ -360,12 +359,14 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       const result = await response.json();
       console.log('✅ Return protocol saved successfully:', result);
       
+      // 🔴 REMOVED: Redundant refresh - WebSocket už triggeruje refresh
+      
       onSave(result.protocol);
       onClose();
       
     } catch (error) {
       console.error('❌ Error saving return protocol:', error);
-      alert('Chyba pri ukladaní protokolu: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
+      // 🔴 REMOVED: Alert notification that was causing UI issues
     } finally {
       setLoading(false);
     }

@@ -47,6 +47,14 @@ export declare class WebSocketService {
         socketId: string;
     }>;
     /**
+     * Protokol vytvorený - špecifický event pre protokoly
+     */
+    broadcastProtocolCreated(rentalId: string, protocolType: 'handover' | 'return', protocolId: string, createdBy: string): void;
+    /**
+     * Protokol aktualizovaný
+     */
+    broadcastProtocolUpdated(rentalId: string, protocolType: 'handover' | 'return', protocolId: string, updatedBy: string, changes?: string[]): void;
+    /**
      * Test broadcast pre všetkých klientov
      */
     broadcastTest(message: string): void;

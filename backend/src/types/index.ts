@@ -597,6 +597,7 @@ export interface HandoverProtocol {
   emailSentAt?: Date;
   createdBy: string;
   notes?: string;
+  quickMode?: boolean; // 🚀 QUICK MODE support
 }
 
 export interface ReturnProtocol {

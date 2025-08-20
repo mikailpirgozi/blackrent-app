@@ -30,6 +30,8 @@ interface UseInfiniteRentalsReturn {
   loadMore: () => void;
   refresh: () => void;
   updateFilters: (filters: RentalFilters) => void;
+  updateRentalInList: (updatedRental: Rental) => void;
+  handleOptimisticDelete: (rentalId: string) => void;
 }
 
 const ITEMS_PER_PAGE = 50;
@@ -137,6 +139,55 @@ export function useInfiniteRentals(initialFilters: RentalFilters = {}): UseInfin
     // Load will be triggered by useEffect
   }, []);
 
+  const updateRentalInList = useCallback((updatedRental: Rental) => {
+    setRentals(prev => {
+      const index = prev.findIndex(r => r.id === updatedRental.id);
+      if (index !== -1) {
+        const newRentals = [...prev];
+        newRentals[index] = updatedRental;
+        logger.debug('⚡ Rental updated in paginated list:', updatedRental.id);
+        return newRentals;
+      }
+      return prev;
+    });
+  }, []);
+
+  // ⚡ SMART UPDATE: Načítaj len konkrétny rental namiesto full refresh
+  const handleSmartRentalUpdate = useCallback(async (rentalId: string) => {
+    try {
+      logger.info('🎯 Smart update: Loading specific rental:', rentalId);
+      
+      // Načítaj aktualizovaný rental z API
+      const updatedRental = await apiService.getRental(rentalId);
+      
+      if (updatedRental) {
+        // Aktualizuj rental v zozname
+        updateRentalInList(updatedRental);
+        logger.info('✅ Smart update: Rental successfully updated in list');
+      } else {
+        logger.warn('⚠️ Smart update: Rental not found, falling back to full refresh');
+        refresh();
+      }
+    } catch (error) {
+      logger.error('❌ Smart update failed, falling back to full refresh:', error);
+      refresh();
+    }
+  }, [updateRentalInList, refresh]);
+
+  // ⚡ OPTIMISTIC DELETE: Odstráň rental zo zoznamu okamžite
+  const handleOptimisticDelete = useCallback((rentalId: string) => {
+    logger.info('🗑️ Optimistic delete: Removing rental from list:', rentalId);
+    
+    setRentals(prev => {
+      const filtered = prev.filter(r => r.id !== rentalId);
+      logger.info(`✅ Optimistic delete: Rental removed (${prev.length} → ${filtered.length})`);
+      return filtered;
+    });
+    
+    // Aktualizuj totalCount
+    setTotalCount(prev => Math.max(0, prev - 1));
+  }, []);
+
   // Initial load
   useEffect(() => {
     if (initialLoad) {
@@ -171,6 +222,46 @@ export function useInfiniteRentals(initialFilters: RentalFilters = {}): UseInfin
     }
   }, [searchTerm]); // New search when search term changes
 
+  // 🔴 ENHANCED: Listen for WebSocket refresh events s smart updates
+  useEffect(() => {
+    const handleRefresh = (event?: CustomEvent) => {
+      const eventData = event?.detail;
+      
+      if (eventData?.rentalId) {
+        logger.info('🎯 Smart refresh for specific rental:', eventData.rentalId);
+        // ⚡ OPTIMISTIC: Načítaj len konkrétny rental namiesto celého zoznamu
+        handleSmartRentalUpdate(eventData.rentalId);
+      } else {
+        logger.info('🔄 Full rental list refresh triggered');
+        refresh();
+      }
+    };
+
+    const handleOptimisticUpdate = (event: CustomEvent) => {
+      const { rental, action } = event.detail;
+      
+      if (action === 'update' || action === 'rollback') {
+        logger.info('⚡ Optimistic update received for rental:', rental.id);
+        updateRentalInList(rental);
+      } else if (action === 'create') {
+        logger.info('⚡ Optimistic create received for rental:', rental.id);
+        setRentals(prev => [rental, ...prev]); // Pridaj na začiatok zoznamu
+      } else if (action === 'delete') {
+        logger.info('⚡ Optimistic delete received for rental:', rental.id);
+        setRentals(prev => prev.filter(r => r.id !== rental.id));
+      }
+    };
+
+    // Listen for both refresh and optimistic update events
+    window.addEventListener('rental-list-refresh', handleRefresh as EventListener);
+    window.addEventListener('rental-optimistic-update', handleOptimisticUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('rental-list-refresh', handleRefresh as EventListener);
+      window.removeEventListener('rental-optimistic-update', handleOptimisticUpdate as EventListener);
+    };
+  }, [refresh, updateRentalInList]);
+
   // Debug logging
   useEffect(() => {
     logger.debug('📊 Infinite rentals state', {
@@ -194,6 +285,8 @@ export function useInfiniteRentals(initialFilters: RentalFilters = {}): UseInfin
     setSearchTerm,
     loadMore,
     refresh,
-    updateFilters
+    updateFilters,
+    updateRentalInList,
+    handleOptimisticDelete
   };
 }

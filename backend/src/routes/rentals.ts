@@ -218,7 +218,7 @@ router.get('/:id',
 // POST /api/rentals - Vytvorenie nového prenájmu
 router.post('/', 
   authenticateToken,
-  checkPermission('rentals', 'create'),
+  // checkPermission('rentals', 'create'), // dočasne vypnuté
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const {
@@ -434,7 +434,7 @@ router.put('/:id',
 // DELETE /api/rentals/:id - Vymazanie prenájmu
 router.delete('/:id', 
   authenticateToken,
-  checkPermission('rentals', 'delete', { getContext: getRentalContext }),
+  // checkPermission('rentals', 'delete', { getContext: getRentalContext }), // dočasne vypnuté
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;

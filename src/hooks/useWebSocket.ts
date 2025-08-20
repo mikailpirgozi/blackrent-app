@@ -111,37 +111,19 @@ export function useRentalUpdates(onRentalChange?: (type: string, rental?: Rental
 
     const handleRentalCreated = (data: any) => {
       console.log('📢 Rental created:', data);
-      addNotification({
-        type: 'rental_created',
-        title: '✅ Nový prenájom',
-        message: data.message,
-        timestamp: data.timestamp,
-        data: data.rental
-      });
+      // 🔴 REMOVED: Notification popup that was causing UI issues
       onRentalChange?.('created', data.rental);
     };
 
     const handleRentalUpdated = (data: any) => {
       console.log('📢 Rental updated:', data);
-      addNotification({
-        type: 'rental_updated',
-        title: '🔄 Prenájom aktualizovaný',
-        message: data.message,
-        timestamp: data.timestamp,
-        data: data.rental
-      });
+      // 🔴 REMOVED: Notification popup that was causing UI issues
       onRentalChange?.('updated', data.rental);
     };
 
     const handleRentalDeleted = (data: any) => {
       console.log('📢 Rental deleted:', data);
-      addNotification({
-        type: 'rental_deleted',
-        title: '🗑️ Prenájom zmazaný',
-        message: data.message,
-        timestamp: data.timestamp,
-        data: { rentalId: data.rentalId }
-      });
+      // 🔴 REMOVED: Notification popup that was causing UI issues
       onRentalChange?.('deleted', undefined, data.rentalId);
     };
 
@@ -170,13 +152,7 @@ export function useVehicleUpdates(onVehicleChange?: (vehicle: Vehicle) => void) 
 
     const handleVehicleUpdated = (data: any) => {
       console.log('📢 Vehicle updated:', data);
-      addNotification({
-        type: 'vehicle_updated',
-        title: '🚗 Vozidlo aktualizované',
-        message: data.message,
-        timestamp: data.timestamp,
-        data: data.vehicle
-      });
+      // 🔴 REMOVED: Notification popup that was causing UI issues
       onVehicleChange?.(data.vehicle);
     };
 
@@ -186,6 +162,45 @@ export function useVehicleUpdates(onVehicleChange?: (vehicle: Vehicle) => void) 
       client.off('vehicle:updated', handleVehicleUpdated);
     };
   }, [client, addNotification, onVehicleChange]);
+}
+
+/**
+ * Hook pre real-time protocol updates
+ */
+export function useProtocolUpdates(onProtocolChange?: (type: string, data: any) => void) {
+  const { client, addNotification } = useWebSocket();
+
+  useEffect(() => {
+    if (!client) return;
+
+    const handleProtocolCreated = (data: any) => {
+      console.log('📢 Protocol created:', data);
+      // 🔴 REMOVED: Notification popup that was causing UI issues
+      onProtocolChange?.('created', data);
+      
+      // Trigger rental list refresh
+      window.dispatchEvent(new CustomEvent('rental-list-refresh', { detail: data }));
+    };
+
+    const handleProtocolUpdated = (data: any) => {
+      console.log('📢 Protocol updated:', data);
+      // 🔴 REMOVED: Notification popup that was causing UI issues
+      onProtocolChange?.('updated', data);
+      
+      // Trigger rental list refresh
+      window.dispatchEvent(new CustomEvent('rental-list-refresh', { detail: data }));
+    };
+
+    // Register event listeners
+    client.on('protocol:created', handleProtocolCreated);
+    client.on('protocol:updated', handleProtocolUpdated);
+
+    return () => {
+      // Cleanup
+      client.off('protocol:created', handleProtocolCreated);
+      client.off('protocol:updated', handleProtocolUpdated);
+    };
+  }, [client, addNotification, onProtocolChange]);
 }
 
 /**

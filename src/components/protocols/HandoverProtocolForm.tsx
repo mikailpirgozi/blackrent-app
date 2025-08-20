@@ -310,7 +310,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       //   rentalId: rental?.id,
       //   timestamp: Date.now()
       // });
-      alert(`❌ Prosím vyplňte všetky povinné polia:\n\n${errors.join('\n')}`);
+      console.warn('❌ Validation failed:', errors);
       return;
     }
 
@@ -464,6 +464,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       console.log(`✅ QUICK SAVE: Protocol saved in ${quickSaveTime}ms`);
       console.log('📄 PDF will be generated in background');
       
+      // 🔴 REMOVED: Redundant refresh - WebSocket už triggeruje refresh
+      
       // 🔄 SMART CACHING: Uloženie často používaných hodnôt pre budúce použitie
       const cacheData = {
         location: formData.location,
@@ -549,7 +551,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       //   formData: formData
       // });
       
-      alert(errorMessage);
+      console.error('❌ Protocol save failed:', errorMessage);
       
       // 🚫 PREVENT REFRESH: Zabránime automatickému refreshu
       console.log('🛑 Error handled gracefully, preventing page refresh');

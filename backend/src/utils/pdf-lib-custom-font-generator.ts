@@ -46,14 +46,35 @@ export class PDFLibCustomFontGenerator {
       weight === 'regular' ? fontName : `${fontName}-${weight}`
     ];
     
-    // Špecifické mapovanie pre SF-Pro font
+    // Špecifické mapovanie pre SF-Pro font - ULTRA OPTIMALIZOVANÉ
     if (fontName.toLowerCase().includes('sf-pro') || fontName.toLowerCase().includes('sfpro')) {
       const sfProDir = path.join(fontDir, 'SF-Pro-Expanded-Font-main');
-      const sfProFile = path.join(sfProDir, 'SF-Pro.ttf');
       
-      // SF-Pro.ttf obsahuje všetky váhy, použijeme ho pre regular aj bold
+      // PRIORITA 1: Minimálny subset len s potrebnými znakmi (252KB)
+      const sfProMinimalFile = path.join(sfProDir, 'SF-Pro-Minimal.ttf');
+      if (fs.existsSync(sfProMinimalFile)) {
+        console.log(`🚀 SF-Pro MINIMÁLNY subset: ${sfProMinimalFile} (252KB)`);
+        return sfProMinimalFile;
+      }
+      
+      // PRIORITA 2: Ultra-malý subset (435KB)
+      const sfProMiniFile = path.join(sfProDir, 'SF-Pro-Mini-Subset.ttf');
+      if (fs.existsSync(sfProMiniFile)) {
+        console.log(`🚀 SF-Pro ULTRA-OPTIMALIZOVANÝ mini subset: ${sfProMiniFile} (435KB)`);
+        return sfProMiniFile;
+      }
+      
+      // PRIORITA 3: Slovak subset (448KB namiesto 14MB)
+      const sfProSubsetFile = path.join(sfProDir, 'SF-Pro-Slovak-Subset.ttf');
+      if (fs.existsSync(sfProSubsetFile)) {
+        console.log(`🚀 SF-Pro OPTIMALIZOVANÝ subset nájdený: ${sfProSubsetFile} (448KB)`);
+        return sfProSubsetFile;
+      }
+      
+      // Fallback na plný font ak subsety neexistujú
+      const sfProFile = path.join(sfProDir, 'SF-Pro.ttf');
       if (fs.existsSync(sfProFile)) {
-        console.log(`🔍 SF-Pro font nájdený: ${sfProFile}`);
+        console.log(`⚠️ SF-Pro plný font nájdený: ${sfProFile} (14MB - NEOPTIMALIZOVANÉ!)`);
         return sfProFile;
       }
     }

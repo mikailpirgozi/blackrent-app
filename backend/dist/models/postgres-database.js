@@ -3032,7 +3032,7 @@ class PostgresDatabase {
             }
             const result = await client.query(`
         INSERT INTO rentals (
-          vehicle_id, customer_name, start_date, end_date, 
+          vehicle_id, customer_id, customer_name, start_date, end_date, 
           total_price, commission, payment_method, discount, custom_commission, 
           extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
@@ -3041,7 +3041,7 @@ class PostgresDatabase {
           is_flexible, flexible_end_date,
           approval_status, email_content, auto_processed_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37)
-        RETURNING id, vehicle_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
+        RETURNING id, vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
@@ -3050,6 +3050,7 @@ class PostgresDatabase {
           approval_status, email_content, auto_processed_at
       `, [
                 rentalData.vehicleId || null,
+                rentalData.customerId || null,
                 rentalData.customerName,
                 rentalData.startDate,
                 rentalData.endDate,
@@ -3092,7 +3093,7 @@ class PostgresDatabase {
             return {
                 id: row.id.toString(),
                 vehicleId: row.vehicle_id?.toString(),
-                customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
+                customerId: row.customer_id?.toString(),
                 customerName: row.customer_name,
                 startDate: new Date(row.start_date),
                 endDate: new Date(row.end_date),
@@ -3289,7 +3290,25 @@ class PostgresDatabase {
                     totalPrice: existing.totalPrice,
                     dateRange: `${existing.startDate} - ${existing.endDate}`
                 });
-                // 🛡️ OCHRANA LEVEL 5: Controlled DELETE s row counting
+                // 🛡️ OCHRANA LEVEL 5: Cleanup závislých záznamov pred DELETE
+                console.log(`🧹 Cleaning up related records for rental ${id}...`);
+                // 1. Vyčisti email_action_logs záznamy (závislé na email_processing_history)
+                const emailActionResult = await client.query(`
+          DELETE FROM email_action_logs 
+          WHERE email_id IN (
+            SELECT id FROM email_processing_history WHERE rental_id = $1
+          )
+        `, [id]);
+                console.log(`🧹 Deleted ${emailActionResult.rowCount || 0} email action logs`);
+                // 2. Vyčisti email_processing_history záznamy
+                const emailHistoryResult = await client.query('DELETE FROM email_processing_history WHERE rental_id = $1', [id]);
+                console.log(`🧹 Deleted ${emailHistoryResult.rowCount || 0} email history records`);
+                // 2. Vyčisti protokoly ak existujú
+                const handoverResult = await client.query('DELETE FROM handover_protocols WHERE rental_id = $1', [id]);
+                console.log(`🧹 Deleted ${handoverResult.rowCount || 0} handover protocols`);
+                const returnResult = await client.query('DELETE FROM return_protocols WHERE rental_id = $1', [id]);
+                console.log(`🧹 Deleted ${returnResult.rowCount || 0} return protocols`);
+                // 3. Teraz môžeme bezpečne zmazať rental
                 const result = await client.query('DELETE FROM rentals WHERE id = $1', [id]);
                 // 🛡️ OCHRANA LEVEL 6: Verify delete success
                 if (result.rowCount === null || result.rowCount === 0) {
@@ -3299,7 +3318,16 @@ class PostgresDatabase {
                     throw new Error(`RENTAL DELETE ERROR: Multiple rows affected (${result.rowCount}) for ID ${id}`);
                 }
                 await client.query('COMMIT');
-                console.log(`✅ RENTAL DELETE SUCCESS: ${id} (${result.rowCount} row deleted)`);
+                console.log(`✅ RENTAL DELETE SUCCESS: ${id}`, {
+                    rentalDeleted: result.rowCount,
+                    emailActionLogsDeleted: emailActionResult.rowCount || 0,
+                    emailHistoryDeleted: emailHistoryResult.rowCount || 0,
+                    handoverProtocolsDeleted: handoverResult.rowCount || 0,
+                    returnProtocolsDeleted: returnResult.rowCount || 0,
+                    totalRecordsDeleted: (result.rowCount || 0) + (emailActionResult.rowCount || 0) +
+                        (emailHistoryResult.rowCount || 0) + (handoverResult.rowCount || 0) +
+                        (returnResult.rowCount || 0)
+                });
             }
             catch (deleteError) {
                 await client.query('ROLLBACK');

@@ -1,8 +1,8 @@
 BlackRent Startup Info
 ======================
-Started: Wed Aug 20 02:20:54 CEST 2025
-Backend PID: 66961
-Frontend PID: 67013
+Started: Thu Aug 21 01:08:48 CEST 2025
+Backend PID: 53652
+Frontend PID: 53718
 Backend Port: 3001
 Frontend Port: 3000
 Backend URL: http://localhost:3001

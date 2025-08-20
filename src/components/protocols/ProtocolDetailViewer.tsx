@@ -93,7 +93,7 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
         window.URL.revokeObjectURL(url);
       } catch (error) {
         console.error('❌ Chyba pri sťahovaní PDF:', error);
-        alert('Nepodarilo sa stiahnuť PDF');
+        // 🔴 REMOVED: Alert notification that was causing UI issues
       }
     } else {
       // Stiahnutie existujúceho PDF

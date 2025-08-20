@@ -48,6 +48,26 @@ export interface WebSocketEvents {
     message: string;
   }) => void;
 
+  // Protocol events
+  'protocol:created': (data: { 
+    rentalId: string; 
+    protocolType: 'handover' | 'return'; 
+    protocolId: string; 
+    createdBy: string; 
+    timestamp: string; 
+    message: string;
+  }) => void;
+
+  'protocol:updated': (data: { 
+    rentalId: string; 
+    protocolType: 'handover' | 'return'; 
+    protocolId: string; 
+    updatedBy: string; 
+    changes?: string[];
+    timestamp: string; 
+    message: string;
+  }) => void;
+
   // System events
   'system:notification': (data: { 
     type: 'info' | 'warning' | 'error'; 
