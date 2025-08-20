@@ -234,7 +234,7 @@ export default function InsuranceList() {
     // Add vehicle documents (EXCLUDE technical certificates - tie patria do vehicle management)
     if (state.vehicleDocuments) {
       state.vehicleDocuments
-        .filter(doc => doc.documentType !== 'technical_certificate') // ❌ Vylúč technické preukazy
+        .filter(doc => doc.documentType === 'vignette') // ✅ Zobraz len dialničné známky (poistky sú už vyššie)
         .forEach(doc => {
           docs.push({
             id: doc.id,
