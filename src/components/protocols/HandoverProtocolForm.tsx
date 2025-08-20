@@ -350,7 +350,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
             id: rental.customerId || '',
             name: rental.customerName || '',
             email: rental.customer?.email || (rental as any).customerEmail || '',
-            phone: rental.customer?.phone || (rental as any).customerPhone || ''
+            phone: rental.customer?.phone || (rental as any).customerPhone || '',
+            createdAt: rental.customer?.createdAt || new Date()
           },
           startDate: rental.startDate,
           endDate: rental.endDate,
