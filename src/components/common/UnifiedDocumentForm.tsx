@@ -200,12 +200,13 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleFileUploadSuccess = (fileData: { url: string; key: string; filename: string }) => {
+  const handleFileUploadSuccess = (fileData: { url: string; key: string; filename: string } | { url: string; key: string; filename: string }[]) => {
     console.log('🔍 FILE UPLOAD SUCCESS:', fileData);
+    const url = Array.isArray(fileData) ? fileData[0]?.url : fileData.url;
     setFormData(prev => {
       const newData = {
         ...prev,
-        filePath: fileData.url
+        filePath: url
       };
       console.log('🔍 UPDATED FORM DATA:', newData);
       return newData;

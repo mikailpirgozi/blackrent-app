@@ -173,8 +173,12 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
     onSave(claimData);
   };
 
-  const handleFileUploadSuccess = (fileData: { url: string; key: string; filename: string }) => {
-    setUploadedFiles(prev => [...prev, fileData.url]);
+  const handleFileUploadSuccess = (fileData: { url: string; key: string; filename: string } | { url: string; key: string; filename: string }[]) => {
+    if (Array.isArray(fileData)) {
+      setUploadedFiles(prev => [...prev, ...fileData.map(f => f.url)]);
+    } else {
+      setUploadedFiles(prev => [...prev, fileData.url]);
+    }
   };
 
   const handleRemoveFile = (fileUrl: string) => {
