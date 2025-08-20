@@ -119,7 +119,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       });
     }
 
-    const { type, entityId } = req.body;
+    const { type, entityId, mediaType } = req.body;
     
     if (!type || !entityId) {
       return res.status(400).json({ 
@@ -153,9 +153,10 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     // Generovanie file key
     const fileKey = r2Storage.generateFileKey(
-      type as 'vehicle' | 'protocol' | 'document', 
+      type as 'vehicle' | 'protocol' | 'document' | 'company-document', 
       entityId, 
-      req.file.originalname
+      req.file.originalname,
+      mediaType
     );
 
     console.log('🔍 File key generated:', fileKey);

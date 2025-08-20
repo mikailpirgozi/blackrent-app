@@ -119,12 +119,71 @@ export interface Expense {
     date: Date;
     vehicleId?: string;
     company: string;
-    category: ExpenseCategory;
+    category: string;
     note?: string;
 }
-export type ExpenseCategory = 'service' | 'insurance' | 'fuel' | 'other';
+export interface ExpenseCategory {
+    id: string;
+    name: string;
+    displayName: string;
+    description?: string;
+    icon: string;
+    color: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info';
+    isDefault: boolean;
+    isActive: boolean;
+    sortOrder: number;
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy?: string;
+}
+export type ExpenseCategoryName = 'service' | 'insurance' | 'fuel' | 'other';
+export interface RecurringExpense {
+    id: string;
+    name: string;
+    description: string;
+    amount: number;
+    category: string;
+    company: string;
+    vehicleId?: string;
+    note?: string;
+    frequency: 'monthly' | 'quarterly' | 'yearly';
+    startDate: Date;
+    endDate?: Date;
+    dayOfMonth: number;
+    isActive: boolean;
+    lastGeneratedDate?: Date;
+    nextGenerationDate?: Date;
+    totalGenerated: number;
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy?: string;
+}
+export interface RecurringExpenseGeneration {
+    id: string;
+    recurringExpenseId: string;
+    generatedExpenseId: string;
+    generationDate: Date;
+    generatedAt: Date;
+    generatedBy: string;
+}
+export interface CompanyDocument {
+    id: string;
+    companyId: number;
+    documentType: 'contract' | 'invoice';
+    documentMonth?: number;
+    documentYear?: number;
+    documentName: string;
+    description?: string;
+    filePath: string;
+    fileSize?: number;
+    fileType?: string;
+    originalFilename?: string;
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy?: string;
+}
 export type PaymentFrequency = 'monthly' | 'quarterly' | 'biannual' | 'yearly';
-export type DocumentType = 'stk' | 'ek' | 'vignette';
+export type DocumentType = 'stk' | 'ek' | 'vignette' | 'technical_certificate';
 export interface VehicleDocument {
     id: string;
     vehicleId: string;
@@ -173,6 +232,8 @@ export interface Insurance {
     paymentFrequency: PaymentFrequency;
     filePath?: string;
     coverageAmount?: number;
+    greenCardValidFrom?: Date;
+    greenCardValidTo?: Date;
 }
 export interface Settlement {
     id: string;

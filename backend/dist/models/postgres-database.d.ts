@@ -1,5 +1,5 @@
 import { Pool, PoolClient } from 'pg';
-import { Vehicle, Customer, Rental, Expense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions, CompanyInvestor, CompanyInvestorShare } from '../types';
+import { Vehicle, Customer, Rental, Expense, ExpenseCategory, RecurringExpense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions, CompanyInvestor, CompanyInvestorShare, CompanyDocument } from '../types';
 export declare class PostgresDatabase {
     private pool;
     get dbPool(): Pool;
@@ -211,6 +211,41 @@ export declare class PostgresDatabase {
     }): Promise<Expense>;
     updateExpense(expense: Expense): Promise<void>;
     deleteExpense(id: string): Promise<void>;
+    getExpenseCategories(): Promise<ExpenseCategory[]>;
+    createExpenseCategory(categoryData: {
+        name: string;
+        displayName: string;
+        description?: string;
+        icon?: string;
+        color?: string;
+        sortOrder?: number;
+        createdBy?: string;
+    }): Promise<ExpenseCategory>;
+    updateExpenseCategory(category: ExpenseCategory): Promise<void>;
+    deleteExpenseCategory(id: string): Promise<void>;
+    getRecurringExpenses(): Promise<RecurringExpense[]>;
+    createRecurringExpense(recurringData: {
+        name: string;
+        description: string;
+        amount: number;
+        category: string;
+        company: string;
+        vehicleId?: string;
+        note?: string;
+        frequency: 'monthly' | 'quarterly' | 'yearly';
+        startDate: Date;
+        endDate?: Date;
+        dayOfMonth: number;
+        createdBy?: string;
+    }): Promise<RecurringExpense>;
+    updateRecurringExpense(recurring: RecurringExpense): Promise<void>;
+    deleteRecurringExpense(id: string): Promise<void>;
+    generateRecurringExpenses(targetDate?: Date): Promise<{
+        generated: number;
+        skipped: number;
+        errors: string[];
+    }>;
+    triggerRecurringExpenseGeneration(recurringExpenseId: string, targetDate?: Date): Promise<string>;
     getInsurances(): Promise<Insurance[]>;
     createInsurance(insuranceData: {
         vehicleId?: string;
@@ -225,6 +260,8 @@ export declare class PostgresDatabase {
         paymentFrequency?: string;
         filePath?: string;
         coverageAmount?: number;
+        greenCardValidFrom?: Date;
+        greenCardValidTo?: Date;
     }): Promise<Insurance>;
     updateInsurance(id: string, insuranceData: {
         vehicleId: string;
@@ -237,6 +274,8 @@ export declare class PostgresDatabase {
         insurerId?: string;
         paymentFrequency?: string;
         filePath?: string;
+        greenCardValidFrom?: Date;
+        greenCardValidTo?: Date;
     }): Promise<Insurance>;
     deleteInsurance(id: string): Promise<void>;
     getCompanies(): Promise<Company[]>;
@@ -486,6 +525,13 @@ export declare class PostgresDatabase {
         handoverCreatedAt?: Date;
         returnCreatedAt?: Date;
     }>>;
+    createCompanyDocument(document: CompanyDocument): Promise<CompanyDocument>;
+    getCompanyDocuments(companyId: string | number, documentType?: 'contract' | 'invoice', year?: number, month?: number): Promise<CompanyDocument[]>;
+    getCompanyDocumentById(documentId: string): Promise<CompanyDocument | null>;
+    deleteCompanyDocument(documentId: string): Promise<void>;
+    getCompanyDocumentsByType(companyId: string | number, documentType: 'contract' | 'invoice'): Promise<CompanyDocument[]>;
+    getCompanyInvoicesByMonth(companyId: string | number, year: number, month: number): Promise<CompanyDocument[]>;
+    private mapCompanyDocument;
 }
 export declare const postgresDatabase: PostgresDatabase;
 //# sourceMappingURL=postgres-database.d.ts.map

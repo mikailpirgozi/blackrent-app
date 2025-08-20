@@ -81,7 +81,7 @@ export declare class PDFLibCustomFontGenerator {
      */
     private getStatusText;
     /**
-     * 🖼️ Stiahnutie obrázka z R2 URL
+     * 🖼️ Stiahnutie obrázka z R2 URL alebo konverzia z base64
      */
     private downloadImageFromR2;
     /**

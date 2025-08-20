@@ -25,7 +25,7 @@ declare class R2Storage {
     /**
      * Generovanie lepšie organizovaných kľúčov pre súbory
      */
-    generateFileKey(type: 'vehicle' | 'protocol' | 'document', entityId: string, filename: string, mediaType?: 'vehicle-images' | 'document-images' | 'damage-images' | 'vehicle-videos' | 'pdf'): string;
+    generateFileKey(type: 'vehicle' | 'protocol' | 'document' | 'company-document', entityId: string, filename: string, mediaType?: 'vehicle-images' | 'document-images' | 'damage-images' | 'vehicle-videos' | 'pdf' | 'contract' | 'invoice' | 'technical-certificate'): string;
     /**
      * Generovanie kľúča pre protokol PDF
      */

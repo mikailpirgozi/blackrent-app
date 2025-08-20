@@ -593,26 +593,47 @@ export class PDFLibCustomFontGenerator {
   }
 
   /**
-   * 🖼️ Stiahnutie obrázka z R2 URL
+   * 🖼️ Stiahnutie obrázka z R2 URL alebo konverzia z base64
    */
   private async downloadImageFromR2(imageUrl: string): Promise<Uint8Array | null> {
     try {
-      console.log('📥 Downloading image from R2:', imageUrl);
-      const response = await fetch(imageUrl);
-      
-      if (!response.ok) {
-        console.error('❌ Failed to download image:', response.status, response.statusText);
+      // 🔍 DETEKCIA FORMÁTU OBRÁZKA
+      if (imageUrl.startsWith('data:image/')) {
+        // ✅ BASE64 OBRÁZOK - konvertuj priamo
+        console.log('📥 Converting base64 image to bytes');
+        const base64Data = imageUrl.split(',')[1];
+        if (!base64Data) {
+          console.error('❌ Invalid base64 format');
+          return null;
+        }
+        
+        const uint8Array = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        console.log(`✅ Base64 image converted: ${uint8Array.length} bytes`);
+        return uint8Array;
+        
+      } else if (imageUrl.startsWith('http')) {
+        // ✅ R2 URL OBRÁZOK - stiahni cez HTTP
+        console.log('📥 Downloading image from R2 URL:', imageUrl);
+        const response = await fetch(imageUrl);
+        
+        if (!response.ok) {
+          console.error('❌ Failed to download image:', response.status, response.statusText);
+          return null;
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        
+        console.log(`✅ R2 image downloaded: ${uint8Array.length} bytes`);
+        return uint8Array;
+        
+      } else {
+        console.error('❌ Unsupported image format:', imageUrl.substring(0, 50));
         return null;
       }
       
-      const arrayBuffer = await response.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      
-      console.log(`✅ Image downloaded: ${uint8Array.length} bytes`);
-      return uint8Array;
-      
     } catch (error) {
-      console.error('❌ Error downloading image:', error);
+      console.error('❌ Error processing image:', error);
       return null;
     }
   }

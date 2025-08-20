@@ -56,6 +56,7 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import { EnhancedLoading } from '../common/EnhancedLoading';
+import CompanyDocumentManager from '../companies/CompanyDocumentManager';
 
 // 🆕 OWNER CARD COMPONENT - Rozbaliteľná karta majiteľa s vozidlami
 interface OwnerCardProps {
@@ -706,6 +707,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
               </Typography>
             )}
           </Box>
+
+          {/* 📄 NOVÉ: Dokumenty majiteľa */}
+          <CompanyDocumentManager 
+            companyId={company.id}
+            companyName={company.name}
+          />
         </Box>
       </Collapse>
     </Card>

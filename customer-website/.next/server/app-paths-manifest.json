@@ -2,11 +2,11 @@
   "/_not-found/page": "app/_not-found/page.js",
   "/demo-complete/page": "app/demo-complete/page.js",
   "/demo-footer/page": "app/demo-footer/page.js",
-  "/demo-responsive/page": "app/demo-responsive/page.js",
-  "/page": "app/page.js",
-  "/test-responsive/page": "app/test-responsive/page.js",
   "/tabulka-objednavky/page": "app/tabulka-objednavky/page.js",
-  "/test-vehicle-detail/[id]/page": "app/test-vehicle-detail/[id]/page.js",
+  "/demo-responsive/page": "app/demo-responsive/page.js",
+  "/test-responsive/page": "app/test-responsive/page.js",
+  "/page": "app/page.js",
   "/vozidla/[id]/page": "app/vozidla/[id]/page.js",
+  "/test-vehicle-detail/[id]/page": "app/test-vehicle-detail/[id]/page.js",
   "/vozidla/page": "app/vozidla/page.js"
 }

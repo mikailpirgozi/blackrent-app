@@ -31,6 +31,7 @@ import {
 import { Vehicle, PricingTier, VehicleDocument, DocumentType, VehicleCategory } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { v4 as uuidv4 } from 'uuid';
+import TechnicalCertificateUpload from './TechnicalCertificateUpload';
 
 interface VehicleFormProps {
   vehicle?: Vehicle | null;
@@ -572,6 +573,14 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
         }}
         onCancel={() => setEditingDocument(null)}
       />
+
+      {/* 📄 NOVÉ: Technický preukaz vozidla */}
+      {vehicle?.id && (
+        <TechnicalCertificateUpload 
+          vehicleId={vehicle.id}
+          vehicleName={`${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
+        />
+      )}
     </Box>
   );
 }

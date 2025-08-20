@@ -6,15 +6,17 @@ import { CloudUpload, Delete, Visibility } from '@mui/icons-material';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 
 interface R2FileUploadProps {
-  type: 'vehicle' | 'protocol' | 'document';
+  type: 'vehicle' | 'protocol' | 'document' | 'company-document';
   entityId: string;
-  onUploadSuccess?: (fileData: { url: string; key: string; filename: string }) => void;
+  mediaType?: string; // pre špecializované organizovanie súborov
+  onUploadSuccess?: (fileData: { url: string; key: string; filename: string } | { url: string; key: string; filename: string }[]) => void;
   onUploadError?: (error: string) => void;
   acceptedTypes?: string[];
   maxSize?: number; // v MB
   multiple?: boolean;
   label?: string;
   disabled?: boolean;
+  showUploadedFiles?: boolean; // zobrazovať zoznam nahraných súborov
 }
 
 interface FileData {
@@ -28,13 +30,15 @@ interface FileData {
 const R2FileUpload: React.FC<R2FileUploadProps> = ({
   type,
   entityId,
+  mediaType,
   onUploadSuccess,
   onUploadError,
   acceptedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
   maxSize = 10, // 10MB default
   multiple = false,
   label = 'Nahrať súbor',
-  disabled = false
+  disabled = false,
+  showUploadedFiles = true
 }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<FileData[]>([]);
@@ -128,6 +132,9 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
         formData.append('file', processedFile);
         formData.append('type', type);
         formData.append('entityId', entityId);
+        if (mediaType) {
+          formData.append('mediaType', mediaType);
+        }
 
         console.log('🔍 R2 UPLOAD - Sending to backend:', `${getApiBaseUrl()}/files/upload`);
 
@@ -164,10 +171,17 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
       }
 
       // Callback pre rodiča
-      results.forEach((fileData: FileData) => {
-        console.log('🔍 R2 CALLBACK - Calling onUploadSuccess with:', fileData);
-        onUploadSuccess?.(fileData);
-      });
+      if (onUploadSuccess) {
+        if (multiple) {
+          // Pre multiple súbory vráť array
+          console.log('🔍 R2 CALLBACK - Calling onUploadSuccess with multiple files:', results);
+          onUploadSuccess(results);
+        } else {
+          // Pre single súbor vráť jeden objekt
+          console.log('🔍 R2 CALLBACK - Calling onUploadSuccess with single file:', results[0]);
+          onUploadSuccess(results[0]);
+        }
+      }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Upload zlyhal';

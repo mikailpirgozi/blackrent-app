@@ -27,6 +27,10 @@ declare class EmailService {
      * Generovanie názvu PDF súboru
      */
     private generatePDFFilename;
+    /**
+     * 🧪 TEST: Odoslanie testovacieho protokolu bez CC
+     */
+    sendTestProtocolEmail(customer: Customer, pdfBuffer: Buffer, protocolData: HandoverProtocol): Promise<boolean>;
 }
 export declare const emailService: EmailService;
 export default EmailService;

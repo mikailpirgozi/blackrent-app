@@ -12,7 +12,8 @@ import {
   Card,
   CardContent,
   Divider,
-  Alert
+  Alert,
+  Chip
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -46,6 +47,10 @@ interface UnifiedDocumentData {
   validTo: Date;
   price?: number;
   filePath?: string;
+  
+  // 🟢 BIELA KARTA: Platnosť zelenej karty (len pre poistky)
+  greenCardValidFrom?: Date;
+  greenCardValidTo?: Date;
 }
 
 interface UnifiedDocumentFormProps {
@@ -72,24 +77,79 @@ const getDocumentTypeInfo = (type: string) => {
 export default function UnifiedDocumentForm({ document, onSave, onCancel }: UnifiedDocumentFormProps) {
   const { state } = useApp();
   
-  const [formData, setFormData] = useState<UnifiedDocumentData>({
-    vehicleId: document?.vehicleId || '',
-    type: document?.type || 'insurance',
-    policyNumber: document?.policyNumber || '',
-    company: document?.company || '',
-    paymentFrequency: document?.paymentFrequency || 'yearly',
-    documentNumber: document?.documentNumber || '',
-    notes: document?.notes || '',
-    validFrom: document?.validFrom || undefined,
-    validTo: document?.validTo || new Date(),
-    price: document?.price || 0,
-    filePath: document?.filePath || ''
+  const [formData, setFormData] = useState<UnifiedDocumentData>(() => {
+    const initialData = {
+      vehicleId: document?.vehicleId || '',
+      type: document?.type || 'insurance',
+      policyNumber: document?.policyNumber || '',
+      company: document?.company || '',
+      paymentFrequency: document?.paymentFrequency || 'yearly',
+      documentNumber: document?.documentNumber || '',
+      notes: document?.notes || '',
+      validFrom: document?.validFrom || new Date(), // 🔄 Pre nové poistky nastav dnes
+      validTo: document?.validTo || new Date(),
+      price: document?.price || 0,
+      filePath: document?.filePath || '',
+      greenCardValidFrom: document?.greenCardValidFrom || undefined, // 🟢 Biela karta
+      greenCardValidTo: document?.greenCardValidTo || undefined // 🟢 Biela karta
+    };
+    
+    // 🔄 Pre nové poistky automaticky vypočítaj validTo
+    if (!document && initialData.type === 'insurance' && initialData.validFrom) {
+      const calculatedValidTo = (() => {
+        const fromDate = new Date(initialData.validFrom);
+        const toDate = new Date(fromDate);
+        toDate.setFullYear(toDate.getFullYear() + 1); // Default yearly
+        toDate.setDate(toDate.getDate() - 1);
+        return toDate;
+      })();
+      initialData.validTo = calculatedValidTo;
+    }
+    
+    return initialData;
   });
   
   const [addingInsurer, setAddingInsurer] = useState(false);
   const [newInsurerName, setNewInsurerName] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // 🔄 Automatické dopĺňanie validTo dátumu pre poistky
+  const calculateValidToDate = (validFrom: Date | undefined, frequency: PaymentFrequency): Date => {
+    if (!validFrom) return new Date();
+    
+    const fromDate = new Date(validFrom);
+    const toDate = new Date(fromDate);
+    
+    switch (frequency) {
+      case 'monthly':
+        toDate.setMonth(toDate.getMonth() + 1);
+        break;
+      case 'quarterly':
+        toDate.setMonth(toDate.getMonth() + 3);
+        break;
+      case 'biannual':
+        toDate.setMonth(toDate.getMonth() + 6);
+        break;
+      case 'yearly':
+        toDate.setFullYear(toDate.getFullYear() + 1);
+        break;
+      default:
+        toDate.setFullYear(toDate.getFullYear() + 1);
+    }
+    
+    // Odčítame jeden deň aby platnosť bola do predchádzajúceho dňa
+    toDate.setDate(toDate.getDate() - 1);
+    return toDate;
+  };
+
+  // 🔄 Automatické prepočítanie validTo pri zmene validFrom alebo paymentFrequency
+  useEffect(() => {
+    if (formData.type === 'insurance' && formData.validFrom && formData.paymentFrequency) {
+      const newValidTo = calculateValidToDate(formData.validFrom, formData.paymentFrequency);
+      setFormData(prev => ({ ...prev, validTo: newValidTo }));
+    }
+  }, [formData.validFrom, formData.paymentFrequency, formData.type]);
 
   useEffect(() => {
     if (document) {
@@ -105,7 +165,9 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
         validFrom: document.validFrom,
         validTo: document.validTo,
         price: document.price || 0,
-        filePath: document.filePath || ''
+        filePath: document.filePath || '',
+        greenCardValidFrom: document.greenCardValidFrom, // 🟢 Biela karta
+        greenCardValidTo: document.greenCardValidTo // 🟢 Biela karta
       });
     }
   }, [document]);
@@ -276,37 +338,12 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                               label="Frekvencia platenia"
                               onChange={(e) => setFormData(prev => ({ ...prev, paymentFrequency: e.target.value as PaymentFrequency }))}
                             >
-                              <MenuItem value="monthly">Mesačne</MenuItem>
-                              <MenuItem value="quarterly">Štvrťročne</MenuItem>
-                              <MenuItem value="biannual">Polročne</MenuItem>
-                              <MenuItem value="yearly">Ročne</MenuItem>
+                              <MenuItem value="monthly">Mesačne (platnosť +1 mesiac)</MenuItem>
+                              <MenuItem value="quarterly">Štvrťročne (platnosť +3 mesiace)</MenuItem>
+                              <MenuItem value="biannual">Polročne (platnosť +6 mesiacov)</MenuItem>
+                              <MenuItem value="yearly">Ročne (platnosť +1 rok)</MenuItem>
                             </Select>
                           </FormControl>
-                        </Grid>
-                      </>
-                    )}
-
-                    {/* Vehicle document specific fields */}
-                    {!isInsurance && (
-                      <>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            fullWidth
-                            label="Číslo dokumentu"
-                            value={formData.documentNumber}
-                            onChange={(e) => setFormData(prev => ({ ...prev, documentNumber: e.target.value }))}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12}>
-                          <TextField
-                            fullWidth
-                            multiline
-                            rows={3}
-                            label="Poznámky"
-                            value={formData.notes}
-                            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                          />
                         </Grid>
                       </>
                     )}
@@ -315,6 +352,56 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
               </Card>
             </Grid>
 
+            {/* 🟢 BIELA KARTA: Samostatná sekcia len pre poistky */}
+            {isInsurance && (
+              <Grid item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      🟢 Platnosť bielej karty
+                      <Chip size="small" label="Manuálne" color="info" variant="outlined" />
+                    </Typography>
+                    
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        💡 Biela karta má vlastnú platnosť nezávislú od poistky. Dátumy zadávajte manuálne.
+                      </Typography>
+                    </Alert>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <DatePicker
+                          label="Biela karta platná od"
+                          value={formData.greenCardValidFrom ? new Date(formData.greenCardValidFrom) : null}
+                          onChange={(date) => setFormData(prev => ({ ...prev, greenCardValidFrom: date || undefined }))}
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                              placeholder: "Voliteľné"
+                            }
+                          }}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <DatePicker
+                          label="Biela karta platná do"
+                          value={formData.greenCardValidTo ? new Date(formData.greenCardValidTo) : null}
+                          onChange={(date) => setFormData(prev => ({ ...prev, greenCardValidTo: date || undefined }))}
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                              placeholder: "Voliteľné"
+                            }
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
             {/* Platnosť a cena */}
             <Grid item xs={12}>
               <Card>
@@ -322,6 +409,15 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                   <Typography variant="h6" gutterBottom>
                     Platnosť a cena
                   </Typography>
+                  
+                  {/* 💡 Informačný alert pre automatické dopĺňanie */}
+                  {isInsurance && (
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        💡 <strong>Automatické dopĺňanie:</strong> Dátum "Platné do" sa automaticky vypočíta na základě dátumu "Platné od" a frekvencie platenia.
+                      </Typography>
+                    </Alert>
+                  )}
                   
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
@@ -339,15 +435,24 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
 
                     <Grid item xs={12} sm={6}>
                       <DatePicker
-                        label="Platné do"
+                        label={isInsurance ? "Platné do (automaticky)" : "Platné do"}
                         value={formData.validTo ? new Date(formData.validTo) : new Date()}
                         onChange={(date) => setFormData(prev => ({ ...prev, validTo: date || new Date() }))}
+                        readOnly={isInsurance} // 🔒 Pre poistky je readonly - automaticky sa vypočíta
                         slotProps={{
                           textField: {
                             fullWidth: true,
                             required: true,
                             error: !!errors.validTo,
-                            helperText: errors.validTo
+                            helperText: isInsurance 
+                              ? "Automaticky vypočítané podľa frekvencie platenia" 
+                              : errors.validTo,
+                            InputProps: isInsurance ? {
+                              style: { 
+                                backgroundColor: '#f5f5f5',
+                                color: '#666'
+                              }
+                            } : undefined
                           }
                         }}
                       />
@@ -369,6 +474,43 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                 </CardContent>
               </Card>
             </Grid>
+
+            {/* Vehicle document specific fields */}
+            {!isInsurance && (
+              <Grid item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Dodatočné informácie
+                    </Typography>
+                    
+                    <Grid container spacing={2}>
+                      <>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            fullWidth
+                            label="Číslo dokumentu"
+                            value={formData.documentNumber}
+                            onChange={(e) => setFormData(prev => ({ ...prev, documentNumber: e.target.value }))}
+                          />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={3}
+                            label="Poznámky"
+                            value={formData.notes}
+                            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                          />
+                        </Grid>
+                      </>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
 
             {/* File Upload */}
             <Grid item xs={12}>

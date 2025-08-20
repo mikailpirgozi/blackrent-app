@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
-import { Expense, ApiResponse, ExpenseCategory } from '../types';
+import { Expense, ApiResponse, ExpenseCategory, ExpenseCategoryName } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
@@ -376,7 +376,7 @@ router.post('/import/csv',
           }
 
           // Mapuj kategóriu na správne hodnoty - flexibilne
-          let mappedCategory: ExpenseCategory = 'other';
+          let mappedCategory: string = 'other';
           if (category && category.trim()) {
             const cat = category.trim().toLowerCase();
             if (cat.includes('palivo') || cat.includes('fuel') || cat === 'fuel') {

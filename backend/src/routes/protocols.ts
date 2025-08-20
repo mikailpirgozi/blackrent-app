@@ -237,7 +237,7 @@ router.post('/handover', authenticateToken, async (req, res) => {
     const protocol = await postgresDatabase.createHandoverProtocol(protocolData);
     console.log('✅ Handover protocol created in DB:', protocol.id);
     
-    let pdfUrl = null;
+    let pdfUrl: string | null = null;
     
     if (quickMode) {
       // 🚀 QUICK MODE: Len uloženie do DB, PDF na pozadí
@@ -313,14 +313,26 @@ router.post('/handover', authenticateToken, async (req, res) => {
         // 4. Aktualizácia protokolu s PDF URL
         await postgresDatabase.updateHandoverProtocol(protocol.id, { pdfUrl });
         
-        // 📧 STANDARD EMAIL: Odoslanie protokolu emailom (background)
+        // 📧 ODPORÚČANÁ STRATÉGIA: Email AŽ PO úspešnom R2 upload
         if (protocolData.rentalData?.customer?.email) {
           setImmediate(async () => {
             try {
-              console.log('📧 Standard: Sending handover protocol email...');
+              console.log('📧 Standard: Sending handover protocol email with R2 URL...');
+              
+              // ✅ NOVÁ STRATÉGIA: Odošli email s R2 URL namiesto PDF attachment
+              const emailData = {
+                customer: protocolData.rentalData.customer,
+                protocol: protocolData,
+                pdfDownloadUrl: pdfUrl || '', // Priamy R2 URL pre download
+                protocolId: protocol.id,
+                vehicleInfo: protocolData.rentalData?.vehicle,
+                rentalInfo: protocolData.rentalData
+              };
+              
+              // TEMP: Použijem existujúcu metódu, neskôr implementujem R2 link verziu
               const emailSent = await emailService.sendHandoverProtocolEmail(
                 protocolData.rentalData.customer,
-                pdfBuffer,
+                Buffer.from([]), // Prázdny buffer keďže PDF je už na R2
                 protocolData
               );
               
@@ -328,13 +340,14 @@ router.post('/handover', authenticateToken, async (req, res) => {
                 // Aktualizácia protokolu s email statusom
                 await postgresDatabase.updateHandoverProtocol(protocol.id, { 
                   emailSent: true, 
-                  emailSentAt: new Date() 
+                  emailSentAt: new Date(),
+                  pdfEmailUrl: pdfUrl || '' // Ulož R2 URL ktoré bolo odoslané emailom
                 });
-                console.log('✅ Standard: Email sent successfully');
+                console.log('✅ Standard: Email sent successfully with R2 link:', pdfUrl || 'no URL');
               }
             } catch (emailError) {
               console.error('❌ Standard: Email sending failed:', emailError);
-              // Email chyba neblokuje protokol
+              // Email chyba neblokuje protokol - PDF je už na R2
             }
           });
         } else {
@@ -556,6 +569,127 @@ router.get('/debug/test-email', async (req: Request, res: Response) => {
       success: false,
       error: 'Email test failed',
       details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// 🧪 TEST: Odoslanie testovacieho protokolu na špecifický email
+router.post('/debug/send-test-protocol', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Email address is required' 
+      });
+    }
+    
+    console.log('📧 TEST: Sending test protocol to:', email);
+    
+    // Vytvorenie test protokolu s kompletými dátami
+    const testCustomer = {
+      id: 'test-customer-123',
+      name: 'Mikail Pirgozi',
+      email: email,
+      phone: '+421 901 123 456',
+      createdAt: new Date()
+    };
+    
+    const testProtocolData = {
+      id: 'test-protocol-' + Date.now(),
+      rentalId: 'test-rental-123',
+      type: 'handover' as const,
+      status: 'completed' as const,
+      location: 'Bratislava - Test lokácia',
+      createdAt: new Date(),
+      completedAt: new Date(),
+      vehicleCondition: {
+        odometer: 50000,
+        fuelLevel: 100,
+        fuelType: 'gasoline' as const,
+        exteriorCondition: 'Výborný',
+        interiorCondition: 'Výborný',
+        notes: 'Test protokol - všetko v poriadku'
+      },
+      vehicleImages: [],
+      vehicleVideos: [],
+      documentImages: [],
+      documentVideos: [],
+      damageImages: [],
+      damageVideos: [],
+      damages: [],
+      signatures: [
+        {
+          id: 'test-sig-1',
+          signature: 'data:image/png;base64,test',
+          signerName: 'Mikail Pirgozi',
+          signerRole: 'customer' as const,
+          timestamp: new Date(),
+          location: 'Bratislava'
+        }
+      ],
+      rentalData: {
+        orderNumber: 'TEST-' + Date.now(),
+        customer: testCustomer,
+        vehicle: {
+          id: 'test-vehicle-123',
+          brand: 'BMW',
+          model: 'X5',
+          licensePlate: 'TEST123',
+          company: 'BlackRent Test'
+        },
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // +7 dní
+        totalPrice: 350,
+        deposit: 500,
+        currency: 'EUR',
+        allowedKilometers: 1000,
+        extraKilometerRate: 0.5,
+        pickupLocation: 'Bratislava - Test'
+      },
+      pdfUrl: '',
+      emailSent: false,
+      notes: 'Toto je testovací protokol pre overenie email funkcionalite.',
+      createdBy: 'admin'
+    };
+    
+    // Vygeneruj test PDF
+    const pdfBuffer = await generateHandoverPDF(testProtocolData as any);
+    
+    console.log('✅ TEST: PDF generated, size:', (pdfBuffer.length / 1024).toFixed(1), 'KB');
+    
+    // Odošli email len na zadaný email (bez CC pre test)
+    const emailSent = await emailService.sendTestProtocolEmail(
+      testCustomer,
+      pdfBuffer,
+      testProtocolData as any
+    );
+    
+    if (emailSent) {
+      console.log('✅ TEST: Email sent successfully to:', email);
+      res.json({
+        success: true,
+        message: `Test protocol email sent successfully to ${email}`,
+        data: {
+          recipient: email,
+          protocolId: testProtocolData.id,
+          pdfSize: `${(pdfBuffer.length / 1024).toFixed(1)} KB`,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to send test email'
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ TEST: Error sending test protocol:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });

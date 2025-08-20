@@ -1,7 +1,10 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { postgresDatabase } from '../models/postgres-database';
 import { VehicleDocument, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
+import { r2Storage } from '../utils/r2-storage';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -121,5 +124,125 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response<ApiR
     });
   }
 });
+
+// Multer konfigurácia pre upload súborov
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB max
+  },
+  fileFilter: (req, file, cb) => {
+    if (r2Storage.validateFileType(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Nepodporovaný typ súboru'));
+    }
+  },
+});
+
+// 📄 Upload technického preukazu
+router.post('/upload-technical-certificate', 
+  authenticateToken,
+  checkPermission('vehicles', 'update'),
+  upload.single('file'),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      console.log('📄 Technical certificate upload request:', {
+        hasFile: !!req.file,
+        fileSize: req.file?.size,
+        mimetype: req.file?.mimetype,
+        body: req.body
+      });
+
+      if (!req.file) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Žiadny súbor nebol nahraný' 
+        });
+      }
+
+      const { vehicleId, documentName, notes } = req.body;
+      
+      if (!vehicleId || !documentName) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Chýbajú povinné parametre: vehicleId, documentName' 
+        });
+      }
+
+      // Validácia typu súboru
+      if (!r2Storage.validateFileType(req.file.mimetype)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Nepodporovaný typ súboru' 
+        });
+      }
+
+      // Validácia veľkosti súboru
+      const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'document';
+      if (!r2Storage.validateFileSize(req.file.size, fileType)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Súbor je príliš veľký' 
+        });
+      }
+
+      // Generovanie file key pre technický preukaz
+      const fileKey = r2Storage.generateFileKey(
+        'vehicle',
+        vehicleId,
+        req.file.originalname,
+        'technical-certificate'
+      );
+
+      console.log('📄 Generated file key:', fileKey);
+
+      // Upload do R2
+      const fileUrl = await r2Storage.uploadFile(
+        fileKey,
+        req.file.buffer,
+        req.file.mimetype,
+        {
+          original_name: req.file.originalname,
+          uploaded_at: new Date().toISOString(),
+          vehicle_id: vehicleId,
+          document_type: 'technical_certificate',
+          document_name: documentName
+        }
+      );
+
+      console.log('✅ Technical certificate uploaded to R2:', fileUrl);
+
+      // Uloženie do databázy - použijem existujúcu metódu
+      const documentData = {
+        vehicleId,
+        documentType: 'technical_certificate' as const,
+        validTo: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000), // 10 rokov platnosť
+        documentNumber: documentName,
+        notes,
+        filePath: fileUrl
+      };
+
+      const savedDocument = await postgresDatabase.createVehicleDocument(documentData);
+
+      console.log('✅ Technical certificate saved to database:', savedDocument.id);
+
+      res.json({
+        success: true,
+        data: savedDocument,
+        message: 'Technický preukaz úspešne nahraný'
+      });
+
+    } catch (error) {
+      console.error('❌ Error uploading technical certificate:', error);
+      
+      res.status(500).json({ 
+        success: false, 
+        error: 'Chyba pri nahrávaní technického preukazu',
+        ...(process.env.NODE_ENV === 'development' && { details: (error as Error).message })
+      });
+    }
+  }
+);
 
 export default router; 

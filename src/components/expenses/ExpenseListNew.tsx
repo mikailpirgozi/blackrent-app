@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -36,45 +36,47 @@ import {
   DateRange as DateIcon,
   Euro as EuroIcon,
   Business as CompanyIcon,
-  DirectionsCar as VehicleIcon
+  DirectionsCar as VehicleIcon,
+  Settings as SettingsIcon,
+  Repeat as RepeatIcon
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { Expense, ExpenseCategory } from '../../types';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import ExpenseForm from './ExpenseForm';
+import ExpenseCategoryManager from './ExpenseCategoryManager';
+import RecurringExpenseManager from './RecurringExpenseManager';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { Vehicle } from '../../types';
+import { apiService } from '../../services/api';
 
-const getCategoryIcon = (category: ExpenseCategory) => {
-  switch (category) {
-    case 'fuel': return <FuelIcon fontSize="small" />;
-    case 'service': return <ServiceIcon fontSize="small" />;
-    case 'insurance': return <InsuranceIcon fontSize="small" />;
-    case 'other': return <OtherIcon fontSize="small" />;
-    default: return <ReceiptIcon fontSize="small" />;
-  }
+// Helper funkcie pre dynamické kategórie
+const getCategoryIcon = (categoryName: string, categories: ExpenseCategory[]) => {
+  const category = categories.find(c => c.name === categoryName);
+  if (!category) return <ReceiptIcon fontSize="small" />;
+  
+  // Mapovanie ikon na Material UI komponenty
+  const iconMap: Record<string, React.ReactElement> = {
+    'local_gas_station': <FuelIcon fontSize="small" />,
+    'build': <ServiceIcon fontSize="small" />,
+    'security': <InsuranceIcon fontSize="small" />,
+    'category': <OtherIcon fontSize="small" />,
+    'receipt': <ReceiptIcon fontSize="small" />
+  };
+  
+  return iconMap[category.icon] || <ReceiptIcon fontSize="small" />;
 };
 
-const getCategoryText = (category: ExpenseCategory) => {
-  switch (category) {
-    case 'fuel': return 'Palivo';
-    case 'service': return 'Servis';
-    case 'insurance': return 'Poistenie';
-    case 'other': return 'Ostatné';
-    default: return category;
-  }
+const getCategoryText = (categoryName: string, categories: ExpenseCategory[]) => {
+  const category = categories.find(c => c.name === categoryName);
+  return category?.displayName || categoryName;
 };
 
-const getCategoryColor = (category: ExpenseCategory): 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' => {
-  switch (category) {
-    case 'fuel': return 'warning';
-    case 'service': return 'error';
-    case 'insurance': return 'info';
-    case 'other': return 'secondary';
-    default: return 'primary';
-  }
+const getCategoryColor = (categoryName: string, categories: ExpenseCategory[]): 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' => {
+  const category = categories.find(c => c.name === categoryName);
+  return category?.color || 'primary';
 };
 
 const ExpenseListNew: React.FC = () => {
@@ -94,13 +96,18 @@ const ExpenseListNew: React.FC = () => {
 
   // States
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<ExpenseCategory | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string | 'all'>('all');
   const [companyFilter, setCompanyFilter] = useState('');
   const [vehicleFilter, setVehicleFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(false);
+  const [categoriesManagerOpen, setCategoriesManagerOpen] = useState(false);
+  const [recurringManagerOpen, setRecurringManagerOpen] = useState(false);
+  
+  // Dynamické kategórie
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
 
   // Get unique values for filters
   const uniqueCompanies = useMemo(() => 
@@ -108,7 +115,19 @@ const ExpenseListNew: React.FC = () => {
     [expenses]
   );
 
-  const uniqueCategories: ExpenseCategory[] = ['fuel', 'service', 'insurance', 'other'];
+  // Načítanie kategórií z API
+  const loadCategories = async () => {
+    try {
+      const categories = await apiService.getExpenseCategories();
+      setExpenseCategories(categories);
+    } catch (error) {
+      console.error('Error loading expense categories:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
 
   // Filtered expenses
   const filteredExpenses = useMemo(() => {
@@ -133,19 +152,22 @@ const ExpenseListNew: React.FC = () => {
   );
 
   const categoryTotals = useMemo(() => {
-    const totals: Record<ExpenseCategory, number> = {
-      fuel: 0,
-      service: 0,
-      insurance: 0,
-      other: 0
-    };
+    const totals: Record<string, number> = {};
     
+    // Inicializuj všetky kategórie na 0
+    expenseCategories.forEach(category => {
+      totals[category.name] = 0;
+    });
+    
+    // Spočítaj sumy pre každú kategóriu
     filteredExpenses.forEach((expense: Expense) => {
-      totals[expense.category] += expense.amount;
+      if (totals[expense.category] !== undefined) {
+        totals[expense.category] += expense.amount;
+      }
     });
     
     return totals;
-  }, [filteredExpenses]);
+  }, [filteredExpenses, expenseCategories]);
 
   // Handlers
   const handleAddExpense = () => {
@@ -270,6 +292,30 @@ const ExpenseListNew: React.FC = () => {
               >
                 Pridať
               </Button>
+              <Button
+                variant="outlined"
+                startIcon={<RepeatIcon />}
+                onClick={() => setRecurringManagerOpen(true)}
+                sx={{ 
+                  borderColor: '#4caf50',
+                  color: '#4caf50',
+                  '&:hover': { borderColor: '#388e3c', bgcolor: 'rgba(76, 175, 80, 0.04)' }
+                }}
+              >
+                Pravidelné náklady
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<SettingsIcon />}
+                onClick={() => setCategoriesManagerOpen(true)}
+                sx={{ 
+                  borderColor: '#1976d2',
+                  color: '#1976d2',
+                  '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' }
+                }}
+              >
+                Spravovať kategórie
+              </Button>
               {/* CSV tlačidlá - len na desktope */}
               {!isMobile && (
                 <>
@@ -342,15 +388,15 @@ const ExpenseListNew: React.FC = () => {
                     <InputLabel>Kategória</InputLabel>
                     <Select
                       value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value as ExpenseCategory | 'all')}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
                       label="Kategória"
                     >
                       <MenuItem value="all">Všetky kategórie</MenuItem>
-                      {uniqueCategories.map(category => (
-                        <MenuItem key={category} value={category}>
+                      {expenseCategories.map(category => (
+                        <MenuItem key={category.name} value={category.name}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            {getCategoryIcon(category)}
-                            {getCategoryText(category)}
+                            {getCategoryIcon(category.name, expenseCategories)}
+                            {getCategoryText(category.name, expenseCategories)}
                           </Box>
                         </MenuItem>
                       ))}
@@ -443,49 +489,32 @@ const ExpenseListNew: React.FC = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ 
-            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-          }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Palivo
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {categoryTotals.fuel.toFixed(2)}€
-                  </Typography>
+        {/* Dynamické karty pre top 2 kategórie */}
+        {expenseCategories.slice(0, 2).map((category, index) => (
+          <Grid item xs={12} sm={6} md={3} key={category.name}>
+            <Card sx={{ 
+              background: index === 0 
+                ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                : 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+            }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {category.displayName}
+                    </Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                      {(categoryTotals[category.name] || 0).toFixed(2)}€
+                    </Typography>
+                  </Box>
+                  {getCategoryIcon(category.name, expenseCategories)}
                 </Box>
-                <FuelIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ 
-            background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-          }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Servis
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {categoryTotals.service.toFixed(2)}€
-                  </Typography>
-                </Box>
-                <ServiceIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
 
       {loading && (
@@ -532,9 +561,9 @@ const ExpenseListNew: React.FC = () => {
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                           <Chip
-                            icon={getCategoryIcon(expense.category)}
-                            label={getCategoryText(expense.category)}
-                            color={getCategoryColor(expense.category)}
+                            icon={getCategoryIcon(expense.category, expenseCategories)}
+                            label={getCategoryText(expense.category, expenseCategories)}
+                            color={getCategoryColor(expense.category, expenseCategories)}
                             size="small"
                             sx={{ fontWeight: 600 }}
                           />
@@ -696,9 +725,9 @@ const ExpenseListNew: React.FC = () => {
                     
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <Chip
-                        icon={getCategoryIcon(expense.category)}
-                        label={getCategoryText(expense.category)}
-                        color={getCategoryColor(expense.category)}
+                        icon={getCategoryIcon(expense.category, expenseCategories)}
+                        label={getCategoryText(expense.category, expenseCategories)}
+                        color={getCategoryColor(expense.category, expenseCategories)}
                         size="small"
                         sx={{ fontWeight: 600 }}
                       />
@@ -772,8 +801,26 @@ const ExpenseListNew: React.FC = () => {
           expense={editingExpense}
           onSave={handleFormSubmit}
           onCancel={() => setFormOpen(false)}
+          categories={expenseCategories}
         />
       </Dialog>
+
+      {/* Categories Manager Dialog */}
+      <ExpenseCategoryManager
+        open={categoriesManagerOpen}
+        onClose={() => setCategoriesManagerOpen(false)}
+        onCategoriesChanged={loadCategories}
+      />
+
+      {/* Recurring Expenses Manager Dialog */}
+      <RecurringExpenseManager
+        open={recurringManagerOpen}
+        onClose={() => setRecurringManagerOpen(false)}
+        onExpensesChanged={() => {
+          // Refresh expenses list when recurring expenses are generated
+          window.location.reload();
+        }}
+      />
     </Box>
   );
 };

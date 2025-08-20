@@ -128,6 +128,8 @@ const vehicles_1 = __importDefault(require("./routes/vehicles"));
 const customers_1 = __importDefault(require("./routes/customers"));
 const rentals_1 = __importDefault(require("./routes/rentals"));
 const expenses_1 = __importDefault(require("./routes/expenses"));
+const expense_categories_1 = __importDefault(require("./routes/expense-categories"));
+const recurring_expenses_1 = __importDefault(require("./routes/recurring-expenses"));
 const insurances_1 = __importDefault(require("./routes/insurances"));
 const companies_1 = __importDefault(require("./routes/companies"));
 const company_investors_1 = __importDefault(require("./routes/company-investors"));
@@ -149,12 +151,15 @@ const email_imap_1 = __importDefault(require("./routes/email-imap"));
 const email_management_1 = __importDefault(require("./routes/email-management"));
 const cache_1 = __importDefault(require("./routes/cache"));
 const push_1 = __importDefault(require("./routes/push"));
+const company_documents_1 = __importDefault(require("./routes/company-documents"));
 // API routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/vehicles', vehicles_1.default);
 app.use('/api/customers', customers_1.default);
 app.use('/api/rentals', rentals_1.default);
 app.use('/api/expenses', expenses_1.default);
+app.use('/api/expense-categories', expense_categories_1.default);
+app.use('/api/recurring-expenses', recurring_expenses_1.default);
 app.use('/api/insurances', insurances_1.default);
 app.use('/api/companies', companies_1.default);
 app.use('/api/company-investors', company_investors_1.default);
@@ -176,6 +181,7 @@ app.use('/api/email-imap', email_imap_1.default);
 app.use('/api/email-management', email_management_1.default);
 app.use('/api/cache', cache_1.default);
 app.use('/api/push', push_1.default);
+app.use('/api/company-documents', company_documents_1.default);
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {
     console.log('🧪 Simple test endpoint called');
@@ -301,6 +307,17 @@ httpServer.listen(Number(port), '0.0.0.0', async () => {
     }
     // Auto-start IMAP monitoring after server starts (2 second delay)
     setTimeout(autoStartImapMonitoring, 2000);
+    // Start recurring expense scheduler after server starts (5 second delay)
+    setTimeout(async () => {
+        try {
+            const { recurringExpenseScheduler } = await Promise.resolve().then(() => __importStar(require('./utils/recurring-expense-scheduler')));
+            recurringExpenseScheduler.startScheduler();
+            console.log('🔄 Recurring expense scheduler štartovaný');
+        }
+        catch (error) {
+            console.warn('Recurring expense scheduler initialization failed:', error);
+        }
+    }, 5000);
 });
 // Graceful shutdown
 process.on('SIGTERM', () => {

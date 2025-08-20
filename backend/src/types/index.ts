@@ -149,15 +149,89 @@ export interface Expense {
   date: Date;
   vehicleId?: string;
   company: string;
-  category: ExpenseCategory;
+  category: string; // názov kategórie (FK na expense_categories.name)
   note?: string;
 }
 
-export type ExpenseCategory = 'service' | 'insurance' | 'fuel' | 'other';
+// Rozšírený typ pre dynamické kategórie nákladov
+export interface ExpenseCategory {
+  id: string;
+  name: string; // jedinečný identifikátor (používa sa ako FK)
+  displayName: string; // zobrazovaný názov
+  description?: string;
+  icon: string; // Material UI icon name
+  color: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info';
+  isDefault: boolean; // základné kategórie nemožno zmazať
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string;
+}
+
+// Zachováme pôvodný typ pre backward compatibility
+export type ExpenseCategoryName = 'service' | 'insurance' | 'fuel' | 'other';
+
+// Pravidelné náklady
+export interface RecurringExpense {
+  id: string;
+  name: string; // názov pravidelného nákladu
+  description: string; // popis pre generované náklady
+  amount: number; // mesačná suma
+  category: string; // kategória (FK na expense_categories.name)
+  company: string; // firma
+  vehicleId?: string; // voliteľné priradenie k vozidlu
+  note?: string; // voliteľná poznámka
+  
+  // Nastavenia pravidelnosi
+  frequency: 'monthly' | 'quarterly' | 'yearly';
+  startDate: Date; // od kedy začať generovanie
+  endDate?: Date; // voliteľný koniec
+  dayOfMonth: number; // ktorý deň v mesiaci (1-28)
+  
+  // Status a kontrola
+  isActive: boolean;
+  lastGeneratedDate?: Date; // kedy sa naposledy vygeneroval
+  nextGenerationDate?: Date; // kedy sa má vygenerovať ďalší
+  totalGenerated: number; // počet vygenerovaných nákladov
+  
+  // Audit
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string;
+}
+
+// Log vygenerovaných nákladov
+export interface RecurringExpenseGeneration {
+  id: string;
+  recurringExpenseId: string;
+  generatedExpenseId: string;
+  generationDate: Date; // pre ktorý mesiac
+  generatedAt: Date;
+  generatedBy: string; // 'system' alebo user ID
+}
+
+// Company documents (zmluvy, faktúry)
+export interface CompanyDocument {
+  id: string;
+  companyId: number;
+  documentType: 'contract' | 'invoice';
+  documentMonth?: number; // 1-12 pre faktúry
+  documentYear?: number; // rok pre faktúry
+  documentName: string;
+  description?: string;
+  filePath: string; // R2 storage path
+  fileSize?: number;
+  fileType?: string;
+  originalFilename?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string;
+}
 
 export type PaymentFrequency = 'monthly' | 'quarterly' | 'biannual' | 'yearly';
 
-export type DocumentType = 'stk' | 'ek' | 'vignette';
+export type DocumentType = 'stk' | 'ek' | 'vignette' | 'technical_certificate';
 
 export interface VehicleDocument {
   id: string;
@@ -209,6 +283,9 @@ export interface Insurance {
   paymentFrequency: PaymentFrequency;
   filePath?: string;
   coverageAmount?: number;
+  // 🟢 BIELA KARTA: Platnosť zelenej karty (manuálne zadávané)
+  greenCardValidFrom?: Date;
+  greenCardValidTo?: Date;
 }
 
 export interface Settlement {

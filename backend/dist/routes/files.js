@@ -108,7 +108,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
                 error: 'Žiadny súbor nebol nahraný'
             });
         }
-        const { type, entityId } = req.body;
+        const { type, entityId, mediaType } = req.body;
         if (!type || !entityId) {
             return res.status(400).json({
                 success: false,
@@ -135,7 +135,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         }
         console.log('🔍 Generating file key...');
         // Generovanie file key
-        const fileKey = r2_storage_1.r2Storage.generateFileKey(type, entityId, req.file.originalname);
+        const fileKey = r2_storage_1.r2Storage.generateFileKey(type, entityId, req.file.originalname, mediaType);
         console.log('🔍 File key generated:', fileKey);
         // Kontrola R2 konfigurácie
         if (!r2_storage_1.r2Storage.isConfigured()) {

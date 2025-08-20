@@ -62,7 +62,7 @@ import { useInfiniteInsurances } from '../../hooks/useInfiniteInsurances';
 interface UnifiedDocument {
   id: string;
   vehicleId: string;
-  type: 'insurance' | 'stk' | 'ek' | 'vignette';
+  type: 'insurance' | 'stk' | 'ek' | 'vignette' | 'technical_certificate';
   documentNumber?: string;
   policyNumber?: string;
   validFrom?: Date | string;
@@ -76,10 +76,27 @@ interface UnifiedDocument {
   originalData: Insurance | VehicleDocument;
 }
 
-const getExpiryStatus = (validTo: Date | string) => {
+const getExpiryStatus = (validTo: Date | string, documentType: string) => {
   try {
     const today = new Date();
-    const thirtyDaysFromNow = addDays(today, 30);
+    
+    // 🔔 INTELIGENTNÉ UPOZORNENIA: Rôzne dni dopredu pre rôzne typy dokumentov
+    let warningDays: number;
+    switch (documentType) {
+      case 'insurance':
+      case 'vignette':
+      case 'greencard': // 🟢 Biela karta ako poistka
+        warningDays = 15; // Poistky, dialničné a biela karta 15 dní dopredu
+        break;
+      case 'stk':
+      case 'ek':
+        warningDays = 30; // STK/EK 30 dní dopredu
+        break;
+      default:
+        warningDays = 30; // Default 30 dní
+    }
+    
+    const warningDate = addDays(today, warningDays);
     
     const validToDate = typeof validTo === 'string' ? parseISO(validTo) : validTo;
     
@@ -90,10 +107,18 @@ const getExpiryStatus = (validTo: Date | string) => {
     
     if (isAfter(today, validToDate)) {
       return { status: 'expired', color: 'error', text: 'Vypršalo', bgColor: '#ffebee' };
-    } else if (isAfter(validToDate, thirtyDaysFromNow)) {
+    } else if (isAfter(validToDate, warningDate)) {
       return { status: 'valid', color: 'success', text: 'Platné', bgColor: '#e8f5e8' };
     } else {
-      return { status: 'expiring', color: 'warning', text: 'Vyprší čoskoro', bgColor: '#fff3e0' };
+      // Dynamický text na základe typu dokumentu a dní
+      const daysLeft = Math.ceil((validToDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const docTypeText = documentType === 'insurance' || documentType === 'vignette' ? 'poistka/dialničná' : 'STK/EK';
+      return { 
+        status: 'expiring', 
+        color: 'warning', 
+        text: `Vyprší za ${daysLeft} dní`, 
+        bgColor: '#fff3e0' 
+      };
     }
   } catch (error) {
     return { status: 'invalid', color: 'default', text: 'Neplatný dátum', bgColor: '#f5f5f5' };
@@ -125,6 +150,8 @@ const getDocumentTypeInfo = (type: string) => {
       return { label: 'EK', icon: <AssignmentIcon sx={{ fontSize: 16 }} />, color: '#f57c00' };
     case 'vignette':
       return { label: 'Dialničná', icon: <HighwayIcon sx={{ fontSize: 16 }} />, color: '#7b1fa2' };
+    case 'technical_certificate':
+      return { label: 'Technický preukaz', icon: <FileIcon sx={{ fontSize: 16 }} />, color: '#9c27b0' };
     default:
       return { label: type, icon: <ReportIcon sx={{ fontSize: 16 }} />, color: '#666' };
   }
@@ -204,23 +231,25 @@ export default function InsuranceList() {
       });
     });
     
-    // Add vehicle documents
+    // Add vehicle documents (EXCLUDE technical certificates - tie patria do vehicle management)
     if (state.vehicleDocuments) {
-      state.vehicleDocuments.forEach(doc => {
-        docs.push({
-          id: doc.id,
-          vehicleId: doc.vehicleId,
-          type: doc.documentType as any,
-          documentNumber: doc.documentNumber,
-          validFrom: doc.validFrom,
-          validTo: doc.validTo,
-          price: doc.price,
-          notes: doc.notes,
-          filePath: doc.filePath,
-          createdAt: doc.validTo, // Use validTo as fallback for sorting
-          originalData: doc
+      state.vehicleDocuments
+        .filter(doc => doc.documentType !== 'technical_certificate') // ❌ Vylúč technické preukazy
+        .forEach(doc => {
+          docs.push({
+            id: doc.id,
+            vehicleId: doc.vehicleId,
+            type: doc.documentType as any,
+            documentNumber: doc.documentNumber,
+            validFrom: doc.validFrom,
+            validTo: doc.validTo,
+            price: doc.price,
+            notes: doc.notes,
+            filePath: doc.filePath,
+            createdAt: doc.validTo, // Use validTo as fallback for sorting
+            originalData: doc
+          });
         });
-      });
     }
     
     return docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -230,17 +259,17 @@ export default function InsuranceList() {
   const stats = useMemo(() => {
     const total = unifiedDocuments.length;
     const validDocs = unifiedDocuments.filter(doc => {
-      const status = getExpiryStatus(doc.validTo);
+      const status = getExpiryStatus(doc.validTo, doc.type);
       return status.status === 'valid';
     }).length;
     
     const expiringDocs = unifiedDocuments.filter(doc => {
-      const status = getExpiryStatus(doc.validTo);
+      const status = getExpiryStatus(doc.validTo, doc.type);
       return status.status === 'expiring';
     }).length;
     
     const expiredDocs = unifiedDocuments.filter(doc => {
-      const status = getExpiryStatus(doc.validTo);
+      const status = getExpiryStatus(doc.validTo, doc.type);
       return status.status === 'expired';
     }).length;
     
@@ -272,7 +301,7 @@ export default function InsuranceList() {
       const matchesCompany = !filterCompany || doc.company === filterCompany;
       const matchesType = !filterType || doc.type === filterType;
       
-      const matchesStatus = !filterStatus || getExpiryStatus(doc.validTo).status === filterStatus;
+      const matchesStatus = !filterStatus || getExpiryStatus(doc.validTo, doc.type).status === filterStatus;
       
       return matchesSearch && matchesVehicle && matchesCompany && matchesType && matchesStatus;
     });
@@ -297,7 +326,10 @@ export default function InsuranceList() {
       validFrom: doc.validFrom ? (typeof doc.validFrom === 'string' ? new Date(doc.validFrom) : doc.validFrom) : undefined,
       validTo: typeof doc.validTo === 'string' ? new Date(doc.validTo) : doc.validTo,
       price: doc.price,
-      filePath: doc.filePath
+      filePath: doc.filePath,
+      // 🟢 BIELA KARTA: Preniesť z originalData ak existuje
+      greenCardValidFrom: doc.originalData && 'greenCardValidFrom' in doc.originalData ? doc.originalData.greenCardValidFrom : undefined,
+      greenCardValidTo: doc.originalData && 'greenCardValidTo' in doc.originalData ? doc.originalData.greenCardValidTo : undefined
     };
     setEditingDocument(formData as any);
     setOpenDialog(true);
@@ -342,7 +374,9 @@ export default function InsuranceList() {
             company: data.company || '', // Zachovávame pre kompatibilitu
             insurerId: selectedInsurer?.id || null, // Nový parameter
             paymentFrequency: data.paymentFrequency || 'yearly',
-            filePath: data.filePath
+            filePath: data.filePath,
+            greenCardValidFrom: data.greenCardValidFrom, // 🟢 Biela karta
+            greenCardValidTo: data.greenCardValidTo // 🟢 Biela karta
           };
           console.log('🔍 HANDLE SAVE - Updating insurance with data:', insuranceData);
           console.log('🔍 HANDLE SAVE - Insurance filePath:', insuranceData.filePath);
@@ -378,7 +412,9 @@ export default function InsuranceList() {
             price: data.price || 0,
             company: data.company || '',
             paymentFrequency: data.paymentFrequency || 'yearly',
-            filePath: data.filePath
+            filePath: data.filePath,
+            greenCardValidFrom: data.greenCardValidFrom, // 🟢 Biela karta
+            greenCardValidTo: data.greenCardValidTo // 🟢 Biela karta
           };
           console.log('🔍 HANDLE SAVE - Creating insurance with data:', insuranceData);
           console.log('🔍 HANDLE SAVE - Insurance filePath:', insuranceData.filePath);
@@ -734,6 +770,7 @@ export default function InsuranceList() {
                 <TableCell sx={{ fontWeight: 600 }}>Spoločnosť</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Platné do</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Stav</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>🟢 Biela karta</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Cena</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Súbor</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Akcie</TableCell>
@@ -742,7 +779,7 @@ export default function InsuranceList() {
             <TableBody>
               {filteredDocuments.map((doc, index) => {
                                      const vehicle = state.vehicles?.find(v => v.id === doc.vehicleId);
-                  const expiryStatus = getExpiryStatus(doc.validTo);
+                  const expiryStatus = getExpiryStatus(doc.validTo, doc.type);
                   const typeInfo = getDocumentTypeInfo(doc.type);
                   
                   return (
@@ -799,6 +836,46 @@ export default function InsuranceList() {
                           size="small"
                           variant="filled"
                         />
+                      </TableCell>
+                      <TableCell>
+                        {/* 🟢 BIELA KARTA: Zobrazenie len pre poistky */}
+                        {doc.type === 'insurance' && doc.originalData && 'greenCardValidTo' in doc.originalData ? (
+                          doc.originalData.greenCardValidTo ? (
+                            (() => {
+                              const greenCardStatus = getExpiryStatus(doc.originalData.greenCardValidTo, 'greencard');
+                              return (
+                                <Box>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {(() => {
+                                      try {
+                                        const date = typeof doc.originalData.greenCardValidTo === 'string' 
+                                          ? parseISO(doc.originalData.greenCardValidTo) 
+                                          : doc.originalData.greenCardValidTo;
+                                        return isValid(date) ? format(date, 'dd.MM.yyyy', { locale: sk }) : 'Neplatný';
+                                      } catch (error) {
+                                        return 'Neplatný';
+                                      }
+                                    })()}
+                                  </Typography>
+                                  <Chip
+                                    label={greenCardStatus.text}
+                                    color={greenCardStatus.color as any}
+                                    size="small"
+                                    variant="outlined"
+                                  />
+                                </Box>
+                              );
+                            })()
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              Nie je nastavená
+                            </Typography>
+                          )
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            -
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">

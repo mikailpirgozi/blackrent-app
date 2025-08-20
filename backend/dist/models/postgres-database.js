@@ -275,6 +275,45 @@ class PostgresDatabase {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+            // Tabuľka dokumentov firiem (zmluvy, faktúry)
+            await client.query(`
+        CREATE TABLE IF NOT EXISTS company_documents (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+          
+          -- Typ dokumentu
+          document_type VARCHAR(20) NOT NULL CHECK (document_type IN ('contract', 'invoice')),
+          
+          -- Kategorizácia faktúr po mesiacoch
+          document_month INTEGER CHECK (document_month >= 1 AND document_month <= 12),
+          document_year INTEGER CHECK (document_year >= 2020 AND document_year <= 2099),
+          
+          -- Základné info
+          document_name VARCHAR(255) NOT NULL,
+          description TEXT,
+          
+          -- File storage
+          file_path TEXT NOT NULL,
+          file_size BIGINT,
+          file_type VARCHAR(100),
+          original_filename VARCHAR(255),
+          
+          -- Audit
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          created_by UUID REFERENCES users(id)
+        )
+      `);
+            // Indexy pre company_documents
+            await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_company_documents_company_id ON company_documents(company_id)
+      `);
+            await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_company_documents_type ON company_documents(document_type)
+      `);
+            await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_company_documents_date ON company_documents(document_year, document_month)
+      `);
             // Tabuľka poisťovní
             await client.query(`
         CREATE TABLE IF NOT EXISTS insurers (
@@ -3450,28 +3489,394 @@ class PostgresDatabase {
             client.release();
         }
     }
+    // Metódy pre kategórie nákladov
+    async getExpenseCategories() {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        SELECT id, name, display_name, description, icon, color, is_default, is_active, sort_order, created_at, updated_at, created_by
+        FROM expense_categories 
+        WHERE is_active = TRUE 
+        ORDER BY sort_order ASC, display_name ASC
+      `);
+            return result.rows.map(row => ({
+                id: row.id.toString(),
+                name: row.name,
+                displayName: row.display_name,
+                description: row.description || undefined,
+                icon: row.icon || 'receipt',
+                color: row.color || 'primary',
+                isDefault: row.is_default || false,
+                isActive: row.is_active || true,
+                sortOrder: row.sort_order || 0,
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at),
+                createdBy: row.created_by?.toString()
+            }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    async createExpenseCategory(categoryData) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        INSERT INTO expense_categories (name, display_name, description, icon, color, sort_order, created_by) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        RETURNING id, name, display_name, description, icon, color, is_default, is_active, sort_order, created_at, updated_at, created_by
+      `, [
+                categoryData.name,
+                categoryData.displayName,
+                categoryData.description || null,
+                categoryData.icon || 'receipt',
+                categoryData.color || 'primary',
+                categoryData.sortOrder || 0,
+                categoryData.createdBy || null
+            ]);
+            const row = result.rows[0];
+            return {
+                id: row.id.toString(),
+                name: row.name,
+                displayName: row.display_name,
+                description: row.description || undefined,
+                icon: row.icon || 'receipt',
+                color: row.color || 'primary',
+                isDefault: row.is_default || false,
+                isActive: row.is_active || true,
+                sortOrder: row.sort_order || 0,
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at),
+                createdBy: row.created_by?.toString()
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async updateExpenseCategory(category) {
+        const client = await this.pool.connect();
+        try {
+            await client.query(`
+        UPDATE expense_categories 
+        SET display_name = $1, description = $2, icon = $3, color = $4, sort_order = $5, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = $6
+      `, [
+                category.displayName,
+                category.description || null,
+                category.icon || 'receipt',
+                category.color || 'primary',
+                category.sortOrder || 0,
+                category.id
+            ]);
+        }
+        finally {
+            client.release();
+        }
+    }
+    async deleteExpenseCategory(id) {
+        const client = await this.pool.connect();
+        try {
+            // Skontroluj či kategória nie je default
+            const checkResult = await client.query('SELECT is_default FROM expense_categories WHERE id = $1', [id]);
+            if (checkResult.rows.length > 0 && checkResult.rows[0].is_default) {
+                throw new Error('Nemožno zmazať základnú kategóriu');
+            }
+            // Skontroluj či sa kategória používa v nákladoch
+            const usageResult = await client.query('SELECT COUNT(*) as count FROM expenses WHERE category = (SELECT name FROM expense_categories WHERE id = $1)', [id]);
+            if (parseInt(usageResult.rows[0].count) > 0) {
+                throw new Error('Nemožno zmazať kategóriu ktorá sa používa v nákladoch');
+            }
+            await client.query('DELETE FROM expense_categories WHERE id = $1', [id]);
+        }
+        finally {
+            client.release();
+        }
+    }
+    // Metódy pre pravidelné náklady
+    async getRecurringExpenses() {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        SELECT id, name, description, amount, category, company, vehicle_id, note,
+               frequency, start_date, end_date, day_of_month,
+               is_active, last_generated_date, next_generation_date, total_generated,
+               created_at, updated_at, created_by
+        FROM recurring_expenses 
+        ORDER BY is_active DESC, next_generation_date ASC, name ASC
+      `);
+            return result.rows.map(row => ({
+                id: row.id.toString(),
+                name: row.name,
+                description: row.description,
+                amount: parseFloat(row.amount) || 0,
+                category: row.category,
+                company: row.company,
+                vehicleId: row.vehicle_id?.toString(),
+                note: row.note || undefined,
+                frequency: row.frequency,
+                startDate: new Date(row.start_date),
+                endDate: row.end_date ? new Date(row.end_date) : undefined,
+                dayOfMonth: row.day_of_month,
+                isActive: row.is_active || true,
+                lastGeneratedDate: row.last_generated_date ? new Date(row.last_generated_date) : undefined,
+                nextGenerationDate: row.next_generation_date ? new Date(row.next_generation_date) : undefined,
+                totalGenerated: row.total_generated || 0,
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at),
+                createdBy: row.created_by?.toString()
+            }));
+        }
+        finally {
+            client.release();
+        }
+    }
+    async createRecurringExpense(recurringData) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        INSERT INTO recurring_expenses (name, description, amount, category, company, vehicle_id, note,
+                                       frequency, start_date, end_date, day_of_month, created_by) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+        RETURNING id, name, description, amount, category, company, vehicle_id, note,
+                  frequency, start_date, end_date, day_of_month,
+                  is_active, last_generated_date, next_generation_date, total_generated,
+                  created_at, updated_at, created_by
+      `, [
+                recurringData.name,
+                recurringData.description,
+                recurringData.amount,
+                recurringData.category,
+                recurringData.company,
+                recurringData.vehicleId || null,
+                recurringData.note || null,
+                recurringData.frequency,
+                recurringData.startDate,
+                recurringData.endDate || null,
+                recurringData.dayOfMonth,
+                recurringData.createdBy || null
+            ]);
+            const row = result.rows[0];
+            return {
+                id: row.id.toString(),
+                name: row.name,
+                description: row.description,
+                amount: parseFloat(row.amount) || 0,
+                category: row.category,
+                company: row.company,
+                vehicleId: row.vehicle_id?.toString(),
+                note: row.note || undefined,
+                frequency: row.frequency,
+                startDate: new Date(row.start_date),
+                endDate: row.end_date ? new Date(row.end_date) : undefined,
+                dayOfMonth: row.day_of_month,
+                isActive: row.is_active || true,
+                lastGeneratedDate: row.last_generated_date ? new Date(row.last_generated_date) : undefined,
+                nextGenerationDate: row.next_generation_date ? new Date(row.next_generation_date) : undefined,
+                totalGenerated: row.total_generated || 0,
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at),
+                createdBy: row.created_by?.toString()
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
+    async updateRecurringExpense(recurring) {
+        const client = await this.pool.connect();
+        try {
+            await client.query(`
+        UPDATE recurring_expenses 
+        SET name = $1, description = $2, amount = $3, category = $4, company = $5, 
+            vehicle_id = $6, note = $7, frequency = $8, start_date = $9, end_date = $10, 
+            day_of_month = $11, is_active = $12, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $13
+      `, [
+                recurring.name,
+                recurring.description,
+                recurring.amount,
+                recurring.category,
+                recurring.company,
+                recurring.vehicleId || null,
+                recurring.note || null,
+                recurring.frequency,
+                recurring.startDate,
+                recurring.endDate || null,
+                recurring.dayOfMonth,
+                recurring.isActive,
+                recurring.id
+            ]);
+        }
+        finally {
+            client.release();
+        }
+    }
+    async deleteRecurringExpense(id) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('DELETE FROM recurring_expenses WHERE id = $1', [id]);
+        }
+        finally {
+            client.release();
+        }
+    }
+    // Automatické generovanie nákladov
+    async generateRecurringExpenses(targetDate) {
+        const client = await this.pool.connect();
+        try {
+            const today = targetDate || new Date();
+            const results = { generated: 0, skipped: 0, errors: [] };
+            // Získaj všetky aktívne pravidelné náklady ktoré treba vygenerovať
+            const recurringResult = await client.query(`
+        SELECT * FROM recurring_expenses 
+        WHERE is_active = TRUE 
+        AND next_generation_date <= $1
+        AND (end_date IS NULL OR end_date >= $1)
+      `, [today]);
+            console.log(`🔄 Generating recurring expenses for ${today.toISOString().split('T')[0]}: ${recurringResult.rows.length} candidates`);
+            for (const row of recurringResult.rows) {
+                try {
+                    console.log('🔄 Processing recurring expense:', {
+                        id: row.id,
+                        idType: typeof row.id,
+                        name: row.name
+                    });
+                    const nextGenDate = new Date(row.next_generation_date);
+                    const recurringExpense = {
+                        id: row.id.toString(),
+                        nextGenerationDate: nextGenDate,
+                        generationDate: new Date(nextGenDate.getFullYear(), nextGenDate.getMonth(), row.day_of_month)
+                    };
+                    // Skontroluj či už nebol vygenerovaný pre tento mesiac
+                    const existingCheck = await client.query(`
+            SELECT id FROM recurring_expense_generations 
+            WHERE recurring_expense_id = $1 AND generation_date = $2
+          `, [row.id, recurringExpense.generationDate]);
+                    if (existingCheck.rows.length > 0) {
+                        results.skipped++;
+                        continue;
+                    }
+                    // Vytvor nový náklad pomocou existujúcej metódy
+                    const generatedExpense = await this.createExpense({
+                        description: row.description,
+                        amount: parseFloat(row.amount),
+                        date: recurringExpense.generationDate,
+                        vehicleId: row.vehicle_id || undefined,
+                        company: row.company,
+                        category: row.category,
+                        note: row.note || undefined
+                    });
+                    const generatedExpenseId = generatedExpense.id;
+                    // Zaznamenaj generovanie
+                    await client.query(`
+            INSERT INTO recurring_expense_generations (recurring_expense_id, generated_expense_id, generation_date) 
+            VALUES ($1, $2, $3)
+          `, [row.id, parseInt(generatedExpenseId), recurringExpense.generationDate]);
+                    // Aktualizuj recurring expense
+                    const nextDate = new Date(recurringExpense.generationDate);
+                    if (row.frequency === 'monthly') {
+                        nextDate.setMonth(nextDate.getMonth() + 1);
+                    }
+                    else if (row.frequency === 'quarterly') {
+                        nextDate.setMonth(nextDate.getMonth() + 3);
+                    }
+                    else if (row.frequency === 'yearly') {
+                        nextDate.setFullYear(nextDate.getFullYear() + 1);
+                    }
+                    await client.query(`
+            UPDATE recurring_expenses 
+            SET last_generated_date = $1, next_generation_date = $2, total_generated = total_generated + 1
+            WHERE id = $3
+          `, [recurringExpense.generationDate, nextDate, row.id]);
+                    results.generated++;
+                    console.log(`✅ Generated expense: ${row.description} for ${recurringExpense.generationDate.toISOString().split('T')[0]}`);
+                }
+                catch (error) {
+                    results.errors.push(`Error generating ${row.name}: ${error.message}`);
+                    console.error(`❌ Error generating recurring expense ${row.name}:`, error);
+                }
+            }
+            return results;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // Manuálne spustenie generovania
+    async triggerRecurringExpenseGeneration(recurringExpenseId, targetDate) {
+        const client = await this.pool.connect();
+        try {
+            const today = targetDate || new Date();
+            // Získaj recurring expense
+            const recurringResult = await client.query('SELECT * FROM recurring_expenses WHERE id = $1', [recurringExpenseId]);
+            if (recurringResult.rows.length === 0) {
+                throw new Error('Pravidelný náklad nenájdený');
+            }
+            const row = recurringResult.rows[0];
+            const generationDate = new Date(today.getFullYear(), today.getMonth(), row.day_of_month);
+            // Skontroluj duplikáty
+            const existingCheck = await client.query(`
+        SELECT id FROM recurring_expense_generations 
+        WHERE recurring_expense_id = $1 AND generation_date = $2
+      `, [recurringExpenseId, generationDate]);
+            if (existingCheck.rows.length > 0) {
+                throw new Error('Náklad pre tento mesiac už bol vygenerovaný');
+            }
+            // Vytvor náklad pomocou existujúcej metódy
+            const generatedExpense = await this.createExpense({
+                description: row.description,
+                amount: parseFloat(row.amount),
+                date: generationDate,
+                vehicleId: row.vehicle_id || undefined,
+                company: row.company,
+                category: row.category,
+                note: row.note || undefined
+            });
+            const generatedExpenseId = generatedExpense.id;
+            // Zaznamenaj generovanie
+            await client.query(`
+        INSERT INTO recurring_expense_generations (recurring_expense_id, generated_expense_id, generation_date, generated_by) 
+        VALUES ($1, $2, $3, $4)
+      `, [recurringExpenseId, parseInt(generatedExpenseId), generationDate, 'manual']);
+            // Aktualizuj recurring expense
+            await client.query(`
+        UPDATE recurring_expenses 
+        SET last_generated_date = $1, total_generated = total_generated + 1
+        WHERE id = $2
+      `, [generationDate, recurringExpenseId]);
+            return generatedExpenseId.toString();
+        }
+        finally {
+            client.release();
+        }
+    }
     // Metódy pre poistky
     async getInsurances() {
         const client = await this.pool.connect();
         try {
-            // JOIN s insurers tabuľkou pre načítanie názvu poistovne
+            // 🔧 BEZPEČNÉ: Používame správne stĺpce z aktuálnej schémy
             const result = await client.query(`
-        SELECT i.*, ins.name as insurer_name 
+        SELECT 
+          i.*, 
+          ins.name as insurer_name
         FROM insurances i 
         LEFT JOIN insurers ins ON i.insurer_id = ins.id 
         ORDER BY i.created_at DESC
       `);
             return result.rows.map(row => ({
                 id: row.id?.toString() || '',
-                vehicleId: row.rental_id?.toString() || '', // Mapovanie rental_id na vehicleId pre kompatibilitu
+                vehicleId: row.vehicle_id?.toString() || '', // Priamo z insurances.vehicle_id
                 type: row.type,
                 policyNumber: row.policy_number || '',
-                validFrom: row.start_date ? new Date(row.start_date) : new Date(),
-                validTo: row.end_date ? new Date(row.end_date) : new Date(),
-                price: parseFloat(row.premium) || 0,
+                validFrom: row.valid_from ? new Date(row.valid_from) : new Date(), // Správny stĺpec
+                validTo: row.valid_to ? new Date(row.valid_to) : new Date(), // Správny stĺpec
+                price: parseFloat(row.price) || 0, // Správny stĺpec
                 company: row.insurer_name || '', // Načítaný názov poistovne z JOIN
                 paymentFrequency: row.payment_frequency || 'yearly',
-                filePath: row.file_path || undefined
+                filePath: row.file_path || undefined,
+                greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
+                greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined // 🟢 Biela karta
             }));
         }
         finally {
@@ -3481,34 +3886,45 @@ class PostgresDatabase {
     async createInsurance(insuranceData) {
         const client = await this.pool.connect();
         try {
-            // ✅ OPRAVENÉ: Mapovanie API parametrov na databázové stĺpce
-            const result = await client.query('INSERT INTO insurances (rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, created_at', [
-                insuranceData.rentalId || null,
-                insuranceData.insurerId || null,
+            // 🔧 JEDNODUCHÉ: Databáza má vehicle_id stĺpec, takže nemusíme mapovať
+            // 🔧 BEZPEČNÉ: Nájdeme insurerId podľa company názvu
+            let finalInsurerId = insuranceData.insurerId;
+            if (!finalInsurerId && insuranceData.company) {
+                const insurerResult = await client.query('SELECT id FROM insurers WHERE name = $1 LIMIT 1', [insuranceData.company]);
+                if (insurerResult.rows.length > 0) {
+                    finalInsurerId = insurerResult.rows[0].id;
+                    console.log(`🔧 INSURANCE: Mapped company "${insuranceData.company}" to insurerId ${finalInsurerId}`);
+                }
+            }
+            // ✅ OPRAVENÉ: Používame správne stĺpce podľa aktuálnej schémy + biela karta
+            const result = await client.query('INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, green_card_valid_from, green_card_valid_to) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, green_card_valid_from, green_card_valid_to, created_at', [
+                insuranceData.vehicleId, // Priamo vehicle_id 
+                finalInsurerId || null,
                 insuranceData.policyNumber,
                 insuranceData.type,
-                insuranceData.coverageAmount || insuranceData.price, // coverage_amount = price ako fallback
-                insuranceData.price, // premium = price
-                insuranceData.validFrom, // start_date = validFrom
-                insuranceData.validTo, // end_date = validTo
+                insuranceData.coverageAmount || insuranceData.price, // coverage_amount
+                insuranceData.price, // price (nie premium!)
+                insuranceData.validFrom, // valid_from (nie start_date!)
+                insuranceData.validTo, // valid_to (nie end_date!)
                 insuranceData.paymentFrequency || 'yearly',
-                insuranceData.filePath || null
+                insuranceData.filePath || null,
+                insuranceData.greenCardValidFrom || null, // 🟢 Biela karta od
+                insuranceData.greenCardValidTo || null // 🟢 Biela karta do
             ]);
             const row = result.rows[0];
             return {
                 id: row.id.toString(),
-                vehicleId: insuranceData.vehicleId || '', // Zachovávame pre kompatibilitu API
-                rentalId: row.rental_id,
-                insurerId: row.insurer_id,
+                vehicleId: row.vehicle_id?.toString() || '', // Z databázy
                 type: row.type,
                 policyNumber: row.policy_number || '',
-                validFrom: new Date(row.start_date),
-                validTo: new Date(row.end_date),
-                price: parseFloat(row.premium) || 0,
+                validFrom: new Date(row.valid_from), // Správny stĺpec
+                validTo: new Date(row.valid_to), // Správny stĺpec  
+                price: parseFloat(row.price) || 0, // Správny stĺpec
                 company: insuranceData.company || '',
                 paymentFrequency: row.payment_frequency || 'yearly',
                 filePath: row.file_path || undefined,
-                coverageAmount: parseFloat(row.coverage_amount) || 0
+                greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
+                greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined // 🟢 Biela karta
             };
         }
         finally {
@@ -3518,13 +3934,22 @@ class PostgresDatabase {
     async updateInsurance(id, insuranceData) {
         const client = await this.pool.connect();
         try {
-            // UPDATE s JOIN pre získanie názvu poistovne
+            // 🔧 BEZPEČNÉ: Nájdeme insurerId podľa company názvu
+            let finalInsurerId = insuranceData.insurerId ? parseInt(insuranceData.insurerId) : undefined;
+            if (!finalInsurerId && insuranceData.company) {
+                const insurerResult = await client.query('SELECT id FROM insurers WHERE name = $1 LIMIT 1', [insuranceData.company]);
+                if (insurerResult.rows.length > 0) {
+                    finalInsurerId = insurerResult.rows[0].id;
+                    console.log(`🔧 UPDATE INSURANCE: Mapped company "${insuranceData.company}" to insurerId ${finalInsurerId}`);
+                }
+            }
+            // ✅ OPRAVENÉ: Používame správne stĺpce podľa aktuálnej schémy + biela karta
             const result = await client.query(`
         UPDATE insurances 
-        SET rental_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10 
-        WHERE id = $11 
-        RETURNING id, rental_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path
-      `, [insuranceData.vehicleId || null, insuranceData.insurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, id]);
+        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, valid_from = $5, valid_to = $6, price = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, green_card_valid_from = $11, green_card_valid_to = $12
+        WHERE id = $13 
+        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, green_card_valid_from, green_card_valid_to
+      `, [insuranceData.vehicleId, finalInsurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, insuranceData.greenCardValidFrom || null, insuranceData.greenCardValidTo || null, id]);
             if (result.rows.length === 0) {
                 throw new Error('Poistka nebola nájdená');
             }
@@ -3537,15 +3962,17 @@ class PostgresDatabase {
             const row = result.rows[0];
             return {
                 id: row.id.toString(),
-                vehicleId: insuranceData.vehicleId || '', // Zachovávame pre kompatibilitu API
+                vehicleId: row.vehicle_id?.toString() || '', // Z databázy
                 type: row.type,
                 policyNumber: row.policy_number || '',
-                validFrom: new Date(row.start_date),
-                validTo: new Date(row.end_date),
-                price: parseFloat(row.premium) || 0,
+                validFrom: new Date(row.valid_from), // Správny stĺpec
+                validTo: new Date(row.valid_to), // Správny stĺpec
+                price: parseFloat(row.price) || 0, // Správny stĺpec
                 company: insurerName || insuranceData.company || '', // Použijem načítaný názov poistovne
                 paymentFrequency: row.payment_frequency || 'yearly',
-                filePath: row.file_path || undefined
+                filePath: row.file_path || undefined,
+                greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
+                greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined // 🟢 Biela karta
             };
         }
         finally {
@@ -6342,6 +6769,122 @@ class PostgresDatabase {
         finally {
             client.release();
         }
+    }
+    // 📄 COMPANY DOCUMENTS METHODS
+    async createCompanyDocument(document) {
+        const client = await this.pool.connect();
+        try {
+            const query = `
+        INSERT INTO company_documents (
+          company_id, document_type, document_month, document_year,
+          document_name, description, file_path, file_size, 
+          file_type, original_filename, created_by
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING *
+      `;
+            const values = [
+                parseInt(document.companyId.toString()),
+                document.documentType,
+                document.documentMonth || null,
+                document.documentYear || null,
+                document.documentName,
+                document.description || null,
+                document.filePath,
+                document.fileSize || null,
+                document.fileType || null,
+                document.originalFilename || null,
+                document.createdBy || null
+            ];
+            const result = await client.query(query, values);
+            return this.mapCompanyDocument(result.rows[0]);
+        }
+        finally {
+            client.release();
+        }
+    }
+    async getCompanyDocuments(companyId, documentType, year, month) {
+        const client = await this.pool.connect();
+        try {
+            let query = `
+        SELECT cd.*, c.name as company_name 
+        FROM company_documents cd
+        JOIN companies c ON cd.company_id = c.id
+        WHERE cd.company_id = $1
+      `;
+            const values = [typeof companyId === 'string' ? parseInt(companyId) : companyId];
+            let paramCount = 1;
+            if (documentType) {
+                paramCount++;
+                query += ` AND cd.document_type = $${paramCount}`;
+                values.push(documentType);
+            }
+            if (year) {
+                paramCount++;
+                query += ` AND cd.document_year = $${paramCount}`;
+                values.push(year);
+            }
+            if (month) {
+                paramCount++;
+                query += ` AND cd.document_month = $${paramCount}`;
+                values.push(month);
+            }
+            query += ` ORDER BY cd.created_at DESC`;
+            const result = await client.query(query, values);
+            return result.rows.map(row => this.mapCompanyDocument(row));
+        }
+        finally {
+            client.release();
+        }
+    }
+    async getCompanyDocumentById(documentId) {
+        const client = await this.pool.connect();
+        try {
+            const query = `
+        SELECT cd.*, c.name as company_name 
+        FROM company_documents cd
+        JOIN companies c ON cd.company_id = c.id
+        WHERE cd.id = $1
+      `;
+            const result = await client.query(query, [documentId]);
+            return result.rows.length > 0 ? this.mapCompanyDocument(result.rows[0]) : null;
+        }
+        finally {
+            client.release();
+        }
+    }
+    async deleteCompanyDocument(documentId) {
+        const client = await this.pool.connect();
+        try {
+            const query = `DELETE FROM company_documents WHERE id = $1`;
+            await client.query(query, [documentId]);
+        }
+        finally {
+            client.release();
+        }
+    }
+    async getCompanyDocumentsByType(companyId, documentType) {
+        return this.getCompanyDocuments(companyId, documentType);
+    }
+    async getCompanyInvoicesByMonth(companyId, year, month) {
+        return this.getCompanyDocuments(companyId, 'invoice', year, month);
+    }
+    mapCompanyDocument(row) {
+        return {
+            id: row.id,
+            companyId: parseInt(row.company_id),
+            documentType: row.document_type,
+            documentMonth: row.document_month,
+            documentYear: row.document_year,
+            documentName: row.document_name,
+            description: row.description,
+            filePath: row.file_path,
+            fileSize: row.file_size,
+            fileType: row.file_type,
+            originalFilename: row.original_filename,
+            createdAt: new Date(row.created_at),
+            updatedAt: new Date(row.updated_at),
+            createdBy: row.created_by
+        };
     }
 }
 exports.PostgresDatabase = PostgresDatabase;

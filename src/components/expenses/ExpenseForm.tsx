@@ -16,9 +16,10 @@ interface ExpenseFormProps {
   expense?: Expense | null;
   onSave: (expense: Expense) => void;
   onCancel: () => void;
+  categories?: ExpenseCategory[];
 }
 
-export default function ExpenseForm({ expense, onSave, onCancel }: ExpenseFormProps) {
+export default function ExpenseForm({ expense, onSave, onCancel, categories = [] }: ExpenseFormProps) {
   const { state, dispatch, createCompany } = useApp();
   const [addingCompany, setAddingCompany] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
@@ -95,10 +96,21 @@ export default function ExpenseForm({ expense, onSave, onCancel }: ExpenseFormPr
             label="Kategória"
             required
           >
-            <MenuItem value="service">Servis</MenuItem>
-            <MenuItem value="insurance">Poistenie</MenuItem>
-            <MenuItem value="fuel">Palivo</MenuItem>
-            <MenuItem value="other">Iné</MenuItem>
+            {categories.length > 0 ? (
+              categories.map(category => (
+                <MenuItem key={category.name} value={category.name}>
+                  {category.displayName}
+                </MenuItem>
+              ))
+            ) : (
+              // Fallback na základné kategórie ak sa nenačítali
+              <>
+                <MenuItem value="service">Servis</MenuItem>
+                <MenuItem value="insurance">Poistenie</MenuItem>
+                <MenuItem value="fuel">Palivo</MenuItem>
+                <MenuItem value="other">Iné</MenuItem>
+              </>
+            )}
           </Select>
         </FormControl>
 

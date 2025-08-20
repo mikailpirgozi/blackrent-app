@@ -238,7 +238,12 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
         rentalData: {
           orderNumber: rental.orderNumber || '',
           vehicle: rental.vehicle || {} as any,
-          customer: rental.customer || {} as any,
+          customer: {
+            id: rental.customerId || '',
+            name: rental.customerName || '',
+            email: rental.customer?.email || (rental as any).customerEmail || '',
+            phone: rental.customer?.phone || (rental as any).customerPhone || ''
+          },
           startDate: rental.startDate,
           endDate: rental.endDate,
           totalPrice: rental.totalPrice,

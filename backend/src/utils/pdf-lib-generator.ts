@@ -672,9 +672,25 @@ export class PDFLibGenerator {
               continue;
             }
             imageData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+          } else if (image.url.startsWith('http')) {
+            // ✅ R2 URL obrázok - stiahni cez HTTP
+            console.log('📥 Downloading image from R2 URL:', image.url);
+            try {
+              const response = await fetch(image.url);
+              if (!response.ok) {
+                console.error('❌ Failed to download image:', response.status, response.statusText);
+                continue;
+              }
+              const arrayBuffer = await response.arrayBuffer();
+              imageData = new Uint8Array(arrayBuffer);
+              console.log(`✅ R2 image downloaded: ${imageData.length} bytes`);
+            } catch (fetchError) {
+              console.error('❌ Error downloading R2 image:', fetchError);
+              continue;
+            }
           } else {
-            // HTTP URL obrázok (ak by bolo potrebné v budúcnosti)
-            console.log('⚠️ Preskačujem HTTP URL obrázok - nie je podporovaný');
+            // Nepodporovaný formát
+            console.log('⚠️ Preskačujem nepodporovaný formát obrázka:', image.url.substring(0, 50));
             continue;
           }
           

@@ -45,9 +45,9 @@ class R2Storage {
     contentType: string,
     metadata?: Record<string, string>
   ): Promise<string> {
-    // Ak R2 nie je nakonfigurované, použi lokálne storage
+    // ❌ ODSTRÁNENÝ FALLBACK - R2 musí fungovať alebo zlyhať
     if (!this.isConfigured()) {
-      return await this.uploadFileLocally(key, buffer, contentType);
+      throw new Error('R2 Storage nie je nakonfigurované. Skontrolujte environment variables.');
     }
 
     try {
@@ -59,15 +59,24 @@ class R2Storage {
         Metadata: metadata,
       });
 
+      console.log('☁️ Uploading to R2:', { bucket: this.config.bucketName, key });
       await this.client.send(command);
       
-      // Return public URL
-      return `${this.config.publicUrl}/${key}`;
+      const publicUrl = `${this.config.publicUrl}/${key}`;
+      console.log('✅ R2 upload successful:', publicUrl);
+      
+      return publicUrl;
     } catch (error) {
-      console.error('R2 upload error:', error);
-      // Fallback na lokálne storage
-      console.log('📁 Falling back to local file storage');
-      return await this.uploadFileLocally(key, buffer, contentType);
+      console.error('❌ R2 upload failed:', error);
+      
+      // 🚨 ŽIADNY FALLBACK - R2 musí fungovať alebo zlyhať
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        console.error('🚨 R2 API TOKEN JE NEPLATNÝ!');
+        console.error('🚨 Potrebujete vytvoriť nový R2 API token v Cloudflare dashboard');
+        console.error('🚨 Dokumentácia: docs/deployment/R2-TOKEN-SETUP-GUIDE.md');
+      }
+      
+      throw new Error(`R2 upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -160,16 +169,20 @@ class R2Storage {
    * Generovanie lepšie organizovaných kľúčov pre súbory
    */
   generateFileKey(
-    type: 'vehicle' | 'protocol' | 'document', 
+    type: 'vehicle' | 'protocol' | 'document' | 'company-document', 
     entityId: string, 
     filename: string,
-    mediaType?: 'vehicle-images' | 'document-images' | 'damage-images' | 'vehicle-videos' | 'pdf'
+    mediaType?: 'vehicle-images' | 'document-images' | 'damage-images' | 'vehicle-videos' | 'pdf' | 'contract' | 'invoice' | 'technical-certificate'
   ): string {
     const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
     
     switch (type) {
       case 'vehicle':
+        // ✅ ROZŠÍRENÉ: Rozlišovanie medzi fotkami a dokumentmi vozidiel
+        if (mediaType === 'technical-certificate') {
+          return `vehicles/documents/technical-certificates/${entityId}/${timestamp}/${sanitizedFilename}`;
+        }
         return `vehicles/photos/${entityId}/${sanitizedFilename}`;
       case 'protocol':
         // ✅ LEPŠIA ORGANIZÁCIA: protocols/type/date/protocol-id/filename
@@ -179,6 +192,17 @@ class R2Storage {
         return `protocols/general/${timestamp}/${entityId}/${sanitizedFilename}`;
       case 'document':
         return `documents/rentals/${entityId}/${timestamp}/${sanitizedFilename}`;
+      case 'company-document':
+        // ✅ NOVÉ: Dokumenty majiteľov organizované podľa typu a dátumu
+        if (mediaType === 'contract') {
+          return `companies/contracts/${entityId}/${timestamp}/${sanitizedFilename}`;
+        } else if (mediaType === 'invoice') {
+          const date = new Date();
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          return `companies/invoices/${entityId}/${year}/${month}/${sanitizedFilename}`;
+        }
+        return `companies/documents/${entityId}/${timestamp}/${sanitizedFilename}`;
       default:
         return `temp/uploads/${timestamp}/${sanitizedFilename}`;
     }

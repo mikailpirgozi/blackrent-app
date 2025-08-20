@@ -1,4 +1,4 @@
-import { Vehicle, Rental, Customer, Expense, Insurance, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim } from '../types';
+import { Vehicle, Rental, Customer, Expense, ExpenseCategory, RecurringExpense, Insurance, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim } from '../types';
 import { 
   getProtocolCache, 
   setProtocolCache, 
@@ -797,6 +797,66 @@ class ApiService {
 
   async deleteExpense(id: string): Promise<void> {
     return this.request<void>(`/expenses/${id}`, { method: 'DELETE' });
+  }
+
+  // Kategórie nákladov
+  async getExpenseCategories(): Promise<ExpenseCategory[]> {
+    return this.request<ExpenseCategory[]>('/expense-categories');
+  }
+
+  async createExpenseCategory(category: Omit<ExpenseCategory, 'id' | 'createdAt' | 'updatedAt' | 'isDefault' | 'isActive'>): Promise<ExpenseCategory> {
+    return this.request<ExpenseCategory>('/expense-categories', {
+      method: 'POST',
+      body: JSON.stringify(category),
+    });
+  }
+
+  async updateExpenseCategory(category: ExpenseCategory): Promise<void> {
+    return this.request<void>(`/expense-categories/${category.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(category),
+    });
+  }
+
+  async deleteExpenseCategory(id: string): Promise<void> {
+    return this.request<void>(`/expense-categories/${id}`, { method: 'DELETE' });
+  }
+
+  // Pravidelné náklady
+  async getRecurringExpenses(): Promise<RecurringExpense[]> {
+    return this.request<RecurringExpense[]>('/recurring-expenses');
+  }
+
+  async createRecurringExpense(recurring: Omit<RecurringExpense, 'id' | 'createdAt' | 'updatedAt' | 'isActive' | 'totalGenerated' | 'lastGeneratedDate' | 'nextGenerationDate'>): Promise<RecurringExpense> {
+    return this.request<RecurringExpense>('/recurring-expenses', {
+      method: 'POST',
+      body: JSON.stringify(recurring),
+    });
+  }
+
+  async updateRecurringExpense(recurring: RecurringExpense): Promise<void> {
+    return this.request<void>(`/recurring-expenses/${recurring.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(recurring),
+    });
+  }
+
+  async deleteRecurringExpense(id: string): Promise<void> {
+    return this.request<void>(`/recurring-expenses/${id}`, { method: 'DELETE' });
+  }
+
+  async generateRecurringExpenses(targetDate?: Date): Promise<{ generated: number; skipped: number; errors: string[] }> {
+    return this.request<{ generated: number; skipped: number; errors: string[] }>('/recurring-expenses/generate', {
+      method: 'POST',
+      body: JSON.stringify({ targetDate: targetDate?.toISOString() }),
+    });
+  }
+
+  async generateSingleRecurringExpense(id: string, targetDate?: Date): Promise<{ generatedExpenseId: string }> {
+    return this.request<{ generatedExpenseId: string }>(`/recurring-expenses/${id}/generate`, {
+      method: 'POST',
+      body: JSON.stringify({ targetDate: targetDate?.toISOString() }),
+    });
   }
 
   // Poistky

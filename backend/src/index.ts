@@ -108,6 +108,8 @@ import vehicleRoutes from './routes/vehicles';
 import customerRoutes from './routes/customers';
 import rentalRoutes from './routes/rentals';
 import expenseRoutes from './routes/expenses';
+import expenseCategoryRoutes from './routes/expense-categories';
+import recurringExpenseRoutes from './routes/recurring-expenses';
 import insuranceRoutes from './routes/insurances';
 import companyRoutes from './routes/companies';
 import companyInvestorRoutes from './routes/company-investors';
@@ -129,6 +131,7 @@ import emailImapRoutes from './routes/email-imap';
 import emailManagementRoutes from './routes/email-management';
 import cacheRoutes from './routes/cache';
 import pushRoutes from './routes/push';
+import companyDocumentsRoutes from './routes/company-documents';
 
 
 // API routes
@@ -137,6 +140,8 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/expenses', expenseRoutes);
+app.use('/api/expense-categories', expenseCategoryRoutes);
+app.use('/api/recurring-expenses', recurringExpenseRoutes);
 app.use('/api/insurances', insuranceRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/company-investors', companyInvestorRoutes);
@@ -158,6 +163,7 @@ app.use('/api/email-imap', emailImapRoutes);
 app.use('/api/email-management', emailManagementRoutes);
 app.use('/api/cache', cacheRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/company-documents', companyDocumentsRoutes);
 
 
 // SIMPLE TEST ENDPOINT - bez middleware
@@ -306,6 +312,17 @@ httpServer.listen(Number(port), '0.0.0.0', async () => {
   
   // Auto-start IMAP monitoring after server starts (2 second delay)
   setTimeout(autoStartImapMonitoring, 2000);
+  
+  // Start recurring expense scheduler after server starts (5 second delay)
+  setTimeout(async () => {
+    try {
+      const { recurringExpenseScheduler } = await import('./utils/recurring-expense-scheduler');
+      recurringExpenseScheduler.startScheduler();
+      console.log('🔄 Recurring expense scheduler štartovaný');
+    } catch (error) {
+      console.warn('Recurring expense scheduler initialization failed:', error);
+    }
+  }, 5000);
 });
 
 // Graceful shutdown

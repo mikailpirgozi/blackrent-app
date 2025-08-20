@@ -125,6 +125,7 @@ class EmailService {
           address: process.env.SMTP_USER || 'info@blackrent.sk'
         },
         to: customer.email,
+        cc: 'objednavky@blackrent.sk', // ✅ Automatická kópia pre BlackRent
         subject: template.subject,
         text: template.text,
         html: template.html,
@@ -198,6 +199,7 @@ class EmailService {
           address: process.env.SMTP_USER || 'info@blackrent.sk'
         },
         to: customer.email,
+        cc: 'objednavky@blackrent.sk', // ✅ Automatická kópia pre BlackRent
         subject: template.subject,
         text: template.text,
         html: template.html,
@@ -498,6 +500,82 @@ info@blackrent.sk | +421 xxx xxx xxx
     const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     
     return `${typeText}_protokol_${licensePlate}_${orderNumber}_${date}.pdf`;
+  }
+
+  /**
+   * 🧪 TEST: Odoslanie testovacieho protokolu bez CC
+   */
+  async sendTestProtocolEmail(
+    customer: Customer, 
+    pdfBuffer: Buffer, 
+    protocolData: HandoverProtocol
+  ): Promise<boolean> {
+    if (!this.isEnabled || !this.transporter) {
+      console.log('📧 EMAIL: Služba je vypnutá, email sa neodošle');
+      return false;
+    }
+
+    if (!customer.email || !customer.email.trim()) {
+      console.log('⚠️ EMAIL: Zákazník nemá email adresu, preskakujem odosielanie');
+      return false;
+    }
+
+    try {
+      const emailData: ProtocolEmailData = {
+        customer,
+        protocol: protocolData,
+        vehicleInfo: {
+          brand: protocolData.rentalData?.vehicle?.brand,
+          model: protocolData.rentalData?.vehicle?.model,
+          licensePlate: protocolData.rentalData?.vehicle?.licensePlate
+        },
+        rentalInfo: {
+          orderNumber: protocolData.rentalData?.orderNumber,
+          startDate: protocolData.rentalData?.startDate,
+          endDate: protocolData.rentalData?.endDate,
+          location: protocolData.location,
+          totalPrice: protocolData.rentalData?.totalPrice,
+          deposit: protocolData.rentalData?.deposit
+        }
+      };
+
+      const template = this.generateHandoverEmailTemplate(emailData);
+      
+      // Vytvorenie PDF filename
+      const pdfFilename = this.generatePDFFilename('handover', emailData);
+
+      const mailOptions = {
+        from: {
+          name: process.env.SMTP_FROM_NAME || 'BlackRent System',
+          address: process.env.SMTP_USER || 'info@blackrent.sk'
+        },
+        to: customer.email,
+        // BEZ CC pre test
+        subject: `🧪 TEST - ${template.subject}`,
+        text: `🧪 TESTOVACÍ EMAIL\n\n${template.text}`,
+        html: `<div style="background: #fff3cd; padding: 10px; border: 1px solid #ffeaa7; margin-bottom: 20px;">
+          <strong>🧪 TESTOVACÍ EMAIL</strong><br>
+          Toto je test email funkcionalite BlackRent systému.
+        </div>${template.html}`,
+        attachments: [
+          {
+            filename: `TEST-${pdfFilename}`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+          }
+        ]
+      };
+
+      console.log(`📧 TEST EMAIL: Odosielam testovací protokol pre ${customer.name} na ${customer.email}`);
+      
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('✅ TEST EMAIL: Úspešne odoslaný:', result.messageId);
+      return true;
+      
+    } catch (error) {
+      console.error('❌ TEST EMAIL: Chyba pri odosielaní:', error);
+      return false;
+    }
   }
 }
 

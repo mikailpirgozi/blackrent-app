@@ -346,7 +346,12 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
           orderNumber: rental.orderNumber || '',
           vehicle: rental.vehicle || {} as any,
           vehicleVin: rental.vehicleVin || rental.vehicle?.vin || undefined, // 🆔 VIN číslo
-          customer: rental.customer || {} as any,
+          customer: {
+            id: rental.customerId || '',
+            name: rental.customerName || '',
+            email: rental.customer?.email || (rental as any).customerEmail || '',
+            phone: rental.customer?.phone || (rental as any).customerPhone || ''
+          },
           startDate: rental.startDate,
           endDate: rental.endDate,
           totalPrice: rental.totalPrice,
@@ -436,7 +441,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
         console.error('🚨 API request timeout after', timeoutMs/1000, 'seconds');
       }, timeoutMs);
       
-      const response = await fetch(`${apiBaseUrl}/protocols/handover?mode=quick`, {
+      const response = await fetch(`${apiBaseUrl}/protocols/handover`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
