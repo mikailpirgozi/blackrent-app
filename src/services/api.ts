@@ -670,8 +670,8 @@ class ApiService {
     return this.request<Rental>(`/rentals/${id}`);
   }
 
-  async createRental(rental: Rental): Promise<void> {
-    return this.request<void>('/rentals', {
+  async createRental(rental: Rental): Promise<Rental> {
+    return this.request<Rental>('/rentals', {
       method: 'POST',
       body: JSON.stringify(rental),
     });
