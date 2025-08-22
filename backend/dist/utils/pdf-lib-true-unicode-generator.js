@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PDFLibTrueUnicodeGenerator = void 0;
 const pdf_lib_1 = require("pdf-lib");
 const fontkit_1 = __importDefault(require("@pdf-lib/fontkit"));
+const protocol_helpers_1 = require("./protocol-helpers");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 /**
@@ -95,7 +96,8 @@ class PDFLibTrueUnicodeGenerator {
                 ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
                 ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
                 ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
-                ['Spoločnosť:', protocol.rentalData.vehicle.company || 'N/A']
+                ['Spoločnosť:', (0, protocol_helpers_1.getProtocolCompanyDisplay)(protocol.rentalData.vehicle.company)],
+                ...(0, protocol_helpers_1.getRepresentativeSection)()
             ]);
         }
         // 5. Stav vozidla s plnou diakritiku  

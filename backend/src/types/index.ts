@@ -355,6 +355,7 @@ export interface User {
   lastLogin?: Date; // Posledné prihlásenie
   permissions?: Permission[]; // Custom permissions
   signatureTemplate?: string; // Base64 signature template for employees
+  linkedInvestorId?: string; // Prepojenie na investora pre automatické prístupy
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -384,6 +385,7 @@ export interface Company {
   contactEmail?: string; // Kontaktný email
   contactPhone?: string; // Kontaktný telefón
   defaultCommissionRate?: number; // Default provízia pre nové vozidlá
+  protocolDisplayName?: string; // Fakturačná firma pre protokoly
 }
 
 // 🤝 SPOLUINVESTORSKÝ SYSTÉM

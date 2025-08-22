@@ -35,6 +35,7 @@ export declare class PostgresDatabase {
         hireDate?: Date | null;
         isActive?: boolean;
         signatureTemplate?: string | null;
+        linkedInvestorId?: string | null;
     }): Promise<User>;
     updateUser(user: User): Promise<void>;
     deleteUser(id: string): Promise<void>;
@@ -303,6 +304,7 @@ export declare class PostgresDatabase {
         address: string;
         businessId: string;
         taxId: string;
+        protocolDisplayName: string;
     }>): Promise<Company>;
     deleteCompany(id: string): Promise<void>;
     getCompanyInvestors(): Promise<CompanyInvestor[]>;
@@ -473,6 +475,20 @@ export declare class PostgresDatabase {
     getUserPermissions(userId: string): Promise<UserPermission[]>;
     getUserCompanyAccess(userId: string): Promise<UserCompanyAccess[]>;
     setUserPermission(userId: string, companyId: string, permissions: CompanyPermissions): Promise<void>;
+    /**
+     * Získanie všetkých investorov s ich podielmi (pre dropdown v Create User)
+     */
+    getInvestorsWithShares(): Promise<Array<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+        companies: Array<{
+            companyId: string;
+            companyName: string;
+            ownershipPercentage: number;
+        }>;
+    }>>;
     removeUserPermission(userId: string, companyId: string): Promise<void>;
     hasPermission(userId: string, companyId: string, resource: string, action: string): Promise<boolean>;
     getUsersWithCompanyAccess(companyId: string): Promise<{

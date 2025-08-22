@@ -1924,6 +1924,7 @@ export class PostgresDatabase {
     hireDate?: Date | null;
     isActive?: boolean;
     signatureTemplate?: string | null;
+    linkedInvestorId?: string | null;
   }): Promise<User> {
     const client = await this.pool.connect();
     try {
@@ -1933,11 +1934,11 @@ export class PostgresDatabase {
       const result = await client.query(
         `INSERT INTO users (
           username, email, password_hash, role, first_name, last_name, 
-          company_id, employee_number, hire_date, is_active, signature_template
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+          company_id, employee_number, hire_date, is_active, signature_template, linked_investor_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
         RETURNING id, username, email, password_hash, role, first_name, last_name,
                   company_id, employee_number, hire_date, is_active, last_login,
-                  signature_template, created_at, updated_at`,
+                  signature_template, linked_investor_id, created_at, updated_at`,
         [
           userData.username, 
           userData.email, 
@@ -1949,7 +1950,8 @@ export class PostgresDatabase {
           userData.employeeNumber,
           userData.hireDate,
           userData.isActive ?? true,
-          userData.signatureTemplate
+          userData.signatureTemplate,
+          userData.linkedInvestorId || null
         ]
       );
       
@@ -1971,6 +1973,7 @@ export class PostgresDatabase {
         lastLogin: row.last_login ? new Date(row.last_login) : undefined,
         permissions: [], // Default empty permissions
         signatureTemplate: row.signature_template,
+        linkedInvestorId: row.linked_investor_id,
         createdAt: new Date(row.created_at),
         updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
       };
@@ -2397,15 +2400,27 @@ export class PostgresDatabase {
   async updateVehicle(vehicle: Vehicle): Promise<void> {
     const client = await this.pool.connect();
     try {
-      // Automaticky vytvoriť company záznam ak neexistuje - bez ON CONFLICT
+      let companyId = vehicle.ownerCompanyId;
+      
+      // 🔄 AUTOMATICKÁ AKTUALIZÁCIA company_id pri zmene company názvu
       if (vehicle.company && vehicle.company.trim()) {
         try {
-          const existingCompany = await client.query('SELECT name FROM companies WHERE name = $1', [vehicle.company.trim()]);
-          if (existingCompany.rows.length === 0) {
-            await client.query('INSERT INTO companies (name) VALUES ($1)', [vehicle.company.trim()]);
+          // Najprv skús nájsť existujúcu firmu
+          const existingCompany = await client.query('SELECT id FROM companies WHERE name = $1', [vehicle.company.trim()]);
+          
+          if (existingCompany.rows.length > 0) {
+            // Firma existuje - použij jej ID
+            companyId = existingCompany.rows[0].id.toString();
+            console.log(`✅ Nájdená existujúca firma: "${vehicle.company}" → ID: ${companyId}`);
+          } else {
+            // Firma neexistuje - vytvor ju
+            const newCompany = await client.query('INSERT INTO companies (name) VALUES ($1) RETURNING id', [vehicle.company.trim()]);
+            companyId = newCompany.rows[0].id.toString();
+            console.log(`🆕 Vytvorená nová firma: "${vehicle.company}" → ID: ${companyId}`);
           }
         } catch (companyError: any) {
-          console.log('⚠️ Company update error:', companyError.message);
+          console.error('❌ Chyba pri aktualizácii firmy:', companyError.message);
+          // Ak zlyhá, ponechaj pôvodné company_id
         }
       }
 
@@ -2418,7 +2433,7 @@ export class PostgresDatabase {
           vehicle.vin || null, // 🆔 VIN číslo
           vehicle.company,
           vehicle.category || null,
-          vehicle.ownerCompanyId || null, // 🏢 Mapuje sa na company_id (nie owner_company_id)
+          companyId || null, // 🏢 OPRAVENÉ: Používa aktualizované company_id
           JSON.stringify(vehicle.pricing),
           JSON.stringify(vehicle.commission),
           vehicle.status,
@@ -2762,7 +2777,8 @@ export class PostgresDatabase {
         commissionRate: row.commission_rate || 0,
         isActive: row.is_active !== false,
         vehicleCount: parseInt(row.vehicle_count || '0'),
-        createdAt: row.created_at
+        createdAt: row.created_at,
+        protocolDisplayName: row.protocol_display_name || ''
       }));
 
       return { companies, total };
@@ -3649,9 +3665,11 @@ export class PostgresDatabase {
     try {
       console.log('🔍 getRental called for ID:', id);
       const result = await client.query(`
-        SELECT r.*, v.brand, v.model, v.license_plate, v.vin, v.company as vehicle_company 
+        SELECT r.*, v.brand, v.model, v.license_plate, v.vin, v.company as vehicle_company,
+               COALESCE(c.name, v.company, 'BlackRent') as billing_company_name
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id = v.id 
+        LEFT JOIN companies c ON v.company_id = c.id
         WHERE r.id = $1
       `, [parseInt(id)]);
       
@@ -3709,7 +3727,7 @@ export class PostgresDatabase {
           model: row.model,
           licensePlate: row.license_plate,
           vin: row.vin || null, // 🆔 VIN číslo
-          company: row.vehicle_company || 'N/A',
+          company: row.billing_company_name || 'N/A', // ✅ OPRAVENÉ: Používa fakturačnú firmu
           pricing: [],
           commission: { type: 'percentage', value: 0 },
           status: 'available'
@@ -4710,7 +4728,8 @@ export class PostgresDatabase {
         ownerName: row.owner_name || '',
         contactEmail: row.contact_email || '',
         contactPhone: row.contact_phone || '',
-        defaultCommissionRate: parseFloat(row.default_commission_rate || '20')
+        defaultCommissionRate: parseFloat(row.default_commission_rate || '20'),
+        protocolDisplayName: row.protocol_display_name || ''
       }));
     } finally {
       client.release();
@@ -4795,6 +4814,7 @@ export class PostgresDatabase {
     address: string;
     businessId: string; // IC
     taxId: string; // DIC
+    protocolDisplayName: string; // Fakturačná firma pre protokoly
   }>): Promise<Company> {
     const client = await this.pool.connect();
     try {
@@ -4812,7 +4832,8 @@ export class PostgresDatabase {
           is_active = COALESCE($9, is_active),
           address = COALESCE($10, address),
           ic = COALESCE($11, ic),
-          dic = COALESCE($12, dic)
+          dic = COALESCE($12, dic),
+          protocol_display_name = COALESCE($13, protocol_display_name)
         WHERE id = $1 
         RETURNING *`, 
         [
@@ -4827,7 +4848,8 @@ export class PostgresDatabase {
           companyData.isActive ?? null,
           companyData.address || null,
           companyData.businessId || null,
-          companyData.taxId || null
+          companyData.taxId || null,
+          companyData.protocolDisplayName || null
         ]
       );
       
@@ -7337,6 +7359,100 @@ export class PostgresDatabase {
     try {
       console.log('🔍 getUserCompanyAccess CACHE MISS - loading from DB for userId:', userId);
       
+      // 1. Získaj používateľa a skontroluj či má linked investor
+      const userResult = await client.query(
+        'SELECT role, linked_investor_id FROM users WHERE id = $1',
+        [userId]
+      );
+      
+      if (userResult.rows.length === 0) {
+        console.log('❌ User not found:', userId);
+        return [];
+      }
+      
+      const user = userResult.rows[0];
+      
+      // 2. Admin má prístup k všetkému
+      if (user.role === 'admin') {
+        const allCompaniesResult = await client.query(
+          'SELECT id as company_id, name as company_name FROM companies WHERE is_active = true ORDER BY name'
+        );
+        
+        const adminData = allCompaniesResult.rows.map(row => ({
+          companyId: row.company_id.toString(),
+          companyName: row.company_name,
+          permissions: {
+            vehicles: { read: true, write: true, delete: true },
+            rentals: { read: true, write: true, delete: true },
+            expenses: { read: true, write: true, delete: true },
+            settlements: { read: true, write: true, delete: true },
+            customers: { read: true, write: true, delete: true },
+            insurances: { read: true, write: true, delete: true },
+            maintenance: { read: true, write: true, delete: true },
+            protocols: { read: true, write: true, delete: true },
+            statistics: { read: true, write: true, delete: true }
+          }
+        }));
+        
+        // Cache admin permissions
+        this.permissionCache.set(cacheKey, {
+          data: adminData,
+          timestamp: Date.now()
+        });
+        
+        console.log('👑 Admin access - all companies:', adminData.length);
+        return adminData;
+      }
+      
+      // 3. Ak má linked investor → použiť investor shares
+      if (user.linked_investor_id) {
+        console.log('🔗 User has linked investor:', user.linked_investor_id);
+        
+        const sharesResult = await client.query(`
+          SELECT s.company_id, s.ownership_percentage, s.profit_share_percentage,
+                 c.name as company_name
+          FROM company_investor_shares s
+          JOIN companies c ON s.company_id = c.id
+          WHERE s.investor_id = $1 AND c.is_active = true
+          ORDER BY c.name
+        `, [user.linked_investor_id]);
+        
+        const shareData = sharesResult.rows.map(row => {
+          const hasOwnership = row.ownership_percentage > 0;
+          const hasMajority = row.ownership_percentage >= 50;
+          
+          return {
+            companyId: row.company_id.toString(),
+            companyName: row.company_name,
+            permissions: {
+              vehicles: { read: true, write: hasOwnership, delete: hasMajority },
+              rentals: { read: true, write: hasOwnership, delete: hasMajority },
+              expenses: { read: true, write: hasOwnership, delete: hasMajority },
+              settlements: { read: true, write: hasOwnership, delete: hasMajority },
+              customers: { read: true, write: hasOwnership, delete: false },
+              insurances: { read: true, write: hasOwnership, delete: hasMajority },
+              maintenance: { read: true, write: hasOwnership, delete: hasMajority },
+              protocols: { read: true, write: hasOwnership, delete: hasMajority },
+              statistics: { read: true, write: hasOwnership, delete: false }
+            }
+          };
+        });
+        
+        // Cache investor-based permissions
+        this.permissionCache.set(cacheKey, {
+          data: shareData,
+          timestamp: Date.now()
+        });
+        
+        console.log('📊 Investor-based access:', {
+          investorId: user.linked_investor_id,
+          companies: shareData.map(s => ({ name: s.companyName, companyId: s.companyId }))
+        });
+        
+        return shareData;
+      }
+      
+      // 4. Fallback: Použiť starý systém user_permissions
       const result = await client.query(`
         SELECT up.company_id, c.name as company_name, up.permissions
         FROM user_permissions up
@@ -7346,7 +7462,7 @@ export class PostgresDatabase {
         `, [userId]);
 
       const data = result.rows.map(row => ({
-        companyId: row.company_id,
+        companyId: row.company_id.toString(),
         companyName: row.company_name,
         permissions: row.permissions
       }));
@@ -7385,6 +7501,69 @@ export class PostgresDatabase {
       this.permissionCache.delete(cacheKey);
       console.log('🧹 Permission cache INVALIDATED for userId:', userId);
       
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Získanie všetkých investorov s ich podielmi (pre dropdown v Create User)
+   */
+  async getInvestorsWithShares(): Promise<Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    companies: Array<{
+      companyId: string;
+      companyName: string;
+      ownershipPercentage: number;
+    }>;
+  }>> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT 
+          i.id, i.first_name, i.last_name, i.email,
+          s.company_id, s.ownership_percentage,
+          c.name as company_name
+        FROM company_investors i
+        LEFT JOIN company_investor_shares s ON i.id = s.investor_id
+        LEFT JOIN companies c ON s.company_id = c.id
+        WHERE i.is_active = true
+        ORDER BY i.first_name, i.last_name, c.name
+      `);
+
+      // Zoskupenie podľa investora
+      const investorsMap = new Map();
+      
+      result.rows.forEach(row => {
+        const investorId = row.id;
+        
+        if (!investorsMap.has(investorId)) {
+          investorsMap.set(investorId, {
+            id: investorId,
+            firstName: row.first_name,
+            lastName: row.last_name,
+            email: row.email,
+            companies: []
+          });
+        }
+        
+        // Pridaj company ak existuje podiel
+        if (row.company_id && row.company_name) {
+          investorsMap.get(investorId).companies.push({
+            companyId: row.company_id.toString(),
+            companyName: row.company_name,
+            ownershipPercentage: parseFloat(row.ownership_percentage)
+          });
+        }
+      });
+
+      const investors = Array.from(investorsMap.values());
+      console.log('📊 Loaded investors with shares:', investors.length);
+      
+      return investors;
     } finally {
       client.release();
     }

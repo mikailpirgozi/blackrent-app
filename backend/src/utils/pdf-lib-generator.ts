@@ -1,5 +1,6 @@
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
 import { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
+import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
 
 /**
  * PDF-lib Generator - Vysoká kvalita PDF bez system dependencies
@@ -69,7 +70,8 @@ export class PDFLibGenerator {
         ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
         ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
         ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
-        ['Spoločnosť:', protocol.rentalData.vehicle.company || 'N/A']
+        ['Spoločnosť:', getProtocolCompanyDisplay(protocol.rentalData.vehicle.company)],
+        ...getRepresentativeSection()
       ]);
     }
     
@@ -155,7 +157,8 @@ export class PDFLibGenerator {
         ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
         ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
         ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
-        ['Spoločnosť:', protocol.rentalData.vehicle.company || 'N/A']
+        ['Spoločnosť:', getProtocolCompanyDisplay(protocol.rentalData.vehicle.company)],
+        ...getRepresentativeSection()
       ]);
     }
     

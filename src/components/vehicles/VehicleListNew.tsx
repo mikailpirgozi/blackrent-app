@@ -343,8 +343,23 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
     businessIban: company.businessIban || '',
     contactEmail: company.contactEmail || '',
     contactPhone: company.contactPhone || '',
-    defaultCommissionRate: company.defaultCommissionRate || 20
+    defaultCommissionRate: company.defaultCommissionRate || 20,
+    protocolDisplayName: company.protocolDisplayName || ''
   });
+
+  // 🔄 Aktualizuj editData keď sa company data zmenia
+  useEffect(() => {
+    setEditData({
+      name: company.name || '',
+      ownerName: company.ownerName || '',
+      personalIban: company.personalIban || '',
+      businessIban: company.businessIban || '',
+      contactEmail: company.contactEmail || '',
+      contactPhone: company.contactPhone || '',
+      defaultCommissionRate: company.defaultCommissionRate || 20,
+      protocolDisplayName: company.protocolDisplayName || ''
+    });
+  }, [company]);
 
   // 🤝 Načítanie investorov firmy
   const loadCompanyInvestors = async () => {
@@ -394,8 +409,10 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
       if (result.success) {
         console.log('✅ Owner data saved successfully');
         setEditMode(false);
-        // Refresh companies data
-        window.location.reload(); // Simple refresh - môžeme vylepšiť neskôr
+        // Refresh companies data cez callback
+        if (onVehicleUpdate) {
+          await onVehicleUpdate('', company.id); // Refresh company data
+        }
       } else {
         console.error('❌ Failed to save owner data:', result.error);
         alert(`Chyba pri ukladaní: ${result.error}`);
@@ -451,6 +468,11 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
               <Typography variant="body2" color="text.secondary">
                 💰 Provízia: {company.defaultCommissionRate || 20}%
               </Typography>
+              {company.protocolDisplayName && (
+                <Typography variant="body2" sx={{ color: 'warning.main', fontWeight: 'medium' }}>
+                  📄 Fakturačná firma: {company.protocolDisplayName}
+                </Typography>
+              )}
             </Box>
           </Box>
           
@@ -548,6 +570,18 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 onChange={(e) => setEditData(prev => ({ ...prev, businessIban: e.target.value }))}
                 size="small"
                 placeholder="SK89 0000 0000 0000 0000 0000"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Fakturačná firma (pre protokoly)"
+                value={editData.protocolDisplayName}
+                onChange={(e) => setEditData(prev => ({ ...prev, protocolDisplayName: e.target.value }))}
+                size="small"
+                placeholder="Napr. P2 invest s.r.o."
+                helperText="Názov firmy ktorý sa zobrazí na protokoloch namiesto interného názvu"
+                sx={{ bgcolor: 'warning.50' }}
               />
             </Grid>
           </Grid>

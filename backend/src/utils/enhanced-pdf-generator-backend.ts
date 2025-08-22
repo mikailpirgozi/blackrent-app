@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { HandoverProtocol, ReturnProtocol } from '../types';
+import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
 
 /**
  * Backend-kompatibilný Enhanced PDF Generator
@@ -54,12 +55,13 @@ export class EnhancedPDFGeneratorBackend {
     
     // 4. Informácie o vozidle
     if (protocol.rentalData?.vehicle) {
-      this.addInfoBox('Informácie o vozidle', [
-        ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
-        ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
-        ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
-        ['Spoločnosť:', protocol.rentalData.vehicle.company || 'N/A']
-      ]);
+              this.addInfoBox('Informácie o vozidle', [
+          ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
+          ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
+          ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
+          ['Spoločnosť:', getProtocolCompanyDisplay(protocol.rentalData.vehicle.company)],
+          ...getRepresentativeSection()
+        ]);
     }
     
     // 5. Stav vozidla

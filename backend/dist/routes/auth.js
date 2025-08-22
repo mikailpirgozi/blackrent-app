@@ -608,7 +608,7 @@ router.get('/users', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']
 // POST /api/auth/users - Vytvorenie nového používateľa (len admin)
 router.post('/users', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), async (req, res) => {
     try {
-        const { username, email, password, role, firstName, lastName, companyId, employeeNumber, hireDate, isActive, signatureTemplate } = req.body;
+        const { username, email, password, role, firstName, lastName, companyId, employeeNumber, hireDate, isActive, signatureTemplate, linkedInvestorId } = req.body;
         console.log('📋 Create user request body:', req.body);
         if (!username || !email || !password || !role) {
             return res.status(400).json({
@@ -635,7 +635,8 @@ router.post('/users', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin'
             employeeNumber: employeeNumber || null,
             hireDate: hireDate ? new Date(hireDate) : null,
             isActive: isActive !== undefined ? isActive : true,
-            signatureTemplate: signatureTemplate || null
+            signatureTemplate: signatureTemplate || null,
+            linkedInvestorId: linkedInvestorId || null
         };
         console.log('👤 Creating user with data:', userData);
         const createdUser = await postgres_database_1.postgresDatabase.createUser(userData);
@@ -666,6 +667,24 @@ router.post('/users', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin'
         res.status(500).json({
             success: false,
             error: 'Chyba pri vytváraní používateľa'
+        });
+    }
+});
+// GET /api/auth/investors-with-shares - Získanie investorov s podielmi (pre dropdown)
+router.get('/investors-with-shares', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']), async (req, res) => {
+    try {
+        const investors = await postgres_database_1.postgresDatabase.getInvestorsWithShares();
+        res.json({
+            success: true,
+            data: investors,
+            message: `Načítaných ${investors.length} investorov s podielmi`
+        });
+    }
+    catch (error) {
+        console.error('Get investors with shares error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri získavaní investorov'
         });
     }
 });

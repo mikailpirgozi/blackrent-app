@@ -40,6 +40,7 @@ import {
   DirectionsCar as VehicleIcon,
   Assessment as ReportIcon
 } from '@mui/icons-material';
+import Autocomplete from '@mui/material/Autocomplete';
 import { useApp } from '../../context/AppContext';
 import { Settlement } from '../../types';
 import { format } from 'date-fns';
@@ -75,8 +76,8 @@ const SettlementListNew: React.FC = () => {
 
   // New settlement creation states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState('');
-  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
   const [periodFrom, setPeriodFrom] = useState('');
   const [periodTo, setPeriodTo] = useState('');
   const [periodType, setPeriodType] = useState<'month' | 'range'>('month');
@@ -86,6 +87,16 @@ const SettlementListNew: React.FC = () => {
   const uniqueCompanies = useMemo(() => 
     companies.map(c => c.name).sort(),
     [companies]
+  );
+
+  // Vehicle options for autocomplete
+  const vehicleOptions = useMemo(() => 
+    vehicles.map((vehicle: any) => ({
+      id: vehicle.id,
+      label: `${vehicle.brand} ${vehicle.model} - ${vehicle.licensePlate}`,
+      company: vehicle.company
+    })),
+    [vehicles]
   );
 
   // Get unique companies from settlements for filtering
@@ -131,8 +142,8 @@ const SettlementListNew: React.FC = () => {
 
   // Handlers
   const handleCreateSettlement = () => {
-    setSelectedCompany('');
-    setSelectedVehicleId('');
+    setSelectedCompanies([]);
+    setSelectedVehicleIds([]);
     setPeriodFrom('');
     setPeriodTo('');
     setSelectedMonth('');
@@ -179,35 +190,62 @@ const SettlementListNew: React.FC = () => {
       toDate = new Date(periodTo);
     }
 
-    if (!selectedCompany) {
-      alert('Prosím vyberte firmu');
+    // Validácia - musí byť vybraná aspoň jedna firma alebo vozidlo
+    if (selectedCompanies.length === 0 && selectedVehicleIds.length === 0) {
+      alert('Prosím vyberte aspoň jednu firmu alebo vozidlo');
       return;
     }
 
     setLoading(true);
     try {
-      const settlementData = {
-        period: {
-          from: fromDate,
-          to: toDate
-        },
-        company: selectedCompany,
-        vehicleId: selectedVehicleId || undefined,
-        totalIncome: 0,
-        totalExpenses: 0,
-        totalCommission: 0,
-        profit: 0
-      };
+      // Ak sú vybrané firmy, vytvor settlement pre každú firmu
+      if (selectedCompanies.length > 0) {
+        for (const company of selectedCompanies) {
+          const settlementData = {
+            period: {
+              from: fromDate,
+              to: toDate
+            },
+            company: company,
+            vehicleId: undefined, // Pri výbere firiem nevyberáme konkrétne vozidlo
+            totalIncome: 0,
+            totalExpenses: 0,
+            totalCommission: 0,
+            profit: 0
+          };
+          
+          await createSettlement(settlementData as any);
+        }
+      }
       
-      await createSettlement(settlementData as any); // Type assertion since createSettlement expects full Settlement
+      // Ak sú vybrané vozidlá, vytvor settlement pre každé vozidlo
+      if (selectedVehicleIds.length > 0) {
+        for (const vehicleId of selectedVehicleIds) {
+          const vehicle = vehicles.find((v: any) => v.id === vehicleId);
+          const settlementData = {
+            period: {
+              from: fromDate,
+              to: toDate
+            },
+            company: vehicle?.company || '',
+            vehicleId: vehicleId,
+            totalIncome: 0,
+            totalExpenses: 0,
+            totalCommission: 0,
+            profit: 0
+          };
+          
+          await createSettlement(settlementData as any);
+        }
+      }
       
-      // Refresh data to show new settlement
+      // Refresh data to show new settlements
       await loadData();
       
       setCreateDialogOpen(false);
       // Clear form
-      setSelectedCompany('');
-      setSelectedVehicleId('');
+      setSelectedCompanies([]);
+      setSelectedVehicleIds([]);
       setPeriodFrom('');  
       setPeriodTo('');
       setSelectedMonth('');
@@ -827,37 +865,79 @@ const SettlementListNew: React.FC = () => {
               </>
             )}
             <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Firma *</InputLabel>
-                <Select
-                  value={selectedCompany}
-                  onChange={(e) => setSelectedCompany(e.target.value)}
-                  label="Firma *"
-                  required
-                >
-                  <MenuItem value="">Vyberte firmu</MenuItem>
-                  {uniqueCompanies.map((company: string) => (
-                    <MenuItem key={company} value={company}>{company}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Vyberte firmy alebo vozidlá na vyúčtovanie. Môžete vybrať viacero položiek naraz.
+              </Typography>
+              <Autocomplete
+                multiple
+                fullWidth
+                options={uniqueCompanies}
+                value={selectedCompanies}
+                onChange={(event, newValue) => {
+                  setSelectedCompanies(newValue);
+                }}
+                getOptionLabel={(option) => option}
+                isOptionEqualToValue={(option, value) => option === value}
+                filterOptions={(options, { inputValue }) => {
+                  return options.filter((option) =>
+                    option.toLowerCase().includes(inputValue.toLowerCase())
+                  );
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Firmy (voliteľné)"
+                    placeholder="Začnite písať pre vyhľadávanie firiem..."
+                  />
+                )}
+                noOptionsText="Žiadne firmy nenájdené"
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      variant="outlined"
+                      label={option}
+                      {...getTagProps({ index })}
+                      key={option}
+                    />
+                  ))
+                }
+              />
             </Grid>
             <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Vozidlo (voliteľné)</InputLabel>
-                <Select
-                  value={selectedVehicleId}
-                  onChange={(e) => setSelectedVehicleId(e.target.value)}
-                  label="Vozidlo (voliteľné)"
-                >
-                  <MenuItem value="">Všetky vozidlá</MenuItem>
-                  {vehicles.map((vehicle: any) => (
-                    <MenuItem key={vehicle.id} value={vehicle.id}>
-                      {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                multiple
+                fullWidth
+                options={vehicleOptions}
+                value={selectedVehicleIds.map(id => vehicleOptions.find(v => v.id === id)).filter(Boolean) as typeof vehicleOptions}
+                onChange={(event, newValue) => {
+                  setSelectedVehicleIds(newValue.map(v => v.id));
+                }}
+                getOptionLabel={(option) => option.label}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                filterOptions={(options, { inputValue }) => {
+                  return options.filter((option) =>
+                    option.label.toLowerCase().includes(inputValue.toLowerCase())
+                  );
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Vozidlá (voliteľné)"
+                    placeholder="Začnite písať pre vyhľadávanie vozidiel..."
+                  />
+                )}
+                noOptionsText="Žiadne vozidlá nenájdené"
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      variant="outlined"
+                      label={option.label}
+                      {...getTagProps({ index })}
+                      key={option.id}
+                    />
+                  ))
+                }
+              />
             </Grid>
           </Grid>
           

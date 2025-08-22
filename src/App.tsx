@@ -44,6 +44,7 @@ const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));
 const InsuranceList = lazy(() => import('./components/insurances/InsuranceList'));
 const Statistics = lazy(() => import('./components/Statistics'));
 const UserManagement = lazy(() => import('./components/users/IntegratedUserManagement'));
+
 const SettlementList = lazy(() => import('./components/settlements/SettlementListNew'));
 // OLD: const AvailabilityPage = lazy(() => import('./pages/AvailabilityPageNew')); // REMOVED - replaced by Smart version
 const SmartAvailabilityPage = lazy(() => import('./pages/SmartAvailabilityPage'));
@@ -213,6 +214,7 @@ const AppContent: React.FC = () => {
                         </Layout>
                       </ProtectedRoute>
                     } />
+                    
                     
 
                     

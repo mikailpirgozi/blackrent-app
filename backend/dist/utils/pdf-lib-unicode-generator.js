@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PDFLibUnicodeGenerator = void 0;
 const pdf_lib_1 = require("pdf-lib");
 const fontkit_1 = __importDefault(require("@pdf-lib/fontkit"));
+const protocol_helpers_1 = require("./protocol-helpers");
 /**
  * PDF-lib Unicode Generator - Plná podpora slovenskej diakritiky
  * Používa custom TTF fonty cez fontkit pre perfektný text rendering
@@ -93,7 +94,8 @@ class PDFLibUnicodeGenerator {
                 ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
                 ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
                 ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
-                ['Spoločnosť:', protocol.rentalData.vehicle.company || 'N/A']
+                ['Spoločnosť:', (0, protocol_helpers_1.getProtocolCompanyDisplay)(protocol.rentalData.vehicle.company)],
+                ...(0, protocol_helpers_1.getRepresentativeSection)()
             ]);
         }
         // 5. Stav vozidla s diakritiku

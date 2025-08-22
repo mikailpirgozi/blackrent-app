@@ -294,6 +294,7 @@ export interface User {
     lastLogin?: Date;
     permissions?: Permission[];
     signatureTemplate?: string;
+    linkedInvestorId?: string;
     createdAt: Date;
     updatedAt?: Date;
 }
@@ -319,6 +320,7 @@ export interface Company {
     contactEmail?: string;
     contactPhone?: string;
     defaultCommissionRate?: number;
+    protocolDisplayName?: string;
 }
 export interface CompanyInvestor {
     id: string;

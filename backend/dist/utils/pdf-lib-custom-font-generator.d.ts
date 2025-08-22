@@ -15,6 +15,9 @@ export declare class PDFLibCustomFontGenerator {
     private currentPage;
     private font;
     private boldFont;
+    private lightFont;
+    private mediumFont;
+    private typography;
     private customFontPath;
     private customBoldFontPath;
     private fontName;
@@ -32,7 +35,7 @@ export declare class PDFLibCustomFontGenerator {
      */
     generateReturnProtocol(protocol: ReturnProtocol): Promise<Buffer>;
     /**
-     * Načítanie vlastného fontu
+     * Načítanie vlastného fontu s podporou rôznych váh
      */
     private loadCustomFont;
     /**
@@ -40,7 +43,15 @@ export declare class PDFLibCustomFontGenerator {
      */
     private loadRobotoFallback;
     /**
-     * ✏️ JEDNODUCHÁ MINIMALISTICKÁ HLAVIČKA
+     * 🎨 Pomocná metóda pre výber správneho fontu podľa typografie
+     */
+    private getFontByType;
+    /**
+     * 🎨 Vylepšená metóda pre kreslenie textu s typografiou
+     */
+    private drawStyledText;
+    /**
+     * ✏️ VYLEPŠENÁ HLAVIČKA S NOVOU TYPOGRAFIOU
      */
     private addCustomFontHeader;
     /**
@@ -60,11 +71,11 @@ export declare class PDFLibCustomFontGenerator {
      */
     private addSignaturesSection;
     /**
-     * Poznámky s vlastným fontom
+     * 📝 Vylepšené poznámky s novou typografiou
      */
     private addNotesSection;
     /**
-     * Footer s vlastným fontom
+     * 🦶 Vylepšený footer s novou typografiou
      */
     private addCustomFontFooter;
     private checkPageBreak;

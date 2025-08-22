@@ -10,8 +10,8 @@ const pdf_lib_custom_font_generator_1 = require("./pdf-lib-custom-font-generator
 // 'pdf-lib' = PDF-lib generátor (nový, vysoká kvalita, žiadne system dependencies)
 // 'puppeteer' = Puppeteer Chrome PDF generátor (najlepší ale Railway problémy)
 // 'enhanced' = enhanced jsPDF generator (fallback)
-// 🎯 PDF-lib ako najlepšia voľba (bez system dependencies)
-const PDF_GENERATOR_TYPE = process.env.PDF_GENERATOR_TYPE || 'pdf-lib';
+// 🎯 CUSTOM FONT ako najlepšia voľba (s vylepšenou typografiou)
+const PDF_GENERATOR_TYPE = process.env.PDF_GENERATOR_TYPE || 'custom-font';
 console.log(`🎯 PDF Generator inicializovaný: ${PDF_GENERATOR_TYPE.toUpperCase()}`);
 // Custom font PDF-lib generátor (najlepší pre vlastný font)
 const getCustomFontGenerator = (fontName = 'sf-pro') => {

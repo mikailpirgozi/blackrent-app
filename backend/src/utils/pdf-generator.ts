@@ -11,9 +11,9 @@ import { PDFLibCustomFontGenerator } from './pdf-lib-custom-font-generator';
 // 'puppeteer' = Puppeteer Chrome PDF generátor (najlepší ale Railway problémy)
 // 'enhanced' = enhanced jsPDF generator (fallback)
 
-// 🎯 PDF-lib ako najlepšia voľba (bez system dependencies)
+// 🎯 CUSTOM FONT ako najlepšia voľba (s vylepšenou typografiou)
 const PDF_GENERATOR_TYPE: 'custom-font' | 'pdf-lib' | 'puppeteer' | 'enhanced' = 
-  (process.env.PDF_GENERATOR_TYPE as 'custom-font' | 'pdf-lib' | 'puppeteer' | 'enhanced') || 'pdf-lib';
+  (process.env.PDF_GENERATOR_TYPE as 'custom-font' | 'pdf-lib' | 'puppeteer' | 'enhanced') || 'custom-font';
 
 console.log(`🎯 PDF Generator inicializovaný: ${PDF_GENERATOR_TYPE.toUpperCase()}`);
 

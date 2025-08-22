@@ -31,6 +31,7 @@ import {
   Tooltip,
   Switch,
   FormControlLabel,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -82,6 +83,10 @@ const BasicUserManagement: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
+  // Investors for dropdown
+  const [investors, setInvestors] = useState<any[]>([]);
+  const [loadingInvestors, setLoadingInvestors] = useState(false);
+  
   // Form states
   const [userForm, setUserForm] = useState({
     username: '',
@@ -89,7 +94,8 @@ const BasicUserManagement: React.FC = () => {
     password: '',
     firstName: '',
     lastName: '',
-    role: 'user'
+    role: 'user',
+    linkedInvestorId: ''
   });
 
   // API Base URL helper
@@ -108,6 +114,7 @@ const BasicUserManagement: React.FC = () => {
 
   useEffect(() => {
     loadUsers();
+    loadInvestors();
   }, []);
 
   const loadUsers = async () => {
@@ -151,6 +158,31 @@ const BasicUserManagement: React.FC = () => {
     }
   };
 
+  const loadInvestors = async () => {
+    try {
+      setLoadingInvestors(true);
+      const response = await fetch(`${getApiBaseUrl()}/auth/investors-with-shares`, {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setInvestors(data.data || []);
+        console.log('📊 Loaded investors:', data.data?.length || 0);
+      } else {
+        console.error('Failed to load investors');
+        setInvestors([]);
+      }
+    } catch (error) {
+      console.error('Error loading investors:', error);
+      setInvestors([]);
+    } finally {
+      setLoadingInvestors(false);
+    }
+  };
+
   const handleCreateUser = async () => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/auth/users`, {
@@ -185,7 +217,8 @@ const BasicUserManagement: React.FC = () => {
       password: '', // Never pre-fill password
       firstName: user.firstName || '',
       lastName: user.lastName || '',
-      role: user.role
+      role: user.role,
+      linkedInvestorId: '' // Pre edit dialog nepovoľujeme zmenu investora
     });
     setEditDialogOpen(true);
   };
@@ -258,7 +291,8 @@ const BasicUserManagement: React.FC = () => {
       password: '',
       firstName: '',
       lastName: '',
-      role: 'user'
+      role: 'user',
+      linkedInvestorId: ''
     });
   };
 
@@ -486,6 +520,32 @@ const BasicUserManagement: React.FC = () => {
                   <MenuItem value="manager">Manažér</MenuItem>
                   <MenuItem value="admin">Administrátor</MenuItem>
                 </Select>
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Priradenie k investorovi (voliteľné)</InputLabel>
+                <Select
+                  value={userForm.linkedInvestorId}
+                  onChange={(e) => setUserForm(prev => ({ ...prev, linkedInvestorId: e.target.value }))}
+                  label="Priradenie k investorovi (voliteľné)"
+                  disabled={loadingInvestors}
+                >
+                  <MenuItem value="">Žiadne priradenie - bežný používateľ</MenuItem>
+                  {investors.map(investor => (
+                    <MenuItem key={investor.id} value={investor.id}>
+                      {investor.firstName} {investor.lastName} - 
+                      Podiely: {investor.companies.map((c: any) => `${c.companyName} (${c.ownershipPercentage}%)`).join(", ")}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {loadingInvestors && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                    <CircularProgress size={16} sx={{ mr: 1 }} />
+                    <Typography variant="caption">Načítavam investorov...</Typography>
+                  </Box>
+                )}
               </FormControl>
             </Grid>
           </Grid>

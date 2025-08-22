@@ -666,7 +666,8 @@ router.post('/users', authenticateToken, requireRole(['admin']), async (req: Req
       employeeNumber,
       hireDate,
       isActive,
-      signatureTemplate
+      signatureTemplate,
+      linkedInvestorId
     } = req.body;
 
     console.log('📋 Create user request body:', req.body);
@@ -698,7 +699,8 @@ router.post('/users', authenticateToken, requireRole(['admin']), async (req: Req
       employeeNumber: employeeNumber || null,
       hireDate: hireDate ? new Date(hireDate) : null,
       isActive: isActive !== undefined ? isActive : true,
-      signatureTemplate: signatureTemplate || null
+      signatureTemplate: signatureTemplate || null,
+      linkedInvestorId: linkedInvestorId || null
     };
 
     console.log('👤 Creating user with data:', userData);
@@ -731,6 +733,26 @@ router.post('/users', authenticateToken, requireRole(['admin']), async (req: Req
     res.status(500).json({
       success: false,
       error: 'Chyba pri vytváraní používateľa'
+    });
+  }
+});
+
+// GET /api/auth/investors-with-shares - Získanie investorov s podielmi (pre dropdown)
+router.get('/investors-with-shares', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    const investors = await postgresDatabase.getInvestorsWithShares();
+    
+    res.json({
+      success: true,
+      data: investors,
+      message: `Načítaných ${investors.length} investorov s podielmi`
+    });
+    
+  } catch (error) {
+    console.error('Get investors with shares error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Chyba pri získavaní investorov'
     });
   }
 });

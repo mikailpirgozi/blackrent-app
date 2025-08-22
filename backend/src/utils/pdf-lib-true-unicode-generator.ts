@@ -1,6 +1,7 @@
 import { PDFDocument, rgb, PageSizes } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { HandoverProtocol, ReturnProtocol } from '../types';
+import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
 import fs from 'fs';
 import path from 'path';
 
@@ -67,12 +68,13 @@ export class PDFLibTrueUnicodeGenerator {
     
     // 4. Informácie o vozidle
     if (protocol.rentalData?.vehicle) {
-      this.addInfoSection('Informácie o vozidle', [
-        ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
-        ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
-        ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
-        ['Spoločnosť:', protocol.rentalData.vehicle.company || 'N/A']
-      ]);
+              this.addInfoSection('Informácie o vozidle', [
+          ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
+          ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
+          ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
+          ['Spoločnosť:', getProtocolCompanyDisplay(protocol.rentalData.vehicle.company)],
+          ...getRepresentativeSection()
+        ]);
     }
     
     // 5. Stav vozidla s plnou diakritiku  

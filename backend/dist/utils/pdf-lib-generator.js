@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PDFLibGenerator = void 0;
 const pdf_lib_1 = require("pdf-lib");
+const protocol_helpers_1 = require("./protocol-helpers");
 /**
  * PDF-lib Generator - Vysoká kvalita PDF bez system dependencies
  * Produkuje profesionálne PDF dokumenty s lepšou typografiou
@@ -57,7 +58,8 @@ class PDFLibGenerator {
                 ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
                 ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
                 ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
-                ['Spoločnosť:', protocol.rentalData.vehicle.company || 'N/A']
+                ['Spoločnosť:', (0, protocol_helpers_1.getProtocolCompanyDisplay)(protocol.rentalData.vehicle.company)],
+                ...(0, protocol_helpers_1.getRepresentativeSection)()
             ]);
         }
         // 5. Stav vozidla
@@ -126,7 +128,8 @@ class PDFLibGenerator {
                 ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
                 ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
                 ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
-                ['Spoločnosť:', protocol.rentalData.vehicle.company || 'N/A']
+                ['Spoločnosť:', (0, protocol_helpers_1.getProtocolCompanyDisplay)(protocol.rentalData.vehicle.company)],
+                ...(0, protocol_helpers_1.getRepresentativeSection)()
             ]);
         }
         // 5. Stav vozidla pri vrátení (rozšírené)

@@ -1,6 +1,7 @@
 import { PDFDocument, rgb, PageSizes } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { HandoverProtocol, ReturnProtocol } from '../types';
+import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
 import fs from 'fs';
 import path from 'path';
 
@@ -20,6 +21,28 @@ export class PDFLibCustomFontGenerator {
   private currentPage: any;
   private font: any;
   private boldFont: any;
+  private lightFont: any;
+  private mediumFont: any;
+  
+  // 🎨 PÔVODNÁ TYPOGRAFICKÁ HIERARCHIA (bez simulácie váh)
+  private typography = {
+    // Hlavné nadpisy (protokol títuly)
+    h1: { size: 18, font: 'bold', color: rgb(0.1, 0.1, 0.1) },
+    // Sekcie nadpisy 
+    h2: { size: 14, font: 'bold', color: rgb(0.2, 0.2, 0.2) },
+    // Pod-sekcie
+    h3: { size: 12, font: 'regular', color: rgb(0.3, 0.3, 0.3) },
+    // Labely
+    label: { size: 10, font: 'bold', color: rgb(0.1, 0.1, 0.1) },
+    // Hodnoty
+    value: { size: 10, font: 'regular', color: rgb(0.4, 0.4, 0.4) },
+    // Bežný text
+    body: { size: 11, font: 'regular', color: rgb(0.2, 0.2, 0.2) },
+    // Poznámky
+    caption: { size: 9, font: 'regular', color: rgb(0.5, 0.5, 0.5) },
+    // Footer
+    footer: { size: 8, font: 'regular', color: rgb(0.6, 0.6, 0.6) }
+  };
   
   // Konfigurácia vlastného fontu
   private customFontPath: string;
@@ -46,36 +69,36 @@ export class PDFLibCustomFontGenerator {
       weight === 'regular' ? fontName : `${fontName}-${weight}`
     ];
     
-    // Špecifické mapovanie pre SF-Pro font - ULTRA OPTIMALIZOVANÉ
+    // Špecifické mapovanie pre SF-Pro font s váhami - ULTRA OPTIMALIZOVANÉ
     if (fontName.toLowerCase().includes('sf-pro') || fontName.toLowerCase().includes('sfpro')) {
       const sfProDir = path.join(fontDir, 'SF-Pro-Expanded-Font-main');
       
-      // PRIORITA 1: Minimálny subset len s potrebnými znakmi (252KB)
+      // PRIORITA 1: Špecifické váhy fontov (252KB každý)
+      const weightMapping = {
+        'light': 'SF-Pro-Light.ttf',
+        'regular': 'SF-Pro-Regular.ttf', 
+        'medium': 'SF-Pro-Medium.ttf',
+        'bold': 'SF-Pro-Bold.ttf'
+      };
+      
+      const specificWeightFile = path.join(sfProDir, weightMapping[weight as keyof typeof weightMapping] || weightMapping['regular']);
+      if (fs.existsSync(specificWeightFile)) {
+        console.log(`🚀 SF-Pro ${weight.toUpperCase()} font: ${specificWeightFile} (252KB)`);
+        return specificWeightFile;
+      }
+      
+      // PRIORITA 2: Minimálny subset ako fallback (252KB)
       const sfProMinimalFile = path.join(sfProDir, 'SF-Pro-Minimal.ttf');
       if (fs.existsSync(sfProMinimalFile)) {
-        console.log(`🚀 SF-Pro MINIMÁLNY subset: ${sfProMinimalFile} (252KB)`);
+        console.log(`⚠️ SF-Pro ${weight} nenájdený, používam Minimal: ${sfProMinimalFile} (252KB)`);
         return sfProMinimalFile;
       }
       
-      // PRIORITA 2: Ultra-malý subset (435KB)
-      const sfProMiniFile = path.join(sfProDir, 'SF-Pro-Mini-Subset.ttf');
-      if (fs.existsSync(sfProMiniFile)) {
-        console.log(`🚀 SF-Pro ULTRA-OPTIMALIZOVANÝ mini subset: ${sfProMiniFile} (435KB)`);
-        return sfProMiniFile;
-      }
-      
-      // PRIORITA 3: Slovak subset (448KB namiesto 14MB)
+      // PRIORITA 3: Slovak subset ako fallback (448KB)
       const sfProSubsetFile = path.join(sfProDir, 'SF-Pro-Slovak-Subset.ttf');
       if (fs.existsSync(sfProSubsetFile)) {
-        console.log(`🚀 SF-Pro OPTIMALIZOVANÝ subset nájdený: ${sfProSubsetFile} (448KB)`);
+        console.log(`⚠️ SF-Pro ${weight} nenájdený, používam Slovak subset: ${sfProSubsetFile} (448KB)`);
         return sfProSubsetFile;
-      }
-      
-      // Fallback na plný font ak subsety neexistujú
-      const sfProFile = path.join(sfProDir, 'SF-Pro.ttf');
-      if (fs.existsSync(sfProFile)) {
-        console.log(`⚠️ SF-Pro plný font nájdený: ${sfProFile} (14MB - NEOPTIMALIZOVANÉ!)`);
-        return sfProFile;
       }
     }
     
@@ -151,12 +174,13 @@ export class PDFLibCustomFontGenerator {
     
     // 4. Informácie o vozidle
     if (protocol.rentalData?.vehicle) {
-      this.addInfoSection('Informácie o vozidle', [
-        ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
-        ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
-        ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
-        ['Spoločnosť:', protocol.rentalData.vehicle.company || 'N/A']
-      ]);
+              this.addInfoSection('Informácie o vozidle', [
+          ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
+          ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
+          ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
+          ['Spoločnosť:', getProtocolCompanyDisplay(protocol.rentalData.vehicle.company)],
+          ...getRepresentativeSection()
+        ]);
     }
     
     // 5. Stav vozidla
@@ -243,7 +267,7 @@ export class PDFLibCustomFontGenerator {
   }
 
   /**
-   * Načítanie vlastného fontu
+   * Načítanie vlastného fontu s podporou rôznych váh
    */
   private async loadCustomFont(): Promise<void> {
     try {
@@ -273,6 +297,36 @@ export class PDFLibCustomFontGenerator {
           // Použitie regular fontu aj pre bold ak bold neexistuje
           this.boldFont = this.font;
           console.log(`⚠️  Bold font nenájdený, používam regular pre oba`);
+        }
+        
+        // Pokus o načítanie light a medium váh (fallback na regular ak neexistujú)
+        const lightPath = this.findFontFile(this.fontName, 'light');
+        const mediumPath = this.findFontFile(this.fontName, 'medium');
+        
+        try {
+          if (fs.existsSync(lightPath)) {
+            const lightFontBytes = fs.readFileSync(lightPath);
+            this.lightFont = await this.doc.embedFont(lightFontBytes);
+            console.log(`✅ Light font načítaný: ${this.fontName}-light`);
+          } else {
+            this.lightFont = this.font;
+            console.log(`⚠️  Light font nenájdený, používam regular`);
+          }
+        } catch {
+          this.lightFont = this.font;
+        }
+        
+        try {
+          if (fs.existsSync(mediumPath)) {
+            const mediumFontBytes = fs.readFileSync(mediumPath);
+            this.mediumFont = await this.doc.embedFont(mediumFontBytes);
+            console.log(`✅ Medium font načítaný: ${this.fontName}-medium`);
+          } else {
+            this.mediumFont = this.font;
+            console.log(`⚠️  Medium font nenájdený, používam regular`);
+          }
+        } catch {
+          this.mediumFont = this.font;
         }
         
         console.log(`🎉 VLASTNÝ FONT ${this.fontName.toUpperCase()} ÚSPEŠNE NAČÍTANÝ!`);
@@ -305,6 +359,8 @@ export class PDFLibCustomFontGenerator {
         
         this.font = await this.doc.embedFont(regularFontBytes);
         this.boldFont = await this.doc.embedFont(boldFontBytes);
+        this.lightFont = this.font; // Použitie regular aj pre light
+        this.mediumFont = this.font; // Použitie regular aj pre medium
         
         console.log('✅ Roboto fallback fonty načítané');
       } else {
@@ -312,6 +368,8 @@ export class PDFLibCustomFontGenerator {
         const { StandardFonts } = await import('pdf-lib');
         this.font = await this.doc.embedFont(StandardFonts.Helvetica);
         this.boldFont = await this.doc.embedFont(StandardFonts.HelveticaBold);
+        this.lightFont = this.font;
+        this.mediumFont = this.font;
         console.log('⚠️  Štandardné PDF fonty ako posledný fallback');
       }
     } catch (error) {
@@ -321,52 +379,67 @@ export class PDFLibCustomFontGenerator {
   }
 
   /**
-   * ✏️ JEDNODUCHÁ MINIMALISTICKÁ HLAVIČKA
+   * 🎨 Pomocná metóda pre výber správneho fontu podľa typografie
+   */
+  private getFontByType(fontType: string): any {
+    switch (fontType) {
+      case 'bold':
+        return this.boldFont;
+      case 'light':
+        return this.lightFont;
+      case 'medium':
+        return this.mediumFont;
+      case 'regular':
+      default:
+        return this.font;
+    }
+  }
+
+  /**
+   * 🎨 Vylepšená metóda pre kreslenie textu s typografiou
+   */
+  private drawStyledText(text: string, x: number, y: number, style: keyof typeof this.typography): void {
+    const typography = this.typography[style];
+    const font = this.getFontByType(typography.font);
+    
+    this.currentPage.drawText(text, {
+      x,
+      y,
+      size: typography.size,
+      font,
+      color: typography.color,
+    });
+  }
+
+  /**
+   * ✏️ VYLEPŠENÁ HLAVIČKA S NOVOU TYPOGRAFIOU
    */
   private addCustomFontHeader(title: string): void {
-    // Jednoduchý titulok - centrovaný
-    const titleWidth = this.boldFont.widthOfTextAtSize(title, 18);
+    // 🎨 HLAVNÝ NADPIS - väčší a výraznejší
+    const h1Typography = this.typography.h1;
+    const titleFont = this.getFontByType(h1Typography.font);
+    const titleWidth = titleFont.widthOfTextAtSize(title, h1Typography.size);
     const centerX = this.pageWidth / 2 - titleWidth / 2;
     
-    this.currentPage.drawText(title, {
-      x: centerX,
-      y: this.currentY - 25,
-      size: 18,
-      font: this.boldFont,
-      color: rgb(0, 0, 0),
-    });
+    this.drawStyledText(title, centerX, this.currentY - 30, 'h1');
 
-    // BlackRent vľavo
-    this.currentPage.drawText('BlackRent', {
-      x: this.margin,
-      y: this.currentY - 25,
-      size: 12,
-      font: this.font,
-      color: rgb(0.4, 0.4, 0.4),
-    });
+    // 🏢 BlackRent logo - menší a jemnejší
+    this.drawStyledText('BlackRent', this.margin, this.currentY - 30, 'h3');
 
-    // Dátum vpravo
+    // 📅 Dátum - najmenší a najjemnejší
     const now = new Date();
     const dateStr = now.toLocaleDateString('sk-SK');
-    
-    this.currentPage.drawText(dateStr, {
-      x: this.pageWidth - this.margin - 60,
-      y: this.currentY - 25,
-      size: 10,
-      font: this.font,
-      color: rgb(0.4, 0.4, 0.4),
-    });
+    this.drawStyledText(dateStr, this.pageWidth - this.margin - 80, this.currentY - 30, 'caption');
 
-    // Jednoduchá linka pod hlavičkou
-    this.currentPage.drawRectangle({
-      x: this.margin,
-      y: this.currentY - 35,
-      width: this.pageWidth - 2 * this.margin,
-      height: 0.5,
-      color: rgb(0.8, 0.8, 0.8),
+    // Elegantná oddeľovacia čiara pod hlavičkou
+    this.currentPage.drawLine({
+      start: { x: this.margin, y: this.currentY - 45 },
+      end: { x: this.pageWidth - this.margin, y: this.currentY - 45 },
+      thickness: 1,
+      color: rgb(0.9, 0.9, 0.9),
     });
     
-    this.currentY -= 50;
+    this.currentY -= 65;
   }
 
   /**
@@ -375,53 +448,36 @@ export class PDFLibCustomFontGenerator {
   private addInfoSection(title: string, data: [string, string][]): void {
     this.checkPageBreak(data.length * 16 + 30);
     
-    // Jednoduchý titulok sekcie
-    this.currentPage.drawText(title, {
-      x: this.margin,
-      y: this.currentY - 15,
-      size: 12,
-      font: this.boldFont,
-      color: rgb(0, 0, 0),
-    });
+    // 🎨 Nadpis sekcie - h2 štýl
+    this.drawStyledText(title, this.margin, this.currentY - 15, 'h2');
     
     this.currentY -= 25;
     
-    // Jednoduchý box s obsahom
-    const boxHeight = data.length * 16 + 10;
+    // Jemnejší box s obsahom
+    const boxHeight = data.length * 18 + 12; // Väčší spacing
     
     this.currentPage.drawRectangle({
       x: this.margin,
       y: this.currentY - boxHeight,
       width: this.pageWidth - 2 * this.margin,
       height: boxHeight,
-      borderColor: rgb(0.8, 0.8, 0.8),
+      color: rgb(0.99, 0.99, 0.99),
+      borderColor: rgb(0.95, 0.95, 0.95),
       borderWidth: 0.5,
     });
     
-    // Jednoduchý obsah
+    // Obsah s vylepšenou typografiou
     data.forEach(([label, value], index) => {
-      const yPos = this.currentY - 12 - (index * 16);
+      const yPos = this.currentY - 14 - (index * 18);
       
-      // Label
-      this.currentPage.drawText(String(label || ''), {
-        x: this.margin + 10,
-        y: yPos,
-        size: 9,
-        font: this.boldFont,
-        color: rgb(0, 0, 0),
-      });
+      // 🏷️ Label - hrubší font
+      this.drawStyledText(String(label || ''), this.margin + 12, yPos, 'label');
       
-      // Hodnota
-      this.currentPage.drawText(String(value || ''), {
-        x: this.margin + 180,
-        y: yPos,
-        size: 9,
-        font: this.font,
-        color: rgb(0.2, 0.2, 0.2),
-      });
+      // 📝 Hodnota - tenší font, jemnejšia farba
+      this.drawStyledText(String(value || ''), this.margin + 190, yPos, 'value');
     });
     
-    this.currentY -= boxHeight + 15;
+    this.currentY -= boxHeight + 20; // Väčší spacing medzi sekciami
   }
 
 
@@ -474,86 +530,69 @@ export class PDFLibCustomFontGenerator {
   }
 
   /**
-   * Poznámky s vlastným fontom
+   * 📝 Vylepšené poznámky s novou typografiou
    */
   private addNotesSection(title: string, notes: string): void {
     this.checkPageBreak(60);
     
+    // Jemnejšie pozadie pre nadpis
     this.currentPage.drawRectangle({
       x: this.margin,
-      y: this.currentY - 20,
+      y: this.currentY - 22,
       width: this.pageWidth - 2 * this.margin,
-      height: 20,
-      color: this.lightGray,
+      height: 22,
+      color: rgb(0.97, 0.97, 0.97),
     });
     
-    this.currentPage.drawText(title, {
-      x: this.margin + 10,
-      y: this.currentY - 15,
-      size: 12,
-      font: this.boldFont,
-      color: this.secondaryColor,
-    });
+    // 🎨 Nadpis poznámok - h2 štýl
+    this.drawStyledText(title, this.margin + 12, this.currentY - 16, 'h2');
     
-    this.currentY -= 30;
+    this.currentY -= 32;
     
-    const maxWidth = this.pageWidth - 2 * this.margin - 20;
-    const lines = this.wrapCustomFontText(notes, maxWidth, 10);
-    const boxHeight = lines.length * 15 + 20;
+    const maxWidth = this.pageWidth - 2 * this.margin - 24;
+    const bodyTypography = this.typography.body;
+    const lines = this.wrapCustomFontText(notes, maxWidth, bodyTypography.size);
+    const boxHeight = lines.length * 16 + 24; // Väčší line-height
     
+    // Jemnejší border pre poznámky
     this.currentPage.drawRectangle({
       x: this.margin,
       y: this.currentY - boxHeight,
       width: this.pageWidth - 2 * this.margin,
       height: boxHeight,
-      borderColor: rgb(0.8, 0.8, 0.8),
-      borderWidth: 1,
+      color: rgb(0.995, 0.995, 0.995),
+      borderColor: rgb(0.92, 0.92, 0.92),
+      borderWidth: 0.5,
     });
     
     lines.forEach((line, index) => {
-      // Vlastný font v poznámkach
-      this.currentPage.drawText(line, {
-        x: this.margin + 10,
-        y: this.currentY - 15 - (index * 15),
-        size: 10,
-        font: this.font,
-        color: rgb(0, 0, 0),
-      });
+      // 📝 Poznámky s body štýlom
+      this.drawStyledText(line, this.margin + 12, this.currentY - 16 - (index * 16), 'body');
     });
     
     this.currentY -= boxHeight + 15;
   }
 
   /**
-   * Footer s vlastným fontom
+   * 🦶 Vylepšený footer s novou typografiou
    */
   private addCustomFontFooter(): void {
     const footerY = 40;
     
+    // Jemnejšia oddeľovacia čiara
     this.currentPage.drawLine({
       start: { x: this.margin, y: footerY + 20 },
       end: { x: this.pageWidth - this.margin, y: footerY + 20 },
-      thickness: 2,
-      color: this.primaryColor,
+      thickness: 1,
+      color: rgb(0.9, 0.9, 0.9),
     });
     
-    // Footer s vlastným fontom
+    // 📄 Footer text s caption štýlom
     const footerText = `Vygenerované ${new Date().toLocaleString('sk-SK')} | BlackRent Systém (${this.fontName})`;
-    this.currentPage.drawText(footerText, {
-      x: this.pageWidth / 2 - 90,
-      y: footerY,
-      size: 8,
-      font: this.font,
-      color: this.secondaryColor,
-    });
+    this.drawStyledText(footerText, this.pageWidth / 2 - 120, footerY, 'footer');
     
-    this.currentPage.drawText('Strana 1', {
-      x: this.pageWidth - this.margin - 40,
-      y: footerY,
-      size: 8,
-      font: this.font,
-      color: this.secondaryColor,
-    });
+    // 📄 Číslo strany s caption štýlom
+    this.drawStyledText('Strana 1', this.pageWidth - this.margin - 50, footerY, 'footer');
   }
 
   private checkPageBreak(requiredSpace: number): void {
@@ -687,18 +726,12 @@ export class PDFLibCustomFontGenerator {
 
     console.log(`🖼️ Adding ${images.length} images for section: ${title}`);
     
-    // Jednoduchý header sekcie
+    // 🎨 Header sekcie s h2 štýlom
     this.checkPageBreak(30);
     
-    this.currentPage.drawText(title, {
-      x: this.margin,
-      y: this.currentY - 15,
-      size: 12,
-      font: this.boldFont,
-      color: rgb(0, 0, 0),
-    });
+    this.drawStyledText(title, this.margin, this.currentY - 15, 'h2');
     
-    this.currentY -= 25;
+    this.currentY -= 30;
 
     // 🖼️ USPORIADANIE OBRÁZKOV 4 V RADE - KOMPAKTNE
     const imagesPerRow = 4;
@@ -710,7 +743,6 @@ export class PDFLibCustomFontGenerator {
     const imageAreaWidth = (availableWidth - imageSpacing) / imagesPerRow;
     const actualMaxWidth = Math.min(maxImageWidth, imageAreaWidth - 10);
 
-    let currentRow = 0;
     let currentCol = 0;
     let rowHeight = 0;
 
@@ -845,13 +877,8 @@ export class PDFLibCustomFontGenerator {
       borderWidth: 0.5,
     });
     
-    this.currentPage.drawText(`${imageNumber}`, {
-      x: xPos + 2,
-      y: this.currentY - height - 12,
-      size: 8,
-      font: this.font,
-      color: rgb(0.4, 0.4, 0.4),
-    });
+    // 📷 Číslo obrázka s caption štýlom
+    this.drawStyledText(`${imageNumber}`, xPos + 2, this.currentY - height - 12, 'caption');
   }
 
   /**
@@ -879,22 +906,11 @@ export class PDFLibCustomFontGenerator {
       color: this.lightGray,
     });
     
-    // Error text
-    this.currentPage.drawText(`Obrázok ${imageNumber}`, {
-      x: this.margin + 10,
-      y: this.currentY - 25,
-      size: 12,
-      font: this.boldFont,
-      color: this.secondaryColor,
-    });
+    // 📷 Error text s h3 štýlom
+    this.drawStyledText(`Obrázok ${imageNumber}`, this.margin + 10, this.currentY - 25, 'h3');
     
-    this.currentPage.drawText(errorMessage, {
-      x: this.margin + 10,
-      y: this.currentY - 45,
-      size: 9,
-      font: this.font,
-      color: this.secondaryColor,
-    });
+    // 📝 Error message s caption štýlom
+    this.drawStyledText(errorMessage, this.margin + 10, this.currentY - 45, 'caption');
     
     this.currentY -= (height + 20);
   }
