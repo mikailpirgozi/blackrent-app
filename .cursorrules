@@ -1,0 +1,78 @@
+# BLACKRENT PROJECT RULES
+
+## CONTEXT DETECTION
+- IF working in `customer-website/` directory → Apply CUSTOMER WEBSITE rules
+- IF working in main project (`src/`, `backend/`, root) → Apply INTERNAL APP rules
+- IF working in both → Ask for clarification
+
+---
+
+## CUSTOMER WEBSITE RULES (customer-website/ directory)
+
+### UI & DESIGN
+- Use EXACT styles from `/customer-website/Anima/` export
+- Assets ONLY from `/customer-website/public/assets/` - NEVER external URLs
+- Preserve ALL Tailwind classes from Anima export
+- NO custom colors, fonts, paddings, margins unless in export
+- Breakpoints: 1728px, 1440px, 744px, 360px
+- NEVER modify design - implement interactivity in NEW components outside export
+- NO moving elements between sections
+
+### Code Structure
+- TypeScript + React functional components
+- TailwindCSS only (no inline CSS)
+- Small reusable components
+- Server commands: `cd customer-website && npm run dev` (port 3002)
+
+---
+
+## INTERNAL APP RULES (main project)
+
+### Development
+- Commands: `npm run dev:start` (NOT `npm run dev`)
+- Components in `/src/components/`
+- Own styling and layout system
+- Different breakpoints and design patterns
+
+### Database
+- Railway PostgreSQL ONLY
+- Connection: PGPASSWORD=nfwrpKxILRUMqunYTZJEhjudEstqLRGv psql -h trolley.proxy.rlwy.net -U postgres -p 13400 -d railway
+
+---
+
+## UNIVERSAL RULES (both projects)
+
+### Code Standards
+- TypeScript + modern React (hooks)
+- API calls: async/await + Axios/Fetch
+- Naming: kebab-case folders, PascalCase components
+- State: React Context or Zustand
+- Separate logic from UI
+- Validate API responses (Zod)
+- No magic numbers - use config
+
+### Production
+- Test builds before push: `npm run build` + `cd backend && npm run build`
+- Remove console.logs and debug code
+- Fix ALL errors/warnings before commit
+- Environment variables in `.env.local`
+
+### Communication
+- Be concise and direct
+- Provide code, not high-level advice
+- Suggest solutions proactively
+- Show only relevant code parts
+- NEVER make assumptions - ASK if uncertain
+
+### Diagnostics
+- `npm run health` (10s diagnosis)
+- `npm run fix` (30s auto-fix)
+- `npm run monitor` (live monitoring)
+
+### Critical Rules
+- NEVER create simplified versions of complex files
+- ALWAYS fix ALL errors in original file
+- Preserve ALL existing functionality and data
+- When copying code, make EXACT copy of original
+- NEVER use external URLs for assets - download and store locally
+- Respond in Slovak language
