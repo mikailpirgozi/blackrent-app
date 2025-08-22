@@ -59,6 +59,8 @@
     "health": "./scripts/diagnostics/health-check.sh",
     "fix": "./scripts/diagnostics/auto-fix.sh",
     "monitor": "./scripts/diagnostics/start-monitoring.sh",
+    "email:watch": "./scripts/monitoring/email-monitoring-watchdog.sh watch",
+    "email:check": "./scripts/monitoring/email-monitoring-watchdog.sh check",
     "watchdog": "./scripts/watchdog.sh",
     "cleanup": "./scripts/diagnostics/cleanup-ports.sh",
     "debug": "./scripts/diagnostics/debug-mode.sh"
