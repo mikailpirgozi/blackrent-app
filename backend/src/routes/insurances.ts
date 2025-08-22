@@ -180,9 +180,9 @@ router.post('/',
   checkPermission('insurances', 'create'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo } = req.body;
 
-    if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
+    if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || typeof price !== 'number' || price < 0 || !company) {
       return res.status(400).json({
         success: false,
         error: 'Všetky povinné polia musia byť vyplnené'
@@ -198,7 +198,10 @@ router.post('/',
       price,
       company,
       paymentFrequency,
-      filePath
+      filePath,
+      filePaths,
+      greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
+      greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined
     });
 
     res.status(201).json({
@@ -223,9 +226,9 @@ router.put('/:id',
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo } = req.body;
 
-    if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
+    if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || typeof price !== 'number' || price < 0 || !company) {
       return res.status(400).json({
         success: false,
         error: 'Všetky povinné polia musia byť vyplnené'
@@ -242,7 +245,10 @@ router.put('/:id',
       company,
       insurerId, // Nový parameter
       paymentFrequency,
-      filePath
+      filePath,
+      filePaths,
+      greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
+      greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined
     });
 
     res.json({

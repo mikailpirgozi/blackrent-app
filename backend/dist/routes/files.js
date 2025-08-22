@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const multer_1 = __importDefault(require("multer"));
+const archiver_1 = __importDefault(require("archiver"));
 const r2_storage_1 = require("../utils/r2-storage");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
@@ -753,6 +754,140 @@ router.post('/presigned-upload', auth_1.authenticateToken, async (req, res) => {
             error: 'Chyba pri generovaní organizovanej signed URL',
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
+    }
+});
+// 🗜️ NOVÝ ENDPOINT: ZIP download pre viacero súborov
+router.post('/download-zip', async (req, res) => {
+    try {
+        console.log('🗜️ ZIP DOWNLOAD REQUEST START');
+        console.log('🗜️ Request body:', req.body);
+        const { filePaths, zipName } = req.body;
+        console.log('🔄 ZIP download request:', {
+            filePathsCount: filePaths?.length,
+            zipName,
+            filePaths: filePaths?.slice(0, 3) // Log len prvé 3 pre debug
+        });
+        if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
+            console.log('❌ ZIP download: Invalid filePaths');
+            return res.status(400).json({
+                success: false,
+                error: 'Chýbajú cesty k súborom'
+            });
+        }
+        // Nastavenie response headers pre ZIP download
+        const fileName = zipName || `poistka_subory_${Date.now()}.zip`;
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        // Vytvorenie ZIP archívu
+        const archive = (0, archiver_1.default)('zip', {
+            zlib: { level: 9 } // Najvyššia kompresia
+        });
+        // Error handling pre archiver
+        archive.on('error', (err) => {
+            console.error('❌ ZIP archive error:', err);
+            throw err;
+        });
+        // Pipe archívu do response
+        archive.pipe(res);
+        // Pridanie súborov do ZIP archívu
+        for (let i = 0; i < filePaths.length; i++) {
+            const filePath = filePaths[i];
+            try {
+                console.log(`🔄 Adding file ${i + 1}/${filePaths.length} to ZIP:`, filePath);
+                // Extrakcia file key z URL - podporuje R2 URLs
+                let fileKey;
+                if (filePath.includes('blackrent-storage.mikailpirgozi.dev')) {
+                    // R2 URL format: https://blackrent-storage.mikailpirgozi.dev/path/to/file
+                    fileKey = filePath.replace(/^https?:\/\/blackrent-storage\.mikailpirgozi\.dev\//, '');
+                }
+                else if (filePath.includes('pub-4fec120a8a6a4a0cbadfa55f54b7e8a2.r2.dev')) {
+                    // Skutočný R2 URL format z databázy
+                    fileKey = filePath.replace(/^https?:\/\/pub-4fec120a8a6a4a0cbadfa55f54b7e8a2\.r2\.dev\//, '');
+                }
+                else if (filePath.includes('r2.cloudflarestorage.com')) {
+                    // Alternative R2 URL format
+                    fileKey = filePath.split('/').slice(3).join('/'); // Skip domain parts
+                }
+                else {
+                    // Fallback - remove domain
+                    fileKey = filePath.replace(/^https?:\/\/[^\/]+\//, '');
+                }
+                console.log(`🔍 Processing file ${i + 1}: ${filePath} -> ${fileKey}`);
+                // Stiahnutie súboru z R2
+                const fileBuffer = await r2_storage_1.r2Storage.getFile(fileKey);
+                if (fileBuffer) {
+                    // Generovanie názvu súboru v ZIP
+                    const originalFileName = filePath.split('/').pop() || `subor_${i + 1}`;
+                    const fileExtension = originalFileName.split('.').pop() || '';
+                    const zipFileName = `${i + 1}_${originalFileName}`;
+                    // Pridanie súboru do ZIP
+                    archive.append(fileBuffer, { name: zipFileName });
+                    console.log(`✅ Added to ZIP: ${zipFileName}`);
+                }
+                else {
+                    console.warn(`⚠️ File not found, skipping: ${filePath}`);
+                    // Pridaj textový súbor s chybou
+                    archive.append(`Súbor nebol nájdený: ${filePath}`, { name: `ERROR_${i + 1}.txt` });
+                }
+            }
+            catch (fileError) {
+                console.error(`❌ Error adding file ${filePath} to ZIP:`, fileError);
+                // Pridaj textový súbor s chybou
+                archive.append(`Chyba pri načítaní súboru: ${filePath}\nChyba: ${fileError}`, { name: `ERROR_${i + 1}.txt` });
+            }
+        }
+        // Dokončenie ZIP archívu
+        await archive.finalize();
+        console.log('✅ ZIP download completed');
+    }
+    catch (error) {
+        console.error('❌ Error creating ZIP:', error);
+        // Ak response ešte nebol odoslaný
+        if (!res.headersSent) {
+            res.status(500).json({
+                success: false,
+                error: 'Chyba pri vytváraní ZIP archívu',
+                details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+    }
+});
+// 🧪 TEST ENDPOINT: Jednoduchý ZIP test
+router.get('/test-zip', async (req, res) => {
+    try {
+        console.log('🧪 Testing ZIP functionality...');
+        // Nastavenie response headers pre ZIP download
+        const fileName = `test_archive_${Date.now()}.zip`;
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        // Vytvorenie ZIP archívu
+        const archive = (0, archiver_1.default)('zip', {
+            zlib: { level: 9 }
+        });
+        // Error handling pre archiver
+        archive.on('error', (err) => {
+            console.error('❌ ZIP archive error:', err);
+            throw err;
+        });
+        // Pipe archívu do response
+        archive.pipe(res);
+        // Pridanie test súborov
+        archive.append('Toto je test súbor 1', { name: 'test1.txt' });
+        archive.append('Toto je test súbor 2', { name: 'test2.txt' });
+        archive.append('Toto je test súbor 3', { name: 'test3.txt' });
+        // Dokončenie ZIP archívu
+        await archive.finalize();
+        console.log('✅ Test ZIP completed');
+    }
+    catch (error) {
+        console.error('❌ Error creating test ZIP:', error);
+        if (!res.headersSent) {
+            res.status(500).json({
+                success: false,
+                error: 'Chyba pri vytváraní test ZIP archívu',
+                details: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
     }
 });
 exports.default = router;

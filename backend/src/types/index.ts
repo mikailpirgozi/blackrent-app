@@ -1,3 +1,5 @@
+import { Request } from 'express';
+
 // 🚗 VEHICLE CATEGORIES: Typy kategórií vozidiel pre lepšie filtrovanie
 export type VehicleCategory = 
   | 'nizka-trieda'      // 🚗 Nízka trieda (Škoda Fabia, Hyundai i20, Dacia Logan)
@@ -283,7 +285,8 @@ export interface Insurance {
   price: number;
   company?: string;
   paymentFrequency: PaymentFrequency;
-  filePath?: string;
+  filePath?: string; // Zachováme pre backward compatibility
+  filePaths?: string[]; // Nové pole pre viacero súborov
   coverageAmount?: number;
   // 🟢 BIELA KARTA: Platnosť zelenej karty (manuálne zadávané)
   greenCardValidFrom?: Date;
@@ -499,7 +502,6 @@ export interface JWTPayload {
 }
 
 // Express request with user
-import { Request } from 'express';
 export interface AuthRequest extends Request {
   user?: Omit<User, 'password'>;
 }

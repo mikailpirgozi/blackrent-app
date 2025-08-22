@@ -219,14 +219,13 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
                             const emailSent = await email_service_1.emailService.sendHandoverProtocolEmail(protocolData.rentalData.customer, pdfBuffer, protocolData);
                             if (emailSent) {
                                 await postgres_database_1.postgresDatabase.updateHandoverProtocol(protocol.id, {
-                                    emailSent: true,
-                                    emailSentAt: new Date()
+                                    emailSent: true
                                 });
-                                console.log('✅ Background: Email sent successfully');
+                                console.log('✅ Background email sent to', protocolData.rentalData.customer.email);
                             }
                         }
                         catch (emailError) {
-                            console.error('❌ Background: Email sending failed:', emailError);
+                            console.error('❌ Background email failed:', emailError);
                         }
                     }
                 }
@@ -252,7 +251,6 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
                         if (emailSent) {
                             await postgres_database_1.postgresDatabase.updateHandoverProtocol(protocol.id, {
                                 emailSent: true,
-                                emailSentAt: new Date(),
                                 pdfEmailUrl: pdfUrl
                             });
                             emailResult = {
@@ -261,6 +259,7 @@ router.post('/handover', auth_1.authenticateToken, async (req, res) => {
                                 timestamp: new Date().toISOString(),
                                 recipient: originalRentalData.customer.email
                             };
+                            console.log('✅ Email sent successfully to', originalRentalData.customer.email);
                         }
                     }
                     catch (emailError) {

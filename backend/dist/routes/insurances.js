@@ -139,8 +139,8 @@ router.get('/paginated', auth_1.authenticateToken, (0, permissions_1.checkPermis
 // POST /api/insurances - Vytvorenie novej poistky
 router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('insurances', 'create'), async (req, res) => {
     try {
-        const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath } = req.body;
-        if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
+        const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo } = req.body;
+        if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || typeof price !== 'number' || price < 0 || !company) {
             return res.status(400).json({
                 success: false,
                 error: 'Všetky povinné polia musia byť vyplnené'
@@ -155,7 +155,10 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('i
             price,
             company,
             paymentFrequency,
-            filePath
+            filePath,
+            filePaths,
+            greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
+            greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined
         });
         res.status(201).json({
             success: true,
@@ -175,8 +178,8 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('i
 router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('insurances', 'update', { getContext: getInsuranceContext }), async (req, res) => {
     try {
         const { id } = req.params;
-        const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath } = req.body;
-        if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || !price || !company) {
+        const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo } = req.body;
+        if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || typeof price !== 'number' || price < 0 || !company) {
             return res.status(400).json({
                 success: false,
                 error: 'Všetky povinné polia musia byť vyplnené'
@@ -192,7 +195,10 @@ router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
             company,
             insurerId, // Nový parameter
             paymentFrequency,
-            filePath
+            filePath,
+            filePaths,
+            greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
+            greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined
         });
         res.json({
             success: true,

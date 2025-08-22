@@ -46,7 +46,8 @@ interface UnifiedDocumentData {
   validFrom?: Date;
   validTo: Date;
   price?: number;
-  filePath?: string;
+  filePath?: string; // Zachováme pre backward compatibility
+  filePaths?: string[]; // Nové pole pre viacero súborov
   
   // 🟢 BIELA KARTA: Platnosť zelenej karty (len pre poistky)
   greenCardValidFrom?: Date;
@@ -89,7 +90,8 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
       validFrom: document?.validFrom || new Date(), // 🔄 Pre nové poistky nastav dnes
       validTo: document?.validTo || new Date(),
       price: document?.price || 0,
-      filePath: document?.filePath || '',
+      filePath: document?.filePath || '', // Zachováme pre backward compatibility
+      filePaths: document?.filePaths || [], // Nové pole pre viacero súborov
       greenCardValidFrom: document?.greenCardValidFrom || undefined, // 🟢 Biela karta
       greenCardValidTo: document?.greenCardValidTo || undefined // 🟢 Biela karta
     };
@@ -202,15 +204,35 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
 
   const handleFileUploadSuccess = (fileData: { url: string; key: string; filename: string } | { url: string; key: string; filename: string }[]) => {
     console.log('🔍 FILE UPLOAD SUCCESS:', fileData);
-    const url = Array.isArray(fileData) ? fileData[0]?.url : fileData.url;
-    setFormData(prev => {
-      const newData = {
-        ...prev,
-        filePath: url
-      };
-      console.log('🔍 UPDATED FORM DATA:', newData);
-      return newData;
-    });
+    
+    if (Array.isArray(fileData)) {
+      // Viacero súborov - pridaj do filePaths array
+      const newUrls = fileData.map(file => file.url);
+      setFormData(prev => {
+        const existingPaths = prev.filePaths || [];
+        const updatedPaths = [...existingPaths, ...newUrls];
+        const newData = {
+          ...prev,
+          filePaths: updatedPaths,
+          filePath: existingPaths.length > 0 ? prev.filePath : updatedPaths[0] // Zachovaj pôvodný filePath ak existuje
+        };
+        console.log('🔍 UPDATED FORM DATA (multiple files):', newData);
+        return newData;
+      });
+    } else {
+      // Jeden súbor - pridaj do filePaths array (NEPREPISUJ existujúce)
+      setFormData(prev => {
+        const existingPaths = prev.filePaths || [];
+        const updatedPaths = [...existingPaths, fileData.url];
+        const newData = {
+          ...prev,
+          filePaths: updatedPaths,
+          filePath: existingPaths.length > 0 ? prev.filePath : fileData.url // Zachovaj pôvodný filePath ak existuje
+        };
+        console.log('🔍 UPDATED FORM DATA (single file):', newData);
+        return newData;
+      });
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -221,7 +243,6 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
     }
 
     console.log('🔍 FORM SUBMIT - Form data being saved:', formData);
-    console.log('🔍 FORM SUBMIT - FilePath value:', formData.filePath);
     
     onSave(formData);
   };
@@ -521,9 +542,12 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                     Priložený súbor
                   </Typography>
                   
-                  {formData.filePath && (
+                  {(formData.filePaths && formData.filePaths.length > 0) && (
                     <Alert severity="info" sx={{ mb: 2 }}>
-                      Súbor už je priložený. Nahratím nového súboru nahradíte existujúci.
+                      {formData.filePaths.length === 1 
+                        ? 'Súbor už je priložený. Môžete pridať viac súborov.'
+                        : `${formData.filePaths.length} súborov je už priložených. Môžete pridať viac súborov.`
+                      }
                     </Alert>
                   )}
 
@@ -534,21 +558,38 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                     onUploadError={(error) => console.error('Upload error:', error)}
                     acceptedTypes={['image/jpeg', 'image/png', 'image/webp', 'application/pdf']}
                     maxSize={10}
-                    label="Nahrať dokument (PDF, JPG, PNG)"
+                    multiple={true}
+                    label="Nahrať súbory (PDF, JPG, PNG) - môžete vybrať viacero"
                   />
 
-                  {formData.filePath && (
+                  {(formData.filePaths && formData.filePaths.length > 0) && (
                     <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Aktuálny súbor: {formData.filePath.split('/').pop()}
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Priložené súbory ({formData.filePaths.length}):
                       </Typography>
-                      <Button
-                        size="small"
-                        onClick={() => window.open(formData.filePath, '_blank')}
-                        sx={{ mt: 1 }}
-                      >
-                        Zobraziť súbor
-                      </Button>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {formData.filePaths.map((filePath, index) => (
+                          <Chip
+                            key={index}
+                            label={`${index + 1}. ${filePath.split('/').pop()}`}
+                            onClick={() => window.open(filePath, '_blank')}
+                            onDelete={() => {
+                              // Odstráň súbor z filePaths
+                              setFormData(prev => {
+                                const updatedPaths = prev.filePaths?.filter((_, i) => i !== index) || [];
+                                return {
+                                  ...prev,
+                                  filePaths: updatedPaths,
+                                  filePath: updatedPaths[0] || '' // Zachováme pre backward compatibility
+                                };
+                              });
+                            }}
+                            size="small"
+                            variant="outlined"
+                            sx={{ cursor: 'pointer' }}
+                          />
+                        ))}
+                      </Box>
                     </Box>
                   )}
                 </CardContent>

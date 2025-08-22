@@ -267,7 +267,8 @@ export interface Insurance {
   price: number;
   company: string;
   paymentFrequency: PaymentFrequency;
-  filePath?: string;
+  filePath?: string; // Zachováme pre backward compatibility
+  filePaths?: string[]; // Nové pole pre viacero súborov
   // 🟢 BIELA KARTA: Platnosť zelenej karty (manuálne zadávané)
   greenCardValidFrom?: Date;
   greenCardValidTo?: Date;

@@ -48,7 +48,8 @@ import {
   LocalShipping as HighwayIcon,
   Build as BuildIcon,
   AttachFile as FileIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  GetApp as DownloadIcon
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { Insurance, PaymentFrequency, VehicleDocument } from '../../types';
@@ -57,6 +58,7 @@ import { sk } from 'date-fns/locale';
 import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
 import InsuranceClaimList from './InsuranceClaimList';
 import { useInfiniteInsurances } from '../../hooks/useInfiniteInsurances';
+import { getApiBaseUrl } from '../../utils/apiUrl';
 
 // Unified document type for table display
 interface UnifiedDocument {
@@ -71,7 +73,8 @@ interface UnifiedDocument {
   company?: string;
   paymentFrequency?: PaymentFrequency;
   notes?: string;
-  filePath?: string;
+  filePath?: string; // Zachováme pre backward compatibility
+  filePaths?: string[]; // Nové pole pre viacero súborov
   createdAt: Date | string;
   originalData: Insurance | VehicleDocument;
 }
@@ -225,7 +228,8 @@ export default function InsuranceList() {
         price: insurance.price,
         company: insurance.company,
         paymentFrequency: insurance.paymentFrequency,
-        filePath: insurance.filePath,
+        filePath: insurance.filePath, // Zachováme pre backward compatibility
+        filePaths: insurance.filePaths, // Nové pole pre viacero súborov
         createdAt: insurance.validTo, // Use validTo as fallback since createdAt doesn't exist
         originalData: insurance
       });
@@ -326,7 +330,8 @@ export default function InsuranceList() {
       validFrom: doc.validFrom ? (typeof doc.validFrom === 'string' ? new Date(doc.validFrom) : doc.validFrom) : undefined,
       validTo: typeof doc.validTo === 'string' ? new Date(doc.validTo) : doc.validTo,
       price: doc.price,
-      filePath: doc.filePath,
+      filePath: doc.filePath, // Zachováme pre backward compatibility
+      filePaths: doc.filePaths || (doc.filePath ? [doc.filePath] : []), // Nové pole pre viacero súborov
       // 🟢 BIELA KARTA: Preniesť z originalData ak existuje
       greenCardValidFrom: doc.originalData && 'greenCardValidFrom' in doc.originalData ? doc.originalData.greenCardValidFrom : undefined,
       greenCardValidTo: doc.originalData && 'greenCardValidTo' in doc.originalData ? doc.originalData.greenCardValidTo : undefined
@@ -374,7 +379,8 @@ export default function InsuranceList() {
             company: data.company || '', // Zachovávame pre kompatibilitu
             insurerId: selectedInsurer?.id || null, // Nový parameter
             paymentFrequency: data.paymentFrequency || 'yearly',
-            filePath: data.filePath,
+            filePath: data.filePath, // Zachováme pre backward compatibility
+            filePaths: data.filePaths, // Nové pole pre viacero súborov
             greenCardValidFrom: data.greenCardValidFrom, // 🟢 Biela karta
             greenCardValidTo: data.greenCardValidTo // 🟢 Biela karta
           };
@@ -412,12 +418,12 @@ export default function InsuranceList() {
             price: data.price || 0,
             company: data.company || '',
             paymentFrequency: data.paymentFrequency || 'yearly',
-            filePath: data.filePath,
+            filePath: data.filePath, // Zachováme pre backward compatibility
+            filePaths: data.filePaths, // Nové pole pre viacero súborov
             greenCardValidFrom: data.greenCardValidFrom, // 🟢 Biela karta
             greenCardValidTo: data.greenCardValidTo // 🟢 Biela karta
           };
           console.log('🔍 HANDLE SAVE - Creating insurance with data:', insuranceData);
-          console.log('🔍 HANDLE SAVE - Insurance filePath:', insuranceData.filePath);
           await createInsurance(insuranceData);
         } else {
           // Transform UnifiedDocument to VehicleDocument format
@@ -883,19 +889,217 @@ export default function InsuranceList() {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        {doc.filePath ? (
-                          <Tooltip title="Zobraziť súbor">
-                            <IconButton
-                              size="small"
-                              onClick={() => window.open(doc.filePath, '_blank')}
-                              sx={{ color: '#1976d2' }}
-                            >
-                              <FileIcon sx={{ fontSize: 18 }} />
-                            </IconButton>
-                          </Tooltip>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">-</Typography>
-                        )}
+                        {/* Zobrazenie viacerých súborov */}
+                        {(() => {
+                          const filePaths = (doc.originalData as Insurance)?.filePaths || 
+                                          (doc.filePath ? [doc.filePath] : []);
+                          
+                          if (filePaths.length === 0) {
+                            return <Typography variant="body2" color="text.secondary">-</Typography>;
+                          }
+                          
+                          if (filePaths.length === 1) {
+                            return (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Tooltip title="Zobraziť súbor">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => window.open(filePaths[0], '_blank')}
+                                    sx={{ color: '#1976d2' }}
+                                  >
+                                    <FileIcon sx={{ fontSize: 18 }} />
+                                  </IconButton>
+                                </Tooltip>
+                                <Typography variant="caption" color="text.secondary">
+                                  {filePaths[0].split('/').pop()?.substring(0, 15)}...
+                                </Typography>
+                              </Box>
+                            );
+                          }
+                          
+                          // Viacero súborov - rozšírený systém
+                          return (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Chip
+                                  label={`${filePaths.length} súborov`}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ 
+                                    cursor: 'pointer',
+                                    '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.04)' }
+                                  }}
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    // Stiahnuť všetky súbory ako ZIP
+                                    try {
+                                      const vehicle = state.vehicles?.find(v => v.id === doc.vehicleId);
+                                      const zipName = `${vehicle?.brand || 'Auto'}_${vehicle?.model || 'Model'}_${vehicle?.licensePlate || 'NoPlate'}_poistka_subory.zip`;
+                                      
+                                      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+                                      console.log('🗜️ Frontend ZIP request starting...', { filePaths: filePaths.length, zipName });
+                                      
+                                      const apiUrl = getApiBaseUrl();
+                                      console.log('🗜️ Using API URL (chip):', apiUrl);
+                                      const response = await fetch(`${apiUrl}/files/download-zip`, {
+                                        method: 'POST',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          ...(token && { 'Authorization': `Bearer ${token}` }),
+                                        },
+                                        body: JSON.stringify({
+                                          filePaths: filePaths,
+                                          zipName: zipName
+                                        }),
+                                      });
+                                      
+                                      if (response.ok) {
+                                        const blob = await response.blob();
+                                        const url = window.URL.createObjectURL(blob);
+                                        const link = document.createElement('a');
+                                        link.href = url;
+                                        link.download = zipName;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                        window.URL.revokeObjectURL(url);
+                                      } else {
+                                        throw new Error('Chyba pri sťahovaní ZIP súboru');
+                                      }
+                                    } catch (error) {
+                                      console.error('ZIP download error:', error);
+                                      alert('Chyba pri sťahovaní súborov ako ZIP. Skúsim postupné stiahnutie...');
+                                      // Fallback na postupné stiahnutie
+                                      filePaths.forEach((path, index) => {
+                                        setTimeout(() => {
+                                          const link = document.createElement('a');
+                                          link.href = path;
+                                          link.download = `poistka_subor_${index + 1}.${path.split('.').pop()}`;
+                                          document.body.appendChild(link);
+                                          link.click();
+                                          document.body.removeChild(link);
+                                        }, index * 500);
+                                      });
+                                    }
+                                  }}
+                                />
+                                <Tooltip title="Stiahnuť všetky súbory ako ZIP">
+                                  <IconButton
+                                    size="small"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      // Stiahnuť všetky súbory ako ZIP
+                                      try {
+                                        const vehicle = state.vehicles?.find(v => v.id === doc.vehicleId);
+                                        const zipName = `${vehicle?.brand || 'Auto'}_${vehicle?.model || 'Model'}_${vehicle?.licensePlate || 'NoPlate'}_poistka_subory.zip`;
+                                        
+                                        const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+                                        console.log('🗜️ Frontend ZIP request starting (icon)...', { filePaths: filePaths.length, zipName });
+                                        
+                                        const apiUrl = getApiBaseUrl();
+                                        console.log('🗜️ Using API URL (icon):', apiUrl);
+                                        const response = await fetch(`${apiUrl}/files/download-zip`, {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                            ...(token && { 'Authorization': `Bearer ${token}` }),
+                                          },
+                                          body: JSON.stringify({
+                                            filePaths: filePaths,
+                                            zipName: zipName
+                                          }),
+                                        });
+                                        
+                                        console.log('🗜️ Response status (icon):', response.status);
+                                        console.log('🗜️ Response headers (icon):', response.headers);
+                                        
+                                        if (response.ok) {
+                                          console.log('🗜️ Response OK (icon), creating blob...');
+                                          const blob = await response.blob();
+                                          console.log('🗜️ Blob created (icon), size:', blob.size);
+                                          
+                                          const url = window.URL.createObjectURL(blob);
+                                          const link = document.createElement('a');
+                                          link.href = url;
+                                          link.download = zipName;
+                                          document.body.appendChild(link);
+                                          link.click();
+                                          document.body.removeChild(link);
+                                          window.URL.revokeObjectURL(url);
+                                          console.log('✅ ZIP download initiated (icon):', zipName);
+                                        } else {
+                                          const errorText = await response.text();
+                                          console.error('❌ ZIP download failed (icon):', response.status, errorText);
+                                          throw new Error(`Chyba pri sťahovaní ZIP súboru: ${response.status} - ${errorText}`);
+                                        }
+                                      } catch (error) {
+                                        console.error('ZIP download error:', error);
+                                        alert('Chyba pri sťahovaní súborov ako ZIP. Skúsim postupné stiahnutie...');
+                                        // Fallback na postupné stiahnutie
+                                        filePaths.forEach((path, index) => {
+                                          setTimeout(() => {
+                                            const link = document.createElement('a');
+                                            link.href = path;
+                                            link.download = `poistka_subor_${index + 1}.${path.split('.').pop()}`;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                          }, index * 500);
+                                        });
+                                      }
+                                    }}
+                                    sx={{ color: '#388e3c' }}
+                                  >
+                                    <DownloadIcon sx={{ fontSize: 18 }} />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                              
+                              {/* Rozbaľovací zoznam súborov */}
+                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxWidth: '200px' }}>
+                                {filePaths.slice(0, 3).map((path, index) => (
+                                  <Chip
+                                    key={index}
+                                    label={`${index + 1}.`}
+                                    size="small"
+                                    variant="filled"
+                                    sx={{ 
+                                      minWidth: '30px',
+                                      cursor: 'pointer',
+                                      fontSize: '10px',
+                                      height: '20px',
+                                      '&:hover': { backgroundColor: '#1976d2' }
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(path, '_blank');
+                                    }}
+                                  />
+                                ))}
+                                {filePaths.length > 3 && (
+                                  <Chip
+                                    label={`+${filePaths.length - 3}`}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ 
+                                      minWidth: '35px',
+                                      cursor: 'pointer',
+                                      fontSize: '10px',
+                                      height: '20px'
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // Zobraz zostávajúce súbory
+                                      filePaths.slice(3).forEach((path, index) => {
+                                        setTimeout(() => window.open(path, '_blank'), index * 300);
+                                      });
+                                    }}
+                                  />
+                                )}
+                              </Box>
+                            </Box>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 0.5 }}>

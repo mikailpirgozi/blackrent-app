@@ -1,3 +1,4 @@
+import { Request } from 'express';
 export type VehicleCategory = 'nizka-trieda' | 'stredna-trieda' | 'vyssia-stredna' | 'luxusne' | 'sportove' | 'suv' | 'viacmiestne' | 'dodavky';
 export interface Vehicle {
     id: string;
@@ -233,6 +234,7 @@ export interface Insurance {
     company?: string;
     paymentFrequency: PaymentFrequency;
     filePath?: string;
+    filePaths?: string[];
     coverageAmount?: number;
     greenCardValidFrom?: Date;
     greenCardValidTo?: Date;
@@ -417,7 +419,6 @@ export interface JWTPayload {
     iat?: number;
     exp?: number;
 }
-import { Request } from 'express';
 export interface AuthRequest extends Request {
     user?: Omit<User, 'password'>;
 }

@@ -266,6 +266,21 @@ class PostgresDatabase {
             catch (error) {
                 console.log('ℹ️ Insurance file_path column already exists or error occurred:', error);
             }
+            // Migrácia na viacero súborov - pridáme file_paths array
+            try {
+                await client.query(`
+          ALTER TABLE insurances ADD COLUMN IF NOT EXISTS file_paths TEXT[]
+        `);
+                // Migrácia existujúcich file_path do file_paths array
+                await client.query(`
+          UPDATE insurances 
+          SET file_paths = ARRAY[file_path] 
+          WHERE file_path IS NOT NULL AND file_path != '' AND file_paths IS NULL
+        `);
+            }
+            catch (error) {
+                console.log('ℹ️ Insurance file_paths column migration error:', error);
+            }
             // Tabuľka firiem
             await client.query(`
         CREATE TABLE IF NOT EXISTS companies (
@@ -3933,7 +3948,8 @@ class PostgresDatabase {
                 price: parseFloat(row.price) || 0, // Správny stĺpec
                 company: row.insurer_name || '', // Načítaný názov poistovne z JOIN
                 paymentFrequency: row.payment_frequency || 'yearly',
-                filePath: row.file_path || undefined,
+                filePath: row.file_path || undefined, // Zachováme pre backward compatibility
+                filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
                 greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
                 greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined // 🟢 Biela karta
             }));
@@ -3955,9 +3971,10 @@ class PostgresDatabase {
                     console.log(`🔧 INSURANCE: Mapped company "${insuranceData.company}" to insurerId ${finalInsurerId}`);
                 }
             }
-            // ✅ OPRAVENÉ: Používame správne stĺpce podľa aktuálnej schémy + biela karta
-            const result = await client.query('INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, green_card_valid_from, green_card_valid_to) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, green_card_valid_from, green_card_valid_to, created_at', [
-                insuranceData.vehicleId, // Priamo vehicle_id 
+            // ✅ OPRAVENÉ: Používame správne stĺpce podľa aktuálnej schémy + biela karta + viacero súborov
+            const filePaths = insuranceData.filePaths || (insuranceData.filePath ? [insuranceData.filePath] : null);
+            const result = await client.query('INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to, created_at', [
+                insuranceData.vehicleId ? parseInt(insuranceData.vehicleId) : null, // Convert string to integer
                 finalInsurerId || null,
                 insuranceData.policyNumber,
                 insuranceData.type,
@@ -3966,7 +3983,8 @@ class PostgresDatabase {
                 insuranceData.validFrom, // valid_from (nie start_date!)
                 insuranceData.validTo, // valid_to (nie end_date!)
                 insuranceData.paymentFrequency || 'yearly',
-                insuranceData.filePath || null,
+                insuranceData.filePath || null, // Zachováme pre backward compatibility
+                filePaths, // Nové pole pre viacero súborov
                 insuranceData.greenCardValidFrom || null, // 🟢 Biela karta od
                 insuranceData.greenCardValidTo || null // 🟢 Biela karta do
             ]);
@@ -3981,7 +3999,8 @@ class PostgresDatabase {
                 price: parseFloat(row.price) || 0, // Správny stĺpec
                 company: insuranceData.company || '',
                 paymentFrequency: row.payment_frequency || 'yearly',
-                filePath: row.file_path || undefined,
+                filePath: row.file_path || undefined, // Zachováme pre backward compatibility
+                filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
                 greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
                 greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined // 🟢 Biela karta
             };
@@ -4002,13 +4021,14 @@ class PostgresDatabase {
                     console.log(`🔧 UPDATE INSURANCE: Mapped company "${insuranceData.company}" to insurerId ${finalInsurerId}`);
                 }
             }
-            // ✅ OPRAVENÉ: Používame správne stĺpce podľa aktuálnej schémy + biela karta
+            // ✅ OPRAVENÉ: Používame správne stĺpce podľa aktuálnej schémy + biela karta + viacero súborov
+            const filePaths = insuranceData.filePaths || (insuranceData.filePath ? [insuranceData.filePath] : null);
             const result = await client.query(`
         UPDATE insurances 
-        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, valid_from = $5, valid_to = $6, price = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, green_card_valid_from = $11, green_card_valid_to = $12
-        WHERE id = $13 
-        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, green_card_valid_from, green_card_valid_to
-      `, [insuranceData.vehicleId, finalInsurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, insuranceData.greenCardValidFrom || null, insuranceData.greenCardValidTo || null, id]);
+        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, valid_from = $5, valid_to = $6, price = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, green_card_valid_from = $12, green_card_valid_to = $13
+        WHERE id = $14 
+        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to
+      `, [insuranceData.vehicleId ? parseInt(insuranceData.vehicleId) : null, finalInsurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, filePaths, insuranceData.greenCardValidFrom || null, insuranceData.greenCardValidTo || null, id]);
             if (result.rows.length === 0) {
                 throw new Error('Poistka nebola nájdená');
             }
@@ -4029,7 +4049,8 @@ class PostgresDatabase {
                 price: parseFloat(row.price) || 0, // Správny stĺpec
                 company: insurerName || insuranceData.company || '', // Použijem načítaný názov poistovne
                 paymentFrequency: row.payment_frequency || 'yearly',
-                filePath: row.file_path || undefined,
+                filePath: row.file_path || undefined, // Zachováme pre backward compatibility
+                filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
                 greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
                 greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined // 🟢 Biela karta
             };
@@ -5617,8 +5638,8 @@ class PostgresDatabase {
             if (setFields.length === 0) {
                 throw new Error('Žiadne platné polia na aktualizáciu');
             }
-            // Pridanie updated_at
-            setFields.push('updated_at = CURRENT_TIMESTAMP');
+            // Pridanie updated_at - OPRAVENÉ: stĺpec neexistuje
+            // setFields.push('updated_at = CURRENT_TIMESTAMP');
             const query = `
         UPDATE handover_protocols 
         SET ${setFields.join(', ')}

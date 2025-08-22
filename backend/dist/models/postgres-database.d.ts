@@ -259,6 +259,7 @@ export declare class PostgresDatabase {
         company?: string;
         paymentFrequency?: string;
         filePath?: string;
+        filePaths?: string[];
         coverageAmount?: number;
         greenCardValidFrom?: Date;
         greenCardValidTo?: Date;
@@ -274,6 +275,7 @@ export declare class PostgresDatabase {
         insurerId?: string;
         paymentFrequency?: string;
         filePath?: string;
+        filePaths?: string[];
         greenCardValidFrom?: Date;
         greenCardValidTo?: Date;
     }): Promise<Insurance>;
