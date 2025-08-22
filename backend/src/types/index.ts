@@ -123,6 +123,8 @@ export interface Rental {
   handoverProtocolId?: string;
   returnProtocolId?: string;
   // Dáta z emailu a lokácie
+  customerEmail?: string; // 📧 Email zákazníka pre protokoly
+  customerPhone?: string; // 📞 Telefón zákazníka pre protokoly
   pickupLocation?: string;
   returnLocation?: string;
   vehicleCode?: string;

@@ -14,7 +14,9 @@ import {
   IconButton,
   Chip,
   CircularProgress,
+  Alert,
 } from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
 import Autocomplete from '@mui/material/Autocomplete';
 import { useApp } from '../../context/AppContext';
 import { Rental, PaymentMethod, Vehicle, RentalPayment, Customer } from '../../types';
@@ -45,7 +47,7 @@ const calculateRentalDays = (startDate: Date, endDate: Date): number => {
 };
 
 export default function RentalForm({ rental, onSave, onCancel, isLoading = false }: RentalFormProps) {
-  const { state, dispatch, createCustomer, updateCustomer } = useApp();
+  const { state, dispatch, createCustomer, updateCustomer, loadData } = useApp();
 
   // ═══════════════════════════════════════════════════════════════════
   // 📋 SECTION 1: FORM STATE
@@ -101,6 +103,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [editCustomerDialogOpen, setEditCustomerDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [savingCustomer, setSavingCustomer] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
 
   // ═══════════════════════════════════════════════════════════════════
@@ -272,13 +275,31 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
   const handleSaveEditedCustomer = async (customer: Customer) => {
     try {
+      setSavingCustomer(true);
       await updateCustomer(customer);
       setSelectedCustomer(customer);
+      
+      // 📧 CRITICAL FIX: Aktualizuj formData s novými customer údajmi
+      setFormData(prev => ({
+        ...prev,
+        customerId: customer.id,
+        customerName: customer.name,
+        customerEmail: customer.email,
+        customerPhone: customer.phone
+      }));
+      
+      // 🔄 CRITICAL FIX: Refresh rental data aby sa customer údaje prejavili v protokoloch
+      console.log('🔄 Refreshing rental data after customer update...');
+      await loadData();
+      
       setEditCustomerDialogOpen(false);
       setEditingCustomer(null);
       alert('Zákazník bol úspešne upravený!');
     } catch (error) {
       console.error('Chyba pri aktualizácii zákazníka:', error);
+      alert('Chyba pri aktualizácii zákazníka. Skúste to znovu.');
+    } finally {
+      setSavingCustomer(false);
     }
   };
 
@@ -675,35 +696,45 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
           required
         />
 
-        {/* Výber z existujúcich zákazníkov */}
-        <FormControl fullWidth>
-          <InputLabel>Výber z existujúcich zákazníkov</InputLabel>
-          <Select
-            value={formData.customerId || ''}
-            onChange={(e) => {
-              const customerId = e.target.value;
-              if (customerId === '__add_new__') {
-                handleAddCustomer();
-                return;
-              }
-              const customer = (state.customers || []).find(c => c.id === customerId);
-              handleCustomerChange(customer || null);
-            }}
-            label="Výber z existujúcich zákazníkov"
-          >
-            <MenuItem value="">
-              <em>-- Vyberte zákazníka --</em>
-            </MenuItem>
-            {customerOptions.map((option) => (
-              <MenuItem key={option.id} value={option.id}>
-                {option.label}
-              </MenuItem>
-            ))}
-            <MenuItem value="__add_new__">
-              <em>+ Pridať nového zákazníka</em>
-            </MenuItem>
-          </Select>
-        </FormControl>
+        {/* Výber z existujúcich zákazníkov s vyhľadávaním */}
+        <Autocomplete
+          fullWidth
+          options={[...customerOptions, { label: '+ Pridať nového zákazníka', id: '__add_new__', customer: null }]}
+          value={selectedCustomer ? { label: selectedCustomer.name, id: selectedCustomer.id, customer: selectedCustomer } : null}
+          onChange={(event, newValue) => {
+            if (newValue?.id === '__add_new__') {
+              handleAddCustomer();
+              return;
+            }
+            handleCustomerChange(newValue?.customer || null);
+          }}
+          getOptionLabel={(option) => option.label}
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+          filterOptions={(options, { inputValue }) => {
+            const filtered = options.filter((option) =>
+              option.label.toLowerCase().includes(inputValue.toLowerCase())
+            );
+            return filtered;
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Výber z existujúcich zákazníkov"
+              placeholder="Začnite písať meno zákazníka..."
+              helperText="Píšte pre vyhľadávanie alebo vyberte zo zoznamu"
+            />
+          )}
+          renderOption={(props, option) => (
+            <li {...props} key={option.id}>
+              {option.id === '__add_new__' ? (
+                <em style={{ color: '#1976d2' }}>{option.label}</em>
+              ) : (
+                option.label
+              )}
+            </li>
+          )}
+          noOptionsText="Žiadni zákazníci nenájdení"
+        />
 
 
         {/* Kontaktné údaje zákazníka */}
@@ -1341,11 +1372,63 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
       {/* Dialóg na editáciu zákazníka */}
       {editCustomerDialogOpen && editingCustomer && (
-        <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', bgcolor: 'rgba(0,0,0,0.3)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: 3, minWidth: 320, maxWidth: 500 }}>
-            <Typography variant="h6" gutterBottom>
-              Upraviť zákazníka: {editingCustomer.name}
-            </Typography>
+        <Box 
+          sx={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            width: '100vw', 
+            height: '100vh', 
+            bgcolor: 'rgba(0,0,0,0.5)', 
+            zIndex: 10000, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            // 🎯 CENTERING FIX: Ensure proper centering
+            backdropFilter: 'blur(2px)'
+          }}
+          onClick={(e) => {
+            // Close on backdrop click
+            if (e.target === e.currentTarget) {
+              setEditCustomerDialogOpen(false);
+              setEditingCustomer(null);
+            }
+          }}
+          onKeyDown={(e) => {
+            // Close on ESC key
+            if (e.key === 'Escape') {
+              setEditCustomerDialogOpen(false);
+              setEditingCustomer(null);
+            }
+          }}
+        >
+          <Box sx={{ 
+            bgcolor: 'background.paper', 
+            borderRadius: 2, 
+            p: 3, 
+            minWidth: 400, 
+            maxWidth: 500,
+            maxHeight: '90vh',
+            overflow: 'auto',
+            // 🎯 SHADOW & ANIMATION
+            boxShadow: 24,
+            transform: 'scale(1)',
+            transition: 'all 0.2s ease-in-out'
+          }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">
+                Upraviť zákazníka: {editingCustomer.name}
+              </Typography>
+              <IconButton
+                onClick={() => {
+                  setEditCustomerDialogOpen(false);
+                  setEditingCustomer(null);
+                }}
+                sx={{ color: 'grey.500' }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
             <Box component="form" onSubmit={(e) => {
               e.preventDefault();
               const form = e.currentTarget as HTMLFormElement;
@@ -1400,8 +1483,13 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
                 }}>
                   Zrušiť
                 </Button>
-                <Button type="submit" variant="contained">
-                  Uložiť zmeny
+                <Button 
+                  type="submit" 
+                  variant="contained"
+                  disabled={savingCustomer}
+                  startIcon={savingCustomer ? <CircularProgress size={20} /> : undefined}
+                >
+                  {savingCustomer ? 'Ukladám...' : 'Uložiť zmeny'}
                 </Button>
               </Box>
             </Box>

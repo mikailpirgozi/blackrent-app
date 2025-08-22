@@ -45,6 +45,10 @@ interface ReturnProtocolFormProps {
 export default function ReturnProtocolForm({ open, onClose, rental, handoverProtocol, onSave }: ReturnProtocolFormProps) {
   const { state } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{
+    status: 'pending' | 'success' | 'error' | 'warning';
+    message?: string;
+  } | null>(null);
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [currentSigner, setCurrentSigner] = useState<{name: string, role: 'customer' | 'employee'} | null>(null);
@@ -184,14 +188,18 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       return;
     }
 
-    // Kontrola handoverProtocol
-    if (!handoverProtocol) {
-      console.error('❌ handoverProtocol is undefined - cannot create return protocol');
-      return;
-    }
-
     try {
       setLoading(true);
+      setEmailStatus({
+        status: 'pending',
+        message: 'Odosielam protokol a email...'
+      });
+
+      // Kontrola handoverProtocol
+      if (!handoverProtocol) {
+        console.error('❌ handoverProtocol is undefined - cannot create return protocol');
+        return;
+      }
       
       console.log('📝 Creating return protocol with handoverProtocol:', handoverProtocol.id);
       console.log('📝 Current formData:', JSON.stringify(formData, null, 2));
@@ -359,14 +367,49 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       const result = await response.json();
       console.log('✅ Return protocol saved successfully:', result);
       
-      // 🔴 REMOVED: Redundant refresh - WebSocket už triggeruje refresh
+      // Update email status based on response
+      if (result && result.email) {
+        if (result.email.sent) {
+          setEmailStatus({
+            status: 'success',
+            message: `✅ Protokol bol úspešne odoslaný na email ${result.email.recipient}`
+          });
+        } else if (result.email.error) {
+          setEmailStatus({
+            status: 'error',
+            message: `❌ Protokol bol uložený, ale email sa nepodarilo odoslať: ${result.email.error}`
+          });
+        } else {
+          // Email sa neodoslal ale nie je error - pravdepodobne R2 problém
+          setEmailStatus({
+            status: 'warning',
+            message: `⚠️ Protokol bol uložený, ale email sa nepodarilo odoslať (problém s PDF úložiskom)`
+          });
+        }
+      } else {
+        setEmailStatus({
+          status: 'success',
+          message: `✅ Protokol bol úspešne uložený`
+        });
+      }
       
-      onSave(result.protocol);
-      onClose();
+      // Okamžite uložíme protokol
+      if (result && result.protocol) {
+        onSave(result.protocol);
+      }
+      
+      // Počkáme 4 sekundy pred zatvorením aby užívateľ videl email status
+      setTimeout(() => {
+        console.log('✅ Email status zobrazený, zatváram modal');
+        onClose();
+      }, 4000);
       
     } catch (error) {
       console.error('❌ Error saving return protocol:', error);
-      // 🔴 REMOVED: Alert notification that was causing UI issues
+      setEmailStatus({
+        status: 'error',
+        message: `❌ Nastala chyba: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
     } finally {
       setLoading(false);
     }
@@ -377,6 +420,34 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       width: '100%',
       maxWidth: '100%'
     }}>
+      {/* Email Status */}
+      {(loading || emailStatus?.status === 'pending') && (
+        <Box sx={{ mb: 2 }}>
+          <LinearProgress />
+          <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+            {loading ? '⚡ Ukladám protokol...' : emailStatus?.message}
+          </Typography>
+        </Box>
+      )}
+
+      {emailStatus && emailStatus.status !== 'pending' && (
+        <Alert 
+          severity={
+            emailStatus.status === 'success' ? 'success' : 
+            emailStatus.status === 'warning' ? 'warning' : 'error'
+          }
+          sx={{ 
+            mb: 2,
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000,
+            animation: 'fadeIn 0.3s ease-in'
+          }}
+        >
+          {emailStatus.message}
+        </Alert>
+      )}
+
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>

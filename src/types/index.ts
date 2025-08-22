@@ -124,8 +124,8 @@ export interface Rental {
   notes?: string; // Poznámky k prenájmu
   // Dáta z emailu
   customerAddress?: string;
-  customerEmail?: string;
-  customerPhone?: string;
+  customerEmail?: string; // 📧 Email zákazníka pre protokoly
+  customerPhone?: string; // 📞 Telefón zákazníka pre protokoly
   pickupLocation?: string;
   returnLocation?: string;
   reservationTime?: string;

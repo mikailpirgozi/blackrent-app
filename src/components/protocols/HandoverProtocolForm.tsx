@@ -14,6 +14,7 @@ import {
   Chip,
   Grid,
   Divider,
+  Alert,
 
 } from '@mui/material';
 import {
@@ -69,6 +70,10 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   const { state } = useAuth();
   const { state: appState } = useApp();
   const [loading, setLoading] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{
+    status: 'pending' | 'success' | 'error' | 'warning';
+    message?: string;
+  } | null>(null);
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [currentSigner, setCurrentSigner] = useState<{name: string, role: 'customer' | 'employee'} | null>(null);
@@ -265,7 +270,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   }, []);
 
   // 🚀 OPTIMALIZÁCIA: Quick Save - najprv uloží protokol, PDF na pozadí
-  const performSave = useCallback(async () => {
+  const performSave = useCallback(async (): Promise<{ protocol: any; email?: { sent: boolean; recipient?: string; error?: string } }> => {
     // logMobile('INFO', 'HandoverProtocol', 'Save operation started', {
     //   rentalId: rental?.id,
     //   timestamp: Date.now(),
@@ -311,7 +316,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       //   timestamp: Date.now()
       // });
       console.warn('❌ Validation failed:', errors);
-      return;
+      throw new Error(`Validation failed: ${errors.join(', ')}`);
     }
 
     try {
@@ -461,8 +466,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       const result = await response.json();
       const quickSaveTime = Date.now() - quickSaveStart;
       
-      console.log(`✅ QUICK SAVE: Protocol saved in ${quickSaveTime}ms`);
-      console.log('📄 PDF will be generated in background');
+      console.log(`✅ Protocol saved in ${quickSaveTime}ms`);
       
       // 🔴 REMOVED: Redundant refresh - WebSocket už triggeruje refresh
       
@@ -483,18 +487,6 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       }
       
       console.log('🔄 Form defaults cached for future use');
-      
-      // ⚡ OKAMŽITÉ ZATVORENIE - bez čakania na PDF
-      onSave(result.protocol);
-      
-      // 📱 MOBILE PROTECTION: Clear any saved state as operation completed successfully (disabled)
-      // if (stabilizer) {
-      //   console.log('✅ Protocol saved successfully - clearing mobile protection state');
-      //   // Clear any auto-saved form data as we successfully saved
-      //   sessionStorage.removeItem('mobileStabilizer_state');
-      // }
-      
-      onClose();
       
       // 🎯 BACKGROUND PDF DOWNLOAD - na pozadí (neblokuje UI)
       if (result.protocol?.pdfProxyUrl) {
@@ -523,6 +515,19 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
           }
         }, 100); // Start po 100ms pre smooth UX
       }
+      
+      // ⚡ OKAMŽITÉ ULOŽENIE - bez zatvorenia modalu (nech sa zobrazí email status)
+      onSave(result.protocol);
+      
+      // 📱 MOBILE PROTECTION: Clear any saved state as operation completed successfully (disabled)
+      // if (stabilizer) {
+      //   console.log('✅ Protocol saved successfully - clearing mobile protection state');
+      //   // Clear any auto-saved form data as we successfully saved
+      //   sessionStorage.removeItem('mobileStabilizer_state');
+      // }
+      
+      // Return result for email status handling
+      return result;
       
     } catch (error) {
       console.error('Error saving protocol:', error);
@@ -562,27 +567,62 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       //   // Keep the stabilizer active and save current state for recovery
       //   // stabilizer.markUnexpectedRefresh();
       // }
+      
+      // Return empty result in case of error
+      return { protocol: null, email: { sent: false, error: errorMessage } };
     } finally {
       setLoading(false);
     }
   }, [formData, rental, currentVehicle, onSave, onClose]);
 
   const handleSave = useCallback(async () => {
-    // 📱 MOBILE PROTECTION: Mark that we're starting a critical operation
-    // const stabilizer = getMobileStabilizer();
-    // const perfOptimizer = getMobilePerformanceOptimizer();
-    
-    // if (stabilizer) {
-    //   console.log('🛡️ Starting critical save operation - mobile protection active');
-    // }
-
-    // 📱 PERFORMANCE: Measure save operation performance (disabled)
-    // return perfOptimizer?.measurePerformance('Protocol Save', async () => {
-    //   return await performSave();
-    // }) || await performSave();
-    
-    return await performSave();
-  }, [performSave]);
+    try {
+      setEmailStatus({
+        status: 'pending',
+        message: 'Odosielam protokol a email...'
+      });
+      
+      const result = await performSave();
+      
+      // Update email status based on response
+      if (result && result.email) {
+        if (result.email.sent) {
+          setEmailStatus({
+            status: 'success',
+            message: `✅ Protokol bol úspešne odoslaný na email ${result.email.recipient}`
+          });
+        } else if (result.email.error) {
+          setEmailStatus({
+            status: 'error',
+            message: `❌ Protokol bol uložený, ale email sa nepodarilo odoslať: ${result.email.error}`
+          });
+        } else {
+          // Email sa neodoslal ale nie je error - pravdepodobne R2 problém
+          setEmailStatus({
+            status: 'warning',
+            message: `⚠️ Protokol bol uložený, ale email sa nepodarilo odoslať (problém s PDF úložiskom)`
+          });
+        }
+      } else {
+        setEmailStatus({
+          status: 'success',
+          message: `✅ Protokol bol úspešne uložený`
+        });
+      }
+      
+      // Počkáme 4 sekundy pred zatvorením aby užívateľ videl email status
+      setTimeout(() => {
+        console.log('✅ Email status zobrazený, zatváram modal');
+        onClose();
+      }, 4000);
+    } catch (error) {
+      setEmailStatus({
+        status: 'error',
+        message: `❌ Nastala chyba: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+      console.error('❌ Protocol save failed in handleSave:', error);
+    }
+  }, [performSave, onSave, onClose]);
 
   // 🔧 MOBILE PROTECTION: Immediate rendering - no lazy loading delays
   const isMobile = window.matchMedia('(max-width: 900px)').matches;
@@ -669,6 +709,34 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       width: '100%',
       maxWidth: '100%'
     }}>
+      {/* Email Status */}
+      {(loading || emailStatus?.status === 'pending') && (
+        <Box sx={{ mb: 2 }}>
+          <LinearProgress />
+          <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+            {loading ? '⚡ Ukladám protokol...' : emailStatus?.message}
+          </Typography>
+        </Box>
+      )}
+
+      {emailStatus && emailStatus.status !== 'pending' && (
+        <Alert 
+          severity={
+            emailStatus.status === 'success' ? 'success' : 
+            emailStatus.status === 'warning' ? 'warning' : 'error'
+          }
+          sx={{ 
+            mb: 2,
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000,
+            animation: 'fadeIn 0.3s ease-in'
+          }}
+        >
+          {emailStatus.message}
+        </Alert>
+      )}
+
       {/* Vehicle Info Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" color="text.primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

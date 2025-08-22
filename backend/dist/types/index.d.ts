@@ -97,6 +97,8 @@ export interface Rental {
     fuelRefillCost?: number;
     handoverProtocolId?: string;
     returnProtocolId?: string;
+    customerEmail?: string;
+    customerPhone?: string;
     pickupLocation?: string;
     returnLocation?: string;
     vehicleCode?: string;

@@ -218,14 +218,7 @@ router.post('/handover', authenticateToken, async (req, res) => {
     console.log('📝 Received handover protocol request');
     
     const protocolData: HandoverProtocol = req.body;
-    const quickMode = req.query.mode === 'quick' || protocolData.quickMode === true; // 🚀 QUICK MODE detection
-    
-    console.log('🔍 DEBUG: quickMode detection:');
-    console.log('🔍 DEBUG: req.query.mode:', req.query.mode);
-    console.log('🔍 DEBUG: protocolData.quickMode:', protocolData.quickMode);
-    console.log('🔍 DEBUG: final quickMode:', quickMode);
-    
-    console.log(`📝 Creating handover protocol${quickMode ? ' (QUICK MODE)' : ''} with data:`, JSON.stringify(protocolData, null, 2));
+    const quickMode = req.query.mode === 'quick' || protocolData.quickMode === true;
     
     // Validácia povinných polí
     if (!protocolData.rentalId) {
@@ -233,54 +226,42 @@ router.post('/handover', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Rental ID is required' });
     }
     
-    // Rental ID validácia (môže byť integer alebo UUID string)
+    // Rental ID validácia
     if (!protocolData.rentalId || (isNaN(Number(protocolData.rentalId)) && !isValidUUID(protocolData.rentalId))) {
       console.error('❌ Invalid rental ID format:', protocolData.rentalId);
       return res.status(400).json({ error: 'Invalid rental ID format. Must be valid integer or UUID.' });
     }
     
     // 1. Uloženie protokolu do databázy
-    // 🔧 FIX: Ulož rentalData do lokálnej premennej pred spracovaním
     const originalRentalData = protocolData.rentalData;
-    console.log('🔧 FIX: Saved original rentalData:', !!originalRentalData);
-    
     const protocol = await postgresDatabase.createHandoverProtocol(protocolData);
     console.log('✅ Handover protocol created in DB:', protocol.id);
     
     let pdfUrl: string | null = null;
+    let emailResult = {
+      sent: false,
+      error: null as string | null,
+      timestamp: null as string | null,
+      recipient: protocolData.rentalData?.customer?.email || null
+    };
     
     if (quickMode) {
-      // 🚀 QUICK MODE: Len uloženie do DB, PDF na pozadí
-      console.log('⚡ QUICK MODE: Skipping immediate PDF generation');
+      // Quick mode - PDF a email na pozadí
+      console.log('⚡ QUICK MODE: Background processing...');
       
-      // Background PDF generation (fire and forget)
-      console.log('🚀 QUICK MODE: Scheduling background PDF generation for protocol:', protocol.id);
       setImmediate(async () => {
         try {
-          console.log('🎭 Background: Starting PDF generation for protocol:', protocol.id);
-          console.log('🎭 Background: Protocol data customer email:', protocolData.rentalData?.customer?.email);
-          // FIX: Pass protocol object instead of protocolData to have ID
+          // Generate PDF
           const protocolWithData = { ...protocol, ...protocolData };
           const pdfBuffer = await generateHandoverPDF(protocolWithData);
-          
-          // Uloženie PDF do R2 storage s novou organizáciou
           const filename = generatePDFPath(protocolData, protocol.id, 'handover');
           const backgroundPdfUrl = await r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
           
-          // Aktualizácia protokolu s PDF URL
           await postgresDatabase.updateHandoverProtocol(protocol.id, { pdfUrl: backgroundPdfUrl });
           
-          console.log('✅ Background: PDF generated and uploaded:', backgroundPdfUrl);
-          
-          // 📧 BACKGROUND EMAIL: Odoslanie protokolu emailom
-          console.log('🔍 DEBUG: Checking email conditions...');
-          console.log('🔍 DEBUG: protocolData.rentalData exists:', !!protocolData.rentalData);
-          console.log('🔍 DEBUG: customer exists:', !!protocolData.rentalData?.customer);
-          console.log('🔍 DEBUG: customer email:', protocolData.rentalData?.customer?.email);
-          
+          // Send email
           if (protocolData.rentalData?.customer?.email) {
             try {
-              console.log('📧 Background: Sending handover protocol email to:', protocolData.rentalData.customer.email);
               const emailSent = await emailService.sendHandoverProtocolEmail(
                 protocolData.rentalData.customer,
                 pdfBuffer,
@@ -288,138 +269,92 @@ router.post('/handover', authenticateToken, async (req, res) => {
               );
               
               if (emailSent) {
-                // Aktualizácia protokolu s email statusom
                 await postgresDatabase.updateHandoverProtocol(protocol.id, { 
-                  emailSent: true, 
-                  emailSentAt: new Date() 
+                  emailSent: true 
                 });
-                console.log('✅ Background: Email sent successfully');
-              } else {
-                console.log('❌ Background: Email service returned false');
+                console.log('✅ Background email sent to', protocolData.rentalData.customer.email);
               }
             } catch (emailError) {
-              console.error('❌ Background: Email sending failed:', emailError);
-              // Email chyba neblokuje protokol
+              console.error('❌ Background email failed:', emailError);
             }
-          } else {
-            console.log('⚠️ Background: No customer email found, skipping email sending');
           }
-        } catch (pdfError) {
-          console.error('❌ Background PDF generation failed:', pdfError);
-          // V prípade chyby, protokol zostane bez PDF
+        } catch (error) {
+          console.error('❌ Background processing failed:', error);
         }
       });
       
-      // Pre quick mode, vráti proxy URL hneď (aj keď PDF ešte nie je ready)
       pdfUrl = `/protocols/pdf/${protocol.id}`;
       
     } else {
-      // 2. 🎭 STANDARD MODE: PDF generovanie + upload do R2 (blocking)
-      console.log('🔍 DEBUG: Entering Standard Mode...');
-      console.log('🔍 DEBUG: protocolData type:', typeof protocolData);
-      console.log('🔍 DEBUG: protocolData keys:', Object.keys(protocolData || {}));
-      console.log('🔍 DEBUG: protocolData.rentalData type:', typeof protocolData?.rentalData);
-      console.log('🔍 DEBUG: protocolData.rentalData keys:', Object.keys(protocolData?.rentalData || {}));
-      
+      // Standard mode - synchronous processing
       try {
-        console.log('🎭 Standard: Generating PDF for protocol:', protocol.id);
-        // FIX: Pass protocol object instead of protocolData to have ID
+        // Generate and upload PDF
         const protocolWithData = { ...protocol, ...protocolData };
         const pdfBuffer = await generateHandoverPDF(protocolWithData);
-        
-        // 3. Uloženie PDF do R2 storage s novou organizáciou
         const filename = generatePDFPath(protocolData, protocol.id, 'handover');
         pdfUrl = await r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
         
-        console.log('✅ Standard: PDF generated and uploaded to R2:', pdfUrl);
-        
-        // 4. Aktualizácia protokolu s PDF URL
         await postgresDatabase.updateHandoverProtocol(protocol.id, { pdfUrl });
         
-        // 📧 ODPORÚČANÁ STRATÉGIA: Email AŽ PO úspešnom R2 upload
-        console.log('🔍 DEBUG: Checking email conditions in Standard Mode...');
-        console.log('🔍 DEBUG: originalRentalData exists:', !!originalRentalData);
-        console.log('🔍 DEBUG: customer exists:', !!originalRentalData?.customer);
-        console.log('🔍 DEBUG: customer email:', originalRentalData?.customer?.email);
-        
+        // Send email
         if (originalRentalData?.customer?.email) {
           try {
-            console.log('📧 Standard: Sending handover protocol email with R2 URL...');
-            
-                          // ✅ NOVÁ STRATÉGIA: Odošli email s R2 URL namiesto PDF attachment
-              const emailData = {
-                customer: originalRentalData.customer,
-                protocol: protocolData,
-                pdfDownloadUrl: pdfUrl || '', // Priamy R2 URL pre download
-                protocolId: protocol.id,
-                vehicleInfo: originalRentalData?.vehicle,
-                rentalInfo: originalRentalData
-              };
-              
-              // TEMP: Použijem existujúcu metódu, neskôr implementujem R2 link verziu
-              const emailSent = await emailService.sendHandoverProtocolEmail(
-                originalRentalData.customer,
-                Buffer.from([]), // Prázdny buffer keďže PDF je už na R2
-                protocolData
-              );
+            const emailSent = await emailService.sendHandoverProtocolEmail(
+              originalRentalData.customer,
+              pdfBuffer,
+              protocolData
+            );
             
             if (emailSent) {
-              // Aktualizácia protokolu s email statusom
               await postgresDatabase.updateHandoverProtocol(protocol.id, { 
-                emailSent: true, 
-                emailSentAt: new Date(),
-                pdfEmailUrl: pdfUrl || '' // Ulož R2 URL ktoré bolo odoslané emailom
+                emailSent: true,
+                pdfEmailUrl: pdfUrl
               });
-              console.log('✅ Standard: Email sent successfully with R2 link:', pdfUrl || 'no URL');
-            } else {
-              console.log('❌ Standard: Email service returned false');
+              
+              emailResult = {
+                sent: true,
+                error: null,
+                timestamp: new Date().toISOString(),
+                recipient: originalRentalData.customer.email
+              };
+              console.log('✅ Email sent successfully to', originalRentalData.customer.email);
             }
           } catch (emailError) {
-            console.error('❌ Standard: Email sending failed:', emailError);
-            // Email chyba neblokuje protokol - PDF je už na R2
+            emailResult.error = emailError instanceof Error ? emailError.message : 'Unknown error';
+            console.error('❌ Email sending failed:', emailError);
           }
-        } else {
-          console.log('⚠️ Standard: No customer email found, skipping email sending');
         }
-        
-      } catch (pdfError) {
-        console.error('❌ Error generating PDF, but protocol saved:', pdfError);
-        // Protokol je uložený, ale PDF sa nepodarilo vytvoriť
+      } catch (error) {
+        console.error('❌ Error in standard processing:', error);
       }
     }
     
-    // 🔴 Real-time broadcast: Protokol vytvorený - dvojitý broadcast pre lepší UX
+    // WebSocket notification
     const websocketService = getWebSocketService();
     if (websocketService && protocolData.rentalId) {
       try {
         const userName = (req as any).user?.username || 'Neznámy užívateľ';
-        
-        // 🔴 OPTIMIZED: Len jeden WebSocket event namiesto dvoch
         websocketService.broadcastProtocolCreated(
           protocolData.rentalId, 
           'handover', 
           protocol.id, 
           userName
         );
-        
-        console.log('📢 WebSocket: Handover protocol events broadcasted for rental:', protocolData.rentalId);
-      } catch (wsError) {
-        console.error('❌ WebSocket broadcast failed:', wsError);
-        // Nechaj protokol fungovať aj keď WebSocket zlyhá
+      } catch (error) {
+        console.error('❌ WebSocket broadcast failed:', error);
       }
     }
 
-    console.log(`✅ Handover protocol created successfully${quickMode ? ' (QUICK)' : ''}:`, protocol.id);
     res.status(201).json({ 
       success: true,
-      message: quickMode ? 'Odovzdávací protokol rýchlo uložený, PDF sa generuje na pozadí' : 'Odovzdávací protokol úspešne vytvorený', 
+      message: quickMode ? 'Protokol uložený, PDF a email sa spracúvajú na pozadí' : 'Protokol úspešne vytvorený',
       protocol: {
         ...protocol,
-        pdfUrl: quickMode ? null : pdfUrl, // V quick mode PDF URL nie je hneď dostupné 
-        // 🎯 FRONTEND proxy URL namiesto priameho R2 URL (bez /api prefix)
+        pdfUrl: quickMode ? null : pdfUrl,
         pdfProxyUrl: quickMode ? `/protocols/pdf/${protocol.id}` : (pdfUrl ? `/protocols/pdf/${protocol.id}` : null)
       },
-      quickMode // Inform frontend about the mode
+      email: emailResult,
+      quickMode
     });
   } catch (error) {
     console.error('❌ Error creating handover protocol:', error);
@@ -430,54 +365,12 @@ router.post('/handover', authenticateToken, async (req, res) => {
   }
 });
 
-// Get handover protocol by ID
-router.get('/handover/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log('🔍 Fetching handover protocol:', id);
-    
-    const protocol = await postgresDatabase.getHandoverProtocolById(id);
-    
-    if (!protocol) {
-      return res.status(404).json({ error: 'Handover protocol not found' });
-    }
-    
-    res.json(protocol);
-  } catch (error) {
-    console.error('❌ Error fetching handover protocol:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Delete handover protocol
-router.delete('/handover/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log('🗑️ Deleting handover protocol:', id);
-    
-    const deleted = await postgresDatabase.deleteHandoverProtocol(id);
-    
-    if (!deleted) {
-      return res.status(404).json({ error: 'Handover protocol not found' });
-    }
-    
-    res.json({ 
-      success: true, 
-      message: 'Protokol úspešne vymazaný' 
-    });
-  } catch (error) {
-    console.error('❌ Error deleting handover protocol:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // Create return protocol
 router.post('/return', authenticateToken, async (req, res) => {
   try {
     console.log('📝 Received return protocol request');
     
     const protocolData: ReturnProtocol = req.body;
-    console.log('📝 Creating return protocol with data:', JSON.stringify(protocolData, null, 2));
     
     // Validácia povinných polí
     if (!protocolData.rentalId) {
@@ -485,95 +378,88 @@ router.post('/return', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Rental ID is required' });
     }
     
-    // Rental ID validácia (môže byť integer alebo UUID string)
+    // Rental ID validácia
     if (!protocolData.rentalId || (isNaN(Number(protocolData.rentalId)) && !isValidUUID(protocolData.rentalId))) {
       console.error('❌ Invalid rental ID format:', protocolData.rentalId);
       return res.status(400).json({ error: 'Invalid rental ID format. Must be valid integer or UUID.' });
     }
     
-    // 1. Uloženie protokolu do databázy
+    // Create protocol
     const protocol = await postgresDatabase.createReturnProtocol(protocolData);
     console.log('✅ Return protocol created in DB:', protocol.id);
     
-    // 2. 🎭 PDF generovanie + upload do R2
     let pdfUrl = null;
+    let emailResult = {
+      sent: false,
+      error: null as string | null,
+      timestamp: null as string | null,
+      recipient: protocolData.rentalData?.customer?.email || null
+    };
+    
     try {
-      console.log('🎭 Generating Return PDF for protocol:', protocol.id);
+      // Generate and upload PDF
       const pdfBuffer = await generateReturnPDF(protocolData);
-      
-      // 3. Uloženie PDF do R2 storage s novou organizáciou
       const filename = generatePDFPath(protocolData, protocol.id, 'return');
       pdfUrl = await r2Storage.uploadFile(filename, pdfBuffer, 'application/pdf');
       
-      console.log('✅ Return PDF generated and uploaded to R2:', pdfUrl);
-      
-      // 4. Aktualizácia protokolu s PDF URL
       await postgresDatabase.updateReturnProtocol(protocol.id, { pdfUrl });
       
-      // 📧 RETURN EMAIL: Odoslanie protokolu emailom (background)
+      // Send email
       if (protocolData.rentalData?.customer?.email) {
-        setImmediate(async () => {
-          try {
-            console.log('📧 Return: Sending return protocol email...');
-            const emailSent = await emailService.sendReturnProtocolEmail(
-              protocolData.rentalData.customer,
-              pdfBuffer,
-              protocolData
-            );
+        try {
+          const emailSent = await emailService.sendReturnProtocolEmail(
+            protocolData.rentalData.customer,
+            pdfBuffer,
+            protocolData
+          );
+          
+          if (emailSent) {
+            await postgresDatabase.updateReturnProtocol(protocol.id, { 
+              emailSent: true, 
+              emailSentAt: new Date() 
+            });
             
-            if (emailSent) {
-              // Aktualizácia protokolu s email statusom
-              await postgresDatabase.updateReturnProtocol(protocol.id, { 
-                emailSent: true, 
-                emailSentAt: new Date() 
-              });
-              console.log('✅ Return: Email sent successfully');
-            }
-          } catch (emailError) {
-            console.error('❌ Return: Email sending failed:', emailError);
-            // Email chyba neblokuje protokol
+            emailResult = {
+              sent: true,
+              error: null,
+              timestamp: new Date().toISOString(),
+              recipient: protocolData.rentalData.customer.email
+            };
           }
-        });
-      } else {
-        console.log('⚠️ Return: No customer email found, skipping email sending');
+        } catch (emailError) {
+          emailResult.error = emailError instanceof Error ? emailError.message : 'Unknown error';
+          console.error('❌ Return: Email sending failed:', emailError);
+        }
       }
-      
-    } catch (pdfError) {
-      console.error('❌ Error generating Return PDF, but protocol saved:', pdfError);
-      // Protokol je uložený, ale PDF sa nepodarilo vytvoriť
+    } catch (error) {
+      console.error('❌ Error processing return protocol:', error);
     }
     
-    // 🔴 Real-time broadcast: Return protokol vytvorený - dvojitý broadcast pre lepší UX
+    // WebSocket notification
     const websocketService = getWebSocketService();
     if (websocketService && protocolData.rentalId) {
       try {
         const userName = (req as any).user?.username || 'Neznámy užívateľ';
-        
-        // 🔴 OPTIMIZED: Len jeden WebSocket event namiesto dvoch
         websocketService.broadcastProtocolCreated(
           protocolData.rentalId, 
           'return', 
           protocol.id, 
           userName
         );
-        
-        console.log('📢 WebSocket: Return protocol events broadcasted for rental:', protocolData.rentalId);
-      } catch (wsError) {
-        console.error('❌ WebSocket broadcast failed:', wsError);
-        // Nechaj protokol fungovať aj keď WebSocket zlyhá
+      } catch (error) {
+        console.error('❌ WebSocket broadcast failed:', error);
       }
     }
 
-    console.log('✅ Return protocol created successfully:', protocol.id);
     res.status(201).json({ 
-      success: true, 
+      success: true,
       message: 'Preberací protokol úspešne vytvorený',
       protocol: {
         ...protocol,
         pdfUrl,
-        // 🎯 FRONTEND proxy URL namiesto priameho R2 URL
         pdfProxyUrl: pdfUrl ? `/protocols/pdf/${protocol.id}` : null
-      }
+      },
+      email: emailResult
     });
   } catch (error) {
     console.error('❌ Error creating return protocol:', error);
@@ -584,7 +470,8 @@ router.post('/return', authenticateToken, async (req, res) => {
   }
 });
 
-// DEBUG: Endpoint pre overenie Puppeteer konfigurácie
+
+// Debug endpoints
 router.get('/debug/pdf-config', (req: Request, res: Response) => {
   const config = {
     puppeteerEnabled: process.env.PDF_GENERATOR_TYPE === 'puppeteer',
@@ -606,8 +493,6 @@ router.get('/debug/pdf-config', (req: Request, res: Response) => {
   });
 });
 
-
-// 🧪 TEST: Endpoint pre testovanie email služby
 router.get('/debug/test-email', async (req: Request, res: Response) => {
   try {
     console.log('📧 Test email connection starting...');
@@ -643,7 +528,6 @@ router.get('/debug/test-email', async (req: Request, res: Response) => {
   }
 });
 
-// 🧪 TEST: Odoslanie testovacieho protokolu na špecifický email
 router.post('/debug/send-test-protocol', async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
@@ -657,10 +541,9 @@ router.post('/debug/send-test-protocol', async (req: Request, res: Response) => 
     
     console.log('📧 TEST: Sending test protocol to:', email);
     
-    // Vytvorenie test protokolu s kompletými dátami
     const testCustomer = {
       id: 'test-customer-123',
-      name: 'Mikail Pirgozi',
+      name: 'Test Customer',
       email: email,
       phone: '+421 901 123 456',
       createdAt: new Date()
@@ -671,7 +554,7 @@ router.post('/debug/send-test-protocol', async (req: Request, res: Response) => 
       rentalId: 'test-rental-123',
       type: 'handover' as const,
       status: 'completed' as const,
-      location: 'Bratislava - Test lokácia',
+      location: 'Bratislava - Test',
       createdAt: new Date(),
       completedAt: new Date(),
       vehicleCondition: {
@@ -680,7 +563,7 @@ router.post('/debug/send-test-protocol', async (req: Request, res: Response) => 
         fuelType: 'gasoline' as const,
         exteriorCondition: 'Výborný',
         interiorCondition: 'Výborný',
-        notes: 'Test protokol - všetko v poriadku'
+        notes: 'Test protokol'
       },
       vehicleImages: [],
       vehicleVideos: [],
@@ -693,7 +576,7 @@ router.post('/debug/send-test-protocol', async (req: Request, res: Response) => 
         {
           id: 'test-sig-1',
           signature: 'data:image/png;base64,test',
-          signerName: 'Mikail Pirgozi',
+          signerName: 'Test Customer',
           signerRole: 'customer' as const,
           timestamp: new Date(),
           location: 'Bratislava'
@@ -710,7 +593,7 @@ router.post('/debug/send-test-protocol', async (req: Request, res: Response) => 
           company: 'BlackRent Test'
         },
         startDate: new Date(),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // +7 dní
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         totalPrice: 350,
         deposit: 500,
         currency: 'EUR',
@@ -720,16 +603,13 @@ router.post('/debug/send-test-protocol', async (req: Request, res: Response) => 
       },
       pdfUrl: '',
       emailSent: false,
-      notes: 'Toto je testovací protokol pre overenie email funkcionalite.',
+      notes: 'Test protokol',
       createdBy: 'admin'
     };
     
-    // Vygeneruj test PDF
     const pdfBuffer = await generateHandoverPDF(testProtocolData as any);
-    
     console.log('✅ TEST: PDF generated, size:', (pdfBuffer.length / 1024).toFixed(1), 'KB');
     
-    // Odošli email len na zadaný email (bez CC pre test)
     const emailSent = await emailService.sendTestProtocolEmail(
       testCustomer,
       pdfBuffer,
@@ -764,99 +644,4 @@ router.post('/debug/send-test-protocol', async (req: Request, res: Response) => 
   }
 });
 
-// 🧪 TEST: Endpoint pre testovanie PDF generátora bez autentifikácie
-router.get('/debug/test-pdf', async (req: Request, res: Response) => {
-  try {
-    console.log('🧪 Test PDF generovanie začína...');
-    
-    // Test data pre handover protokol s Aeonik fontom (as any aby sme obišli TypeScript chyby)
-    const testData: any = {
-      id: 'test-debug-' + Date.now(),
-      rentalId: 'test-rental-debug',
-      type: 'handover',
-      status: 'completed',
-      createdAt: new Date(),
-      completedAt: new Date(),
-      customerName: 'Ján Testovací Čáčo',
-      customerEmail: 'test@aeonik.sk',
-      customerPhone: '+421 901 123 456',
-      customerLicenseNumber: 'SK987654321',
-      customerAddress: 'Testovacia 123, 010 01 Žilina',
-      vehicleBrand: 'Škoda',
-      vehicleModel: 'Octavia',
-      vehicleYear: 2023,
-      vehicleLicensePlate: 'ZA 999 XY',
-      vehicleVin: 'TEST1234567890123',
-      vehicleCondition: {
-        odometer: 15000,
-        fuelLevel: 80,
-        fuelType: 'gasoline' as const,
-        exteriorCondition: 'Výborný stav bez škrabancov a poškodení',
-        interiorCondition: 'Čistý, voňavý interiér bez opotrebovania'
-      },
-      vehicleColor: 'Červená metalíza',
-      rentalStartDate: new Date().toISOString(),
-      rentalEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      rentalTotalPrice: 300.00,
-      rentalDeposit: 400.00,
-      rentalDailyRate: 45.00,
-      rentalNotes: 'Test prenájom pre Aeonik font - obsahuje slovenské diakritiky: čšťžýáíéúňôľ',
-      companyName: 'AutoRent Test s.r.o.',
-      companyAddress: 'Hlavná 999, 811 01 Bratislava',
-      companyPhone: '+421 2 999 888 777',
-      companyEmail: 'test@autorent.sk',
-      companyIco: '99999999',
-      exteriorCondition: 'Výborný stav bez škrabancov a poškodení',
-      interiorCondition: 'Čistý, voňavý interiér bez opotrebovania',
-      documentsComplete: true,
-      keysCount: 2,
-      fuelCardIncluded: true,
-      additionalEquipment: ['GPS navigácia', 'Zimné pneumatiky', 'Detská autosedačka'],
-      location: 'Bratislava - testovacie centrum',
-      vehicleImages: [],
-      vehicleVideos: [],
-      documentImages: [],
-      documentVideos: [],
-      damageImages: [],
-      damageVideos: [],
-      signatures: [],
-      createdBy: 'test-system',
-      damages: [
-        {
-          id: 'damage-1',
-          description: 'Test škrabance na pravom boku',
-          severity: 'low' as const,
-          location: 'Pravý bok vozidla',
-          images: [],
-          timestamp: new Date()
-        }
-      ]
-    };
-    
-    console.log('🎨 Generujem PDF s Aeonik fontom...');
-    
-    // Vygeneruj PDF
-    const pdfBuffer = await generateHandoverPDF(testData);
-    
-    console.log(`✅ PDF vygenerované! Veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)} KB`);
-    
-    // Nastavenie správnych headers
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="aeonik-test-' + Date.now() + '.pdf"');
-    res.setHeader('Content-Length', pdfBuffer.length);
-    
-    // Pošli PDF
-    res.send(pdfBuffer);
-    
-  } catch (error) {
-    console.error('❌ Chyba pri test PDF generovaní:', error);
-    res.status(500).json({ 
-      error: 'Test PDF generation failed',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      generatorType: process.env.PDF_GENERATOR_TYPE,
-      customFontName: process.env.CUSTOM_FONT_NAME
-    });
-  }
-});
-
-export default router; 
+export default router;

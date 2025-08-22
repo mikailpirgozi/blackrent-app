@@ -3139,6 +3139,7 @@ export class PostgresDatabase {
         FROM rentals r
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
         LEFT JOIN companies c ON v.company_id = c.id
+        LEFT JOIN customers cust ON r.customer_id = cust.id
         WHERE ${whereClause}
       `;
 
@@ -3148,16 +3149,20 @@ export class PostgresDatabase {
       // Main query s LIMIT a OFFSET
       const mainQuery = `
         SELECT 
-          r.id, r.vehicle_id, r.start_date, r.end_date, 
+          r.id, r.vehicle_id, r.customer_id, r.start_date, r.end_date, 
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
-          r.customer_name, r.created_at, r.order_number, r.deposit, 
+          r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
-          c.name as company_name, v.company as vehicle_company
+          c.name as company_name, v.company as vehicle_company,
+          -- 👤 CUSTOMER INFO: Načítanie kompletných zákazníckych údajov pre protokoly
+          cust.id as customer_db_id, cust.name as customer_db_name, 
+          cust.email as customer_db_email, cust.phone as customer_db_phone, cust.created_at as customer_created_at
         FROM rentals r
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
         LEFT JOIN companies c ON v.company_id = c.id
+        LEFT JOIN customers cust ON r.customer_id = cust.id
         WHERE ${whereClause}
         ORDER BY r.created_at DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -3226,6 +3231,9 @@ export class PostgresDatabase {
       vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
       customerId: row.customer_id?.toString(),
       customerName: row.customer_name || 'Neznámy zákazník',
+      // 📧 CUSTOMER EMAIL & PHONE: Fallback systém pre protokoly
+      customerEmail: row.customer_db_email || row.customer_email || undefined,
+      customerPhone: row.customer_db_phone || row.customer_phone || undefined,
       startDate: new Date(row.start_date),
       endDate: new Date(row.end_date),
       totalPrice: parseFloat(row.total_price) || 0,
@@ -3243,6 +3251,14 @@ export class PostgresDatabase {
       // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
       isFlexible: Boolean(row.is_flexible),
       flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
+      // 👤 CUSTOMER OBJECT: Pre protokoly a ostatné použitie
+      customer: (row.customer_db_id || row.customer_db_email || row.customer_db_phone) ? {
+        id: row.customer_db_id?.toString() || row.customer_id?.toString() || '',
+        name: row.customer_db_name || row.customer_name || 'Neznámy zákazník',
+        email: row.customer_db_email || row.customer_email || '',
+        phone: row.customer_db_phone || row.customer_phone || '',
+        createdAt: row.customer_created_at ? new Date(row.customer_created_at) : new Date()
+      } : undefined,
       // Vehicle information from JOIN
       vehicle: row.brand ? {
         id: row.vehicle_id?.toString() || '',
@@ -3281,18 +3297,22 @@ export class PostgresDatabase {
       // 🔧 FIX: Remove ::uuid cast - if vehicle_id is already uuid, casting is unnecessary
       const result = await client.query(`
         SELECT 
-          r.id, r.vehicle_id, r.start_date, r.end_date, 
+          r.id, r.vehicle_id, r.customer_id, r.start_date, r.end_date, 
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
-          r.customer_name, r.created_at, r.order_number, r.deposit, 
+          r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           -- 🏢 COMPANY INFO: Pridané pre štatistiky Top firiem
-          c.name as company_name, v.company as vehicle_company
+          c.name as company_name, v.company as vehicle_company,
+          -- 👤 CUSTOMER INFO: Načítanie kompletných zákazníckych údajov pre protokoly
+          cust.id as customer_db_id, cust.name as customer_db_name, 
+          cust.email as customer_db_email, cust.phone as customer_db_phone, cust.created_at as customer_created_at
         FROM rentals r
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
         LEFT JOIN companies c ON v.company_id = c.id
+        LEFT JOIN customers cust ON r.customer_id = cust.id
         ORDER BY r.created_at DESC
       `);
       console.log(`📊 Found ${result.rows.length} rentals`);
@@ -3330,8 +3350,11 @@ export class PostgresDatabase {
         id: row.id?.toString() || '',
         vehicleId: row.vehicle_id?.toString(),
         vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
-        customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
+        customerId: row.customer_id?.toString(), // 👤 Customer ID z rentals tabuľky
         customerName: row.customer_name || 'Neznámy zákazník',
+        // 📧 CUSTOMER EMAIL & PHONE: Fallback systém pre protokoly
+        customerEmail: row.customer_db_email || row.customer_email || undefined,
+        customerPhone: row.customer_db_phone || row.customer_phone || undefined,
         startDate: new Date(row.start_date),
         endDate: new Date(row.end_date),
         totalPrice: parseFloat(row.total_price) || 0,
@@ -3349,6 +3372,14 @@ export class PostgresDatabase {
         // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
         isFlexible: Boolean(row.is_flexible),
         flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
+        // 👤 CUSTOMER OBJECT: Pre protokoly a ostatné použitie
+        customer: (row.customer_db_id || row.customer_db_email || row.customer_db_phone) ? {
+          id: row.customer_db_id?.toString() || row.customer_id?.toString() || '',
+          name: row.customer_db_name || row.customer_name || 'Neznámy zákazník',
+          email: row.customer_db_email || row.customer_email || '',
+          phone: row.customer_db_phone || row.customer_phone || '',
+          createdAt: row.customer_created_at ? new Date(row.customer_created_at) : new Date()
+        } : undefined,
         // 🚗 PRIAMO MAPOVANÉ VEHICLE DATA (ako getVehicles) ✅
         vehicle: row.brand ? {
           id: row.vehicle_id,
@@ -6387,8 +6418,8 @@ export class PostgresDatabase {
         throw new Error('Žiadne platné polia na aktualizáciu');
       }
 
-      // Pridanie updated_at
-      setFields.push('updated_at = CURRENT_TIMESTAMP');
+      // Pridanie updated_at - OPRAVENÉ: stĺpec neexistuje
+      // setFields.push('updated_at = CURRENT_TIMESTAMP');
 
       const query = `
         UPDATE handover_protocols 
