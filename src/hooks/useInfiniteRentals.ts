@@ -54,7 +54,6 @@ export function useInfiniteRentals(initialFilters: RentalFilters = {}): UseInfin
 
   const loadRentals = useCallback(async (page: number, isNewSearch: boolean = false) => {
     if (loadingRef.current) {
-      console.log('⏸️ Load already in progress, skipping...');
       return;
     }
     
@@ -113,13 +112,10 @@ export function useInfiniteRentals(initialFilters: RentalFilters = {}): UseInfin
   }, [initialLoad, searchTerm]); // 🚀 GMAIL APPROACH: Include searchTerm in dependencies
 
   const loadMore = useCallback(() => {
-    if (!loading && hasMore && !initialLoad) {
-      console.log(`📚 Load more triggered - Page ${currentPage + 1}, hasMore: ${hasMore}, loading: ${loading}`);
+    if (!loading && hasMore) {
       loadRentals(currentPage + 1, false);
-    } else {
-      console.log(`⏸️ Load more skipped - loading: ${loading}, hasMore: ${hasMore}, initialLoad: ${initialLoad}`);
     }
-  }, [loading, hasMore, currentPage, loadRentals, initialLoad]);
+  }, [loading, hasMore, currentPage, loadRentals]);
 
   const refresh = useCallback(() => {
     setRentals([]);

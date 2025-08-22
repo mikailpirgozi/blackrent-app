@@ -172,91 +172,113 @@ export default function RentalListNew() {
     handleOptimisticDelete
   } = useInfiniteRentals();
   
-      // Create a scrollable container ref for infinite scroll detection
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const rentalListRef = useRef<HTMLDivElement>(null); // 🎯 NEW: Ref for rental list container
-    // 🚀 PRELOADING: Trigger at 70% scroll for seamless UX - users never see empty space
-    // 📱 MOBILE: Use higher threshold for mobile devices to prevent early loading
-    const scrollThreshold = isMobile ? 0.85 : 0.75; // 85% for mobile, 75% for desktop
-    // 🎯 SIMPLIFIED: Use percentage-based but only for rental list content
-    // Calculate based on number of items shown vs total
-    const itemsPerPage = 50;
-    const currentItemsShown = paginatedRentals.length;
-    const triggerAtItem = Math.floor(currentItemsShown * 0.85); // Trigger at 85% of current items
+      // Create separate refs for mobile and desktop scroll containers
+    const mobileScrollRef = useRef<HTMLDivElement>(null);
+    const desktopScrollRef = useRef<HTMLDivElement>(null);
+    // 🎯 OPTIMIZED SCROLL SETTINGS
+    const SCROLL_THRESHOLD = 0.75; // 75% scroll triggers infinite loading
+    const DEBOUNCE_DELAY = 150; // Reduced from 200ms for better responsiveness
+    const THROTTLE_DELAY = 100; // Additional throttling for performance
     
-    // Use simple scroll detection with item count check
-    useEffect(() => {
-      // 🎯 FIXED: Use rental list container, not main container
-      const container = rentalListRef.current || scrollContainerRef.current;
-      if (!container || !hasMore || paginatedLoading) return;
-      
-      let debounceTimer: NodeJS.Timeout;
-      let isLoading = false;
-      
-      const handleScroll = (e?: any) => {
-        if (isLoading) return;
+    // 🎯 UNIFIED SCROLL HANDLER: Single handler for both desktop and mobile
+    const scrollHandlerRef = useRef<((event: any) => void) | null>(null);
+    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const lastScrollTimeRef = useRef<number>(0);
+    
+    // Create unified scroll handler
+    const createScrollHandler = useCallback(() => {
+      return (event: any) => {
+        // Early return if loading or no more data
+        if (paginatedLoading || !hasMore) {
+          return;
+        }
         
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
+        // 🚀 PERFORMANCE: Throttle scroll events
+        const now = Date.now();
+        if (now - lastScrollTimeRef.current < THROTTLE_DELAY) {
+          return;
+        }
+        lastScrollTimeRef.current = now;
+        
+        // Clear previous debounce timer
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        
+        debounceTimerRef.current = setTimeout(() => {
           let scrollPercentage = 0;
           
-          // For mobile virtualized list
-          if (isMobile && e && e.scrollOffset !== undefined) {
+          // Calculate scroll percentage based on event type
+          if (event.scrollOffset !== undefined) {
+            // Virtual scroll from React Window (mobile)
             const totalHeight = paginatedRentals.length * 160; // itemSize * count
             const viewportHeight = 600;
-            const maxScroll = totalHeight - viewportHeight;
-            scrollPercentage = e.scrollOffset / maxScroll;
+            const maxScroll = Math.max(1, totalHeight - viewportHeight);
+            scrollPercentage = event.scrollOffset / maxScroll;
+            
             if (process.env.NODE_ENV === 'development') {
-              console.log(`📱 Mobile virtual scroll: ${Math.round(scrollPercentage * 100)}%`);
+              console.log(`📱 Virtual scroll: ${Math.round(scrollPercentage * 100)}%`);
             }
-          } 
-          // For desktop regular scroll
-          else if (!isMobile && container) {
-            const { scrollTop, scrollHeight, clientHeight } = container;
-            scrollPercentage = scrollTop / (scrollHeight - clientHeight);
+          } else if (event.target || event.currentTarget) {
+            // Native scroll from container (desktop)
+            const target = event.target || event.currentTarget;
+            const { scrollTop, scrollHeight, clientHeight } = target;
+            const maxScroll = Math.max(1, scrollHeight - clientHeight);
+            scrollPercentage = scrollTop / maxScroll;
+            
             if (process.env.NODE_ENV === 'development') {
-              console.log(`💻 Desktop scroll: ${Math.round(scrollPercentage * 100)}%`);
+              console.log(`💻 Native scroll: ${Math.round(scrollPercentage * 100)}%`);
             }
           }
           
-          // 📱 MOBILE: Use 70% threshold for earlier loading on mobile
-          // 💻 DESKTOP: Use 70% threshold for earlier loading
-          // 🎯 UNIFIED: Use 70% threshold for both mobile and desktop
-          const threshold = 0.70;
-          
-          // Trigger at appropriate threshold
-          if (scrollPercentage >= threshold && !isLoading) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log(`📜 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}% (threshold: ${Math.round(threshold * 100)}%, ${isMobile ? 'mobile' : 'desktop'})`);
-            }
-            isLoading = true;
+          // Trigger infinite loading at threshold
+          if (scrollPercentage >= SCROLL_THRESHOLD) {
             loadMore();
-            setTimeout(() => { isLoading = false; }, 3000);
           }
-        }, 200);
+        }, DEBOUNCE_DELAY);
       };
+    }, [paginatedLoading, hasMore, paginatedRentals.length, loadMore]);
+    
+    // Setup scroll handlers
+    useEffect(() => {
+      // Always create fresh scroll handler with current values
+      scrollHandlerRef.current = createScrollHandler();
       
-      // For desktop, listen to container scroll
-      if (!isMobile && container) {
-        container.addEventListener('scroll', handleScroll, { passive: true });
+      const mobileContainer = mobileScrollRef.current;
+      const desktopContainer = desktopScrollRef.current;
+      const handler = scrollHandlerRef.current;
+      
+      // Setup desktop scroll listener
+      if (!isMobile && desktopContainer && handler) {
+        desktopContainer.addEventListener('scroll', handler, { passive: true });
       }
       
-      // Store handler for mobile virtualized list
-      if (isMobile) {
-        // Handler will be called from List's onScroll prop
-        (window as any).__rentalListScrollHandler = handleScroll;
+      // Setup mobile handler reference (used by React Window)
+      if (isMobile && handler) {
+        (window as any).__unifiedRentalScrollHandler = handler;
       }
       
       return () => {
-        clearTimeout(debounceTimer);
-        if (!isMobile && container) {
-          container.removeEventListener('scroll', handleScroll);
+        // Cleanup timers
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
         }
+        if (throttleTimerRef.current) {
+          clearTimeout(throttleTimerRef.current);
+        }
+        
+        // Remove desktop scroll listener
+        if (!isMobile && desktopContainer && handler) {
+          desktopContainer.removeEventListener('scroll', handler);
+        }
+        
+        // Remove mobile handler reference
         if (isMobile) {
-          delete (window as any).__rentalListScrollHandler;
+          delete (window as any).__unifiedRentalScrollHandler;
         }
       };
-    }, [rentalListRef, scrollContainerRef, loadMore, hasMore, paginatedLoading, paginatedRentals.length, isMobile]);
+    }, [isMobile, createScrollHandler]);
   
   // ⚡ BACKGROUND PROTOCOL LOADING STATE
   const [protocolStatusMap, setProtocolStatusMap] = useState<Record<string, {
@@ -2416,7 +2438,7 @@ export default function RentalListNew() {
   }, [paginatedRentals.length, protocolStatusLoaded, isLoadingProtocolStatus, loadProtocolStatusInBackground]);
 
   return (
-    <Box ref={scrollContainerRef} sx={{ height: '100vh', overflow: 'auto' }}>
+    <Box sx={{ height: '100vh', overflow: 'hidden' }}>
       {/* Enhanced Header */}
       <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
         <CardContent sx={{ p: { xs: 2, md: 3 } }}>
@@ -3103,24 +3125,24 @@ export default function RentalListNew() {
             </Box>
 
             {/* 🚀 VIRTUALIZED Mobilné prenájmy rows - pre performance */}
-            <Box ref={isMobile ? rentalListRef : undefined} sx={{ height: 600, width: '100%' }}>
+            <Box 
+              ref={mobileScrollRef} 
+              sx={{ 
+                height: 'calc(100vh - 400px)', 
+                width: '100%',
+                overflow: 'hidden' // React Window handles scrolling
+              }}
+            >
               <List
-                height={600}
+                height={600} // Fixed height for mobile virtualized list
                 width="100%"
                 itemCount={filteredRentals.length}
                 itemSize={160}
                 itemData={filteredRentals}
                 onScroll={({ scrollOffset }) => {
-                  // 🎯 Track scroll position for mobile virtualized list
-                  if (isMobile && rentalListRef.current) {
-                    const scrollPercentage = scrollOffset / (filteredRentals.length * 160 - 600);
-                    if (process.env.NODE_ENV === 'development') {
-                      console.log(`📱 Mobile List scroll: ${Math.round(scrollPercentage * 100)}%`);
-                    }
-                  }
-                  // Call the infinite scroll handler
-                  if ((window as any).__rentalListScrollHandler) {
-                    (window as any).__rentalListScrollHandler({ scrollOffset });
+                  // 🎯 UNIFIED: Use the new unified scroll handler
+                  if ((window as any).__unifiedRentalScrollHandler) {
+                    (window as any).__unifiedRentalScrollHandler({ scrollOffset });
                   }
                 }}
               >
@@ -3661,11 +3683,11 @@ export default function RentalListNew() {
               </Box>
             </Box>
 
-            {/* Desktop prenájmy rows */}
+            {/* 🎯 UNIFIED: Desktop scrollable container */}
             <Box 
-              ref={rentalListRef}
+              ref={desktopScrollRef}
               sx={{ 
-                maxHeight: 'calc(100vh - 400px)', // Adjust based on header/filter height
+                height: 'calc(100vh - 400px)', // Adjust based on header/filter height
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 position: 'relative',
