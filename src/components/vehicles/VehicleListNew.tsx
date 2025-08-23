@@ -1331,6 +1331,7 @@ export default function VehicleListNew() {
 
             // Vytvor vehicle data
             const vehicleData = {
+              id: '', // Bude vygenerované na backend
               brand: brand.trim(),
               model: model.trim(),
               licensePlate: licensePlate?.trim() || '',
@@ -1355,19 +1356,16 @@ export default function VehicleListNew() {
           
           console.log('📥 CSV Import result:', result);
           
-          if (result.success) {
-            const { created, updated, errorsCount, successRate, processed, total } = result.data;
-            
-            if (created > 0 || updated > 0) {
-              alert(`🚀 BATCH IMPORT ÚSPEŠNÝ!\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Spracovaných: ${processed}/${total}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nStránka sa obnoví za 3 sekundy...`);
-              setTimeout(() => window.location.reload(), 3000);
-            } else if (errorsCount > 0) {
-              alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nSkontrolujte formát CSV súboru.`);
-            } else {
-              alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\nSkontrolujte formát CSV súboru.`);
-            }
+          // Result už obsahuje priamo dáta, nie je wrapped v success/data
+          const { created, updated, errorsCount, successRate, processed, total } = result;
+          
+          if (created > 0 || updated > 0) {
+            alert(`🚀 BATCH IMPORT ÚSPEŠNÝ!\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Spracovaných: ${processed}/${total}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nStránka sa obnoví za 3 sekundy...`);
+            setTimeout(() => window.location.reload(), 3000);
+          } else if (errorsCount > 0) {
+            alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nSkontrolujte formát CSV súboru.`);
           } else {
-            alert(`❌ Chyba pri batch importe: ${result.error || result.message || 'Neznáma chyba'}`);
+            alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\nSkontrolujte formát CSV súboru.`);
           }
         } catch (error) {
           console.error('❌ CSV import error:', error);
