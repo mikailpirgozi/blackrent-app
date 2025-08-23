@@ -2278,7 +2278,9 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'SELECT * FROM vehicles ORDER BY created_at DESC'
+        `SELECT * FROM vehicles 
+         WHERE status NOT IN ('removed', 'temporarily_removed')
+         ORDER BY created_at DESC`
       );
       
       const vehicles = result.rows.map(row => ({
@@ -6993,7 +6995,6 @@ export class PostgresDatabase {
             END as final_status
           FROM calendar_dates cd
           CROSS JOIN vehicles v
-          WHERE v.status NOT IN ('removed', 'temporarily_removed')
           LEFT JOIN active_rentals ar ON (
             ar.vehicle_id = v.id 
             AND cd.date BETWEEN ar.start_date AND ar.end_date
@@ -7002,6 +7003,7 @@ export class PostgresDatabase {
             au.vehicle_id = v.id
             AND cd.date BETWEEN au.start_date AND au.end_date
           )
+          WHERE v.status NOT IN ('removed', 'temporarily_removed')
         )
         SELECT
           date,
