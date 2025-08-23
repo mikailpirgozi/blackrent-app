@@ -478,13 +478,43 @@ router.post('/batch-import',
               continue;
             }
 
-            // Príprava dát pre vytvorenie
+            // Príprava dát pre vytvorenie - hľadanie vozidla podľa názvu firmy
+            let processedVehicleId = undefined;
+            if (expenseData.vehicleId && expenseData.vehicleId.toString().trim() !== '') {
+              const vehicleIdStr = expenseData.vehicleId.toString().trim();
+              
+              // Ak je to číslo, použij priamo
+              if (!isNaN(parseInt(vehicleIdStr)) && isFinite(parseInt(vehicleIdStr))) {
+                processedVehicleId = parseInt(vehicleIdStr);
+              } else {
+                // Ak nie je číslo, skús nájsť vozidlo podľa PRESNÉHO názvu firmy
+                try {
+                  const vehicleQuery = `
+                    SELECT id, company FROM vehicles 
+                    WHERE company = $1
+                    LIMIT 1
+                  `;
+                  const vehicleResult = await postgresDatabase.query(vehicleQuery, [vehicleIdStr]);
+                  
+                  if (vehicleResult.rows.length > 0) {
+                    processedVehicleId = vehicleResult.rows[0].id;
+                    console.log(`✅ PRESNÁ ZHODA firmy "${vehicleIdStr}": ID ${processedVehicleId}`);
+                  } else {
+                    console.warn(`⚠️ ŽIADNA PRESNÁ ZHODA pre firmu "${vehicleIdStr}", náklad bude bez vozidla`);
+                    console.warn(`   (Musí sa zhodovať PRESNE - veľkosť písmen, čiarky, medzery, všetko!)`);
+                  }
+                } catch (error) {
+                  console.warn(`⚠️ Chyba pri hľadaní vozidla pre firmu "${vehicleIdStr}":`, error.message);
+                }
+              }
+            }
+
             const processedExpense = {
               description: expenseData.description.trim(),
               amount: parseFloat(expenseData.amount) || 0,
               date: expenseData.date ? new Date(expenseData.date) : new Date(),
               category: expenseData.category || 'other',
-              vehicleId: expenseData.vehicleId || undefined,
+              vehicleId: processedVehicleId,
               company: expenseData.company?.trim() || 'Neznáma firma',
               note: expenseData.note?.trim() || undefined
             };
