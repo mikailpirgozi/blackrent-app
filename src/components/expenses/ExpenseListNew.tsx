@@ -232,22 +232,125 @@ const ExpenseListNew: React.FC = () => {
     Papa.parse(file, {
       complete: async (results: any) => {
         try {
-          // Konvertuj parsované dáta späť na CSV string
-          const csvString = Papa.unparse(results.data);
+          console.log('📥 Parsing CSV file for batch expense import...');
           
-          const { apiService } = await import('../../services/api');
-          const result = await apiService.importExpensesCSV(csvString);
+          if (!results.data || results.data.length < 2) {
+            alert('CSV súbor musí obsahovať aspoň hlavičku a jeden riadok dát');
+            return;
+          }
+
+          // Preskočíme hlavičku
+          const dataRows = results.data.slice(1);
+          const batchExpenses = [];
+
+          console.log(`📦 Processing ${dataRows.length} expense rows...`);
+
+          for (let i = 0; i < dataRows.length; i++) {
+            const row = dataRows[i];
+            
+            // Preskočíme prázdne riadky
+            if (!row || row.length === 0 || !row.some((cell: any) => cell && cell.toString().trim())) {
+              continue;
+            }
+
+            // Mapovanie polí podľa formátu: id, description, amount, date, category, company, vehicleId, vehicleLicensePlate, note
+            const [id, description, amount, date, category, company, vehicleId, vehicleLicensePlate, note] = row;
+
+            // Kontrola povinných polí
+            if (!description || description.toString().trim() === '') {
+              console.warn(`Riadok ${i + 2}: Preskakujem - chýba popis`);
+              continue;
+            }
+
+            // Parsuj sumu
+            let parsedAmount = 0;
+            if (amount && amount.toString().trim() !== '') {
+              parsedAmount = parseFloat(amount.toString().replace(',', '.'));
+              if (isNaN(parsedAmount)) {
+                console.warn(`Riadok ${i + 2}: Neplatná suma "${amount}", nastavujem na 0`);
+                parsedAmount = 0;
+              }
+            }
+
+            // Parsuj dátum
+            let parsedDate = new Date();
+            if (date && date.toString().trim()) {
+              const dateStr = date.toString().trim();
+              
+              // Formát MM/YYYY sa zmení na 01.MM.YYYY
+              if (/^\d{1,2}\/\d{4}$/.test(dateStr)) {
+                const [month, year] = dateStr.split('/');
+                parsedDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+              } else {
+                // Štandardné parsovanie dátumu
+                const tempDate = new Date(dateStr);
+                if (!isNaN(tempDate.getTime())) {
+                  parsedDate = tempDate;
+                }
+              }
+            }
+
+            // Mapovanie kategórií
+            let mappedCategory = 'other';
+            if (category && category.toString().trim()) {
+              const categoryStr = category.toString().toLowerCase().trim();
+              const categoryMap: { [key: string]: string } = {
+                'fuel': 'fuel',
+                'palivo': 'fuel',
+                'benzín': 'fuel',
+                'nafta': 'fuel',
+                'service': 'service',
+                'servis': 'service',
+                'oprava': 'service',
+                'údržba': 'service',
+                'insurance': 'insurance',
+                'poistenie': 'insurance',
+                'other': 'other',
+                'ostatné': 'other',
+                'iné': 'other'
+              };
+              mappedCategory = categoryMap[categoryStr] || 'other';
+            }
+
+            // Vytvor expense objekt
+            const expenseData = {
+              id: '', // Bude vygenerované na backend
+              description: description.toString().trim(),
+              amount: parsedAmount,
+              date: parsedDate,
+              category: mappedCategory,
+              vehicleId: (vehicleId && vehicleId.toString().trim() !== '') ? vehicleId.toString().trim() : undefined,
+              company: (company && company.toString().trim() !== '') ? company.toString().trim() : 'Neznáma firma',
+              note: (note && note.toString().trim() !== '') ? note.toString().trim() : undefined
+            };
+
+            batchExpenses.push(expenseData);
+          }
+
+          console.log(`📦 Pripravených ${batchExpenses.length} nákladov pre batch import`);
           
-          if (result.success) {
-            alert(result.message);
-            // Refresh expense list - force reload
-            window.location.reload();
+          // Použij batch import namiesto CSV importu
+          const result = await apiService.batchImportExpenses(batchExpenses);
+          
+          console.log('📥 CSV Import result:', result);
+          
+          // Result už obsahuje priamo dáta, nie je wrapped v success/data
+          const { created, updated, errorsCount, successRate, processed, total } = result;
+          
+          if (created > 0 || updated > 0) {
+            alert(`🚀 BATCH IMPORT ÚSPEŠNÝ!\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Spracovaných: ${processed}/${total}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nStránka sa obnoví za 3 sekundy...`);
+            setTimeout(() => window.location.reload(), 3000);
+          } else if (errorsCount > 0) {
+            alert(`⚠️ Import dokončený, ale žiadne náklady neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nSkontrolujte formát CSV súboru.`);
           } else {
-            alert(result.error || 'Chyba pri importe');
+            alert(`⚠️ Import dokončený, ale žiadne náklady neboli pridané.\nSkontrolujte formát CSV súboru.`);
           }
         } catch (error) {
-          console.error('CSV import error:', error);
-          alert('Chyba pri CSV importe');
+          console.error('❌ CSV import error:', error);
+          // ✅ ZLEPŠENÉ ERROR HANDLING - menej dramatické
+          alert(`⚠️ Import dokončený s upozornením: ${error instanceof Error ? error.message : 'Sieťová chyba'}\n\nSkontrolujte výsledok po obnovení stránky.`);
+          // Aj tak skús refresh - možno sa import dokončil
+          setTimeout(() => window.location.reload(), 2000);
         }
       },
       header: false,

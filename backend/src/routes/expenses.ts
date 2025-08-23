@@ -437,4 +437,109 @@ router.post('/import/csv',
   }
 );
 
+// 🚀 BATCH IMPORT - Rýchly import nákladov (bulk operácia)
+router.post('/batch-import',
+  authenticateToken,
+  checkPermission('expenses', 'create'),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      console.log('📥 Starting batch expense import...');
+      const { expenses } = req.body;
+
+      if (!Array.isArray(expenses) || expenses.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Náklady sú povinné a musia byť v poli',
+          message: 'Poskytnuté dáta nie sú validné'
+        });
+      }
+
+      console.log(`📦 Processing ${expenses.length} expenses for batch import`);
+
+      const results = [];
+      const errors = [];
+      let created = 0;
+      let updated = 0;
+
+      // Spracuj náklady v dávkach po 50
+      const batchSize = 50;
+      for (let i = 0; i < expenses.length; i += batchSize) {
+        const batch = expenses.slice(i, i + batchSize);
+        console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(expenses.length/batchSize)} (${batch.length} expenses)`);
+
+        for (const expenseData of batch) {
+          try {
+            // Validácia povinných polí
+            if (!expenseData.description || expenseData.description.trim() === '') {
+              errors.push({
+                expense: expenseData,
+                error: 'Popis nákladu je povinný'
+              });
+              continue;
+            }
+
+            // Príprava dát pre vytvorenie
+            const processedExpense = {
+              description: expenseData.description.trim(),
+              amount: parseFloat(expenseData.amount) || 0,
+              date: expenseData.date ? new Date(expenseData.date) : new Date(),
+              category: expenseData.category || 'other',
+              vehicleId: expenseData.vehicleId || undefined,
+              company: expenseData.company?.trim() || 'Neznáma firma',
+              note: expenseData.note?.trim() || undefined
+            };
+
+            console.log(`💰 Creating expense: ${processedExpense.description} - ${processedExpense.amount}€`);
+
+            const createdExpense = await postgresDatabase.createExpense(processedExpense);
+            results.push(createdExpense);
+            created++;
+
+          } catch (error: any) {
+            console.error(`❌ Error creating expense:`, error.message);
+            errors.push({
+              expense: expenseData,
+              error: error.message || 'Chyba pri vytváraní nákladu'
+            });
+          }
+        }
+
+        // Krátka pauza medzi dávkami
+        if (i + batchSize < expenses.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      const processed = created + updated;
+      const total = expenses.length;
+      const errorsCount = errors.length;
+      const successRate = total > 0 ? `${Math.round((processed / total) * 100)}%` : '0%';
+
+      console.log(`🎉 Batch import completed: ${created} created, ${updated} updated, ${errorsCount} errors`);
+
+      res.json({
+        success: true,
+        message: `Batch import dokončený: ${created} vytvorených, ${errorsCount} chýb`,
+        data: {
+          processed,
+          total,
+          created,
+          updated,
+          errorsCount,
+          successRate,
+          results: results.slice(0, 10), // Limit na prvých 10 výsledkov
+          errors: errors.slice(0, 10)    // Limit na prvých 10 chýb
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Batch expense import failed:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Batch import nákladov zlyhal',
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
 export default router; 

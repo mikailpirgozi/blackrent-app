@@ -723,6 +723,32 @@ class ApiService {
     });
   }
 
+  // 📥 BATCH IMPORT EXPENSES - Rýchly import viacerých nákladov naraz
+  async batchImportExpenses(expenses: Expense[]): Promise<{
+    processed: number;
+    total: number;
+    created: number;
+    updated: number;
+    errorsCount: number;
+    successRate: string;
+    results: any[];
+    errors: any[];
+  }> {
+    return this.request<{
+      processed: number;
+      total: number;
+      created: number;
+      updated: number;
+      errorsCount: number;
+      successRate: string;
+      results: any[];
+      errors: any[];
+    }>('/expenses/batch-import', {
+      method: 'POST',
+      body: JSON.stringify({ expenses }),
+    });
+  }
+
   async updateRental(rental: Rental): Promise<void> {
     return this.request<void>(`/rentals/${rental.id}`, {
       method: 'PUT',
