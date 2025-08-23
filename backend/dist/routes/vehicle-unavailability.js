@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
+const cache_service_1 = require("../utils/cache-service");
 const router = (0, express_1.Router)();
 // GET /api/vehicle-unavailability - Získanie všetkých nedostupností
 router.get('/', auth_1.authenticateToken, async (req, res) => {
@@ -74,6 +75,8 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
             recurringConfig,
             createdBy
         });
+        // 🗄️ CLEAR CACHE: Invalidate calendar cache after unavailability creation
+        (0, cache_service_1.invalidateRelatedCache)('unavailability', 'create');
         res.status(201).json({
             success: true,
             data: unavailability,
@@ -82,6 +85,14 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
     }
     catch (error) {
         console.error('Create vehicle unavailability error:', error);
+        // Handle duplicate constraint error
+        if (error.code === '23505' && error.constraint === 'unique_vehicle_period') {
+            return res.status(409).json({
+                success: false,
+                error: 'Nedostupnosť pre toto vozidlo v danom období už existuje. Skúste iný dátumový rozsah alebo typ nedostupnosti.',
+                code: 'DUPLICATE_UNAVAILABILITY'
+            });
+        }
         res.status(500).json({
             success: false,
             error: error.message || 'Chyba pri vytváraní nedostupnosti vozidla'
@@ -101,6 +112,8 @@ router.put('/:id', auth_1.authenticateToken, async (req, res) => {
             updateData.endDate = new Date(updateData.endDate);
         }
         const unavailability = await postgres_database_1.postgresDatabase.updateVehicleUnavailability(id, updateData);
+        // 🗄️ CLEAR CACHE: Invalidate calendar cache after unavailability update
+        (0, cache_service_1.invalidateRelatedCache)('unavailability', 'update');
         res.json({
             success: true,
             data: unavailability,
@@ -132,6 +145,8 @@ router.delete('/:id', auth_1.authenticateToken, async (req, res) => {
                 error: 'Nedostupnosť vozidla nenájdená'
             });
         }
+        // 🗄️ CLEAR CACHE: Invalidate calendar cache after unavailability deletion
+        (0, cache_service_1.invalidateRelatedCache)('unavailability', 'delete');
         res.json({
             success: true,
             message: 'Nedostupnosť vozidla úspešne zmazaná'

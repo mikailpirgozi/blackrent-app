@@ -9,6 +9,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { postgresDatabase } from '../models/postgres-database';
 
 export interface CacheOptions {
   ttl?: number; // Time to live in milliseconds
@@ -430,6 +431,24 @@ export const invalidateRelatedCache = (entity: string, action: 'create' | 'updat
     case 'company':
       // Company changes affect everything
       Object.values(cacheInstances).forEach(cache => cache.clear());
+      break;
+      
+    case 'unavailability':
+      // Unavailability changes affect calendar and availability
+      // Clear all relevant caches since calendar data depends on multiple sources
+      cacheInstances.rentals.clear(); // Calendar shows rentals
+      cacheInstances.vehicles.clear(); // Calendar shows vehicle availability
+      cacheInstances.statistics.clear(); // Stats depend on availability
+      
+      // Also clear backend calendar cache in PostgresDatabase
+      try {
+        (postgresDatabase as any).invalidateCalendarCache();
+        console.log('🗄️ Cleared backend calendar cache for unavailability change');
+      } catch (error) {
+        console.warn('⚠️ Failed to clear backend calendar cache:', error);
+      }
+      
+      console.log('🗄️ Cleared rentals, vehicles, and statistics cache for unavailability change');
       break;
   }
 };

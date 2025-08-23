@@ -11,6 +11,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invalidateRelatedCache = exports.cacheInstances = exports.CacheService = void 0;
 const events_1 = require("events");
+const postgres_database_1 = require("../models/postgres-database");
 class CacheService extends events_1.EventEmitter {
     constructor(options = {}) {
         super();
@@ -339,6 +340,22 @@ const invalidateRelatedCache = (entity, action) => {
         case 'company':
             // Company changes affect everything
             Object.values(exports.cacheInstances).forEach(cache => cache.clear());
+            break;
+        case 'unavailability':
+            // Unavailability changes affect calendar and availability
+            // Clear all relevant caches since calendar data depends on multiple sources
+            exports.cacheInstances.rentals.clear(); // Calendar shows rentals
+            exports.cacheInstances.vehicles.clear(); // Calendar shows vehicle availability
+            exports.cacheInstances.statistics.clear(); // Stats depend on availability
+            // Also clear backend calendar cache in PostgresDatabase
+            try {
+                postgres_database_1.postgresDatabase.invalidateCalendarCache();
+                console.log('🗄️ Cleared backend calendar cache for unavailability change');
+            }
+            catch (error) {
+                console.warn('⚠️ Failed to clear backend calendar cache:', error);
+            }
+            console.log('🗄️ Cleared rentals, vehicles, and statistics cache for unavailability change');
             break;
     }
 };

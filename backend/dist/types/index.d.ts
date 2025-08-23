@@ -261,7 +261,7 @@ export interface VehicleUnavailability {
     startDate: Date;
     endDate: Date;
     reason: string;
-    type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection';
+    type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection' | 'rented';
     notes?: string;
     priority: 1 | 2 | 3;
     recurring: boolean;
@@ -429,6 +429,7 @@ export interface ApiResponse<T = any> {
     data?: T;
     message?: string;
     error?: string;
+    code?: string;
     user?: T;
 }
 export interface VehicleCondition {

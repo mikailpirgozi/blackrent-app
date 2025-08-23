@@ -199,6 +199,29 @@ class ApiService {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
+  // Generická POST metóda
+  async post<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  // Generická PUT metóda
+  async put<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  // Generická DELETE metóda
+  async delete<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'DELETE',
+    });
+  }
+
   // Vozidlá s cache
   async getVehicles(includeRemoved: boolean = false): Promise<Vehicle[]> {
     const userId = localStorage.getItem('blackrent_user_id');

@@ -65,8 +65,9 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { logger } from '../../utils/smartLogger';
 import { cacheHelpers, smartInvalidation } from '../../utils/unifiedCache';
-import { VehicleCategory } from '../../types';
+import { VehicleCategory, Vehicle } from '../../types';
 import { apiService } from '../../services/api';
+import AddUnavailabilityModal from './AddUnavailabilityModal';
 
 interface AvailabilityData {
   vehicleId: string;
@@ -128,6 +129,12 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   const [availabilityData, setAvailabilityData] = useState<AvailabilityData[]>([]);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   
+  // 🚫 UNAVAILABILITY MODAL STATE
+  const [unavailabilityModalOpen, setUnavailabilityModalOpen] = useState(false);
+  const [selectedVehicleForUnavailability, setSelectedVehicleForUnavailability] = useState<Vehicle | undefined>();
+  const [selectedDateForUnavailability, setSelectedDateForUnavailability] = useState<Date | undefined>();
+  const [editingUnavailability, setEditingUnavailability] = useState<any>(undefined);
+  
   // ⚡ PROGRESSIVE LOADING STATE
   const [loadMoreState, setLoadMoreState] = useState<LoadMoreState>({
     canLoadMore: true,
@@ -152,8 +159,14 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     minAvailabilityPercent: 0
   });
 
-  // Derived data
-  const availableVehicles = state.vehicles || [];
+  // Derived data - filter out removed vehicles for availability view
+  const availableVehicles = useMemo(() => 
+    (state.vehicles || []).filter(vehicle => 
+      vehicle.status !== 'removed' && 
+      vehicle.status !== 'temporarily_removed'
+    ), 
+    [state.vehicles]
+  );
   const availableBrands = useMemo(() => 
     [...new Set(availableVehicles.map(v => v.brand).filter(Boolean))].sort(),
     [availableVehicles]
@@ -167,10 +180,12 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     [availableVehicles]
   );
 
+
+
   /**
    * ⚡ REAL API: Smart availability calculation with real data
    */
-  const calculateAvailability = useCallback(async (filters: FilterOptions): Promise<AvailabilityData[]> => {
+  const calculateAvailability = useCallback(async (filters: FilterOptions, forceRefresh: boolean = false): Promise<AvailabilityData[]> => {
     const { dateFrom, dateTo } = filters;
     const startDate = parseISO(dateFrom);
     const endDate = parseISO(dateTo);
@@ -187,23 +202,42 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
       dateFrom, 
       dateTo, 
       daysCount: dateRange.length,
-      vehiclesCount: availableVehicles.length 
+      vehiclesCount: availableVehicles.length,
+      forceRefresh
     });
 
-    // 🗄️ UNIFIED CACHE: Try to get cached availability data
+    // 🗄️ UNIFIED CACHE: Try to get cached availability data (skip if forceRefresh)
     const cacheKey = `availability-${dateFrom}-${dateTo}`;
-    const cachedData = cacheHelpers.calendar.get(cacheKey);
+    const cachedData = !forceRefresh ? cacheHelpers.calendar.get(cacheKey) : null;
 
     let calendarData: any[] = [];
-    if (cachedData) {
+    if (cachedData && !forceRefresh) {
       logger.cache('Using cached availability data for calculation');
       calendarData = cachedData.calendar || [];
     } else {
-      // ⚡ FALLBACK: Use existing vehicle/rental data to calculate availability
+      // 🚀 REAL API: Load calendar data with unavailabilities
       try {
-        logger.api('Using existing data to calculate availability (fallback)', { dateFrom, dateTo, vehiclesCount: availableVehicles.length });
+        logger.api('Loading calendar data from API with unavailabilities', { dateFrom, dateTo, vehiclesCount: availableVehicles.length, forceRefresh });
         
-        // Create calendar data from existing rentals and vehicles
+        const response = await apiService.get<{calendar: any[]}>(`/availability/calendar?startDate=${dateFrom}&endDate=${dateTo}`);
+        
+        if (response.calendar) {
+          calendarData = response.calendar;
+          logger.performance('Calendar data loaded from API', {
+            calendarDays: calendarData.length,
+            vehicles: availableVehicles.length,
+            cacheKey
+          });
+          
+          // Cache the API data
+          cacheHelpers.calendar.set(cacheKey, { calendar: calendarData });
+        } else {
+          throw new Error('No calendar data received from API');
+        }
+      } catch (error) {
+        logger.error('Failed to load calendar data from API, using fallback', error);
+        
+        // ⚡ FALLBACK: Use existing vehicle/rental data to calculate availability
         calendarData = dateRange.map(date => {
           const dayRentals = state.rentals?.filter(rental => {
             const startDate = new Date(rental.startDate);
@@ -228,24 +262,15 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           };
         });
         
-        // ⚡ CACHE: Store calculated data for future use
-        cacheHelpers.calendar.set(cacheKey, { calendar: calendarData });
-        
-        logger.performance('Availability calculated from existing data', {
+        logger.performance('Availability calculated from fallback data', {
           calendarDays: calendarData.length,
           vehicles: availableVehicles.length,
           rentals: state.rentals?.length || 0,
           cacheKey
         });
         
-      } catch (error) {
-        logger.error('Failed to calculate availability from existing data', { error, dateFrom, dateTo });
-        
-        // ⚠️ FALLBACK: Return empty data structure to prevent crashes
-        calendarData = [];
-        
-        // Optional: Show user-friendly error message
-        throw new Error('Nepodarilo sa načítať dáta dostupnosti. Skúste to znovu.');
+        // ⚠️ Store fallback data in cache
+        cacheHelpers.calendar.set(cacheKey, { calendar: calendarData });
       }
     }
 
@@ -257,7 +282,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           format(parseISO(cal.date), 'yyyy-MM-dd') === date
         );
         
-        const vehicleStatus = dayData?.vehicles?.find((v: any) => v.vehicleId === vehicle.id);
+        const vehicleStatus = dayData?.vehicles?.find((v: any) => v.vehicleId === parseInt(vehicle.id));
         
         if (!vehicleStatus) {
           return {
@@ -272,9 +297,9 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
         return {
           date,
           status: vehicleStatus.status || 'available',
-          reason: vehicleStatus.unavailability_reason || vehicleStatus.rental_type,
-          customerName: vehicleStatus.customer_name,
-          rentalId: vehicleStatus.rental_id
+          reason: vehicleStatus.unavailabilityReason || (vehicleStatus.status === 'rented' ? 'Prenájom' : undefined),
+          customerName: vehicleStatus.customerName,
+          rentalId: vehicleStatus.rentalId
         };
       });
 
@@ -337,10 +362,10 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   /**
    * Load availability data
    */
-  const loadAvailabilityData = useCallback(async () => {
+  const loadAvailabilityData = useCallback(async (forceRefresh: boolean = false) => {
     setLoading(true);
     try {
-      const data = await calculateAvailability(filters);
+      const data = await calculateAvailability(filters, forceRefresh);
       setAvailabilityData(data);
       
       logger.performance('Availability data calculated', {
@@ -348,7 +373,8 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
         dateRange: `${filters.dateFrom} to ${filters.dateTo}`,
         averageAvailability: Math.round(
           data.reduce((sum, v) => sum + v.availabilityPercent, 0) / data.length
-        )
+        ),
+        forceRefresh
       });
     } catch (error) {
       logger.error('Failed to load availability data', error);
@@ -356,6 +382,96 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
       setLoading(false);
     }
   }, [calculateAvailability, filters]);
+
+  // 🚫 UNAVAILABILITY SUCCESS HANDLER
+  const handleUnavailabilitySuccess = useCallback(() => {
+    // 🗄️ AGGRESSIVE CACHE CLEARING: Clear all calendar-related cache
+    smartInvalidation.onUnavailabilityChange();
+    cacheHelpers.calendar.invalidate();
+    
+    // Also clear specific cache keys that might be used
+    const { dateFrom, dateTo } = filters;
+    const cacheKey = `availability-${dateFrom}-${dateTo}`;
+    logger.cache(`Manually clearing cache key: ${cacheKey}`);
+    
+    // Refresh availability data with force refresh to bypass cache
+    loadAvailabilityData(true);
+    
+    // Clear selected data
+    setSelectedVehicleForUnavailability(undefined);
+    setSelectedDateForUnavailability(undefined);
+    setEditingUnavailability(undefined);
+  }, [loadAvailabilityData, filters]);
+
+  // 🔍 LOAD UNAVAILABILITY FOR EDIT
+  const loadUnavailabilityForEdit = useCallback(async (vehicleId: string, clickedDate: string, status: string, reason: string) => {
+    try {
+      setLoading(true);
+      
+      // Get all unavailabilities for this vehicle
+      const response = await apiService.get<any[]>(`/vehicle-unavailability?vehicleId=${parseInt(vehicleId)}`);
+      
+      // Find the unavailability that includes the clicked date
+      const clickedDateObj = parseISO(clickedDate);
+      const unavailability = response.find((u: any) => {
+        const startDate = new Date(u.startDate);
+        const endDate = new Date(u.endDate);
+        return clickedDateObj >= startDate && clickedDateObj <= endDate && u.type === status;
+      });
+      
+      if (unavailability) {
+        setEditingUnavailability({
+          id: unavailability.id,
+          vehicleId: vehicleId,
+          startDate: new Date(unavailability.startDate),
+          endDate: new Date(unavailability.endDate),
+          type: unavailability.type,
+          reason: unavailability.reason,
+          notes: unavailability.notes || '',
+          priority: unavailability.priority || 2,
+          recurring: unavailability.recurring || false
+        });
+        setSelectedVehicleForUnavailability(undefined);
+        setSelectedDateForUnavailability(undefined);
+        setUnavailabilityModalOpen(true);
+      } else {
+        // Fallback - create basic editing object
+        setEditingUnavailability({
+          id: `fallback-${vehicleId}-${clickedDate}`,
+          vehicleId: vehicleId,
+          startDate: parseISO(clickedDate),
+          endDate: parseISO(clickedDate),
+          type: status,
+          reason: reason,
+          notes: '',
+          priority: 2,
+          recurring: false
+        });
+        setSelectedVehicleForUnavailability(undefined);
+        setSelectedDateForUnavailability(undefined);
+        setUnavailabilityModalOpen(true);
+      }
+    } catch (error) {
+      console.error('Error loading unavailability for edit:', error);
+      // Fallback - create basic editing object
+      setEditingUnavailability({
+        id: `error-${vehicleId}-${clickedDate}`,
+        vehicleId: vehicleId,
+        startDate: parseISO(clickedDate),
+        endDate: parseISO(clickedDate),
+        type: status,
+        reason: reason,
+        notes: '',
+        priority: 2,
+        recurring: false
+      });
+      setSelectedVehicleForUnavailability(undefined);
+      setSelectedDateForUnavailability(undefined);
+      setUnavailabilityModalOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   /**
    * ⚡ PROGRESSIVE LOADING: Load more days
@@ -601,6 +717,22 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           sx={{ mb: 2 }}
           flexWrap="wrap"
         >
+          {/* 🚫 ADD UNAVAILABILITY BUTTON */}
+          <Button
+            size="small"
+            variant="contained"
+            color="error"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setSelectedVehicleForUnavailability(undefined);
+              setSelectedDateForUnavailability(undefined);
+              setUnavailabilityModalOpen(true);
+            }}
+            sx={{ mr: 2 }}
+          >
+            Pridať nedostupnosť
+          </Button>
+          
           <Button 
             size="small" 
             variant={filters.dateTo === format(new Date(), 'yyyy-MM-dd') ? "contained" : "outlined"}
@@ -733,10 +865,12 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                     <Stack direction="row" spacing={0.5} justifyContent="center">
                       {vehicle.dailyStatus.slice(0, 14).map((day, index) => {
                         const statusDisplay = getStatusDisplay(day.status);
+                        const vehicleData = availableVehicles.find(v => v.id === vehicle.vehicleId);
+                        
                         return (
                           <Tooltip 
                             key={index}
-                            title={`${format(parseISO(day.date), 'dd.MM', { locale: sk })}: ${statusDisplay.label}${day.reason ? ` (${day.reason})` : ''}`}
+                            title={`${format(parseISO(day.date), 'dd.MM', { locale: sk })}: ${statusDisplay.label}${day.reason ? ` (${day.reason})` : ''} - ${day.status === 'available' ? 'Kliknite pre pridanie nedostupnosti' : day.status === 'rented' ? 'Prenájom (nie je možné upraviť)' : 'Kliknite pre úpravu nedostupnosti'}`}
                           >
                             <Box
                               sx={{
@@ -745,7 +879,30 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                                 borderRadius: 0.5,
                                 bgcolor: day.status === 'available' ? 'success.light' : 'error.light',
                                 border: day.status === 'available' ? '1px solid' : 'none',
-                                borderColor: 'success.main'
+                                borderColor: 'success.main',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  transform: 'scale(1.2)',
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                                  zIndex: 1
+                                }
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (vehicleData) {
+                                  if (day.status === 'available') {
+                                    // Create new unavailability
+                                    setSelectedVehicleForUnavailability(vehicleData);
+                                    setSelectedDateForUnavailability(parseISO(day.date));
+                                    setEditingUnavailability(undefined);
+                                    setUnavailabilityModalOpen(true);
+                                  } else if (day.status !== 'rented') {
+                                    // Edit existing unavailability (not rental)
+                                    // Load full unavailability data from API
+                                    loadUnavailabilityForEdit(vehicleData.id, day.date, day.status, day.reason || '');
+                                  }
+                                }
                               }}
                             />
                           </Tooltip>
@@ -967,6 +1124,21 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           </Typography>
         </Box>
       )}
+
+      {/* 🚫 ADD UNAVAILABILITY MODAL */}
+      <AddUnavailabilityModal
+        open={unavailabilityModalOpen}
+        onClose={() => {
+          setUnavailabilityModalOpen(false);
+          setSelectedVehicleForUnavailability(undefined);
+          setSelectedDateForUnavailability(undefined);
+          setEditingUnavailability(undefined);
+        }}
+        onSuccess={handleUnavailabilitySuccess}
+        preselectedVehicle={selectedVehicleForUnavailability}
+        preselectedDate={selectedDateForUnavailability}
+        editingUnavailability={editingUnavailability}
+      />
     </Box>
   );
 };

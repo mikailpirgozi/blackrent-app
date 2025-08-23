@@ -30,8 +30,10 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useApp } from '../context/AppContext';
-import { VehicleCategory } from '../types';
+import { VehicleCategory, Vehicle } from '../types';
 import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
+import AddUnavailabilityModal from '../components/availability/AddUnavailabilityModal';
+import { smartInvalidation } from '../utils/unifiedCache';
 
 const AvailabilityPageNew: React.FC = () => {
   const { state, getFilteredVehicles } = useApp();
@@ -46,6 +48,9 @@ const AvailabilityPageNew: React.FC = () => {
   const [availableToDate, setAvailableToDate] = useState('');
   // 🚗 MULTI-SELECT CATEGORY FILTER: Array of selected categories
   const [selectedCategories, setSelectedCategories] = useState<VehicleCategory[]>([]);
+  
+  // 🚫 UNAVAILABILITY MODAL STATE
+  const [unavailabilityModalOpen, setUnavailabilityModalOpen] = useState(false);
 
   // Get filtered vehicles based on user permissions
   const filteredVehicles = getFilteredVehicles();
@@ -81,6 +86,17 @@ const AvailabilityPageNew: React.FC = () => {
     window.location.reload();
   };
 
+  const handleUnavailabilitySuccess = () => {
+    // 🗄️ CLEAR CACHE: Invalidate calendar cache after unavailability change
+    smartInvalidation.onUnavailabilityChange();
+    
+    // Force calendar refresh by triggering a re-render
+    // Use a small delay to ensure cache invalidation is processed
+    setTimeout(() => {
+      window.location.reload();
+    }, 200);
+  };
+
   const handleTodayClick = () => {
     // Scroll to today in calendar
     const todayElement = document.querySelector('[data-today="true"]');
@@ -114,6 +130,15 @@ const AvailabilityPageNew: React.FC = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<ClearIcon />}
+            onClick={() => setUnavailabilityModalOpen(true)}
+            size="small"
+          >
+            Pridať nedostupnosť
+          </Button>
           <Button
             variant="outlined"
             startIcon={<TodayIcon />}
@@ -373,6 +398,13 @@ const AvailabilityPageNew: React.FC = () => {
           />
         </CardContent>
       </Card>
+
+      {/* 🚫 ADD UNAVAILABILITY MODAL */}
+      <AddUnavailabilityModal
+        open={unavailabilityModalOpen}
+        onClose={() => setUnavailabilityModalOpen(false)}
+        onSuccess={handleUnavailabilitySuccess}
+      />
     </Box>
   );
 };

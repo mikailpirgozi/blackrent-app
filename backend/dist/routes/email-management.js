@@ -707,6 +707,56 @@ router.post('/:id/unarchive', auth_1.authenticateToken, (0, permissions_1.checkP
         });
     }
 });
+// DELETE /api/email-management/clear-historical - Vymazať všetky historické emaily pred dnešným dátumom
+// MUSÍ BYŤ PRED /:id route kvôli Express routing!
+router.delete('/clear-historical', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'delete'), async (req, res) => {
+    console.log('🔥 CLEAR HISTORICAL ENDPOINT CALLED!');
+    try {
+        const userId = req.user?.id;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Nastaviť na začiatok dňa
+        const todayStr = today.toISOString();
+        console.log(`🗑️ CLEAR HISTORICAL: Začínam mazanie emailov pred ${todayStr}`);
+        // Najprv získaj počet emailov ktoré sa budú mazať
+        const countResult = await postgres_database_1.postgresDatabase.query(`
+        SELECT COUNT(*) as count
+        FROM email_processing_history 
+        WHERE received_at < $1
+      `, [todayStr]);
+        const emailsToDelete = parseInt(countResult.rows[0].count);
+        console.log(`🗑️ CLEAR HISTORICAL: Nájdených ${emailsToDelete} emailov na zmazanie`);
+        if (emailsToDelete === 0) {
+            return res.json({
+                success: true,
+                data: {
+                    message: 'Žiadne historické emaily na zmazanie',
+                    deletedCount: 0
+                }
+            });
+        }
+        // Zmaž všetky historické emaily (bez logovania kvôli foreign key constraints)
+        const deleteResult = await postgres_database_1.postgresDatabase.query(`
+        DELETE FROM email_processing_history 
+        WHERE received_at < $1
+      `, [todayStr]);
+        console.log(`✅ CLEAR HISTORICAL: Úspešne zmazaných ${deleteResult.rowCount} emailov`);
+        res.json({
+            success: true,
+            data: {
+                message: `Úspešne zmazaných ${deleteResult.rowCount} historických emailov`,
+                deletedCount: deleteResult.rowCount,
+                cutoffDate: todayStr
+            }
+        });
+    }
+    catch (error) {
+        console.error('❌ CLEAR HISTORICAL: Chyba pri mazaní historických emailov:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri mazaní historických emailov'
+        });
+    }
+});
 // DELETE /api/email-management/:id - Zmazať email
 router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'delete'), async (req, res) => {
     try {

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { VehicleUnavailability, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
+import { invalidateRelatedCache } from '../utils/cache-service';
 
 const router = Router();
 
@@ -98,6 +99,9 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       createdBy
     });
 
+    // 🗄️ CLEAR CACHE: Invalidate calendar cache after unavailability creation
+    invalidateRelatedCache('unavailability', 'create');
+
     res.status(201).json({
       success: true,
       data: unavailability,
@@ -105,6 +109,16 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
     });
   } catch (error: any) {
     console.error('Create vehicle unavailability error:', error);
+    
+    // Handle duplicate constraint error
+    if (error.code === '23505' && error.constraint === 'unique_vehicle_period') {
+      return res.status(409).json({
+        success: false,
+        error: 'Nedostupnosť pre toto vozidlo v danom období už existuje. Skúste iný dátumový rozsah alebo typ nedostupnosti.',
+        code: 'DUPLICATE_UNAVAILABILITY'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       error: error.message || 'Chyba pri vytváraní nedostupnosti vozidla'
@@ -127,6 +141,9 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
     }
 
     const unavailability = await postgresDatabase.updateVehicleUnavailability(id, updateData);
+
+    // 🗄️ CLEAR CACHE: Invalidate calendar cache after unavailability update
+    invalidateRelatedCache('unavailability', 'update');
 
     res.json({
       success: true,
@@ -162,6 +179,9 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response<ApiR
         error: 'Nedostupnosť vozidla nenájdená'
       });
     }
+
+    // 🗄️ CLEAR CACHE: Invalidate calendar cache after unavailability deletion
+    invalidateRelatedCache('unavailability', 'delete');
 
     res.json({
       success: true,
