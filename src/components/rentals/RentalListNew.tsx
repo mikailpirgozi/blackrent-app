@@ -67,6 +67,7 @@ import RentalForm from './RentalForm';
 import PDFViewer from '../common/PDFViewer';
 import ProtocolGallery from '../common/ProtocolGallery';
 import ReturnProtocolForm from '../protocols/ReturnProtocolForm';
+import RentalDashboard from './RentalDashboard';
 import { getBaseUrl } from '../../utils/apiUrl';
 // 🚀 LAZY LOADING: Protocols loaded only when needed
 const HandoverProtocolForm = React.lazy(() => import('../protocols/HandoverProtocolForm'));
@@ -169,16 +170,61 @@ export default function RentalListNew() {
     currentPage,
     loadMore,
     updateRentalInList,
-    handleOptimisticDelete
+    handleOptimisticDelete,
+    updateFilters
   } = useInfiniteRentals();
   
       // Create separate refs for mobile and desktop scroll containers
     const mobileScrollRef = useRef<HTMLDivElement>(null);
     const desktopScrollRef = useRef<HTMLDivElement>(null);
-    // 🎯 OPTIMIZED SCROLL SETTINGS
-    const SCROLL_THRESHOLD = 0.75; // 75% scroll triggers infinite loading
-    const DEBOUNCE_DELAY = 150; // Reduced from 200ms for better responsiveness
-    const THROTTLE_DELAY = 100; // Additional throttling for performance
+      // 🎯 OPTIMIZED SCROLL SETTINGS
+  const SCROLL_THRESHOLD = 0.75; // 75% scroll triggers infinite loading
+  const DEBOUNCE_DELAY = 150; // Reduced from 200ms for better responsiveness
+  const THROTTLE_DELAY = 100; // Additional throttling for performance
+  
+  // 🎨 FAREBNÉ INDIKÁTORY - elegantné bodky namiesto pozadia
+  const getStatusIndicator = useCallback((rental: Rental) => {
+    const today = new Date();
+    const endDate = new Date(rental.endDate);
+    const startDate = new Date(rental.startDate);
+    
+    // 🔴 Červená: Preterminované (skončili a nemajú return protokol)
+    if (endDate < today && !protocols[rental.id]?.return) {
+      return { color: '#f44336', label: 'Preterminované', priority: 1 };
+    }
+    
+    // 🟠 Oranžová: Dnes/zajtra vrátenie
+    const isToday = endDate.toDateString() === today.toDateString();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const isTomorrow = endDate.toDateString() === tomorrow.toDateString();
+    
+    if (isToday) {
+      return { color: '#ff9800', label: 'Dnes vrátenie', priority: 2 };
+    }
+    if (isTomorrow) {
+      return { color: '#ff9800', label: 'Zajtra vrátenie', priority: 3 };
+    }
+    
+    // 🟡 Žltá: Nezaplatené
+    if (!rental.paid) {
+      return { color: '#ffc107', label: 'Nezaplatené', priority: 4 };
+    }
+    
+    // 🔵 Modrá: Nové/začínajúce dnes
+    const isStartingToday = startDate.toDateString() === today.toDateString();
+    const isNewToday = new Date(rental.createdAt).toDateString() === today.toDateString();
+    
+    if (isStartingToday) {
+      return { color: '#2196f3', label: 'Začína dnes', priority: 5 };
+    }
+    if (isNewToday) {
+      return { color: '#2196f3', label: 'Nový dnes', priority: 6 };
+    }
+    
+    // 🟢 Zelená: Všetko v poriadku (default)
+    return { color: '#4caf50', label: 'V poriadku', priority: 7 };
+  }, [protocols]);
     
     // 🎯 UNIFIED SCROLL HANDLER: Single handler for both desktop and mobile
     const scrollHandlerRef = useRef<((event: any) => void) | null>(null);
@@ -1761,11 +1807,101 @@ export default function RentalListNew() {
     return [] as string[];
   }, []);
   
+  // 🎯 QUICK FILTER HANDLER - pre dashboard metriky
+  const handleQuickFilter = useCallback((filterType: string) => {
+    // Reset všetky filtre najprv - použijem správne typy pre updateFilters
+    const baseFilters = {
+      search: '',
+      dateFilter: 'all',
+      dateFrom: '',
+      dateTo: '',
+      company: 'all',
+      status: 'all',
+      protocolStatus: 'all',
+      paymentMethod: 'all',
+      paymentStatus: 'all',
+      vehicleBrand: 'all',
+      priceMin: '',
+      priceMax: '',
+    };
+
+    let quickFilters = { ...baseFilters };
+
+    // Aplikuj špecifický filter podľa typu
+    switch (filterType) {
+      case 'todayReturns':
+        // Filtruj prenájmy ktoré sa dnes končia
+        quickFilters.dateFilter = 'today_returns';
+        break;
+        
+      case 'tomorrowReturns':
+        // Filtruj prenájmy ktoré sa zajtra končia
+        quickFilters.dateFilter = 'tomorrow_returns';
+        break;
+        
+      case 'weekReturns':
+        // Filtruj prenájmy ktoré sa končia tento týždeň
+        quickFilters.dateFilter = 'week_returns';
+        break;
+        
+      case 'overdue':
+        // Filtruj preterminované prenájmy
+        quickFilters.dateFilter = 'overdue';
+        break;
+        
+      case 'newToday':
+        // Filtruj prenájmy vytvorené dnes
+        quickFilters.dateFilter = 'new_today';
+        break;
+        
+      case 'startingToday':
+        // Filtruj prenájmy ktoré dnes začínajú
+        quickFilters.dateFilter = 'starting_today';
+        break;
+        
+      case 'active':
+        quickFilters.status = 'active';
+        break;
+        
+      case 'unpaid':
+        quickFilters.paymentStatus = 'unpaid';
+        break;
+        
+      case 'pending':
+        quickFilters.status = 'pending';
+        break;
+        
+      case 'withHandover':
+        quickFilters.protocolStatus = 'with_handover';
+        break;
+        
+      case 'withoutReturn':
+        quickFilters.protocolStatus = 'without_return';
+        break;
+        
+      default:
+        console.warn('Unknown quick filter type:', filterType);
+        return;
+    }
+
+    // Aplikuj len server-side filtre cez updateFilters
+    updateFilters(quickFilters);
+    
+    // Zobraz filtre aby používateľ videl čo sa aplikovalo
+    setShowFilters(true);
+    
+    // 🐛 DEBUG: Zobraz v console čo sa posiela
+    console.log('🎯 Quick filter applied:', { filterType, filters: quickFilters });
+    logger.debug('Quick filter applied', { filterType, filters: quickFilters });
+  }, [updateFilters]);
+  
   // Reset all filters function
   const resetAllFilters = () => {
     setSearchQuery('');
     setDebouncedSearchQuery('');
-    setAdvancedFilters({
+    setPaginatedSearchTerm('');
+    
+    const resetFilters = {
       // Základné filtre - arrays pre multi-select
       status: [],
       paymentMethod: [],
@@ -1800,16 +1936,42 @@ export default function RentalListNew() {
       showOnlyActive: false,
       showOnlyOverdue: false,
       showOnlyCompleted: false
-    });
+    };
+    
+    // 🚀 RESET NA SERVERI: Pošli reset aj na server
+    handleAdvancedFiltersChange(resetFilters);
   };
 
   // Handle advanced filters change
   const handleAdvancedFiltersChange = (newFilters: FilterState) => {
     setAdvancedFilters(newFilters);
+    
+    // 🚀 PREPOJENIE: Pošli filtre na server cez useInfiniteRentals
+    const serverFilters = {
+      status: Array.isArray(newFilters.status) && newFilters.status.length > 0 
+        ? newFilters.status[0] // Backend očakáva string, nie array
+        : 'all',
+      company: Array.isArray(newFilters.company) && newFilters.company.length > 0 
+        ? newFilters.company[0] 
+        : 'all',
+      paymentMethod: Array.isArray(newFilters.paymentMethod) && newFilters.paymentMethod.length > 0 
+        ? newFilters.paymentMethod[0] 
+        : 'all',
+      paymentStatus: newFilters.paymentStatus !== 'all' ? newFilters.paymentStatus : 'all',
+      dateFrom: newFilters.dateFrom || '',
+      dateTo: newFilters.dateTo || '',
+      priceMin: newFilters.priceMin || '',
+      priceMax: newFilters.priceMax || '',
+      vehicleBrand: newFilters.vehicleBrand !== 'all' ? newFilters.vehicleBrand : 'all'
+    };
+    
+    updateFilters(serverFilters);
   };
 
   // Multi-select helper functions
   const toggleFilterValue = (filterKey: keyof FilterState, value: string) => {
+    console.log(`🎯 TOGGLE FILTER: ${filterKey} = ${value}`);
+    
     const currentValues = advancedFilters[filterKey] as string[];
     const newValues = Array.isArray(currentValues) 
       ? currentValues.includes(value)
@@ -1817,10 +1979,15 @@ export default function RentalListNew() {
         : [...currentValues, value]
       : [value];
     
-    setAdvancedFilters({
+    const newFilters = {
       ...advancedFilters,
       [filterKey]: newValues
-    });
+    };
+    
+    console.log(`🎯 NEW FILTERS:`, newFilters);
+    
+    // 🚀 AUTOMATICKÉ PREPOJENIE: Aktualizuj filtre na serveri
+    handleAdvancedFiltersChange(newFilters);
   };
 
   const isFilterValueSelected = (filterKey: keyof FilterState, value: string): boolean => {
@@ -2439,119 +2606,124 @@ export default function RentalListNew() {
 
   return (
     <Box sx={{ minHeight: '100vh' }}>
-      {/* Kompaktný Header */}
-      <Box sx={{ 
+      {/* 🎨 LEGENDA FAREBNÝCH INDIKÁTOROV - VÝRAZNEJŠIA */}
+      <Card sx={{ 
         mb: 2, 
-        p: 2, 
-        backgroundColor: 'background.paper',
-        borderRadius: 2,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        border: '1px solid rgba(0,0,0,0.08)'
+        p: 2,
+        backgroundColor: 'rgba(25, 118, 210, 0.02)',
+        border: '1px solid rgba(25, 118, 210, 0.1)'
       }}>
+        <Typography variant="h6" sx={{ 
+          mb: 1.5, 
+          fontWeight: 600,
+          color: 'primary.main',
+          fontSize: '1rem'
+        }}>
+          📍 Farebné indikátory stavov:
+        </Typography>
         <Box sx={{ 
           display: 'flex', 
-          flexDirection: { xs: 'column', md: 'row' },
-          justifyContent: 'space-between', 
-          alignItems: { xs: 'flex-start', md: 'center' },
-          gap: 2
+          flexWrap: 'wrap', 
+          gap: { xs: 1.5, sm: 2.5 },
+          alignItems: 'center'
         }}>
-          {/* Názov a štatistiky v jednom riadku */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flex: 1 }}>
-            <Typography variant="h5" fontWeight="600" sx={{ color: 'primary.main' }}>
-              📋 Prenájmy
-            </Typography>
-            
-            {/* Kompaktné štatistiky */}
-            <Box sx={{ 
+          {[
+            { color: '#f44336', label: 'Preterminované' },
+            { color: '#ff9800', label: 'Dnes/zajtra vrátenie' },
+            { color: '#ffc107', label: 'Nezaplatené' },
+            { color: '#2196f3', label: 'Nové/začínajúce' },
+            { color: '#4caf50', label: 'V poriadku' }
+          ].map((item, index) => (
+            <Box key={index} sx={{ 
               display: 'flex', 
-              gap: 2,
-              alignItems: 'center'
+              alignItems: 'center', 
+              gap: 0.75,
+              p: 0.5,
+              borderRadius: 1,
+              backgroundColor: 'rgba(255,255,255,0.7)'
             }}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="body2" fontWeight="bold" sx={{ color: 'text.primary' }}>
-                  {filteredRentals.length}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
-                  zobrazených
-                </Typography>
-              </Box>
-              <Divider orientation="vertical" flexItem />
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="body2" fontWeight="bold" sx={{ color: 'success.main' }}>
-                  {filteredRentals.filter(r => r.status === 'active').length}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
-                  aktívnych
-                </Typography>
-              </Box>
-              <Divider orientation="vertical" flexItem />
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="body2" fontWeight="bold" sx={{ color: 'warning.main' }}>
-                  {filteredRentals.filter(r => protocols[r.id]?.handover && !protocols[r.id]?.return).length}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
-                  čakajú na vrátenie
-                </Typography>
-              </Box>
+              <Box sx={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                backgroundColor: item.color,
+                flexShrink: 0,
+                border: '2px solid white',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+              }} />
+              <Typography variant="body2" sx={{ 
+                fontSize: { xs: '0.8rem', sm: '0.85rem' },
+                fontWeight: 500
+              }}>
+                {item.label}
+              </Typography>
             </Box>
-          </Box>
-
-          {/* Kompaktné tlačidlá */}
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 1,
-            alignItems: 'center'
-          }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAdd}
-              size="small"
-              sx={{ 
-                px: 2,
-                py: 1,
-                borderRadius: 1.5,
-                textTransform: 'none',
-                fontWeight: 500
-              }}
-            >
-              {isMobile ? 'Pridať' : 'Nový prenájom'}
-            </Button>
-            
-            <Button 
-              variant="outlined" 
-              startIcon={<ExportIcon />}
-              onClick={() => exportRentalsToCSV(filteredRentals)}
-              size="small"
-              sx={{ 
-                px: 2,
-                py: 1,
-                borderRadius: 1.5,
-                textTransform: 'none',
-                fontWeight: 500
-              }}
-            >
-              Export CSV
-            </Button>
-            
-            <Button 
-              variant="outlined" 
-              startIcon={<DownloadIcon />}
-              component="label"
-              size="small"
-              sx={{ 
-                px: 2,
-                py: 1,
-                borderRadius: 1.5,
-                textTransform: 'none',
-                fontWeight: 500
-              }}
-            >
-              Import CSV
-              <input type="file" accept=".csv" hidden onChange={handleImportCSV} ref={fileInputRef} />
-            </Button>
-          </Box>
+          ))}
         </Box>
+      </Card>
+
+      {/* 📊 NOVÝ DASHBOARD PREHĽAD */}
+      <RentalDashboard 
+        rentals={filteredRentals}
+        protocols={protocols}
+        isLoading={paginatedLoading}
+        onQuickFilter={handleQuickFilter}
+      />
+
+      {/* Akčné tlačidlá */}
+      <Box sx={{ 
+        mb: 3, 
+        display: 'flex', 
+        gap: 1,
+        justifyContent: 'center',
+        flexWrap: 'wrap'
+      }}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleAdd}
+          sx={{ 
+            px: 3,
+            py: 1,
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            boxShadow: '0 4px 12px rgba(25,118,210,0.3)'
+          }}
+        >
+          {isMobile ? 'Pridať' : 'Nový prenájom'}
+        </Button>
+        
+        <Button 
+          variant="outlined" 
+          startIcon={<ExportIcon />}
+          onClick={() => exportRentalsToCSV(filteredRentals)}
+          sx={{ 
+            px: 3,
+            py: 1,
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 500
+          }}
+        >
+          Export CSV
+        </Button>
+        
+        <Button 
+          variant="outlined" 
+          startIcon={<DownloadIcon />}
+          component="label"
+          sx={{ 
+            px: 3,
+            py: 1,
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 500
+          }}
+        >
+          Import CSV
+          <input type="file" accept=".csv" hidden onChange={handleImportCSV} ref={fileInputRef} />
+        </Button>
       </Box>
 
       {/* Moderné vyhľadávanie a filtre */}
@@ -2797,6 +2969,46 @@ export default function RentalListNew() {
                   boxShadow: '0 2px 8px rgba(2, 136, 209, 0.3)',
                   border: '2px solid',
                   borderColor: 'info.main'
+                })
+              }}
+            />
+
+            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+            {/* Platobné filtre */}
+            <Chip
+              label="Zaplatené"
+              size="small"
+              variant={isFilterValueSelected('paymentStatus', 'paid') ? 'filled' : 'outlined'}
+              color={isFilterValueSelected('paymentStatus', 'paid') ? 'success' : 'default'}
+              onClick={() => toggleFilterValue('paymentStatus', 'paid')}
+              sx={{ 
+                borderRadius: 2,
+                '&:hover': { transform: 'translateY(-1px)' },
+                transition: 'all 0.2s ease',
+                ...(isFilterValueSelected('paymentStatus', 'paid') && {
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)',
+                  border: '2px solid',
+                  borderColor: 'success.main'
+                })
+              }}
+            />
+            <Chip
+              label="Nezaplatené"
+              size="small"
+              variant={isFilterValueSelected('paymentStatus', 'unpaid') ? 'filled' : 'outlined'}
+              color={isFilterValueSelected('paymentStatus', 'unpaid') ? 'error' : 'default'}
+              onClick={() => toggleFilterValue('paymentStatus', 'unpaid')}
+              sx={{ 
+                borderRadius: 2,
+                '&:hover': { transform: 'translateY(-1px)' },
+                transition: 'all 0.2s ease',
+                ...(isFilterValueSelected('paymentStatus', 'unpaid') && {
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 8px rgba(211, 47, 47, 0.3)',
+                  border: '2px solid',
+                  borderColor: 'error.main'
                 })
               }}
             />
@@ -3174,13 +3386,16 @@ export default function RentalListNew() {
                      sx={{ 
                        display: 'flex',
                        borderBottom: index < filteredRentals.length - 1 ? '1px solid #e0e0e0' : 'none',
-                       '&:hover': { backgroundColor: isFlexible ? '#fff3e0' : '#f8f9fa' },
+                       '&:hover': { 
+                         backgroundColor: isFlexible ? '#fff3e0' : 'rgba(0,0,0,0.04)' 
+                       },
                        minHeight: 80,
                        cursor: 'pointer',
-                       // 🔄 NOVÉ: Štýlovanie pre flexibilné prenájmy
+                       // 🎨 Čisté pozadie + flexibilné prenájmy
                        backgroundColor: isFlexible ? '#fff8f0' : 'transparent',
                        borderLeft: isFlexible ? '4px solid #ff9800' : 'none',
-                       position: 'relative'
+                       position: 'relative',
+                       transition: 'all 0.2s ease'
                      }}
                      onClick={() => handleEdit(rental)}
                    >
@@ -3199,16 +3414,32 @@ export default function RentalListNew() {
                       zIndex: 10,
                       overflow: 'hidden'
                     }}>
-                      <Typography variant="subtitle2" sx={{ 
-                        fontWeight: 600, 
-                        fontSize: { xs: '0.75rem', sm: '0.8rem' },
-                        color: '#1976d2',
-                        lineHeight: 1.2,
-                        wordWrap: 'break-word',
+                      {/* 🎨 STATUS INDIKÁTOR + VOZIDLO */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 0.5,
                         mb: { xs: 0.25, sm: 0.5 }
                       }}>
-                        {vehicle?.brand} {vehicle?.model}
-                      </Typography>
+                        <Box sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          backgroundColor: getStatusIndicator(rental).color,
+                          flexShrink: 0,
+                          border: '2px solid white',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                        }} />
+                        <Typography variant="subtitle2" sx={{ 
+                          fontWeight: 600, 
+                          fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                          color: '#1976d2',
+                          lineHeight: 1.2,
+                          wordWrap: 'break-word'
+                        }}>
+                          {vehicle?.brand} {vehicle?.model}
+                        </Typography>
+                      </Box>
                       <Typography variant="caption" sx={{ 
                         color: '#666',
                         fontSize: { xs: '0.6rem', sm: '0.65rem' },
@@ -3731,14 +3962,14 @@ export default function RentalListNew() {
                       display: 'flex',
                       borderBottom: index < filteredRentals.length - 1 ? '1px solid #e0e0e0' : 'none',
                       '&:hover': { 
-                        backgroundColor: isFlexible ? '#fff3e0' : '#f8f9fa',
+                        backgroundColor: isFlexible ? '#fff3e0' : 'rgba(0,0,0,0.04)',
                         transform: 'scale(1.002)',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                       },
                       minHeight: 80,
                       transition: 'all 0.2s ease',
                       cursor: 'pointer',
-                      // 🔄 NOVÉ: Štýlovanie pre flexibilné prenájmy
+                      // 🎨 Čisté pozadie + flexibilné prenájmy
                       backgroundColor: isFlexible ? '#fff8f0' : 'transparent',
                       borderLeft: isFlexible ? '4px solid #ff9800' : 'none',
                       position: 'relative'
@@ -3761,18 +3992,34 @@ export default function RentalListNew() {
                       boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
                       overflow: 'hidden' // Prevent overflow
                     }}>
-                      <Typography variant="h6" sx={{ 
-                        fontWeight: 700, 
-                        fontSize: '1rem',
-                        color: '#1976d2',
-                        mb: 0.5,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        lineHeight: 1.2
+                      {/* 🎨 STATUS INDIKÁTOR + VOZIDLO - DESKTOP */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 0.75,
+                        mb: 0.5
                       }}>
-                        {vehicle?.brand} {vehicle?.model}
-                      </Typography>
+                        <Box sx={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: '50%',
+                          backgroundColor: getStatusIndicator(rental).color,
+                          flexShrink: 0,
+                          border: '2px solid white',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                        }} />
+                        <Typography variant="h6" sx={{ 
+                          fontWeight: 700, 
+                          fontSize: '1rem',
+                          color: '#1976d2',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.2
+                        }}>
+                          {vehicle?.brand} {vehicle?.model}
+                        </Typography>
+                      </Box>
                       <Typography variant="body2" sx={{ 
                         color: '#666',
                         fontSize: '0.8rem',

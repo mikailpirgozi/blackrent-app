@@ -131,6 +131,8 @@ const EmailManagementDashboard: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const isExtraSmall = useMediaQuery(theme.breakpoints.down(400));
   
   // Tabs state
   const [activeTab, setActiveTab] = useState(0);
@@ -158,6 +160,17 @@ const EmailManagementDashboard: React.FC = () => {
   const [pendingRentals, setPendingRentals] = useState<Rental[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [expandedRentals, setExpandedRentals] = useState<Set<string>>(new Set());
+
+  // Archive State
+  const [archivedEmails, setArchivedEmails] = useState<EmailEntry[]>([]);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [archivePagination, setArchivePagination] = useState({
+    total: 0,
+    limit: 20,
+    offset: 0,
+    hasMore: false
+  });
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
 
   // Dialogs
   const [viewDialog, setViewDialog] = useState<{ open: boolean; email: EmailDetail | null }>({
@@ -569,6 +582,176 @@ const EmailManagementDashboard: React.FC = () => {
     }
   };
 
+  // ============================================
+  // ARCHIVE FUNCTIONS
+  // ============================================
+
+  // Fetch archived emails
+  const fetchArchivedEmails = async (offset = 0) => {
+    try {
+      setArchiveLoading(true);
+      
+      const params = new URLSearchParams({
+        limit: archivePagination.limit.toString(),
+        offset: offset.toString(),
+      });
+
+      if (senderFilter) params.append('sender', senderFilter);
+
+      // Direct fetch like other functions in this component
+      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+      const directResponse = await fetch(`${getAPI_BASE_URL()}/email-management/archive/list?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!directResponse.ok) {
+        throw new Error(`HTTP error! status: ${directResponse.status}`);
+      }
+
+      const response = await directResponse.json();
+      
+      if (response.success) {
+        setArchivedEmails(response.data.emails || []);
+        setArchivePagination({
+          total: response.data.pagination.total,
+          limit: response.data.pagination.limit,
+          offset: response.data.pagination.offset,
+          hasMore: response.data.pagination.hasMore
+        });
+      } else {
+        setError('Chyba pri načítaní archívu emailov');
+      }
+    } catch (error) {
+      console.error('❌ ARCHIVE: Chyba pri načítaní archívu:', error);
+      setError('Chyba pri načítaní archívu emailov');
+    } finally {
+      setArchiveLoading(false);
+    }
+  };
+
+  // Bulk archive selected emails
+  const bulkArchiveEmails = async () => {
+    if (selectedEmails.size === 0) {
+      setError('Nie sú vybrané žiadne emaily na archiváciu');
+      return;
+    }
+
+    try {
+      setActionLoading('bulk-archive');
+      
+      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+      const directResponse = await fetch(`${getAPI_BASE_URL()}/email-management/bulk-archive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          emailIds: Array.from(selectedEmails),
+          archiveType: 'manual'
+        })
+      });
+      
+      if (!directResponse.ok) {
+        throw new Error(`HTTP error! status: ${directResponse.status}`);
+      }
+
+      const response = await directResponse.json();
+      
+      if (response.success) {
+        setSuccess(`${response.data.archivedCount} emailov úspešne archivovaných`);
+        setSelectedEmails(new Set());
+        fetchEmails(); // Refresh main list
+        fetchArchivedEmails(); // Refresh archive
+      } else {
+        setError(response.error || 'Chyba pri bulk archivovaní');
+      }
+    } catch (error) {
+      console.error('❌ BULK ARCHIVE: Chyba:', error);
+      setError('Chyba pri bulk archivovaní emailov');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Auto-archive old emails
+  const autoArchiveOldEmails = async () => {
+    try {
+      setActionLoading('auto-archive');
+      
+      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+      const directResponse = await fetch(`${getAPI_BASE_URL()}/email-management/auto-archive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          daysOld: 30,
+          statuses: ['processed', 'rejected']
+        })
+      });
+      
+      if (!directResponse.ok) {
+        throw new Error(`HTTP error! status: ${directResponse.status}`);
+      }
+
+      const response = await directResponse.json();
+      
+      if (response.success) {
+        setSuccess(`${response.data.archivedCount} starých emailov automaticky archivovaných`);
+        fetchEmails(); // Refresh main list
+        fetchArchivedEmails(); // Refresh archive
+      } else {
+        setError(response.error || 'Chyba pri automatickom archivovaní');
+      }
+    } catch (error) {
+      console.error('❌ AUTO ARCHIVE: Chyba:', error);
+      setError('Chyba pri automatickom archivovaní emailov');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Unarchive email
+  const unarchiveEmail = async (emailId: string) => {
+    try {
+      setActionLoading(emailId);
+      
+      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+      const directResponse = await fetch(`${getAPI_BASE_URL()}/email-management/${emailId}/unarchive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!directResponse.ok) {
+        throw new Error(`HTTP error! status: ${directResponse.status}`);
+      }
+
+      const response = await directResponse.json();
+      
+      if (response.success) {
+        setSuccess('Email úspešne obnovený z archívu');
+        fetchEmails(); // Refresh main list
+        fetchArchivedEmails(); // Refresh archive
+      } else {
+        setError(response.error || 'Chyba pri obnove z archívu');
+      }
+    } catch (error) {
+      console.error('❌ UNARCHIVE: Chyba:', error);
+      setError('Chyba pri obnove emailu z archívu');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const toggleRentalExpansion = (rentalId: string) => {
     setExpandedRentals(prev => {
       const newSet = new Set(prev);
@@ -611,6 +794,7 @@ const EmailManagementDashboard: React.FC = () => {
     fetchStats();
     fetchImapStatus(); // Load IMAP status
     fetchPendingRentals(); // Load pending rentals
+    fetchArchivedEmails(); // Load archived emails
   }, [currentPage, statusFilter, senderFilter]);
 
   // Status chip styling
@@ -635,12 +819,38 @@ const EmailManagementDashboard: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" gutterBottom>
+    <Box sx={{ 
+      p: isExtraSmall ? 1 : isSmallMobile ? 2 : 3,
+      minHeight: '100vh',
+      bgcolor: 'background.default'
+    }}>
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems={isMobile ? "flex-start" : "center"} 
+        mb={3}
+        flexDirection={isSmallMobile ? "column" : "row"}
+        gap={isSmallMobile ? 2 : 0}
+      >
+        <Typography 
+          variant={isExtraSmall ? "h5" : isSmallMobile ? "h4" : "h4"} 
+          gutterBottom={!isSmallMobile}
+          sx={{ 
+            fontSize: isExtraSmall ? '1.25rem' : isSmallMobile ? '1.5rem' : undefined,
+            textAlign: isSmallMobile ? 'center' : 'left',
+            width: isSmallMobile ? '100%' : 'auto'
+          }}
+        >
           📧 Email Management Dashboard
         </Typography>
-        <Box display="flex" gap={1} alignItems="center">
+        <Box 
+          display="flex" 
+          gap={isExtraSmall ? 0.5 : 1} 
+          alignItems="center"
+          flexWrap={isMobile ? "wrap" : "nowrap"}
+          justifyContent={isSmallMobile ? "center" : "flex-end"}
+          width={isSmallMobile ? '100%' : 'auto'}
+        >
           {/* IMAP Status Chip */}
           {imapStatus && (
             <Chip
@@ -665,13 +875,17 @@ const EmailManagementDashboard: React.FC = () => {
             <span>
               <Button
                 variant="outlined"
-                size="small"
-                startIcon={<TestIcon />}
+                size={isExtraSmall ? "small" : "small"}
+                startIcon={!isExtraSmall && <TestIcon />}
                 onClick={testImapConnection}
                 disabled={imapLoading || !imapStatus?.enabled}
-                sx={{ minWidth: 'auto', px: 1 }}
+                sx={{ 
+                  minWidth: 'auto', 
+                  px: isExtraSmall ? 0.5 : 1,
+                  fontSize: isExtraSmall ? '0.75rem' : undefined
+                }}
               >
-                Test
+                {isExtraSmall ? 'T' : 'Test'}
               </Button>
             </span>
           </Tooltip>
@@ -684,13 +898,17 @@ const EmailManagementDashboard: React.FC = () => {
                     <Button
                       variant="outlined"
                       size="small"
-                      startIcon={<StartIcon />}
+                      startIcon={!isExtraSmall && <StartIcon />}
                       onClick={startImapMonitoring}
                       disabled={imapLoading}
                       color="success"
-                      sx={{ minWidth: 'auto', px: 1 }}
+                      sx={{ 
+                        minWidth: 'auto', 
+                        px: isExtraSmall ? 0.5 : 1,
+                        fontSize: isExtraSmall ? '0.75rem' : undefined
+                      }}
                     >
-                      Spusiť
+                      {isExtraSmall ? 'S' : 'Spusiť'}
                     </Button>
                   </span>
                 </Tooltip>
@@ -700,13 +918,17 @@ const EmailManagementDashboard: React.FC = () => {
                     <Button
                       variant="outlined"
                       size="small"
-                      startIcon={<StopIcon />}
+                      startIcon={!isExtraSmall && <StopIcon />}
                       onClick={stopImapMonitoring}
                       disabled={imapLoading}
                       color="error"
-                      sx={{ minWidth: 'auto', px: 1 }}
+                      sx={{ 
+                        minWidth: 'auto', 
+                        px: isExtraSmall ? 0.5 : 1,
+                        fontSize: isExtraSmall ? '0.75rem' : undefined
+                      }}
                     >
-                      Zastaviť
+                      {isExtraSmall ? 'Z' : 'Zastaviť'}
                     </Button>
                   </span>
                 </Tooltip>
@@ -716,7 +938,7 @@ const EmailManagementDashboard: React.FC = () => {
 
           <Button
             variant="outlined"
-            startIcon={<RefreshIcon />}
+            startIcon={!isExtraSmall && <RefreshIcon />}
             onClick={() => {
               fetchEmails();
               fetchStats();
@@ -724,8 +946,13 @@ const EmailManagementDashboard: React.FC = () => {
               fetchPendingRentals();
             }}
             disabled={loading}
+            size={isSmallMobile ? "small" : "medium"}
+            sx={{ 
+              fontSize: isExtraSmall ? '0.75rem' : undefined,
+              px: isExtraSmall ? 1 : undefined
+            }}
           >
-            Obnoviť
+            {isExtraSmall ? 'R' : 'Obnoviť'}
           </Button>
         </Box>
       </Box>
@@ -744,50 +971,174 @@ const EmailManagementDashboard: React.FC = () => {
 
       {/* Statistics Cards */}
       {stats && (
-        <Grid container spacing={isMobile ? 2 : 3} mb={3}>
+        <Grid container spacing={isExtraSmall ? 1 : isMobile ? 2 : 3} mb={3}>
           <Grid item xs={6} sm={6} md={3}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
-                <Typography variant={isMobile ? "body2" : "h6"} color="primary" sx={{ fontSize: isMobile ? '0.875rem' : undefined }}>
-                  📬 Celkom
+            <Card sx={{ 
+              height: '100%',
+              minHeight: isExtraSmall ? '80px' : '100px',
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: 2
+              }
+            }}>
+              <CardContent sx={{ 
+                p: isExtraSmall ? 1 : isMobile ? 1.5 : 2, 
+                '&:last-child': { pb: isExtraSmall ? 1 : isMobile ? 1.5 : 2 },
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                textAlign: 'center'
+              }}>
+                <Typography 
+                  variant={isExtraSmall ? "caption" : isMobile ? "body2" : "h6"} 
+                  color="primary" 
+                  sx={{ 
+                    fontSize: isExtraSmall ? '0.75rem' : isMobile ? '0.875rem' : undefined,
+                    mb: 0.5,
+                    fontWeight: 500
+                  }}
+                >
+                  {isExtraSmall ? '📬' : '📬 Celkom'}
                 </Typography>
-                <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
+                <Typography 
+                  variant={isExtraSmall ? "h6" : isMobile ? "h5" : "h4"} 
+                  fontWeight="bold"
+                  sx={{ 
+                    fontSize: isExtraSmall ? '1.25rem' : undefined,
+                    lineHeight: 1
+                  }}
+                >
                   {stats.today.total}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={6} sm={6} md={3}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
-                <Typography variant={isMobile ? "body2" : "h6"} color="success.main" sx={{ fontSize: isMobile ? '0.875rem' : undefined }}>
-                  ✅ Schválené
+            <Card sx={{ 
+              height: '100%',
+              minHeight: isExtraSmall ? '80px' : '100px',
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: 2
+              }
+            }}>
+              <CardContent sx={{ 
+                p: isExtraSmall ? 1 : isMobile ? 1.5 : 2, 
+                '&:last-child': { pb: isExtraSmall ? 1 : isMobile ? 1.5 : 2 },
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                textAlign: 'center'
+              }}>
+                <Typography 
+                  variant={isExtraSmall ? "caption" : isMobile ? "body2" : "h6"} 
+                  color="success.main" 
+                  sx={{ 
+                    fontSize: isExtraSmall ? '0.75rem' : isMobile ? '0.875rem' : undefined,
+                    mb: 0.5,
+                    fontWeight: 500
+                  }}
+                >
+                  {isExtraSmall ? '✅' : '✅ Schválené'}
                 </Typography>
-                <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
+                <Typography 
+                  variant={isExtraSmall ? "h6" : isMobile ? "h5" : "h4"} 
+                  fontWeight="bold"
+                  sx={{ 
+                    fontSize: isExtraSmall ? '1.25rem' : undefined,
+                    lineHeight: 1
+                  }}
+                >
                   {stats.today.processed}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={6} sm={6} md={3}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
-                <Typography variant={isMobile ? "body2" : "h6"} color="error.main" sx={{ fontSize: isMobile ? '0.875rem' : undefined }}>
-                  ❌ Zamietnuté
+            <Card sx={{ 
+              height: '100%',
+              minHeight: isExtraSmall ? '80px' : '100px',
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: 2
+              }
+            }}>
+              <CardContent sx={{ 
+                p: isExtraSmall ? 1 : isMobile ? 1.5 : 2, 
+                '&:last-child': { pb: isExtraSmall ? 1 : isMobile ? 1.5 : 2 },
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                textAlign: 'center'
+              }}>
+                <Typography 
+                  variant={isExtraSmall ? "caption" : isMobile ? "body2" : "h6"} 
+                  color="error.main" 
+                  sx={{ 
+                    fontSize: isExtraSmall ? '0.75rem' : isMobile ? '0.875rem' : undefined,
+                    mb: 0.5,
+                    fontWeight: 500
+                  }}
+                >
+                  {isExtraSmall ? '❌' : '❌ Zamietnuté'}
                 </Typography>
-                <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
+                <Typography 
+                  variant={isExtraSmall ? "h6" : isMobile ? "h5" : "h4"} 
+                  fontWeight="bold"
+                  sx={{ 
+                    fontSize: isExtraSmall ? '1.25rem' : undefined,
+                    lineHeight: 1
+                  }}
+                >
                   {stats.today.rejected}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={6} sm={6} md={3}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
-                <Typography variant={isMobile ? "body2" : "h6"} color="warning.main" sx={{ fontSize: isMobile ? '0.875rem' : undefined }}>
-                  ⏳ Čakajúce
+            <Card sx={{ 
+              height: '100%',
+              minHeight: isExtraSmall ? '80px' : '100px',
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: 2
+              }
+            }}>
+              <CardContent sx={{ 
+                p: isExtraSmall ? 1 : isMobile ? 1.5 : 2, 
+                '&:last-child': { pb: isExtraSmall ? 1 : isMobile ? 1.5 : 2 },
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                textAlign: 'center'
+              }}>
+                <Typography 
+                  variant={isExtraSmall ? "caption" : isMobile ? "body2" : "h6"} 
+                  color="warning.main" 
+                  sx={{ 
+                    fontSize: isExtraSmall ? '0.75rem' : isMobile ? '0.875rem' : undefined,
+                    mb: 0.5,
+                    fontWeight: 500
+                  }}
+                >
+                  {isExtraSmall ? '⏳' : '⏳ Čakajúce'}
                 </Typography>
-                <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
+                <Typography 
+                  variant={isExtraSmall ? "h6" : isMobile ? "h5" : "h4"} 
+                  fontWeight="bold"
+                  sx={{ 
+                    fontSize: isExtraSmall ? '1.25rem' : undefined,
+                    lineHeight: 1
+                  }}
+                >
                   {stats.today.pending}
                 </Typography>
               </CardContent>
@@ -799,14 +1150,33 @@ const EmailManagementDashboard: React.FC = () => {
       {/* IMAP Configuration Info */}
       {imapStatus && (
         <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
+          <CardContent sx={{ p: isExtraSmall ? 2 : 3 }}>
+            <Typography 
+              variant={isSmallMobile ? "subtitle1" : "h6"} 
+              gutterBottom
+              sx={{ 
+                fontSize: isExtraSmall ? '1rem' : undefined,
+                textAlign: isSmallMobile ? 'center' : 'left'
+              }}
+            >
               📧 IMAP Konfigurácia
             </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
-                <Box display="flex" alignItems="center" gap={1}>
-                  <Typography variant="body2" color="text.secondary">Status:</Typography>
+            <Grid container spacing={isSmallMobile ? 2 : 2}>
+              <Grid item xs={12} sm={6} md={4}>
+                <Box 
+                  display="flex" 
+                  alignItems="center" 
+                  gap={1}
+                  justifyContent={isSmallMobile ? "center" : "flex-start"}
+                  flexDirection={isExtraSmall ? "column" : "row"}
+                >
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
+                  >
+                    Status:
+                  </Typography>
                   <Chip
                     label={
                       imapStatus.enabled 
@@ -818,23 +1188,51 @@ const EmailManagementDashboard: React.FC = () => {
                         ? (imapStatus.running ? 'success' : 'warning')
                         : 'default'
                     }
-                    size="small"
+                    size={isExtraSmall ? "small" : "small"}
+                    sx={{ fontSize: isExtraSmall ? '0.75rem' : undefined }}
                   />
                 </Box>
               </Grid>
-              <Grid item xs={12} md={4}>
-                <Typography variant="body2" color="text.secondary">
-                  Server: <strong>{imapStatus.config?.host || 'Nekonfigurovaný'}</strong>
-                </Typography>
+              <Grid item xs={12} sm={6} md={4}>
+                <Box textAlign={isSmallMobile ? "center" : "left"}>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ 
+                      fontSize: isExtraSmall ? '0.875rem' : undefined,
+                      wordBreak: 'break-word'
+                    }}
+                  >
+                    Server: <strong>{imapStatus.config?.host || 'Nekonfigurovaný'}</strong>
+                  </Typography>
+                </Box>
               </Grid>
-              <Grid item xs={12} md={4}>
-                <Typography variant="body2" color="text.secondary">
-                  Používateľ: <strong>{imapStatus.config?.user || 'Nekonfigurovaný'}</strong>
-                </Typography>
+              <Grid item xs={12} sm={12} md={4}>
+                <Box textAlign={isSmallMobile ? "center" : "left"}>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ 
+                      fontSize: isExtraSmall ? '0.875rem' : undefined,
+                      wordBreak: 'break-word'
+                    }}
+                  >
+                    Používateľ: <strong>{imapStatus.config?.user || 'Nekonfigurovaný'}</strong>
+                  </Typography>
+                </Box>
               </Grid>
             </Grid>
             {!imapStatus.enabled && (
-              <Alert severity="info" sx={{ mt: 2 }}>
+              <Alert 
+                severity="info" 
+                sx={{ 
+                  mt: 2,
+                  fontSize: isExtraSmall ? '0.875rem' : undefined,
+                  '& .MuiAlert-message': {
+                    fontSize: isExtraSmall ? '0.875rem' : undefined
+                  }
+                }}
+              >
                 IMAP monitoring je vypnutý. Skontrolujte konfiguráciu v backend/.env súbore.
               </Alert>
             )}
@@ -844,11 +1242,19 @@ const EmailManagementDashboard: React.FC = () => {
 
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-          <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom>
+        <CardContent sx={{ p: isExtraSmall ? 2 : isMobile ? 2 : 3 }}>
+          <Typography 
+            variant={isExtraSmall ? "body1" : isMobile ? "subtitle1" : "h6"} 
+            gutterBottom
+            sx={{ 
+              fontSize: isExtraSmall ? '1rem' : undefined,
+              textAlign: isSmallMobile ? 'center' : 'left',
+              fontWeight: 600
+            }}
+          >
             🔍 Filtre
           </Typography>
-          <Grid container spacing={isMobile ? 2 : 2}>
+          <Grid container spacing={isExtraSmall ? 1.5 : isMobile ? 2 : 2}>
             <Grid item xs={12} sm={6} md={4}>
               <TextField
                 select
@@ -856,13 +1262,31 @@ const EmailManagementDashboard: React.FC = () => {
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 fullWidth
-                size={isMobile ? "medium" : "small"}
+                size={isExtraSmall ? "small" : isMobile ? "medium" : "small"}
+                sx={{
+                  '& .MuiInputLabel-root': {
+                    fontSize: isExtraSmall ? '0.875rem' : undefined
+                  },
+                  '& .MuiInputBase-input': {
+                    fontSize: isExtraSmall ? '0.875rem' : undefined
+                  }
+                }}
               >
-                <MenuItem value="">Všetky</MenuItem>
-                <MenuItem value="new">Nové</MenuItem>
-                <MenuItem value="processed">Spracované</MenuItem>
-                <MenuItem value="rejected">Zamietnuté</MenuItem>
-                <MenuItem value="archived">Archivované</MenuItem>
+                <MenuItem value="" sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}>
+                  Všetky
+                </MenuItem>
+                <MenuItem value="new" sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}>
+                  Nové
+                </MenuItem>
+                <MenuItem value="processed" sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}>
+                  Spracované
+                </MenuItem>
+                <MenuItem value="rejected" sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}>
+                  Zamietnuté
+                </MenuItem>
+                <MenuItem value="archived" sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}>
+                  Archivované
+                </MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
@@ -871,8 +1295,16 @@ const EmailManagementDashboard: React.FC = () => {
                 value={senderFilter}
                 onChange={(e) => setSenderFilter(e.target.value)}
                 fullWidth
-                size={isMobile ? "medium" : "small"}
-                placeholder="Hľadať podľa odosielateľa..."
+                size={isExtraSmall ? "small" : isMobile ? "medium" : "small"}
+                placeholder={isExtraSmall ? "Hľadať..." : "Hľadať podľa odosielateľa..."}
+                sx={{
+                  '& .MuiInputLabel-root': {
+                    fontSize: isExtraSmall ? '0.875rem' : undefined
+                  },
+                  '& .MuiInputBase-input': {
+                    fontSize: isExtraSmall ? '0.875rem' : undefined
+                  }
+                }}
               />
             </Grid>
             <Grid item xs={12} md={4}>
@@ -884,8 +1316,13 @@ const EmailManagementDashboard: React.FC = () => {
                   setCurrentPage(1);
                 }}
                 fullWidth
+                size={isExtraSmall ? "small" : "medium"}
+                sx={{ 
+                  fontSize: isExtraSmall ? '0.875rem' : undefined,
+                  py: isExtraSmall ? 1 : undefined
+                }}
               >
-                Vyčistiť filtre
+                {isExtraSmall ? 'Vyčistiť' : 'Vyčistiť filtre'}
               </Button>
             </Grid>
           </Grid>
@@ -893,30 +1330,122 @@ const EmailManagementDashboard: React.FC = () => {
       </Card>
 
       {/* Tabs Navigation */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+      <Box sx={{ 
+        borderBottom: 1, 
+        borderColor: 'divider', 
+        mb: 3,
+        overflowX: 'auto',
+        '&::-webkit-scrollbar': {
+          height: 4,
+        },
+        '&::-webkit-scrollbar-track': {
+          backgroundColor: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: 'rgba(0,0,0,0.2)',
+          borderRadius: 2,
+        }
+      }}>
         <Tabs 
           value={activeTab} 
           onChange={(event, newValue) => setActiveTab(newValue)}
           aria-label="Email management tabs"
+          variant={isMobile ? "scrollable" : "standard"}
+          scrollButtons={isMobile ? "auto" : false}
+          allowScrollButtonsMobile
+          sx={{
+            minHeight: isExtraSmall ? 40 : 48,
+            '& .MuiTab-root': {
+              minHeight: isExtraSmall ? 40 : 48,
+              fontSize: isExtraSmall ? '0.75rem' : isSmallMobile ? '0.875rem' : undefined,
+              padding: isExtraSmall ? '6px 8px' : isSmallMobile ? '8px 12px' : undefined,
+              minWidth: isExtraSmall ? 'auto' : undefined
+            },
+            '& .MuiTabs-flexContainer': {
+              gap: isExtraSmall ? 0.5 : 1
+            }
+          }}
         >
           <Tab 
-            label="História Emailov" 
-            icon={<EmailIcon />} 
-            iconPosition="start"
+            label={isExtraSmall ? "Emaily" : isSmallMobile ? "História" : "História Emailov"}
+            icon={!isExtraSmall && <EmailIcon />} 
+            iconPosition={isSmallMobile ? "top" : "start"}
+            sx={{
+              '& .MuiTab-iconWrapper': {
+                marginBottom: isSmallMobile ? 0.5 : undefined,
+                marginRight: isSmallMobile ? 0 : undefined
+              }
+            }}
           />
           <Tab 
             label={
-              <Box display="flex" alignItems="center" gap={1}>
-                <span>Čakajúce Prenájmy</span>
+              <Box 
+                display="flex" 
+                alignItems="center" 
+                gap={isExtraSmall ? 0.5 : 1}
+                flexDirection={isSmallMobile ? "column" : "row"}
+              >
+                <span>{isExtraSmall ? "Prenájmy" : isSmallMobile ? "Čakajúce" : "Čakajúce Prenájmy"}</span>
                 {pendingRentals.length > 0 && (
-                  <Badge badgeContent={pendingRentals.length} color="warning">
-                    <NotificationIcon />
+                  <Badge 
+                    badgeContent={pendingRentals.length} 
+                    color="warning"
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        fontSize: isExtraSmall ? '0.625rem' : '0.75rem',
+                        minWidth: isExtraSmall ? 16 : 20,
+                        height: isExtraSmall ? 16 : 20
+                      }
+                    }}
+                  >
+                    <NotificationIcon sx={{ fontSize: isExtraSmall ? 16 : 20 }} />
                   </Badge>
                 )}
               </Box>
             } 
-            icon={<PendingIcon />} 
-            iconPosition="start"
+            icon={!isExtraSmall && <PendingIcon />} 
+            iconPosition={isSmallMobile ? "top" : "start"}
+            sx={{
+              '& .MuiTab-iconWrapper': {
+                marginBottom: isSmallMobile ? 0.5 : undefined,
+                marginRight: isSmallMobile ? 0 : undefined
+              }
+            }}
+          />
+          <Tab 
+            label={
+              <Box 
+                display="flex" 
+                alignItems="center" 
+                gap={isExtraSmall ? 0.5 : 1}
+                flexDirection={isSmallMobile ? "column" : "row"}
+              >
+                <span>{isExtraSmall ? "Archív" : isSmallMobile ? "Archív" : "Archív Emailov"}</span>
+                {archivePagination.total > 0 && (
+                  <Badge 
+                    badgeContent={archivePagination.total} 
+                    color="default"
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        fontSize: isExtraSmall ? '0.625rem' : '0.75rem',
+                        minWidth: isExtraSmall ? 16 : 20,
+                        height: isExtraSmall ? 16 : 20
+                      }
+                    }}
+                  >
+                    <ArchiveIcon sx={{ fontSize: isExtraSmall ? 16 : 20 }} />
+                  </Badge>
+                )}
+              </Box>
+            } 
+            icon={!isExtraSmall && <ArchiveIcon />} 
+            iconPosition={isSmallMobile ? "top" : "start"}
+            sx={{
+              '& .MuiTab-iconWrapper': {
+                marginBottom: isSmallMobile ? 0.5 : undefined,
+                marginRight: isSmallMobile ? 0 : undefined
+              }
+            }}
           />
         </Tabs>
       </Box>
@@ -1354,33 +1883,309 @@ const EmailManagementDashboard: React.FC = () => {
         </Card>
       )}
 
+      {/* Archive Tab */}
+      {activeTab === 2 && (
+        <Card>
+          <CardContent>
+            <Box display="flex" justifyContent="space-between" alignItems={isMobile ? "flex-start" : "center"} mb={3} flexDirection={isMobile ? "column" : "row"} gap={isMobile ? 2 : 0}>
+              <Typography variant="h6" gutterBottom={isMobile}>
+                📁 Archív emailov ({archivePagination.total})
+              </Typography>
+              <Box display="flex" gap={1} flexWrap="wrap" justifyContent={isMobile ? "center" : "flex-end"}>
+                <Button 
+                  variant="outlined" 
+                  onClick={() => fetchArchivedEmails(0)}
+                  disabled={archiveLoading}
+                  startIcon={<RefreshIcon />}
+                  size={isSmallMobile ? "small" : "medium"}
+                >
+                  {isExtraSmall ? 'Obnoviť' : 'Obnoviť'}
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  onClick={autoArchiveOldEmails}
+                  disabled={actionLoading === 'auto-archive'}
+                  startIcon={actionLoading === 'auto-archive' ? <CircularProgress size={16} /> : <ArchiveIcon />}
+                  color="warning"
+                  size={isSmallMobile ? "small" : "medium"}
+                >
+                  {isExtraSmall ? 'Auto' : 'Auto-archív'}
+                </Button>
+                {selectedEmails.size > 0 && (
+                  <Button 
+                    variant="contained" 
+                    onClick={bulkArchiveEmails}
+                    disabled={actionLoading === 'bulk-archive'}
+                    startIcon={actionLoading === 'bulk-archive' ? <CircularProgress size={16} /> : <ArchiveIcon />}
+                    color="primary"
+                    size={isSmallMobile ? "small" : "medium"}
+                  >
+                    {isExtraSmall ? `Archív (${selectedEmails.size})` : `Archivovať (${selectedEmails.size})`}
+                  </Button>
+                )}
+              </Box>
+            </Box>
+
+            {archiveLoading ? (
+              <Box display="flex" justifyContent="center" p={4}>
+                <CircularProgress />
+              </Box>
+            ) : archivedEmails.length === 0 ? (
+              <Box textAlign="center" py={6}>
+                <ArchiveIcon fontSize="large" color="disabled" sx={{ mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  Archív je prázdny
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Žiadne emaily nie sú archivované. Schválené a zamietnuté emaily sa automaticky archivujú po 30 dňoch.
+                </Typography>
+              </Box>
+            ) : (
+              <>
+                {/* Mobile View - Card List */}
+                {isMobile ? (
+                  <Stack spacing={2}>
+                    {archivedEmails.map((email) => (
+                      <Card key={email.id} variant="outlined" sx={{ 
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          boxShadow: 1
+                        }
+                      }}>
+                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                          {/* Header - Subject and Status */}
+                          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                            <Typography 
+                              variant="subtitle2" 
+                              sx={{ 
+                                fontWeight: 600,
+                                flex: 1,
+                                mr: 1,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                              }}
+                            >
+                              {email.subject}
+                            </Typography>
+                            {getStatusChip(email.status, email.action_taken)}
+                          </Box>
+
+                          {/* Sender and Date */}
+                          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: 'grey.500' }}>
+                                {email.sender.charAt(0).toUpperCase()}
+                              </Avatar>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                                {email.sender.length > 25 ? `${email.sender.substring(0, 25)}...` : email.sender}
+                              </Typography>
+                            </Box>
+                            <Typography variant="caption" color="text.secondary">
+                              {new Date(email.received_at).toLocaleDateString('sk')}
+                            </Typography>
+                          </Box>
+
+                          {/* Order Number */}
+                          {email.order_number && (
+                            <Box mb={2}>
+                              <Chip
+                                label={`📋 ${email.order_number}`}
+                                size="small"
+                                variant="outlined"
+                                sx={{ fontSize: '0.75rem' }}
+                              />
+                            </Box>
+                          )}
+
+                          {/* Actions */}
+                          <Box display="flex" gap={1} flexWrap="wrap">
+                            <Button
+                              size="small"
+                              startIcon={<ViewIcon />}
+                              onClick={() => viewEmailDetail(email.id)}
+                              variant="outlined"
+                              sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
+                            >
+                              Detail
+                            </Button>
+                            
+                            <Button
+                              size="small"
+                              startIcon={actionLoading === email.id ? <CircularProgress size={16} /> : <RefreshIcon />}
+                              onClick={() => unarchiveEmail(email.id)}
+                              disabled={actionLoading === email.id}
+                              color="success"
+                              variant="outlined"
+                              sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
+                            >
+                              Obnoviť
+                            </Button>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Stack>
+                ) : (
+                  /* Desktop View - Table */
+                  <TableContainer component={Paper} elevation={0} sx={{ overflowX: 'auto' }}>
+                    <Table stickyHeader>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ minWidth: 200 }}>Predmet</TableCell>
+                          <TableCell sx={{ minWidth: 150 }}>Odosielateľ</TableCell>
+                          <TableCell sx={{ minWidth: 120 }}>Archivované</TableCell>
+                          <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
+                          <TableCell sx={{ minWidth: 120 }}>Objednávka</TableCell>
+                          <TableCell sx={{ minWidth: 150 }}>Akcie</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {archivedEmails.map((email) => (
+                          <TableRow key={email.id} hover>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ 
+                                maxWidth: 250,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                              }}>
+                                {email.subject}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ maxWidth: 150 }} noWrap>
+                                {email.sender}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {new Date(email.received_at).toLocaleString('sk')}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              {getStatusChip(email.status, email.action_taken)}
+                            </TableCell>
+                            <TableCell>
+                              {email.order_number ? (
+                                <Chip
+                                  label={email.order_number}
+                                  size="small"
+                                  variant="outlined"
+                                />
+                              ) : (
+                                <Typography variant="body2" color="text.secondary">
+                                  -
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Box display="flex" gap={1} flexWrap="wrap">
+                                <Tooltip title="Zobraziť detail">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => viewEmailDetail(email.id)}
+                                  >
+                                    <ViewIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                
+                                <Tooltip title="Obnoviť z archívu">
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => unarchiveEmail(email.id)}
+                                      disabled={actionLoading === email.id}
+                                      color="success"
+                                    >
+                                      {actionLoading === email.id ? (
+                                        <CircularProgress size={20} />
+                                      ) : (
+                                        <RefreshIcon />
+                                      )}
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+
+                {/* Pagination */}
+                {archivePagination.total > archivePagination.limit && (
+                  <Box display="flex" justifyContent="center" mt={2}>
+                    <Pagination
+                      count={Math.ceil(archivePagination.total / archivePagination.limit)}
+                      page={Math.floor(archivePagination.offset / archivePagination.limit) + 1}
+                      onChange={(_, page) => fetchArchivedEmails((page - 1) * archivePagination.limit)}
+                      color="primary"
+                    />
+                  </Box>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* View Email Dialog */}
       <Dialog 
         open={viewDialog.open} 
         onClose={() => setViewDialog({ open: false, email: null })}
         maxWidth="md"
         fullWidth
-        fullScreen={isMobile}
+        fullScreen={isSmallMobile}
         PaperProps={{
           sx: {
-            margin: isMobile ? 0 : 2,
-            maxHeight: isMobile ? '100vh' : 'calc(100vh - 64px)',
+            margin: isSmallMobile ? 0 : isTablet ? 1 : 2,
+            maxHeight: isSmallMobile ? '100vh' : 'calc(100vh - 64px)',
+            borderRadius: isSmallMobile ? 0 : undefined,
           }
         }}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ 
+          fontSize: isExtraSmall ? '1.1rem' : undefined,
+          p: isExtraSmall ? 2 : undefined
+        }}>
           <Box display="flex" alignItems="center" gap={1}>
-            <EmailIcon />
-            Email Detail
+            <EmailIcon sx={{ fontSize: isExtraSmall ? 20 : undefined }} />
+            <Typography variant={isExtraSmall ? "h6" : "h5"} component="span">
+              {isExtraSmall ? 'Detail' : 'Email Detail'}
+            </Typography>
           </Box>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ p: isExtraSmall ? 2 : undefined }}>
           {viewDialog.email && (
             <Box>
-              <Typography variant="h6" gutterBottom>
+              <Typography 
+                variant={isExtraSmall ? "subtitle1" : "h6"} 
+                gutterBottom
+                sx={{ 
+                  fontSize: isExtraSmall ? '1rem' : undefined,
+                  wordBreak: 'break-word'
+                }}
+              >
                 {viewDialog.email.email.subject}
               </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
+              <Typography 
+                variant="body2" 
+                color="text.secondary" 
+                gutterBottom
+                sx={{ 
+                  fontSize: isExtraSmall ? '0.875rem' : undefined,
+                  wordBreak: 'break-word'
+                }}
+              >
                 Od: {viewDialog.email.email.sender} | {new Date(viewDialog.email.email.received_at).toLocaleString('sk')}
               </Typography>
               
@@ -1444,34 +2249,67 @@ const EmailManagementDashboard: React.FC = () => {
       <Dialog 
         open={rejectDialog.open} 
         onClose={() => setRejectDialog({ open: false, emailId: null, isRental: false })}
-        fullScreen={isSmallMobile}
+        fullScreen={isExtraSmall}
         maxWidth="sm"
         fullWidth
         PaperProps={{
           sx: {
-            margin: isMobile ? 1 : 2,
+            margin: isExtraSmall ? 0 : isSmallMobile ? 1 : 2,
+            borderRadius: isExtraSmall ? 0 : undefined,
           }
         }}
       >
-        <DialogTitle>{rejectDialog.isRental ? 'Zamietnuť prenájom' : 'Zamietnuť email'}</DialogTitle>
-        <DialogContent>
+        <DialogTitle sx={{ 
+          fontSize: isExtraSmall ? '1.1rem' : undefined,
+          p: isExtraSmall ? 2 : undefined
+        }}>
+          <Typography variant={isExtraSmall ? "h6" : "h5"} component="span">
+            {rejectDialog.isRental ? 
+              (isExtraSmall ? 'Zamietnuť' : 'Zamietnuť prenájom') : 
+              (isExtraSmall ? 'Zamietnuť' : 'Zamietnuť email')
+            }
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ p: isExtraSmall ? 2 : undefined }}>
           <TextField
             fullWidth
             multiline
-            rows={3}
-            label="Dôvod zamietnutia"
+            rows={isExtraSmall ? 2 : 3}
+            label={isExtraSmall ? "Dôvod" : "Dôvod zamietnutia"}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             margin="normal"
+            size={isExtraSmall ? "small" : "medium"}
+            sx={{
+              '& .MuiInputLabel-root': {
+                fontSize: isExtraSmall ? '0.875rem' : undefined
+              },
+              '& .MuiInputBase-input': {
+                fontSize: isExtraSmall ? '0.875rem' : undefined
+              }
+            }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRejectDialog({ open: false, emailId: null, isRental: false })}>
-            Zrušiť
+        <DialogActions sx={{ 
+          p: isExtraSmall ? 2 : undefined,
+          gap: isExtraSmall ? 1 : undefined
+        }}>
+          <Button 
+            onClick={() => setRejectDialog({ open: false, emailId: null, isRental: false })}
+            size={isExtraSmall ? "small" : "medium"}
+            sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
+          >
+            {isExtraSmall ? 'Zrušiť' : 'Zrušiť'}
           </Button>
-                                        <Button onClick={rejectItem} color="error" variant="contained">
-                                Zamietnuť
-                              </Button>
+          <Button 
+            onClick={rejectItem} 
+            color="error" 
+            variant="contained"
+            size={isExtraSmall ? "small" : "medium"}
+            sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
+          >
+            {isExtraSmall ? 'Zamietnuť' : 'Zamietnuť'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

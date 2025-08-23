@@ -62,6 +62,7 @@ export function useInfiniteRentals(initialFilters: RentalFilters = {}): UseInfin
     setError(null);
 
     try {
+      console.log(`🔄 INFINITE RENTALS: Loading rentals - Page ${page}`, { filters: filtersRef.current });
       logger.info(`🔄 Loading rentals - Page ${page}`, { filters: filtersRef.current });
       // 🚀 GMAIL APPROACH: Server-side search with pagination
       
