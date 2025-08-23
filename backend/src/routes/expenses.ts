@@ -483,8 +483,17 @@ router.post('/batch-import',
             if (expenseData.vehicleId && expenseData.vehicleId.toString().trim() !== '') {
               const vehicleIdStr = expenseData.vehicleId.toString().trim();
               
-              // Ak je to číslo, použij priamo
-              if (!isNaN(parseInt(vehicleIdStr)) && isFinite(parseInt(vehicleIdStr))) {
+              // Špeciálne firmy ktoré nemajú vozidlá (hlavné firmy, štatistiky, provízie)
+              const specialCompanies = ['Black Holding', 'BlackRent', 'Blackrent'];
+              const isSpecialCompany = specialCompanies.some(company => 
+                vehicleIdStr.toLowerCase().includes(company.toLowerCase())
+              );
+              
+              if (isSpecialCompany) {
+                console.log(`🏢 ŠPECIÁLNA FIRMA: "${vehicleIdStr}" - náklad bez vozidla (provízie/štatistiky)`);
+                processedVehicleId = undefined;
+              } else if (!isNaN(parseInt(vehicleIdStr)) && isFinite(parseInt(vehicleIdStr))) {
+                // Ak je to číslo, použij priamo
                 processedVehicleId = parseInt(vehicleIdStr);
               } else {
                 // Ak nie je číslo, skús nájsť vozidlo podľa PRESNÉHO názvu firmy
