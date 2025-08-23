@@ -239,11 +239,38 @@ const ExpenseListNew: React.FC = () => {
             return;
           }
 
-          // Preskočíme hlavičku
+          // Získaj hlavičku pre inteligentné mapovanie
+          const headers = results.data[0];
           const dataRows = results.data.slice(1);
           const batchExpenses = [];
 
+          console.log('📋 CSV Headers:', headers);
           console.log(`📦 Processing ${dataRows.length} expense rows...`);
+
+          // Inteligentné mapovanie stĺpcov
+          const getColumnIndex = (possibleNames: string[]) => {
+            for (const name of possibleNames) {
+              const index = headers.findIndex((h: string) => 
+                h && h.toString().toLowerCase().trim() === name.toLowerCase()
+              );
+              if (index !== -1) return index;
+            }
+            return -1;
+          };
+
+          const columnMap = {
+            id: getColumnIndex(['id', 'ID']),
+            description: getColumnIndex(['description', 'popis', 'Description', 'Popis']),
+            amount: getColumnIndex(['amount', 'suma', 'Amount', 'Suma', 'cena', 'Cena']),
+            date: getColumnIndex(['date', 'datum', 'Date', 'Dátum']),
+            category: getColumnIndex(['category', 'kategoria', 'Category', 'Kategória']),
+            company: getColumnIndex(['company', 'firma', 'Company', 'Firma']),
+            vehicleId: getColumnIndex(['vehicleId', 'vehicle_id', 'vozidlo_id']),
+            vehicleLicensePlate: getColumnIndex(['vehicleLicensePlate', 'spz', 'SPZ', 'license_plate']),
+            note: getColumnIndex(['note', 'poznamka', 'Note', 'Poznámka'])
+          };
+
+          console.log('🗺️ Column mapping:', columnMap);
 
           for (let i = 0; i < dataRows.length; i++) {
             const row = dataRows[i];
@@ -253,8 +280,16 @@ const ExpenseListNew: React.FC = () => {
               continue;
             }
 
-            // Mapovanie polí podľa formátu: id, description, amount, date, category, company, vehicleId, vehicleLicensePlate, note
-            const [id, description, amount, date, category, company, vehicleId, vehicleLicensePlate, note] = row;
+            // Mapovanie polí pomocou inteligentného mapovania
+            const id = columnMap.id >= 0 ? row[columnMap.id] : undefined;
+            const description = columnMap.description >= 0 ? row[columnMap.description] : undefined;
+            const amount = columnMap.amount >= 0 ? row[columnMap.amount] : undefined;
+            const date = columnMap.date >= 0 ? row[columnMap.date] : undefined;
+            const category = columnMap.category >= 0 ? row[columnMap.category] : undefined;
+            const company = columnMap.company >= 0 ? row[columnMap.company] : undefined;
+            const vehicleId = columnMap.vehicleId >= 0 ? row[columnMap.vehicleId] : undefined;
+            const vehicleLicensePlate = columnMap.vehicleLicensePlate >= 0 ? row[columnMap.vehicleLicensePlate] : undefined;
+            const note = columnMap.note >= 0 ? row[columnMap.note] : undefined;
 
             // Kontrola povinných polí
             if (!description || description.toString().trim() === '') {
@@ -320,9 +355,11 @@ const ExpenseListNew: React.FC = () => {
               date: parsedDate,
               category: mappedCategory,
               vehicleId: (vehicleId && vehicleId.toString().trim() !== '') ? vehicleId.toString().trim() : undefined,
-              company: (company && company.toString().trim() !== '') ? company.toString().trim() : 'Neznáma firma',
+              company: (company && company.toString().trim() !== '') ? company.toString().trim() : 'Black Holding',
               note: (note && note.toString().trim() !== '') ? note.toString().trim() : undefined
             };
+
+            console.log(`💰 Expense ${i + 2}: ${expenseData.description} - ${expenseData.amount}€ - Company: "${expenseData.company}"`);
 
             batchExpenses.push(expenseData);
           }
