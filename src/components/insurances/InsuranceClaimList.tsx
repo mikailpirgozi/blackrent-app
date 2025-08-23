@@ -24,7 +24,16 @@ import {
   TableHead,
   TableRow,
   Paper,
-  TablePagination
+  TablePagination,
+  useMediaQuery,
+  useTheme,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Divider,
+  Collapse,
+  Stack
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -88,6 +97,10 @@ export default function InsuranceClaimList() {
     deleteInsuranceClaim
   } = useApp();
   
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
+  
   const [openDialog, setOpenDialog] = useState(false);
   const [editingClaim, setEditingClaim] = useState<InsuranceClaim | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -96,7 +109,7 @@ export default function InsuranceClaimList() {
   const [filterType, setFilterType] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(isMobile ? 5 : 10);
 
   // Get insurance claims from state
   const claims = state.insuranceClaims || [];
@@ -185,87 +198,140 @@ export default function InsuranceClaimList() {
   }
 
   return (
-    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
-      {/* Header */}
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: { xs: 'flex-start', sm: 'center' },
-        flexDirection: { xs: 'column', sm: 'row' },
-        gap: { xs: 2, sm: 0 },
-        mb: 3 
+    <Box sx={{ 
+      p: { xs: 1, sm: 2, md: 3 },
+      width: '100%',
+      maxWidth: '100%',
+      overflow: 'hidden'
+    }}>
+      {/* Responsive Header */}
+      <Card sx={{ 
+        mb: { xs: 2, sm: 3 }, 
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        borderRadius: { xs: 2, sm: 3 }
       }}>
-        <Typography 
-          variant="h5"
-          sx={{ 
-            fontWeight: 600, 
+        <CardContent sx={{ 
+          background: 'linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)',
+          color: 'white',
+          p: { xs: 2, sm: 2.5, md: 3 }
+        }}>
+          <Box sx={{ 
             display: 'flex', 
-            alignItems: 'center', 
-            gap: 1,
-            fontSize: { xs: '1.25rem', sm: '1.5rem' }
-          }}
-        >
-          <ClaimIcon sx={{ color: '#d32f2f', fontSize: { xs: 20, sm: 24 } }} />
-          Poistné udalosti
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />}
-          onClick={handleAdd}
-          sx={{ 
-            borderRadius: 2,
-            fontSize: { xs: '0.875rem', sm: '1rem' },
-            px: { xs: 2, sm: 3 },
-            py: { xs: 1, sm: 1.5 },
-            display: { xs: 'none', sm: 'flex' }
-          }}
-        >
-          Pridať udalosť
-        </Button>
-      </Box>
+            justifyContent: 'space-between', 
+            alignItems: isMobile ? 'flex-start' : 'center',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: { xs: 2, sm: 2 }
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: { xs: 1.5, sm: 2 },
+              width: isMobile ? '100%' : 'auto'
+            }}>
+              <ClaimIcon sx={{ 
+                fontSize: { xs: 24, sm: 28, md: 32 },
+                flexShrink: 0
+              }} />
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography 
+                  variant={isMobile ? "h6" : isTablet ? "h5" : "h4"} 
+                  sx={{ 
+                    fontWeight: 700, 
+                    mb: 0.5,
+                    fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem', lg: '2rem' },
+                    lineHeight: 1.2
+                  }}
+                >
+                  {isMobile ? "Poistné udalosti" : "Poistné udalosti"}
+                </Typography>
+                <Typography 
+                  variant={isMobile ? "body2" : "body1"} 
+                  sx={{ 
+                    opacity: 0.9,
+                    fontSize: { xs: '0.875rem', sm: '1rem' }
+                  }}
+                >
+                  {claims.length} udalostí celkom
+                </Typography>
+              </Box>
+            </Box>
+            
+            {!isMobile && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleAdd}
+                size={isTablet ? "medium" : "large"}
+                sx={{
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.3)',
+                  },
+                }}
+              >
+                Pridať udalosť
+              </Button>
+            )}
+          </Box>
+        </CardContent>
+      </Card>
 
-      {/* Statistics */}
-      <Grid container spacing={{ xs: 1, sm: 2 }} sx={{ mb: 3 }}>
+      {/* Responsive Statistics */}
+      <Grid container spacing={{ xs: 1, sm: 2 }} sx={{ mb: { xs: 2, sm: 3 } }}>
         <Grid item xs={6} sm={6} md={3}>
           <Card sx={{ 
             height: '100%', 
             background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', 
             color: 'white',
-            minHeight: { xs: 100, sm: 120 }
+            minHeight: { xs: 80, sm: 100, md: 120 },
+            borderRadius: { xs: 2, sm: 3 },
+            transition: 'transform 0.2s ease-in-out',
+            '&:hover': {
+              transform: isMobile ? 'none' : 'translateY(-2px)'
+            }
           }}>
-            <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+            <CardContent sx={{ 
+              p: { xs: 1.5, sm: 2, md: 2.5 },
+              '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } }
+            }}>
               <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
-                flexDirection: { xs: 'column', sm: 'row' },
-                textAlign: { xs: 'center', sm: 'left' },
-                gap: { xs: 1, sm: 0 }
+                flexDirection: isMobile ? 'column' : 'row',
+                textAlign: isMobile ? 'center' : 'left',
+                gap: isMobile ? 1 : 0
               }}>
-                <Box>
+                <Box sx={{ order: isMobile ? 2 : 1 }}>
                   <Typography 
-                    variant="h6"
+                    variant={isMobile ? "caption" : isTablet ? "subtitle2" : "h6"}
                     sx={{ 
                       fontWeight: 600,
-                      fontSize: { xs: '0.75rem', sm: '1.25rem' }
+                      fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                      letterSpacing: 0.5,
+                      mb: { xs: 0.5, sm: 1 }
                     }}
                   >
                     CELKOM
                   </Typography>
                   <Typography 
-                    variant="h4"
+                    variant={isMobile ? "h6" : isTablet ? "h5" : "h4"}
                     sx={{ 
                       fontWeight: 700,
-                      fontSize: { xs: '1.5rem', sm: '2.125rem' }
+                      fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' }
                     }}
                   >
                     {claims.length}
                   </Typography>
                 </Box>
                 <ClaimIcon sx={{ 
-                  fontSize: { xs: 24, sm: 40 }, 
+                  fontSize: { xs: 20, sm: 32, md: 40 }, 
                   opacity: 0.8,
-                  display: { xs: 'none', sm: 'block' }
+                  order: isMobile ? 1 : 2
                 }} />
               </Box>
             </CardContent>
@@ -833,30 +899,44 @@ export default function InsuranceClaimList() {
         </>
       )}
 
-      {/* Floating Action Button for Mobile */}
-      <Fab
-        color="primary"
-        aria-label="add"
-        onClick={handleAdd}
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-          display: { xs: 'flex', md: 'none' }
-        }}
-      >
-        <AddIcon />
-      </Fab>
+      {/* Responsive Floating Action Button for Mobile */}
+      {isMobile && (
+        <Fab
+          color="primary"
+          aria-label="add"
+          onClick={handleAdd}
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            background: 'linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #c62828 0%, #a00000 100%)',
+            },
+            zIndex: 1000,
+            boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)'
+          }}
+        >
+          <AddIcon />
+        </Fab>
+      )}
 
-      {/* Insurance Claim Form Dialog */}
+      {/* Responsive Insurance Claim Form Dialog */}
       {openDialog && (
         <Dialog
           open={openDialog}
           onClose={() => setOpenDialog(false)}
           maxWidth="lg"
           fullWidth
+          fullScreen={isMobile}
           disableRestoreFocus
           keepMounted={false}
+          sx={{
+            '& .MuiDialog-paper': {
+              borderRadius: isMobile ? 0 : { xs: 2, sm: 3 },
+              margin: isMobile ? 0 : { xs: 1, sm: 2 }
+            }
+          }}
         >
           <InsuranceClaimForm
             claim={editingClaim}

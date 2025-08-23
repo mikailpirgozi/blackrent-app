@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import {
   Box,
   Tabs,
-  Tab
+  Tab,
+  useMediaQuery,
+  useTheme,
+  Paper
 } from '@mui/material';
 import {
   Security as SecurityIcon,
@@ -13,30 +16,90 @@ import InsuranceClaimList from './InsuranceClaimList';
 
 export default function InsuranceList() {
   const [activeTab, setActiveTab] = useState(0);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
 
   return (
-    <Box>
-      {/* Tab Navigation */}
-      <Tabs
-        value={activeTab}
-        onChange={(event, newValue) => setActiveTab(newValue)}
+    <Box sx={{ 
+      width: '100%',
+      maxWidth: '100%',
+      overflow: 'hidden'
+    }}>
+      {/* Responsive Tab Navigation */}
+      <Paper 
+        elevation={0} 
         sx={{ 
           borderBottom: 1, 
           borderColor: 'divider',
-          '& .MuiTab-root': {
-            fontWeight: 600,
-            textTransform: 'none',
-            fontSize: '1rem'
-          }
+          mb: { xs: 1, sm: 2, md: 3 },
+          backgroundColor: 'background.paper'
         }}
       >
-        <Tab label="Dokumenty" icon={<SecurityIcon />} iconPosition="start" />
-        <Tab label="Poistné udalosti" icon={<WarningIcon />} iconPosition="start" />
-      </Tabs>
+        <Tabs
+          value={activeTab}
+          onChange={(event, newValue) => setActiveTab(newValue)}
+          variant={isMobile ? "fullWidth" : "standard"}
+          scrollButtons={isMobile ? false : "auto"}
+          allowScrollButtonsMobile={!isMobile}
+          sx={{ 
+            minHeight: { xs: 48, sm: 56 },
+            '& .MuiTab-root': {
+              fontWeight: 600,
+              textTransform: 'none',
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              minHeight: { xs: 48, sm: 56 },
+              padding: { 
+                xs: '8px 12px', 
+                sm: '12px 16px',
+                md: '12px 24px'
+              },
+              '&.Mui-selected': {
+                color: 'primary.main',
+                fontWeight: 700
+              }
+            },
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderRadius: '3px 3px 0 0'
+            },
+            '& .MuiTab-iconWrapper': {
+              fontSize: { xs: 18, sm: 20, md: 24 },
+              marginRight: { xs: 0.5, sm: 1 },
+              marginBottom: 0
+            }
+          }}
+        >
+          <Tab 
+            label={isMobile ? "Dokumenty" : "Poistky & Dokumenty"} 
+            icon={<SecurityIcon />} 
+            iconPosition={isMobile ? "top" : "start"}
+            sx={{
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: isMobile ? 0.5 : 1
+            }}
+          />
+          <Tab 
+            label={isMobile ? "Udalosti" : "Poistné udalosti"} 
+            icon={<WarningIcon />} 
+            iconPosition={isMobile ? "top" : "start"}
+            sx={{
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: isMobile ? 0.5 : 1
+            }}
+          />
+        </Tabs>
+      </Paper>
 
-      {/* Tab Content */}
-      {activeTab === 0 && <VehicleCentricInsuranceList />}
-      {activeTab === 1 && <InsuranceClaimList />}
+      {/* Responsive Tab Content */}
+      <Box sx={{ 
+        width: '100%',
+        minHeight: 'calc(100vh - 200px)',
+        overflow: 'hidden'
+      }}>
+        {activeTab === 0 && <VehicleCentricInsuranceList />}
+        {activeTab === 1 && <InsuranceClaimList />}
+      </Box>
     </Box>
   );
 }

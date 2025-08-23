@@ -1276,6 +1276,47 @@ class PostgresDatabase {
             catch (error) {
                 console.log('⚠️ Migrácia 25 chyba:', error.message);
             }
+            // Migrácia 27: 📁 EMAIL ARCHIVE SYSTEM - Pridanie archived_at stĺpca
+            try {
+                console.log('📋 Migrácia 27: 📁 Pridávanie email archive systému...');
+                // Skontroluj či archived_at stĺpec už existuje
+                const columnCheck = await client.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'email_processing_history' AND column_name = 'archived_at'
+        `);
+                if (columnCheck.rows.length === 0) {
+                    console.log('   📁 Pridávam archived_at stĺpec...');
+                    await client.query(`
+            ALTER TABLE email_processing_history 
+            ADD COLUMN archived_at TIMESTAMP,
+            ADD COLUMN auto_archive_after_days INTEGER DEFAULT 30
+          `);
+                    // Vytvorenie indexu pre archived_at
+                    await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_email_history_archived_at ON email_processing_history(archived_at);
+          `);
+                    // Automaticky archivuj staré spracované emaily (starší ako 30 dní)
+                    await client.query(`
+            UPDATE email_processing_history 
+            SET archived_at = CURRENT_TIMESTAMP,
+                status = 'archived'
+            WHERE status IN ('processed', 'rejected') 
+            AND processed_at < CURRENT_TIMESTAMP - INTERVAL '30 days'
+            AND archived_at IS NULL
+          `);
+                    console.log('✅ Migrácia 27: 📁 Email archive systém úspešne pridaný!');
+                    console.log('   📁 Archived_at stĺpec pridaný');
+                    console.log('   🗂️ Index pre archived_at vytvorený');
+                    console.log('   🔄 Staré emaily automaticky archivované');
+                }
+                else {
+                    console.log('   ✅ Migrácia 27: Email archive systém už existuje');
+                }
+            }
+            catch (error) {
+                console.log('⚠️ Migrácia 27 chyba:', error.message);
+            }
             // Migrácia 26: 📧 IMAP EMAIL SUPPORT - Pridanie customer email stĺpcov do rentals
             try {
                 console.log('📋 Migrácia 26: 📧 Pridávanie IMAP email support stĺpcov do rentals...');
@@ -2683,10 +2724,74 @@ class PostgresDatabase {
             if (params.dateFilter && params.dateFilter !== 'all') {
                 const today = new Date();
                 let startDate, endDate;
+                let skipNormalDateFiltering = false;
                 switch (params.dateFilter) {
                     case 'today':
                         startDate = new Date(today.setHours(0, 0, 0, 0));
                         endDate = new Date(today.setHours(23, 59, 59, 999));
+                        break;
+                    case 'today_returns':
+                        // Filtruj prenájmy ktoré sa končia dnes - ŠPECIALNY FILTER
+                        const todayStart = new Date(today);
+                        todayStart.setHours(0, 0, 0, 0);
+                        const todayEnd = new Date(today);
+                        todayEnd.setHours(23, 59, 59, 999);
+                        whereConditions.push(`r.end_date >= $${paramIndex} AND r.end_date <= $${paramIndex + 1}`);
+                        queryParams.push(todayStart, todayEnd);
+                        paramIndex += 2;
+                        skipNormalDateFiltering = true;
+                        break;
+                    case 'tomorrow_returns':
+                        // Filtruj prenájmy ktoré sa končia zajtra - ŠPECIALNY FILTER
+                        const tomorrow = new Date(today);
+                        tomorrow.setDate(today.getDate() + 1);
+                        const tomorrowStart = new Date(tomorrow);
+                        tomorrowStart.setHours(0, 0, 0, 0);
+                        const tomorrowEnd = new Date(tomorrow);
+                        tomorrowEnd.setHours(23, 59, 59, 999);
+                        whereConditions.push(`r.end_date >= $${paramIndex} AND r.end_date <= $${paramIndex + 1}`);
+                        queryParams.push(tomorrowStart, tomorrowEnd);
+                        paramIndex += 2;
+                        skipNormalDateFiltering = true;
+                        break;
+                    case 'week_returns':
+                        // Filtruj prenájmy ktoré sa končia tento týždeň (do nedele)
+                        const endOfWeek = new Date(today);
+                        endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
+                        endOfWeek.setHours(23, 59, 59, 999);
+                        whereConditions.push(`r.end_date > $${paramIndex} AND r.end_date <= $${paramIndex + 1}`);
+                        queryParams.push(today, endOfWeek);
+                        paramIndex += 2;
+                        skipNormalDateFiltering = true;
+                        break;
+                    case 'overdue':
+                        // Filtruj preterminované prenájmy - skončili ale nemajú return protokol
+                        whereConditions.push(`r.end_date < $${paramIndex} AND r.return_protocol_id IS NULL`);
+                        queryParams.push(today);
+                        paramIndex++;
+                        skipNormalDateFiltering = true;
+                        break;
+                    case 'new_today':
+                        // Filtruj prenájmy vytvorené dnes
+                        const todayStartForNew = new Date(today);
+                        todayStartForNew.setHours(0, 0, 0, 0);
+                        const todayEndForNew = new Date(today);
+                        todayEndForNew.setHours(23, 59, 59, 999);
+                        whereConditions.push(`r.created_at >= $${paramIndex} AND r.created_at <= $${paramIndex + 1}`);
+                        queryParams.push(todayStartForNew, todayEndForNew);
+                        paramIndex += 2;
+                        skipNormalDateFiltering = true;
+                        break;
+                    case 'starting_today':
+                        // Filtruj prenájmy ktoré dnes začínajú
+                        const todayStartForStarting = new Date(today);
+                        todayStartForStarting.setHours(0, 0, 0, 0);
+                        const todayEndForStarting = new Date(today);
+                        todayEndForStarting.setHours(23, 59, 59, 999);
+                        whereConditions.push(`r.start_date >= $${paramIndex} AND r.start_date <= $${paramIndex + 1}`);
+                        queryParams.push(todayStartForStarting, todayEndForStarting);
+                        paramIndex += 2;
+                        skipNormalDateFiltering = true;
                         break;
                     case 'week':
                         const weekStart = new Date(today);
@@ -2709,15 +2814,18 @@ class PostgresDatabase {
                             endDate = new Date(params.dateTo);
                         break;
                 }
-                if (startDate) {
-                    whereConditions.push(`r.start_date >= $${paramIndex}`);
-                    queryParams.push(startDate);
-                    paramIndex++;
-                }
-                if (endDate) {
-                    whereConditions.push(`r.start_date <= $${paramIndex}`);
-                    queryParams.push(endDate);
-                    paramIndex++;
+                // Aplikuj normálne date filtrovanie len ak nie je skipnuté
+                if (!skipNormalDateFiltering) {
+                    if (startDate) {
+                        whereConditions.push(`r.start_date >= $${paramIndex}`);
+                        queryParams.push(startDate);
+                        paramIndex++;
+                    }
+                    if (endDate) {
+                        whereConditions.push(`r.start_date <= $${paramIndex}`);
+                        queryParams.push(endDate);
+                        paramIndex++;
+                    }
                 }
             }
             // 🏢 COMPANY filter
@@ -2726,19 +2834,11 @@ class PostgresDatabase {
                 queryParams.push(params.company);
                 paramIndex++;
             }
-            // ⚡ STATUS filter
+            // ⚡ STATUS filter - OPRAVENÉ pre skutočné statusy v DB
             if (params.status && params.status !== 'all') {
-                if (params.status === 'active') {
-                    whereConditions.push(`r.status IN ('confirmed', 'ongoing')`);
-                }
-                else if (params.status === 'completed') {
-                    whereConditions.push(`r.status = 'completed'`);
-                }
-                else {
-                    whereConditions.push(`r.status = $${paramIndex}`);
-                    queryParams.push(params.status);
-                    paramIndex++;
-                }
+                whereConditions.push(`r.status = $${paramIndex}`);
+                queryParams.push(params.status);
+                paramIndex++;
             }
             // 💳 PAYMENT METHOD filter
             if (params.paymentMethod && params.paymentMethod !== 'all') {
@@ -2760,6 +2860,23 @@ class PostgresDatabase {
                 whereConditions.push(`v.brand = $${paramIndex}`);
                 queryParams.push(params.vehicleBrand);
                 paramIndex++;
+            }
+            // 📋 PROTOCOL STATUS filter
+            if (params.protocolStatus && params.protocolStatus !== 'all') {
+                switch (params.protocolStatus) {
+                    case 'with_handover':
+                        whereConditions.push(`r.handover_protocol_id IS NOT NULL`);
+                        break;
+                    case 'without_handover':
+                        whereConditions.push(`r.handover_protocol_id IS NULL`);
+                        break;
+                    case 'with_return':
+                        whereConditions.push(`r.return_protocol_id IS NOT NULL`);
+                        break;
+                    case 'without_return':
+                        whereConditions.push(`r.handover_protocol_id IS NOT NULL AND r.return_protocol_id IS NULL`);
+                        break;
+                }
             }
             // 💵 PRICE RANGE filter
             if (params.priceMin && !isNaN(parseFloat(params.priceMin))) {
@@ -2790,7 +2907,7 @@ class PostgresDatabase {
           r.id, r.vehicle_id, r.customer_id, r.start_date, r.end_date, 
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
-          r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
+          r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           c.name as company_name, v.company as vehicle_company,
@@ -2878,6 +2995,7 @@ class PostgresDatabase {
             dailyKilometers: row.daily_kilometers || undefined,
             handoverPlace: row.handover_place || undefined,
             company: row.company || undefined,
+            vehicleName: row.vehicle_name || undefined, // 🚗 NOVÉ: Vehicle name field
             // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
             isFlexible: Boolean(row.is_flexible),
             flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
@@ -2927,7 +3045,7 @@ class PostgresDatabase {
           r.id, r.vehicle_id, r.customer_id, r.start_date, r.end_date, 
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
-          r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company,
+          r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
@@ -2992,6 +3110,7 @@ class PostgresDatabase {
                 dailyKilometers: row.daily_kilometers || undefined,
                 handoverPlace: row.handover_place || undefined,
                 company: row.company || undefined, // 🎯 CLEAN SOLUTION field
+                vehicleName: row.vehicle_name || undefined, // 🚗 NOVÉ: Vehicle name field
                 // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
                 isFlexible: Boolean(row.is_flexible),
                 flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
@@ -3082,12 +3201,17 @@ class PostgresDatabase {
         try {
             // 🎯 CLEAN SOLUTION: Rental vlastní svoj company field - JEDNODUCHO!
             let company = null;
+            let vehicleName = null;
             if (rentalData.vehicleId) {
                 const vehicleResult = await client.query(`
-          SELECT company FROM vehicles WHERE id = $1
+          SELECT company, brand, model FROM vehicles WHERE id = $1
         `, [rentalData.vehicleId]);
                 if (vehicleResult.rows.length > 0) {
                     company = vehicleResult.rows[0].company;
+                    // 🚗 NOVÉ: Vytvorenie vehicle_name z brand + model
+                    const brand = vehicleResult.rows[0].brand || '';
+                    const model = vehicleResult.rows[0].model || '';
+                    vehicleName = brand && model ? `${brand} ${model}` : (brand || model || null);
                 }
             }
             const result = await client.query(`
@@ -3097,15 +3221,15 @@ class PostgresDatabase {
           extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
-          handover_protocol_id, return_protocol_id, company,
+          handover_protocol_id, return_protocol_id, company, vehicle_name,
           is_flexible, flexible_end_date,
           approval_status, email_content, auto_processed_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38)
         RETURNING id, vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, 
           discount, custom_commission, extra_km_charge, paid, status, handover_place, confirmed, payments, history, order_number,
           deposit, allowed_kilometers, daily_kilometers, extra_kilometer_rate, return_conditions, 
           fuel_level, odometer, return_fuel_level, return_odometer, actual_kilometers, fuel_refill_cost,
-          handover_protocol_id, return_protocol_id, company, created_at,
+          handover_protocol_id, return_protocol_id, company, vehicle_name, created_at,
           is_flexible, flexible_end_date,
           approval_status, email_content, auto_processed_at
       `, [
@@ -3141,6 +3265,7 @@ class PostgresDatabase {
                 rentalData.handoverProtocolId || null,
                 rentalData.returnProtocolId || null,
                 company, // 🎯 CLEAN SOLUTION hodnota
+                vehicleName, // 🚗 NOVÉ: Vehicle name z brand + model
                 // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy parametre (zjednodušené)
                 rentalData.isFlexible || false,
                 rentalData.flexibleEndDate || null,
@@ -3184,6 +3309,7 @@ class PostgresDatabase {
                 handoverProtocolId: row.handover_protocol_id || undefined,
                 returnProtocolId: row.return_protocol_id || undefined,
                 company: row.company || undefined, // 🎯 CLEAN SOLUTION field
+                vehicleName: row.vehicle_name || undefined, // 🚗 NOVÉ: Vehicle name field
                 createdAt: new Date(row.created_at),
                 // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
                 isFlexible: Boolean(row.is_flexible),

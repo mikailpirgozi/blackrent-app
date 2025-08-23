@@ -510,24 +510,66 @@ export default function VehicleCentricInsuranceList() {
   };
 
   return (
-    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
-      {/* Modern Header */}
-      <Card sx={{ mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+    <Box sx={{ 
+      p: { xs: 1, sm: 2, md: 3 },
+      width: '100%',
+      maxWidth: '100%',
+      overflow: 'hidden'
+    }}>
+      {/* Modern Responsive Header */}
+      <Card sx={{ 
+        mb: { xs: 2, sm: 3 }, 
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        borderRadius: { xs: 2, sm: 3 }
+      }}>
         <CardContent sx={{ 
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           position: 'relative',
-          p: { xs: 2, md: 3 }
+          p: { xs: 2, sm: 2.5, md: 3 }
         }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <SecurityIcon sx={{ fontSize: { xs: 28, md: 32 } }} />
-              <Box>
-                <Typography variant={isMobile ? "h5" : "h4"} sx={{ fontWeight: 700, mb: 0.5 }}>
-                  Poistky/STK/Dialničné
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: isMobile ? 'flex-start' : 'center', 
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: { xs: 2, sm: 2, md: 2 }
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: { xs: 1.5, sm: 2 },
+              width: isMobile ? '100%' : 'auto'
+            }}>
+              <SecurityIcon sx={{ 
+                fontSize: { xs: 24, sm: 28, md: 32 },
+                flexShrink: 0
+              }} />
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography 
+                  variant={isMobile ? "h6" : isTablet ? "h5" : "h4"} 
+                  sx={{ 
+                    fontWeight: 700, 
+                    mb: 0.5,
+                    fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem', lg: '2rem' },
+                    lineHeight: 1.2
+                  }}
+                >
+                  {isMobile ? "Poistky & STK" : "Poistky/STK/Dialničné"}
                 </Typography>
-                <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                  {overallStats.totalVehicles} vozidiel • {overallStats.totalDocuments} dokumentov
+                <Typography 
+                  variant={isMobile ? "body2" : "body1"} 
+                  sx={{ 
+                    opacity: 0.9,
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: { xs: 0.5, sm: 1 }
+                  }}
+                >
+                  <span>{overallStats.totalVehicles} vozidiel</span>
+                  <span>•</span>
+                  <span>{overallStats.totalDocuments} dokumentov</span>
                 </Typography>
               </Box>
             </Box>
@@ -537,10 +579,13 @@ export default function VehicleCentricInsuranceList() {
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={handleAdd}
+                size={isTablet ? "medium" : "large"}
                 sx={{
                   backgroundColor: 'rgba(255,255,255,0.2)',
                   backdropFilter: 'blur(10px)',
                   border: '1px solid rgba(255,255,255,0.3)',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                   '&:hover': {
                     backgroundColor: 'rgba(255,255,255,0.3)',
                   },
@@ -553,96 +598,228 @@ export default function VehicleCentricInsuranceList() {
         </CardContent>
       </Card>
 
-      {/* Statistics Cards */}
+      {/* Responsive Statistics Cards */}
       {activeTab === 0 && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={6} sm={3}>
+        <Grid container spacing={{ xs: 1, sm: 2 }} sx={{ mb: { xs: 2, sm: 3 } }}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card sx={{ 
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              height: '100%'
+              height: '100%',
+              borderRadius: { xs: 2, sm: 3 },
+              transition: 'transform 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-2px)'
+              }
             }}>
-              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant={isMobile ? "caption" : "h6"} sx={{ fontWeight: 600, mb: 1 }}>
+              <CardContent sx={{ 
+                p: { xs: 1.5, sm: 2, md: 2.5 },
+                '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } }
+              }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  textAlign: isMobile ? 'center' : 'left',
+                  gap: isMobile ? 1 : 0
+                }}>
+                  <Box sx={{ order: isMobile ? 2 : 1 }}>
+                    <Typography 
+                      variant={isMobile ? "caption" : isTablet ? "subtitle2" : "h6"} 
+                      sx={{ 
+                        fontWeight: 600, 
+                        mb: { xs: 0.5, sm: 1 },
+                        fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                        letterSpacing: 0.5
+                      }}
+                    >
                       VOZIDLÁ
                     </Typography>
-                    <Typography variant={isMobile ? "h5" : "h4"} sx={{ fontWeight: 700 }}>
+                    <Typography 
+                      variant={isMobile ? "h6" : isTablet ? "h5" : "h4"} 
+                      sx={{ 
+                        fontWeight: 700,
+                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' }
+                      }}
+                    >
                       {overallStats.totalVehicles}
                     </Typography>
                   </Box>
-                  <CarIcon sx={{ fontSize: { xs: 24, sm: 40 }, opacity: 0.8 }} />
+                  <CarIcon sx={{ 
+                    fontSize: { xs: 20, sm: 32, md: 40 }, 
+                    opacity: 0.8,
+                    order: isMobile ? 1 : 2
+                  }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           
-          <Grid item xs={6} sm={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card sx={{ 
               background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
               color: 'white',
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              height: '100%'
+              height: '100%',
+              borderRadius: { xs: 2, sm: 3 },
+              transition: 'transform 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-2px)'
+              }
             }}>
-              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant={isMobile ? "caption" : "h6"} sx={{ fontWeight: 600, mb: 1 }}>
+              <CardContent sx={{ 
+                p: { xs: 1.5, sm: 2, md: 2.5 },
+                '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } }
+              }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  textAlign: isMobile ? 'center' : 'left',
+                  gap: isMobile ? 1 : 0
+                }}>
+                  <Box sx={{ order: isMobile ? 2 : 1 }}>
+                    <Typography 
+                      variant={isMobile ? "caption" : isTablet ? "subtitle2" : "h6"} 
+                      sx={{ 
+                        fontWeight: 600, 
+                        mb: { xs: 0.5, sm: 1 },
+                        fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                        letterSpacing: 0.5
+                      }}
+                    >
                       PLATNÉ
                     </Typography>
-                    <Typography variant={isMobile ? "h5" : "h4"} sx={{ fontWeight: 700 }}>
+                    <Typography 
+                      variant={isMobile ? "h6" : isTablet ? "h5" : "h4"} 
+                      sx={{ 
+                        fontWeight: 700,
+                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' }
+                      }}
+                    >
                       {overallStats.validDocs}
                     </Typography>
                   </Box>
-                  <CheckCircleIcon sx={{ fontSize: { xs: 24, sm: 40 }, opacity: 0.8 }} />
+                  <CheckCircleIcon sx={{ 
+                    fontSize: { xs: 20, sm: 32, md: 40 }, 
+                    opacity: 0.8,
+                    order: isMobile ? 1 : 2
+                  }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           
-          <Grid item xs={6} sm={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card sx={{ 
               background: 'linear-gradient(135deg, #ffa726 0%, #fb8c00 100%)',
               color: 'white',
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              height: '100%'
+              height: '100%',
+              borderRadius: { xs: 2, sm: 3 },
+              transition: 'transform 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-2px)'
+              }
             }}>
-              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant={isMobile ? "caption" : "h6"} sx={{ fontWeight: 600, mb: 1 }}>
+              <CardContent sx={{ 
+                p: { xs: 1.5, sm: 2, md: 2.5 },
+                '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } }
+              }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  textAlign: isMobile ? 'center' : 'left',
+                  gap: isMobile ? 1 : 0
+                }}>
+                  <Box sx={{ order: isMobile ? 2 : 1 }}>
+                    <Typography 
+                      variant={isMobile ? "caption" : isTablet ? "subtitle2" : "h6"} 
+                      sx={{ 
+                        fontWeight: 600, 
+                        mb: { xs: 0.5, sm: 1 },
+                        fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                        letterSpacing: 0.5
+                      }}
+                    >
                       VYPRŠÍ
                     </Typography>
-                    <Typography variant={isMobile ? "h5" : "h4"} sx={{ fontWeight: 700 }}>
+                    <Typography 
+                      variant={isMobile ? "h6" : isTablet ? "h5" : "h4"} 
+                      sx={{ 
+                        fontWeight: 700,
+                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' }
+                      }}
+                    >
                       {overallStats.expiringDocs}
                     </Typography>
                   </Box>
-                  <ScheduleIcon sx={{ fontSize: { xs: 24, sm: 40 }, opacity: 0.8 }} />
+                  <ScheduleIcon sx={{ 
+                    fontSize: { xs: 20, sm: 32, md: 40 }, 
+                    opacity: 0.8,
+                    order: isMobile ? 1 : 2
+                  }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           
-          <Grid item xs={6} sm={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card sx={{ 
               background: 'linear-gradient(135deg, #ef5350 0%, #e53935 100%)',
               color: 'white',
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              height: '100%'
+              height: '100%',
+              borderRadius: { xs: 2, sm: 3 },
+              transition: 'transform 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-2px)'
+              }
             }}>
-              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant={isMobile ? "caption" : "h6"} sx={{ fontWeight: 600, mb: 1 }}>
+              <CardContent sx={{ 
+                p: { xs: 1.5, sm: 2, md: 2.5 },
+                '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } }
+              }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  textAlign: isMobile ? 'center' : 'left',
+                  gap: isMobile ? 1 : 0
+                }}>
+                  <Box sx={{ order: isMobile ? 2 : 1 }}>
+                    <Typography 
+                      variant={isMobile ? "caption" : isTablet ? "subtitle2" : "h6"} 
+                      sx={{ 
+                        fontWeight: 600, 
+                        mb: { xs: 0.5, sm: 1 },
+                        fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                        letterSpacing: 0.5
+                      }}
+                    >
                       VYPRŠANÉ
                     </Typography>
-                    <Typography variant={isMobile ? "h5" : "h4"} sx={{ fontWeight: 700 }}>
+                    <Typography 
+                      variant={isMobile ? "h6" : isTablet ? "h5" : "h4"} 
+                      sx={{ 
+                        fontWeight: 700,
+                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' }
+                      }}
+                    >
                       {overallStats.expiredDocs}
                     </Typography>
                   </Box>
-                  <ErrorIcon sx={{ fontSize: { xs: 24, sm: 40 }, opacity: 0.8 }} />
+                  <ErrorIcon sx={{ 
+                    fontSize: { xs: 20, sm: 32, md: 40 }, 
+                    opacity: 0.8,
+                    order: isMobile ? 1 : 2
+                  }} />
                 </Box>
               </CardContent>
             </Card>
@@ -650,67 +827,113 @@ export default function VehicleCentricInsuranceList() {
         </Grid>
       )}
 
-      {/* Search, Filters and Sorting */}
+      {/* Responsive Search, Filters and Sorting */}
       {activeTab === 0 && (
-        <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-            {/* Search and main controls */}
-            <Box sx={{ display: 'flex', gap: 2, mb: showFilters ? 2 : 0, flexWrap: 'wrap' }}>
+        <Card sx={{ 
+          mb: { xs: 2, sm: 3 }, 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          borderRadius: { xs: 2, sm: 3 }
+        }}>
+          <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
+            {/* Mobile-first Search and main controls */}
+            <Box sx={{ 
+              display: 'flex', 
+              gap: { xs: 1, sm: 2 }, 
+              mb: showFilters ? { xs: 1.5, sm: 2 } : 0, 
+              flexDirection: isMobile ? 'column' : 'row',
+              flexWrap: 'wrap',
+              alignItems: isMobile ? 'stretch' : 'center'
+            }}>
+              {/* Search Field */}
               <TextField
-                placeholder="Vyhľadať vozidlo alebo dokument..."
+                placeholder={isMobile ? "Vyhľadať..." : "Vyhľadať vozidlo alebo dokument..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 InputProps={{
-                  startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
+                  startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1, fontSize: { xs: 20, sm: 24 } }} />,
                 }}
-                sx={{ flex: 1, minWidth: '250px' }}
+                sx={{ 
+                  flex: isMobile ? 'none' : 1, 
+                  minWidth: isMobile ? '100%' : '250px',
+                  order: isMobile ? 1 : 1
+                }}
                 size={isMobile ? "small" : "medium"}
+                fullWidth={isMobile}
               />
               
-              {/* Sort dropdown */}
-              <FormControl sx={{ minWidth: 180 }} size={isMobile ? "small" : "medium"}>
-                <InputLabel>Triediť podľa</InputLabel>
-                <Select
-                  value={sortBy}
-                  label="Triediť podľa"
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  startAdornment={<SortIcon sx={{ mr: 1, color: 'text.secondary' }} />}
-                >
-                  <MenuItem value="expiry">Najbližšia expirácia</MenuItem>
-                  <MenuItem value="problems">Počet problémov</MenuItem>
-                  <MenuItem value="name">Názov vozidla</MenuItem>
-                </Select>
-              </FormControl>
-              
-              <Button
-                variant={showFilters ? 'contained' : 'outlined'}
-                startIcon={<FilterListIcon />}
-                onClick={() => setShowFilters(!showFilters)}
-                sx={{ whiteSpace: 'nowrap' }}
-                size={isMobile ? "small" : "medium"}
-              >
-                {isMobile ? 'Filtre' : `Filtre ${hasActiveFilters ? `(${Object.values({ searchQuery, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})` : ''}`}
-              </Button>
-              
-              {hasActiveFilters && (
-                <Button
-                  variant="outlined"
-                  startIcon={<CloseIcon />}
-                  onClick={clearFilters}
-                  color="secondary"
-                  sx={{ whiteSpace: 'nowrap' }}
+              {/* Controls Row for Mobile */}
+              <Box sx={{
+                display: 'flex',
+                gap: { xs: 1, sm: 2 },
+                order: isMobile ? 2 : 2,
+                width: isMobile ? '100%' : 'auto',
+                flexWrap: 'wrap'
+              }}>
+                {/* Sort dropdown */}
+                <FormControl 
+                  sx={{ 
+                    minWidth: isMobile ? 'calc(50% - 4px)' : 180,
+                    flex: isMobile ? 1 : 'none'
+                  }} 
                   size={isMobile ? "small" : "medium"}
                 >
-                  Zrušiť
+                  <InputLabel>{isMobile ? "Triediť" : "Triediť podľa"}</InputLabel>
+                  <Select
+                    value={sortBy}
+                    label={isMobile ? "Triediť" : "Triediť podľa"}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    startAdornment={!isMobile ? <SortIcon sx={{ mr: 1, color: 'text.secondary' }} /> : undefined}
+                  >
+                    <MenuItem value="expiry">{isMobile ? "Expirácia" : "Najbližšia expirácia"}</MenuItem>
+                    <MenuItem value="problems">{isMobile ? "Problémy" : "Počet problémov"}</MenuItem>
+                    <MenuItem value="name">{isMobile ? "Názov" : "Názov vozidla"}</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                {/* Filter Button */}
+                <Button
+                  variant={showFilters ? 'contained' : 'outlined'}
+                  startIcon={<FilterListIcon />}
+                  onClick={() => setShowFilters(!showFilters)}
+                  sx={{ 
+                    whiteSpace: 'nowrap',
+                    minWidth: isMobile ? 'calc(50% - 4px)' : 'auto',
+                    flex: isMobile ? 1 : 'none'
+                  }}
+                  size={isMobile ? "small" : "medium"}
+                >
+                  {isMobile ? 
+                    `Filtre${hasActiveFilters ? ` (${Object.values({ searchQuery, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})` : ''}` : 
+                    `Filtre ${hasActiveFilters ? `(${Object.values({ searchQuery, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})` : ''}`
+                  }
                 </Button>
-              )}
+                
+                {/* Clear Filters Button */}
+                {hasActiveFilters && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<CloseIcon />}
+                    onClick={clearFilters}
+                    color="secondary"
+                    sx={{ 
+                      whiteSpace: 'nowrap',
+                      minWidth: isMobile ? '100%' : 'auto',
+                      order: isMobile ? 3 : 'unset'
+                    }}
+                    size={isMobile ? "small" : "medium"}
+                    fullWidth={isMobile}
+                  >
+                    {isMobile ? "Zrušiť filtre" : "Zrušiť"}
+                  </Button>
+                )}
+              </Box>
             </Box>
 
-            {/* Advanced filters */}
+            {/* Responsive Advanced filters */}
             {showFilters && (
               <>
-                <Divider sx={{ my: 2 }} />
-                <Grid container spacing={2}>
+                <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
+                <Grid container spacing={{ xs: 1.5, sm: 2 }}>
                   <Grid item xs={12} sm={6} md={3}>
                     <FormControl fullWidth size={isMobile ? "small" : "medium"}>
                       <InputLabel>Vozidlo</InputLabel>
@@ -718,11 +941,31 @@ export default function VehicleCentricInsuranceList() {
                         value={filterVehicle}
                         label="Vozidlo"
                         onChange={(e) => setFilterVehicle(e.target.value)}
+                        MenuProps={{
+                          PaperProps: {
+                            style: {
+                              maxHeight: isMobile ? 200 : 300,
+                            },
+                          },
+                        }}
                       >
-                        <MenuItem value="">Všetky</MenuItem>
+                        <MenuItem value="">Všetky vozidlá</MenuItem>
                         {state.vehicles?.map(vehicle => (
                           <MenuItem key={vehicle.id} value={vehicle.id}>
-                            {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                            <Box sx={{ 
+                              display: 'flex', 
+                              flexDirection: isMobile ? 'column' : 'row',
+                              alignItems: isMobile ? 'flex-start' : 'center',
+                              gap: isMobile ? 0 : 1,
+                              width: '100%'
+                            }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {vehicle.brand} {vehicle.model}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {vehicle.licensePlate}
+                              </Typography>
+                            </Box>
                           </MenuItem>
                         )) || []}
                       </Select>
@@ -736,11 +979,31 @@ export default function VehicleCentricInsuranceList() {
                         label="Typ dokumentu"
                         onChange={(e) => setFilterType(e.target.value)}
                       >
-                        <MenuItem value="">Všetky</MenuItem>
-                        <MenuItem value="insurance">Poistka</MenuItem>
-                        <MenuItem value="stk">STK</MenuItem>
-                        <MenuItem value="ek">EK</MenuItem>
-                        <MenuItem value="vignette">Dialničná</MenuItem>
+                        <MenuItem value="">Všetky typy</MenuItem>
+                        <MenuItem value="insurance">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <SecurityIcon sx={{ fontSize: 16 }} />
+                            Poistka
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="stk">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <BuildIcon sx={{ fontSize: 16 }} />
+                            STK
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="ek">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <AssignmentIcon sx={{ fontSize: 16 }} />
+                            EK
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="vignette">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <HighwayIcon sx={{ fontSize: 16 }} />
+                            Dialničná
+                          </Box>
+                        </MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
@@ -751,10 +1014,21 @@ export default function VehicleCentricInsuranceList() {
                         value={filterCompany}
                         label="Spoločnosť"
                         onChange={(e) => setFilterCompany(e.target.value)}
+                        MenuProps={{
+                          PaperProps: {
+                            style: {
+                              maxHeight: isMobile ? 200 : 300,
+                            },
+                          },
+                        }}
                       >
-                        <MenuItem value="">Všetky</MenuItem>
+                        <MenuItem value="">Všetky spoločnosti</MenuItem>
                         {Array.from(new Set(unifiedDocuments.map(d => d.company).filter(Boolean))).map(company => (
-                          <MenuItem key={company} value={company}>{company}</MenuItem>
+                          <MenuItem key={company} value={company}>
+                            <Typography variant="body2" noWrap>
+                              {company}
+                            </Typography>
+                          </MenuItem>
                         ))}
                       </Select>
                     </FormControl>
@@ -767,10 +1041,25 @@ export default function VehicleCentricInsuranceList() {
                         label="Stav"
                         onChange={(e) => setFilterStatus(e.target.value)}
                       >
-                        <MenuItem value="">Všetky</MenuItem>
-                        <MenuItem value="valid">Platné</MenuItem>
-                        <MenuItem value="expiring">Vypršia čoskoro</MenuItem>
-                        <MenuItem value="expired">Vypršané</MenuItem>
+                        <MenuItem value="">Všetky stavy</MenuItem>
+                        <MenuItem value="valid">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                            Platné
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="expiring">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <ScheduleIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+                            Vypršia čoskoro
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="expired">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <ErrorIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                            Vypršané
+                          </Box>
+                        </MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
@@ -944,47 +1233,65 @@ function VehicleCard({
   return (
     <Card 
       sx={{ 
-        mb: 2, 
+        mb: { xs: 1.5, sm: 2 }, 
         boxShadow: stats.hasProblems ? '0 4px 20px rgba(244, 67, 54, 0.15)' : '0 2px 8px rgba(0,0,0,0.1)',
         border: stats.hasProblems ? '1px solid rgba(244, 67, 54, 0.2)' : 'none',
+        borderRadius: { xs: 2, sm: 3 },
         transition: 'all 0.2s ease-in-out',
+        overflow: 'hidden',
         '&:hover': {
           boxShadow: '0 6px 24px rgba(0,0,0,0.15)',
-          transform: 'translateY(-2px)'
+          transform: isMobile ? 'none' : 'translateY(-2px)'
         }
       }}
     >
-      {/* Vehicle Header */}
+      {/* Responsive Vehicle Header */}
       <CardContent 
         sx={{ 
           cursor: 'pointer',
-          p: { xs: 2, md: 3 },
+          p: { xs: 1.5, sm: 2, md: 3 },
           '&:hover': {
             backgroundColor: 'rgba(0,0,0,0.02)'
           }
         }}
         onClick={onToggleExpand}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: isMobile ? 'flex-start' : 'center', 
+          justifyContent: 'space-between',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: { xs: 1.5, sm: 2 }
+        }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: { xs: 1.5, sm: 2 }, 
+            flex: 1,
+            width: isMobile ? '100%' : 'auto',
+            minWidth: 0
+          }}>
             {/* Vehicle Avatar/Icon */}
             <Avatar 
               sx={{ 
                 bgcolor: stats.hasProblems ? 'error.main' : 'primary.main',
-                width: { xs: 40, md: 48 },
-                height: { xs: 40, md: 48 }
+                width: { xs: 36, sm: 40, md: 48 },
+                height: { xs: 36, sm: 40, md: 48 },
+                flexShrink: 0
               }}
             >
-              <CarIcon sx={{ fontSize: { xs: 20, md: 24 } }} />
+              <CarIcon sx={{ fontSize: { xs: 18, sm: 20, md: 24 } }} />
             </Avatar>
             
             {/* Vehicle Info */}
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography 
-                variant={isMobile ? "h6" : "h5"} 
+                variant={isMobile ? "subtitle1" : isTablet ? "h6" : "h5"} 
                 sx={{ 
                   fontWeight: 700, 
                   mb: 0.5,
+                  fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
+                  lineHeight: 1.2,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap'
@@ -993,11 +1300,37 @@ function VehicleCard({
                 {vehicle.brand} {vehicle.model}
               </Typography>
               <Box>
-                <Typography variant="body2" color="text.secondary">
-                  {vehicle.licensePlate} • {isMobile ? '' : `VIN: ${vehicle.vin || 'N/A'} • `}{stats.total} dokumentov
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{ 
+                    fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 0.5,
+                    alignItems: 'center'
+                  }}
+                >
+                  <span style={{ fontWeight: 600 }}>{vehicle.licensePlate}</span>
+                  <span>•</span>
+                  {!isMobile && (
+                    <>
+                      <span>VIN: {vehicle.vin || 'N/A'}</span>
+                      <span>•</span>
+                    </>
+                  )}
+                  <span>{stats.total} dokumentov</span>
                 </Typography>
                 {isMobile && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  <Typography 
+                    variant="caption" 
+                    color="text.secondary" 
+                    sx={{ 
+                      display: 'block',
+                      fontSize: '0.75rem',
+                      mt: 0.25
+                    }}
+                  >
                     VIN: {vehicle.vin || 'Neuvedené'}
                   </Typography>
                 )}
@@ -1005,47 +1338,111 @@ function VehicleCard({
               
               {/* Next expiry info */}
               {stats.nextExpiry && (
-                <Typography variant="caption" color="text.secondary">
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary"
+                  sx={{ 
+                    display: 'block',
+                    mt: 0.5,
+                    fontSize: { xs: '0.75rem', sm: '0.75rem' }
+                  }}
+                >
                   Najbližšia expirácia: {format(stats.nextExpiry, 'dd.MM.yyyy', { locale: sk })}
                 </Typography>
               )}
             </Box>
           </Box>
           
-          {/* Status Badges */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            {stats.expired > 0 && (
-              <Badge badgeContent={stats.expired} color="error">
+          {/* Responsive Status Badges */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: { xs: 0.5, sm: 1 }, 
+            flexWrap: 'wrap',
+            justifyContent: isMobile ? 'space-between' : 'flex-end',
+            width: isMobile ? '100%' : 'auto'
+          }}>
+            {/* Status Chips */}
+            <Box sx={{ 
+              display: 'flex', 
+              gap: { xs: 0.5, sm: 1 }, 
+              flexWrap: 'wrap',
+              alignItems: 'center'
+            }}>
+              {stats.expired > 0 && (
+                <Badge 
+                  badgeContent={stats.expired} 
+                  color="error"
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      fontSize: { xs: '0.625rem', sm: '0.75rem' },
+                      minWidth: { xs: 16, sm: 20 },
+                      height: { xs: 16, sm: 20 }
+                    }
+                  }}
+                >
+                  <Chip 
+                    label={isMobile ? "Vypršané" : "Vypršané"} 
+                    color="error" 
+                    size="small" 
+                    icon={<ErrorIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />}
+                    sx={{ 
+                      fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                      height: { xs: 24, sm: 32 }
+                    }}
+                  />
+                </Badge>
+              )}
+              {stats.expiring > 0 && (
+                <Badge 
+                  badgeContent={stats.expiring} 
+                  color="warning"
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      fontSize: { xs: '0.625rem', sm: '0.75rem' },
+                      minWidth: { xs: 16, sm: 20 },
+                      height: { xs: 16, sm: 20 }
+                    }
+                  }}
+                >
+                  <Chip 
+                    label={isMobile ? "Vyprší" : "Vyprší"} 
+                    color="warning" 
+                    size="small" 
+                    icon={<ScheduleIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />}
+                    sx={{ 
+                      fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                      height: { xs: 24, sm: 32 }
+                    }}
+                  />
+                </Badge>
+              )}
+              {!stats.hasProblems && (
                 <Chip 
-                  label="Vypršané" 
-                  color="error" 
+                  label={isMobile ? "OK" : "V poriadku"} 
+                  color="success" 
                   size="small" 
-                  icon={<ErrorIcon />}
+                  icon={<CheckCircleIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />}
+                  sx={{ 
+                    fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                    height: { xs: 24, sm: 32 }
+                  }}
                 />
-              </Badge>
-            )}
-            {stats.expiring > 0 && (
-              <Badge badgeContent={stats.expiring} color="warning">
-                <Chip 
-                  label="Vyprší" 
-                  color="warning" 
-                  size="small" 
-                  icon={<ScheduleIcon />}
-                />
-              </Badge>
-            )}
-            {!stats.hasProblems && (
-              <Chip 
-                label="V poriadku" 
-                color="success" 
-                size="small" 
-                icon={<CheckCircleIcon />}
-              />
-            )}
+              )}
+            </Box>
             
             {/* Expand/Collapse Icon */}
-            <IconButton size="small" sx={{ ml: 1 }}>
-              {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            <IconButton 
+              size="small" 
+              sx={{ 
+                ml: { xs: 0, sm: 1 },
+                p: { xs: 0.5, sm: 1 }
+              }}
+            >
+              {expanded ? 
+                <ExpandLessIcon sx={{ fontSize: { xs: 20, sm: 24 } }} /> : 
+                <ExpandMoreIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+              }
             </IconButton>
           </Box>
         </Box>
@@ -1088,64 +1485,149 @@ function DocumentListItem({ document, onEdit, onDelete, isMobile, isLast }: Docu
     <>
       <ListItem
         sx={{
-          py: { xs: 1.5, md: 2 },
-          px: { xs: 2, md: 3 },
+          py: { xs: 1, sm: 1.5, md: 2 },
+          px: { xs: 1.5, sm: 2, md: 3 },
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'stretch' : 'center',
+          gap: isMobile ? 1 : 0,
           '&:hover': {
             backgroundColor: 'rgba(0,0,0,0.02)'
           }
         }}
       >
-        <ListItemIcon sx={{ minWidth: 40 }}>
-          <Box sx={{ color: typeInfo.color }}>
-            {typeInfo.icon}
-          </Box>
-        </ListItemIcon>
+        {!isMobile && (
+          <ListItemIcon sx={{ minWidth: { xs: 32, sm: 40 } }}>
+            <Box sx={{ color: typeInfo.color }}>
+              {typeInfo.icon}
+            </Box>
+          </ListItemIcon>
+        )}
         
         <ListItemText
+          sx={{ 
+            flex: 1,
+            mr: isMobile ? 0 : 2
+          }}
           primary={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                {typeInfo.label}
-              </Typography>
-              {(document.policyNumber || document.documentNumber) && (
-                <Typography variant="body2" color="text.secondary">
-                  {document.policyNumber || document.documentNumber}
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: isMobile ? 'flex-start' : 'center', 
+              gap: 1, 
+              flexWrap: 'wrap',
+              flexDirection: isMobile ? 'column' : 'row'
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                flexWrap: 'wrap'
+              }}>
+                {isMobile && (
+                  <Box sx={{ color: typeInfo.color, display: 'flex', alignItems: 'center' }}>
+                    {typeInfo.icon}
+                  </Box>
+                )}
+                <Typography 
+                  variant={isMobile ? "subtitle2" : "body1"} 
+                  sx={{ 
+                    fontWeight: 600,
+                    fontSize: { xs: '0.875rem', sm: '1rem' }
+                  }}
+                >
+                  {typeInfo.label}
                 </Typography>
-              )}
+                {(document.policyNumber || document.documentNumber) && (
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      fontFamily: 'monospace'
+                    }}
+                  >
+                    {document.policyNumber || document.documentNumber}
+                  </Typography>
+                )}
+              </Box>
             </Box>
           }
           secondary={
-            <Box sx={{ mt: 0.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                <Typography variant="body2" color="text.secondary">
-                  {(() => {
-                    try {
-                      const date = typeof document.validTo === 'string' ? parseISO(document.validTo) : document.validTo;
-                      return isValid(date) ? `Platné do ${format(date, 'dd.MM.yyyy', { locale: sk })}` : 'Neplatný dátum';
-                    } catch (error) {
-                      return 'Neplatný dátum';
-                    }
-                  })()}
-                </Typography>
-                
-                <Chip
-                  label={expiryStatus.text}
-                  color={expiryStatus.color as any}
-                  size="small"
-                  variant="filled"
-                />
-                
-                {document.company && (
-                  <Typography variant="body2" color="text.secondary">
-                    {document.company}
+            <Box sx={{ mt: { xs: 1, sm: 0.5 } }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: isMobile ? 'flex-start' : 'center', 
+                gap: { xs: 1, sm: 2 }, 
+                flexWrap: 'wrap',
+                flexDirection: isMobile ? 'column' : 'row'
+              }}>
+                {/* Date and Status Row */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1, 
+                  flexWrap: 'wrap'
+                }}>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                  >
+                    {(() => {
+                      try {
+                        const date = typeof document.validTo === 'string' ? parseISO(document.validTo) : document.validTo;
+                        return isValid(date) ? `Platné do ${format(date, 'dd.MM.yyyy', { locale: sk })}` : 'Neplatný dátum';
+                      } catch (error) {
+                        return 'Neplatný dátum';
+                      }
+                    })()}
                   </Typography>
-                )}
+                  
+                  <Chip
+                    label={expiryStatus.text}
+                    color={expiryStatus.color as any}
+                    size="small"
+                    variant="filled"
+                    sx={{ 
+                      fontSize: { xs: '0.625rem', sm: '0.75rem' },
+                      height: { xs: 20, sm: 24 }
+                    }}
+                  />
+                </Box>
                 
-                {document.price && (
-                  <Typography variant="body2" color="text.secondary">
-                    €{document.price.toFixed(2)}
-                  </Typography>
-                )}
+                {/* Company and Price Row */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1, 
+                  flexWrap: 'wrap'
+                }}>
+                  {document.company && (
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        fontWeight: 500
+                      }}
+                    >
+                      {document.company}
+                    </Typography>
+                  )}
+                  
+                  {document.price && (
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        fontWeight: 600,
+                        color: 'primary.main'
+                      }}
+                    >
+                      €{document.price.toFixed(2)}
+                    </Typography>
+                  )}
+                </Box>
               </Box>
               
               {/* Green Card info for insurance */}
@@ -1214,28 +1696,67 @@ function DocumentListItem({ document, onEdit, onDelete, isMobile, isLast }: Docu
           }
         />
         
-        <ListItemSecondaryAction>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            <Tooltip title="Upraviť">
-              <IconButton
-                size="small"
-                onClick={onEdit}
-                sx={{ color: 'primary.main' }}
-              >
-                <EditIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Vymazať">
-              <IconButton
-                size="small"
-                onClick={onDelete}
-                sx={{ color: 'error.main' }}
-              >
-                <DeleteIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
+        {/* Responsive Action Buttons */}
+        {isMobile ? (
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end',
+            gap: 0.5,
+            mt: 1,
+            width: '100%'
+          }}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={onEdit}
+              sx={{ 
+                minWidth: 'auto',
+                px: 1.5,
+                fontSize: '0.75rem'
+              }}
+            >
+              Upraviť
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={onDelete}
+              sx={{ 
+                minWidth: 'auto',
+                px: 1.5,
+                fontSize: '0.75rem'
+              }}
+            >
+              Vymazať
+            </Button>
           </Box>
-        </ListItemSecondaryAction>
+        ) : (
+          <ListItemSecondaryAction>
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Tooltip title="Upraviť">
+                <IconButton
+                  size="small"
+                  onClick={onEdit}
+                  sx={{ color: 'primary.main' }}
+                >
+                  <EditIcon sx={{ fontSize: { sm: 18, md: 20 } }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Vymazať">
+                <IconButton
+                  size="small"
+                  onClick={onDelete}
+                  sx={{ color: 'error.main' }}
+                >
+                  <DeleteIcon sx={{ fontSize: { sm: 18, md: 20 } }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </ListItemSecondaryAction>
+        )}
       </ListItem>
       {!isLast && <Divider variant="inset" component="li" />}
     </>

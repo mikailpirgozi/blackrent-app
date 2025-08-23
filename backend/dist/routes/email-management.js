@@ -9,29 +9,29 @@ const router = (0, express_1.Router)();
 router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'read'), async (req, res) => {
     try {
         const { status, sender, dateFrom, dateTo, limit = 50, offset = 0 } = req.query;
-        let whereClause = '1=1';
+        let whereClause = "eph.status != 'archived'"; // Exclude archived emails from main list
         const params = [];
         let paramIndex = 1;
         // Filter by status
         if (status && typeof status === 'string') {
-            whereClause += ` AND status = $${paramIndex}`;
+            whereClause += ` AND eph.status = $${paramIndex}`;
             params.push(status);
             paramIndex++;
         }
         // Filter by sender
         if (sender && typeof sender === 'string') {
-            whereClause += ` AND sender ILIKE $${paramIndex}`;
+            whereClause += ` AND eph.sender ILIKE $${paramIndex}`;
             params.push(`%${sender}%`);
             paramIndex++;
         }
         // Filter by date range
         if (dateFrom && typeof dateFrom === 'string') {
-            whereClause += ` AND received_at >= $${paramIndex}`;
+            whereClause += ` AND eph.received_at >= $${paramIndex}`;
             params.push(dateFrom);
             paramIndex++;
         }
         if (dateTo && typeof dateTo === 'string') {
-            whereClause += ` AND received_at <= $${paramIndex}`;
+            whereClause += ` AND eph.received_at <= $${paramIndex}`;
             params.push(dateTo);
             paramIndex++;
         }
@@ -330,6 +330,26 @@ router.post('/:id/approve', auth_1.authenticateToken, (0, permissions_1.checkPer
             INSERT INTO email_action_logs (email_id, user_id, action, notes)
             VALUES ($1, $2, 'approved', 'Rental created and approved')
           `, [id, userId]);
+                // Auto-archive after successful approval (optional - can be disabled via settings)
+                setTimeout(async () => {
+                    try {
+                        await postgres_database_1.postgresDatabase.query(`
+                UPDATE email_processing_history 
+                SET 
+                  status = 'archived',
+                  archived_at = CURRENT_TIMESTAMP
+                WHERE id = $1 AND status = 'processed'
+              `, [id]);
+                        await postgres_database_1.postgresDatabase.query(`
+                INSERT INTO email_action_logs (email_id, user_id, action, notes)
+                VALUES ($1, $2, 'archived', 'Auto-archived after approval')
+              `, [id, userId]);
+                        console.log(`📁 Email ${id} auto-archived after approval`);
+                    }
+                    catch (error) {
+                        console.error('❌ Auto-archive error:', error);
+                    }
+                }, 5000); // Archive after 5 seconds
             }
             catch (rentalError) {
                 console.error('❌ Chyba pri vytváraní rental:', rentalError);
@@ -376,6 +396,26 @@ router.post('/:id/reject', auth_1.authenticateToken, (0, permissions_1.checkPerm
         INSERT INTO email_action_logs (email_id, user_id, action, notes)
         VALUES ($1, $2, 'rejected', $3)
       `, [id, userId, reason || 'Manually rejected']);
+        // Auto-archive after rejection (optional - can be disabled via settings)
+        setTimeout(async () => {
+            try {
+                await postgres_database_1.postgresDatabase.query(`
+            UPDATE email_processing_history 
+            SET 
+              status = 'archived',
+              archived_at = CURRENT_TIMESTAMP
+            WHERE id = $1 AND status = 'rejected'
+          `, [id]);
+                await postgres_database_1.postgresDatabase.query(`
+            INSERT INTO email_action_logs (email_id, user_id, action, notes)
+            VALUES ($1, $2, 'archived', 'Auto-archived after rejection')
+          `, [id, userId]);
+                console.log(`📁 Email ${id} auto-archived after rejection`);
+            }
+            catch (error) {
+                console.error('❌ Auto-archive error:', error);
+            }
+        }, 10000); // Archive after 10 seconds for rejection
         res.json({
             success: true,
             data: {
@@ -402,7 +442,8 @@ router.post('/:id/archive', auth_1.authenticateToken, (0, permissions_1.checkPer
           status = 'archived',
           action_taken = 'archived',
           processed_by = $2,
-          processed_at = CURRENT_TIMESTAMP
+          processed_at = CURRENT_TIMESTAMP,
+          archived_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `, [id, userId]);
         // Log action
@@ -422,6 +463,247 @@ router.post('/:id/archive', auth_1.authenticateToken, (0, permissions_1.checkPer
         res.status(500).json({
             success: false,
             error: 'Chyba pri archivovaní emailu'
+        });
+    }
+});
+// POST /api/email-management/bulk-archive - Bulk archivovanie emailov
+router.post('/bulk-archive', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'update'), async (req, res) => {
+    try {
+        const { emailIds, archiveType = 'manual' } = req.body;
+        const userId = req.user?.id;
+        if (!emailIds || !Array.isArray(emailIds) || emailIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Nie sú poskytnuté žiadne email ID'
+            });
+        }
+        // Build placeholders for IN clause
+        const placeholders = emailIds.map((_, index) => `$${index + 1}`).join(',');
+        const params = [...emailIds, userId];
+        // Archive emails
+        const result = await postgres_database_1.postgresDatabase.query(`
+        UPDATE email_processing_history 
+        SET 
+          status = 'archived',
+          action_taken = 'archived',
+          processed_by = $${params.length},
+          processed_at = CURRENT_TIMESTAMP,
+          archived_at = CURRENT_TIMESTAMP
+        WHERE id IN (${placeholders})
+        AND status NOT IN ('archived')
+        RETURNING id
+      `, params);
+        // Log actions for each archived email
+        const logPromises = result.rows.map((row) => postgres_database_1.postgresDatabase.query(`
+          INSERT INTO email_action_logs (email_id, user_id, action, notes)
+          VALUES ($1, $2, 'archived', $3)
+        `, [row.id, userId, `Bulk archived (${archiveType})`]));
+        await Promise.all(logPromises);
+        res.json({
+            success: true,
+            data: {
+                message: `${result.rows.length} emailov úspešne archivovaných`,
+                archivedCount: result.rows.length
+            }
+        });
+    }
+    catch (error) {
+        console.error('❌ EMAIL MANAGEMENT: Chyba pri bulk archivovaní:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri bulk archivovaní emailov'
+        });
+    }
+});
+// POST /api/email-management/auto-archive - Automatické archivovanie starých emailov
+router.post('/auto-archive', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'update'), async (req, res) => {
+    try {
+        const { daysOld = 30, statuses = ['processed', 'rejected'] } = req.body;
+        const userId = req.user?.id;
+        // Build status filter
+        const statusPlaceholders = statuses.map((_, index) => `$${index + 2}`).join(',');
+        const params = [daysOld, ...statuses, userId];
+        const result = await postgres_database_1.postgresDatabase.query(`
+        UPDATE email_processing_history 
+        SET 
+          status = 'archived',
+          action_taken = 'archived',
+          processed_by = $${params.length},
+          processed_at = CURRENT_TIMESTAMP,
+          archived_at = CURRENT_TIMESTAMP
+        WHERE status IN (${statusPlaceholders})
+        AND processed_at < CURRENT_TIMESTAMP - INTERVAL '$1 days'
+        AND archived_at IS NULL
+        RETURNING id, subject, sender
+      `, params);
+        // Log actions for each auto-archived email
+        const logPromises = result.rows.map((row) => postgres_database_1.postgresDatabase.query(`
+          INSERT INTO email_action_logs (email_id, user_id, action, notes)
+          VALUES ($1, $2, 'archived', $3)
+        `, [row.id, userId, `Auto-archived after ${daysOld} days`]));
+        await Promise.all(logPromises);
+        res.json({
+            success: true,
+            data: {
+                message: `${result.rows.length} starých emailov automaticky archivovaných`,
+                archivedCount: result.rows.length,
+                archivedEmails: result.rows
+            }
+        });
+    }
+    catch (error) {
+        console.error('❌ EMAIL MANAGEMENT: Chyba pri automatickom archivovaní:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri automatickom archivovaní emailov'
+        });
+    }
+});
+// GET /api/email-management/archive - Získanie archivovaných emailov
+router.get('/archive/list', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'read'), async (req, res) => {
+    try {
+        const { sender, dateFrom, dateTo, limit = 50, offset = 0 } = req.query;
+        let whereClause = "eph.status = 'archived'";
+        const params = [];
+        let paramIndex = 1;
+        // Filter by sender
+        if (sender && typeof sender === 'string') {
+            whereClause += ` AND eph.sender ILIKE $${paramIndex}`;
+            params.push(`%${sender}%`);
+            paramIndex++;
+        }
+        // Filter by date range
+        if (dateFrom && typeof dateFrom === 'string') {
+            whereClause += ` AND eph.archived_at >= $${paramIndex}`;
+            params.push(dateFrom);
+            paramIndex++;
+        }
+        if (dateTo && typeof dateTo === 'string') {
+            whereClause += ` AND eph.archived_at <= $${paramIndex}`;
+            params.push(dateTo);
+            paramIndex++;
+        }
+        // Add pagination
+        const limitClause = `LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+        params.push(parseInt(limit), parseInt(offset));
+        const query = `
+        SELECT 
+          eph.id,
+          eph.email_id,
+          eph.subject,
+          eph.sender,
+          eph.received_at,
+          eph.processed_at,
+          eph.archived_at,
+          eph.status,
+          eph.action_taken,
+          eph.confidence_score,
+          eph.error_message,
+          eph.notes,
+          eph.tags,
+          eph.rental_id,
+          eph.is_blacklisted,
+          eph.created_at,
+          eph.updated_at,
+          -- Extract data from parsed_data JSON or rental table
+          COALESCE(r.customer_name, eph.parsed_data->>'customerName') as customer_name,
+          COALESCE(r.order_number, eph.parsed_data->>'orderNumber') as order_number,
+          eph.parsed_data->>'vehicleName' as vehicle_name,
+          CAST(eph.parsed_data->>'totalAmount' AS DECIMAL) as total_price,
+          u.username as processed_by_username
+        FROM email_processing_history eph
+        LEFT JOIN rentals r ON eph.rental_id = r.id
+        LEFT JOIN users u ON eph.processed_by = u.id
+        WHERE ${whereClause}
+        ORDER BY eph.archived_at DESC
+        ${limitClause}
+      `;
+        const result = await postgres_database_1.postgresDatabase.query(query, params);
+        // Get total count for pagination
+        const countQuery = `
+        SELECT COUNT(*) as total
+        FROM email_processing_history eph
+        WHERE ${whereClause}
+      `;
+        const countResult = await postgres_database_1.postgresDatabase.query(countQuery, params.slice(0, -2));
+        const total = parseInt(countResult.rows[0].total);
+        res.json({
+            success: true,
+            data: {
+                emails: result.rows,
+                pagination: {
+                    total,
+                    limit: parseInt(limit),
+                    offset: parseInt(offset),
+                    hasMore: (parseInt(offset) + parseInt(limit)) < total
+                }
+            }
+        });
+    }
+    catch (error) {
+        console.error('❌ EMAIL MANAGEMENT: Chyba pri načítaní archívu:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri načítaní archívu emailov'
+        });
+    }
+});
+// POST /api/email-management/:id/unarchive - Obnoviť email z archívu
+router.post('/:id/unarchive', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'update'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?.id;
+        // Get current email to determine previous status
+        const emailResult = await postgres_database_1.postgresDatabase.query(`
+        SELECT * FROM email_processing_history WHERE id = $1
+      `, [id]);
+        if (emailResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Email nenájdený'
+            });
+        }
+        const email = emailResult.rows[0];
+        if (email.status !== 'archived') {
+            return res.status(400).json({
+                success: false,
+                error: 'Email nie je archivovaný'
+            });
+        }
+        // Determine new status based on action_taken
+        let newStatus = 'new';
+        if (email.action_taken === 'approved') {
+            newStatus = 'processed';
+        }
+        else if (email.action_taken === 'rejected') {
+            newStatus = 'rejected';
+        }
+        await postgres_database_1.postgresDatabase.query(`
+        UPDATE email_processing_history 
+        SET 
+          status = $2,
+          archived_at = NULL,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+      `, [id, newStatus]);
+        // Log action
+        await postgres_database_1.postgresDatabase.query(`
+        INSERT INTO email_action_logs (email_id, user_id, action, notes)
+        VALUES ($1, $2, 'unarchived', $3)
+      `, [id, userId, `Restored from archive to status: ${newStatus}`]);
+        res.json({
+            success: true,
+            data: {
+                message: 'Email úspešne obnovený z archívu',
+                newStatus
+            }
+        });
+    }
+    catch (error) {
+        console.error('❌ EMAIL MANAGEMENT: Chyba pri obnove z archívu:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri obnove emailu z archívu'
         });
     }
 });
