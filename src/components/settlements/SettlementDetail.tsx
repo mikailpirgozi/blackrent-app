@@ -406,7 +406,7 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
 
       {/* Detailed Lists */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} lg={6}>
+        <Grid item xs={12} lg={8}>
           <Card sx={{ 
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             height: 'fit-content'
@@ -420,7 +420,7 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
               </Box>
               
               <TableContainer sx={{ 
-                maxHeight: 400,
+                maxHeight: 600,
                 '& .MuiTableHead-root': {
                   '& .MuiTableCell-root': {
                     backgroundColor: '#e8f5e8',
@@ -436,6 +436,7 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
                     <TableRow>
                       <TableCell>Vozidlo</TableCell>
                       <TableCell>Zákazník</TableCell>
+                      <TableCell>Dátum prenájmu</TableCell>
                       <TableCell>Platba</TableCell>
                       <TableCell align="right">Cena (€)</TableCell>
                       <TableCell align="right">Provízia (€)</TableCell>
@@ -467,6 +468,14 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
                           </Box>
                         </TableCell>
                         <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {format(new Date(rental.startDate), 'dd.MM.yyyy', { locale: sk })} - {format(new Date(rental.endDate), 'dd.MM.yyyy', { locale: sk })}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {Math.max(1, Math.ceil((new Date(rental.endDate).getTime() - new Date(rental.startDate).getTime()) / (1000 * 60 * 60 * 24)))} dní
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
                           <Chip
                             label={getPaymentMethodLabel(rental.paymentMethod)}
                             size="small"
@@ -492,7 +501,7 @@ export default function SettlementDetail({ settlement, onClose }: SettlementDeta
           </Card>
         </Grid>
 
-        <Grid item xs={12} lg={6}>
+        <Grid item xs={12} lg={4}>
           <Card sx={{ 
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             height: 'fit-content'

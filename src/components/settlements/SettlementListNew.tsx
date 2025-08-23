@@ -964,9 +964,17 @@ const SettlementListNew: React.FC = () => {
       <Dialog 
         open={detailOpen} 
         onClose={() => setDetailOpen(false)}
-        maxWidth="lg"
+        maxWidth={false}
         fullWidth
         fullScreen={isMobile}
+        sx={{
+          '& .MuiDialog-paper': {
+            maxWidth: isMobile ? '100%' : '95vw',
+            width: isMobile ? '100%' : '95vw',
+            height: isMobile ? '100%' : 'auto',
+            maxHeight: isMobile ? '100%' : '90vh'
+          }
+        }}
       >
         {selectedSettlement && (
           <SettlementDetail

@@ -5450,13 +5450,10 @@ export class PostgresDatabase {
         const toDate = new Date(row.to_date || new Date());
         const company = row.company || 'Default Company';
         
-                 // Filter rentals for this settlement
+                 // Filter rentals for this settlement (FIXED: only include rentals that START in the period)
          const filteredRentals = allRentals.filter(rental => {
            const rentalStart = new Date(rental.startDate);
-           const rentalEnd = new Date(rental.endDate);
-           const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) || 
-                             (rentalEnd >= fromDate && rentalEnd <= toDate) ||
-                             (rentalStart <= fromDate && rentalEnd >= toDate);
+           const isInPeriod = rentalStart >= fromDate && rentalStart <= toDate;
            
            // 🔧 FIXED: Use vehicle.company (from corrected getRentals) or fallback to rental.company
            const vehicleCompany = rental.vehicle?.company;
@@ -5521,13 +5518,10 @@ export class PostgresDatabase {
       const toDate = new Date(row.to_date);
       const company = row.company;
       
-      // Filter rentals for this settlement
+      // Filter rentals for this settlement (FIXED: only include rentals that START in the period)
       const filteredRentals = allRentals.filter(rental => {
         const rentalStart = new Date(rental.startDate);
-        const rentalEnd = new Date(rental.endDate);
-        const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) || 
-                          (rentalEnd >= fromDate && rentalEnd <= toDate) ||
-                          (rentalStart <= fromDate && rentalEnd >= toDate);
+        const isInPeriod = rentalStart >= fromDate && rentalStart <= toDate;
         
         // Use vehicle.company (from corrected getRentals) or fallback to rental.company
         const vehicleCompany = rental.vehicle?.company;
