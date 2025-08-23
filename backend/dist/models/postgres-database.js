@@ -6119,6 +6119,7 @@ class PostgresDatabase {
             END as final_status
           FROM calendar_dates cd
           CROSS JOIN vehicles v
+          WHERE v.status NOT IN ('removed', 'temporarily_removed')
           LEFT JOIN active_rentals ar ON (
             ar.vehicle_id = v.id 
             AND cd.date BETWEEN ar.start_date AND ar.end_date

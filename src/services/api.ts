@@ -194,6 +194,11 @@ class ApiService {
     }
   }
 
+  // Generická GET metóda
+  async get<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET' });
+  }
+
   // Vozidlá s cache
   async getVehicles(): Promise<Vehicle[]> {
     const userId = localStorage.getItem('blackrent_user_id');
