@@ -504,7 +504,7 @@ router.post('/batch-import',
                     console.warn(`   (Musí sa zhodovať PRESNE - veľkosť písmen, čiarky, medzery, všetko!)`);
                   }
                 } catch (error) {
-                  console.warn(`⚠️ Chyba pri hľadaní vozidla pre firmu "${vehicleIdStr}":`, error.message);
+                  console.warn(`⚠️ Chyba pri hľadaní vozidla pre firmu "${vehicleIdStr}":`, error instanceof Error ? error.message : String(error));
                 }
               }
             }
