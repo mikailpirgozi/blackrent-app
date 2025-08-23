@@ -432,16 +432,38 @@ router.post('/return', authenticateToken, async (req, res) => {
         // Načítaj aktuálny prenájom
         const currentRental = await postgresDatabase.getRental(protocolData.rentalId);
         if (currentRental) {
-          // Aktualizuj prenájom s doplatkom za km
+          // Vypočítaj novú celkovú cenu
+          const newTotalPrice = currentRental.totalPrice + protocolData.kilometerFee;
+          
+          // Prepočítaj províziu z novej celkovej ceny
+          let newCommission = currentRental.commission || 0;
+          if (currentRental.vehicle && currentRental.vehicle.commission) {
+            const commissionConfig = currentRental.vehicle.commission;
+            if (commissionConfig.type === 'percentage') {
+              newCommission = (newTotalPrice * commissionConfig.value) / 100;
+            } else {
+              newCommission = commissionConfig.value; // Fixed commission stays same
+            }
+          }
+          
+          // Aktualizuj prenájom s doplatkom za km a novou províziou
           const updatedRental = {
             ...currentRental,
             extraKmCharge: protocolData.kilometerFee,
-            totalPrice: currentRental.totalPrice + protocolData.kilometerFee,
+            totalPrice: newTotalPrice,
+            commission: newCommission,
             status: 'finished' as const
           };
           
           await postgresDatabase.updateRental(updatedRental);
-          console.log('✅ Rental updated with extra km charge:', updatedRental.id);
+          console.log('✅ Rental updated with extra km charge and recalculated commission:', {
+            rentalId: updatedRental.id,
+            extraKmCharge: protocolData.kilometerFee,
+            oldTotalPrice: currentRental.totalPrice,
+            newTotalPrice: newTotalPrice,
+            oldCommission: currentRental.commission,
+            newCommission: newCommission
+          });
         }
       } catch (error) {
         console.error('❌ Error updating rental with extra km charge:', error);

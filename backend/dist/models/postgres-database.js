@@ -3449,23 +3449,24 @@ class PostgresDatabase {
           start_date = $3, 
           end_date = $4,
           total_price = $5, 
-          paid = $6, 
-          status = $7,
-          payment_method = $8,
-          handover_place = $9,
-          order_number = $10,
-          deposit = $11,
-          allowed_kilometers = $12,
-          extra_kilometer_rate = $13,
-          -- 🐛 FIX: Pridané chýbajúce extra_km_charge
-          extra_km_charge = $14
-        WHERE id = $15
+          commission = $6,
+          paid = $7, 
+          status = $8,
+          payment_method = $9,
+          handover_place = $10,
+          order_number = $11,
+          deposit = $12,
+          allowed_kilometers = $13,
+          extra_kilometer_rate = $14,
+          extra_km_charge = $15
+        WHERE id = $16
         `, [
                 rental.vehicleId || null, // UUID as string, not parseInt
                 rental.customerName,
                 rental.startDate,
                 rental.endDate,
                 rental.totalPrice || 0,
+                rental.commission || 0, // 🐛 FIX: Pridané chýbajúce commission field
                 rental.paid || false,
                 rental.status || 'pending',
                 rental.paymentMethod || null,
@@ -3474,7 +3475,6 @@ class PostgresDatabase {
                 rental.deposit || null,
                 rental.allowedKilometers || null,
                 rental.extraKilometerRate || null,
-                // 🐛 FIX: Pridané chýbajúce extra_km_charge parameter
                 rental.extraKmCharge || null,
                 rental.id // UUID as string, not parseInt
             ]);
