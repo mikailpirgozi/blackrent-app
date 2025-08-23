@@ -677,6 +677,52 @@ class ApiService {
     });
   }
 
+  // 📥 BATCH IMPORT - Rýchly import viacerých prenájmov naraz
+  async batchImportRentals(rentals: Rental[]): Promise<{
+    processed: number;
+    total: number;
+    results: any[];
+    errors: any[];
+    successRate: number;
+  }> {
+    return this.request<{
+      processed: number;
+      total: number;
+      results: any[];
+      errors: any[];
+      successRate: number;
+    }>('/rentals/batch-import', {
+      method: 'POST',
+      body: JSON.stringify({ rentals }),
+    });
+  }
+
+  // 📥 BATCH IMPORT VEHICLES - Rýchly import viacerých vozidiel naraz
+  async batchImportVehicles(vehicles: Vehicle[]): Promise<{
+    processed: number;
+    total: number;
+    created: number;
+    updated: number;
+    errorsCount: number;
+    successRate: string;
+    results: any[];
+    errors: any[];
+  }> {
+    return this.request<{
+      processed: number;
+      total: number;
+      created: number;
+      updated: number;
+      errorsCount: number;
+      successRate: string;
+      results: any[];
+      errors: any[];
+    }>('/vehicles/batch-import', {
+      method: 'POST',
+      body: JSON.stringify({ vehicles }),
+    });
+  }
+
   async updateRental(rental: Rental): Promise<void> {
     return this.request<void>(`/rentals/${rental.id}`, {
       method: 'PUT',

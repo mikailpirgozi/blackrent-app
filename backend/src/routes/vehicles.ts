@@ -415,7 +415,7 @@ router.get('/export/csv',
         vehicles = vehicles.filter(v => v.ownerCompanyId && allowedCompanyIds.includes(v.ownerCompanyId));
       }
 
-      // Vytvor CSV hlavičky
+      // Vytvor CSV hlavičky s cenotvorbou
       const csvHeaders = [
         'ID',
         'Značka',
@@ -425,21 +425,52 @@ router.get('/export/csv',
         'Rok',
         'Status',
         'STK',
-        'Vytvorené'
+        'Vytvorené',
+        // 💰 CENOTVORBA - 7 cenových pásiem
+        'Cena_0-1_dni',
+        'Cena_2-3_dni', 
+        'Cena_4-7_dni',
+        'Cena_8-14_dni',
+        'Cena_15-22_dni',
+        'Cena_23-30_dni',
+        'Cena_31+_dni',
+        // 💼 PROVÍZIA
+        'Provizia_typ',
+        'Provizia_hodnota'
       ];
 
-      // Konvertuj vozidlá na CSV riadky
-      const csvRows = vehicles.map(vehicle => [
-        vehicle.id,
-        vehicle.brand,
-        vehicle.model,
-        vehicle.licensePlate,
-        vehicle.company,
-        vehicle.year || '',
-        vehicle.status,
-        vehicle.stk ? vehicle.stk.toISOString().split('T')[0] : '',
-        vehicle.createdAt ? vehicle.createdAt.toISOString().split('T')[0] : ''
-      ]);
+      // Konvertuj vozidlá na CSV riadky s cenotvorbou
+      const csvRows = vehicles.map(vehicle => {
+        // 💰 EXTRAKCIA CENOTVORBY - 7 štandardných pásiem
+        const pricing = vehicle.pricing || [];
+        const getPriceForDays = (minDays: number, maxDays: number) => {
+          const tier = pricing.find(p => p.minDays === minDays && p.maxDays === maxDays);
+          return tier ? tier.pricePerDay : '';
+        };
+
+        return [
+          vehicle.id,
+          vehicle.brand,
+          vehicle.model,
+          vehicle.licensePlate,
+          vehicle.company,
+          vehicle.year || '',
+          vehicle.status,
+          vehicle.stk ? vehicle.stk.toISOString().split('T')[0] : '',
+          vehicle.createdAt ? vehicle.createdAt.toISOString().split('T')[0] : '',
+          // 💰 CENOTVORBA - 7 cenových pásiem
+          getPriceForDays(0, 1),    // 0-1 dní
+          getPriceForDays(2, 3),    // 2-3 dni
+          getPriceForDays(4, 7),    // 4-7 dní
+          getPriceForDays(8, 14),   // 8-14 dní
+          getPriceForDays(15, 22),  // 15-22 dní
+          getPriceForDays(23, 30),  // 23-30 dní
+          getPriceForDays(31, 365), // 31+ dní
+          // 💼 PROVÍZIA
+          vehicle.commission?.type || 'percentage',
+          vehicle.commission?.value || 20
+        ];
+      });
 
       // Vytvor CSV obsah
       const csvContent = [csvHeaders, ...csvRows]
@@ -520,19 +551,20 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
           continue;
         }
 
-        // Mapovanie základných stĺpcov
+        // Mapovanie základných stĺpcov s podporou slovenských názvov
         const fieldMap: { [key: string]: string } = {};
         header.forEach((headerName: string, index: number) => {
           fieldMap[headerName] = fields[index] || '';
         });
 
-        const brand = fieldMap['brand'];
-        const model = fieldMap['model'];
-        const licensePlate = fieldMap['licensePlate'];
-        const company = fieldMap['company'];
-        const year = fieldMap['year'];
-        const status = fieldMap['status'];
-        const stk = fieldMap['stk'];
+        // 🔧 OPRAVENÉ: Podpora slovenských aj anglických názvov stĺpcov
+        const brand = fieldMap['brand'] || fieldMap['Značka'];
+        const model = fieldMap['model'] || fieldMap['Model'];
+        const licensePlate = fieldMap['licensePlate'] || fieldMap['ŠPZ'];
+        const company = fieldMap['company'] || fieldMap['Firma'];
+        const year = fieldMap['year'] || fieldMap['Rok'];
+        const status = fieldMap['status'] || fieldMap['Status'];
+        const stk = fieldMap['stk'] || fieldMap['STK'];
 
         if (!brand || !model || !company) {
           errors.push({ row: i + 2, error: 'Značka, model a firma sú povinné' });
@@ -547,19 +579,27 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
           pricePerDay: number;
         }> = [];
         
-        // Mapovanie cenových stĺpcov na pricing formát
+        // 💰 MAPOVANIE CENOVÝCH STĹPCOV - podpora nových názvov z exportu
         const priceColumns = [
-          { column: 'cena_0_1', minDays: 0, maxDays: 1 },
-          { column: 'cena_2_3', minDays: 2, maxDays: 3 },
-          { column: 'cena_4_7', minDays: 4, maxDays: 7 },
-          { column: 'cena_8_14', minDays: 8, maxDays: 14 },
-          { column: 'cena_15_22', minDays: 15, maxDays: 22 },
-          { column: 'cena_23_30', minDays: 23, maxDays: 30 },
-          { column: 'cena_31_9999', minDays: 31, maxDays: 9999 }
+          { columns: ['cena_0_1', 'Cena_0-1_dni'], minDays: 0, maxDays: 1 },
+          { columns: ['cena_2_3', 'Cena_2-3_dni'], minDays: 2, maxDays: 3 },
+          { columns: ['cena_4_7', 'Cena_4-7_dni'], minDays: 4, maxDays: 7 },
+          { columns: ['cena_8_14', 'Cena_8-14_dni'], minDays: 8, maxDays: 14 },
+          { columns: ['cena_15_22', 'Cena_15-22_dni'], minDays: 15, maxDays: 22 },
+          { columns: ['cena_23_30', 'Cena_23-30_dni'], minDays: 23, maxDays: 30 },
+          { columns: ['cena_31_9999', 'Cena_31+_dni'], minDays: 31, maxDays: 365 }
         ];
 
         priceColumns.forEach((priceCol, index) => {
-          const priceValue = fieldMap[priceCol.column];
+          // Skús nájsť hodnotu v ktoromkoľvek z možných názvov stĺpcov
+          let priceValue = '';
+          for (const columnName of priceCol.columns) {
+            if (fieldMap[columnName]) {
+              priceValue = fieldMap[columnName];
+              break;
+            }
+          }
+          
           if (priceValue && !isNaN(parseFloat(priceValue))) {
             pricing.push({
               id: (index + 1).toString(),
@@ -570,9 +610,16 @@ router.post('/import/csv', authenticateToken, async (req: Request, res: Response
           }
         });
 
-        // Parsovanie commission
-        const commissionType = (fieldMap['commissionType'] || 'percentage') as 'percentage' | 'fixed';
-        const commissionValue = fieldMap['commissionValue'] ? parseFloat(fieldMap['commissionValue']) : 20;
+        // 💼 PARSOVANIE PROVÍZIE - podpora nových názvov z exportu
+        const commissionType = (
+          fieldMap['commissionType'] || 
+          fieldMap['Provizia_typ'] || 
+          'percentage'
+        ) as 'percentage' | 'fixed';
+        
+        const commissionValue = fieldMap['commissionValue'] || fieldMap['Provizia_hodnota'] 
+          ? parseFloat(fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']) 
+          : 20;
 
         // Vytvor vehicle data
         const vehicleData = {
@@ -733,6 +780,132 @@ router.get('/paginated',
       res.status(500).json({
         success: false,
         error: 'Chyba pri získavaní vozidiel'
+      });
+    }
+  }
+);
+
+// 📥 BATCH CSV IMPORT - Rýchly import viacerých vozidiel naraz
+router.post('/batch-import', 
+  authenticateToken,
+  checkPermission('vehicles', 'create'),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      console.log('📥 Starting batch vehicle import...');
+      const { vehicles } = req.body;
+
+      if (!vehicles || !Array.isArray(vehicles)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Vehicles array je povinný'
+        });
+      }
+
+      console.log(`📊 Processing ${vehicles.length} vehicles in batch...`);
+      
+      const results = [];
+      const errors = [];
+      const updated = [];
+      let processed = 0;
+
+      // Progress tracking
+      const progressInterval = Math.max(1, Math.floor(vehicles.length / 10));
+
+      // Získaj existujúce vozidlá pre kontrolu duplicít
+      const existingVehicles = await postgresDatabase.getVehicles();
+      const existingByLicensePlate = new Map(
+        existingVehicles.map(v => [v.licensePlate?.toLowerCase(), v])
+      );
+
+      for (let i = 0; i < vehicles.length; i++) {
+        // Progress logging
+        if (i % progressInterval === 0 || i === vehicles.length - 1) {
+          const progress = Math.round(((i + 1) / vehicles.length) * 100);
+          console.log(`📊 Batch Import Progress: ${progress}% (${i + 1}/${vehicles.length})`);
+        }
+
+        try {
+          const vehicleData = vehicles[i];
+          
+          // Validácia povinných polí
+          if (!vehicleData.brand || !vehicleData.model || !vehicleData.company) {
+            errors.push({ 
+              index: i + 1, 
+              error: 'Značka, model a firma sú povinné',
+              vehicle: `${vehicleData.brand || 'N/A'} ${vehicleData.model || 'N/A'}`
+            });
+            continue;
+          }
+
+          // Kontrola duplicít podľa ŠPZ
+          const licensePlateLower = vehicleData.licensePlate?.toLowerCase();
+          const existingVehicle = existingByLicensePlate.get(licensePlateLower);
+
+          if (existingVehicle) {
+            // Update existujúceho vozidla
+            const updatedVehicle = {
+              ...existingVehicle,
+              ...vehicleData,
+              id: existingVehicle.id // Zachovaj originálne ID
+            };
+
+            await postgresDatabase.updateVehicle(updatedVehicle);
+            updated.push({
+              id: existingVehicle.id,
+              brand: vehicleData.brand,
+              model: vehicleData.model,
+              licensePlate: vehicleData.licensePlate,
+              action: 'updated'
+            });
+          } else {
+            // Vytvor nové vozidlo
+            const createdVehicle = await postgresDatabase.createVehicle(vehicleData);
+            results.push({
+              id: createdVehicle.id,
+              brand: vehicleData.brand,
+              model: vehicleData.model,
+              licensePlate: vehicleData.licensePlate,
+              action: 'created'
+            });
+          }
+
+          processed++;
+
+        } catch (error) {
+          console.error(`❌ Error processing vehicle ${i + 1}:`, error);
+          errors.push({ 
+            index: i + 1, 
+            error: error instanceof Error ? error.message : 'Neznáma chyba',
+            vehicle: `${vehicles[i].brand || 'N/A'} ${vehicles[i].model || 'N/A'}`
+          });
+        }
+      }
+
+      const successRate = Math.round((processed / vehicles.length) * 100);
+      
+      console.log(`✅ Batch vehicle import completed: ${results.length} created, ${updated.length} updated, ${errors.length} errors`);
+
+      res.json({
+        success: true,
+        message: `Batch import dokončený: ${results.length} vytvorených, ${updated.length} aktualizovaných, ${errors.length} chýb`,
+        data: {
+          processed,
+          total: vehicles.length,
+          created: results.length,
+          updated: updated.length,
+          errorsCount: errors.length,
+          successRate: `${successRate}%`,
+          results: [...results, ...updated],
+          errors: errors.slice(0, 10) // Limit na prvých 10 chýb
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Batch vehicle import failed:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Batch import vozidiel zlyhal',
+        message: error instanceof Error ? error.message : String(error)
       });
     }
   }

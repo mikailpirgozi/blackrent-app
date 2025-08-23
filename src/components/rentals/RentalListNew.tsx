@@ -618,7 +618,7 @@ export default function RentalListNew() {
     // - startDate: dátum začiatku prenájmu (formát ISO 8601 - 2025-01-03T23:00:00.000Z)
     // - endDate: dátum konca prenájmu (formát ISO 8601 - 2025-01-03T23:00:00.000Z)
     // - totalPrice: celková cena prenájmu v €
-    // - commission: provízia v €
+    // - commission: provízia v € (vypočítaná rovnako ako v UI)
     // - paymentMethod: spôsob platby (cash/bank_transfer/vrp/direct_to_owner)
     // - discountType: typ zľavy (percentage/fixed) - voliteľné
     // - discountValue: hodnota zľavy - voliteľné
@@ -628,6 +628,35 @@ export default function RentalListNew() {
     // - paid: či je uhradené (1=áno, 0=nie)
     // - handoverPlace: miesto prevzatia - voliteľné
     // - confirmed: či je potvrdené (1=áno, 0=nie)
+    
+    // 🔧 HELPER: Výpočet provízie rovnako ako v UI
+    const calculateCommission = (rental: Rental): number => {
+      // ✅ OPRAVENÉ: totalPrice už obsahuje všetko (základná cena + doplatok za km)
+      // Netreba pridávať extraKmCharge znovu!
+      const totalPrice = rental.totalPrice;
+      
+      // Ak je nastavená customCommission, použije sa tá
+      if (rental.customCommission?.value && rental.customCommission.value > 0) {
+        if (rental.customCommission.type === 'percentage') {
+          return (totalPrice * rental.customCommission.value) / 100;
+        } else {
+          return rental.customCommission.value;
+        }
+      }
+      
+      // Inak sa použije commission z vozidla
+      if (rental.vehicle?.commission) {
+        if (rental.vehicle.commission.type === 'percentage') {
+          return (totalPrice * rental.vehicle.commission.value) / 100;
+        } else {
+          return rental.vehicle.commission.value;
+        }
+      }
+      
+      // Fallback na uloženú commission z databázy
+      return rental.commission || 0;
+    };
+    
     const header = [
       'id','licensePlate','company','brand','model','customerName','customerEmail','startDate','endDate','totalPrice','commission','paymentMethod','discountType','discountValue','customCommissionType','customCommissionValue','extraKmCharge','paid','handoverPlace','confirmed'
     ];
@@ -648,7 +677,7 @@ export default function RentalListNew() {
         return !isNaN(endDate.getTime()) ? endDate.toISOString() : String(r.endDate);
       })(),
       r.totalPrice,
-      r.commission,
+      calculateCommission(r), // 🔧 OPRAVENÉ: Používa vypočítanú províziu
       r.paymentMethod,
       r.discount?.type || '',
       r.discount?.value ?? '',
@@ -678,6 +707,9 @@ export default function RentalListNew() {
           const createdCustomers: any[] = [];
           const createdCompanies: any[] = [];
           
+          // 📦 BATCH PROCESSING: Pripravíme všetky prenájmy pre batch import
+          const batchRentals = [];
+          
           // Najskôr spracujeme všetky riadky a vytvoríme zákazníkov, firmy a vozidlá ak je potrebné
           for (const row of results.data as any[]) {
             logger.debug('Processing CSV row', { rowIndex: results.data.indexOf(row) });
@@ -686,10 +718,44 @@ export default function RentalListNew() {
             const customerName = row.customerName || 'Neznámy zákazník';
             const customerEmail = row.customerEmail || '';
             
+            // 🔍 DETAILNÉ HĽADANIE ZÁKAZNÍKA S DIAKRITIKU
+            console.log(`🔍 CUSTOMER SEARCH [${results.data.indexOf(row)}]:`, {
+              csvCustomerName: customerName,
+              csvCustomerNameLength: customerName.length,
+              availableCustomers: state.customers.slice(0, 5).map(c => c.name)
+            });
+            
             let existingCustomer = state.customers.find(c => 
               c.name.toLowerCase() === customerName.toLowerCase() ||
               (customerEmail && c.email === customerEmail)
             );
+            
+            // Ak nenašiel exact match, skús fuzzy match pre diakritiku
+            if (!existingCustomer && customerName !== 'Neznámy zákazník') {
+              const normalizeString = (str: string) => str
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // odstráni diakritiku
+                .trim();
+              
+              const normalizedCustomerName = normalizeString(customerName);
+              console.log(`🔍 FUZZY SEARCH for: "${customerName}" -> normalized: "${normalizedCustomerName}"`);
+              
+              existingCustomer = state.customers.find(c => {
+                const normalizedDbName = normalizeString(c.name || '');
+                const match = normalizedDbName === normalizedCustomerName;
+                if (match) {
+                  console.log(`✅ FUZZY MATCH: "${customerName}" -> "${c.name}" (ID: ${c.id})`);
+                }
+                return match;
+              });
+              
+              if (!existingCustomer) {
+                console.log(`❌ NO CUSTOMER FOUND for: "${customerName}"`);
+              }
+            } else if (existingCustomer) {
+              console.log(`✅ EXACT MATCH: "${customerName}" -> ID: ${existingCustomer.id}`);
+            }
             
             // Skontroluj aj v aktuálne vytvorených zákazníkoch
             if (!existingCustomer) {
@@ -697,6 +763,25 @@ export default function RentalListNew() {
                 c.name.toLowerCase() === customerName.toLowerCase() ||
                 (customerEmail && c.email === customerEmail)
               );
+              
+              // Fuzzy match aj v vytvorených zákazníkoch
+              if (!existingCustomer && customerName !== 'Neznámy zákazník') {
+                const normalizeString = (str: string) => str
+                  .toLowerCase()
+                  .normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g, '')
+                  .trim();
+                
+                const normalizedCustomerName = normalizeString(customerName);
+                existingCustomer = createdCustomers.find(c => {
+                  const normalizedDbName = normalizeString(c.name || '');
+                  return normalizedDbName === normalizedCustomerName;
+                });
+                
+                if (existingCustomer) {
+                  console.log(`✅ FUZZY MATCH in created customers: "${customerName}" -> "${existingCustomer.name}"`);
+                }
+              }
             }
             
             // Ak zákazník neexistuje, vytvor ho
@@ -817,8 +902,8 @@ export default function RentalListNew() {
               if (dateStr.includes('-') || dateStr.includes('T')) {
                 const isoDate = new Date(dateStr);
                 if (!isNaN(isoDate.getTime())) {
-                  // Extrahuje iba dátum bez času
-                  return new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
+                  // Extrahuje iba dátum bez času v UTC
+                  return new Date(Date.UTC(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate()));
                 }
               }
               
@@ -838,7 +923,8 @@ export default function RentalListNew() {
                 
                 // Validácia dátumu
                 if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
-                  return new Date(2025, month, day);
+                  // Vytvor dátum v UTC aby sa predišlo timezone konverzii
+                  return new Date(Date.UTC(2025, month, day));
                 }
               } else if (parts.length === 3) {
                 // Formát dd.M.yyyy - ak je tam rok
@@ -848,7 +934,8 @@ export default function RentalListNew() {
                 
                 // Validácia dátumu
                 if (day >= 1 && day <= 31 && month >= 0 && month <= 11 && year >= 1900 && year <= 2100) {
-                  return new Date(year, month, day);
+                  // Vytvor dátum v UTC aby sa predišlo timezone konverzii
+                  return new Date(Date.UTC(year, month, day));
                 }
               }
               
@@ -858,10 +945,31 @@ export default function RentalListNew() {
             };
 
             // Priradenie zákazníka na základe existujúceho alebo novo vytvoreného
-            const finalCustomer = existingCustomer || createdCustomers.find(c => 
+            let finalCustomer = existingCustomer || createdCustomers.find(c => 
               c.name.toLowerCase() === customerName.toLowerCase() ||
               (customerEmail && c.email === customerEmail)
             );
+            
+            // Posledná šanca - fuzzy match pre finálne priradenie
+            if (!finalCustomer && customerName !== 'Neznámy zákazník') {
+              const normalizeString = (str: string) => str
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .trim();
+              
+              const normalizedCustomerName = normalizeString(customerName);
+              finalCustomer = [...state.customers, ...createdCustomers].find(c => {
+                const normalizedDbName = normalizeString(c.name || '');
+                return normalizedDbName === normalizedCustomerName;
+              });
+              
+              if (finalCustomer) {
+                console.log(`✅ FINAL FUZZY MATCH: "${customerName}" -> "${finalCustomer.name}" (ID: ${finalCustomer.id})`);
+              } else {
+                console.log(`❌ FINAL: NO CUSTOMER FOUND for: "${customerName}"`);
+              }
+            }
 
             // Automatické priradenie majiteľa na základe vozidla
             // Ak existuje vozidlo a nie je zadaný spôsob platby, nastav platbu priamo majiteľovi
@@ -877,12 +985,36 @@ export default function RentalListNew() {
               });
             }
 
-            // Automatické počítanie provízie na základe vozidla ak nie je zadaná
-            const finalCommission = Number(row.commission) || (vehicle?.commission ? 
-              vehicle.commission.type === 'percentage' 
-                ? (Number(row.totalPrice) || 0) * vehicle.commission.value / 100
-                : vehicle.commission.value 
-              : 0);
+            // ✅ OPRAVENÉ: Výpočet provízie rovnako ako v exporte
+            const finalCommission = (() => {
+              const totalPrice = Number(row.totalPrice) || 0;
+              
+              // 1. Ak je zadaná commission priamo v CSV, použije sa tá
+              if (row.commission && Number(row.commission) > 0) {
+                return Number(row.commission);
+              }
+              
+              // 2. Ak je zadaná customCommission v CSV, použije sa tá
+              if (row.customCommissionType && row.customCommissionValue) {
+                if (row.customCommissionType === 'percentage') {
+                  return (totalPrice * Number(row.customCommissionValue)) / 100;
+                } else {
+                  return Number(row.customCommissionValue);
+                }
+              }
+              
+              // 3. Inak sa použije commission z vozidla
+              if (vehicle?.commission) {
+                if (vehicle.commission.type === 'percentage') {
+                  return (totalPrice * vehicle.commission.value) / 100;
+                } else {
+                  return vehicle.commission.value;
+                }
+              }
+              
+              // 4. Fallback na 0
+              return 0;
+            })();
             
             if (!row.commission && vehicle?.commission) {
               logger.info('Auto-calculated commission for vehicle', {
@@ -930,17 +1062,30 @@ export default function RentalListNew() {
               continue;
             }
 
+            // 🔍 DEBUG: Parsovanie ceny z CSV
+            const rawTotalPrice = row.totalPrice;
+            const parsedTotalPrice = Number(row.totalPrice) || 0;
+            
+            console.log('🔍 CSV PRICE DEBUG:', {
+              rowIndex: results.data.indexOf(row),
+              customerName,
+              rawTotalPrice,
+              parsedTotalPrice,
+              typeOfRaw: typeof rawTotalPrice,
+              isNaN: isNaN(Number(rawTotalPrice))
+            });
+
             // Vytvorenie prenájmu
             const newRental = {
               id: row.id || uuidv4(),
-              vehicleId: vehicle?.id || '',
+              vehicleId: vehicle?.id || undefined,
               vehicle: vehicle,
-              customerId: finalCustomer?.id || '',
+              customerId: finalCustomer?.id || undefined,
               customer: finalCustomer,
               customerName: customerName,
               startDate: startDate,
               endDate: endDate,
-              totalPrice: Number(row.totalPrice) || 0,
+              totalPrice: parsedTotalPrice,
               commission: finalCommission,
               paymentMethod: finalPaymentMethod as any,
               discount: row.discountType ? {
@@ -960,17 +1105,40 @@ export default function RentalListNew() {
               createdAt: new Date()
             };
 
+            // 📦 BATCH: Pridaj prenájom do batch zoznamu namiesto okamžitého vytvorenia
+            batchRentals.push(newRental);
+            logger.debug('Rental prepared for batch import', {
+              customer: customerName,
+              licensePlate: vehicle?.licensePlate,
+              totalPrice: parsedTotalPrice,
+              startDate: startDate.toLocaleDateString(),
+              endDate: endDate.toLocaleDateString()
+            });
+          }
+
+          // 🚀 BATCH IMPORT: Vytvor všetky prenájmy naraz
+          if (batchRentals.length > 0) {
             try {
-              await apiService.createRental(newRental);
-              imported.push(newRental);
-              logger.info('Rental imported successfully', {
-                customer: customerName,
-                licensePlate: vehicle?.licensePlate,
-                startDate: startDate.toLocaleDateString(),
-                endDate: endDate.toLocaleDateString()
+              logger.info(`🚀 Starting batch import of ${batchRentals.length} rentals...`);
+              const batchResult = await apiService.batchImportRentals(batchRentals);
+              
+              logger.info('✅ Batch import completed', {
+                processed: batchResult.processed,
+                total: batchResult.total,
+                successRate: batchResult.successRate,
+                errors: batchResult.errors.length
               });
+
+              // Log errors if any
+              if (batchResult.errors.length > 0) {
+                logger.warn('Batch import errors:', batchResult.errors);
+              }
+
+              imported.push(...batchResult.results);
+              
             } catch (error) {
-              logger.error('Failed to create rental during import', { error });
+              logger.error('Batch import failed', { error });
+              throw error;
             }
           }
           
@@ -1000,6 +1168,13 @@ export default function RentalListNew() {
   }, []);
 
   const handleEdit = useCallback((rental: Rental) => {
+    console.log('🔍 HANDLE EDIT DEBUG:', {
+      rentalId: rental.id,
+      totalPrice: rental.totalPrice,
+      extraKmCharge: rental.extraKmCharge,
+      commission: rental.commission,
+      customerName: rental.customerName
+    });
     setEditingRental(rental);
     setOpenDialog(true);
   }, []);

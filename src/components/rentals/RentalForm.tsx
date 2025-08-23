@@ -75,6 +75,8 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
   const [useManualPricing, setUseManualPricing] = useState(false);
   const [extraKmCharge, setExtraKmCharge] = useState<number>(0);
   const [allowedKilometers, setAllowedKilometers] = useState<number>(0);
+  // ✅ OPRAVENÉ: Flag pre zachovanie importovaných hodnôt - inicializuj na true ak existuje rental
+  const [preserveImportedValues, setPreserveImportedValues] = useState(!!rental);
   const [dailyKilometers, setDailyKilometers] = useState<number>(0);
   const [extraKilometerRate, setExtraKilometerRate] = useState<number>(0.5);
   const [deposit, setDeposit] = useState<number>(0);
@@ -122,6 +124,9 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
   useEffect(() => {
     if (rental) {
+      // ✅ OPRAVENÉ: Nastaviť flag PRED nastavením formData aby sa zabránilo useEffect spusteniu
+      setPreserveImportedValues(true);
+      
       setFormData({
         ...rental,
         // 🔄 OPTIMALIZOVANÉ: Nastavenie flexibilných polí z existujúceho prenájmu (zjednodušené)
@@ -132,8 +137,24 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       // 🐛 FIX: Správne nastavenie ceny - odčítaj doplatok za km z celkovej ceny
       const extraKm = rental.extraKmCharge || 0;
       const basePriceWithoutExtraKm = rental.totalPrice - extraKm;
+      console.log('🔍 RENTAL FORM DEBUG:', {
+        rentalId: rental.id,
+        customerName: rental.customerName,
+        totalPrice: rental.totalPrice,
+        extraKmCharge: rental.extraKmCharge,
+        extraKm,
+        basePriceWithoutExtraKm,
+        commission: rental.commission
+      });
       setCalculatedPrice(basePriceWithoutExtraKm);
       setCalculatedCommission(rental.commission);
+      
+      console.log('🔍 RENTAL FORM SET STATE:', {
+        rentalId: rental.id,
+        calculatedPrice: basePriceWithoutExtraKm,
+        calculatedCommission: rental.commission,
+        preserveImportedValues: true
+      });
       
       // 🔄 NOVÉ: Nastavenie manuálnej ceny pre flexibilné prenájmy
       if (rental.isFlexible) {
@@ -398,6 +419,19 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
   }, [dailyKilometers, formData.startDate, formData.endDate]);
 
   useEffect(() => {
+    // ✅ OPRAVENÉ: Neprepisuj importované hodnoty
+    if (preserveImportedValues) {
+      console.log('🔍 USEEFFECT SKIP:', { preserveImportedValues: true, reason: 'imported values preserved' });
+      return;
+    }
+    
+    console.log('🔍 USEEFFECT RUN:', { 
+      preserveImportedValues, 
+      vehicleId: formData.vehicleId, 
+      startDate: !!formData.startDate, 
+      endDate: !!formData.endDate 
+    });
+    
     if (!formData.vehicleId || !formData.startDate || !formData.endDate) {
       setCalculatedPrice(0);
       setCalculatedCommission(0);
@@ -406,8 +440,11 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
     const vehicle = state.vehicles.find(v => v.id === formData.vehicleId);
     if (!vehicle) {
-      setCalculatedPrice(0);
-      setCalculatedCommission(0);
+      // ✅ OPRAVENÉ: Neprepisuj ceny ak sú zachované importované hodnoty
+      if (!preserveImportedValues) {
+        setCalculatedPrice(0);
+        setCalculatedCommission(0);
+      }
       return;
     }
 
@@ -468,7 +505,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       setCalculatedPrice(0);
       setCalculatedCommission(0);
     }
-  }, [formData.vehicleId, formData.startDate, formData.endDate, formData.discount, extraKmCharge, formData.customCommission, state.vehicles]);
+  }, [formData.vehicleId, formData.startDate, formData.endDate, formData.discount, extraKmCharge, formData.customCommission, state.vehicles, preserveImportedValues]);
 
   const handleAddPayment = () => {
     setEditingPayment({
@@ -635,6 +672,9 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
               } else {
                 setSelectedVehicle(null);
               }
+              
+              // ✅ Povoliť prepočítanie cien pri zmene vozidla
+              setPreserveImportedValues(false);
             }}
             renderInput={(params) => (
               <TextField {...params} label="Vozidlo" fullWidth required />
@@ -846,6 +886,8 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
               const [year, month, day] = dateValue.split('-').map(Number);
               const date = new Date(year, month - 1, day); // mesiac je 0-indexovaný
               handleInputChange('startDate', date);
+              // ✅ Povoliť prepočítanie cien pri zmene dátumu
+              setPreserveImportedValues(false);
             }
           }}
           InputLabelProps={{ shrink: true }}
@@ -870,10 +912,13 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
               const [year, month, day] = dateValue.split('-').map(Number);
               const date = new Date(year, month - 1, day); // mesiac je 0-indexovaný
               handleInputChange('endDate', date);
+              // ✅ Povoliť prepočítanie cien pri zmene dátumu
+              setPreserveImportedValues(false);
             } else {
               // 🔄 NOVÉ: Umožniť vymazanie dátumu pre flexibilné prenájmy
               if (formData.isFlexible) {
                 handleInputChange('endDate', undefined);
+                setPreserveImportedValues(false);
               }
             }
           }}

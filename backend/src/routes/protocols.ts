@@ -447,12 +447,12 @@ router.post('/return', authenticateToken, async (req, res) => {
           }
           
           // Aktualizuj prenájom s doplatkom za km a novou províziou
-          const updatedRental = {
+          const updatedRental: any = {
             ...currentRental,
             extraKmCharge: protocolData.kilometerFee,
             totalPrice: newTotalPrice,
             commission: newCommission,
-            status: 'finished' as const
+            status: 'finished'
           };
           
           await postgresDatabase.updateRental(updatedRental);

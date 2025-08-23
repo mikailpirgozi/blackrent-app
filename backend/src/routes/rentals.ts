@@ -478,4 +478,89 @@ router.delete('/:id',
   }
 });
 
+// 📥 BATCH CSV IMPORT - Rýchly import viacerých prenájmov naraz
+router.post('/batch-import', 
+  authenticateToken,
+  checkPermission('rentals', 'create'),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      console.log('📥 Starting batch rental import...');
+      const { rentals } = req.body;
+
+      if (!rentals || !Array.isArray(rentals)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Rentals array je povinný'
+        });
+      }
+
+      console.log(`📊 Processing ${rentals.length} rentals in batch...`);
+      
+      const results = [];
+      const errors = [];
+      let processed = 0;
+
+      // Progress tracking
+      const progressInterval = Math.max(1, Math.floor(rentals.length / 10));
+
+      for (let i = 0; i < rentals.length; i++) {
+        // Progress logging
+        if (i % progressInterval === 0 || i === rentals.length - 1) {
+          const progress = Math.round(((i + 1) / rentals.length) * 100);
+          console.log(`📊 Batch Import Progress: ${progress}% (${i + 1}/${rentals.length})`);
+        }
+
+        try {
+          const rentalData = rentals[i];
+          
+          // 🔍 DEBUG: Log price data
+          console.log(`🔍 BATCH IMPORT PRICE DEBUG [${i}]:`, {
+            customerName: rentalData.customerName,
+            totalPrice: rentalData.totalPrice,
+            typeOf: typeof rentalData.totalPrice
+          });
+
+          const createdRental = await postgresDatabase.createRental(rentalData);
+          results.push({
+            index: i,
+            id: createdRental.id,
+            customerName: rentalData.customerName,
+            totalPrice: rentalData.totalPrice,
+            action: 'created'
+          });
+          processed++;
+
+        } catch (error) {
+          console.error(`❌ Error processing rental ${i}:`, error);
+          errors.push({ 
+            index: i, 
+            customerName: rentals[i]?.customerName || 'Unknown',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+
+      console.log(`✅ Batch import completed: ${processed}/${rentals.length} successful`);
+
+      res.json({
+        success: true,
+        data: {
+          processed,
+          total: rentals.length,
+          results,
+          errors,
+          successRate: Math.round((processed / rentals.length) * 100)
+        }
+      });
+
+    } catch (error) {
+      console.error('Batch import error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri batch importe prenájmov'
+      });
+    }
+  }
+);
+
 export default router; 
