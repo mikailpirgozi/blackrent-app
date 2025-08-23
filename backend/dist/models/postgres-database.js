@@ -2908,6 +2908,8 @@ class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
+          -- 🐛 FIX: Pridané chýbajúce extra_km_charge
+          r.extra_km_charge,
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           c.name as company_name, v.company as vehicle_company,
@@ -2925,6 +2927,15 @@ class PostgresDatabase {
             queryParams.push(params.limit, params.offset);
             const result = await client.query(mainQuery, queryParams);
             console.log(`📊 Paginated query: ${result.rows.length}/${total} rentals (limit: ${params.limit}, offset: ${params.offset})`);
+            // 🐛 DEBUG: Log rentals with extra_km_charge
+            const rentalsWithExtraKm = result.rows.filter(row => row.extra_km_charge);
+            if (rentalsWithExtraKm.length > 0) {
+                console.log(`🐛 PAGINATED DEBUG: Found ${rentalsWithExtraKm.length} rentals with extra_km_charge:`, rentalsWithExtraKm.slice(0, 2).map(row => ({
+                    id: row.id,
+                    extra_km_charge: row.extra_km_charge,
+                    total_price: row.total_price
+                })));
+            }
             // Transform data to Rental objects
             const rentals = result.rows.map((row) => this.transformRowToRental(row));
             // Apply permission filtering for non-admin users
@@ -2994,6 +3005,8 @@ class PostgresDatabase {
             allowedKilometers: row.allowed_kilometers || undefined,
             dailyKilometers: row.daily_kilometers || undefined,
             handoverPlace: row.handover_place || undefined,
+            // 🐛 FIX: Pridané chýbajúce extraKmCharge mapovanie
+            extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
             company: row.company || undefined,
             vehicleName: row.vehicle_name || undefined, // 🚗 NOVÉ: Vehicle name field
             // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
@@ -3046,6 +3059,8 @@ class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
+          -- 🐛 FIX: Pridané chýbajúce extra_km_charge
+          r.extra_km_charge,
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
@@ -3087,55 +3102,67 @@ class PostgresDatabase {
                     console.error(`🔍 Vehicle ${rental.vehicle_id} exists in vehicles:`, vehicleCheck.rows.length > 0 ? vehicleCheck.rows[0] : 'NOT FOUND');
                 }
             }
-            const rentals = result.rows.map(row => ({
-                id: row.id?.toString() || '',
-                vehicleId: row.vehicle_id?.toString(),
-                vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
-                customerId: row.customer_id?.toString(), // 👤 Customer ID z rentals tabuľky
-                customerName: row.customer_name || 'Neznámy zákazník',
-                // 📧 CUSTOMER EMAIL & PHONE: Fallback systém pre protokoly
-                customerEmail: row.customer_db_email || row.customer_email || undefined,
-                customerPhone: row.customer_db_phone || row.customer_phone || undefined,
-                startDate: new Date(row.start_date),
-                endDate: new Date(row.end_date),
-                totalPrice: parseFloat(row.total_price) || 0,
-                commission: parseFloat(row.commission) || 0,
-                paymentMethod: row.payment_method || 'cash',
-                paid: Boolean(row.paid),
-                status: row.status || 'active',
-                createdAt: row.created_at ? new Date(row.created_at) : new Date(),
-                orderNumber: row.order_number || undefined,
-                deposit: row.deposit ? parseFloat(row.deposit) : undefined,
-                allowedKilometers: row.allowed_kilometers || undefined,
-                dailyKilometers: row.daily_kilometers || undefined,
-                handoverPlace: row.handover_place || undefined,
-                company: row.company || undefined, // 🎯 CLEAN SOLUTION field
-                vehicleName: row.vehicle_name || undefined, // 🚗 NOVÉ: Vehicle name field
-                // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
-                isFlexible: Boolean(row.is_flexible),
-                flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
-                // 👤 CUSTOMER OBJECT: Pre protokoly a ostatné použitie
-                customer: (row.customer_db_id || row.customer_db_email || row.customer_db_phone) ? {
-                    id: row.customer_db_id?.toString() || row.customer_id?.toString() || '',
-                    name: row.customer_db_name || row.customer_name || 'Neznámy zákazník',
-                    email: row.customer_db_email || row.customer_email || '',
-                    phone: row.customer_db_phone || row.customer_phone || '',
-                    createdAt: row.customer_created_at ? new Date(row.customer_created_at) : new Date()
-                } : undefined,
-                // 🚗 PRIAMO MAPOVANÉ VEHICLE DATA (ako getVehicles) ✅
-                vehicle: row.brand ? {
-                    id: row.vehicle_id,
-                    brand: row.brand,
-                    model: row.model,
-                    licensePlate: row.license_plate,
-                    vin: row.vin || null, // 🆔 VIN číslo
-                    // 🏢 COMPANY INFO: Pridané pre štatistiky - použije company_name z companies tabuľky alebo fallback na vehicle_company
-                    company: row.company_name || row.vehicle_company || 'Bez firmy',
-                    pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing || [],
-                    commission: typeof row.v_commission === 'string' ? JSON.parse(row.v_commission) : row.v_commission || { type: 'percentage', value: 0 },
-                    status: row.v_status || 'available'
-                } : undefined
-            }));
+            const rentals = result.rows.map(row => {
+                // 🐛 DEBUG: Log first rental with extra_km_charge
+                if (row.extra_km_charge) {
+                    console.log('🐛 BACKEND DEBUG: Found rental with extra_km_charge:', {
+                        id: row.id,
+                        extra_km_charge: row.extra_km_charge,
+                        total_price: row.total_price
+                    });
+                }
+                return {
+                    id: row.id?.toString() || '',
+                    vehicleId: row.vehicle_id?.toString(),
+                    vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
+                    customerId: row.customer_id?.toString(), // 👤 Customer ID z rentals tabuľky
+                    customerName: row.customer_name || 'Neznámy zákazník',
+                    // 📧 CUSTOMER EMAIL & PHONE: Fallback systém pre protokoly
+                    customerEmail: row.customer_db_email || row.customer_email || undefined,
+                    customerPhone: row.customer_db_phone || row.customer_phone || undefined,
+                    startDate: new Date(row.start_date),
+                    endDate: new Date(row.end_date),
+                    totalPrice: parseFloat(row.total_price) || 0,
+                    commission: parseFloat(row.commission) || 0,
+                    paymentMethod: row.payment_method || 'cash',
+                    paid: Boolean(row.paid),
+                    status: row.status || 'active',
+                    createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+                    orderNumber: row.order_number || undefined,
+                    deposit: row.deposit ? parseFloat(row.deposit) : undefined,
+                    allowedKilometers: row.allowed_kilometers || undefined,
+                    dailyKilometers: row.daily_kilometers || undefined,
+                    handoverPlace: row.handover_place || undefined,
+                    // 🐛 FIX: Pridané chýbajúce extraKmCharge mapovanie
+                    extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
+                    company: row.company || undefined, // 🎯 CLEAN SOLUTION field
+                    vehicleName: row.vehicle_name || undefined, // 🚗 NOVÉ: Vehicle name field
+                    // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
+                    isFlexible: Boolean(row.is_flexible),
+                    flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
+                    // 👤 CUSTOMER OBJECT: Pre protokoly a ostatné použitie
+                    customer: (row.customer_db_id || row.customer_db_email || row.customer_db_phone) ? {
+                        id: row.customer_db_id?.toString() || row.customer_id?.toString() || '',
+                        name: row.customer_db_name || row.customer_name || 'Neznámy zákazník',
+                        email: row.customer_db_email || row.customer_email || '',
+                        phone: row.customer_db_phone || row.customer_phone || '',
+                        createdAt: row.customer_created_at ? new Date(row.customer_created_at) : new Date()
+                    } : undefined,
+                    // 🚗 PRIAMO MAPOVANÉ VEHICLE DATA (ako getVehicles) ✅
+                    vehicle: row.brand ? {
+                        id: row.vehicle_id,
+                        brand: row.brand,
+                        model: row.model,
+                        licensePlate: row.license_plate,
+                        vin: row.vin || null, // 🆔 VIN číslo
+                        // 🏢 COMPANY INFO: Pridané pre štatistiky - použije company_name z companies tabuľky alebo fallback na vehicle_company
+                        company: row.company_name || row.vehicle_company || 'Bez firmy',
+                        pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing || [],
+                        commission: typeof row.v_commission === 'string' ? JSON.parse(row.v_commission) : row.v_commission || { type: 'percentage', value: 0 },
+                        status: row.v_status || 'available'
+                    } : undefined
+                };
+            });
             // ⚠️ AUTO-FIX DISABLED - Nebezpečné, menilo vehicle_id v databáze!
             // Namiesto toho len logujeme problém
             const rentalsWithMissingVehicle = rentals.filter(r => r.vehicleId && !r.vehicle);
@@ -3429,8 +3456,10 @@ class PostgresDatabase {
           order_number = $10,
           deposit = $11,
           allowed_kilometers = $12,
-          extra_kilometer_rate = $13
-        WHERE id = $14
+          extra_kilometer_rate = $13,
+          -- 🐛 FIX: Pridané chýbajúce extra_km_charge
+          extra_km_charge = $14
+        WHERE id = $15
         `, [
                 rental.vehicleId || null, // UUID as string, not parseInt
                 rental.customerName,
@@ -3445,6 +3474,8 @@ class PostgresDatabase {
                 rental.deposit || null,
                 rental.allowedKilometers || null,
                 rental.extraKilometerRate || null,
+                // 🐛 FIX: Pridané chýbajúce extra_km_charge parameter
+                rental.extraKmCharge || null,
                 rental.id // UUID as string, not parseInt
             ]);
             console.log(`✅ RENTAL UPDATE SUCCESS: ${rental.id} (${result.rowCount} row updated)`);
@@ -7111,6 +7142,69 @@ class PostgresDatabase {
         }
         catch (error) {
             console.error('❌ Error fetching bulk protocol status:', error);
+            throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
+    // 📊 EMPLOYEE STATISTICS: Get all protocols with employee info for statistics
+    async getAllProtocolsForStats() {
+        const client = await this.pool.connect();
+        try {
+            console.log('📊 Loading all protocols for employee statistics...');
+            const startTime = Date.now();
+            // Ensure protocol tables exist
+            await this.initProtocolTables();
+            // Get all handover protocols
+            const handoverResult = await client.query(`
+        SELECT 
+          id,
+          rental_id,
+          created_by,
+          created_at,
+          rental_data
+        FROM handover_protocols
+        ORDER BY created_at DESC
+      `);
+            // Get all return protocols
+            const returnResult = await client.query(`
+        SELECT 
+          id,
+          rental_id,
+          created_by,
+          created_at,
+          rental_data
+        FROM return_protocols
+        ORDER BY created_at DESC
+      `);
+            // Combine and format results
+            const protocols = [
+                ...handoverResult.rows.map(row => ({
+                    id: row.id,
+                    type: 'handover',
+                    rentalId: row.rental_id,
+                    createdBy: row.created_by || 'admin',
+                    createdAt: new Date(row.created_at),
+                    rentalData: row.rental_data
+                })),
+                ...returnResult.rows.map(row => ({
+                    id: row.id,
+                    type: 'return',
+                    rentalId: row.rental_id,
+                    createdBy: row.created_by || 'admin',
+                    createdAt: new Date(row.created_at),
+                    rentalData: row.rental_data
+                }))
+            ];
+            // Sort by creation date (newest first)
+            protocols.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+            const loadTime = Date.now() - startTime;
+            console.log(`✅ Loaded ${protocols.length} protocols for statistics in ${loadTime}ms`);
+            return protocols;
+        }
+        catch (error) {
+            console.error('❌ Error fetching protocols for statistics:', error);
             throw error;
         }
         finally {

@@ -130,7 +130,7 @@ class PDFLibUnicodeGenerator {
         return Buffer.from(pdfBytes);
     }
     /**
-     * Generovanie return protokolu
+     * Generovanie return protokolu s kompletným obsahom
      */
     async generateReturnProtocol(protocol) {
         console.log('🎨 PDF-LIB UNICODE - Return protokol');
@@ -139,23 +139,101 @@ class PDFLibUnicodeGenerator {
         this.currentPage = this.doc.addPage(pdf_lib_1.PageSizes.A4);
         await this.loadUnicodeFonts();
         this.currentY = this.pageHeight - 50;
+        // 1. Záhlavie
         this.addUnicodeHeader('PREBERACÍ PROTOKOL');
+        // 2. Základné informácie
         this.addInfoSection('Základné informácie', [
             ['Číslo protokolu:', protocol.id.slice(-8).toUpperCase()],
             ['Dátum vrátenia:', new Date(protocol.completedAt || protocol.createdAt).toLocaleDateString('sk-SK')],
             ['Miesto vrátenia:', protocol.location],
             ['Stav protokolu:', this.getStatusText(protocol.status)]
         ]);
-        if (protocol.kilometersUsed !== undefined) {
-            this.addInfoSection('Informácie o použití', [
-                ['Použité kilometre:', `${protocol.kilometersUsed} km`],
-                ['Prekročenie limitu:', protocol.kilometerOverage ? `${protocol.kilometerOverage} km` : 'Nie'],
-                ['Poplatok za km:', protocol.kilometerFee ? `${protocol.kilometerFee} EUR` : '0 EUR'],
-                ['Dodatočné poplatky:', `${protocol.totalExtraFees || 0} EUR`]
+        // 3. Informácie o prenájme
+        if (protocol.rentalData) {
+            this.addInfoSection('Informácie o prenájme', [
+                ['Číslo objednávky:', protocol.rentalData.orderNumber || 'N/A'],
+                ['Zákazník:', protocol.rentalData.customer?.name || 'N/A'],
+                ['Email zákazníka:', protocol.rentalData.customer?.email || 'N/A'],
+                ['Telefón zákazníka:', protocol.rentalData.customer?.phone || 'N/A'],
+                ['Dátum od:', new Date(protocol.rentalData.startDate).toLocaleDateString('sk-SK')],
+                ['Dátum do:', new Date(protocol.rentalData.endDate).toLocaleDateString('sk-SK')],
+                ['Celková cena prenájmu:', `${protocol.rentalData.totalPrice} ${protocol.rentalData.currency || 'EUR'}`],
+                ['Záloha:', `${protocol.rentalData.deposit || 0} ${protocol.rentalData.currency || 'EUR'}`],
+                ['Povolené km:', `${protocol.rentalData.allowedKilometers || 0} km`],
+                ['Cena za extra km:', `${protocol.rentalData.extraKilometerRate || 0} EUR/km`]
             ]);
         }
+        // 4. Informácie o vozidle
+        if (protocol.rentalData?.vehicle) {
+            this.addInfoSection('Informácie o vozidle', [
+                ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
+                ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
+                ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
+                ['Spoločnosť:', (0, protocol_helpers_1.getProtocolCompanyDisplay)(protocol.rentalData.vehicle.company)],
+                ...(0, protocol_helpers_1.getRepresentativeSection)()
+            ]);
+        }
+        // 5. Stav vozidla pri vrátení
+        const currentOdometer = protocol.vehicleCondition?.odometer || 0;
+        const kilometersUsed = protocol.kilometersUsed || 0;
+        const initialOdometer = Math.max(0, currentOdometer - kilometersUsed);
+        this.addInfoSection('Stav vozidla pri vrátení', [
+            ['Počiatočný stav tachometra:', `${initialOdometer} km`],
+            ['Konečný stav tachometra:', `${currentOdometer} km`],
+            ['Úroveň paliva:', `${protocol.vehicleCondition?.fuelLevel || 'N/A'}%`],
+            ['Typ paliva:', protocol.vehicleCondition?.fuelType || 'N/A'],
+            ['Exteriér:', protocol.vehicleCondition?.exteriorCondition || 'N/A'],
+            ['Interiér:', protocol.vehicleCondition?.interiorCondition || 'N/A']
+        ]);
+        // 6. Informácie o použití vozidla a poplatky
+        if (protocol.kilometersUsed !== undefined) {
+            this.addInfoSection('Informácie o použití vozidla', [
+                ['Použité kilometre:', `${protocol.kilometersUsed} km`],
+                ['Prekročenie limitu:', protocol.kilometerOverage ? `${protocol.kilometerOverage} km` : 'Nie'],
+                ['Poplatok za prekročené km:', protocol.kilometerFee ? `${protocol.kilometerFee.toFixed(2)} EUR` : '0.00 EUR'],
+                ['Poplatok za palivo:', protocol.fuelFee ? `${protocol.fuelFee.toFixed(2)} EUR` : '0.00 EUR'],
+                ['Celkové dodatočné poplatky:', `${(protocol.totalExtraFees || 0).toFixed(2)} EUR`],
+                ['Refund zálohy:', `${(protocol.depositRefund || 0).toFixed(2)} EUR`],
+                ['Dodatočné platby:', `${(protocol.additionalCharges || 0).toFixed(2)} EUR`],
+                ['Finálny refund:', `${(protocol.finalRefund || 0).toFixed(2)} EUR`]
+            ]);
+        }
+        // 7. Poznámky k stavu vozidla
+        if (protocol.notes) {
+            this.addNotesSection('Poznámky k stavu vozidla', protocol.notes);
+        }
+        // 8. Poškodenia
+        if (protocol.damages && protocol.damages.length > 0) {
+            this.addDamagesSection(protocol.damages);
+        }
+        // 9. Nové poškodenia
+        if (protocol.newDamages && protocol.newDamages.length > 0) {
+            this.addDamagesSection(protocol.newDamages);
+        }
+        // 10. Fotky (zatiaľ len počet)
+        if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
+            this.addInfoSection('Fotky vozidla', [
+                ['Počet fotiek:', `${protocol.vehicleImages.length}`]
+            ]);
+        }
+        if (protocol.documentImages && protocol.documentImages.length > 0) {
+            this.addInfoSection('Fotky dokumentov', [
+                ['Počet fotiek:', `${protocol.documentImages.length}`]
+            ]);
+        }
+        if (protocol.damageImages && protocol.damageImages.length > 0) {
+            this.addInfoSection('Fotky poškodení', [
+                ['Počet fotiek:', `${protocol.damageImages.length}`]
+            ]);
+        }
+        // 13. Podpisy
+        if (protocol.signatures && protocol.signatures.length > 0) {
+            this.addSignaturesSection(protocol.signatures);
+        }
+        // 14. Footer
         this.addUnicodeFooter();
         const pdfBytes = await this.doc.save();
+        console.log(`✅ PDF-lib Unicode Return protokol dokončený! Veľkosť: ${(pdfBytes.length / 1024).toFixed(1)} KB`);
         return Buffer.from(pdfBytes);
     }
     /**

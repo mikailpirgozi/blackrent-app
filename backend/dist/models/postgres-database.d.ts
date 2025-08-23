@@ -543,6 +543,14 @@ export declare class PostgresDatabase {
         handoverCreatedAt?: Date;
         returnCreatedAt?: Date;
     }>>;
+    getAllProtocolsForStats(): Promise<Array<{
+        id: string;
+        type: 'handover' | 'return';
+        rentalId: string;
+        createdBy: string;
+        createdAt: Date;
+        rentalData?: any;
+    }>>;
     createCompanyDocument(document: CompanyDocument): Promise<CompanyDocument>;
     getCompanyDocuments(companyId: string | number, documentType?: 'contract' | 'invoice', year?: number, month?: number): Promise<CompanyDocument[]>;
     getCompanyDocumentById(documentId: string): Promise<CompanyDocument | null>;

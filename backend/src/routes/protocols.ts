@@ -420,6 +420,35 @@ router.post('/return', authenticateToken, async (req, res) => {
     const protocol = await postgresDatabase.createReturnProtocol(protocolData);
     console.log('✅ Return protocol created in DB:', protocol.id);
     
+    // 🚗 AUTOMATIC UPDATE: Aktualizuj prenájom s doplatkom za km
+    if (protocolData.kilometerFee && protocolData.kilometerFee > 0) {
+      try {
+        console.log('🔄 Updating rental with extra km charge:', {
+          rentalId: protocolData.rentalId,
+          kilometerFee: protocolData.kilometerFee,
+          totalExtraFees: protocolData.totalExtraFees
+        });
+        
+        // Načítaj aktuálny prenájom
+        const currentRental = await postgresDatabase.getRental(protocolData.rentalId);
+        if (currentRental) {
+          // Aktualizuj prenájom s doplatkom za km
+          const updatedRental = {
+            ...currentRental,
+            extraKmCharge: protocolData.kilometerFee,
+            totalPrice: currentRental.totalPrice + protocolData.kilometerFee,
+            status: 'finished' as const
+          };
+          
+          await postgresDatabase.updateRental(updatedRental);
+          console.log('✅ Rental updated with extra km charge:', updatedRental.id);
+        }
+      } catch (error) {
+        console.error('❌ Error updating rental with extra km charge:', error);
+        // Pokračuj aj keď sa nepodarí aktualizovať prenájom
+      }
+    }
+    
     let pdfUrl = null;
     let emailResult = {
       sent: false,

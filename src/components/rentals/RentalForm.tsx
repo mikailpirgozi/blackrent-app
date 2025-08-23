@@ -128,7 +128,11 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
         isFlexible: rental.isFlexible || false,
         flexibleEndDate: rental.flexibleEndDate,
       });
-      setCalculatedPrice(rental.totalPrice);
+      
+      // 🐛 FIX: Správne nastavenie ceny - odčítaj doplatok za km z celkovej ceny
+      const extraKm = rental.extraKmCharge || 0;
+      const basePriceWithoutExtraKm = rental.totalPrice - extraKm;
+      setCalculatedPrice(basePriceWithoutExtraKm);
       setCalculatedCommission(rental.commission);
       
       // 🔄 NOVÉ: Nastavenie manuálnej ceny pre flexibilné prenájmy
@@ -438,9 +442,11 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       }
       // Doplatok za km
       let extra = extraKmCharge > 0 ? extraKmCharge : 0;
-      // Výsledná cena
-      const totalPrice = Math.max(0, basePrice - discount + extra);
-      setCalculatedPrice(totalPrice);
+      // 🐛 FIX: calculatedPrice = len základná cena (bez doplatku za km)
+      const basePriceAfterDiscount = Math.max(0, basePrice - discount);
+      setCalculatedPrice(basePriceAfterDiscount);
+      // Celková cena = základná cena + doplatok za km
+      const totalPrice = basePriceAfterDiscount + extra;
 
       // Provízia
       let commission = 0;
@@ -575,7 +581,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       customerName: formData.customerName || '',
       startDate: formData.startDate || new Date(),
       endDate: formData.endDate || new Date(),
-      totalPrice: (formData.isFlexible && useManualPricing && manualPrice !== undefined) ? manualPrice : calculatedPrice,
+      totalPrice: (formData.isFlexible && useManualPricing && manualPrice !== undefined) ? manualPrice : (calculatedPrice + extraKmCharge),
       commission: calculatedCommission,
       paymentMethod: formData.paymentMethod || 'cash',
       createdAt: rental?.createdAt || new Date(),
@@ -1178,9 +1184,19 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
               Výpočet ceny
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-              <Typography>
-                Celková cena: <strong>{(calculatedPrice || 0).toFixed(2)} €</strong>
-              </Typography>
+              <Box>
+                <Typography>
+                  Základná cena: <strong>{(calculatedPrice || 0).toFixed(2)} €</strong>
+                </Typography>
+                {extraKmCharge > 0 && (
+                  <Typography color="warning.main">
+                    Doplatok za km: <strong>+{extraKmCharge.toFixed(2)} €</strong>
+                  </Typography>
+                )}
+                <Typography variant="h6" color="primary">
+                  Celková cena: <strong>{((calculatedPrice || 0) + extraKmCharge).toFixed(2)} €</strong>
+                </Typography>
+              </Box>
               <Typography>
                 Provízia: <strong>{(calculatedCommission || 0).toFixed(2)} €</strong>
               </Typography>

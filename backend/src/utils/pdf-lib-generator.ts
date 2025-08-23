@@ -139,15 +139,19 @@ export class PDFLibGenerator {
       ['Stav protokolu:', this.getStatusText(protocol.status)]
     ]);
     
-    // 3. Informácie o prenájme (rovnaké ako handover)
+    // 3. Informácie o prenájme (kompletné údaje)
     if (protocol.rentalData) {
       this.addInfoSection('Informácie o prenájme', [
         ['Číslo objednávky:', protocol.rentalData.orderNumber || 'N/A'],
         ['Zákazník:', protocol.rentalData.customer?.name || 'N/A'],
+        ['Email zákazníka:', protocol.rentalData.customer?.email || 'N/A'],
+        ['Telefón zákazníka:', protocol.rentalData.customer?.phone || 'N/A'],
         ['Dátum od:', new Date(protocol.rentalData.startDate).toLocaleDateString('sk-SK')],
         ['Dátum do:', new Date(protocol.rentalData.endDate).toLocaleDateString('sk-SK')],
-        ['Celková cena:', `${protocol.rentalData.totalPrice} ${protocol.rentalData.currency || 'EUR'}`],
-        ['Záloha:', `${protocol.rentalData.deposit || 0} ${protocol.rentalData.currency || 'EUR'}`]
+        ['Celková cena prenájmu:', `${protocol.rentalData.totalPrice} ${protocol.rentalData.currency || 'EUR'}`],
+        ['Záloha:', `${protocol.rentalData.deposit || 0} ${protocol.rentalData.currency || 'EUR'}`],
+        ['Povolené km:', `${protocol.rentalData.allowedKilometers || 0} km`],
+        ['Cena za extra km:', `${protocol.rentalData.extraKilometerRate || 0} EUR/km`]
       ]);
     }
     
@@ -162,13 +166,18 @@ export class PDFLibGenerator {
       ]);
     }
     
-    // 5. Stav vozidla pri vrátení (rozšírené)
+    // 5. Stav vozidla pri vrátení (s porovnaním)
+    const currentOdometer = protocol.vehicleCondition?.odometer || 0;
+    const kilometersUsed = protocol.kilometersUsed || 0;
+    const initialOdometer = Math.max(0, currentOdometer - kilometersUsed);
+    
     this.addInfoSection('Stav vozidla pri vrátení', [
-      ['Stav tachometra:', `${protocol.vehicleCondition.odometer} km`],
-      ['Úroveň paliva:', `${protocol.vehicleCondition.fuelLevel}%`],
-      ['Typ paliva:', protocol.vehicleCondition.fuelType],
-      ['Exteriér:', protocol.vehicleCondition.exteriorCondition],
-      ['Interiér:', protocol.vehicleCondition.interiorCondition]
+      ['Počiatočný stav tachometra:', `${initialOdometer} km`],
+      ['Konečný stav tachometra:', `${currentOdometer} km`],
+      ['Úroveň paliva:', `${protocol.vehicleCondition?.fuelLevel || 'N/A'}%`],
+      ['Typ paliva:', protocol.vehicleCondition?.fuelType || 'N/A'],
+      ['Exteriér:', protocol.vehicleCondition?.exteriorCondition || 'N/A'],
+      ['Interiér:', protocol.vehicleCondition?.interiorCondition || 'N/A']
     ]);
     
     // 6. Return-specific informácie o použití
@@ -196,7 +205,7 @@ export class PDFLibGenerator {
     
     // 9. Nové poškodenia (špecifické pre return)
     if (protocol.newDamages && protocol.newDamages.length > 0) {
-      this.addDamagesSection(protocol.newDamages, 'Nové poškodenia zistené pri vrátení');
+      this.addDamagesSection(protocol.newDamages);
     }
     
     // 10. ✅ PRIDANÉ: Fotodokumentácia v Return protokole

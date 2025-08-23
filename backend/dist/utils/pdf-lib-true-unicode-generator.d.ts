@@ -21,7 +21,7 @@ export declare class PDFLibTrueUnicodeGenerator {
      */
     generateHandoverProtocol(protocol: HandoverProtocol): Promise<Buffer>;
     /**
-     * Generovanie return protokolu
+     * Generovanie return protokolu s kompletným obsahom
      */
     generateReturnProtocol(protocol: ReturnProtocol): Promise<Buffer>;
     /**

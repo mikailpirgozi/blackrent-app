@@ -26,6 +26,9 @@ import {
   Calculate,
   Person,
   DirectionsCar,
+  Edit,
+  Check,
+  Cancel,
 } from '@mui/icons-material';
 import { ReturnProtocol, Rental, HandoverProtocol, ProtocolImage, ProtocolVideo, ProtocolSignature } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -52,6 +55,11 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
   const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [currentSigner, setCurrentSigner] = useState<{name: string, role: 'customer' | 'employee'} | null>(null);
+  
+  // 🔧 NOVÉ: Editácia ceny za km
+  const [isEditingKmRate, setIsEditingKmRate] = useState(false);
+  const [customKmRate, setCustomKmRate] = useState<number | null>(null);
+  const [originalKmRate, setOriginalKmRate] = useState<number>(0);
   
   // Zjednodušený state s bezpečným prístupom k handoverProtocol
   const [formData, setFormData] = useState({
@@ -87,14 +95,22 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
   // Prepočítaj poplatky pri zmene
   useEffect(() => {
     calculateFees();
-  }, [formData.odometer, formData.fuelLevel]);
+  }, [formData.odometer, formData.fuelLevel, customKmRate]);
 
   const calculateFees = () => {
     const currentOdometer = formData.odometer || 0;
     const startingOdometer = handoverProtocol?.vehicleCondition?.odometer || 0;
     const allowedKm = rental.allowedKilometers || 0;
-    const extraKmRate = rental.extraKilometerRate || 0.50;
+    const baseExtraKmRate = rental.extraKilometerRate || 0.50;
     const depositAmount = rental.deposit || 0;
+    
+    // 🔧 NOVÉ: Použiť vlastnú cenu za km ak je nastavená, inak cenníkovú
+    const extraKmRate = customKmRate !== null ? customKmRate : baseExtraKmRate;
+    
+    // Uložiť pôvodnú cenníkovú sadzbu pri prvom načítaní
+    if (originalKmRate === 0 && baseExtraKmRate > 0) {
+      setOriginalKmRate(baseExtraKmRate);
+    }
     
     // Výpočet najazdených km
     const kilometersUsed = Math.max(0, currentOdometer - startingOdometer);
@@ -128,6 +144,29 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
       additionalCharges,
       finalRefund,
     });
+  };
+
+  // 🔧 NOVÉ: Funkcie pre editáciu ceny za km
+  const handleStartEditKmRate = () => {
+    setIsEditingKmRate(true);
+    setCustomKmRate(customKmRate !== null ? customKmRate : (rental.extraKilometerRate || 0.50));
+  };
+
+  const handleSaveKmRate = () => {
+    setIsEditingKmRate(false);
+    // customKmRate zostane nastavené a použije sa v calculateFees
+  };
+
+  const handleCancelEditKmRate = () => {
+    setIsEditingKmRate(false);
+    setCustomKmRate(null); // Vráti sa na cenníkovú sadzbu
+  };
+
+  const handleKmRateChange = (value: string) => {
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0) {
+      setCustomKmRate(numValue);
+    }
   };
 
   if (!open) return null;
@@ -236,6 +275,8 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
         kilometersUsed: fees.kilometersUsed,
         kilometerOverage: fees.kilometerOverage,
         kilometerFee: fees.kilometerFee,
+        // 🔧 NOVÉ: Uloženie informácií o cene za km (ako poznámka)
+        notes: `${protocolData.notes || ''}\n\nCena za km: ${customKmRate !== null ? customKmRate : (rental.extraKilometerRate || 0.50)}€/km${customKmRate !== null ? ' (upravené)' : ' (cenník)'}`.trim(),
         fuelUsed: fees.fuelUsed,
         fuelFee: fees.fuelFee,
         totalExtraFees: fees.totalExtraFees,
@@ -636,13 +677,84 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
               color={fees.kilometerOverage > 0 ? 'warning' : 'primary'}
               fullWidth
             />
-            <TextField
-              label="Poplatok za km"
-              value={`${(fees.kilometerFee || 0).toFixed(2)} EUR`}
-              InputProps={{ readOnly: true }}
-              color={fees.kilometerFee > 0 ? 'warning' : 'primary'}
-              fullWidth
-            />
+            {/* 🔧 NOVÉ: Editovateľné pole pre cenu za km */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TextField
+                label="Poplatok za km"
+                value={`${(fees.kilometerFee || 0).toFixed(2)} EUR`}
+                InputProps={{ readOnly: true }}
+                color={fees.kilometerFee > 0 ? 'warning' : 'primary'}
+                fullWidth
+              />
+              <IconButton
+                onClick={handleStartEditKmRate}
+                size="small"
+                color="primary"
+                title="Upraviť cenu za km"
+                sx={{ 
+                  minWidth: 40,
+                  bgcolor: customKmRate !== null ? 'warning.light' : 'transparent',
+                  '&:hover': { bgcolor: 'primary.light' }
+                }}
+              >
+                <Edit fontSize="small" />
+              </IconButton>
+            </Box>
+            
+            {/* 🔧 NOVÉ: Editačné pole pre cenu za km */}
+            {isEditingKmRate && (
+              <Box sx={{ 
+                p: 2, 
+                border: '2px solid', 
+                borderColor: 'warning.main', 
+                borderRadius: 1,
+                bgcolor: 'warning.light',
+                mt: 1
+              }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  ⚠️ Úprava ceny za prekročené km
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                  Cenníková sadzba: <strong>{originalKmRate.toFixed(2)} €/km</strong>
+                  <br />
+                  Prekročené km: <strong>{fees.kilometerOverage} km</strong>
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <TextField
+                    label="Nová cena za km (€)"
+                    type="number"
+                    value={customKmRate || ''}
+                    onChange={(e) => handleKmRateChange(e.target.value)}
+                    inputProps={{ 
+                      min: 0, 
+                      step: 0.01,
+                      style: { textAlign: 'center' }
+                    }}
+                    size="small"
+                    sx={{ width: 150 }}
+                  />
+                  <IconButton
+                    onClick={handleSaveKmRate}
+                    size="small"
+                    color="success"
+                    title="Potvrdiť zmenu"
+                  >
+                    <Check />
+                  </IconButton>
+                  <IconButton
+                    onClick={handleCancelEditKmRate}
+                    size="small"
+                    color="error"
+                    title="Zrušiť úpravu"
+                  >
+                    <Cancel />
+                  </IconButton>
+                </Box>
+                <Typography variant="caption" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
+                  💡 Nový poplatok: {fees.kilometerOverage} km × {(customKmRate || 0).toFixed(2)} €/km = {((fees.kilometerOverage * (customKmRate || 0)) || 0).toFixed(2)} €
+                </Typography>
+              </Box>
+            )}
             <TextField
               label="Spotrebované palivo (%)"
               value={fees.fuelUsed}

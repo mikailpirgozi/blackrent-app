@@ -3310,6 +3310,8 @@ export class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
+          -- 🐛 FIX: Pridané chýbajúce extra_km_charge
+          r.extra_km_charge,
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           c.name as company_name, v.company as vehicle_company,
@@ -3329,6 +3331,18 @@ export class PostgresDatabase {
       const result = await client.query(mainQuery, queryParams);
 
       console.log(`📊 Paginated query: ${result.rows.length}/${total} rentals (limit: ${params.limit}, offset: ${params.offset})`);
+
+      // 🐛 DEBUG: Log rentals with extra_km_charge
+      const rentalsWithExtraKm = result.rows.filter(row => row.extra_km_charge);
+      if (rentalsWithExtraKm.length > 0) {
+        console.log(`🐛 PAGINATED DEBUG: Found ${rentalsWithExtraKm.length} rentals with extra_km_charge:`, 
+          rentalsWithExtraKm.slice(0, 2).map(row => ({
+            id: row.id,
+            extra_km_charge: row.extra_km_charge,
+            total_price: row.total_price
+          }))
+        );
+      }
 
       // Transform data to Rental objects
       const rentals = result.rows.map((row) => this.transformRowToRental(row));
@@ -3404,6 +3418,8 @@ export class PostgresDatabase {
       allowedKilometers: row.allowed_kilometers || undefined,
       dailyKilometers: row.daily_kilometers || undefined,
       handoverPlace: row.handover_place || undefined,
+      // 🐛 FIX: Pridané chýbajúce extraKmCharge mapovanie
+      extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
       company: row.company || undefined,
       vehicleName: row.vehicle_name || undefined,  // 🚗 NOVÉ: Vehicle name field
       // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
@@ -3459,6 +3475,8 @@ export class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
+          -- 🐛 FIX: Pridané chýbajúce extra_km_charge
+          r.extra_km_charge,
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
@@ -3504,7 +3522,17 @@ export class PostgresDatabase {
         }
       }
       
-      const rentals = result.rows.map(row => ({
+      const rentals = result.rows.map(row => {
+        // 🐛 DEBUG: Log first rental with extra_km_charge
+        if (row.extra_km_charge) {
+          console.log('🐛 BACKEND DEBUG: Found rental with extra_km_charge:', {
+            id: row.id,
+            extra_km_charge: row.extra_km_charge,
+            total_price: row.total_price
+          });
+        }
+        
+        return {
         id: row.id?.toString() || '',
         vehicleId: row.vehicle_id?.toString(),
         vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
@@ -3526,6 +3554,8 @@ export class PostgresDatabase {
         allowedKilometers: row.allowed_kilometers || undefined,
         dailyKilometers: row.daily_kilometers || undefined,
         handoverPlace: row.handover_place || undefined,
+        // 🐛 FIX: Pridané chýbajúce extraKmCharge mapovanie
+        extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
         company: row.company || undefined,  // 🎯 CLEAN SOLUTION field
         vehicleName: row.vehicle_name || undefined,  // 🚗 NOVÉ: Vehicle name field
         // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
@@ -3552,7 +3582,8 @@ export class PostgresDatabase {
           commission: typeof row.v_commission === 'string' ? JSON.parse(row.v_commission) : row.v_commission || { type: 'percentage', value: 0 },
           status: row.v_status || 'available'
         } : undefined
-      }));
+        };
+      });
 
       // ⚠️ AUTO-FIX DISABLED - Nebezpečné, menilo vehicle_id v databáze!
       // Namiesto toho len logujeme problém
@@ -3900,8 +3931,10 @@ export class PostgresDatabase {
           order_number = $10,
           deposit = $11,
           allowed_kilometers = $12,
-          extra_kilometer_rate = $13
-        WHERE id = $14
+          extra_kilometer_rate = $13,
+          -- 🐛 FIX: Pridané chýbajúce extra_km_charge
+          extra_km_charge = $14
+        WHERE id = $15
         `, [
           rental.vehicleId || null, // UUID as string, not parseInt
           rental.customerName, 
@@ -3916,6 +3949,8 @@ export class PostgresDatabase {
           rental.deposit || null,
           rental.allowedKilometers || null,
           rental.extraKilometerRate || null,
+          // 🐛 FIX: Pridané chýbajúce extra_km_charge parameter
+          rental.extraKmCharge || null,
           rental.id // UUID as string, not parseInt
         ]);
         

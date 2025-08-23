@@ -114,6 +114,35 @@ router.get('/bulk-status', auth_1.authenticateToken, async (req, res) => {
         });
     }
 });
+// 📊 EMPLOYEE STATISTICS: Get all protocols for statistics
+router.get('/all-for-stats', auth_1.authenticateToken, async (req, res) => {
+    try {
+        console.log('📊 Fetching all protocols for employee statistics...');
+        const startTime = Date.now();
+        // Get all protocols with employee information
+        const protocols = await postgres_database_1.postgresDatabase.getAllProtocolsForStats();
+        const loadTime = Date.now() - startTime;
+        console.log(`✅ All protocols loaded for statistics in ${loadTime}ms`);
+        res.json({
+            success: true,
+            data: protocols,
+            metadata: {
+                loadTimeMs: loadTime,
+                totalProtocols: protocols.length,
+                handoverCount: protocols.filter(p => p.type === 'handover').length,
+                returnCount: protocols.filter(p => p.type === 'return').length,
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+    catch (error) {
+        console.error('❌ Error fetching protocols for statistics:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Chyba pri načítaní protokolov pre štatistiky'
+        });
+    }
+});
 // PDF Proxy endpoint
 router.get('/pdf/:protocolId', auth_1.authenticateToken, async (req, res) => {
     try {
@@ -321,6 +350,33 @@ router.post('/return', auth_1.authenticateToken, async (req, res) => {
         // Create protocol
         const protocol = await postgres_database_1.postgresDatabase.createReturnProtocol(protocolData);
         console.log('✅ Return protocol created in DB:', protocol.id);
+        // 🚗 AUTOMATIC UPDATE: Aktualizuj prenájom s doplatkom za km
+        if (protocolData.kilometerFee && protocolData.kilometerFee > 0) {
+            try {
+                console.log('🔄 Updating rental with extra km charge:', {
+                    rentalId: protocolData.rentalId,
+                    kilometerFee: protocolData.kilometerFee,
+                    totalExtraFees: protocolData.totalExtraFees
+                });
+                // Načítaj aktuálny prenájom
+                const currentRental = await postgres_database_1.postgresDatabase.getRental(protocolData.rentalId);
+                if (currentRental) {
+                    // Aktualizuj prenájom s doplatkom za km
+                    const updatedRental = {
+                        ...currentRental,
+                        extraKmCharge: protocolData.kilometerFee,
+                        totalPrice: currentRental.totalPrice + protocolData.kilometerFee,
+                        status: 'finished'
+                    };
+                    await postgres_database_1.postgresDatabase.updateRental(updatedRental);
+                    console.log('✅ Rental updated with extra km charge:', updatedRental.id);
+                }
+            }
+            catch (error) {
+                console.error('❌ Error updating rental with extra km charge:', error);
+                // Pokračuj aj keď sa nepodarí aktualizovať prenájom
+            }
+        }
         let pdfUrl = null;
         let emailResult = {
             sent: false,
