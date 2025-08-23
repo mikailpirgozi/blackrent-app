@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import {
   Box,
   Button,
@@ -803,8 +804,26 @@ const getStatusIcon = (status: VehicleStatus) => {
 
 export default function VehicleListNew() {
   const { state, createVehicle, updateVehicle, deleteVehicle, getFullyFilteredVehicles } = useApp();
+  
+  // 🎯 SCROLL PRESERVATION: Refs pre scroll kontajnery
+  const mobileScrollRef = React.useRef<HTMLDivElement>(null);
+  const desktopScrollRef = React.useRef<HTMLDivElement>(null);
+  const savedScrollPosition = React.useRef<number>(0);
+  
+  // 🎯 INFINITE SCROLL PRESERVATION: Pre načítanie ďalších vozidiel
+  const infiniteScrollPosition = React.useRef<number>(0);
+  const isLoadingMoreRef = React.useRef<boolean>(false);
+  
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // 🔍 DEBUG: Základné informácie o komponente (len raz)
+  React.useEffect(() => {
+    console.log('🚀 VehicleListNew MOUNTED:', {
+      isMobile,
+      screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'unknown'
+    });
+  }, []); // Spustí sa len raz pri mount
   
   // States
   const [currentTab, setCurrentTab] = useState(0); // 🆕 Tab state
@@ -872,7 +891,70 @@ export default function VehicleListNew() {
   });
 
   // Handlers
+  // 🎯 SCROLL PRESERVATION: Funkcia na obnovenie scroll pozície
+  const restoreScrollPosition = React.useCallback(() => {
+    setTimeout(() => {
+      const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+      if (scrollContainer && savedScrollPosition.current > 0) {
+        scrollContainer.scrollTop = savedScrollPosition.current;
+        console.log(`🔄 Restored scroll position (${isMobile ? 'mobile' : 'desktop'}):`, savedScrollPosition.current);
+        savedScrollPosition.current = 0; // Reset
+      }
+    }, 100);
+  }, [isMobile]);
+
+  // 🎯 INFINITE SCROLL PRESERVATION: Obnoviť pozíciu po načítaní nových vozidiel
+  const restoreInfiniteScrollPosition = React.useCallback(() => {
+    if (!isLoadingMoreRef.current || infiniteScrollPosition.current === 0) {
+      return;
+    }
+    
+    const targetPosition = infiniteScrollPosition.current;
+    let restored = false;
+    
+    // 🚀 OPTIMIZED: Single smart restore attempt
+    const attemptRestore = () => {
+      const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+      
+      if (scrollContainer && !restored) {
+        // Force scroll position
+        scrollContainer.scrollTop = targetPosition;
+        
+        // Verify restoration worked
+        setTimeout(() => {
+          const actualPosition = scrollContainer.scrollTop;
+          const success = Math.abs(actualPosition - targetPosition) < 50;
+          
+          if (success) {
+            restored = true;
+            console.log(`✅ Scroll preserved at position ${targetPosition}`);
+          }
+        }, 50);
+      }
+    };
+    
+    // Single attempt with optimal timing
+    requestAnimationFrame(() => {
+      setTimeout(attemptRestore, 200); // Wait for DOM to settle
+    });
+    
+    // Cleanup
+    setTimeout(() => {
+      isLoadingMoreRef.current = false;
+      infiniteScrollPosition.current = 0;
+    }, 500);
+  }, [isMobile]);
+
   const handleEdit = (vehicle: Vehicle) => {
+    console.log('🔥 VEHICLE EDIT CLICKED:', vehicle.id);
+    
+    // 🎯 SCROLL PRESERVATION: Uložiť aktuálnu pozíciu pred otvorením dialógu
+    const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+    if (scrollContainer) {
+      savedScrollPosition.current = scrollContainer.scrollTop;
+      console.log(`💾 Saved scroll position (${isMobile ? 'mobile' : 'desktop'}):`, savedScrollPosition.current);
+    }
+    
     setEditingVehicle(vehicle);
     setOpenDialog(true);
   };
@@ -1078,6 +1160,9 @@ export default function VehicleListNew() {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingVehicle(null);
+    
+    // 🎯 SCROLL PRESERVATION: Obnoviť pozíciu po zatvorení dialógu
+    restoreScrollPosition();
   };
 
   const handleSubmit = async (vehicleData: Vehicle) => {
@@ -1148,10 +1233,17 @@ export default function VehicleListNew() {
     getFullyFilteredVehicles // 🎯 Enhanced filter function
   ]);
 
-  // 🚀 INFINITE SCROLL LOGIC (after filteredVehicles definition)
-  const loadMoreVehicles = useCallback(() => {
+  // 🎯 INFINITE SCROLL PRESERVATION: Wrapper pre loadMore s uložením pozície
+  const handleLoadMoreVehicles = useCallback(() => {
     if (isLoadingMore || displayedVehicles >= filteredVehicles.length) return;
     
+    // Uložiť aktuálnu scroll pozíciu pred načítaním
+    const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+    if (scrollContainer) {
+      infiniteScrollPosition.current = scrollContainer.scrollTop;
+    }
+    
+    isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
     
     // Simulate loading delay for better UX
@@ -1159,12 +1251,23 @@ export default function VehicleListNew() {
       setDisplayedVehicles(prev => Math.min(prev + 20, filteredVehicles.length));
       setIsLoadingMore(false);
     }, 300);
-  }, [isLoadingMore, displayedVehicles, filteredVehicles.length]);
+  }, [isLoadingMore, displayedVehicles, filteredVehicles.length, isMobile]);
+
+  // 🚀 INFINITE SCROLL LOGIC (backward compatibility)
+  const loadMoreVehicles = handleLoadMoreVehicles;
 
   // Reset displayed count when filters change
   useEffect(() => {
     setDisplayedVehicles(20);
   }, [searchQuery, filterBrand, filterModel, filterCompany, filterStatus, filterCategory, showAvailable, showRented, showMaintenance, showOther]);
+
+  // 🎯 INFINITE SCROLL PRESERVATION: Obnoviť pozíciu po načítaní nových vozidiel
+  useEffect(() => {
+    if (isLoadingMoreRef.current && !isLoadingMore) {
+      // Dáta sa načítali, obnoviť scroll pozíciu
+      restoreInfiniteScrollPosition();
+    }
+  }, [displayedVehicles, isLoadingMore, restoreInfiniteScrollPosition]);
 
   // Infinite scroll event handler
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -1796,6 +1899,7 @@ export default function VehicleListNew() {
         <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
           <CardContent sx={{ p: 0 }}>
             <Box 
+              ref={mobileScrollRef}
               sx={{ maxHeight: '70vh', overflowY: 'auto' }}
               onScroll={handleScroll}
             >
@@ -2151,6 +2255,7 @@ export default function VehicleListNew() {
 
             {/* Desktop Vehicle Rows */}
             <Box 
+              ref={desktopScrollRef}
               sx={{ maxHeight: '70vh', overflowY: 'auto' }}
               onScroll={handleScroll}
             >

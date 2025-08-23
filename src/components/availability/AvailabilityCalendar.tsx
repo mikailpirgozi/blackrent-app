@@ -7,7 +7,10 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
-  Alert
+  Alert,
+  Card,
+  CardContent,
+  Chip
 } from '@mui/material';
 import {
   ChevronLeft,
@@ -15,25 +18,50 @@ import {
   CalendarToday,
   CheckCircle,
   Cancel,
-  Warning
+  Warning,
+  DirectionsCar,
+  Build
 } from '@mui/icons-material';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import { apiService } from '../../services/api';
+import { useApp } from '../../context/AppContext';
 
-interface AvailabilityData {
+// 🚀 NOVÉ TYPY PRE KALENDÁRNE DÁTA
+interface CalendarVehicle {
+  vehicleId: number;
+  vehicleName: string;
+  licensePlate: string;
+  status: 'available' | 'rented' | 'flexible' | 'maintenance' | 'unavailable';
+  rentalId?: number;
+  customerName?: string;
+  isFlexible?: boolean;
+  unavailabilityType?: string;
+  unavailabilityReason?: string;
+}
+
+interface CalendarDay {
   date: string;
-  available: boolean;
-  reserved: boolean;
-  maintenance: boolean;
-  vehicleId?: number;
-  vehicleName?: string;
+  vehicles: CalendarVehicle[];
+}
+
+interface CalendarData {
+  calendar: CalendarDay[];
+  vehicles: Array<{
+    id: number;
+    brand: string;
+    model: string;
+    licensePlate: string;
+    status: string;
+  }>;
+  rentals?: any[];
+  unavailabilities?: any[];
 }
 
 interface AvailabilityCalendarProps {
   vehicleId?: number;
   onDateSelect?: (date: Date) => void;
   selectedDate?: Date;
-  availabilityData?: AvailabilityData[];
   loading?: boolean;
   error?: string;
   searchQuery?: string;

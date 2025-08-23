@@ -150,6 +150,13 @@ export default function RentalListNew() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // 768px breakpoint
   const mobileStyles = getMobileStyles(theme);
 
+  // 🔍 DEBUG: Základné informácie o komponente
+  console.log('🚀 RentalListNew LOADED:', {
+    isMobile,
+    screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'unknown',
+    breakpoint: theme.breakpoints.values.md
+  });
+
   // State management
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
@@ -177,6 +184,15 @@ export default function RentalListNew() {
       // Create separate refs for mobile and desktop scroll containers
     const mobileScrollRef = useRef<HTMLDivElement>(null);
     const desktopScrollRef = useRef<HTMLDivElement>(null);
+    
+    // 🎯 SCROLL PRESERVATION: Uloženie pozície pred editáciou
+    const savedScrollPosition = useRef<number>(0);
+    const virtualScrollPosition = useRef<number>(0);
+    
+    // 🎯 INFINITE SCROLL PRESERVATION: Uloženie pozície pred načítaním nových dát
+    const infiniteScrollPosition = useRef<number>(0);
+    const isLoadingMore = useRef<boolean>(false);
+    
       // 🎯 OPTIMIZED SCROLL SETTINGS
   const SCROLL_THRESHOLD = 0.75; // 75% scroll triggers infinite loading
   const DEBOUNCE_DELAY = 150; // Reduced from 200ms for better responsiveness
@@ -232,6 +248,29 @@ export default function RentalListNew() {
     const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastScrollTimeRef = useRef<number>(0);
     
+    // 🎯 INFINITE SCROLL PRESERVATION: Wrapper pre loadMore s uložením pozície
+    const handleLoadMore = useCallback(() => {
+      // Uložiť aktuálnu scroll pozíciu pred načítaním
+      if (isMobile && mobileScrollRef.current) {
+        const virtualList = mobileScrollRef.current.querySelector('[data-testid="FixedSizeList"]');
+        const reactWindowList = mobileScrollRef.current.querySelector('.ReactVirtualized__List');
+        
+        if (virtualList) {
+          infiniteScrollPosition.current = virtualList.scrollTop || 0;
+          console.log('📱 Saved infinite scroll position (mobile):', infiniteScrollPosition.current);
+        } else if (reactWindowList) {
+          infiniteScrollPosition.current = reactWindowList.scrollTop || 0;
+          console.log('📱 Saved infinite scroll position (ReactWindow):', infiniteScrollPosition.current);
+        }
+      } else if (!isMobile && desktopScrollRef.current) {
+        infiniteScrollPosition.current = desktopScrollRef.current.scrollTop;
+        console.log('💻 Saved infinite scroll position (desktop):', infiniteScrollPosition.current);
+      }
+      
+      isLoadingMore.current = true;
+      loadMore();
+    }, [isMobile, loadMore]);
+    
     // Create unified scroll handler
     const createScrollHandler = useCallback(() => {
       return (event: any) => {
@@ -280,11 +319,11 @@ export default function RentalListNew() {
           
           // Trigger infinite loading at threshold
           if (scrollPercentage >= SCROLL_THRESHOLD) {
-            loadMore();
+            handleLoadMore();
           }
         }, DEBOUNCE_DELAY);
       };
-    }, [paginatedLoading, hasMore, paginatedRentals.length, loadMore]);
+    }, [paginatedLoading, hasMore, paginatedRentals.length, handleLoadMore]);
     
     // Setup scroll handlers
     useEffect(() => {
@@ -1173,11 +1212,47 @@ export default function RentalListNew() {
       totalPrice: rental.totalPrice,
       extraKmCharge: rental.extraKmCharge,
       commission: rental.commission,
-      customerName: rental.customerName
+      customerName: rental.customerName,
+      isMobile: isMobile,
+      screenWidth: window.innerWidth,
+      mobileScrollRefExists: !!mobileScrollRef.current,
+      desktopScrollRefExists: !!desktopScrollRef.current
     });
+    
+    // 🎯 SCROLL PRESERVATION: Uložiť aktuálnu pozíciu pred otvorením dialógu
+    if (isMobile && mobileScrollRef.current) {
+      // Pre mobile virtual scroll - uložiť offset z React Window
+      const virtualList = mobileScrollRef.current.querySelector('[data-testid="FixedSizeList"]');
+      const reactWindowList = mobileScrollRef.current.querySelector('.ReactVirtualized__List');
+      
+      console.log('📱 MOBILE SCROLL DEBUG:', {
+        virtualListExists: !!virtualList,
+        reactWindowListExists: !!reactWindowList,
+        virtualListScrollTop: virtualList?.scrollTop,
+        reactWindowListScrollTop: reactWindowList?.scrollTop
+      });
+      
+      if (virtualList) {
+        virtualScrollPosition.current = virtualList.scrollTop || 0;
+        console.log('📱 Saved mobile scroll position (FixedSizeList):', virtualScrollPosition.current);
+      } else if (reactWindowList) {
+        virtualScrollPosition.current = reactWindowList.scrollTop || 0;
+        console.log('📱 Saved mobile scroll position (ReactVirtualized):', virtualScrollPosition.current);
+      }
+    } else if (!isMobile && desktopScrollRef.current) {
+      // Pre desktop native scroll
+      savedScrollPosition.current = desktopScrollRef.current.scrollTop;
+      console.log('💻 DESKTOP SCROLL DEBUG:', {
+        scrollTop: desktopScrollRef.current.scrollTop,
+        scrollHeight: desktopScrollRef.current.scrollHeight,
+        clientHeight: desktopScrollRef.current.clientHeight
+      });
+      console.log('💻 Saved desktop scroll position:', savedScrollPosition.current);
+    }
+    
     setEditingRental(rental);
     setOpenDialog(true);
-  }, []);
+  }, [isMobile]);
 
   const handleDelete = useCallback(async (id: string) => {
     if (window.confirm('Naozaj chcete vymazať tento prenájom?')) {
@@ -1191,6 +1266,32 @@ export default function RentalListNew() {
     }
   }, [deleteRental]);
 
+  // 🎯 SCROLL PRESERVATION: Funkcia na obnovenie scroll pozície
+  const restoreScrollPosition = useCallback(() => {
+    // Malé oneskorenie aby sa DOM stihol aktualizovať
+    setTimeout(() => {
+      if (isMobile && mobileScrollRef.current) {
+        // Pre mobile virtual scroll - obnoviť pozíciu cez React Window
+        const virtualList = mobileScrollRef.current.querySelector('[data-testid="FixedSizeList"]');
+        if (virtualList && virtualScrollPosition.current > 0) {
+          virtualList.scrollTop = virtualScrollPosition.current;
+          console.log('📱 Restored mobile scroll position:', virtualScrollPosition.current);
+        }
+        
+        // Alternatívne riešenie pre React Window - scrollToItem
+        const reactWindowList = mobileScrollRef.current.querySelector('.ReactVirtualized__List');
+        if (reactWindowList && virtualScrollPosition.current > 0) {
+          reactWindowList.scrollTop = virtualScrollPosition.current;
+          console.log('📱 Restored React Window scroll position:', virtualScrollPosition.current);
+        }
+      } else if (!isMobile && desktopScrollRef.current && savedScrollPosition.current > 0) {
+        // Pre desktop native scroll
+        desktopScrollRef.current.scrollTop = savedScrollPosition.current;
+        console.log('💻 Restored desktop scroll position:', savedScrollPosition.current);
+      }
+    }, 150); // Trochu dlhšie oneskorenie pre React Window
+  }, [isMobile]);
+
   const handleSave = async (rental: Rental) => {
     try {
       if (editingRental) {
@@ -1202,12 +1303,63 @@ export default function RentalListNew() {
       }
       setOpenDialog(false);
       setEditingRental(null);
+      
+      // 🎯 SCROLL PRESERVATION: Obnoviť pozíciu po zatvorení dialógu
+      restoreScrollPosition();
     } catch (error) {
       console.error('Chyba pri ukladaní prenájmu:', error);
       const errorMessage = error instanceof Error ? error.message : 'Neznáma chyba';
       alert(`Chyba pri ukladaní prenájmu: ${errorMessage}`);
     }
   };
+
+
+
+  // 🎯 SCROLL PRESERVATION: Funkcia pre zrušenie s obnovením pozície
+  const handleCancel = useCallback(() => {
+    setOpenDialog(false);
+    setEditingRental(null);
+    
+    // 🎯 SCROLL PRESERVATION: Obnoviť pozíciu po zatvorení dialógu
+    restoreScrollPosition();
+  }, [restoreScrollPosition]);
+
+  // 🎯 INFINITE SCROLL PRESERVATION: Obnoviť pozíciu po načítaní nových dát
+  const restoreInfiniteScrollPosition = useCallback(() => {
+    if (!isLoadingMore.current || infiniteScrollPosition.current === 0) {
+      return;
+    }
+    
+    // Malé oneskorenie aby sa DOM stihol aktualizovať s novými dátami
+    setTimeout(() => {
+      if (isMobile && mobileScrollRef.current) {
+        const virtualList = mobileScrollRef.current.querySelector('[data-testid="FixedSizeList"]');
+        const reactWindowList = mobileScrollRef.current.querySelector('.ReactVirtualized__List');
+        
+        if (virtualList && infiniteScrollPosition.current > 0) {
+          virtualList.scrollTop = infiniteScrollPosition.current;
+          console.log('📱 Restored infinite scroll position (mobile):', infiniteScrollPosition.current);
+        } else if (reactWindowList && infiniteScrollPosition.current > 0) {
+          reactWindowList.scrollTop = infiniteScrollPosition.current;
+          console.log('📱 Restored infinite scroll position (ReactWindow):', infiniteScrollPosition.current);
+        }
+      } else if (!isMobile && desktopScrollRef.current && infiniteScrollPosition.current > 0) {
+        desktopScrollRef.current.scrollTop = infiniteScrollPosition.current;
+        console.log('💻 Restored infinite scroll position (desktop):', infiniteScrollPosition.current);
+      }
+      
+      isLoadingMore.current = false;
+      infiniteScrollPosition.current = 0;
+    }, 200); // Dlhšie oneskorenie pre načítanie nových dát
+  }, [isMobile]);
+
+  // 🎯 INFINITE SCROLL PRESERVATION: Obnoviť pozíciu po načítaní nových dát
+  useEffect(() => {
+    if (isLoadingMore.current && !paginatedLoading) {
+      // Dáta sa načítali, obnoviť scroll pozíciu
+      restoreInfiniteScrollPosition();
+    }
+  }, [paginatedRentals.length, paginatedLoading, restoreInfiniteScrollPosition]);
 
   // Monitor state changes - optimalized mobile debug logging
   React.useEffect(() => {
@@ -1875,7 +2027,11 @@ export default function RentalListNew() {
               size="small"
               variant="contained"
               startIcon={<EditIcon />}
-              onClick={(e) => { e.stopPropagation(); handleEdit(rental); }}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                console.log('🔥 EDIT BUTTON CLICKED:', rental.id);
+                handleEdit(rental); 
+              }}
               sx={{ 
                 flex: 1,
                 minWidth: '100px',
@@ -2262,7 +2418,10 @@ export default function RentalListNew() {
           position: 'relative',
           overflow: 'visible'
         }} 
-        onClick={() => handleEdit(rental)}
+        onClick={() => {
+          console.log('🔥 CARD CLICKED FOR EDIT:', rental.id);
+          handleEdit(rental);
+        }}
       >
         {/* Status indicator */}
         <Box sx={{
@@ -3575,7 +3734,10 @@ export default function RentalListNew() {
                        position: 'relative',
                        transition: 'all 0.2s ease'
                      }}
-                     onClick={() => handleEdit(rental)}
+                     onClick={() => {
+          console.log('🔥 CARD CLICKED FOR EDIT:', rental.id);
+          handleEdit(rental);
+        }}
                    >
                     {/* Vozidlo info - sticky left - RESPONSIVE */}
                     <Box sx={{ 
@@ -4152,7 +4314,10 @@ export default function RentalListNew() {
                       borderLeft: isFlexible ? '4px solid #ff9800' : 'none',
                       position: 'relative'
                     }}
-                    onClick={() => handleEdit(rental)}
+                    onClick={() => {
+          console.log('🔥 CARD CLICKED FOR EDIT:', rental.id);
+          handleEdit(rental);
+        }}
                   >
                     {/* Vozidlo & Status - sticky left - FIXED WIDTH */}
                     <Box sx={{ 
@@ -4621,7 +4786,7 @@ export default function RentalListNew() {
           <RentalForm
             rental={editingRental}
             onSave={handleSave}
-            onCancel={() => setOpenDialog(false)}
+            onCancel={handleCancel}
           />
         </DialogContent>
       </Dialog>
@@ -4831,7 +4996,7 @@ export default function RentalListNew() {
         <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center', p: 3 }}>
           <Button 
             variant="contained" 
-            onClick={loadMore}
+            onClick={handleLoadMore}
             size="medium"
             startIcon={<RefreshIcon />}
             sx={{ 
