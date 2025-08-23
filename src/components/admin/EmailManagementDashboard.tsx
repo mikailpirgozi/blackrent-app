@@ -1368,7 +1368,7 @@ const EmailManagementDashboard: React.FC = () => {
         >
           <Tab 
             label={isExtraSmall ? "Emaily" : isSmallMobile ? "História" : "História Emailov"}
-            icon={!isExtraSmall && <EmailIcon />} 
+            icon={!isExtraSmall ? <EmailIcon /> : undefined} 
             iconPosition={isSmallMobile ? "top" : "start"}
             sx={{
               '& .MuiTab-iconWrapper': {
@@ -1403,7 +1403,7 @@ const EmailManagementDashboard: React.FC = () => {
                 )}
               </Box>
             } 
-            icon={!isExtraSmall && <PendingIcon />} 
+            icon={!isExtraSmall ? <PendingIcon /> : undefined} 
             iconPosition={isSmallMobile ? "top" : "start"}
             sx={{
               '& .MuiTab-iconWrapper': {
@@ -1438,7 +1438,7 @@ const EmailManagementDashboard: React.FC = () => {
                 )}
               </Box>
             } 
-            icon={!isExtraSmall && <ArchiveIcon />} 
+            icon={!isExtraSmall ? <ArchiveIcon /> : undefined} 
             iconPosition={isSmallMobile ? "top" : "start"}
             sx={{
               '& .MuiTab-iconWrapper': {
