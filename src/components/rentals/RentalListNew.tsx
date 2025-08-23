@@ -2606,12 +2606,13 @@ export default function RentalListNew() {
 
   return (
     <Box sx={{ minHeight: '100vh' }}>
-      {/* 🎨 LEGENDA FAREBNÝCH INDIKÁTOROV - VÝRAZNEJŠIA */}
+      {/* 🎨 LEGENDA FAREBNÝCH INDIKÁTOROV - VÝRAZNEJŠIA - SKRYTÁ NA MOBILE */}
       <Card sx={{ 
         mb: 2, 
         p: 2,
         backgroundColor: 'rgba(25, 118, 210, 0.02)',
-        border: '1px solid rgba(25, 118, 210, 0.1)'
+        border: '1px solid rgba(25, 118, 210, 0.1)',
+        display: { xs: 'none', md: 'block' } // Skryté na mobile
       }}>
         <Typography variant="h6" sx={{ 
           mb: 1.5, 
@@ -2703,7 +2704,8 @@ export default function RentalListNew() {
             py: 1,
             borderRadius: 2,
             textTransform: 'none',
-            fontWeight: 500
+            fontWeight: 500,
+            display: { xs: 'none', md: 'inline-flex' } // Skryté na mobile
           }}
         >
           Export CSV
@@ -2718,7 +2720,8 @@ export default function RentalListNew() {
             py: 1,
             borderRadius: 2,
             textTransform: 'none',
-            fontWeight: 500
+            fontWeight: 500,
+            display: { xs: 'none', md: 'inline-flex' } // Skryté na mobile
           }}
         >
           Import CSV
@@ -4650,7 +4653,7 @@ export default function RentalListNew() {
       )}
       
       {!paginatedLoading && hasMore && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center', p: 3 }}>
           <Button 
             variant="contained" 
             onClick={loadMore}
