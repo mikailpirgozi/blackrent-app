@@ -2438,123 +2438,121 @@ export default function RentalListNew() {
   }, [paginatedRentals.length, protocolStatusLoaded, isLoadingProtocolStatus, loadProtocolStatusInBackground]);
 
   return (
-    <Box sx={{ height: '100vh', overflow: 'hidden' }}>
-      {/* Enhanced Header */}
-      <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: { xs: 'column', md: 'row' },
-            justifyContent: 'space-between', 
-            alignItems: { xs: 'stretch', md: 'center' },
-            gap: { xs: 2, md: 0 }
-          }}>
-            <Box>
-              <Typography variant="h4" fontWeight="bold" sx={{ 
-                mb: 1,
-                fontSize: { xs: '1.75rem', md: '2.125rem' }
-              }}>
-                Prenájmy
-              </Typography>
-              <Typography variant="body1" sx={{ 
-                opacity: 0.9,
-                fontSize: { xs: '0.875rem', md: '1rem' }
-              }}>
-                Správa a prehľad všetkých prenájmov vozidiel
-              </Typography>
-            </Box>
-                          <Box sx={{ 
-                display: 'flex', 
-                flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: { xs: 'stretch', sm: 'center' }, 
-                gap: 2 
-              }}>
-              <Box sx={{ 
-                textAlign: { xs: 'center', md: 'right' }, 
-                mr: { xs: 0, md: 2 },
-                mb: { xs: 2, md: 0 }
-              }}>
-                <Box sx={{ 
-                  display: 'flex', 
-                  gap: { xs: 2, md: 3 },
-                  justifyContent: { xs: 'center', md: 'flex-end' }
-                }}>
-                  <Box>
-                    <Typography variant="h6" fontWeight="bold">
-                      {filteredRentals.length}
-                    </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                      zobrazených
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="h6" fontWeight="bold" color="success.light">
-                      {filteredRentals.filter(r => r.status === 'active').length}
-                    </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                      aktívnych
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="h6" fontWeight="bold" color="warning.light">
-                      {filteredRentals.filter(r => protocols[r.id]?.handover && !protocols[r.id]?.return).length}
-                    </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                      čakajú na vrátenie
-                    </Typography>
-                  </Box>
-                </Box>
+    <Box sx={{ minHeight: '100vh' }}>
+      {/* Kompaktný Header */}
+      <Box sx={{ 
+        mb: 2, 
+        p: 2, 
+        backgroundColor: 'background.paper',
+        borderRadius: 2,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        border: '1px solid rgba(0,0,0,0.08)'
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', md: 'row' },
+          justifyContent: 'space-between', 
+          alignItems: { xs: 'flex-start', md: 'center' },
+          gap: 2
+        }}>
+          {/* Názov a štatistiky v jednom riadku */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flex: 1 }}>
+            <Typography variant="h5" fontWeight="600" sx={{ color: 'primary.main' }}>
+              📋 Prenájmy
+            </Typography>
+            
+            {/* Kompaktné štatistiky */}
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 2,
+              alignItems: 'center'
+            }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="body2" fontWeight="bold" sx={{ color: 'text.primary' }}>
+                  {filteredRentals.length}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                  zobrazených
+                </Typography>
               </Box>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleAdd}
-                sx={{ 
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  color: 'white',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  backdropFilter: 'blur(10px)',
-                  '&:hover': {
-                    bgcolor: 'rgba(255,255,255,0.3)',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
-                  },
-                  transition: 'all 0.3s ease',
-                  px: 3,
-                  py: 1.5,
-                  borderRadius: 2
-                }}
-              >
-                {isMobile ? 'Pridať' : 'Nový prenájom'}
-              </Button>
-              {/* CSV tlačidlá - len na desktope */}
-              {!isMobile && (
-                <>
-                  <Button 
-                    variant="outlined" 
-                    color="info" 
-                    startIcon={<ExportIcon />}
-                    onClick={() => exportRentalsToCSV(filteredRentals)}
-                    sx={{ ml: 2 }}
-                  >
-                    Export CSV
-                  </Button>
-                  <Button 
-                    variant="outlined" 
-                    color="secondary" 
-                    startIcon={<DownloadIcon />}
-                    component="label"
-                    sx={{ ml: 1 }}
-                  >
-                    Import CSV
-                    <input type="file" accept=".csv" hidden onChange={handleImportCSV} ref={fileInputRef} />
-                  </Button>
-                </>
-              )}
+              <Divider orientation="vertical" flexItem />
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="body2" fontWeight="bold" sx={{ color: 'success.main' }}>
+                  {filteredRentals.filter(r => r.status === 'active').length}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                  aktívnych
+                </Typography>
+              </Box>
+              <Divider orientation="vertical" flexItem />
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="body2" fontWeight="bold" sx={{ color: 'warning.main' }}>
+                  {filteredRentals.filter(r => protocols[r.id]?.handover && !protocols[r.id]?.return).length}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                  čakajú na vrátenie
+                </Typography>
+              </Box>
             </Box>
           </Box>
-        </CardContent>
-      </Card>
+
+          {/* Kompaktné tlačidlá */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1,
+            alignItems: 'center'
+          }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAdd}
+              size="small"
+              sx={{ 
+                px: 2,
+                py: 1,
+                borderRadius: 1.5,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
+              {isMobile ? 'Pridať' : 'Nový prenájom'}
+            </Button>
+            
+            <Button 
+              variant="outlined" 
+              startIcon={<ExportIcon />}
+              onClick={() => exportRentalsToCSV(filteredRentals)}
+              size="small"
+              sx={{ 
+                px: 2,
+                py: 1,
+                borderRadius: 1.5,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
+              Export CSV
+            </Button>
+            
+            <Button 
+              variant="outlined" 
+              startIcon={<DownloadIcon />}
+              component="label"
+              size="small"
+              sx={{ 
+                px: 2,
+                py: 1,
+                borderRadius: 1.5,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
+              Import CSV
+              <input type="file" accept=".csv" hidden onChange={handleImportCSV} ref={fileInputRef} />
+            </Button>
+          </Box>
+        </Box>
+      </Box>
 
       {/* Moderné vyhľadávanie a filtre */}
       <Card sx={{ 
@@ -3128,13 +3126,14 @@ export default function RentalListNew() {
             <Box 
               ref={mobileScrollRef} 
               sx={{ 
-                height: 'calc(100vh - 400px)', 
+                minHeight: '60vh', // Flexibilná výška namiesto fixnej
+                maxHeight: '70vh', // Maximum aby sa neroztiahlo príliš
                 width: '100%',
-                overflow: 'hidden' // React Window handles scrolling
+                overflow: 'auto' // Povoliť scrollovanie
               }}
             >
               <List
-                height={600} // Fixed height for mobile virtualized list
+                height={typeof window !== 'undefined' ? Math.min(window.innerHeight * 0.6, 600) : 600} // Dynamická výška založená na veľkosti okna
                 width="100%"
                 itemCount={filteredRentals.length}
                 itemSize={160}
@@ -3687,7 +3686,8 @@ export default function RentalListNew() {
             <Box 
               ref={desktopScrollRef}
               sx={{ 
-                height: 'calc(100vh - 400px)', // Adjust based on header/filter height
+                minHeight: '60vh', // Flexibilná výška namiesto fixnej
+                maxHeight: '75vh', // Maximum aby sa neroztiahlo príliš
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 position: 'relative',

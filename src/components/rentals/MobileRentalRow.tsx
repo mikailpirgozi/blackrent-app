@@ -46,7 +46,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
     display: 'flex',
     borderBottom: index < totalRentals - 1 ? '1px solid #e0e0e0' : 'none',
     '&:hover': { backgroundColor: '#f8f9fa' },
-    minHeight: 80,
+    minHeight: 60, // Zmenšené z 80 na 60px pre kompaktnejšie zobrazenie
     cursor: 'pointer'
   }), [index, totalRentals]);
 
@@ -180,7 +180,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
       {/* Detaily & Status */}
       <Box sx={{ 
         flex: 1,
-        p: { xs: 1, sm: 1.5 },
+        p: { xs: 0.75, sm: 1 }, // Zmenšené padding pre kompaktnejšie zobrazenie
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -221,11 +221,13 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
           </Typography>
         </Box>
         
+        {/* Protokoly a Delete tlačidlo v jednom riadku */}
         <Box sx={{ 
           display: 'flex', 
-          gap: { xs: 0.25, sm: 0.5 }, 
-          mt: { xs: 0.5, sm: 1 }, 
+          gap: { xs: 0.5, sm: 0.75 }, 
+          mt: { xs: 0.25, sm: 0.5 }, // Zmenšené top margin pre kompaktnejšie zobrazenie
           justifyContent: 'flex-start',
+          alignItems: 'center',
           flexWrap: 'wrap'
         }}>
           <Fade in timeout={600}>
@@ -250,6 +252,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
               }}
             />
           </Fade>
+          
           <Fade in timeout={800}>
             <Chip
               size="small"
@@ -320,41 +323,8 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
               />
             )
           )}
-        </Box>
-        
-        {/* Action buttons row */}
-        <Box sx={{ 
-          display: 'flex', 
-          gap: { xs: 0.5, sm: 0.75 }, 
-          mt: { xs: 1, sm: 1.5 }, 
-          justifyContent: 'flex-start',
-          flexWrap: 'wrap'
-        }}>
-          {/* Edit Button */}
-          <IconButton
-            size="small"
-            title="Upraviť prenájom"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(rental);
-            }}
-            sx={{ 
-              bgcolor: '#2196f3', 
-              color: 'white',
-              width: { xs: 36, sm: 32 },
-              height: { xs: 36, sm: 32 },
-              '&:hover': { 
-                bgcolor: '#1976d2',
-                transform: 'scale(1.1)',
-                boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
-              },
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
           
-          {/* Delete Button */}
+          {/* Delete Button - presunúť vedľa protokolov */}
           {onDelete && (
             <IconButton
               size="small"
@@ -366,8 +336,9 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
               sx={{ 
                 bgcolor: '#f44336', 
                 color: 'white',
-                width: { xs: 36, sm: 32 },
-                height: { xs: 36, sm: 32 },
+                width: { xs: 32, sm: 28 },
+                height: { xs: 32, sm: 28 },
+                ml: { xs: 0.5, sm: 1 },
                 '&:hover': { 
                   bgcolor: '#d32f2f',
                   transform: 'scale(1.1)',
