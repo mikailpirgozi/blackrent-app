@@ -455,14 +455,7 @@ const Statistics: React.FC = () => {
           return protocolDate >= filterStartDate && protocolDate <= filterEndDate;
         });
 
-        // DEBUG: Log pre diagnostiku
-        console.log('🔍 EMPLOYEE STATS DEBUG:', {
-          totalProtocols: state.protocols.length,
-          filteredProtocols: filteredProtocols.length,
-          totalRentals: state.rentals.length,
-          sampleProtocol: filteredProtocols[0],
-          sampleRental: state.rentals[0]
-        });
+
 
         // Zoskupenie protokolov podľa zamestnanca
         const employeeProtocolStats = filteredProtocols.reduce((acc, protocol) => {
@@ -492,20 +485,7 @@ const Statistics: React.FC = () => {
             rentalPrice = protocol.rentalData.totalPrice;
           }
 
-          // DEBUG: Log pre každý protokol
-          if (filteredProtocols.length <= 5) { // Len pre prvých 5 aby nezahlcoval
-            console.log('🔍 PROTOCOL DEBUG:', {
-              protocolId: protocol.id,
-              rentalId: protocol.rentalId,
-              employeeName,
-              rentalFound: !!rental,
-              rentalPrice,
-              rentalTotalPrice: rental?.totalPrice,
-              protocolRentalDataPrice: protocol.rentalData?.totalPrice,
-              rentalObject: rental,
-              protocolRentalData: protocol.rentalData
-            });
-          }
+
 
           if (protocol.type === 'handover') {
             acc[employeeName].handoverCount++;

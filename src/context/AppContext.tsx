@@ -631,14 +631,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'protocols', loaded: true } });
         
         logger.perf(`✅ Protokoly načítané v ${protocolsTime}ms (${protocols.length} protokolov)`);
-        console.log('🔍 PROTOCOLS LOADED:', {
-          count: protocols.length,
-          sampleProtocol: protocols[0],
-          protocolTypes: protocols.reduce((acc, p) => {
-            acc[p.type] = (acc[p.type] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>)
-        });
       } catch (error) {
         console.error('❌ Chyba pri načítaní protokolov pre štatistiky:', error);
         // Don't fail the whole load process if protocols fail
