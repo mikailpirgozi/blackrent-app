@@ -38,7 +38,7 @@ router.get('/data',
           vehicleDocuments,
           insuranceClaims
         ] = await Promise.all([
-          postgresDatabase.getVehicles(),
+          postgresDatabase.getVehicles(true), // Zahrnúť všetky vozidlá vrátane vyradených
           postgresDatabase.getRentals(),
           postgresDatabase.getCustomers(),
           postgresDatabase.getCompanies(),

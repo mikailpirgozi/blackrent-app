@@ -135,12 +135,9 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
         const filteredRentals = rentals.filter(rental => {
             if (!rental.vehicleId)
                 return false;
-            // 1. Check if rental is in period
+            // 1. Check if rental STARTS in period (FIXED: only include rentals that START in the period)
             const rentalStart = new Date(rental.startDate);
-            const rentalEnd = new Date(rental.endDate);
-            const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) ||
-                (rentalEnd >= fromDate && rentalEnd <= toDate) ||
-                (rentalStart <= fromDate && rentalEnd >= toDate);
+            const isInPeriod = rentalStart >= fromDate && rentalStart <= toDate;
             if (!isInPeriod)
                 return false;
             // 2. Check company match using vehicle.company (from getRentals JOIN)
@@ -167,8 +164,8 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
         const calculatedIncome = filteredRentals.reduce((sum, rental) => sum + rental.totalPrice, 0);
         const calculatedExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
         const calculatedCommission = filteredRentals.reduce((sum, rental) => {
-            // Assuming commission is calculated from rental price - adjust as needed
-            return sum + (rental.totalPrice * 0.1); // 10% commission example
+            // FIXED: Use actual commission from rental instead of calculating 10%
+            return sum + rental.commission;
         }, 0);
         const calculatedProfit = calculatedIncome - calculatedExpenses - calculatedCommission;
         const createdSettlement = await postgres_database_1.postgresDatabase.createSettlement({

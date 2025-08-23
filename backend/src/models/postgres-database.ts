@@ -2097,8 +2097,14 @@ export class PostgresDatabase {
   }
 
   // 🚀 FÁZA 1.3: CACHED VEHICLES - drastické zrýchlenie kalendára
-  async getVehicles(): Promise<Vehicle[]> {
-    // Skontroluj cache
+  async getVehicles(includeRemoved: boolean = false): Promise<Vehicle[]> {
+    // Pre zahrnutie vyradených vozidiel nepoužívame cache
+    if (includeRemoved) {
+      console.log('🔄 Loading ALL vehicles (including removed) from DB');
+      return await this.getVehiclesFresh(includeRemoved);
+    }
+
+    // Skontroluj cache len pre aktívne vozidlá
     const now = Date.now();
     if (this.vehicleCache && (now - this.vehicleCache.timestamp) < this.VEHICLE_CACHE_TTL) {
       console.log('⚡ VEHICLE CACHE HIT - using cached vehicles');
@@ -2106,7 +2112,7 @@ export class PostgresDatabase {
     }
 
     console.log('🔄 VEHICLE CACHE MISS - loading fresh vehicles from DB');
-    const vehicles = await this.getVehiclesFresh();
+    const vehicles = await this.getVehiclesFresh(includeRemoved);
     
     // Uložiť do cache
     this.vehicleCache = {
@@ -2274,12 +2280,16 @@ export class PostgresDatabase {
   }
 
   // Originálna metóda pre fresh loading
-  private async getVehiclesFresh(): Promise<Vehicle[]> {
+  private async getVehiclesFresh(includeRemoved: boolean = false): Promise<Vehicle[]> {
     const client = await this.pool.connect();
     try {
+      const whereClause = includeRemoved 
+        ? '' 
+        : `WHERE status NOT IN ('removed', 'temporarily_removed')`;
+      
       const result = await client.query(
         `SELECT * FROM vehicles 
-         WHERE status NOT IN ('removed', 'temporarily_removed')
+         ${whereClause}
          ORDER BY created_at DESC`
       );
       

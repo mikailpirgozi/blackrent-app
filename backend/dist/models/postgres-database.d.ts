@@ -40,7 +40,7 @@ export declare class PostgresDatabase {
     updateUser(user: User): Promise<void>;
     deleteUser(id: string): Promise<void>;
     getUsers(): Promise<User[]>;
-    getVehicles(): Promise<Vehicle[]>;
+    getVehicles(includeRemoved?: boolean): Promise<Vehicle[]>;
     private invalidateVehicleCache;
     private getReusableConnection;
     private releaseReusableConnection;

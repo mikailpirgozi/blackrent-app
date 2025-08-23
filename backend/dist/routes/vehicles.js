@@ -24,7 +24,9 @@ router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('ve
     tags: ['vehicles']
 }), async (req, res) => {
     try {
-        let vehicles = await postgres_database_1.postgresDatabase.getVehicles();
+        // Podporuj parameter pre zahrnutie vyradených vozidiel
+        const includeRemoved = req.query.includeRemoved === 'true';
+        let vehicles = await postgres_database_1.postgresDatabase.getVehicles(includeRemoved);
         console.log('🚗 Vehicles GET - user:', {
             role: req.user?.role,
             userId: req.user?.id,

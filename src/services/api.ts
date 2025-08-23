@@ -200,13 +200,19 @@ class ApiService {
   }
 
   // Vozidlá s cache
-  async getVehicles(): Promise<Vehicle[]> {
+  async getVehicles(includeRemoved: boolean = false): Promise<Vehicle[]> {
     const userId = localStorage.getItem('blackrent_user_id');
-    const cacheKey = cacheKeys.vehicles(userId || undefined);
+    const cacheKey = includeRemoved ? 'vehicles-all' : cacheKeys.vehicles(userId || undefined);
+    const endpoint = includeRemoved ? '/vehicles?includeRemoved=true' : '/vehicles';
+
+    // Pre zahrnutie vyradených vozidiel nepoužívame cache
+    if (includeRemoved) {
+      return this.request<Vehicle[]>(endpoint);
+    }
     
     return apiCache.getOrFetch(
       cacheKey,
-      () => this.request<Vehicle[]>('/vehicles'),
+      () => this.request<Vehicle[]>(endpoint),
       {
         ttl: 10 * 60 * 1000, // 10 minutes
         tags: ['vehicles'],

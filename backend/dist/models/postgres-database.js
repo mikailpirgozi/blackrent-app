@@ -1872,15 +1872,20 @@ class PostgresDatabase {
         }
     }
     // 🚀 FÁZA 1.3: CACHED VEHICLES - drastické zrýchlenie kalendára
-    async getVehicles() {
-        // Skontroluj cache
+    async getVehicles(includeRemoved = false) {
+        // Pre zahrnutie vyradených vozidiel nepoužívame cache
+        if (includeRemoved) {
+            console.log('🔄 Loading ALL vehicles (including removed) from DB');
+            return await this.getVehiclesFresh(includeRemoved);
+        }
+        // Skontroluj cache len pre aktívne vozidlá
         const now = Date.now();
         if (this.vehicleCache && (now - this.vehicleCache.timestamp) < this.VEHICLE_CACHE_TTL) {
             console.log('⚡ VEHICLE CACHE HIT - using cached vehicles');
             return this.vehicleCache.data;
         }
         console.log('🔄 VEHICLE CACHE MISS - loading fresh vehicles from DB');
-        const vehicles = await this.getVehiclesFresh();
+        const vehicles = await this.getVehiclesFresh(includeRemoved);
         // Uložiť do cache
         this.vehicleCache = {
             data: vehicles,
@@ -2026,10 +2031,15 @@ class PostgresDatabase {
         };
     }
     // Originálna metóda pre fresh loading
-    async getVehiclesFresh() {
+    async getVehiclesFresh(includeRemoved = false) {
         const client = await this.pool.connect();
         try {
-            const result = await client.query('SELECT * FROM vehicles ORDER BY created_at DESC');
+            const whereClause = includeRemoved
+                ? ''
+                : `WHERE status NOT IN ('removed', 'temporarily_removed')`;
+            const result = await client.query(`SELECT * FROM vehicles 
+         ${whereClause}
+         ORDER BY created_at DESC`);
             const vehicles = result.rows.map(row => ({
                 id: row.id?.toString() || '',
                 brand: row.brand,
@@ -4720,13 +4730,10 @@ class PostgresDatabase {
                 const fromDate = new Date(row.from_date || new Date());
                 const toDate = new Date(row.to_date || new Date());
                 const company = row.company || 'Default Company';
-                // Filter rentals for this settlement
+                // Filter rentals for this settlement (FIXED: only include rentals that START in the period)
                 const filteredRentals = allRentals.filter(rental => {
                     const rentalStart = new Date(rental.startDate);
-                    const rentalEnd = new Date(rental.endDate);
-                    const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) ||
-                        (rentalEnd >= fromDate && rentalEnd <= toDate) ||
-                        (rentalStart <= fromDate && rentalEnd >= toDate);
+                    const isInPeriod = rentalStart >= fromDate && rentalStart <= toDate;
                     // 🔧 FIXED: Use vehicle.company (from corrected getRentals) or fallback to rental.company
                     const vehicleCompany = rental.vehicle?.company;
                     const rentalCompany = rental.company; // Historical snapshot
@@ -4783,13 +4790,10 @@ class PostgresDatabase {
             const fromDate = new Date(row.from_date);
             const toDate = new Date(row.to_date);
             const company = row.company;
-            // Filter rentals for this settlement
+            // Filter rentals for this settlement (FIXED: only include rentals that START in the period)
             const filteredRentals = allRentals.filter(rental => {
                 const rentalStart = new Date(rental.startDate);
-                const rentalEnd = new Date(rental.endDate);
-                const isInPeriod = (rentalStart >= fromDate && rentalStart <= toDate) ||
-                    (rentalEnd >= fromDate && rentalEnd <= toDate) ||
-                    (rentalStart <= fromDate && rentalEnd >= toDate);
+                const isInPeriod = rentalStart >= fromDate && rentalStart <= toDate;
                 // Use vehicle.company (from corrected getRentals) or fallback to rental.company
                 const vehicleCompany = rental.vehicle?.company;
                 const rentalCompany = rental.company;
@@ -6119,7 +6123,6 @@ class PostgresDatabase {
             END as final_status
           FROM calendar_dates cd
           CROSS JOIN vehicles v
-          WHERE v.status NOT IN ('removed', 'temporarily_removed')
           LEFT JOIN active_rentals ar ON (
             ar.vehicle_id = v.id 
             AND cd.date BETWEEN ar.start_date AND ar.end_date
@@ -6128,6 +6131,7 @@ class PostgresDatabase {
             au.vehicle_id = v.id
             AND cd.date BETWEEN au.start_date AND au.end_date
           )
+          WHERE v.status NOT IN ('removed', 'temporarily_removed')
         )
         SELECT
           date,

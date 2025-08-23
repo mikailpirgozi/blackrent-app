@@ -145,7 +145,7 @@ export default function RentalListNew() {
     logger.render('RentalListNew render', { timestamp: Date.now() });
   }
   
-  const { state, createRental, updateRental, deleteRental } = useApp();
+  const { state, createRental, updateRental, deleteRental, getEnhancedFilteredVehicles } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // 768px breakpoint
   const mobileStyles = getMobileStyles(theme);
@@ -429,10 +429,12 @@ export default function RentalListNew() {
     }
   }, [debouncedRefresh]));
 
-  // ⚡ OPTIMIZED: Memoized vehicle lookup map for performance
+  // ⚡ OPTIMIZED: Memoized vehicle lookup map for performance (vrátane vyradených vozidiel)
   const vehicleLookupMap = useMemo(() => {
     const map = new Map();
-    state.vehicles.forEach(vehicle => {
+    // Použiť všetky vozidlá vrátane vyradených pre historické prenájmy
+    const allVehicles = getEnhancedFilteredVehicles({ includeRemoved: true, includeAll: true });
+    allVehicles.forEach((vehicle: any) => {
       map.set(vehicle.id, vehicle);
     });
     return map;

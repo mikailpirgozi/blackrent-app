@@ -35,6 +35,7 @@ interface FilterOptions {
   
   // Meta options
   includeAll?: boolean; // For admin override
+  includeRemoved?: boolean; // Pre zahrnutie vyradených vozidiel (pre historické prenájmy)
 }
 
 interface AppState {
@@ -463,10 +464,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const getEnhancedFilteredVehicles = (options: FilterOptions = {}): Vehicle[] => {
     let vehicles = state.vehicles || [];
     
-    // 0️⃣ ALWAYS FILTER: Skry vyradené vozidlá (VŽDY, aj pre adminov)
-    vehicles = vehicles.filter(vehicle => 
-      vehicle.status !== 'removed' && vehicle.status !== 'temporarily_removed'
-    );
+    // 0️⃣ CONDITIONAL FILTER: Skry vyradené vozidlá (len ak nie je includeRemoved)
+    if (!options.includeRemoved) {
+      vehicles = vehicles.filter(vehicle => 
+        vehicle.status !== 'removed' && vehicle.status !== 'temporarily_removed'
+      );
+    }
     
     // 1️⃣ PERMISSION LAYER (always applied unless admin override)
     if (!options.includeAll && (!authState.user || authState.user.role !== 'admin')) {
