@@ -275,8 +275,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
         kilometersUsed: fees.kilometersUsed,
         kilometerOverage: fees.kilometerOverage,
         kilometerFee: fees.kilometerFee,
-        // 🔧 NOVÉ: Uloženie informácií o cene za km (ako poznámka)
-        notes: `${protocolData.notes || ''}\n\nCena za km: ${customKmRate !== null ? customKmRate : (rental.extraKilometerRate || 0.50)}€/km${customKmRate !== null ? ' (upravené)' : ' (cenník)'}`.trim(),
+        // 🔧 NOVÉ: Informácia o cene za km sa pridá do poznámok nižšie
         fuelUsed: fees.fuelUsed,
         fuelFee: fees.fuelFee,
         totalExtraFees: fees.totalExtraFees,
@@ -306,7 +305,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
         },
         pdfUrl: '',
         emailSent: false,
-        notes: formData.notes,
+        notes: `${formData.notes || ''}\n\nCena za km: ${customKmRate !== null ? customKmRate : (rental.extraKilometerRate || 0.50)}€/km${customKmRate !== null ? ' (upravené)' : ' (cenník)'}`.trim(),
         createdBy: state.user ? `${state.user.firstName || ''} ${state.user.lastName || ''}`.trim() || state.user.username : 'admin',
       };
 
