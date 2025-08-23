@@ -487,7 +487,7 @@ export default function InsuranceClaimList() {
           {showFilters && (
             <Grid container spacing={{ xs: 1, sm: 2 }}>
               <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth size={{ xs: 'small', sm: 'medium' }}>
+                <FormControl fullWidth size="small">
                   <InputLabel>Vozidlo</InputLabel>
                   <Select
                     value={filterVehicle}
@@ -513,7 +513,7 @@ export default function InsuranceClaimList() {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth size={{ xs: 'small', sm: 'medium' }}>
+                <FormControl fullWidth size="small">
                   <InputLabel>Stav</InputLabel>
                   <Select
                     value={filterStatus}
@@ -530,7 +530,7 @@ export default function InsuranceClaimList() {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth size={{ xs: 'small', sm: 'medium' }}>
+                <FormControl fullWidth size="small">
                   <InputLabel>Typ udalosti</InputLabel>
                   <Select
                     value={filterType}
