@@ -274,16 +274,16 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
                 onClick={() => handleMetricClick(metric.filterType, metric.value)}
                 sx={{ 
                   background: metric.urgent 
-                    ? `linear-gradient(135deg, ${theme.palette[metric.color].main}15 0%, ${theme.palette[metric.color].main}25 100%)`
-                    : `linear-gradient(135deg, ${theme.palette[metric.color].main}10 0%, ${theme.palette[metric.color].main}20 100%)`,
-                  border: `1px solid ${theme.palette[metric.color].main}30`,
+                    ? `linear-gradient(135deg, ${(theme.palette as any)[metric.color].main}15 0%, ${(theme.palette as any)[metric.color].main}25 100%)`
+                    : `linear-gradient(135deg, ${(theme.palette as any)[metric.color].main}10 0%, ${(theme.palette as any)[metric.color].main}20 100%)`,
+                  border: `1px solid ${(theme.palette as any)[metric.color].main}30`,
                   borderRadius: 1,
                   transition: 'all 0.2s ease',
                   cursor: metric.clickable ? 'pointer' : 'default',
                   minHeight: 60,
                   '&:hover': metric.clickable ? {
                     transform: 'translateY(-1px)',
-                    boxShadow: `0 4px 15px ${theme.palette[metric.color].main}30`
+                    boxShadow: `0 4px 15px ${(theme.palette as any)[metric.color].main}30`
                   } : {}
                 }}
               >
