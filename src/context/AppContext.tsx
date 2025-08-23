@@ -48,6 +48,14 @@ interface AppState {
   customers: Customer[];
   vehicleDocuments: VehicleDocument[];
   insuranceClaims: InsuranceClaim[];
+  protocols: Array<{
+    id: string;
+    type: 'handover' | 'return';
+    rentalId: string;
+    createdBy: string;
+    createdAt: Date;
+    rentalData?: any;
+  }>;
   loading: boolean;
   error: string | null;
   // OPTIMALIZÁCIA: Cache stav pre rýchlejšie načítanie
@@ -62,6 +70,7 @@ interface AppState {
     customers: boolean;
     vehicleDocuments: boolean;
     insuranceClaims: boolean;
+    protocols: boolean;
   };
   lastLoadTime: number | null;
 }
@@ -78,6 +87,14 @@ type AppAction =
   | { type: 'SET_INSURERS'; payload: Insurer[] }
   | { type: 'SET_SETTLEMENTS'; payload: Settlement[] }
   | { type: 'SET_VEHICLE_DOCUMENTS'; payload: VehicleDocument[] }
+  | { type: 'SET_PROTOCOLS'; payload: Array<{
+      id: string;
+      type: 'handover' | 'return';
+      rentalId: string;
+      createdBy: string;
+      createdAt: Date;
+      rentalData?: any;
+    }> }
   | { type: 'ADD_VEHICLE'; payload: Vehicle }
   | { type: 'UPDATE_VEHICLE'; payload: Vehicle }
   | { type: 'DELETE_VEHICLE'; payload: string }
@@ -123,6 +140,7 @@ const initialState: AppState = {
   customers: [],
   vehicleDocuments: [],
   insuranceClaims: [],
+  protocols: [],
   loading: false,
   error: null,
   // OPTIMALIZÁCIA: Cache stav
@@ -137,6 +155,7 @@ const initialState: AppState = {
     customers: false,
     vehicleDocuments: false,
     insuranceClaims: false,
+    protocols: false,
   },
   lastLoadTime: null,
 };
@@ -167,6 +186,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, vehicleDocuments: action.payload };
     case 'SET_INSURANCE_CLAIMS':
       return { ...state, insuranceClaims: action.payload };
+    case 'SET_PROTOCOLS':
+      return { ...state, protocols: action.payload };
     case 'ADD_VEHICLE':
       return { ...state, vehicles: [...state.vehicles, action.payload] };
     case 'UPDATE_VEHICLE':
@@ -598,6 +619,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_SETTLEMENTS', payload: bulkData.settlements });
       dispatch({ type: 'SET_VEHICLE_DOCUMENTS', payload: bulkData.vehicleDocuments });
       dispatch({ type: 'SET_INSURANCE_CLAIMS', payload: bulkData.insuranceClaims });
+      
+      // 📊 Load protocols for employee statistics (separate API call)
+      try {
+        logger.perf('📊 Načítavam protokoly pre štatistiky...');
+        const protocolsStartTime = Date.now();
+        const protocols = await apiService.getAllProtocolsForStats();
+        const protocolsTime = Date.now() - protocolsStartTime;
+        
+        dispatch({ type: 'SET_PROTOCOLS', payload: protocols });
+        dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'protocols', loaded: true } });
+        
+        logger.perf(`✅ Protokoly načítané v ${protocolsTime}ms (${protocols.length} protokolov)`);
+        console.log('🔍 PROTOCOLS LOADED:', {
+          count: protocols.length,
+          sampleProtocol: protocols[0],
+          protocolTypes: protocols.reduce((acc, p) => {
+            acc[p.type] = (acc[p.type] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>)
+        });
+      } catch (error) {
+        console.error('❌ Chyba pri načítaní protokolov pre štatistiky:', error);
+        // Don't fail the whole load process if protocols fail
+        dispatch({ type: 'SET_PROTOCOLS', payload: [] });
+        dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'protocols', loaded: false } });
+      }
       
       // Označ všetky dáta ako načítané
       dispatch({ type: 'SET_DATA_LOADED', payload: { type: 'vehicles', loaded: true } });

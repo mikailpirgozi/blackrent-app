@@ -266,7 +266,7 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
         pdfUrl: '',
         emailSent: false,
         notes: formData.notes,
-        createdBy: 'admin',
+        createdBy: state.user ? `${state.user.firstName || ''} ${state.user.lastName || ''}`.trim() || state.user.username : 'admin',
       };
 
       console.log('📝 Protocol object created:', protocol);

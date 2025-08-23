@@ -27,7 +27,8 @@ import {
   Business as BusinessIcon,
   TrendingUp as TrendIcon,
   CalendarToday as CalendarIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  Percent as PercentIcon
 } from '@mui/icons-material';
 import StatisticsCard from './StatisticsCard';
 import CollapsibleSection from './CollapsibleSection';
@@ -246,14 +247,14 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
         icon={<StatsIcon />}
         color="primary"
         defaultExpanded={expandedSections.has('overview')}
-        badge={4}
+        badge={6}
         compact
       >
         <Grid container spacing={2}>
           <Grid item xs={6}>
             <StatisticsCard
               title="Celkový príjem"
-              value={`€${stats.totalRevenue?.toLocaleString() || 0}`}
+              value={`€${stats.totalRevenuePeriod?.toLocaleString() || 0}`}
               icon={<EuroIcon />}
               color="success"
               trend={stats.revenueTrend && {
@@ -261,6 +262,16 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
                 period: 'vs minulý mesiac',
                 isPositive: stats.revenueTrend > 0
               }}
+              compact
+            />
+          </Grid>
+          
+          <Grid item xs={6}>
+            <StatisticsCard
+              title="Provízie"
+              value={`€${stats.totalCommissionPeriod?.toLocaleString() || 0}`}
+              icon={<PercentIcon />}
+              color="secondary"
               compact
             />
           </Grid>
@@ -276,6 +287,16 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
                 period: 'vs minulý mesiac',
                 isPositive: stats.rentalsTrend > 0
               }}
+              compact
+            />
+          </Grid>
+          
+          <Grid item xs={6}>
+            <StatisticsCard
+              title="Náklady BH"
+              value={`€${stats.blackHoldingExpenses?.toLocaleString() || 0}`}
+              icon={<BusinessIcon />}
+              color="error"
               compact
             />
           </Grid>
@@ -427,6 +448,45 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
         </Box>
       )}
 
+      {/* Employee Performance */}
+      {stats.employeeStats && stats.employeeStats.activeEmployees > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <CollapsibleSection
+            title="Výkon zamestnancov"
+            icon={<PersonIcon />}
+            color="success"
+            defaultExpanded={false}
+            badge={stats.employeeStats.activeEmployees}
+            compact
+          >
+            <Grid container spacing={2}>
+              {stats.employeeStats.topEmployeesByProtocols.slice(0, 3).map((employee: any, index: number) => (
+                <Grid item xs={12} key={index}>
+                  <StatisticsCard
+                    title={employee.employeeName}
+                    value={`${employee.totalProtocols} protokolov`}
+                    subtitle={`${employee.handoverCount} odovzdaní • ${employee.returnCount} prebraní • €${employee.totalRevenue?.toLocaleString() || 0}`}
+                    icon={<PersonIcon />}
+                    color={index === 0 ? 'success' : index === 1 ? 'warning' : 'info'}
+                    compact
+                  />
+                </Grid>
+              ))}
+            </Grid>
+            
+            {/* Summary stats */}
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                📊 Celkové štatistiky protokolov
+              </Typography>
+              <Typography variant="caption" sx={{ display: 'block' }}>
+                {stats.employeeStats.totalProtocols} protokolov • {stats.employeeStats.totalHandovers} odovzdaní • {stats.employeeStats.totalReturns} prebraní
+              </Typography>
+            </Box>
+          </CollapsibleSection>
+        </Box>
+      )}
+
       {/* Performance Summary */}
       <Box sx={{ mt: 2, mb: 3 }}>
         <Alert severity="info" sx={{ borderRadius: 3 }}>
@@ -437,7 +497,7 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
             {timeRange === 'month' ? `${months[filterMonth]} ${filterYear}` :
              timeRange === 'year' ? `Rok ${filterYear}` :
              'Celkové obdobie'
-            }: {stats.totalRentals || 0} prenájmov • €{stats.totalRevenue?.toLocaleString() || 0} príjem
+            }: {derivedTotals.totalRentals || 0} prenájmov • €{stats.totalRevenuePeriod?.toLocaleString() || 0} príjem • €{stats.totalCommissionPeriod?.toLocaleString() || 0} provízie • €{stats.blackHoldingExpenses?.toLocaleString() || 0} náklady BH
           </Typography>
         </Alert>
       </Box>

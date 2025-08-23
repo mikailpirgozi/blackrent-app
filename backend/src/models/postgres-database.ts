@@ -8204,6 +8204,83 @@ export class PostgresDatabase {
     }
   }
 
+  // 📊 EMPLOYEE STATISTICS: Get all protocols with employee info for statistics
+  async getAllProtocolsForStats(): Promise<Array<{
+    id: string;
+    type: 'handover' | 'return';
+    rentalId: string;
+    createdBy: string;
+    createdAt: Date;
+    rentalData?: any;
+  }>> {
+    const client = await this.pool.connect();
+    try {
+      console.log('📊 Loading all protocols for employee statistics...');
+      const startTime = Date.now();
+
+      // Ensure protocol tables exist
+      await this.initProtocolTables();
+
+      // Get all handover protocols
+      const handoverResult = await client.query(`
+        SELECT 
+          id,
+          rental_id,
+          created_by,
+          created_at,
+          rental_data
+        FROM handover_protocols
+        ORDER BY created_at DESC
+      `);
+
+      // Get all return protocols
+      const returnResult = await client.query(`
+        SELECT 
+          id,
+          rental_id,
+          created_by,
+          created_at,
+          rental_data
+        FROM return_protocols
+        ORDER BY created_at DESC
+      `);
+
+      // Combine and format results
+      const protocols = [
+        ...handoverResult.rows.map(row => ({
+          id: row.id,
+          type: 'handover' as const,
+          rentalId: row.rental_id,
+          createdBy: row.created_by || 'admin',
+          createdAt: new Date(row.created_at),
+          rentalData: row.rental_data
+        })),
+        ...returnResult.rows.map(row => ({
+          id: row.id,
+          type: 'return' as const,
+          rentalId: row.rental_id,
+          createdBy: row.created_by || 'admin',
+          createdAt: new Date(row.created_at),
+          rentalData: row.rental_data
+        }))
+      ];
+
+      // Sort by creation date (newest first)
+      protocols.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      const loadTime = Date.now() - startTime;
+      console.log(`✅ Loaded ${protocols.length} protocols for statistics in ${loadTime}ms`);
+
+      return protocols;
+
+    } catch (error) {
+      console.error('❌ Error fetching protocols for statistics:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   // 📄 COMPANY DOCUMENTS METHODS
 
   async createCompanyDocument(document: CompanyDocument): Promise<CompanyDocument> {

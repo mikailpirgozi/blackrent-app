@@ -137,6 +137,38 @@ router.get('/bulk-status', authenticateToken, async (req, res) => {
   }
 });
 
+// 📊 EMPLOYEE STATISTICS: Get all protocols for statistics
+router.get('/all-for-stats', authenticateToken, async (req, res) => {
+  try {
+    console.log('📊 Fetching all protocols for employee statistics...');
+    const startTime = Date.now();
+    
+    // Get all protocols with employee information
+    const protocols = await postgresDatabase.getAllProtocolsForStats();
+    
+    const loadTime = Date.now() - startTime;
+    console.log(`✅ All protocols loaded for statistics in ${loadTime}ms`);
+    
+    res.json({
+      success: true,
+      data: protocols,
+      metadata: {
+        loadTimeMs: loadTime,
+        totalProtocols: protocols.length,
+        handoverCount: protocols.filter(p => p.type === 'handover').length,
+        returnCount: protocols.filter(p => p.type === 'return').length,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching protocols for statistics:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Chyba pri načítaní protokolov pre štatistiky' 
+    });
+  }
+});
+
 // PDF Proxy endpoint
 router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
   try {

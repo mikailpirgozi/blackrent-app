@@ -859,6 +859,25 @@ class ApiService {
     });
   }
 
+  // 📊 PROTOCOLS FOR STATISTICS
+  async getAllProtocolsForStats(): Promise<Array<{
+    id: string;
+    type: 'handover' | 'return';
+    rentalId: string;
+    createdBy: string;
+    createdAt: Date;
+    rentalData?: any;
+  }>> {
+    return this.request<Array<{
+      id: string;
+      type: 'handover' | 'return';
+      rentalId: string;
+      createdBy: string;
+      createdAt: Date;
+      rentalData?: any;
+    }>>('/protocols/all-for-stats');
+  }
+
   // Poistky
   async getInsurances(): Promise<Insurance[]> {
     return this.request<Insurance[]>('/insurances');

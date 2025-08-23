@@ -376,7 +376,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
           formData.depositPaymentMethod === 'bank_transfer' ? 'Bankový prevod' :
           'Kartová zábezpeka'
         }`,
-        createdBy: 'admin',
+        createdBy: state.user ? `${state.user.firstName || ''} ${state.user.lastName || ''}`.trim() || state.user.username : 'admin',
       };
 
       // Vyčisti media objekty pred odoslaním - odstráni problematické properties
