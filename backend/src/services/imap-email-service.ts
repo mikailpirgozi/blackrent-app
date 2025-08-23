@@ -174,36 +174,45 @@ class ImapEmailService {
           return;
         }
 
-        // 🔍 ŠPECIÁLNE HĽADANIE: Emaily z 5. augusta 2025 od objednavky@blackrent.sk
-        console.log('🔍 IMAP: Hľadám emaily z 5.8.2025 od objednavky@blackrent.sk...');
-        this.imap!.search([['SINCE', 'Aug 5, 2025'], ['FROM', 'objednavky@blackrent.sk']], (err: any, results: any) => {
+        // 🔍 HĽADANIE LEN OBJEDNÁVOK: Filtruj len emaily s predmetom "Objednávka od zákaznika"
+        console.log('🔥 NOVÝ KÓD: Hľadám len OBJEDNÁVKY (predmet: "Objednávka od zákaznika")');
+        
+        // Najprv skús UNSEEN emaily s filtrom na objednávky
+        this.imap!.search(['UNSEEN', ['SUBJECT', 'Objednávka od zákaznika']], (err: any, results: any) => {
           if (err) {
             reject(err);
             return;
           }
 
           if (results && results.length > 0) {
-            console.log(`📧 IMAP: Našiel som ${results.length} emailov z 5.8.2025 od objednavky@blackrent.sk`);
+            console.log(`📧 IMAP: Našiel som ${results.length} nových OBJEDNÁVOK (UNSEEN)`);
             this.processFetchedEmails(results, resolve, reject);
             return;
           }
 
-          console.log('📭 IMAP: Žiadne emaily z 5.8.2025 od objednavky@blackrent.sk, skúšam všetky emaily z tohto dátumu...');
+          console.log('📭 IMAP: Žiadne nové objednávky (UNSEEN), skúšam objednávky z dnešného dňa...');
           
-          // Skúsime všetky emaily z 5.8.2025 (pre debug)
-          this.imap!.search([['SINCE', 'Aug 5, 2025']], (err2: any, dateResults: any) => {
+          // Ak nie sú UNSEEN objednávky, skús objednávky z dnešného dňa
+          const today = new Date();
+          const todayStr = today.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }); // napr. "Aug 23, 2025"
+          
+          this.imap!.search([['SINCE', todayStr], ['SUBJECT', 'Objednávka od zákaznika']], (err2: any, dateResults: any) => {
             if (err2) {
               reject(err2);
               return;
             }
             
             if (dateResults && dateResults.length > 0) {
-              console.log(`📧 IMAP: Našiel som ${dateResults.length} emailov z 5.8.2025 (všetky adresy)`);
+              console.log(`📧 IMAP: Našiel som ${dateResults.length} OBJEDNÁVOK z dnešného dňa (${todayStr})`);
               this.processFetchedEmails(dateResults, resolve, reject);
               return;
             }
             
-            console.log('📭 IMAP: Žiadne emaily z 5.8.2025');
+            console.log(`📭 IMAP: Žiadne objednávky z dnešného dňa (${todayStr})`);
             resolve();
           });
         });
@@ -280,20 +289,26 @@ class ImapEmailService {
             });
           }
           
-          // FILTER: Spracúvaj LEN emaily od objednavky@blackrent.sk
+          // FILTER 1: Spracúvaj LEN emaily od objednavky@blackrent.sk
           if (!emailData.from.includes('objednavky@blackrent.sk')) {
-            console.log(`🚫 IMAP: Email nie je od objednavky@blackrent.sk (je od: ${emailData.from}) - ÚPLNE IGNORUJEM`);
+            console.log(`🚫 IMAP: Email nie je od objednavky@blackrent.sk (je od: ${emailData.from}) - IGNORUJEM`);
+            return; // Vôbec ho neuložíme ani nespracujeme
+          }
+
+          // FILTER 2: Spracúvaj LEN emaily s predmetom "Objednávka od zákaznika"
+          if (!emailData.subject.includes('Objednávka od zákaznika')) {
+            console.log(`🚫 IMAP: Email nemá predmet "Objednávka od zákaznika" (má: "${emailData.subject}") - IGNORUJEM`);
             return; // Vôbec ho neuložíme ani nespracujeme
           }
           
           // 🆕 ULOŽIŤ EMAIL DO HISTÓRIE - len ak je od objednavky@blackrent.sk
           emailHistoryId = await this.saveEmailToHistory(emailData);
 
-          console.log(`✅ IMAP: Email je od objednavky@blackrent.sk - SPRACÚVAM`);
+          console.log(`✅ IMAP: Email je OBJEDNÁVKA od objednavky@blackrent.sk - SPRACÚVAM`);
 
-          // Email od objednavky@blackrent.sk uložený - BEZ automatického statusu
+          // Email s objednávkou uložený - BEZ automatického statusu
           // Užívateľ si bude spravovať statusy manuálne v dashboarde
-          console.log(`📧 IMAP: Email od objednavky@blackrent.sk uložený pre manuálne spracovanie (ID: ${emailHistoryId})`);
+          console.log(`📧 IMAP: OBJEDNÁVKA uložená pre manuálne spracovanie (ID: ${emailHistoryId})`);
 
           resolve();
         } catch (error) {

@@ -432,6 +432,41 @@ const EmailManagementDashboard: React.FC = () => {
     }
   };
 
+  const clearHistoricalEmails = async () => {
+    if (!window.confirm('Naozaj chcete zmazať všetky historické emaily pred dnešným dátumom? Táto akcia sa nedá vrátiť.')) {
+      return;
+    }
+
+    try {
+      setActionLoading('clear-historical');
+      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+      
+      const directResponse = await fetch(`${getAPI_BASE_URL()}/email-management/clear-historical`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const response = await directResponse.json();
+
+      if (response.success) {
+        setSuccess(`✅ ${response.data.message}`);
+        await fetchEmails();
+        await fetchStats();
+        await fetchArchivedEmails(0);
+      } else {
+        setError(response.error || 'Chyba pri mazaní historických emailov');
+      }
+    } catch (err: any) {
+      console.error('Clear historical emails error:', err);
+      setError('Chyba pri mazaní historických emailov');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   // IMAP API Functions
   const fetchImapStatus = async () => {
     try {
@@ -1910,6 +1945,16 @@ const EmailManagementDashboard: React.FC = () => {
                   size={isSmallMobile ? "small" : "medium"}
                 >
                   {isExtraSmall ? 'Auto' : 'Auto-archív'}
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  onClick={clearHistoricalEmails}
+                  disabled={actionLoading === 'clear-historical'}
+                  startIcon={actionLoading === 'clear-historical' ? <CircularProgress size={16} /> : <DeleteIcon />}
+                  color="error"
+                  size={isSmallMobile ? "small" : "medium"}
+                >
+                  {isExtraSmall ? 'Vymazať' : 'Vymazať historické'}
                 </Button>
                 {selectedEmails.size > 0 && (
                   <Button 
