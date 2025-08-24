@@ -367,6 +367,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
             <MenuItem value="temporarily_removed">Dočasne vyradené</MenuItem>
             <MenuItem value="removed">Vyradené</MenuItem>
             <MenuItem value="transferred">Prepisané</MenuItem>
+            <MenuItem value="private">🏠 Súkromné</MenuItem>
           </Select>
         </FormControl>
         <FormControl component="fieldset">

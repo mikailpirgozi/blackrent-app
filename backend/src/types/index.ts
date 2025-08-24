@@ -47,7 +47,8 @@ export type VehicleStatus =
   | 'maintenance'
   | 'temporarily_removed'
   | 'removed'
-  | 'transferred';
+  | 'transferred'
+  | 'private';
 
 export interface Customer {
   id: string;

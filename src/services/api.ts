@@ -223,13 +223,22 @@ class ApiService {
   }
 
   // Vozidlá s cache
-  async getVehicles(includeRemoved: boolean = false): Promise<Vehicle[]> {
+  async getVehicles(includeRemoved: boolean = false, includePrivate: boolean = false): Promise<Vehicle[]> {
     const userId = localStorage.getItem('blackrent_user_id');
-    const cacheKey = includeRemoved ? 'vehicles-all' : cacheKeys.vehicles(userId || undefined);
-    const endpoint = includeRemoved ? '/vehicles?includeRemoved=true' : '/vehicles';
+    
+    // Vytvor endpoint s parametrami
+    const params = new URLSearchParams();
+    if (includeRemoved) params.append('includeRemoved', 'true');
+    if (includePrivate) params.append('includePrivate', 'true');
+    const endpoint = `/vehicles${params.toString() ? '?' + params.toString() : ''}`;
+    
+    // Cache key závisí od parametrov
+    const cacheKey = includeRemoved || includePrivate ? 
+      `vehicles-${includeRemoved ? 'removed' : ''}${includePrivate ? 'private' : ''}` : 
+      cacheKeys.vehicles(userId || undefined);
 
-    // Pre zahrnutie vyradených vozidiel nepoužívame cache
-    if (includeRemoved) {
+    // Pre zahrnutie vyradených alebo súkromných vozidiel nepoužívame cache
+    if (includeRemoved || includePrivate) {
       return this.request<Vehicle[]>(endpoint);
     }
     

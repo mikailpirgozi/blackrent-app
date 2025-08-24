@@ -20,7 +20,7 @@ interface InsuranceFormProps {
 }
 
 export default function InsuranceForm({ insurance, onSave, onCancel }: InsuranceFormProps) {
-  const { state, dispatch, createInsurer } = useApp();
+  const { state, dispatch, createInsurer, getEnhancedFilteredVehicles } = useApp();
   const [addingInsurer, setAddingInsurer] = useState(false);
   const [newInsurerName, setNewInsurerName] = useState('');
   const [formData, setFormData] = useState<Partial<Insurance>>({
@@ -65,7 +65,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
         <Autocomplete
           fullWidth
-          options={state.vehicles
+          options={getEnhancedFilteredVehicles({ includePrivate: true })
             .slice()
             .sort((a, b) => {
               const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
@@ -73,7 +73,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
               return aText.localeCompare(bText, 'sk', { sensitivity: 'base' });
             })}
           getOptionLabel={(vehicle) => `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
-          value={state.vehicles.find(v => v.id === formData.vehicleId) || null}
+          value={getEnhancedFilteredVehicles({ includePrivate: true }).find(v => v.id === formData.vehicleId) || null}
           onChange={(_, newValue) => handleInputChange('vehicleId', newValue?.id || '')}
           renderInput={(params) => (
             <TextField

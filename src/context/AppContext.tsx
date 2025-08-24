@@ -32,10 +32,13 @@ interface FilterOptions {
   showRented?: boolean;
   showMaintenance?: boolean;
   showOther?: boolean;
+  showRemoved?: boolean; // 🗑️ Vyradené vozidlá
+  showTempRemoved?: boolean; // ⏸️ Dočasne vyradené vozidlá
   
   // Meta options
   includeAll?: boolean; // For admin override
   includeRemoved?: boolean; // Pre zahrnutie vyradených vozidiel (pre historické prenájmy)
+  includePrivate?: boolean; // Pre zahrnutie súkromných vozidiel v administrácii
 }
 
 interface AppState {
@@ -464,11 +467,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const getEnhancedFilteredVehicles = (options: FilterOptions = {}): Vehicle[] => {
     let vehicles = state.vehicles || [];
     
-    // 0️⃣ CONDITIONAL FILTER: Skry vyradené vozidlá (len ak nie je includeRemoved)
+    // 0️⃣ CONDITIONAL FILTER: Skry vyradené a súkromné vozidlá (len ak nie je includeRemoved/includePrivate)
     if (!options.includeRemoved) {
       vehicles = vehicles.filter(vehicle => 
-        vehicle.status !== 'removed' && vehicle.status !== 'temporarily_removed'
+        vehicle.status !== 'removed' && 
+        vehicle.status !== 'temporarily_removed'
       );
+    }
+    
+    // 🏠 PRIVATE FILTER: Skry súkromné vozidlá z prenájmov (len ak nie je includePrivate)
+    if (!options.includePrivate) {
+      vehicles = vehicles.filter(vehicle => vehicle.status !== 'private');
     }
     
     // 1️⃣ PERMISSION LAYER (always applied unless admin override)
@@ -521,17 +530,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     
     // 8️⃣ STATUS GROUP LAYERS (for backwards compatibility)
-    if (options.showAvailable !== undefined && !options.showAvailable) {
-      vehicles = vehicles.filter(vehicle => vehicle.status !== 'available');
-    }
-    if (options.showRented !== undefined && !options.showRented) {
-      vehicles = vehicles.filter(vehicle => vehicle.status !== 'rented');
-    }
-    if (options.showMaintenance !== undefined && !options.showMaintenance) {
-      vehicles = vehicles.filter(vehicle => vehicle.status !== 'maintenance');
-    }
-    if (options.showOther !== undefined && !options.showOther) {
-      vehicles = vehicles.filter(vehicle => ['available', 'rented', 'maintenance'].includes(vehicle.status));
+    // Ak sú definované show* parametre, filtruj len tie ktoré sú true
+    const hasStatusGroupFilters = options.showAvailable !== undefined || 
+                                  options.showRented !== undefined || 
+                                  options.showMaintenance !== undefined || 
+                                  options.showOther !== undefined ||
+                                  options.showRemoved !== undefined ||
+                                  options.showTempRemoved !== undefined;
+    
+    if (hasStatusGroupFilters) {
+      vehicles = vehicles.filter(vehicle => {
+        // Základné statusy
+        if (vehicle.status === 'available' && (options.showAvailable !== false)) return true;
+        if (vehicle.status === 'rented' && (options.showRented !== false)) return true;
+        if (vehicle.status === 'maintenance' && (options.showMaintenance !== false)) return true;
+        
+        // 🗑️ Vyradené vozidlá
+        if (vehicle.status === 'removed' && (options.showRemoved === true)) return true;
+        if (vehicle.status === 'temporarily_removed' && (options.showTempRemoved === true)) return true;
+        
+        // Ostatné statusy (transferred, private, atď.) - ale nie removed/temp_removed
+        const otherStatuses = !['available', 'rented', 'maintenance', 'removed', 'temporarily_removed'].includes(vehicle.status);
+        if (otherStatuses && (options.showOther !== false)) return true;
+        
+        return false;
+      });
     }
     
     return vehicles;
@@ -692,7 +715,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // OPTIMALIZÁCIA: Načítaj najdôležitejšie dáta PRVÉ
     console.log('📦 1. Načítavam kľúčové dáta (vehicles, customers)...');
     const [vehicles, customers] = await Promise.all([
-      apiService.getVehicles(),
+      apiService.getVehicles(false, true), // Načítaj aj súkromné vozidlá
       apiService.getCustomers()
     ]);
     
@@ -812,7 +835,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       
       // 🔄 REFRESH: Reload ALL vehicles to ensure fresh data
       console.log('🔄 Reloading all vehicles after update...');
-      const freshVehicles = await apiService.getVehicles();
+      const freshVehicles = await apiService.getVehicles(false, true); // Načítaj aj súkromné vozidlá
       dispatch({ type: 'SET_VEHICLES', payload: freshVehicles });
       
       console.log('✅ All vehicles reloaded with fresh data');

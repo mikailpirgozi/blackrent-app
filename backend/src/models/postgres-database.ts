@@ -2097,11 +2097,11 @@ export class PostgresDatabase {
   }
 
   // 🚀 FÁZA 1.3: CACHED VEHICLES - drastické zrýchlenie kalendára
-  async getVehicles(includeRemoved: boolean = false): Promise<Vehicle[]> {
-    // Pre zahrnutie vyradených vozidiel nepoužívame cache
-    if (includeRemoved) {
-      console.log('🔄 Loading ALL vehicles (including removed) from DB');
-      return await this.getVehiclesFresh(includeRemoved);
+  async getVehicles(includeRemoved: boolean = false, includePrivate: boolean = false): Promise<Vehicle[]> {
+    // Pre zahrnutie vyradených alebo súkromných vozidiel nepoužívame cache
+    if (includeRemoved || includePrivate) {
+      console.log('🔄 Loading ALL vehicles (including removed/private) from DB');
+      return await this.getVehiclesFresh(includeRemoved, includePrivate);
     }
 
     // Skontroluj cache len pre aktívne vozidlá
@@ -2112,7 +2112,7 @@ export class PostgresDatabase {
     }
 
     console.log('🔄 VEHICLE CACHE MISS - loading fresh vehicles from DB');
-    const vehicles = await this.getVehiclesFresh(includeRemoved);
+    const vehicles = await this.getVehiclesFresh(includeRemoved, includePrivate);
     
     // Uložiť do cache
     this.vehicleCache = {
@@ -2280,12 +2280,20 @@ export class PostgresDatabase {
   }
 
   // Originálna metóda pre fresh loading
-  private async getVehiclesFresh(includeRemoved: boolean = false): Promise<Vehicle[]> {
+  private async getVehiclesFresh(includeRemoved: boolean = false, includePrivate: boolean = false): Promise<Vehicle[]> {
     const client = await this.pool.connect();
     try {
-      const whereClause = includeRemoved 
-        ? '' 
-        : `WHERE status NOT IN ('removed', 'temporarily_removed')`;
+      let excludedStatuses = [];
+      if (!includeRemoved) {
+        excludedStatuses.push('removed', 'temporarily_removed');
+      }
+      if (!includePrivate) {
+        excludedStatuses.push('private');
+      }
+      
+      const whereClause = excludedStatuses.length > 0 
+        ? `WHERE status NOT IN (${excludedStatuses.map(s => `'${s}'`).join(', ')})` 
+        : '';
       
       const result = await client.query(
         `SELECT * FROM vehicles 
@@ -7045,7 +7053,7 @@ export class PostgresDatabase {
             au.vehicle_id = v.id
             AND cd.date BETWEEN au.start_date AND au.end_date
           )
-          WHERE v.status NOT IN ('removed', 'temporarily_removed')
+          WHERE v.status NOT IN ('removed', 'temporarily_removed', 'private')
         )
         SELECT
           date,

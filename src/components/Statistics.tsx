@@ -110,7 +110,7 @@ function TabPanel(props: TabPanelProps) {
 const COLORS = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'];
 
 const Statistics: React.FC = () => {
-  const { state } = useApp();
+  const { state, getFilteredVehicles } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -192,8 +192,9 @@ const Statistics: React.FC = () => {
     // 3. Celkové provízie za obdobie
     const totalCommissionPeriod = filteredRentals.reduce((sum, rental) => sum + (rental.commission || 0), 0);
 
-    // POKROČILÉ AUTO ŠTATISTIKY
-    const vehicleStats = state.vehicles.map(vehicle => {
+    // POKROČILÉ AUTO ŠTATISTIKY - používame filtrované vozidlá (bez private)
+    const filteredVehicles = getFilteredVehicles();
+    const vehicleStats = filteredVehicles.map(vehicle => {
       const vehicleRentals = filteredRentals.filter(rental => rental.vehicleId === vehicle.id);
       
       // Celkové príjmy z auta

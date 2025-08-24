@@ -76,7 +76,7 @@ const getStatusInfo = (status: string) => {
 };
 
 export default function InsuranceClaimForm({ claim, onSave, onCancel }: InsuranceClaimFormProps) {
-  const { state } = useApp();
+  const { state, getEnhancedFilteredVehicles } = useApp();
   
   const [formData, setFormData] = useState<Partial<InsuranceClaim>>({
     vehicleId: claim?.vehicleId || '',
@@ -109,8 +109,8 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
     }
   }, [claim]);
 
-  // Get available vehicles and their insurances
-  const availableVehicles = state.vehicles || [];
+  // Get available vehicles and their insurances (including private)
+  const availableVehicles = getEnhancedFilteredVehicles({ includePrivate: true }) || [];
   const vehicleInsurances = (state.insurances || []).filter(ins => ins.vehicleId === formData.vehicleId);
 
   const validateForm = () => {

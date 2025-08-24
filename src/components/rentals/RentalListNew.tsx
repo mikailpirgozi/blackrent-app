@@ -2162,9 +2162,9 @@ export default function RentalListNew() {
 
     // Aplikuj špecifický filter podľa typu
     switch (filterType) {
-      case 'todayReturns':
-        // Filtruj prenájmy ktoré sa dnes končia
-        quickFilters.dateFilter = 'today_returns';
+      case 'todayActivity':
+        // Filtruj prenájmy ktoré sa dnes začínajú ALEBO končia
+        quickFilters.dateFilter = 'today_activity';
         break;
         
       case 'tomorrowReturns':
@@ -2172,9 +2172,9 @@ export default function RentalListNew() {
         quickFilters.dateFilter = 'tomorrow_returns';
         break;
         
-      case 'weekReturns':
-        // Filtruj prenájmy ktoré sa končia tento týždeň
-        quickFilters.dateFilter = 'week_returns';
+      case 'weekActivity':
+        // Filtruj prenájmy ktoré sa tento týždeň začínajú ALEBO končia
+        quickFilters.dateFilter = 'week_activity';
         break;
         
       case 'overdue':

@@ -35,12 +35,11 @@ interface RentalDashboardProps {
 interface DashboardStats {
   total: number;
   active: number;
-  todayReturns: number;
+  todayActivity: number;
   tomorrowReturns: number;
-  weekReturns: number;
+  weekActivity: number;
   overdue: number;
   newToday: number;
-  startingToday: number;
   unpaid: number;
   pending: number;
   withHandover: number;
@@ -72,9 +71,11 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
              (isBefore(today, endDate) || isToday(endDate));
     });
 
-    const todayReturns = rentals.filter(rental => {
+    // Dnes aktivita - prenájmy ktoré sa dnes začínajú ALEBO končia
+    const todayActivity = rentals.filter(rental => {
+      const startDate = new Date(rental.startDate);
       const endDate = new Date(rental.endDate);
-      return isToday(endDate);
+      return isToday(startDate) || isToday(endDate);
     });
 
     const tomorrowReturns = rentals.filter(rental => {
@@ -82,13 +83,18 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       return isTomorrow(endDate);
     });
 
-    // Tento týždeň vrátenie (do nedele)
-    const weekReturns = rentals.filter(rental => {
+    // Tento týždeň aktivita - prenájmy ktoré sa tento týždeň začínajú ALEBO končia
+    const weekActivity = rentals.filter(rental => {
+      const startDate = new Date(rental.startDate);
       const endDate = new Date(rental.endDate);
       const endOfWeek = new Date(today);
       endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
       endOfWeek.setHours(23, 59, 59, 999);
-      return isAfter(endDate, today) && isBefore(endDate, endOfWeek);
+      
+      const startsThisWeek = isAfter(startDate, today) && isBefore(startDate, endOfWeek);
+      const endsThisWeek = isAfter(endDate, today) && isBefore(endDate, endOfWeek);
+      
+      return startsThisWeek || endsThisWeek;
     });
 
     // Preterminované - prenájmy ktoré mali skončiť ale ešte sa nevrátili
@@ -124,12 +130,11 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
     return {
       total: rentals.length,
       active: active.length,
-      todayReturns: todayReturns.length,
+      todayActivity: todayActivity.length,
       tomorrowReturns: tomorrowReturns.length,
-      weekReturns: weekReturns.length,
+      weekActivity: weekActivity.length,
       overdue: overdue.length,
       newToday: newToday.length,
-      startingToday: startingToday.length,
       unpaid: unpaid.length,
       pending: pending.length,
       withHandover: withHandover.length,
@@ -150,12 +155,12 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       clickable: stats.overdue > 0
     },
     {
-      label: 'Dnes vrátenie',
-      value: stats.todayReturns,
-      color: stats.todayReturns > 0 ? 'error' : 'success',
-      urgent: stats.todayReturns > 0,
-      filterType: 'todayReturns',
-      clickable: stats.todayReturns > 0
+      label: 'Dnes odovzdanie/vrátenie',
+      value: stats.todayActivity,
+      color: stats.todayActivity > 0 ? 'warning' : 'success',
+      urgent: stats.todayActivity > 0,
+      filterType: 'todayActivity',
+      clickable: stats.todayActivity > 0
     },
     {
       label: 'Zajtra vrátenie',
@@ -166,12 +171,12 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       clickable: stats.tomorrowReturns > 0
     },
     {
-      label: 'Tento týždeň vrátenie',
-      value: stats.weekReturns,
+      label: 'Tento týždeň odovzdanie/vrátenie',
+      value: stats.weekActivity,
       color: 'info',
       urgent: false,
-      filterType: 'weekReturns',
-      clickable: stats.weekReturns > 0
+      filterType: 'weekActivity',
+      clickable: stats.weekActivity > 0
     },
     {
       label: 'Nové dnes',
@@ -180,14 +185,6 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       urgent: false,
       filterType: 'newToday',
       clickable: stats.newToday > 0
-    },
-    {
-      label: 'Začínajúce dnes',
-      value: stats.startingToday,
-      color: 'info',
-      urgent: false,
-      filterType: 'startingToday',
-      clickable: stats.startingToday > 0
     },
     {
       label: 'Aktívne prenájmy',

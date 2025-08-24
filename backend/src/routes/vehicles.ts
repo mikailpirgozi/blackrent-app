@@ -31,9 +31,10 @@ router.get('/',
   }),
   async (req: Request, res: Response<ApiResponse<Vehicle[]>>) => {
     try {
-      // Podporuj parameter pre zahrnutie vyradených vozidiel
+      // Podporuj parametre pre zahrnutie vyradených a súkromných vozidiel
       const includeRemoved = req.query.includeRemoved === 'true';
-      let vehicles = await postgresDatabase.getVehicles(includeRemoved);
+      const includePrivate = req.query.includePrivate === 'true';
+      let vehicles = await postgresDatabase.getVehicles(includeRemoved, includePrivate);
       
       console.log('🚗 Vehicles GET - user:', { 
         role: req.user?.role, 

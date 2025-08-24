@@ -44,7 +44,8 @@ import {
   Build as MaintenanceIcon,
   CheckCircle as AvailableIcon,
   Error as ErrorIcon,
-  Info as InfoIcon
+  Info as InfoIcon,
+  Home as HomeIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -762,6 +763,7 @@ const getStatusColor = (status: VehicleStatus): 'default' | 'primary' | 'seconda
     case 'temporarily_removed': return 'info';
     case 'removed': return 'default';
     case 'transferred': return 'secondary';
+    case 'private': return 'primary';
     default: return 'default';
   }
 };
@@ -774,6 +776,7 @@ const getStatusBgColor = (status: VehicleStatus) => {
     case 'temporarily_removed': return '#2196f3';
     case 'removed': return '#666';
     case 'transferred': return '#9c27b0';
+    case 'private': return '#673ab7';
     default: return '#666';
   }
 };
@@ -786,6 +789,7 @@ const getStatusText = (status: VehicleStatus) => {
     case 'temporarily_removed': return 'Dočasne vyradené';
     case 'removed': return 'Vyradené';
     case 'transferred': return 'Prepisané';
+    case 'private': return 'Súkromné';
     default: return status;
   }
 };
@@ -798,6 +802,7 @@ const getStatusIcon = (status: VehicleStatus) => {
     case 'temporarily_removed': return <InfoIcon fontSize="small" />;
     case 'removed': return <ErrorIcon fontSize="small" />;
     case 'transferred': return <BusinessIcon fontSize="small" />;
+    case 'private': return <HomeIcon fontSize="small" />;
     default: return <CarIcon fontSize="small" />;
   }
 };
@@ -852,6 +857,9 @@ export default function VehicleListNew() {
   const [showRented, setShowRented] = useState(true);
   const [showMaintenance, setShowMaintenance] = useState(true);
   const [showOther, setShowOther] = useState(true);
+  const [showPrivate, setShowPrivate] = useState(false); // 🏠 Súkromné vozidlá defaultne skryté
+  const [showRemoved, setShowRemoved] = useState(false); // 🗑️ Vyradené vozidlá defaultne skryté
+  const [showTempRemoved, setShowTempRemoved] = useState(false); // ⏸️ Dočasne vyradené vozidlá defaultne skryté
   const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false);
   const [selectedVehicleHistory, setSelectedVehicleHistory] = useState<Vehicle | null>(null);
   const [ownershipHistory, setOwnershipHistory] = useState<any[]>([]);
@@ -1217,7 +1225,13 @@ export default function VehicleListNew() {
       showAvailable,
       showRented,
       showMaintenance,
-      showOther
+      showOther,
+      // 🏠 Súkromné vozidlá
+      includePrivate: showPrivate,
+      // 🗑️ Vyradené vozidlá
+      includeRemoved: showRemoved || showTempRemoved, // Ak je zapnutý ktorýkoľvek, načítaj vyradené
+      showRemoved,
+      showTempRemoved
     });
   }, [
     searchQuery,
@@ -1230,6 +1244,9 @@ export default function VehicleListNew() {
     showRented,
     showMaintenance,
     showOther,
+    showPrivate, // 🏠 Súkromné vozidlá
+    showRemoved, // 🗑️ Vyradené vozidlá
+    showTempRemoved, // ⏸️ Dočasne vyradené vozidlá
     getFullyFilteredVehicles // 🎯 Enhanced filter function
   ]);
 
@@ -1853,6 +1870,18 @@ export default function VehicleListNew() {
                 <FormControlLabel
                   control={<Checkbox checked={showOther} onChange={(e) => setShowOther(e.target.checked)} />}
                   label="Ostatné"
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={showPrivate} onChange={(e) => setShowPrivate(e.target.checked)} />}
+                  label="🏠 Súkromné"
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={showRemoved} onChange={(e) => setShowRemoved(e.target.checked)} />}
+                  label="🗑️ Vyradené"
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={showTempRemoved} onChange={(e) => setShowTempRemoved(e.target.checked)} />}
+                  label="⏸️ Dočasne vyradené"
                 />
               </FormGroup>
             </Box>
