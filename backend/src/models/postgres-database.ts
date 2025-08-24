@@ -3135,14 +3135,28 @@ export class PostgresDatabase {
             startDate = new Date(today.setHours(0, 0, 0, 0));
             endDate = new Date(today.setHours(23, 59, 59, 999));
             break;
-          case 'today_returns':
-            // Filtruj prenájmy ktoré sa končia dnes - ŠPECIALNY FILTER
+          case 'today_activity':
+            // Filtruj prenájmy ktoré sa dnes začínajú ALEBO končia - KOMBINOVANÝ FILTER
             const todayStart = new Date(today);
             todayStart.setHours(0, 0, 0, 0);
             const todayEnd = new Date(today);
             todayEnd.setHours(23, 59, 59, 999);
-            whereConditions.push(`r.end_date >= $${paramIndex} AND r.end_date <= $${paramIndex + 1}`);
+            whereConditions.push(`(
+              (r.start_date >= $${paramIndex} AND r.start_date <= $${paramIndex + 1}) OR 
+              (r.end_date >= $${paramIndex} AND r.end_date <= $${paramIndex + 1})
+            )`);
             queryParams.push(todayStart, todayEnd);
+            paramIndex += 2;
+            skipNormalDateFiltering = true;
+            break;
+          case 'today_returns':
+            // Filtruj prenájmy ktoré sa končia dnes - ŠPECIALNY FILTER
+            const todayStartReturns = new Date(today);
+            todayStartReturns.setHours(0, 0, 0, 0);
+            const todayEndReturns = new Date(today);
+            todayEndReturns.setHours(23, 59, 59, 999);
+            whereConditions.push(`r.end_date >= $${paramIndex} AND r.end_date <= $${paramIndex + 1}`);
+            queryParams.push(todayStartReturns, todayEndReturns);
             paramIndex += 2;
             skipNormalDateFiltering = true;
             break;
@@ -3156,6 +3170,19 @@ export class PostgresDatabase {
             tomorrowEnd.setHours(23, 59, 59, 999);
             whereConditions.push(`r.end_date >= $${paramIndex} AND r.end_date <= $${paramIndex + 1}`);
             queryParams.push(tomorrowStart, tomorrowEnd);
+            paramIndex += 2;
+            skipNormalDateFiltering = true;
+            break;
+          case 'week_activity':
+            // Filtruj prenájmy ktoré sa tento týždeň začínajú ALEBO končia - KOMBINOVANÝ FILTER
+            const endOfWeekActivity = new Date(today);
+            endOfWeekActivity.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
+            endOfWeekActivity.setHours(23, 59, 59, 999);
+            whereConditions.push(`(
+              (r.start_date > $${paramIndex} AND r.start_date <= $${paramIndex + 1}) OR 
+              (r.end_date > $${paramIndex} AND r.end_date <= $${paramIndex + 1})
+            )`);
+            queryParams.push(today, endOfWeekActivity);
             paramIndex += 2;
             skipNormalDateFiltering = true;
             break;
@@ -3195,6 +3222,16 @@ export class PostgresDatabase {
             todayEndForStarting.setHours(23, 59, 59, 999);
             whereConditions.push(`r.start_date >= $${paramIndex} AND r.start_date <= $${paramIndex + 1}`);
             queryParams.push(todayStartForStarting, todayEndForStarting);
+            paramIndex += 2;
+            skipNormalDateFiltering = true;
+            break;
+          case 'week_handovers':
+            // Filtruj prenájmy ktoré sa začínajú tento týždeň (do nedele)
+            const endOfWeekForHandovers = new Date(today);
+            endOfWeekForHandovers.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
+            endOfWeekForHandovers.setHours(23, 59, 59, 999);
+            whereConditions.push(`r.start_date > $${paramIndex} AND r.start_date <= $${paramIndex + 1}`);
+            queryParams.push(today, endOfWeekForHandovers);
             paramIndex += 2;
             skipNormalDateFiltering = true;
             break;
@@ -6990,8 +7027,9 @@ export class PostgresDatabase {
             au.reason as unavailability_reason,
             au.type as unavailability_type,
             au.priority as unavailability_priority,
-            -- FINAL STATUS
+            -- FINAL STATUS (priorita: private_rental > rented > ostatné nedostupnosti > available)
             CASE
+              WHEN au.type = 'private_rental' THEN 'unavailable'
               WHEN ar.id IS NOT NULL THEN
                 CASE WHEN ar.is_flexible = true THEN 'flexible' ELSE 'rented' END
               WHEN au.type IS NOT NULL THEN au.type

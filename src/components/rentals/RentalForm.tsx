@@ -15,11 +15,14 @@ import {
   Chip,
   CircularProgress,
   Alert,
+  Checkbox,
+  FormControlLabel,
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import Autocomplete from '@mui/material/Autocomplete';
 import { useApp } from '../../context/AppContext';
 import { Rental, PaymentMethod, Vehicle, RentalPayment, Customer } from '../../types';
+import { apiService } from '../../services/api';
 import { differenceInDays } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import EditIcon from '@mui/icons-material/Edit';
@@ -63,6 +66,8 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
     // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
     isFlexible: false,
     flexibleEndDate: undefined,
+    // 🆕 NOVÉ: Súkromný prenájom mimo platformy
+    isPrivateRental: false,
   });
 
 
@@ -609,6 +614,29 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       }
     }
 
+    // 🆕 NOVÉ: Ak je súkromný prenájom, ulož ako nedostupnosť
+    if (formData.isPrivateRental) {
+      try {
+        await apiService.createVehicleUnavailability({
+          vehicleId: formData.vehicleId || '',
+          startDate: formData.startDate || new Date(),
+          endDate: formData.endDate || new Date(),
+          reason: `Súkromný prenájom: ${formData.customerName}`,
+          type: 'private_rental',
+          notes: `Prenájom mimo BlackRent platformy. Zákazník: ${formData.customerName}. ${handoverPlace ? `Miesto: ${handoverPlace}` : ''}`,
+          priority: 2
+        });
+        
+        // Refresh dostupnosti
+        window.location.reload(); // Dočasné riešenie pre refresh
+        return;
+      } catch (error) {
+        console.error('Chyba pri vytváraní súkromného prenájmu:', error);
+        alert('Chyba pri vytváraní súkromného prenájmu');
+        return;
+      }
+    }
+
     const completeRental: Rental = {
       id: rental?.id || uuidv4(),
       vehicleId: formData.vehicleId || undefined,
@@ -977,6 +1005,38 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
                     <MenuItem value="flexible">🔄 Flexibilný prenájom</MenuItem>
                   </Select>
                 </FormControl>
+              </Grid>
+
+              {/* 🆕 NOVÉ: Súkromný prenájom checkbox */}
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.isPrivateRental || false}
+                      onChange={(e) => handleInputChange('isPrivateRental', e.target.checked)}
+                      color="secondary"
+                    />
+                  }
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2">
+                        🔒 Súkromný prenájom (mimo BlackRent platformy)
+                      </Typography>
+                      <Chip 
+                        label="FIALOVÁ FARBA" 
+                        size="small"
+                        sx={{ 
+                          bgcolor: '#9c27b0', 
+                          color: 'white',
+                          fontSize: '0.7rem'
+                        }}
+                      />
+                    </Box>
+                  }
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
+                  Prenájom sa zobrazí vo fialovej farbe v dostupnosti a nebude sa počítať do štatistík platformy
+                </Typography>
               </Grid>
 
               {formData.isFlexible && (

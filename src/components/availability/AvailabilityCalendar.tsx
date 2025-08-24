@@ -79,6 +79,69 @@ interface AvailabilityCalendarProps {
   availableToDate?: string;
 }
 
+// 🎨 HELPER: Získanie farby podľa stavu vozidla
+const getVehicleStatusColor = (status: string, unavailabilityType?: string): string => {
+  switch (status) {
+    case 'available':
+      return '#4caf50'; // Zelená - dostupné
+    case 'rented':
+      return '#f44336'; // Červená - prenajatý cez platformu
+    case 'maintenance':
+      return '#ff9800'; // Oranžová - údržba
+    case 'unavailable':
+      // Rozlíšenie podľa typu nedostupnosti
+      switch (unavailabilityType) {
+        case 'private_rental':
+          return '#9c27b0'; // Fialová - prenájom mimo platformy
+        case 'service':
+          return '#2196f3'; // Modrá - servis
+        case 'repair':
+          return '#ff5722'; // Tmavo oranžová - oprava
+        case 'blocked':
+          return '#607d8b'; // Sivá - blokované
+        case 'cleaning':
+          return '#00bcd4'; // Cyan - čistenie
+        case 'inspection':
+          return '#795548'; // Hnedá - kontrola
+        default:
+          return '#9e9e9e'; // Svetlo sivá - nedostupné (všeobecne)
+      }
+    default:
+      return '#9e9e9e'; // Svetlo sivá - neznámy stav
+  }
+};
+
+// 🎨 HELPER: Získanie názvu stavu pre zobrazenie
+const getVehicleStatusLabel = (status: string, unavailabilityType?: string): string => {
+  switch (status) {
+    case 'available':
+      return 'Dostupné';
+    case 'rented':
+      return 'Prenajatý';
+    case 'maintenance':
+      return 'Údržba';
+    case 'unavailable':
+      switch (unavailabilityType) {
+        case 'private_rental':
+          return 'Súkromný prenájom';
+        case 'service':
+          return 'Servis';
+        case 'repair':
+          return 'Oprava';
+        case 'blocked':
+          return 'Blokované';
+        case 'cleaning':
+          return 'Čistenie';
+        case 'inspection':
+          return 'Kontrola';
+        default:
+          return 'Nedostupné';
+      }
+    default:
+      return 'Neznámy stav';
+  }
+};
+
 const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   vehicleId,
   onDateSelect,
@@ -162,7 +225,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const getVehicleStatusCounts = (date: Date) => {
     const dayData = getDayData(date);
     if (!dayData) {
-      return { available: 0, rented: 0, maintenance: 0, flexible: 0, unavailable: 0, total: 0 };
+      return { available: 0, rented: 0, maintenance: 0, flexible: 0, unavailable: 0, privateRental: 0, service: 0, total: 0 };
     }
 
     const counts = {
@@ -171,6 +234,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       maintenance: 0,
       flexible: 0,
       unavailable: 0,
+      privateRental: 0,
+      service: 0,
       total: dayData.vehicles.length
     };
 
@@ -187,6 +252,16 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           break;
         case 'maintenance':
           counts.maintenance++;
+          break;
+        case 'unavailable':
+          // Rozlíšenie podľa typu nedostupnosti
+          if (vehicle.unavailabilityType === 'private_rental') {
+            counts.privateRental++;
+          } else if (vehicle.unavailabilityType === 'service') {
+            counts.service++;
+          } else {
+            counts.unavailable++;
+          }
           break;
         default:
           counts.unavailable++;
@@ -232,12 +307,18 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       let primaryStatus = 'Žiadne dáta';
 
       if (counts.total > 0) {
-        if (counts.rented > counts.available) {
+        if (counts.privateRental > 0) {
+          primaryColor = '#f3e5f5'; // Light purple - súkromné prenájmy majú prioritu
+          primaryStatus = `${counts.privateRental} súkromných prenájmov`;
+        } else if (counts.rented > counts.available) {
           primaryColor = '#ffebee'; // Light red
           primaryStatus = `${counts.rented} prenajatých`;
         } else if (counts.available > 0) {
           primaryColor = '#e8f5e8'; // Light green
           primaryStatus = `${counts.available} dostupných`;
+        } else if (counts.service > 0) {
+          primaryColor = '#e3f2fd'; // Light blue
+          primaryStatus = `${counts.service} v servise`;
         } else if (counts.maintenance > 0) {
           primaryColor = '#fff3e0'; // Light orange
           primaryStatus = `${counts.maintenance} údržba`;
@@ -269,6 +350,18 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 
                 {counts.total > 0 && (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                    {counts.privateRental > 0 && (
+                      <Chip 
+                        label={`${counts.privateRental} súkromných`}
+                        size="small"
+                        sx={{ 
+                          height: 16, 
+                          fontSize: '0.65rem',
+                          backgroundColor: getVehicleStatusColor('unavailable', 'private_rental'),
+                          color: 'white'
+                        }}
+                      />
+                    )}
                     {counts.rented > 0 && (
                       <Chip 
                         label={`${counts.rented} prenajatých`}
@@ -276,7 +369,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         sx={{ 
                           height: 16, 
                           fontSize: '0.65rem',
-                          backgroundColor: '#f44336',
+                          backgroundColor: getVehicleStatusColor('rented'),
                           color: 'white'
                         }}
                       />
@@ -288,7 +381,19 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         sx={{ 
                           height: 16, 
                           fontSize: '0.65rem',
-                          backgroundColor: '#4caf50',
+                          backgroundColor: getVehicleStatusColor('available'),
+                          color: 'white'
+                        }}
+                      />
+                    )}
+                    {counts.service > 0 && (
+                      <Chip 
+                        label={`${counts.service} servis`}
+                        size="small"
+                        sx={{ 
+                          height: 16, 
+                          fontSize: '0.65rem',
+                          backgroundColor: getVehicleStatusColor('unavailable', 'service'),
                           color: 'white'
                         }}
                       />
@@ -300,7 +405,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         sx={{ 
                           height: 16, 
                           fontSize: '0.65rem',
-                          backgroundColor: '#ff9800',
+                          backgroundColor: getVehicleStatusColor('maintenance'),
                           color: 'white'
                         }}
                       />
@@ -476,19 +581,39 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       {/* Legenda */}
       <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: '#4caf50', borderRadius: 0.5 }} />
+          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('available'), borderRadius: 0.5 }} />
           <Typography variant="caption">Dostupné</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: '#f44336', borderRadius: 0.5 }} />
-          <Typography variant="caption">Prenajatý</Typography>
+          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('rented'), borderRadius: 0.5 }} />
+          <Typography variant="caption">Prenajatý (platforma)</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: '#ff9800', borderRadius: 0.5 }} />
+          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable', 'private_rental'), borderRadius: 0.5 }} />
+          <Typography variant="caption">Súkromný prenájom</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('maintenance'), borderRadius: 0.5 }} />
           <Typography variant="caption">Údržba</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: '#9e9e9e', borderRadius: 0.5 }} />
+          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable', 'service'), borderRadius: 0.5 }} />
+          <Typography variant="caption">Servis</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable', 'repair'), borderRadius: 0.5 }} />
+          <Typography variant="caption">Oprava</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable', 'cleaning'), borderRadius: 0.5 }} />
+          <Typography variant="caption">Čistenie</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable', 'blocked'), borderRadius: 0.5 }} />
+          <Typography variant="caption">Blokované</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable'), borderRadius: 0.5 }} />
           <Typography variant="caption">Nedostupné</Typography>
         </Box>
       </Box>

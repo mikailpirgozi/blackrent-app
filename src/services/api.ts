@@ -1567,6 +1567,23 @@ class ApiService {
       body: JSON.stringify({ olderThanDays })
     });
   }
+
+  // ==================== VEHICLE UNAVAILABILITY API ====================
+
+  async createVehicleUnavailability(unavailabilityData: {
+    vehicleId: string;
+    startDate: Date;
+    endDate: Date;
+    reason: string;
+    type: string;
+    notes?: string;
+    priority?: number;
+  }): Promise<void> {
+    return await this.request<void>('/vehicle-unavailability', {
+      method: 'POST',
+      body: JSON.stringify(unavailabilityData)
+    });
+  }
 }
 
 export const apiService = new ApiService();

@@ -136,6 +136,8 @@ export interface Rental {
   // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
   isFlexible?: boolean;  // Hlavný indikátor flexibilného prenájmu
   flexibleEndDate?: Date; // Orientačný koniec pre flexible prenájmy
+  // 🆕 NOVÉ: Súkromný prenájom mimo platformy
+  isPrivateRental?: boolean;
   // 📧 NOVÉ: Automatické spracovanie emailov
   sourceType?: 'manual' | 'email_auto' | 'api_auto';
   approvalStatus?: 'pending' | 'approved' | 'rejected' | 'spam';
@@ -315,7 +317,7 @@ export interface VehicleUnavailability {
   startDate: Date;
   endDate: Date;
   reason: string;
-  type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection';
+  type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection' | 'private_rental';
   notes?: string;
   priority: 1 | 2 | 3; // 1=critical, 2=normal, 3=low
   recurring: boolean;

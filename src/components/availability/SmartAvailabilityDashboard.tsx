@@ -620,20 +620,71 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   }, [filters]);
 
   /**
+   * Get vehicle status color (same as AvailabilityCalendar)
+   */
+  const getVehicleStatusColor = (status: string, unavailabilityType?: string): string => {
+    switch (status) {
+      case 'available':
+        return '#4caf50'; // Zelená - dostupné
+      case 'rented':
+        return '#f44336'; // Červená - prenajatý cez platformu
+      case 'maintenance':
+        return '#ff9800'; // Oranžová - údržba
+      case 'unavailable':
+        // Rozlíšenie podľa typu nedostupnosti
+        switch (unavailabilityType) {
+          case 'private_rental':
+            return '#9c27b0'; // Fialová - prenájom mimo platformy
+          case 'service':
+            return '#2196f3'; // Modrá - servis
+          case 'repair':
+            return '#ff5722'; // Tmavo oranžová - oprava
+          case 'blocked':
+            return '#607d8b'; // Sivá - blokované
+          case 'cleaning':
+            return '#00bcd4'; // Cyan - čistenie
+          case 'inspection':
+            return '#795548'; // Hnedá - kontrola
+          default:
+            return '#9e9e9e'; // Svetlo sivá - nedostupné (všeobecne)
+        }
+      default:
+        return '#9e9e9e'; // Svetlo sivá - neznámy stav
+    }
+  };
+
+  /**
    * Get status color and icon
    */
-  const getStatusDisplay = (status: string) => {
+  const getStatusDisplay = (status: string, unavailabilityType?: string) => {
     switch (status) {
       case 'available':
         return { color: 'success', icon: <AvailableIcon fontSize="small" />, label: 'Dostupné' };
       case 'rented':
-        return { color: 'error', icon: <UnavailableIcon fontSize="small" />, label: 'Prenajatý' };
+        return { color: 'error', icon: <UnavailableIcon fontSize="small" />, label: 'Prenajatý (platforma)' };
       case 'maintenance':
-        return { color: 'warning', icon: <MaintenanceIcon fontSize="small" />, label: 'Servis' };
+        return { color: 'warning', icon: <MaintenanceIcon fontSize="small" />, label: 'Údržba' };
       case 'service':
-        return { color: 'info', icon: <MaintenanceIcon fontSize="small" />, label: 'Údržba' };
+        return { color: 'info', icon: <MaintenanceIcon fontSize="small" />, label: 'Servis' };
+      case 'unavailable':
+        switch (unavailabilityType) {
+          case 'private_rental':
+            return { color: 'secondary', icon: <UnavailableIcon fontSize="small" />, label: 'Súkromný prenájom' };
+          case 'service':
+            return { color: 'info', icon: <MaintenanceIcon fontSize="small" />, label: 'Servis' };
+          case 'repair':
+            return { color: 'warning', icon: <MaintenanceIcon fontSize="small" />, label: 'Oprava' };
+          case 'blocked':
+            return { color: 'secondary', icon: <UnavailableIcon fontSize="small" />, label: 'Blokované' };
+          case 'cleaning':
+            return { color: 'info', icon: <MaintenanceIcon fontSize="small" />, label: 'Čistenie' };
+          case 'inspection':
+            return { color: 'warning', icon: <MaintenanceIcon fontSize="small" />, label: 'Kontrola' };
+          default:
+            return { color: 'secondary', icon: <UnavailableIcon fontSize="small" />, label: 'Nedostupné' };
+        }
       case 'blocked':
-        return { color: 'secondary', icon: <UnavailableIcon fontSize="small" />, label: 'Blokovaný' };
+        return { color: 'secondary', icon: <UnavailableIcon fontSize="small" />, label: 'Blokované' };
       default:
         return { color: 'default', icon: <CarIcon fontSize="small" />, label: status };
     }
@@ -660,7 +711,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                   width: 24,
                   height: 24,
                   borderRadius: 1,
-                  bgcolor: day.status === 'available' ? 'success.light' : 'error.light',
+                  bgcolor: getVehicleStatusColor(day.status),
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -877,7 +928,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                                 width: 16,
                                 height: 16,
                                 borderRadius: 0.5,
-                                bgcolor: day.status === 'available' ? 'success.light' : 'error.light',
+                                bgcolor: getVehicleStatusColor(day.status),
                                 border: day.status === 'available' ? '1px solid' : 'none',
                                 borderColor: 'success.main',
                                 cursor: 'pointer',

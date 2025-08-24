@@ -316,7 +316,7 @@ export interface VehicleUnavailability {
   startDate: Date;
   endDate: Date;
   reason: string;
-  type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection' | 'rented';
+  type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection' | 'rented' | 'private_rental';
   notes?: string;
   priority: 1 | 2 | 3; // 1=critical, 2=normal, 3=low
   recurring: boolean;
