@@ -83,7 +83,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
   // ✅ OPRAVENÉ: Flag pre zachovanie importovaných hodnôt - inicializuj na true ak existuje rental
   const [preserveImportedValues, setPreserveImportedValues] = useState(!!rental);
   const [dailyKilometers, setDailyKilometers] = useState<number>(0);
-  const [extraKilometerRate, setExtraKilometerRate] = useState<number>(0.5);
+  const [extraKilometerRate, setExtraKilometerRate] = useState<number>(0);
   const [deposit, setDeposit] = useState<number>(0);
   const [paid, setPaid] = useState(false);
   const [payments, setPayments] = useState<RentalPayment[]>(rental?.payments || []);
@@ -184,7 +184,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
           }
         }
       }
-      if (rental.extraKilometerRate) {
+      if (rental.extraKilometerRate !== undefined && rental.extraKilometerRate !== null) {
         setExtraKilometerRate(rental.extraKilometerRate);
       }
       if (rental.deposit) {
@@ -654,7 +654,7 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
       customCommission: formData.customCommission?.value && formData.customCommission.value > 0 ? formData.customCommission : undefined,
       extraKmCharge: extraKmCharge > 0 ? extraKmCharge : undefined,
       allowedKilometers: allowedKilometers > 0 ? allowedKilometers : undefined,
-      extraKilometerRate: extraKilometerRate > 0 ? extraKilometerRate : undefined,
+      extraKilometerRate: extraKilometerRate !== undefined ? extraKilometerRate : undefined,
       deposit: deposit > 0 ? deposit : undefined,
       paid,
       status: rental?.status || 'pending',
@@ -1244,13 +1244,16 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
           label="Cena za extra km (€)"
           type="number"
           value={extraKilometerRate}
-          onChange={(e) => setExtraKilometerRate(Number(e.target.value) || 0.5)}
+          onChange={(e) => {
+            const value = e.target.value.replace(',', '.'); // Nahraď čiarku bodkou
+            setExtraKilometerRate(Number(value) || 0);
+          }}
           InputProps={{
             startAdornment: <span style={{ marginRight: 8 }}>€</span>,
             endAdornment: <span style={{ marginLeft: 8 }}>/ km</span>,
             inputProps: { step: 0.1 }
           }}
-          placeholder="0.5"
+          placeholder="0"
           helperText="Cena za každý kilometer nad povolený limit"
         />
 

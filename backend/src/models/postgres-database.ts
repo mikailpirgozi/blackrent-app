@@ -3367,8 +3367,8 @@ export class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
-          -- 🐛 FIX: Pridané chýbajúce extra_km_charge
-          r.extra_km_charge,
+          -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
+          r.extra_km_charge, r.extra_kilometer_rate,
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           c.name as company_name, v.company as vehicle_company,
@@ -3475,8 +3475,9 @@ export class PostgresDatabase {
       allowedKilometers: row.allowed_kilometers || undefined,
       dailyKilometers: row.daily_kilometers || undefined,
       handoverPlace: row.handover_place || undefined,
-      // 🐛 FIX: Pridané chýbajúce extraKmCharge mapovanie
+      // 🐛 FIX: Pridané chýbajúce extraKmCharge a extraKilometerRate mapovanie
       extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
+      extraKilometerRate: row.extra_kilometer_rate !== null && row.extra_kilometer_rate !== undefined ? parseFloat(row.extra_kilometer_rate) : undefined,
       company: row.company || undefined,
       vehicleName: row.vehicle_name || undefined,  // 🚗 NOVÉ: Vehicle name field
       // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
@@ -3532,8 +3533,8 @@ export class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
-          -- 🐛 FIX: Pridané chýbajúce extra_km_charge
-          r.extra_km_charge,
+          -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
+          r.extra_km_charge, r.extra_kilometer_rate,
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
@@ -3851,7 +3852,7 @@ export class PostgresDatabase {
         deposit: row.deposit ? parseFloat(row.deposit) : undefined,
         allowedKilometers: row.allowed_kilometers || undefined,
         dailyKilometers: row.daily_kilometers || undefined,
-        extraKilometerRate: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
+        extraKilometerRate: row.extra_kilometer_rate !== null && row.extra_kilometer_rate !== undefined ? parseFloat(row.extra_kilometer_rate) : undefined,
         returnConditions: row.return_conditions || undefined,
         fuelLevel: row.fuel_level || undefined,
         odometer: row.odometer || undefined,
@@ -3932,7 +3933,7 @@ export class PostgresDatabase {
         // Rozšírené polia
         deposit: row.deposit ? parseFloat(row.deposit) : undefined,
         allowedKilometers: row.allowed_kilometers || undefined,
-        extraKilometerRate: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
+        extraKilometerRate: row.extra_kilometer_rate !== null && row.extra_kilometer_rate !== undefined ? parseFloat(row.extra_kilometer_rate) : undefined,
         returnConditions: row.return_conditions || undefined,
         fuelLevel: row.fuel_level || undefined,
         odometer: row.odometer || undefined,
@@ -3970,7 +3971,8 @@ export class PostgresDatabase {
         vehicle: rental.vehicleId,
         price: rental.totalPrice,
         paid: rental.paid,
-        status: rental.status
+        status: rental.status,
+        extraKilometerRate: rental.extraKilometerRate
       });
       
       // UPDATE with proper field mapping

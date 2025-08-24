@@ -365,6 +365,7 @@ router.put('/:id',
       totalPrice: updateData.totalPrice,
       paid: updateData.paid,
       status: updateData.status,
+      extraKilometerRate: updateData.extraKilometerRate,
       fullUpdateData: updateData
     });
 
