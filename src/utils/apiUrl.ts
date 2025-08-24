@@ -3,13 +3,13 @@
  * na základe prostredia v ktorom aplikácia beží
  */
 export const getApiBaseUrl = (): string => {
-  // Ak je nastavená custom API URL v environment
+  // PRIORITA 1: Ak je nastavená custom API URL v environment - VŽDY použiť túto
   if (process.env.REACT_APP_API_URL) {
-    console.log('🌐 Používam API URL z .env:', process.env.REACT_APP_API_URL);
+    console.log('🌐 Používam API URL z .env (PRIORITY):', process.env.REACT_APP_API_URL);
     return process.env.REACT_APP_API_URL;
   }
   
-  // Pre Vercel deployment používaj Railway API
+  // PRIORITA 2: Pre Vercel deployment používaj Railway API (len ak nie je .env)
   if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
     const railwayUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
     console.log('🌐 Vercel detekované, používam Railway API:', railwayUrl);
