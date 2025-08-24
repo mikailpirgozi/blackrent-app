@@ -339,7 +339,7 @@ export interface Insurer {
 }
 
 // Auth types
-export type UserRole = 'admin' | 'employee' | 'temp_worker' | 'mechanic' | 'sales_rep' | 'company_owner';
+export type UserRole = 'admin' | 'user' | 'employee' | 'temp_worker' | 'mechanic' | 'sales_rep' | 'company_owner';
 
 export interface User {
   id: string;
@@ -421,7 +421,7 @@ export interface CompanyInvestorShare {
 
 // Permission system interfaces
 export interface Permission {
-  resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | 'expenses' | 'insurances' | '*';
+  resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | 'expenses' | 'insurances' | 'settlements' | 'statistics' | '*';
   actions: ('read' | 'create' | 'update' | 'delete')[];
   conditions?: {
     ownOnly?: boolean;        // len vlastné záznamy

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
+const permissions_1 = require("../middleware/permissions");
 const cache_middleware_1 = require("../middleware/cache-middleware");
 const router = (0, express_1.Router)();
 // GET /api/customers - Získanie všetkých zákazníkov s cache
@@ -63,7 +64,7 @@ router.get('/', auth_1.authenticateToken, (0, cache_middleware_1.cacheResponse)(
     }
 });
 // POST /api/customers - Vytvorenie nového zákazníka
-router.post('/', auth_1.authenticateToken, (0, cache_middleware_1.invalidateCache)('customer'), async (req, res) => {
+router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('customers', 'create'), (0, cache_middleware_1.invalidateCache)('customer'), async (req, res) => {
     try {
         console.log('🎯 Customer creation started with data:', req.body);
         const { name, email, phone } = req.body;
@@ -107,7 +108,7 @@ router.post('/', auth_1.authenticateToken, (0, cache_middleware_1.invalidateCach
     }
 });
 // PUT /api/customers/:id - Aktualizácia zákazníka
-router.put('/:id', auth_1.authenticateToken, (0, cache_middleware_1.invalidateCache)('customer'), async (req, res) => {
+router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('customers', 'update'), (0, cache_middleware_1.invalidateCache)('customer'), async (req, res) => {
     try {
         const { id } = req.params;
         const { name, email, phone } = req.body;
@@ -140,7 +141,7 @@ router.put('/:id', auth_1.authenticateToken, (0, cache_middleware_1.invalidateCa
     }
 });
 // DELETE /api/customers/:id - Vymazanie zákazníka
-router.delete('/:id', auth_1.authenticateToken, (0, cache_middleware_1.invalidateCache)('customer'), async (req, res) => {
+router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('customers', 'delete'), (0, cache_middleware_1.invalidateCache)('customer'), async (req, res) => {
     try {
         const { id } = req.params;
         await postgres_database_1.postgresDatabase.deleteCustomer(id);
@@ -217,7 +218,7 @@ router.get('/export/csv', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // 📥 CSV IMPORT - Import zákazníkov z CSV
-router.post('/import/csv', auth_1.authenticateToken, async (req, res) => {
+router.post('/import/csv', auth_1.authenticateToken, (0, permissions_1.checkPermission)('customers', 'create'), async (req, res) => {
     try {
         const { csvData } = req.body;
         if (!csvData || typeof csvData !== 'string') {

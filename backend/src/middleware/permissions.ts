@@ -22,6 +22,55 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     }
   ],
 
+  // 👤 USER - Základný používateľ s READ-ONLY právami (používa company-based permissions)
+  user: [
+    {
+      resource: 'vehicles',
+      actions: ['read'],
+      conditions: {}
+    },
+    {
+      resource: 'rentals',
+      actions: ['read'],
+      conditions: {}
+    },
+    {
+      resource: 'customers',
+      actions: ['read'],
+      conditions: {}
+    },
+    {
+      resource: 'expenses',
+      actions: ['read'],
+      conditions: {}
+    },
+    {
+      resource: 'settlements',
+      actions: ['read'],
+      conditions: {}
+    },
+    {
+      resource: 'insurances',
+      actions: ['read'],
+      conditions: {}
+    },
+    {
+      resource: 'maintenance',
+      actions: ['read'],
+      conditions: {}
+    },
+    {
+      resource: 'protocols',
+      actions: ['read', 'create', 'update'],
+      conditions: {}
+    },
+    {
+      resource: 'statistics',
+      actions: ['read'],
+      conditions: {}
+    }
+  ],
+
   // 👥 EMPLOYEE - Základné operácie s vozidlami, prenájmami, zákazníkmi
   employee: [
     {

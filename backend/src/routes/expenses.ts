@@ -277,6 +277,7 @@ router.get('/export/csv',
 // 📥 CSV IMPORT - Import nákladov z CSV
 router.post('/import/csv',
   authenticateToken,
+  checkPermission('expenses', 'create'),
   async (req: Request, res: Response<ApiResponse>) => {
     try {
       const { csvData } = req.body;

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { Settlement, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -84,7 +85,10 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
 });
 
 // POST /api/settlements - Vytvorenie nového vyúčtovania
-router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.post('/', 
+  authenticateToken, 
+  checkPermission('settlements', 'create'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const {
       company,
@@ -201,7 +205,10 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
 });
 
 // PUT /api/settlements/:id - Aktualizácia vyúčtovania
-router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.put('/:id', 
+  authenticateToken, 
+  checkPermission('settlements', 'update'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -233,7 +240,10 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
 });
 
 // DELETE /api/settlements/:id - Vymazanie vyúčtovania
-router.delete('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.delete('/:id', 
+  authenticateToken, 
+  checkPermission('settlements', 'delete'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
 

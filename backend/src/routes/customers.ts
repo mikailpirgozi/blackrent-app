@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { Customer, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { cacheResponse, invalidateCache, userSpecificCache } from '../middleware/cache-middleware';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -79,6 +80,7 @@ router.get('/',
 // POST /api/customers - Vytvorenie nového zákazníka
 router.post('/', 
   authenticateToken, 
+  checkPermission('customers', 'create'),
   invalidateCache('customer'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
@@ -133,6 +135,7 @@ router.post('/',
 // PUT /api/customers/:id - Aktualizácia zákazníka
 router.put('/:id', 
   authenticateToken, 
+  checkPermission('customers', 'update'),
   invalidateCache('customer'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
@@ -174,6 +177,7 @@ router.put('/:id',
 // DELETE /api/customers/:id - Vymazanie zákazníka
 router.delete('/:id', 
   authenticateToken, 
+  checkPermission('customers', 'delete'),
   invalidateCache('customer'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
@@ -269,6 +273,7 @@ router.get('/export/csv',
 // 📥 CSV IMPORT - Import zákazníkov z CSV
 router.post('/import/csv',
   authenticateToken,
+  checkPermission('customers', 'create'),
   async (req: Request, res: Response<ApiResponse>) => {
     try {
       const { csvData } = req.body;

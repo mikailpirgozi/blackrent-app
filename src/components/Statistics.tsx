@@ -423,13 +423,55 @@ const Statistics: React.FC = () => {
       topCustomerByRevenue,
       topCustomerByDays,
       
-      // Sortované zoznamy pre Top 10+
-      vehiclesByUtilization: vehicleStats.sort((a, b) => b.utilizationPercentage - a.utilizationPercentage),
-      vehiclesByRevenue: vehicleStats.sort((a, b) => b.totalRevenue - a.totalRevenue),
-      vehiclesByRentals: vehicleStats.sort((a, b) => b.rentalCount - a.rentalCount),
-      customersByRentals: customerStatsArray.sort((a, b) => b.rentalCount - a.rentalCount),
-      customersByRevenue: customerStatsArray.sort((a, b) => b.totalRevenue - a.totalRevenue),
-      customersByDays: customerStatsArray.sort((a, b) => b.totalDaysRented - a.totalDaysRented),
+      // Sortované zoznamy pre Top 10+ - vytvárame kópie aby sa nemutoval originálny array
+      vehiclesByUtilization: (() => {
+        const sorted = [...vehicleStats].sort((a, b) => b.utilizationPercentage - a.utilizationPercentage);
+        logger.debug('Vehicles by utilization (top 3)', sorted.slice(0, 3).map(v => ({
+          vehicle: `${v.vehicle.brand} ${v.vehicle.model}`,
+          utilization: v.utilizationPercentage.toFixed(1) + '%'
+        })));
+        return sorted;
+      })(),
+      vehiclesByRevenue: (() => {
+        const sorted = [...vehicleStats].sort((a, b) => b.totalRevenue - a.totalRevenue);
+        logger.debug('Vehicles by revenue (top 3)', sorted.slice(0, 3).map(v => ({
+          vehicle: `${v.vehicle.brand} ${v.vehicle.model}`,
+          revenue: v.totalRevenue + '€'
+        })));
+        return sorted;
+      })(),
+      vehiclesByRentals: (() => {
+        const sorted = [...vehicleStats].sort((a, b) => b.rentalCount - a.rentalCount);
+        logger.debug('Vehicles by rentals (top 3)', sorted.slice(0, 3).map(v => ({
+          vehicle: `${v.vehicle.brand} ${v.vehicle.model}`,
+          rentals: v.rentalCount + 'x'
+        })));
+        return sorted;
+      })(),
+      customersByRentals: (() => {
+        const sorted = [...customerStatsArray].sort((a, b) => b.rentalCount - a.rentalCount);
+        logger.debug('Customers by rentals (top 3)', sorted.slice(0, 3).map(c => ({
+          customer: c.customerName,
+          rentals: c.rentalCount + 'x'
+        })));
+        return sorted;
+      })(),
+      customersByRevenue: (() => {
+        const sorted = [...customerStatsArray].sort((a, b) => b.totalRevenue - a.totalRevenue);
+        logger.debug('Customers by revenue (top 3)', sorted.slice(0, 3).map(c => ({
+          customer: c.customerName,
+          revenue: c.totalRevenue + '€'
+        })));
+        return sorted;
+      })(),
+      customersByDays: (() => {
+        const sorted = [...customerStatsArray].sort((a, b) => b.totalDaysRented - a.totalDaysRented);
+        logger.debug('Customers by days (top 3)', sorted.slice(0, 3).map(c => ({
+          customer: c.customerName,
+          days: c.totalDaysRented + ' dní'
+        })));
+        return sorted;
+      })(),
       
       // Existujúce
       currentMonthRentals,
@@ -1646,17 +1688,89 @@ const Statistics: React.FC = () => {
         {/* Tab 5: NOVÝ - Top štatistiky */}
         <TabPanel value={tabValue} index={4}>
           <Grid container spacing={3}>
-            {/* TOP AUTO štatistiky */}
+            {/* Úvodný prehľad */}
+            <Grid item xs={12}>
+              <Card sx={{ 
+                mb: 3, 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+              }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <TrophyIcon sx={{ fontSize: 40 }} />
+                    <Box>
+                      <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                        TOP Štatistiky
+                      </Typography>
+                      <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                        Najlepšie výkony za obdobie: {formatPeriod()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* 🏆 NAJLEPŠIE VÝKONY - Prehľadové karty */}
+            <Grid item xs={12}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, color: '#667eea', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <StarIcon />
+                🏆 Najlepšie výkony
+              </Typography>
+            </Grid>
+
+            {/* Top výkony v 3 kartách */}
+            <Grid item xs={12} md={4}>
+              <TopStatCard
+                title="Najvyťaženejšie auto"
+                icon={<SpeedIcon />}
+                data={stats.topVehicleByUtilization}
+                primaryValue={stats.topVehicleByUtilization ? `${stats.topVehicleByUtilization.utilizationPercentage.toFixed(1)}%` : 'N/A'}
+                secondaryValue={stats.topVehicleByUtilization ? `${stats.topVehicleByUtilization.totalDaysRented} dní prenájmu` : ''}
+                gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                percentage={stats.topVehicleByUtilization?.utilizationPercentage}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <TopStatCard
+                title="Najvýnosnejšie auto"
+                icon={<EuroIcon />}
+                data={stats.topVehicleByRevenue}
+                primaryValue={stats.topVehicleByRevenue ? `${stats.topVehicleByRevenue.totalRevenue.toLocaleString()} €` : 'N/A'}
+                secondaryValue={stats.topVehicleByRevenue ? `${stats.topVehicleByRevenue.rentalCount} prenájmov` : ''}
+                gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
+              />
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <TopStatCard
+                title="Najaktívnejší zákazník"
+                icon={<PersonIcon />}
+                data={stats.topCustomerByRentals}
+                primaryValue={stats.topCustomerByRentals ? `${stats.topCustomerByRentals.rentalCount}x` : 'N/A'}
+                secondaryValue={stats.topCustomerByRentals ? `${stats.topCustomerByRentals.totalRevenue.toLocaleString()} € celkom` : ''}
+                gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
+              />
+            </Grid>
+
+            {/* Divider */}
+            <Grid item xs={12}>
+              <Divider sx={{ my: 2 }} />
+            </Grid>
+
+            {/* 🚗 TOP AUTÁ - Detailné rebríčky */}
             <Grid item xs={12}>
               <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, color: '#667eea', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CarIcon />
-                TOP Autá za obdobie: {formatPeriod()}
+                🚗 TOP Autá - Detailné rebríčky
               </Typography>
             </Grid>
 
             <Grid item xs={12} lg={4}>
               <TopListCard
-                title="TOP Vyťažené autá"
+                title="Najvyťaženejšie autá"
                 icon={<SpeedIcon />}
                 gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
                 data={stats.vehiclesByUtilization}
@@ -1738,7 +1852,7 @@ const Statistics: React.FC = () => {
 
             <Grid item xs={12} lg={4}>
               <TopListCard
-                title="TOP Výnosné autá"
+                title="Najvýnosnejšie autá"
                 icon={<EuroIcon />}
                 gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
                 data={stats.vehiclesByRevenue}
@@ -1806,7 +1920,7 @@ const Statistics: React.FC = () => {
 
             <Grid item xs={12} lg={4}>
               <TopListCard
-                title="TOP Prenajímané autá"
+                title="Najčastejšie prenajímané"
                 icon={<CarIcon />}
                 gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
                 data={stats.vehiclesByRentals}
@@ -1872,17 +1986,22 @@ const Statistics: React.FC = () => {
               />
             </Grid>
 
-            {/* TOP ZÁKAZNÍK štatistiky */}
+            {/* Divider */}
             <Grid item xs={12}>
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, mt: 4, color: '#667eea', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Divider sx={{ my: 2 }} />
+            </Grid>
+
+            {/* 👥 TOP ZÁKAZNÍCI - Detailné rebríčky */}
+            <Grid item xs={12}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, color: '#667eea', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PersonIcon />
-                TOP Zákazníci za obdobie: {formatPeriod()}
+                👥 TOP Zákazníci - Detailné rebríčky
               </Typography>
             </Grid>
 
             <Grid item xs={12} lg={4}>
               <TopListCard
-                title="TOP Aktívni zákazníci"
+                title="Najaktívnejší zákazníci"
                 icon={<StarIcon />}
                 gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
                 data={stats.customersByRentals}
@@ -1950,7 +2069,7 @@ const Statistics: React.FC = () => {
 
             <Grid item xs={12} lg={4}>
               <TopListCard
-                title="TOP Ziskoví zákazníci"
+                title="Najziskovejší zákazníci"
                 icon={<MoneyIcon />}
                 gradient="linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
                 data={stats.customersByRevenue}
@@ -2018,7 +2137,7 @@ const Statistics: React.FC = () => {
 
             <Grid item xs={12} lg={4}>
               <TopListCard
-                title="TOP Dlhodobí zákazníci"
+                title="Najdlhodobejší zákazníci"
                 icon={<TimeIcon />}
                 gradient="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
                 data={stats.customersByDays}
@@ -2083,8 +2202,6 @@ const Statistics: React.FC = () => {
                 emptyMessage="Žiadni zákazníci v tomto období"
               />
             </Grid>
-
-            {/* Zjednodušená detailná tabuľka - presunieme do iného tabu ak bude potreba */}
           </Grid>
         </TabPanel>
 

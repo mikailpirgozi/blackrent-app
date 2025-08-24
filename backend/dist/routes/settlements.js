@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
+const permissions_1 = require("../middleware/permissions");
 const router = (0, express_1.Router)();
 // GET /api/settlements - Získanie všetkých vyúčtovaní
 router.get('/', auth_1.authenticateToken, async (req, res) => {
@@ -106,7 +107,7 @@ router.get('/:id', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // POST /api/settlements - Vytvorenie nového vyúčtovania
-router.post('/', auth_1.authenticateToken, async (req, res) => {
+router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('settlements', 'create'), async (req, res) => {
     try {
         const { company, period, totalIncome, totalExpenses, totalCommission, profit } = req.body;
         // Frontend posiela period: { from, to }, takže musíme to správne extrahovať
@@ -196,7 +197,7 @@ router.post('/', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // PUT /api/settlements/:id - Aktualizácia vyúčtovania
-router.put('/:id', auth_1.authenticateToken, async (req, res) => {
+router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('settlements', 'update'), async (req, res) => {
     try {
         const { id } = req.params;
         const updateData = req.body;
@@ -224,7 +225,7 @@ router.put('/:id', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // DELETE /api/settlements/:id - Vymazanie vyúčtovania
-router.delete('/:id', auth_1.authenticateToken, async (req, res) => {
+router.delete('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('settlements', 'delete'), async (req, res) => {
     try {
         const { id } = req.params;
         // Skontroluj, či vyúčtovanie existuje

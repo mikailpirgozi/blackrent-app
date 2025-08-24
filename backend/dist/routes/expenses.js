@@ -226,7 +226,7 @@ router.get('/export/csv', auth_1.authenticateToken, async (req, res) => {
     }
 });
 // 📥 CSV IMPORT - Import nákladov z CSV
-router.post('/import/csv', auth_1.authenticateToken, async (req, res) => {
+router.post('/import/csv', auth_1.authenticateToken, (0, permissions_1.checkPermission)('expenses', 'create'), async (req, res) => {
     try {
         const { csvData } = req.body;
         if (!csvData || typeof csvData !== 'string') {

@@ -20,7 +20,7 @@ router.get('/data', auth_1.authenticateToken, async (req, res) => {
         const rawDataStart = Date.now();
         try {
             const [vehicles, rentals, customers, companies, insurers, expenses, insurances, settlements, vehicleDocuments, insuranceClaims] = await Promise.all([
-                postgres_database_1.postgresDatabase.getVehicles(true), // Zahrnúť všetky vozidlá vrátane vyradených
+                postgres_database_1.postgresDatabase.getVehicles(true, true), // Zahrnúť všetky vozidlá vrátane vyradených a súkromných
                 postgres_database_1.postgresDatabase.getRentals(),
                 postgres_database_1.postgresDatabase.getCustomers(),
                 postgres_database_1.postgresDatabase.getCompanies(),

@@ -9,6 +9,7 @@ const archiver_1 = __importDefault(require("archiver"));
 const r2_storage_1 = require("../utils/r2-storage");
 const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
+const permissions_1 = require("../middleware/permissions");
 const r2_organization_1 = require("../config/r2-organization");
 // 📸 Helper: Generate meaningful media filename with organized structure
 const generateMeaningfulFilename = (protocolInfo, mediaType, category, originalFilename, index = 1) => {
@@ -94,7 +95,7 @@ const upload = (0, multer_1.default)({
     },
 });
 // Upload súboru do R2
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', auth_1.authenticateToken, (0, permissions_1.checkPermission)('protocols', 'create'), upload.single('file'), async (req, res) => {
     try {
         console.log('🔄 Upload request received:', {
             hasFile: !!req.file,
@@ -325,7 +326,7 @@ router.get('/status', async (req, res) => {
     }
 });
 // 🚀 NOVÝ ENDPOINT: Upload obrázkov pre protokol (originál + thumbnail)
-router.post('/protocol-upload', upload.single('file'), async (req, res) => {
+router.post('/protocol-upload', auth_1.authenticateToken, (0, permissions_1.checkPermission)('protocols', 'create'), upload.single('file'), async (req, res) => {
     try {
         console.log('🔄 Protocol upload request received:', {
             hasFile: !!req.file,
@@ -403,7 +404,7 @@ router.post('/protocol-upload', upload.single('file'), async (req, res) => {
     }
 });
 // 🚀 NOVÝ ENDPOINT: Upload PDF protokolu
-router.post('/protocol-pdf', upload.single('file'), async (req, res) => {
+router.post('/protocol-pdf', auth_1.authenticateToken, (0, permissions_1.checkPermission)('protocols', 'create'), upload.single('file'), async (req, res) => {
     try {
         console.log('🔄 Protocol PDF upload request received:', {
             hasFile: !!req.file,
@@ -484,7 +485,7 @@ router.get('/protocol/:protocolId/images', async (req, res) => {
     }
 });
 // 🚀 NOVÝ ENDPOINT: Upload fotky pre protokol (podľa navrhovanej metódy)
-router.post('/protocol-photo', upload.single('file'), async (req, res) => {
+router.post('/protocol-photo', auth_1.authenticateToken, (0, permissions_1.checkPermission)('protocols', 'create'), upload.single('file'), async (req, res) => {
     try {
         console.log('🔄 Protocol photo upload request received:', {
             hasFile: !!req.file,

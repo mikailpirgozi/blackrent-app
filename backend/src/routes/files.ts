@@ -4,6 +4,7 @@ import archiver from 'archiver';
 import { r2Storage } from '../utils/r2-storage';
 import { postgresDatabase } from '../models/postgres-database';
 import { authenticateToken } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { r2OrganizationManager, type PathVariables } from '../config/r2-organization';
 
 // 📸 Helper: Generate meaningful media filename with organized structure
@@ -103,7 +104,11 @@ const upload = multer({
 });
 
 // Upload súboru do R2
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', 
+  authenticateToken,
+  checkPermission('protocols', 'create'),
+  upload.single('file'), 
+  async (req, res) => {
   try {
     console.log('🔄 Upload request received:', {
       hasFile: !!req.file,
@@ -394,7 +399,11 @@ router.get('/status', async (req, res) => {
 });
 
 // 🚀 NOVÝ ENDPOINT: Upload obrázkov pre protokol (originál + thumbnail)
-router.post('/protocol-upload', upload.single('file'), async (req, res) => {
+router.post('/protocol-upload', 
+  authenticateToken,
+  checkPermission('protocols', 'create'),
+  upload.single('file'), 
+  async (req, res) => {
   try {
     console.log('🔄 Protocol upload request received:', {
       hasFile: !!req.file,
@@ -485,7 +494,11 @@ router.post('/protocol-upload', upload.single('file'), async (req, res) => {
 });
 
 // 🚀 NOVÝ ENDPOINT: Upload PDF protokolu
-router.post('/protocol-pdf', upload.single('file'), async (req, res) => {
+router.post('/protocol-pdf', 
+  authenticateToken,
+  checkPermission('protocols', 'create'),
+  upload.single('file'), 
+  async (req, res) => {
   try {
     console.log('🔄 Protocol PDF upload request received:', {
       hasFile: !!req.file,
@@ -583,7 +596,11 @@ router.get('/protocol/:protocolId/images', async (req, res) => {
 });
 
 // 🚀 NOVÝ ENDPOINT: Upload fotky pre protokol (podľa navrhovanej metódy)
-router.post('/protocol-photo', upload.single('file'), async (req, res) => {
+router.post('/protocol-photo', 
+  authenticateToken,
+  checkPermission('protocols', 'create'),
+  upload.single('file'), 
+  async (req, res) => {
   try {
     console.log('🔄 Protocol photo upload request received:', {
       hasFile: !!req.file,

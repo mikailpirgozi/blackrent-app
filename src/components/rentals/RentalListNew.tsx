@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { usePermissions } from '../../hooks/usePermissions';
+import { Can } from '../common/PermissionGuard';
 import {
   Box,
   Button,
@@ -146,6 +148,7 @@ export default function RentalListNew() {
   }
   
   const { state, createRental, updateRental, deleteRental, getEnhancedFilteredVehicles } = useApp();
+  const permissions = usePermissions();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // 768px breakpoint
   const mobileStyles = getMobileStyles(theme);
@@ -2025,24 +2028,26 @@ export default function RentalListNew() {
 
           {/* ACTION BUTTONS - HLAVNÉ TLAČIDLÁ */}
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<EditIcon />}
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                console.log('🔥 EDIT BUTTON CLICKED:', rental.id);
-                handleEdit(rental); 
-              }}
-              sx={{ 
-                flex: 1,
-                minWidth: '100px',
-                bgcolor: theme.palette.primary.main,
-                '&:hover': { bgcolor: theme.palette.primary.dark }
-              }}
-            >
-              Upraviť
-            </Button>
+            <Can update="rentals">
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<EditIcon />}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  console.log('🔥 EDIT BUTTON CLICKED:', rental.id);
+                  handleEdit(rental); 
+                }}
+                sx={{ 
+                  flex: 1,
+                  minWidth: '100px',
+                  bgcolor: theme.palette.primary.main,
+                  '&:hover': { bgcolor: theme.palette.primary.dark }
+                }}
+              >
+                Upraviť
+              </Button>
+            </Can>
             <Button
               size="small"
               variant="contained"
@@ -2085,16 +2090,18 @@ export default function RentalListNew() {
             >
               {hasReturn ? 'Zobraz vrátenie' : 'Vrátenie'}
             </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={(e) => { e.stopPropagation(); handleDelete(rental.id); }}
-              sx={{ minWidth: '80px' }}
-            >
-              Zmazať
-            </Button>
+            <Can delete="rentals">
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={(e) => { e.stopPropagation(); handleDelete(rental.id); }}
+                sx={{ minWidth: '80px' }}
+              >
+                Zmazať
+              </Button>
+            </Can>
           </Box>
         </CardContent>
       </Card>
@@ -2776,51 +2783,55 @@ export default function RentalListNew() {
           
           {/* Ostatné akcie */}
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between' }}>
-            <Button
-              variant="outlined"
-              startIcon={<EditIcon />}
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                handleEdit(rental); 
-              }}
-              sx={{ 
-                flex: 1,
-                py: 1.5,
-                borderRadius: 2,
-                borderWidth: 2,
-                '&:hover': {
-                  bgcolor: 'primary.light',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                },
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Upraviť
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                handleDelete(rental.id); 
-              }}
-              sx={{ 
-                flex: 1,
-                py: 1.5,
-                borderRadius: 2,
-                borderWidth: 2,
-                '&:hover': {
-                  bgcolor: 'error.light',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                },
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Zmazať
-            </Button>
+            <Can update="rentals">
+              <Button
+                variant="outlined"
+                startIcon={<EditIcon />}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handleEdit(rental); 
+                }}
+                sx={{ 
+                  flex: 1,
+                  py: 1.5,
+                  borderRadius: 2,
+                  borderWidth: 2,
+                  '&:hover': {
+                    bgcolor: 'primary.light',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Upraviť
+              </Button>
+            </Can>
+            <Can delete="rentals">
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handleDelete(rental.id); 
+                }}
+                sx={{ 
+                  flex: 1,
+                  py: 1.5,
+                  borderRadius: 2,
+                  borderWidth: 2,
+                  '&:hover': {
+                    bgcolor: 'error.light',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Zmazať
+              </Button>
+            </Can>
           </Box>
         </CardContent>
       </Card>
@@ -3015,21 +3026,23 @@ export default function RentalListNew() {
         justifyContent: 'center',
         flexWrap: 'wrap'
       }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAdd}
-          sx={{ 
-            px: 3,
-            py: 1,
-            borderRadius: 2,
-            textTransform: 'none',
-            fontWeight: 600,
-            boxShadow: '0 4px 12px rgba(25,118,210,0.3)'
-          }}
-        >
-          {isMobile ? 'Pridať' : 'Nový prenájom'}
-        </Button>
+        <Can create="rentals">
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAdd}
+            sx={{ 
+              px: 3,
+              py: 1,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: '0 4px 12px rgba(25,118,210,0.3)'
+            }}
+          >
+            {isMobile ? 'Pridať' : 'Nový prenájom'}
+          </Button>
+        </Can>
         
         <Button 
           variant="outlined" 

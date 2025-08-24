@@ -564,6 +564,40 @@ router.post('/logout', auth_1.authenticateToken, (req, res) => {
         message: 'Úspešné odhlásenie'
     });
 });
+// GET /api/auth/reset-pavlik - Dočasný endpoint na reset hesla pre pavlik
+router.get('/reset-pavlik', async (req, res) => {
+    try {
+        console.log('🔧 Resetujem heslo pre pavlik...');
+        // Vytvor hashovane heslo - pavlik123
+        const hashedPassword = await bcryptjs_1.default.hash('pavlik123', 12);
+        // Aktualizuj heslo pre pavlik
+        const client = await postgres_database_1.postgresDatabase.pool.connect();
+        try {
+            const result = await client.query('UPDATE users SET password_hash = $1 WHERE username = $2 RETURNING username', [hashedPassword, 'pavlik']);
+            if (result.rows.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Používateľ pavlik nenájdený'
+                });
+            }
+            console.log('✅ Heslo pre pavlik úspešne resetované');
+            return res.json({
+                success: true,
+                message: 'Heslo pre pavlik úspešne resetované (username: pavlik, password: pavlik123)'
+            });
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (error) {
+        console.error('❌ Chyba pri resetovaní hesla pre pavlik:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Chyba pri resetovaní hesla'
+        });
+    }
+});
 // GET /api/auth/me - Získanie informácií o aktuálnom používateľovi
 router.get('/me', auth_1.authenticateToken, (req, res) => {
     res.json({

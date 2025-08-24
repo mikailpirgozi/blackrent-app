@@ -41,8 +41,8 @@ class PostgresDatabase {
             keepAlive: true,
             keepAliveInitialDelayMillis: 0,
             // Performance tuning
-            statement_timeout: 30000, // 30s statement timeout
-            query_timeout: 15000, // 15s query timeout
+            statement_timeout: 60000, // 60s statement timeout  
+            query_timeout: 45000, // 45s query timeout (enough for IMAP operations)
         };
         // Railway.app provides DATABASE_URL
         if (process.env.DATABASE_URL) {
@@ -1872,11 +1872,11 @@ class PostgresDatabase {
         }
     }
     // 🚀 FÁZA 1.3: CACHED VEHICLES - drastické zrýchlenie kalendára
-    async getVehicles(includeRemoved = false) {
-        // Pre zahrnutie vyradených vozidiel nepoužívame cache
-        if (includeRemoved) {
-            console.log('🔄 Loading ALL vehicles (including removed) from DB');
-            return await this.getVehiclesFresh(includeRemoved);
+    async getVehicles(includeRemoved = false, includePrivate = false) {
+        // Pre zahrnutie vyradených alebo súkromných vozidiel nepoužívame cache
+        if (includeRemoved || includePrivate) {
+            console.log('🔄 Loading ALL vehicles (including removed/private) from DB');
+            return await this.getVehiclesFresh(includeRemoved, includePrivate);
         }
         // Skontroluj cache len pre aktívne vozidlá
         const now = Date.now();
@@ -1885,7 +1885,7 @@ class PostgresDatabase {
             return this.vehicleCache.data;
         }
         console.log('🔄 VEHICLE CACHE MISS - loading fresh vehicles from DB');
-        const vehicles = await this.getVehiclesFresh(includeRemoved);
+        const vehicles = await this.getVehiclesFresh(includeRemoved, includePrivate);
         // Uložiť do cache
         this.vehicleCache = {
             data: vehicles,
@@ -2031,12 +2031,19 @@ class PostgresDatabase {
         };
     }
     // Originálna metóda pre fresh loading
-    async getVehiclesFresh(includeRemoved = false) {
+    async getVehiclesFresh(includeRemoved = false, includePrivate = false) {
         const client = await this.pool.connect();
         try {
-            const whereClause = includeRemoved
-                ? ''
-                : `WHERE status NOT IN ('removed', 'temporarily_removed')`;
+            let excludedStatuses = [];
+            if (!includeRemoved) {
+                excludedStatuses.push('removed', 'temporarily_removed');
+            }
+            if (!includePrivate) {
+                excludedStatuses.push('private');
+            }
+            const whereClause = excludedStatuses.length > 0
+                ? `WHERE status NOT IN (${excludedStatuses.map(s => `'${s}'`).join(', ')})`
+                : '';
             const result = await client.query(`SELECT * FROM vehicles 
          ${whereClause}
          ORDER BY created_at DESC`);
@@ -2740,14 +2747,28 @@ class PostgresDatabase {
                         startDate = new Date(today.setHours(0, 0, 0, 0));
                         endDate = new Date(today.setHours(23, 59, 59, 999));
                         break;
-                    case 'today_returns':
-                        // Filtruj prenájmy ktoré sa končia dnes - ŠPECIALNY FILTER
+                    case 'today_activity':
+                        // Filtruj prenájmy ktoré sa dnes začínajú ALEBO končia - KOMBINOVANÝ FILTER
                         const todayStart = new Date(today);
                         todayStart.setHours(0, 0, 0, 0);
                         const todayEnd = new Date(today);
                         todayEnd.setHours(23, 59, 59, 999);
-                        whereConditions.push(`r.end_date >= $${paramIndex} AND r.end_date <= $${paramIndex + 1}`);
+                        whereConditions.push(`(
+              (r.start_date >= $${paramIndex} AND r.start_date <= $${paramIndex + 1}) OR 
+              (r.end_date >= $${paramIndex} AND r.end_date <= $${paramIndex + 1})
+            )`);
                         queryParams.push(todayStart, todayEnd);
+                        paramIndex += 2;
+                        skipNormalDateFiltering = true;
+                        break;
+                    case 'today_returns':
+                        // Filtruj prenájmy ktoré sa končia dnes - ŠPECIALNY FILTER
+                        const todayStartReturns = new Date(today);
+                        todayStartReturns.setHours(0, 0, 0, 0);
+                        const todayEndReturns = new Date(today);
+                        todayEndReturns.setHours(23, 59, 59, 999);
+                        whereConditions.push(`r.end_date >= $${paramIndex} AND r.end_date <= $${paramIndex + 1}`);
+                        queryParams.push(todayStartReturns, todayEndReturns);
                         paramIndex += 2;
                         skipNormalDateFiltering = true;
                         break;
@@ -2761,6 +2782,19 @@ class PostgresDatabase {
                         tomorrowEnd.setHours(23, 59, 59, 999);
                         whereConditions.push(`r.end_date >= $${paramIndex} AND r.end_date <= $${paramIndex + 1}`);
                         queryParams.push(tomorrowStart, tomorrowEnd);
+                        paramIndex += 2;
+                        skipNormalDateFiltering = true;
+                        break;
+                    case 'week_activity':
+                        // Filtruj prenájmy ktoré sa tento týždeň začínajú ALEBO končia - KOMBINOVANÝ FILTER
+                        const endOfWeekActivity = new Date(today);
+                        endOfWeekActivity.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
+                        endOfWeekActivity.setHours(23, 59, 59, 999);
+                        whereConditions.push(`(
+              (r.start_date > $${paramIndex} AND r.start_date <= $${paramIndex + 1}) OR 
+              (r.end_date > $${paramIndex} AND r.end_date <= $${paramIndex + 1})
+            )`);
+                        queryParams.push(today, endOfWeekActivity);
                         paramIndex += 2;
                         skipNormalDateFiltering = true;
                         break;
@@ -2800,6 +2834,16 @@ class PostgresDatabase {
                         todayEndForStarting.setHours(23, 59, 59, 999);
                         whereConditions.push(`r.start_date >= $${paramIndex} AND r.start_date <= $${paramIndex + 1}`);
                         queryParams.push(todayStartForStarting, todayEndForStarting);
+                        paramIndex += 2;
+                        skipNormalDateFiltering = true;
+                        break;
+                    case 'week_handovers':
+                        // Filtruj prenájmy ktoré sa začínajú tento týždeň (do nedele)
+                        const endOfWeekForHandovers = new Date(today);
+                        endOfWeekForHandovers.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
+                        endOfWeekForHandovers.setHours(23, 59, 59, 999);
+                        whereConditions.push(`r.start_date > $${paramIndex} AND r.start_date <= $${paramIndex + 1}`);
+                        queryParams.push(today, endOfWeekForHandovers);
                         paramIndex += 2;
                         skipNormalDateFiltering = true;
                         break;
@@ -2918,8 +2962,8 @@ class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
-          -- 🐛 FIX: Pridané chýbajúce extra_km_charge
-          r.extra_km_charge,
+          -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
+          r.extra_km_charge, r.extra_kilometer_rate,
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           c.name as company_name, v.company as vehicle_company,
@@ -3015,8 +3059,9 @@ class PostgresDatabase {
             allowedKilometers: row.allowed_kilometers || undefined,
             dailyKilometers: row.daily_kilometers || undefined,
             handoverPlace: row.handover_place || undefined,
-            // 🐛 FIX: Pridané chýbajúce extraKmCharge mapovanie
+            // 🐛 FIX: Pridané chýbajúce extraKmCharge a extraKilometerRate mapovanie
             extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
+            extraKilometerRate: row.extra_kilometer_rate !== null && row.extra_kilometer_rate !== undefined ? parseFloat(row.extra_kilometer_rate) : undefined,
             company: row.company || undefined,
             vehicleName: row.vehicle_name || undefined, // 🚗 NOVÉ: Vehicle name field
             // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
@@ -3069,8 +3114,8 @@ class PostgresDatabase {
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
-          -- 🐛 FIX: Pridané chýbajúce extra_km_charge
-          r.extra_km_charge,
+          -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
+          r.extra_km_charge, r.extra_kilometer_rate,
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
@@ -3145,7 +3190,7 @@ class PostgresDatabase {
                     handoverPlace: row.handover_place || undefined,
                     // 🐛 FIX: Pridané chýbajúce extraKmCharge mapovanie
                     extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
-                    company: row.company || undefined, // 🎯 CLEAN SOLUTION field
+                    company: row.company_name || row.company || undefined, // 🎯 CLEAN SOLUTION field - prioritize company_name from JOIN
                     vehicleName: row.vehicle_name || undefined, // 🚗 NOVÉ: Vehicle name field
                     // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
                     isFlexible: Boolean(row.is_flexible),
@@ -3335,7 +3380,7 @@ class PostgresDatabase {
                 deposit: row.deposit ? parseFloat(row.deposit) : undefined,
                 allowedKilometers: row.allowed_kilometers || undefined,
                 dailyKilometers: row.daily_kilometers || undefined,
-                extraKilometerRate: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
+                extraKilometerRate: row.extra_kilometer_rate !== null && row.extra_kilometer_rate !== undefined ? parseFloat(row.extra_kilometer_rate) : undefined,
                 returnConditions: row.return_conditions || undefined,
                 fuelLevel: row.fuel_level || undefined,
                 odometer: row.odometer || undefined,
@@ -3412,7 +3457,7 @@ class PostgresDatabase {
                 // Rozšírené polia
                 deposit: row.deposit ? parseFloat(row.deposit) : undefined,
                 allowedKilometers: row.allowed_kilometers || undefined,
-                extraKilometerRate: row.extra_kilometer_rate ? parseFloat(row.extra_kilometer_rate) : undefined,
+                extraKilometerRate: row.extra_kilometer_rate !== null && row.extra_kilometer_rate !== undefined ? parseFloat(row.extra_kilometer_rate) : undefined,
                 returnConditions: row.return_conditions || undefined,
                 fuelLevel: row.fuel_level || undefined,
                 odometer: row.odometer || undefined,
@@ -3449,7 +3494,8 @@ class PostgresDatabase {
                 vehicle: rental.vehicleId,
                 price: rental.totalPrice,
                 paid: rental.paid,
-                status: rental.status
+                status: rental.status,
+                extraKilometerRate: rental.extraKilometerRate
             });
             // UPDATE with proper field mapping
             const result = await client.query(`
@@ -6098,6 +6144,8 @@ class PostgresDatabase {
           SELECT
             cd.date,
             v.id as vehicle_id,
+            v.brand,
+            v.model,
             v.brand || ' ' || v.model as vehicle_name,
             v.license_plate,
             -- RENTALS JOIN (už pre-filtrované)
@@ -6114,8 +6162,9 @@ class PostgresDatabase {
             au.reason as unavailability_reason,
             au.type as unavailability_type,
             au.priority as unavailability_priority,
-            -- FINAL STATUS
+            -- FINAL STATUS (priorita: private_rental > rented > ostatné nedostupnosti > available)
             CASE
+              WHEN au.type = 'private_rental' THEN 'unavailable'
               WHEN ar.id IS NOT NULL THEN
                 CASE WHEN ar.is_flexible = true THEN 'flexible' ELSE 'rented' END
               WHEN au.type IS NOT NULL THEN au.type
@@ -6131,11 +6180,13 @@ class PostgresDatabase {
             au.vehicle_id = v.id
             AND cd.date BETWEEN au.start_date AND au.end_date
           )
-          WHERE v.status NOT IN ('removed', 'temporarily_removed')
+          WHERE v.status NOT IN ('removed', 'temporarily_removed', 'private')
         )
         SELECT
           date,
           vehicle_id,
+          brand,
+          model,
           vehicle_name,
           license_plate,
           final_status as status,
@@ -6147,7 +6198,7 @@ class PostgresDatabase {
           unavailability_type,
           unavailability_priority
         FROM optimized_calendar
-        ORDER BY date, vehicle_id
+        ORDER BY date, brand, model, license_plate
       `, [startDate, endDate]);
             console.log('✅ UNIFIED QUERY: Retrieved', result.rows.length, 'calendar records');
             // 🚀 FÁZA 1.2: Pôvodná logika grupovanie podľa dátumu (funguje správne)

@@ -27,7 +27,7 @@ export interface Commission {
     type: 'percentage' | 'fixed';
     value: number;
 }
-export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'temporarily_removed' | 'removed' | 'transferred';
+export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'temporarily_removed' | 'removed' | 'transferred' | 'private';
 export interface Customer {
     id: string;
     name: string;
@@ -261,7 +261,7 @@ export interface VehicleUnavailability {
     startDate: Date;
     endDate: Date;
     reason: string;
-    type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection' | 'rented';
+    type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection' | 'rented' | 'private_rental';
     notes?: string;
     priority: 1 | 2 | 3;
     recurring: boolean;
@@ -278,7 +278,7 @@ export interface Insurer {
     name: string;
     createdAt?: Date;
 }
-export type UserRole = 'admin' | 'employee' | 'temp_worker' | 'mechanic' | 'sales_rep' | 'company_owner';
+export type UserRole = 'admin' | 'user' | 'employee' | 'temp_worker' | 'mechanic' | 'sales_rep' | 'company_owner';
 export interface User {
     id: string;
     username: string;
@@ -349,7 +349,7 @@ export interface CompanyInvestorShare {
     company?: Company;
 }
 export interface Permission {
-    resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | 'expenses' | 'insurances' | '*';
+    resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | 'expenses' | 'insurances' | 'settlements' | 'statistics' | '*';
     actions: ('read' | 'create' | 'update' | 'delete')[];
     conditions?: {
         ownOnly?: boolean;

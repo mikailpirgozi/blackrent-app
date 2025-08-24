@@ -58,17 +58,17 @@ const drawerWidth = 280;
 
 const allMenuItems = [
   { text: 'Prenájmy', icon: <ReceiptLongOutlined />, path: '/rentals', resource: 'rentals' as const },
-  { text: 'Email Monitoring', icon: <Email />, path: '/email-monitoring', resource: 'rentals' as const },
+  { text: 'Email Monitoring', icon: <Email />, path: '/email-monitoring', resource: 'users' as const },
   { text: 'Databáza vozidiel', icon: <CarRental />, path: '/vehicles', resource: 'vehicles' as const },
   { text: 'Zákazníci', icon: <GroupOutlined />, path: '/customers', resource: 'customers' as const },
   { text: 'Dostupnosť áut', icon: <CalendarToday />, path: '/availability', resource: 'vehicles' as const }, // Smart availability (optimized)
   { text: 'Náklady', icon: <AttachMoney />, path: '/expenses', resource: 'expenses' as const },
-  { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'finances' as const },
+  { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'settlements' as const },
   { text: 'Poistky/STK/Dialničné', icon: <SecurityOutlined />, path: '/insurances', resource: 'insurances' as const },
   { text: 'Správa používateľov', icon: <AdminPanelSettingsOutlined />, path: '/users', resource: 'users' as const },
   
   // { text: 'Transfer vlastníctva', icon: <SwapHoriz />, path: '/admin/vehicle-ownership', resource: 'admin' as const }, // DEAKTIVOVANÉ - nepoužíva sa
-  { text: 'Štatistiky', icon: <DashboardOutlined />, path: '/statistics', resource: 'finances' as const }, // statistics need finance access
+  { text: 'Štatistiky', icon: <DashboardOutlined />, path: '/statistics', resource: 'statistics' as const },
 ];
 
 interface LayoutProps {
