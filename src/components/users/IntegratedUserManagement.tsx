@@ -10,11 +10,13 @@ import {
 import {
   Person as PersonIcon,
   SupervisorAccount as AdvancedIcon,
-  Notifications as NotificationIcon
+  Notifications as NotificationIcon,
+  Security as SecurityIcon
 } from '@mui/icons-material';
 import { RoleGuard } from '../common/PermissionGuard';
 import BasicUserManagement from './BasicUserManagement';
 import PushNotificationManager from '../common/PushNotificationManager';
+import RolePermissionsDisplay from './RolePermissionsDisplay';
 
 export default function IntegratedUserManagement() {
   const theme = useTheme();
@@ -34,6 +36,8 @@ export default function IntegratedUserManagement() {
       case 0:
         return <BasicUserManagement />;
       case 1:
+        return <RolePermissionsDisplay />;
+      case 2:
         return <PushNotificationManager />;
       default:
         return <BasicUserManagement />;
@@ -88,6 +92,11 @@ export default function IntegratedUserManagement() {
             <Tab 
               icon={<PersonIcon fontSize={isMobile ? "small" : "medium"} />} 
               label="Správa používateľov"
+              iconPosition="start"
+            />
+            <Tab 
+              icon={<SecurityIcon fontSize={isMobile ? "small" : "medium"} />} 
+              label="Práva rolí"
               iconPosition="start"
             />
             <Tab 

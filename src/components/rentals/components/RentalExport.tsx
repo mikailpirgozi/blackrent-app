@@ -1,0 +1,639 @@
+import React, { useRef, useCallback } from 'react';
+import {
+  Box,
+  Button,
+  Typography
+} from '@mui/material';
+import {
+  FileDownload as ExportIcon,
+  FileUpload as DownloadIcon
+} from '@mui/icons-material';
+import { saveAs } from 'file-saver';
+import Papa from 'papaparse';
+import { v4 as uuidv4 } from 'uuid';
+import { Rental } from '../../../types';
+import { apiService } from '../../../services/api';
+import { logger } from '../../../utils/logger';
+
+interface RentalExportProps {
+  filteredRentals: Rental[];
+  state: {
+    customers: any[];
+    companies: any[];
+    vehicles: any[];
+    rentals: Rental[];
+  };
+  isMobile: boolean;
+  setImportError: (error: string) => void;
+}
+
+export const RentalExport: React.FC<RentalExportProps> = ({
+  filteredRentals,
+  state,
+  isMobile,
+  setImportError
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Export prenájmov do CSV
+  const exportRentalsToCSV = useCallback((rentals: Rental[]) => {
+    // Stĺpce v CSV súbori:
+    // - id: unikátne ID prenájmu
+    // - licensePlate: ŠPZ vozidla (podľa ktorej sa nájde auto a firma)
+    // - company: názov firmy vozidla
+    // - brand: značka vozidla
+    // - model: model vozidla
+    // - customerName: meno zákazníka
+    // - customerEmail: email zákazníka (voliteľné)
+    // - startDate: dátum začiatku prenájmu (formát ISO 8601 - 2025-01-03T23:00:00.000Z)
+    // - endDate: dátum konca prenájmu (formát ISO 8601 - 2025-01-03T23:00:00.000Z)
+    // - totalPrice: celková cena prenájmu v €
+    // - commission: provízia v € (vypočítaná rovnako ako v UI)
+    // - paymentMethod: spôsob platby (cash/bank_transfer/vrp/direct_to_owner)
+    // - discountType: typ zľavy (percentage/fixed) - voliteľné
+    // - discountValue: hodnota zľavy - voliteľné
+    // - customCommissionType: typ vlastnej provízie (percentage/fixed) - voliteľné
+    // - customCommissionValue: hodnota vlastnej provízie - voliteľné
+    // - extraKmCharge: doplatok za km v € - voliteľné
+    // - paid: či je uhradené (1=áno, 0=nie)
+    // - handoverPlace: miesto prevzatia - voliteľné
+    // - confirmed: či je potvrdené (1=áno, 0=nie)
+    
+    // 🔧 HELPER: Výpočet provízie rovnako ako v UI
+    const calculateCommission = (rental: Rental): number => {
+      // ✅ OPRAVENÉ: totalPrice už obsahuje všetko (základná cena + doplatok za km)
+      // Netreba pridávať extraKmCharge znovu!
+      const totalPrice = rental.totalPrice;
+      
+      // Ak je nastavená customCommission, použije sa tá
+      if (rental.customCommission?.value && rental.customCommission.value > 0) {
+        if (rental.customCommission.type === 'percentage') {
+          return (totalPrice * rental.customCommission.value) / 100;
+        } else {
+          return rental.customCommission.value;
+        }
+      }
+      
+      // Inak sa použije commission z vozidla
+      if (rental.vehicle?.commission) {
+        if (rental.vehicle.commission.type === 'percentage') {
+          return (totalPrice * rental.vehicle.commission.value) / 100;
+        } else {
+          return rental.vehicle.commission.value;
+        }
+      }
+      
+      // Fallback na uloženú commission z databázy
+      return rental.commission || 0;
+    };
+    
+    const header = [
+      'id','licensePlate','company','brand','model','customerName','customerEmail','startDate','endDate','totalPrice','commission','paymentMethod','discountType','discountValue','customCommissionType','customCommissionValue','extraKmCharge','paid','handoverPlace','confirmed'
+    ];
+    const rows = rentals.map(r => [
+      r.id,
+      r.vehicle?.licensePlate || '',
+      r.vehicle?.company || '',
+      r.vehicle?.brand || '',
+      r.vehicle?.model || '',
+      r.customerName,
+      r.customer?.email || '',
+      (() => {
+        const startDate = r.startDate instanceof Date ? r.startDate : new Date(r.startDate);
+        return !isNaN(startDate.getTime()) ? startDate.toISOString() : String(r.startDate);
+      })(),
+      (() => {
+        const endDate = r.endDate instanceof Date ? r.endDate : new Date(r.endDate);
+        return !isNaN(endDate.getTime()) ? endDate.toISOString() : String(r.endDate);
+      })(),
+      r.totalPrice,
+      calculateCommission(r), // 🔧 OPRAVENÉ: Používa vypočítanú províziu
+      r.paymentMethod,
+      r.discount?.type || '',
+      r.discount?.value ?? '',
+      r.customCommission?.type || '',
+      r.customCommission?.value ?? '',
+      r.extraKmCharge ?? '',
+      r.paid ? '1' : '0',
+      r.handoverPlace || '',
+      r.confirmed ? '1' : '0',
+    ]);
+    const csv = [header, ...rows].map(row => row.map(val => '"' + String(val).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, 'prenajmy.csv');
+  }, []);
+
+  // Import prenájmov z CSV
+  const handleImportCSV = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results: ReturnType<typeof Papa.parse>) => {
+        try {
+          const imported = [];
+          const createdVehicles: any[] = [];
+          const createdCustomers: any[] = [];
+          const createdCompanies: any[] = [];
+          
+          // 📦 BATCH PROCESSING: Pripravíme všetky prenájmy pre batch import
+          const batchRentals = [];
+          
+          // Najskôr spracujeme všetky riadky a vytvoríme zákazníkov, firmy a vozidlá ak je potrebné
+          for (const row of results.data as any[]) {
+            logger.debug('Processing CSV row', { rowIndex: results.data.indexOf(row) });
+            
+            // 1. VYTVORENIE ZÁKAZNÍKA AK NEEXISTUJE
+            const customerName = row.customerName || 'Neznámy zákazník';
+            const customerEmail = row.customerEmail || '';
+            
+            // 🔍 DETAILNÉ HĽADANIE ZÁKAZNÍKA S DIAKRITIKU
+            console.log(`🔍 CUSTOMER SEARCH [${results.data.indexOf(row)}]:`, {
+              csvCustomerName: customerName,
+              csvCustomerNameLength: customerName.length,
+              availableCustomers: state.customers.slice(0, 5).map(c => c.name)
+            });
+            
+            let existingCustomer = state.customers.find(c => 
+              c.name.toLowerCase() === customerName.toLowerCase() ||
+              (customerEmail && c.email === customerEmail)
+            );
+            
+            // Ak nenašiel exact match, skús fuzzy match pre diakritiku
+            if (!existingCustomer && customerName !== 'Neznámy zákazník') {
+              const normalizeString = (str: string) => str
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // odstráni diakritiku
+                .trim();
+              
+              const normalizedCustomerName = normalizeString(customerName);
+              console.log(`🔍 FUZZY SEARCH for: "${customerName}" -> normalized: "${normalizedCustomerName}"`);
+              
+              existingCustomer = state.customers.find(c => {
+                const normalizedDbName = normalizeString(c.name || '');
+                const match = normalizedDbName === normalizedCustomerName;
+                if (match) {
+                  console.log(`✅ FUZZY MATCH: "${customerName}" -> "${c.name}" (ID: ${c.id})`);
+                }
+                return match;
+              });
+              
+              if (!existingCustomer) {
+                console.log(`❌ NO CUSTOMER FOUND for: "${customerName}"`);
+              }
+            } else if (existingCustomer) {
+              console.log(`✅ EXACT MATCH: "${customerName}" -> ID: ${existingCustomer.id}`);
+            }
+            
+            // Skontroluj aj v aktuálne vytvorených zákazníkoch
+            if (!existingCustomer) {
+              existingCustomer = createdCustomers.find(c => 
+                c.name.toLowerCase() === customerName.toLowerCase() ||
+                (customerEmail && c.email === customerEmail)
+              );
+              
+              // Fuzzy match aj v vytvorených zákazníkoch
+              if (!existingCustomer && customerName !== 'Neznámy zákazník') {
+                const normalizeString = (str: string) => str
+                  .toLowerCase()
+                  .normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g, '')
+                  .trim();
+                
+                const normalizedCustomerName = normalizeString(customerName);
+                existingCustomer = createdCustomers.find(c => {
+                  const normalizedDbName = normalizeString(c.name || '');
+                  return normalizedDbName === normalizedCustomerName;
+                });
+                
+                if (existingCustomer) {
+                  console.log(`✅ FUZZY MATCH in created customers: "${customerName}" -> "${existingCustomer.name}"`);
+                }
+              }
+            }
+            
+            // Ak zákazník neexistuje, vytvor ho
+            if (!existingCustomer && customerName !== 'Neznámy zákazník') {
+              try {
+                const newCustomer = {
+                  id: uuidv4(),
+                  name: customerName,
+                  email: customerEmail,
+                  phone: '',
+                  address: '',
+                  notes: '',
+                  createdAt: new Date()
+                };
+                await apiService.createCustomer(newCustomer);
+                createdCustomers.push(newCustomer);
+                logger.info('Customer created during import', { customerName });
+              } catch (error) {
+                logger.error('Failed to create customer during import', { customerName, error });
+              }
+            }
+
+            // 2. VYTVORENIE FIRMY AK NEEXISTUJE
+            const companyName = row.company || 'Neznáma firma';
+            let existingCompany = state.companies.find(c => 
+              c.name.toLowerCase() === companyName.toLowerCase()
+            );
+            
+            if (!existingCompany) {
+              existingCompany = createdCompanies.find(c => 
+                c.name.toLowerCase() === companyName.toLowerCase()
+              );
+            }
+            
+            if (!existingCompany && companyName !== 'Neznáma firma') {
+              try {
+                const newCompany = {
+                  id: uuidv4(),
+                  name: companyName,
+                  address: '',
+                  phone: '',
+                  email: '',
+                  commissionRate: 20.00,
+                  isActive: true,
+                  createdAt: new Date()
+                };
+                await apiService.createCompany(newCompany);
+                createdCompanies.push(newCompany);
+                logger.info('Company created during import', { companyName });
+              } catch (error) {
+                logger.error('Failed to create company during import', { companyName, error });
+              }
+            }
+
+            // 3. VYTVORENIE VOZIDLA AK NEEXISTUJE
+            const licensePlate = row.licensePlate;
+            if (!licensePlate) {
+              logger.warn('Missing license plate, skipping row', { rowIndex: results.data.indexOf(row) });
+              continue;
+            }
+            
+            let vehicle = state.vehicles.find(v => 
+              v.licensePlate.toLowerCase() === licensePlate.toLowerCase()
+            );
+            
+            if (!vehicle) {
+              vehicle = createdVehicles.find(v => 
+                v.licensePlate.toLowerCase() === licensePlate.toLowerCase()
+              );
+            }
+            
+            if (!vehicle) {
+              try {
+                const finalCompany = existingCompany || createdCompanies.find(c => 
+                  c.name.toLowerCase() === companyName.toLowerCase()
+                );
+                
+                if (!finalCompany) {
+                  logger.warn('Missing company for vehicle, skipping', { licensePlate });
+                  continue;
+                }
+                
+                const newVehicle = {
+                  id: uuidv4(),
+                  licensePlate: licensePlate,
+                  brand: row.brand || 'Neznáma značka',
+                  model: row.model || 'Neznámy model',
+                  companyId: finalCompany.id,
+                  company: finalCompany.name,
+                  year: new Date().getFullYear(),
+                  fuelType: 'benzín',
+                  transmission: 'manuál',
+                  seats: 5,
+                  dailyRate: Number(row.totalPrice) || 50,
+                  commission: {
+                    type: 'percentage' as const,
+                    value: 20
+                  },
+                  pricing: [],
+                  status: 'available' as const,
+                  notes: ''
+                };
+                await apiService.createVehicle(newVehicle);
+                createdVehicles.push(newVehicle);
+                logger.info('Vehicle created during import', { licensePlate, brand: row.brand, model: row.model });
+              } catch (error) {
+                logger.error('Failed to create vehicle during import', { licensePlate, error });
+                continue;
+              }
+            }
+
+            // Parsuje dátumy - iba dátum bez času, zachováva formát pre export
+            const parseDate = (dateStr: string) => {
+              if (!dateStr) return new Date();
+              
+              // Skúsi ISO 8601 formát (YYYY-MM-DDTHH:mm:ss.sssZ alebo YYYY-MM-DD)
+              // Ale iba ak má správny formát (obsahuje - alebo T)
+              if (dateStr.includes('-') || dateStr.includes('T')) {
+                const isoDate = new Date(dateStr);
+                if (!isNaN(isoDate.getTime())) {
+                  // Extrahuje iba dátum bez času v UTC
+                  return new Date(Date.UTC(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate()));
+                }
+              }
+              
+              // Fallback na formát s bodkami - podporuje "14.1." alebo "14.1.2025"
+              let cleanDateStr = dateStr.trim();
+              
+              // Odstráni koncovú bodku ak je tam ("14.1." -> "14.1")
+              if (cleanDateStr.endsWith('.')) {
+                cleanDateStr = cleanDateStr.slice(0, -1);
+              }
+              
+              const parts = cleanDateStr.split('.');
+              if (parts.length === 2) {
+                // Formát dd.M - automaticky pridá rok 2025
+                const day = Number(parts[0]);
+                const month = Number(parts[1]) - 1; // január = 0, február = 1, atď.
+                
+                // Validácia dátumu
+                if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+                  // Vytvor dátum v UTC aby sa predišlo timezone konverzii
+                  return new Date(Date.UTC(2025, month, day));
+                }
+              } else if (parts.length === 3) {
+                // Formát dd.M.yyyy - ak je tam rok
+                const day = Number(parts[0]);
+                const month = Number(parts[1]) - 1;
+                const year = Number(parts[2]);
+                
+                // Validácia dátumu
+                if (day >= 1 && day <= 31 && month >= 0 && month <= 11 && year >= 1900 && year <= 2100) {
+                  // Vytvor dátum v UTC aby sa predišlo timezone konverzii
+                  return new Date(Date.UTC(year, month, day));
+                }
+              }
+              
+              // Ak nič nefunguje, vráti dnešný dátum
+              console.warn(`Nepodarilo sa parsovať dátum: "${dateStr}", používam dnešný dátum`);
+              return new Date();
+            };
+
+            // Priradenie zákazníka na základe existujúceho alebo novo vytvoreného
+            let finalCustomer = existingCustomer || createdCustomers.find(c => 
+              c.name.toLowerCase() === customerName.toLowerCase() ||
+              (customerEmail && c.email === customerEmail)
+            );
+            
+            // Posledná šanca - fuzzy match pre finálne priradenie
+            if (!finalCustomer && customerName !== 'Neznámy zákazník') {
+              const normalizeString = (str: string) => str
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .trim();
+              
+              const normalizedCustomerName = normalizeString(customerName);
+              finalCustomer = [...state.customers, ...createdCustomers].find(c => {
+                const normalizedDbName = normalizeString(c.name || '');
+                return normalizedDbName === normalizedCustomerName;
+              });
+              
+              if (finalCustomer) {
+                console.log(`✅ FINAL FUZZY MATCH: "${customerName}" -> "${finalCustomer.name}" (ID: ${finalCustomer.id})`);
+              } else {
+                console.log(`❌ FINAL: NO CUSTOMER FOUND for: "${customerName}"`);
+              }
+            }
+
+            // Automatické priradenie majiteľa na základe vozidla
+            // Ak existuje vozidlo a nie je zadaný spôsob platby, nastav platbu priamo majiteľovi
+            let finalPaymentMethod = row.paymentMethod || 'cash';
+            
+            // Ak je nájdené vozidlo na základe ŠPZ a nie je zadaný paymentMethod,
+            // automaticky nastav platbu priamo majiteľovi vozidla
+            if (vehicle && !row.paymentMethod) {
+              finalPaymentMethod = 'direct_to_owner';
+              logger.info('Auto-assigned direct payment to vehicle owner', { 
+                licensePlate: vehicle.licensePlate, 
+                company: vehicle.company 
+              });
+            }
+
+            // ✅ OPRAVENÉ: Výpočet provízie rovnako ako v exporte
+            const finalCommission = (() => {
+              const totalPrice = Number(row.totalPrice) || 0;
+              
+              // 1. Ak je zadaná commission priamo v CSV, použije sa tá
+              if (row.commission && Number(row.commission) > 0) {
+                return Number(row.commission);
+              }
+              
+              // 2. Ak je zadaná customCommission v CSV, použije sa tá
+              if (row.customCommissionType && row.customCommissionValue) {
+                if (row.customCommissionType === 'percentage') {
+                  return (totalPrice * Number(row.customCommissionValue)) / 100;
+                } else {
+                  return Number(row.customCommissionValue);
+                }
+              }
+              
+              // 3. Inak sa použije commission z vozidla
+              if (vehicle?.commission) {
+                if (vehicle.commission.type === 'percentage') {
+                  return (totalPrice * vehicle.commission.value) / 100;
+                } else {
+                  return vehicle.commission.value;
+                }
+              }
+              
+              // 4. Fallback na 0
+              return 0;
+            })();
+            
+            if (!row.commission && vehicle?.commission) {
+              logger.info('Auto-calculated commission for vehicle', {
+                licensePlate: vehicle.licensePlate,
+                commission: finalCommission,
+                type: vehicle.commission.type,
+                value: vehicle.commission.value
+              });
+            }
+
+            // Log informácií o majiteľovi/firme vozidla
+            if (vehicle) {
+              logger.debug('Vehicle assigned to rental', { 
+                licensePlate: vehicle.licensePlate, 
+                owner: vehicle.company 
+              });
+            }
+
+            const startDate = parseDate(row.startDate);
+            const endDate = parseDate(row.endDate);
+            
+            // KONTROLA DUPLICÍT PRENÁJMU
+            // Skontroluj, či už existuje prenájom s týmito parametrami
+            const duplicateRental = state.rentals.find(existingRental => {
+              // Kontrola podľa vozidla a dátumov
+              if (vehicle?.id && existingRental.vehicleId === vehicle.id) {
+                const existingStart = new Date(existingRental.startDate);
+                const existingEnd = new Date(existingRental.endDate);
+                
+                // Ak sa dátumy zhodujú (rovnaký deň)
+                if (existingStart.toDateString() === startDate.toDateString() && 
+                    existingEnd.toDateString() === endDate.toDateString()) {
+                  return true;
+                }
+              }
+              return false;
+            });
+            
+            if (duplicateRental) {
+              logger.warn('Duplicate rental detected, skipping', {
+                licensePlate: vehicle?.licensePlate,
+                startDate: startDate.toLocaleDateString(),
+                endDate: endDate.toLocaleDateString()
+              });
+              continue;
+            }
+
+            // 🔍 DEBUG: Parsovanie ceny z CSV
+            const rawTotalPrice = row.totalPrice;
+            const parsedTotalPrice = Number(row.totalPrice) || 0;
+            
+            console.log('🔍 CSV PRICE DEBUG:', {
+              rowIndex: results.data.indexOf(row),
+              customerName,
+              rawTotalPrice,
+              parsedTotalPrice,
+              typeOfRaw: typeof rawTotalPrice,
+              isNaN: isNaN(Number(rawTotalPrice))
+            });
+
+            // Vytvorenie prenájmu
+            const newRental = {
+              id: row.id || uuidv4(),
+              vehicleId: vehicle?.id || undefined,
+              vehicle: vehicle,
+              customerId: finalCustomer?.id || undefined,
+              customer: finalCustomer,
+              customerName: customerName,
+              startDate: startDate,
+              endDate: endDate,
+              totalPrice: parsedTotalPrice,
+              commission: finalCommission,
+              paymentMethod: finalPaymentMethod as any,
+              discount: row.discountType ? {
+                type: row.discountType as 'percentage' | 'fixed',
+                value: Number(row.discountValue) || 0
+              } : undefined,
+              customCommission: row.customCommissionType ? {
+                type: row.customCommissionType as 'percentage' | 'fixed',
+                value: Number(row.customCommissionValue) || 0
+              } : undefined,
+              extraKmCharge: Number(row.extraKmCharge) || 0,
+              paid: row.paid === '1' || row.paid === true,
+              handoverPlace: row.handoverPlace || '',
+              confirmed: row.confirmed === '1' || row.confirmed === true,
+              status: 'active' as const,
+              notes: '',
+              createdAt: new Date()
+            };
+
+            // 📦 BATCH: Pridaj prenájom do batch zoznamu namiesto okamžitého vytvorenia
+            batchRentals.push(newRental);
+            logger.debug('Rental prepared for batch import', {
+              customer: customerName,
+              licensePlate: vehicle?.licensePlate,
+              totalPrice: parsedTotalPrice,
+              startDate: startDate.toLocaleDateString(),
+              endDate: endDate.toLocaleDateString()
+            });
+          }
+
+          // 🚀 BATCH IMPORT: Vytvor všetky prenájmy naraz
+          if (batchRentals.length > 0) {
+            try {
+              logger.info(`🚀 Starting batch import of ${batchRentals.length} rentals...`);
+              const batchResult = await apiService.batchImportRentals(batchRentals);
+              
+              logger.info('✅ Batch import completed', {
+                processed: batchResult.processed,
+                total: batchResult.total,
+                successRate: batchResult.successRate,
+                errors: batchResult.errors.length
+              });
+
+              // Log errors if any
+              if (batchResult.errors.length > 0) {
+                logger.warn('Batch import errors:', batchResult.errors);
+              }
+
+              imported.push(...batchResult.results);
+              
+            } catch (error) {
+              logger.error('Batch import failed', { error });
+              throw error;
+            }
+          }
+          
+          logger.info('CSV import completed successfully', { 
+            importedCount: imported.length,
+            totalRows: results.data.length 
+          });
+          setImportError('');
+          
+          // Refresh dát
+          window.location.reload();
+          
+        } catch (error) {
+          logger.error('CSV import failed', { error });
+          setImportError('Chyba pri importe CSV súboru');
+        }
+        
+        // Reset file input
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    });
+  }, [state, setImportError]);
+
+  return (
+    <Box sx={{ 
+      display: 'flex', 
+      gap: { xs: 1, md: 2 }, 
+      mb: 3,
+      flexWrap: 'wrap',
+      alignItems: 'center'
+    }}>
+      {/* Export CSV */}
+      <Button
+        variant="outlined"
+        startIcon={<ExportIcon />}
+        onClick={() => exportRentalsToCSV(filteredRentals)}
+        sx={{
+          minWidth: { xs: 'auto', md: '120px' },
+          fontSize: { xs: '0.8rem', md: '0.875rem' },
+          px: { xs: 2, md: 3 },
+          py: { xs: 1, md: 1.5 },
+          borderRadius: 2,
+          display: { xs: 'none', md: 'inline-flex' } // Skryté na mobile
+        }}
+      >
+        Export CSV
+      </Button>
+
+      {/* Import CSV */}
+      <Button
+        variant="outlined"
+        startIcon={<DownloadIcon />}
+        onClick={() => fileInputRef.current?.click()}
+        sx={{
+          minWidth: { xs: 'auto', md: '120px' },
+          fontSize: { xs: '0.8rem', md: '0.875rem' },
+          px: { xs: 2, md: 3 },
+          py: { xs: 1, md: 1.5 },
+          borderRadius: 2,
+          display: { xs: 'none', md: 'inline-flex' } // Skryté na mobile
+        }}
+      >
+        Import CSV
+      </Button>
+      <input type="file" accept=".csv" hidden onChange={handleImportCSV} ref={fileInputRef} />
+    </Box>
+  );
+};

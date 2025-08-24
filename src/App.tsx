@@ -35,7 +35,7 @@ import { EnhancedLoading } from './components/common/EnhancedLoading';
 import { Suspense, lazy } from 'react';
 
 const VehicleList = lazy(() => import('./components/vehicles/VehicleListNew'));
-const RentalList = lazy(() => import('./components/rentals/RentalListNew'));
+const RentalList = lazy(() => import('./components/rentals/RentalList'));
 // const ImapEmailMonitoring = lazy(() => import('./components/admin/ImapEmailMonitoring'));
 const EmailManagementDashboard = lazy(() => import('./components/admin/EmailManagementDashboard'));
 
