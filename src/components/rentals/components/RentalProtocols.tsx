@@ -34,7 +34,7 @@ interface RentalDialogsProps {
   editingRental: Rental | null;
   selectedRentalForProtocol: Rental | null;
   selectedProtocolType: 'handover' | 'return' | null;
-  selectedPdf: { url: string; type: string; title: string } | null;
+  selectedPdf: { url: string; type: 'handover' | 'return'; title: string } | null;
   galleryImages: string[];
   galleryVideos: string[];
   galleryTitle: string;
