@@ -637,13 +637,13 @@ export default function RentalList() {
             console.log('✅ Handover protocol created:', data);
             
             // ✅ OPTIMISTIC UPDATE BULK-STATUS
-            protocolsHook.setProtocolStatusMap((prev: Record<string, any>) => ({
-              ...prev,
+            protocolsHook.setProtocolStatusMap({
+              ...protocolsHook.protocolStatusMap,
               [protocolData.rentalId]: {
                 hasHandoverProtocol: true,
-                hasReturnProtocol: prev[protocolData.rentalId]?.hasReturnProtocol || false,
+                hasReturnProtocol: protocolsHook.protocolStatusMap[protocolData.rentalId]?.hasReturnProtocol || false,
               }
-            }));
+            });
 
             protocolsHook.setOpenHandoverDialog(false);
             protocolsHook.setSelectedRentalForProtocol(null);
