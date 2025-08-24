@@ -501,6 +501,28 @@ const BasicUserManagement: React.FC = () => {
             Používatelia ({users.length})
           </Typography>
           
+          {/* Sort users alphabetically by firstName, lastName, then username */}
+          {(() => {
+            const sortedUsers = [...users].sort((a, b) => {
+              // Sort by firstName first
+              const firstNameA = a.firstName || '';
+              const firstNameB = b.firstName || '';
+              const firstNameCompare = firstNameA.localeCompare(firstNameB, 'sk');
+              if (firstNameCompare !== 0) return firstNameCompare;
+              
+              // Then by lastName
+              const lastNameA = a.lastName || '';
+              const lastNameB = b.lastName || '';
+              const lastNameCompare = lastNameA.localeCompare(lastNameB, 'sk');
+              if (lastNameCompare !== 0) return lastNameCompare;
+              
+              // Finally by username
+              return a.username.localeCompare(b.username, 'sk');
+            });
+            
+            return (
+              <>
+          
           {/* Mobile Card Layout */}
           {isMobile ? (
             <Box sx={{ 
@@ -508,12 +530,12 @@ const BasicUserManagement: React.FC = () => {
               overflowY: 'auto',
               pr: 1
             }}>
-              {users.length === 0 ? (
+              {sortedUsers.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
                   Žiadni používatelia
                 </Typography>
               ) : (
-                users.map((user) => (
+                sortedUsers.map((user) => (
                   <UserCard key={user.id} user={user} />
                 ))
               )}
@@ -534,7 +556,7 @@ const BasicUserManagement: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {users.map((user) => (
+                  {sortedUsers.map((user) => (
                     <TableRow key={user.id} hover>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -618,6 +640,9 @@ const BasicUserManagement: React.FC = () => {
               </Table>
             </TableContainer>
           )}
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
 

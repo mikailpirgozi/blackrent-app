@@ -161,10 +161,21 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
 
   // Derived data - filter out removed vehicles for availability view
   const availableVehicles = useMemo(() => 
-    (state.vehicles || []).filter(vehicle => 
-      vehicle.status !== 'removed' && 
-      vehicle.status !== 'temporarily_removed'
-    ), 
+    (state.vehicles || [])
+      .filter(vehicle => 
+        vehicle.status !== 'removed' && 
+        vehicle.status !== 'temporarily_removed'
+      )
+      .sort((a, b) => {
+        // Sort alphabetically by brand, then model, then license plate
+        const brandCompare = a.brand.localeCompare(b.brand, 'sk');
+        if (brandCompare !== 0) return brandCompare;
+        
+        const modelCompare = a.model.localeCompare(b.model, 'sk');
+        if (modelCompare !== 0) return modelCompare;
+        
+        return a.licensePlate.localeCompare(b.licensePlate, 'sk');
+      }), 
     [state.vehicles]
   );
   const availableBrands = useMemo(() => 

@@ -3614,7 +3614,7 @@ export class PostgresDatabase {
         handoverPlace: row.handover_place || undefined,
         // 🐛 FIX: Pridané chýbajúce extraKmCharge mapovanie
         extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
-        company: row.company || undefined,  // 🎯 CLEAN SOLUTION field
+        company: row.company_name || row.company || undefined,  // 🎯 CLEAN SOLUTION field - prioritize company_name from JOIN
         vehicleName: row.vehicle_name || undefined,  // 🚗 NOVÉ: Vehicle name field
         // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
         isFlexible: Boolean(row.is_flexible),
@@ -7021,6 +7021,8 @@ export class PostgresDatabase {
           SELECT
             cd.date,
             v.id as vehicle_id,
+            v.brand,
+            v.model,
             v.brand || ' ' || v.model as vehicle_name,
             v.license_plate,
             -- RENTALS JOIN (už pre-filtrované)
@@ -7060,6 +7062,8 @@ export class PostgresDatabase {
         SELECT
           date,
           vehicle_id,
+          brand,
+          model,
           vehicle_name,
           license_plate,
           final_status as status,
@@ -7071,7 +7075,7 @@ export class PostgresDatabase {
           unavailability_type,
           unavailability_priority
         FROM optimized_calendar
-        ORDER BY date, vehicle_id
+        ORDER BY date, brand, model, license_plate
       `, [startDate, endDate]);
       
       console.log('✅ UNIFIED QUERY: Retrieved', result.rows.length, 'calendar records');
