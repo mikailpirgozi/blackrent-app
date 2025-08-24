@@ -83,10 +83,16 @@ interface RentalFiltersProps {
   uniqueCompanies: string[];
   uniqueStatuses: string[];
   uniqueVehicleBrands: string[];
+  uniqueInsuranceCompanies: string[];
+  uniqueInsuranceTypes: string[];
   
   // Filtered rentals count
   filteredRentalsCount: number;
   totalRentalsCount: number;
+  
+  // Mobile filters
+  showFiltersMobile: boolean;
+  setShowFiltersMobile: () => void;
 }
 
 export const RentalFilters: React.FC<RentalFiltersProps> = ({
