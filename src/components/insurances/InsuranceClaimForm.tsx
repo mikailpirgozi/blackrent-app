@@ -15,7 +15,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  IconButton
+  IconButton,
+  Autocomplete
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -213,29 +214,60 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
               
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
-                  <FormControl fullWidth error={!!errors.vehicleId}>
-                    <InputLabel>Vozidlo *</InputLabel>
-                    <Select
-                      value={formData.vehicleId || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, vehicleId: e.target.value, insuranceId: '' }))}
-                      label="Vozidlo *"
-                    >
-                      <MenuItem value="">Vyberte vozidlo</MenuItem>
-                      {availableVehicles.map((vehicle) => (
-                        <MenuItem key={vehicle.id} value={vehicle.id}>
+                  <Box sx={{ position: 'relative' }}>
+                    <Autocomplete
+                      fullWidth
+                      options={availableVehicles
+                        .slice()
+                        .sort((a, b) => {
+                          const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
+                          const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
+                          return aText.localeCompare(bText, 'sk', { sensitivity: 'base' });
+                        })}
+                      getOptionLabel={(vehicle) => `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
+                      value={availableVehicles.find(v => v.id === formData.vehicleId) || null}
+                      onChange={(_, newValue) => setFormData(prev => ({ ...prev, vehicleId: newValue?.id || '', insuranceId: '' }))}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Vozidlo *"
+                          required
+                          error={!!errors.vehicleId}
+                          placeholder="Začnite písať pre vyhľadanie vozidla..."
+                          InputProps={{
+                            ...params.InputProps,
+                            startAdornment: (
+                              <>
+                                <CarIcon sx={{ fontSize: 16, color: '#1976d2', mr: 1 }} />
+                                {params.InputProps.startAdornment}
+                              </>
+                            ),
+                          }}
+                        />
+                      )}
+                      renderOption={(props, vehicle) => (
+                        <Box component="li" {...props}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <CarIcon sx={{ fontSize: 16, color: '#1976d2' }} />
                             {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
                           </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
+                        </Box>
+                      )}
+                      noOptionsText="Žiadne vozidlá nenájdené"
+                      filterOptions={(options, { inputValue }) => {
+                        const filtered = options.filter((option) => {
+                          const searchText = `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
+                          return searchText.includes(inputValue.toLowerCase());
+                        });
+                        return filtered;
+                      }}
+                    />
                     {errors.vehicleId && (
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
                         {errors.vehicleId}
                       </Typography>
                     )}
-                  </FormControl>
+                  </Box>
                 </Grid>
 
                 <Grid item xs={12} md={6}>

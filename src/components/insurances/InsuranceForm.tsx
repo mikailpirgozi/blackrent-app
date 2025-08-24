@@ -7,6 +7,7 @@ import {
   MenuItem,
   Select,
   TextField,
+  Autocomplete,
 } from '@mui/material';
 import { useApp } from '../../context/AppContext';
 import { Insurance, PaymentFrequency } from '../../types';
@@ -62,21 +63,35 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-        <FormControl fullWidth>
-          <InputLabel>Vozidlo</InputLabel>
-          <Select
-            value={formData.vehicleId}
-            onChange={(e) => handleInputChange('vehicleId', e.target.value)}
-            label="Vozidlo"
-            required
-          >
-            {state.vehicles.map((vehicle) => (
-              <MenuItem key={vehicle.id} value={vehicle.id}>
-                {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Autocomplete
+          fullWidth
+          options={state.vehicles
+            .slice()
+            .sort((a, b) => {
+              const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
+              const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
+              return aText.localeCompare(bText, 'sk', { sensitivity: 'base' });
+            })}
+          getOptionLabel={(vehicle) => `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
+          value={state.vehicles.find(v => v.id === formData.vehicleId) || null}
+          onChange={(_, newValue) => handleInputChange('vehicleId', newValue?.id || '')}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Vozidlo"
+              required
+              placeholder="Začnite písať pre vyhľadanie vozidla..."
+            />
+          )}
+          noOptionsText="Žiadne vozidlá nenájdené"
+          filterOptions={(options, { inputValue }) => {
+            const filtered = options.filter((option) => {
+              const searchText = `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
+              return searchText.includes(inputValue.toLowerCase());
+            });
+            return filtered;
+          }}
+        />
 
         {/* Typ poistky - Select s pridanou možnosťou PZP + Kasko */}
         <FormControl fullWidth required>

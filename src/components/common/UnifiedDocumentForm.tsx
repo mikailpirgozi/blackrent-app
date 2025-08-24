@@ -13,7 +13,8 @@ import {
   CardContent,
   Divider,
   Alert,
-  Chip
+  Chip,
+  Autocomplete
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -273,20 +274,41 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                   
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth required error={!!errors.vehicleId}>
-                        <InputLabel>Vozidlo</InputLabel>
-                        <Select
-                          value={formData.vehicleId}
-                          label="Vozidlo"
-                          onChange={(e) => setFormData(prev => ({ ...prev, vehicleId: e.target.value }))}
-                        >
-                          {state.vehicles?.map(vehicle => (
-                            <MenuItem key={vehicle.id} value={vehicle.id}>
-                              {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
-                            </MenuItem>
-                          )) || []}
-                        </Select>
-                      </FormControl>
+                      <Autocomplete
+                        fullWidth
+                        options={(state.vehicles || [])
+                          .slice()
+                          .sort((a, b) => {
+                            const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
+                            const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
+                            return aText.localeCompare(bText, 'sk', { sensitivity: 'base' });
+                          })}
+                        getOptionLabel={(vehicle) => `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
+                        value={(state.vehicles || []).find(v => v.id === formData.vehicleId) || null}
+                        onChange={(_, newValue) => setFormData(prev => ({ ...prev, vehicleId: newValue?.id || '' }))}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Vozidlo"
+                            required
+                            error={!!errors.vehicleId}
+                            placeholder="Začnite písať pre vyhľadanie vozidla..."
+                          />
+                        )}
+                        noOptionsText="Žiadne vozidlá nenájdené"
+                        filterOptions={(options, { inputValue }) => {
+                          const filtered = options.filter((option) => {
+                            const searchText = `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
+                            return searchText.includes(inputValue.toLowerCase());
+                          });
+                          return filtered;
+                        }}
+                      />
+                      {errors.vehicleId && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                          {errors.vehicleId}
+                        </Typography>
+                      )}
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
