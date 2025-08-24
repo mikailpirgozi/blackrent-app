@@ -12,7 +12,7 @@ import {
   PictureAsPdf as PDFIcon,
   PhotoLibrary as GalleryIcon
 } from '@mui/icons-material';
-import { Rental } from '../../../types';
+import { Rental, ProtocolImage, ProtocolVideo } from '../../../types';
 import RentalForm from '../RentalForm';
 import PDFViewer from '../../common/PDFViewer';
 import ProtocolGallery from '../../common/ProtocolGallery';
@@ -35,8 +35,8 @@ interface RentalDialogsProps {
   selectedRentalForProtocol: Rental | null;
   selectedProtocolType: 'handover' | 'return' | null;
   selectedPdf: { url: string; type: 'handover' | 'return'; title: string } | null;
-  galleryImages: string[];
-  galleryVideos: string[];
+  galleryImages: ProtocolImage[];
+  galleryVideos: ProtocolVideo[];
   galleryTitle: string;
   
   // Protocols data

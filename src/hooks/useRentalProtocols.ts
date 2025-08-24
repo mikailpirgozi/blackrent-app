@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { Rental } from '../types';
+import { Rental, ProtocolImage, ProtocolVideo } from '../types';
 import { logger } from '../utils/logger';
 import { apiService } from '../services/api';
 
@@ -52,10 +52,10 @@ interface UseRentalProtocolsReturn {
   
   // Gallery state
   galleryOpenRef: React.MutableRefObject<boolean>;
-  galleryImages: any[];
-  setGalleryImages: (images: any[]) => void;
-  galleryVideos: any[];
-  setGalleryVideos: (videos: any[]) => void;
+  galleryImages: ProtocolImage[];
+  setGalleryImages: (images: ProtocolImage[]) => void;
+  galleryVideos: ProtocolVideo[];
+  setGalleryVideos: (videos: ProtocolVideo[]) => void;
   galleryTitle: string;
   setGalleryTitle: (title: string) => void;
   
@@ -107,8 +107,8 @@ export const useRentalProtocols = ({
   
   // Image gallery - using useRef to survive re-renders
   const galleryOpenRef = useRef(false);
-  const [galleryImages, setGalleryImages] = useState<any[]>([]);
-  const [galleryVideos, setGalleryVideos] = useState<any[]>([]);
+  const [galleryImages, setGalleryImages] = useState<ProtocolImage[]>([]);
+  const [galleryVideos, setGalleryVideos] = useState<ProtocolVideo[]>([]);
   const [galleryTitle, setGalleryTitle] = useState('');
 
   // 💾 IMAGE PARSING CACHE - cache pre parsed images aby sa neparovali zakaždým
