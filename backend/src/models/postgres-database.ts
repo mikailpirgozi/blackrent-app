@@ -58,8 +58,8 @@ export class PostgresDatabase {
       keepAlive: true,
       keepAliveInitialDelayMillis: 0,
       // Performance tuning
-      statement_timeout: 30000, // 30s statement timeout
-      query_timeout: 15000, // 15s query timeout
+      statement_timeout: 60000, // 60s statement timeout  
+      query_timeout: 45000, // 45s query timeout (enough for IMAP operations)
     };
 
     // Railway.app provides DATABASE_URL
