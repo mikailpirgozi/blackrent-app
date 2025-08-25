@@ -107,23 +107,36 @@ export const RentalTable: React.FC<RentalTableProps> = ({
             background: '#555',
           }
         }}>
-          {filteredRentals.map((rental, index) => (
-            <MobileRentalRow
-              key={rental.id}
-              rental={rental}
-              vehicle={getVehicleByRental(rental)}
-              index={index}
-              totalRentals={filteredRentals.length}
-              hasHandover={!!protocols[rental.id]?.handover}
-              hasReturn={!!protocols[rental.id]?.return}
-              isLoadingProtocolStatus={loadingProtocols.includes(rental.id)}
-              protocolStatusLoaded={protocolStatusMap[rental.id] !== undefined}
-              onEdit={handleEdit}
-              onOpenProtocolMenu={handleOpenProtocolMenu}
-              onCheckProtocols={handleCheckProtocols}
-              onDelete={(id) => handleDelete(id)}
-            />
-          ))}
+          {filteredRentals.map((rental, index) => {
+            // ⚡ BACKGROUND PROTOCOL STATUS - rovnaká logika ako desktop verzia
+            const backgroundStatus = protocolStatusMap[rental.id];
+            const fallbackProtocols = protocols[rental.id];
+            
+            const hasHandover = backgroundStatus 
+              ? backgroundStatus.hasHandoverProtocol 
+              : !!fallbackProtocols?.handover;
+            const hasReturn = backgroundStatus 
+              ? backgroundStatus.hasReturnProtocol 
+              : !!fallbackProtocols?.return;
+            
+            return (
+              <MobileRentalRow
+                key={rental.id}
+                rental={rental}
+                vehicle={getVehicleByRental(rental)}
+                index={index}
+                totalRentals={filteredRentals.length}
+                hasHandover={hasHandover}
+                hasReturn={hasReturn}
+                isLoadingProtocolStatus={loadingProtocols.includes(rental.id)}
+                protocolStatusLoaded={protocolStatusMap[rental.id] !== undefined}
+                onEdit={handleEdit}
+                onOpenProtocolMenu={handleOpenProtocolMenu}
+                onCheckProtocols={handleCheckProtocols}
+                onDelete={(id) => handleDelete(id)}
+              />
+            );
+          })}
         </Box>
       ) : (
         /* DESKTOP BOOKING.COM STYLE PRENÁJMY */
@@ -259,6 +272,8 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                 const hasReturn = backgroundStatus 
                   ? backgroundStatus.hasReturnProtocol 
                   : !!fallbackProtocols?.return;
+                
+
                 
                 return (
                   <Box 

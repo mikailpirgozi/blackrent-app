@@ -456,11 +456,16 @@ router.post('/webhook', async (req, res) => {
         // Preferuj handoverDate a returnDate ak sú dostupné (z emailParsingUtils.ts)
         if (parsedData.handoverDate && parsedData.returnDate) {
             try {
-                // Formát: "DD.MM.YYYY HH:MM:SS"
+                // Formát: "DD.MM.YYYY HH:MM:SS" - interpretuj ako slovenský čas (Europe/Bratislava)
                 const parseDate = (dateStr) => {
                     const [datePart, timePart] = dateStr.split(' ');
                     const [day, month, year] = datePart.split('.');
-                    return new Date(`${year}-${month}-${day}T${timePart}`);
+                    // Vytvor dátum explicitne v slovenskom timezone
+                    // Pridaj +01:00 pre CET alebo +02:00 pre CEST
+                    const now = new Date();
+                    const isWinter = now.getMonth() < 2 || now.getMonth() > 9; // Zjednodušené DST
+                    const timezone = isWinter ? '+01:00' : '+02:00';
+                    return new Date(`${year}-${month}-${day}T${timePart}${timezone}`);
                 };
                 startDate = parseDate(parsedData.handoverDate);
                 endDate = parseDate(parsedData.returnDate);
