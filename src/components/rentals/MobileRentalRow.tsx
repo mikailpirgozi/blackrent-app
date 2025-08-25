@@ -23,6 +23,7 @@ import {
 import {
   Delete as DeleteIcon,
   Phone as PhoneIcon,
+  Email as EmailIcon,
   Business as BusinessIcon,
   DirectionsCar as CarIcon,
   Schedule as ScheduleIcon,
@@ -169,17 +170,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
                   {vehicle.company}
                 </Typography>
               )}
-              {/* VIN ČÍSLO - VŽDY VIDITEĽNÉ */}
-              {(rental.vehicleVin || vehicle?.vin) && (
-                <Typography variant="caption" sx={{
-                  color: '#888',
-                  fontSize: '0.7rem',
-                  fontFamily: 'monospace',
-                  display: 'block'
-                }}>
-                  VIN: {(rental.vehicleVin || vehicle?.vin)?.slice(-8)}
-                </Typography>
-              )}
+
             </Box>
             
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
@@ -230,18 +221,34 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
               {rental.customerName}
             </Typography>
             
-            {(rental.customerPhone || rental.customer?.phone) && (
-              <Typography variant="body2" sx={{ 
-                color: '#666',
-                fontSize: '0.8rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1
-              }}>
-                <PhoneIcon fontSize="small" />
-                {rental.customerPhone || rental.customer?.phone}
-              </Typography>
-            )}
+            {/* 📞 TELEFÓN A EMAIL - V JEDNOM RIADKU */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+              {(rental.customerPhone || rental.customer?.phone) && (
+                <Typography variant="body2" sx={{ 
+                  color: '#666',
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5
+                }}>
+                  <PhoneIcon fontSize="small" />
+                  {rental.customerPhone || rental.customer?.phone}
+                </Typography>
+              )}
+              
+              {(rental.customerEmail || rental.customer?.email) && (
+                <Typography variant="body2" sx={{ 
+                  color: '#666',
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5
+                }}>
+                  <EmailIcon fontSize="small" />
+                  {rental.customerEmail || rental.customer?.email}
+                </Typography>
+              )}
+            </Box>
           </Box>
 
           {/* 📅 DÁTUMY A CENA - KOMPAKTNEJŠIE */}
@@ -262,21 +269,22 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
               }}>
                 Obdobie prenájmu
               </Typography>
-              <Typography variant="body2" sx={{ 
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                color: '#333',
-                lineHeight: 1.2
+              <Typography variant="body1" sx={{ 
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                color: '#1976d2',
+                lineHeight: 1.3,
+                mb: 0.25
               }}>
-                {format(new Date(rental.startDate), 'd.M.yy HH:mm', { locale: sk })}
+                📅 {format(new Date(rental.startDate), 'd.M.yy HH:mm', { locale: sk })}
               </Typography>
-              <Typography variant="body2" sx={{ 
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                color: '#333',
-                lineHeight: 1.2
+              <Typography variant="body1" sx={{ 
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                color: '#f57c00',
+                lineHeight: 1.3
               }}>
-                {format(new Date(rental.endDate), 'd.M.yy HH:mm', { locale: sk })}
+                🏁 {format(new Date(rental.endDate), 'd.M.yy HH:mm', { locale: sk })}
               </Typography>
             </Box>
             
@@ -389,8 +397,8 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
             </Box>
           )}
 
-          {/* 🔍 PROTOKOL CHECK & PLATBA STATUS - KOMPAKTNE V JEDNOM RIADKU */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+          {/* 🔍 PROTOKOL CHECK & PLATBA STATUS & DELETE - KOMPAKTNE V JEDNOM RIADKU */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             {/* Protokol check */}
             {isLoadingProtocolStatus ? (
               <Button
@@ -427,40 +435,40 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
               <Box /> // Prázdny box pre spacing
             )}
 
-            {/* Platba status */}
-            <Chip
-              label={rental.paid ? '💰 UHRADENÉ' : '⏰ NEUHRADENÉ'}
-              size="small"
-              sx={{
-                height: 28,
-                fontSize: '0.75rem',
-                bgcolor: rental.paid ? '#4caf50' : '#f44336',
-                color: 'white',
-                fontWeight: 600
-              }}
-            />
-          </Box>
-
-          {/* 🗑️ DELETE TLAČIDLO */}
-          {onDelete && (
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-              <IconButton
-                onClick={handleDeleteClick}
+            {/* Platba status + Delete tlačidlo v jednom riadku */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip
+                label={rental.paid ? '💰 UHRADENÉ' : '⏰ NEUHRADENÉ'}
+                size="small"
                 sx={{
-                  color: '#f44336',
-                  width: 40,
-                  height: 40,
-                  '&:hover': { 
-                    bgcolor: 'rgba(244,67,54,0.1)',
-                    transform: 'scale(1.1)'
-                  },
-                  transition: 'all 0.2s ease'
+                  height: 28,
+                  fontSize: '0.75rem',
+                  bgcolor: rental.paid ? '#4caf50' : '#f44336',
+                  color: 'white',
+                  fontWeight: 600
                 }}
-              >
-                <DeleteIcon />
-              </IconButton>
+              />
+              
+              {/* 🗑️ DELETE TLAČIDLO - VEDĽA PLATBY */}
+              {onDelete && (
+                <IconButton
+                  onClick={handleDeleteClick}
+                  sx={{
+                    color: '#f44336',
+                    width: 32,
+                    height: 32,
+                    '&:hover': { 
+                      bgcolor: 'rgba(244,67,54,0.1)',
+                      transform: 'scale(1.1)'
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              )}
             </Box>
-          )}
+          </Box>
         </CardContent>
       </Card>
     </Fade>
