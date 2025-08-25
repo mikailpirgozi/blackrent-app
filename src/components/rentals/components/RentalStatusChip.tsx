@@ -1,5 +1,5 @@
 import React from 'react';
-import { Chip } from '@mui/material';
+import { StatusChip } from '../../ui';
 import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
@@ -30,7 +30,7 @@ const RentalStatusChip = React.memo<RentalStatusChipProps>(({
       case 'finished':
         return {
           label: 'Ukončený',
-          color: 'default' as const,
+          color: 'neutral' as const,
           icon: <CheckCircleIcon sx={{ fontSize: 16 }} />
         };
       case 'pending':
@@ -48,7 +48,7 @@ const RentalStatusChip = React.memo<RentalStatusChipProps>(({
       default:
         return {
           label: status || 'Neznámy',
-          color: 'default' as const,
+          color: 'neutral' as const,
           icon: <PendingIcon sx={{ fontSize: 16 }} />
         };
     }
@@ -57,9 +57,9 @@ const RentalStatusChip = React.memo<RentalStatusChipProps>(({
   const statusProps = getStatusProps();
 
   return (
-    <Chip
+    <StatusChip
       label={statusProps.label}
-      color={statusProps.color}
+      chipColor={statusProps.color}
       size={size}
       icon={statusProps.icon}
       sx={{

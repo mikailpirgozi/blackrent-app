@@ -89,12 +89,12 @@ export default function NativeCamera({
         streamRef.current = null;
       }
 
-      // Nastavenie constraints pre kameru
+      // Nastavenie constraints pre kameru s vyšším rozlíšením
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: facingMode,
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
+          width: { ideal: 1920, max: 3840 },   // ✅ Zvýšené rozlíšenie
+          height: { ideal: 1080, max: 2160 },  // ✅ Zvýšené rozlíšenie
         },
         audio: false,
       };
@@ -292,23 +292,45 @@ export default function NativeCamera({
       // Vykreslenie aktuálneho frame z videa na canvas
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Konverzia na Blob
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            onCapture(blob); // Okamžité pridanie fotky!
-            setPhotosInSession(prev => prev + 1);
-            
-            // Krátka vizuálna spätná väzba
-            setTimeout(() => setCapturing(false), 200);
-          } else {
-            setCapturing(false);
-            console.error('Nepodarilo sa vytvoriť blob z canvas');
-          }
-        },
-        'image/jpeg',
-        0.9
-      );
+      // 🌟 NOVÉ: Pokus o WebP, fallback na JPEG
+      const tryWebP = () => {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              console.log('✅ WebP capture successful, size:', (blob.size / 1024).toFixed(1) + 'KB');
+              onCapture(blob);
+              setPhotosInSession(prev => prev + 1);
+              setTimeout(() => setCapturing(false), 200);
+            } else {
+              console.warn('⚠️ WebP failed, trying JPEG fallback');
+              tryJPEG();
+            }
+          },
+          'image/webp',
+          0.85  // WebP má lepšiu kompresiu, môžeme znížiť kvalitu
+        );
+      };
+
+      const tryJPEG = () => {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              console.log('✅ JPEG capture successful, size:', (blob.size / 1024).toFixed(1) + 'KB');
+              onCapture(blob);
+              setPhotosInSession(prev => prev + 1);
+              setTimeout(() => setCapturing(false), 200);
+            } else {
+              setCapturing(false);
+              console.error('❌ Both WebP and JPEG capture failed');
+            }
+          },
+          'image/jpeg',
+          0.95
+        );
+      };
+
+      // Skús WebP najprv, ak zlyhá použije JPEG
+      tryWebP();
 
     } catch (error) {
       console.error('Chyba pri zachytávaní fotky:', error);

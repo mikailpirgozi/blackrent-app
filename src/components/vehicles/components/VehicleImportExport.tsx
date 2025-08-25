@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button } from '@mui/material';
 import { saveAs } from 'file-saver';
+import { SecondaryButton } from '../../ui';
 import Papa from 'papaparse';
 import { apiService } from '../../../services/api';
 
@@ -196,28 +196,18 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({ loading, setL
 
   return (
     <>
-      <Button
-        variant="outlined"
+      <SecondaryButton
         onClick={handleExportCSV}
-        sx={{
-          borderColor: '#1976d2',
-          color: '#1976d2',
-          '&:hover': {
-            borderColor: '#1565c0',
-            backgroundColor: 'rgba(25, 118, 210, 0.04)'
-          }
-        }}
       >
         📊 Export CSV
-      </Button>
+      </SecondaryButton>
       
-      <Button
-        variant="outlined"
+      <SecondaryButton
         component="label"
         disabled={loading}
         sx={{
-          borderColor: '#388e3c',
           color: '#388e3c',
+          borderColor: '#388e3c',
           '&:hover': {
             borderColor: '#2e7d32',
             backgroundColor: 'rgba(56, 142, 60, 0.04)'
@@ -231,7 +221,7 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({ loading, setL
           onChange={handleImportCSV}
           style={{ display: 'none' }}
         />
-      </Button>
+      </SecondaryButton>
     </>
   );
 };

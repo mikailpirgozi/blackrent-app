@@ -5,7 +5,8 @@
  */
 
 import React, { memo } from 'react';
-import { Chip, useTheme } from '@mui/material';
+import { useTheme } from '@mui/material';
+import { StatusChip } from '../ui';
 import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
@@ -91,7 +92,7 @@ const RentalStatusChip: React.FC<RentalStatusChipProps> = ({
   const config = getStatusConfig(status);
 
   return (
-    <Chip
+    <StatusChip
       label={config.label}
       size={size}
       icon={config.icon}

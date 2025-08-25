@@ -20,10 +20,10 @@ export const compressImage = async (
   options: CompressionOptions = {}
 ): Promise<CompressionResult> => {
   const {
-    maxWidth = 1920,
-    maxHeight = 1080,
-    quality = 0.8,
-    maxSize = 500, // 500KB
+    maxWidth = 2560,    // ✅ Zvýšené z 1920 na 2560px
+    maxHeight = 1920,   // ✅ Zvýšené z 1080 na 1920px  
+    quality = 0.92,     // ✅ Zvýšené z 0.8 na 0.92 (92%)
+    maxSize = 1500,     // ✅ Zvýšené z 500KB na 1.5MB
     format = 'image/jpeg'
   } = options;
 
@@ -129,4 +129,131 @@ export const createImageDataUrl = (blob: Blob): Promise<string> => {
 
 export const blobToFile = (blob: Blob, filename: string): File => {
   return new File([blob], filename, { type: blob.type });
+};
+
+// 🎯 NOVÉ: Prednastavené profily kvality
+export const QUALITY_PRESETS = {
+  // 📱 Pre mobilné zariadenia - rýchle nahrávanie
+  mobile: {
+    maxWidth: 1920,
+    maxHeight: 1080, 
+    quality: 0.85,
+    maxSize: 800, // 800KB
+    format: 'image/jpeg' as const
+  },
+  
+  // 🏢 Pre protokoly - vyvážená kvalita/veľkosť
+  protocol: {
+    maxWidth: 2560,
+    maxHeight: 1920,
+    quality: 0.92,
+    maxSize: 1500, // 1.5MB
+    format: 'image/jpeg' as const
+  },
+  
+  // 🔍 Pre detailné fotky - vysoká kvalita
+  highQuality: {
+    maxWidth: 3840,
+    maxHeight: 2160,
+    quality: 0.95,
+    maxSize: 3000, // 3MB
+    format: 'image/jpeg' as const
+  },
+  
+  // 💾 Pre archiváciu - maximálna kvalita
+  archive: {
+    maxWidth: 4096,
+    maxHeight: 3072,
+    quality: 0.98,
+    maxSize: 5000, // 5MB
+    format: 'image/jpeg' as const
+  },
+  
+  // 🌟 NOVÉ: WebP profily - lepší pomer kvalita/veľkosť
+  webpMobile: {
+    maxWidth: 1920,
+    maxHeight: 1080,
+    quality: 0.80, // WebP má lepšiu kompresiu, môžeme znížiť kvalitu
+    maxSize: 500, // 500KB (37% úspora oproti JPEG)
+    format: 'image/webp' as const
+  },
+  
+  webpProtocol: {
+    maxWidth: 2560,
+    maxHeight: 1920,
+    quality: 0.85, // Vyššia kvalita pri menšej veľkosti
+    maxSize: 1000, // 1MB (33% úspora oproti JPEG)
+    format: 'image/webp' as const
+  },
+  
+  webpHighQuality: {
+    maxWidth: 3840,
+    maxHeight: 2160,
+    quality: 0.90,
+    maxSize: 2000, // 2MB (33% úspora oproti JPEG)
+    format: 'image/webp' as const
+  },
+  
+  webpArchive: {
+    maxWidth: 4096,
+    maxHeight: 3072,
+    quality: 0.95,
+    maxSize: 3500, // 3.5MB (30% úspora oproti JPEG)
+    format: 'image/webp' as const
+  }
+} as const;
+
+// 🎯 Helper funkcie pre rôzne scenáre
+export const compressForProtocol = (file: File) => 
+  compressImage(file, QUALITY_PRESETS.protocol);
+
+export const compressForMobile = (file: File) => 
+  compressImage(file, QUALITY_PRESETS.mobile);
+
+export const compressHighQuality = (file: File) => 
+  compressImage(file, QUALITY_PRESETS.highQuality);
+
+export const compressForArchive = (file: File) => 
+  compressImage(file, QUALITY_PRESETS.archive);
+
+// 🌟 NOVÉ: WebP helper funkcie
+export const compressWebPForProtocol = (file: File) => 
+  compressImage(file, QUALITY_PRESETS.webpProtocol);
+
+export const compressWebPForMobile = (file: File) => 
+  compressImage(file, QUALITY_PRESETS.webpMobile);
+
+export const compressWebPHighQuality = (file: File) => 
+  compressImage(file, QUALITY_PRESETS.webpHighQuality);
+
+export const compressWebPForArchive = (file: File) => 
+  compressImage(file, QUALITY_PRESETS.webpArchive);
+
+// 🔍 NOVÉ: WebP podpora detekcia
+export const isWebPSupported = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const webP = new Image();
+    webP.onload = webP.onerror = () => {
+      resolve(webP.height === 2);
+    };
+    webP.src = 'data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA';
+  });
+};
+
+// 🎯 NOVÉ: Inteligentná kompresná s WebP fallback
+export const compressImageSmart = async (
+  file: File,
+  preferWebP: boolean = true,
+  qualityLevel: 'mobile' | 'protocol' | 'highQuality' | 'archive' = 'protocol'
+): Promise<CompressionResult> => {
+  const webPSupported = await isWebPSupported();
+  
+  if (preferWebP && webPSupported) {
+    // Použiť WebP ak je podporovaný
+    const webPPreset = `webp${qualityLevel.charAt(0).toUpperCase() + qualityLevel.slice(1)}` as keyof typeof QUALITY_PRESETS;
+    return compressImage(file, QUALITY_PRESETS[webPPreset]);
+  } else {
+    // Fallback na JPEG
+    return compressImage(file, QUALITY_PRESETS[qualityLevel]);
+  }
 }; 

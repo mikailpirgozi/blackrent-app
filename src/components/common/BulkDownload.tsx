@@ -1,6 +1,7 @@
 import React from 'react';
-import { Button, Box, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { Download as DownloadIcon } from '@mui/icons-material';
+import { SecondaryButton } from '../ui';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -89,19 +90,14 @@ export default function BulkDownload({
 
   return (
     <Box sx={{ mt: 1 }}>
-      <Button
-        variant="outlined"
+      <SecondaryButton
         startIcon={<DownloadIcon />}
         onClick={handleBulkDownload}
         disabled={disabled}
         size="small"
-        sx={{ 
-          borderRadius: 2,
-          textTransform: 'none'
-        }}
       >
         {label} ({files.length})
-      </Button>
+      </SecondaryButton>
       
       <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
         Stiahne sa ako ZIP súbor

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Button, Typography, Box, CircularProgress, Alert, Chip } from '@mui/material';
+import { Typography, Box, CircularProgress, Alert } from '@mui/material';
 import { CloudUpload, Delete, Visibility } from '@mui/icons-material';
+import { SecondaryButton, TextButton, ErrorButton } from '../ui';
 
 // Railway backend URL
 import { getApiBaseUrl } from '../../utils/apiUrl';
@@ -245,8 +246,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
           style={{ display: 'none' }}
           disabled={disabled || uploading}
         />
-        <Button
-          variant="outlined"
+        <SecondaryButton
           startIcon={uploading ? <CircularProgress size={20} /> : <CloudUpload />}
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled || uploading}
@@ -262,7 +262,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
           }}
         >
           {uploading ? 'Nahrávam...' : label}
-        </Button>
+        </SecondaryButton>
       </Box>
 
       {/* Error Message */}
@@ -305,22 +305,21 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
               </Box>
               
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
+                <TextButton
                   size="small"
                   startIcon={<Visibility />}
                   onClick={() => window.open(file.url, '_blank')}
                   sx={{ color: 'white' }}
                 >
                   Zobraziť
-                </Button>
-                <Button
+                </TextButton>
+                <ErrorButton
                   size="small"
                   startIcon={<Delete />}
                   onClick={() => handleDeleteFile(file.key)}
-                  sx={{ color: 'error.main' }}
                 >
                   Zmazať
-                </Button>
+                </ErrorButton>
               </Box>
             </Box>
           ))}

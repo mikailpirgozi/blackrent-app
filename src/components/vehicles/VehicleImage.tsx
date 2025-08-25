@@ -5,7 +5,8 @@
  */
 
 import React, { memo, useCallback, useState } from 'react';
-import { Box, Typography, IconButton, Chip } from '@mui/material';
+import { Box, Typography, IconButton } from '@mui/material';
+import { CompactChip } from '../ui';
 import { 
   PhotoCamera as PhotoIcon,
   DirectionsCar as CarIcon,
@@ -170,7 +171,7 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
 
       {/* Brand Badge */}
       {showBrand && vehicleBrand && (
-        <Chip
+        <CompactChip
           label={vehicleBrand}
           size="small"
           sx={{

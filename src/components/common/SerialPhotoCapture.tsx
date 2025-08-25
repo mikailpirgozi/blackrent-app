@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Box,
   Dialog,
@@ -26,9 +26,8 @@ import {
   Close,
   Preview,
   VideoCall,
-  Compress,
 } from '@mui/icons-material';
-import { compressImage } from '../../utils/imageCompression';
+import { compressImage, compressForProtocol, compressImageSmart, QUALITY_PRESETS, isWebPSupported } from '../../utils/imageCompression';
 import { compressVideo } from '../../utils/videoCompression';
 import { ProtocolImage, ProtocolVideo } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -52,6 +51,10 @@ interface SerialPhotoCaptureProps {
   protocolType?: 'handover' | 'return';
   mediaType?: 'vehicle' | 'document' | 'damage' | 'fuel' | 'odometer';
   category?: 'vehicle_photos' | 'documents' | 'damages' | 'signatures' | 'pdf' | 'videos' | 'other';
+  // 🎯 NOVÉ: Možnosť výberu kvality
+  qualityPreset?: 'mobile' | 'protocol' | 'highQuality' | 'archive';
+  // 🌟 NOVÉ: WebP podpora
+  preferWebP?: boolean;
 }
 
 interface CapturedMedia {
@@ -83,6 +86,8 @@ export default function SerialPhotoCapture({
   protocolType = 'handover',
   mediaType = 'vehicle',
   category,
+  qualityPreset = 'protocol',
+  preferWebP = true,
 }: SerialPhotoCaptureProps) {
   const [capturedMedia, setCapturedMedia] = useState<CapturedMedia[]>([]);
   const [processing, setProcessing] = useState(false);
@@ -90,10 +95,17 @@ export default function SerialPhotoCapture({
   const [previewMedia, setPreviewMedia] = useState<CapturedMedia | null>(null);
   const [uploadingToR2, setUploadingToR2] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [rapidMode, setRapidMode] = useState(false);
   const [nativeCameraOpen, setNativeCameraOpen] = useState(false);
+  const [selectedQuality, setSelectedQuality] = useState<'mobile' | 'protocol' | 'highQuality' | 'archive'>(qualityPreset);
+  const [webPEnabled, setWebPEnabled] = useState(preferWebP);
+  const [webPSupported, setWebPSupported] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // 🔍 Detekcia WebP podpory pri načítaní
+  useEffect(() => {
+    isWebPSupported().then(setWebPSupported);
+  }, []);
 
   // Funkcia pre upload na R2
   // ✅ NOVÁ FUNKCIA: Direct upload (fallback)
@@ -235,13 +247,6 @@ export default function SerialPhotoCapture({
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
-    // V rapid mode resetuj input hneď pre okamžité ďalšie fotenie
-    if (rapidMode && event.target) {
-      setTimeout(() => {
-        event.target.value = '';
-      }, 100); // Krátky delay pre správne fungovanie
-    }
-
     // Kontrola limitov
     const currentImages = capturedMedia.filter(m => m.type === 'image').length;
     const currentVideos = capturedMedia.filter(m => m.type === 'video').length;
@@ -284,13 +289,14 @@ export default function SerialPhotoCapture({
           compressedSize = compressionResult.compressedFile.size;
         } else if (!isVideo && compressImages) {
           setProgress((processedCount / files.length) * 50);
-          const compressionResult = await compressImage(file);
+          // 🌟 Používame inteligentný WebP s fallback
+          const compressionResult = await compressImageSmart(file, webPEnabled, selectedQuality);
           processedFile = new File([compressionResult.compressedBlob], file.name, {
             type: file.type,
             lastModified: Date.now()
           });
           compressed = true;
-          compressedSize = compressionResult.compressedBlob.size;
+          compressedSize = compressionResult.compressedSize;
         }
 
         // Okamžitý upload na R2 ak je povolený
@@ -359,12 +365,12 @@ export default function SerialPhotoCapture({
       setProgress(0);
       setUploadingToR2(false);
       setUploadProgress(0);
-      // Reset file input iba ak nie je rapid mode (v rapid mode už resetovaný)
-      if (!rapidMode && event.target) {
+      // Reset file input
+      if (event.target) {
         event.target.value = '';
       }
     }
-  }, [capturedMedia, maxImages, maxVideos, allowedTypes, compressImages, compressVideos, autoUploadToR2, entityId, rapidMode, uploadToR2]);
+  }, [capturedMedia, maxImages, maxVideos, allowedTypes, compressImages, compressVideos, autoUploadToR2, entityId, uploadToR2]);
 
   // Handler pre natívnu kameru
   const handleNativeCapture = useCallback(async (imageBlob: Blob) => {
@@ -449,75 +455,6 @@ export default function SerialPhotoCapture({
       }
       return prev.filter(m => m.id !== id);
     });
-  };
-
-  const handleCompress = async () => {
-    if (!compressImages && !compressVideos) return;
-
-    setProcessing(true);
-    setProgress(0);
-
-    const updatedMedia = [...capturedMedia];
-    let processedCount = 0;
-
-    for (let i = 0; i < updatedMedia.length; i++) {
-      const media = updatedMedia[i];
-      
-      if (media.compressed) {
-        processedCount++;
-        setProgress((processedCount / updatedMedia.length) * 100);
-        continue;
-      }
-
-      try {
-        if (media.type === 'image' && compressImages) {
-          const result = await compressImage(media.file, {
-            maxWidth: 1920,
-            maxHeight: 1080,
-            quality: 0.8,
-            maxSize: 500,
-          });
-          
-          const compressedFile = new File([result.compressedBlob], media.file.name, {
-            type: result.compressedBlob.type,
-          });
-          
-          updatedMedia[i] = {
-            ...media,
-            file: compressedFile,
-            compressed: true,
-            compressedSize: result.compressedSize,
-            compressionRatio: result.compressionRatio,
-          };
-        } else if (media.type === 'video' && compressVideos) {
-          const result = await compressVideo(media.file, {
-            maxWidth: 1280,
-            maxHeight: 720,
-            quality: 0.7,
-            maxSizeInMB: 10,
-          });
-          
-          const compressedFile = result.compressedFile;
-          
-          updatedMedia[i] = {
-            ...media,
-            file: compressedFile,
-            compressed: true,
-            compressedSize: result.compressedSizeInMB,
-            compressionRatio: result.compressionRatio,
-          };
-        }
-      } catch (error) {
-        console.error('Error compressing media:', error);
-      }
-      
-      processedCount++;
-      setProgress((processedCount / updatedMedia.length) * 100);
-    }
-
-    setCapturedMedia(updatedMedia);
-    setProcessing(false);
-    setProgress(0);
   };
 
   const handleSave = async () => {
@@ -681,54 +618,52 @@ export default function SerialPhotoCapture({
             >
               📱 Natívna kamera
             </SecondaryButton>
-            
-            {(compressImages || compressVideos) && (
-              <SecondaryButton
-                startIcon={<Compress />}
-                onClick={handleCompress}
-                disabled={processing || capturedMedia.length === 0}
+
+            {/* 🎯 NOVÉ: Výber kvality */}
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Kvalita</InputLabel>
+              <Select
+                value={selectedQuality}
+                onChange={(e) => setSelectedQuality(e.target.value as typeof selectedQuality)}
+                label="Kvalita"
               >
-                Komprimovať
-              </SecondaryButton>
+                <MenuItem value="mobile">📱 Mobilná ({webPEnabled ? '500KB' : '800KB'})</MenuItem>
+                <MenuItem value="protocol">🏢 Protokol ({webPEnabled ? '1MB' : '1.5MB'})</MenuItem>
+                <MenuItem value="highQuality">🔍 Vysoká ({webPEnabled ? '2MB' : '3MB'})</MenuItem>
+                <MenuItem value="archive">💾 Archív ({webPEnabled ? '3.5MB' : '5MB'})</MenuItem>
+              </Select>
+            </FormControl>
+            
+            {/* 🌟 NOVÉ: WebP toggle */}
+            {webPSupported !== null && (
+              <FormControlLabel
+                control={
+                  <Switch 
+                    checked={webPEnabled && webPSupported}
+                    onChange={(e) => setWebPEnabled(e.target.checked)}
+                    disabled={!webPSupported}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2">
+                      WebP {webPSupported ? '✅' : '❌'}
+                    </Typography>
+                    {webPEnabled && webPSupported && (
+                      <Chip 
+                        label="30% MENŠIE" 
+                        size="small" 
+                        color="success" 
+                        variant="filled"
+                      />
+                    )}
+                  </Box>
+                }
+                sx={{ ml: 1 }}
+              />
             )}
-
-            {/* Rapid Mode Toggle */}
-            <FormControlLabel
-              control={
-                <Switch 
-                  checked={rapidMode} 
-                  onChange={(e) => setRapidMode(e.target.checked)}
-                  color="primary"
-                />
-              }
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2">
-                    Rapid Mode
-                  </Typography>
-                  {rapidMode && (
-                    <Chip 
-                      label="AKTIVNY" 
-                      size="small" 
-                      color="success" 
-                      variant="filled"
-                    />
-                  )}
-                </Box>
-              }
-              sx={{ ml: 2 }}
-            />
           </Box>
-
-          {/* Rapid Mode Info */}
-          {rapidMode && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              <Typography variant="body2">
-                🚀 <strong>Rapid Mode aktívny!</strong> Po výbere fotky sa môžete okamžite odfotiť ďalšiu. 
-                Ideálne pre sériové fotografovanie vozidla.
-              </Typography>
-            </Alert>
-          )}
 
           {/* File inputs */}
           <input
