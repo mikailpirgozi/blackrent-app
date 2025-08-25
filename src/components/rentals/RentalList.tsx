@@ -4,13 +4,14 @@ import {
   useTheme,
   useMediaQuery,
   Typography,
-  Card,
-  Button,
   CircularProgress,
   Dialog,
   DialogTitle,
-  DialogContent
+  DialogContent,
+  Button,
+  Card
 } from '@mui/material';
+import { PrimaryButton, SecondaryButton, ErrorButton, WarningButton, DefaultCard } from '../ui';
 import { 
   Refresh as RefreshIcon,
   PictureAsPdf as PDFIcon,
@@ -427,15 +428,15 @@ export default function RentalList() {
         </Typography>
         
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button size="small" variant="outlined" onClick={() => handleEdit(rental)}>
+          <SecondaryButton size="small" onClick={() => handleEdit(rental)}>
             Upraviť
-          </Button>
-          <Button size="small" variant="outlined" onClick={() => protocolsHook.handleCreateHandover(rental)}>
+          </SecondaryButton>
+          <SecondaryButton size="small" onClick={() => protocolsHook.handleCreateHandover(rental)}>
             Prevzatie
-          </Button>
-          <Button size="small" variant="outlined" onClick={() => protocolsHook.handleCreateReturn(rental)}>
+          </SecondaryButton>
+          <SecondaryButton size="small" onClick={() => protocolsHook.handleCreateReturn(rental)}>
             Vrátenie
-          </Button>
+          </SecondaryButton>
         </Box>
       </Card>
     );
@@ -609,17 +610,17 @@ export default function RentalList() {
   // Error handling
   if (paginatedError) {
     return (
-      <Card sx={{ p: 3, textAlign: 'center' }}>
+      <DefaultCard sx={{ textAlign: 'center' }}>
         <Typography variant="h6" color="error" gutterBottom>
           Chyba pri načítavaní prenájmov
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {paginatedError}
         </Typography>
-        <Button variant="contained" onClick={() => window.location.reload()}>
+        <PrimaryButton onClick={() => window.location.reload()}>
           Obnoviť stránku
-        </Button>
-      </Card>
+        </PrimaryButton>
+      </DefaultCard>
     );
   }
 
@@ -739,19 +740,14 @@ export default function RentalList() {
       {/* Load more button for desktop */}
       {!paginatedLoading && hasMore && (
         <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center', p: 3 }}>
-          <Button 
-            variant="contained" 
+          <PrimaryButton 
             onClick={handleLoadMore}
             size="medium"
             startIcon={<RefreshIcon />}
-            sx={{ 
-              borderRadius: 2,
-              textTransform: 'none',
-              px: 3
-            }}
+            sx={{ px: 3 }}
           >
             Načítať ďalších {ITEMS_PER_PAGE} prenájmov
-          </Button>
+          </PrimaryButton>
         </Box>
       )}
       
@@ -871,70 +867,40 @@ export default function RentalList() {
         </DialogTitle>
         <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
-            <Button
+            <ErrorButton
               fullWidth
-              variant="contained"
               startIcon={<PDFIcon />}
               onClick={handleDownloadPDF}
               sx={{ 
-                bgcolor: '#f44336',
                 py: { xs: 2, sm: 1.5 },
-                fontSize: { xs: '1rem', sm: '0.875rem' },
-                fontWeight: 600,
-                borderRadius: 2,
-                boxShadow: '0 4px 12px rgba(244,67,54,0.3)',
-                '&:hover': {
-                  bgcolor: '#d32f2f',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 6px 16px rgba(244,67,54,0.4)'
-                },
-                transition: 'all 0.2s ease'
+                fontSize: { xs: '1rem', sm: '0.875rem' }
               }}
             >
               📄 Stiahnuť PDF protokol
-            </Button>
+            </ErrorButton>
             
-            <Button
+            <PrimaryButton
               fullWidth
-              variant="contained"
               startIcon={<GalleryIcon />}
               onClick={handleViewGallery}
               sx={{ 
-                bgcolor: '#2196f3',
                 py: { xs: 2, sm: 1.5 },
-                fontSize: { xs: '1rem', sm: '0.875rem' },
-                fontWeight: 600,
-                borderRadius: 2,
-                boxShadow: '0 4px 12px rgba(33,150,243,0.3)',
-                '&:hover': {
-                  bgcolor: '#1976d2',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 6px 16px rgba(33,150,243,0.4)'
-                },
-                transition: 'all 0.2s ease'
+                fontSize: { xs: '1rem', sm: '0.875rem' }
               }}
             >
               🖼️ Zobraziť fotky
-            </Button>
+            </PrimaryButton>
             
-            <Button
+            <SecondaryButton
               fullWidth
-              variant="outlined"
               onClick={handleCloseProtocolMenu}
               sx={{ 
                 py: { xs: 2, sm: 1.5 },
-                fontSize: { xs: '1rem', sm: '0.875rem' },
-                fontWeight: 600,
-                borderRadius: 2,
-                borderWidth: 2,
-                '&:hover': {
-                  borderWidth: 2,
-                  transform: 'translateY(-1px)',
-                }
+                fontSize: { xs: '1rem', sm: '0.875rem' }
               }}
             >
               Zavrieť
-            </Button>
+            </SecondaryButton>
           </Box>
         </DialogContent>
       </Dialog>

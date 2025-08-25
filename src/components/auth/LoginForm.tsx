@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
   TextField,
-  Button,
   Typography,
   Alert,
   Container,
   Paper,
   Avatar,
   Divider,
-  Chip,
   FormControlLabel,
   Checkbox,
 } from '@mui/material';
+import { PrimaryButton, SecondaryButton, DefaultCard, StatusChip } from '../ui';
 import { LockOutlined as LockIcon, AccountCircle as AccountIcon } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { LoginCredentials } from '../../types';
@@ -103,8 +100,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
           minHeight: '100vh',
         }}
       >
-        <Card sx={{ width: '100%', maxWidth: 400, mt: 4 }}>
-          <CardContent sx={{ padding: 4 }}>
+        <DefaultCard sx={{ width: '100%', maxWidth: 400, mt: 4 }}
+          padding="large">
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
               <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
                 <LockIcon />
@@ -166,22 +163,20 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                 sx={{ mb: 2 }}
               />
               
-              <Button
+              <PrimaryButton
                 type="submit"
                 fullWidth
-                variant="contained"
                 sx={{ 
                   mb: 2, 
                   py: 1.5,
                   fontSize: '1.1rem',
-                  fontWeight: 'bold',
-                  bgcolor: 'primary.main',
-                  '&:hover': { bgcolor: 'primary.dark' },
                 }}
                 disabled={state.isLoading}
+                loading={state.isLoading}
+                loadingText="Prihlasuje sa..."
               >
-                {state.isLoading ? 'Prihlasuje sa...' : 'Prihlásiť sa'}
-              </Button>
+                Prihlásiť sa
+              </PrimaryButton>
             </Box>
 
             <Divider sx={{ my: 2 }}>
@@ -191,13 +186,11 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             </Divider>
 
             <Box sx={{ textAlign: 'center', mb: 2 }}>
-              <Button
-                variant="outlined"
+              <SecondaryButton
                 onClick={() => setShowDemo(!showDemo)}
-                sx={{ fontWeight: 'bold' }}
               >
                 {showDemo ? 'Skryť demo účty' : 'Ukázať demo účty'}
-              </Button>
+              </SecondaryButton>
             </Box>
 
             {showDemo && (
@@ -234,18 +227,16 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                         </Typography>
                       </Box>
                     </Box>
-                    <Chip
+                    <StatusChip
                       label={account.role}
                       size="small"
-                      color="primary"
-                      variant="outlined"
+                      chipColor="primary"
                     />
                   </Paper>
                 ))}
               </Box>
             )}
-          </CardContent>
-        </Card>
+        </DefaultCard>
 
         <Box sx={{ mt: 4, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
