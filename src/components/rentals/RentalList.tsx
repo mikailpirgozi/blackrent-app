@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Box,
   useTheme,
@@ -6,9 +6,16 @@ import {
   Typography,
   Card,
   Button,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent
 } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { 
+  Refresh as RefreshIcon,
+  PictureAsPdf as PDFIcon,
+  PhotoLibrary as GalleryIcon
+} from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Can } from '../common/PermissionGuard';
@@ -52,6 +59,11 @@ export default function RentalList() {
   }
   
   const { state, deleteRental, createRental, updateRental } = useApp();
+  
+  // 📋 PROTOCOL MENU STATE
+  const [protocolMenuOpen, setProtocolMenuOpen] = useState(false);
+  const [selectedProtocolRental, setSelectedProtocolRental] = useState<Rental | null>(null);
+  const [selectedProtocolType, setSelectedProtocolType] = useState<'handover' | 'return' | null>(null);
   const permissions = usePermissions();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -454,6 +466,47 @@ export default function RentalList() {
     };
   }, [isMobile, createScrollHandler]);
 
+  // 📋 PROTOCOL MENU HANDLERS
+  const handleCloseProtocolMenu = useCallback(() => {
+    setProtocolMenuOpen(false);
+    setSelectedProtocolRental(null);
+    setSelectedProtocolType(null);
+  }, []);
+
+  const handleDownloadPDF = useCallback(async () => {
+    if (selectedProtocolRental && selectedProtocolType) {
+      const protocol = protocolsHook.protocols[selectedProtocolRental.id]?.[selectedProtocolType];
+      if (protocol) {
+        try {
+          const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+          let pdfUrl: string;
+          
+          if (protocol.pdfUrl) {
+            pdfUrl = protocol.pdfUrl;
+          } else {
+            // Generate PDF URL
+            const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+            pdfUrl = `${baseUrl}/api/protocols/${selectedProtocolType}/${protocol.id}/pdf?token=${token}`;
+          }
+          
+          // Open PDF in new tab
+          window.open(pdfUrl, '_blank');
+        } catch (error) {
+          console.error('❌ Error downloading PDF:', error);
+        }
+      }
+    }
+    handleCloseProtocolMenu();
+  }, [selectedProtocolRental, selectedProtocolType, protocolsHook.protocols, handleCloseProtocolMenu]);
+
+  const handleViewGallery = useCallback(() => {
+    if (selectedProtocolRental && selectedProtocolType) {
+      // Otvor galériu cez protocolsHook
+      protocolsHook.handleViewGallery();
+    }
+    handleCloseProtocolMenu();
+  }, [selectedProtocolRental, selectedProtocolType, protocolsHook, handleCloseProtocolMenu]);
+
   // Error handling
   if (paginatedError) {
     return (
@@ -530,10 +583,23 @@ export default function RentalList() {
         handleCreateReturn={protocolsHook.handleCreateReturn}
         handleOpenProtocolMenu={(rental, type) => {
           console.log('📋 Opening protocol menu', rental.id, type);
-          if (type === 'handover') {
-            protocolsHook.handleCreateHandover(rental);
-          } else if (type === 'return') {
-            protocolsHook.handleCreateReturn(rental);
+          // Ak protokol existuje, otvor menu s možnosťami
+          const hasProtocol = type === 'handover' 
+            ? !!protocolsHook.protocols[rental.id]?.handover
+            : !!protocolsHook.protocols[rental.id]?.return;
+            
+          if (hasProtocol) {
+            // Otvor protocol menu pre existujúci protokol
+            setSelectedProtocolRental(rental);
+            setSelectedProtocolType(type);
+            setProtocolMenuOpen(true);
+          } else {
+            // Vytvor nový protokol
+            if (type === 'handover') {
+              protocolsHook.handleCreateHandover(rental);
+            } else if (type === 'return') {
+              protocolsHook.handleCreateReturn(rental);
+            }
           }
         }}
         handleViewRental={handleViewRental}
@@ -675,6 +741,93 @@ export default function RentalList() {
         handleDownloadPDF={protocolsHook.handleDownloadPDF}
         handleViewGallery={protocolsHook.handleViewGallery}
       />
+
+      {/* 📋 PROTOCOL MENU DIALOG */}
+      <Dialog
+        open={protocolMenuOpen}
+        onClose={handleCloseProtocolMenu}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          bgcolor: 'primary.main', 
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          {selectedProtocolType === 'handover' ? '🚗→' : '←🚗'}
+          {selectedProtocolType === 'handover' ? 'Odovzdávací protokol' : 'Preberací protokol'}
+        </DialogTitle>
+        <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<PDFIcon />}
+              onClick={handleDownloadPDF}
+              sx={{ 
+                bgcolor: '#f44336',
+                py: { xs: 2, sm: 1.5 },
+                fontSize: { xs: '1rem', sm: '0.875rem' },
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 4px 12px rgba(244,67,54,0.3)',
+                '&:hover': {
+                  bgcolor: '#d32f2f',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 16px rgba(244,67,54,0.4)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              📄 Stiahnuť PDF protokol
+            </Button>
+            
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<GalleryIcon />}
+              onClick={handleViewGallery}
+              sx={{ 
+                bgcolor: '#2196f3',
+                py: { xs: 2, sm: 1.5 },
+                fontSize: { xs: '1rem', sm: '0.875rem' },
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 4px 12px rgba(33,150,243,0.3)',
+                '&:hover': {
+                  bgcolor: '#1976d2',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 16px rgba(33,150,243,0.4)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              🖼️ Zobraziť fotky
+            </Button>
+            
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={handleCloseProtocolMenu}
+              sx={{ 
+                py: { xs: 2, sm: 1.5 },
+                fontSize: { xs: '1rem', sm: '0.875rem' },
+                fontWeight: 600,
+                borderRadius: 2,
+                borderWidth: 2,
+                '&:hover': {
+                  borderWidth: 2,
+                  transform: 'translateY(-1px)',
+                }
+              }}
+            >
+              Zavrieť
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
