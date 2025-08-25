@@ -26,6 +26,7 @@ import QuickFilters, { RENTAL_QUICK_FILTERS } from '../common/QuickFilters';
 // 🔄 MOBILE CLEANUP: MobileFilterDrawer removed
 // import MobileFilterDrawer from '../common/MobileFilterDrawer';
 import type { QuickFilter, SearchSuggestion } from '../../hooks/useEnhancedSearch';
+import { textContains, searchInTexts } from '../../utils/textNormalization';
 
 interface EnhancedRentalSearchProps {
   onResults: (results: Rental[]) => void;
@@ -96,23 +97,27 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
     
     let filteredRentals = [...state.rentals];
     
-    // Apply text search
+    // Apply text search with diacritics normalization
     if (query.trim()) {
-      const searchLower = query.toLowerCase();
       filteredRentals = filteredRentals.filter(rental => {
         const customer = state.customers?.find(c => c.id === rental.customerId);
         const vehicle = state.vehicles?.find(v => v.id === rental.vehicleId);
         
-        return (
-          customer?.name?.toLowerCase().includes(searchLower) ||
-          customer?.email?.toLowerCase().includes(searchLower) ||
-          customer?.phone?.toLowerCase().includes(searchLower) ||
-          rental.id.toLowerCase().includes(searchLower) ||
-          vehicle?.brand?.toLowerCase().includes(searchLower) ||
-          vehicle?.model?.toLowerCase().includes(searchLower) ||
-          vehicle?.licensePlate?.toLowerCase().includes(searchLower) ||
-          rental.notes?.toLowerCase().includes(searchLower)
-        );
+        // 🔤 DIACRITICS NORMALIZATION: Vyhľadávanie bez ohľadu na diakritiku
+        return searchInTexts([
+          customer?.name,
+          customer?.email,
+          customer?.phone,
+          rental.id,
+          rental.customerName, // Pridané pre priame vyhľadávanie v rental
+          rental.customerEmail,
+          rental.customerPhone,
+          vehicle?.brand,
+          vehicle?.model,
+          vehicle?.licensePlate,
+          vehicle?.company,
+          rental.notes
+        ], query);
       });
     }
     

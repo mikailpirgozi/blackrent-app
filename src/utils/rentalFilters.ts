@@ -5,6 +5,7 @@
  */
 
 import { Rental } from '../types';
+import { searchInTexts } from './textNormalization';
 
 export interface FilterCriteria {
   searchQuery: string;
@@ -52,23 +53,22 @@ export const applySearchFilter = (
 ): Rental[] => {
   if (!query.trim()) return rentals;
   
-  const searchTerm = query.toLowerCase();
-  
   return rentals.filter(rental => {
     const vehicle = vehicleLookup[rental.vehicleId || ''];
     
-    return (
-      rental.customerName?.toLowerCase().includes(searchTerm) ||
-      rental.customerPhone?.toLowerCase().includes(searchTerm) ||
-      rental.customerEmail?.toLowerCase().includes(searchTerm) ||
-      rental.vehicleVin?.toLowerCase().includes(searchTerm) ||
-      vehicle?.brand?.toLowerCase().includes(searchTerm) ||
-      vehicle?.model?.toLowerCase().includes(searchTerm) ||
-      vehicle?.licensePlate?.toLowerCase().includes(searchTerm) ||
-      vehicle?.vin?.toLowerCase().includes(searchTerm) ||
-      vehicle?.company?.toLowerCase().includes(searchTerm) ||
-      rental.notes?.toLowerCase().includes(searchTerm)
-    );
+    // 🔤 DIACRITICS NORMALIZATION: Vyhľadávanie bez ohľadu na diakritiku
+    return searchInTexts([
+      rental.customerName,
+      rental.customerPhone,
+      rental.customerEmail,
+      rental.vehicleVin,
+      rental.notes,
+      vehicle?.brand,
+      vehicle?.model,
+      vehicle?.licensePlate,
+      vehicle?.vin,
+      vehicle?.company
+    ], query);
   });
 };
 

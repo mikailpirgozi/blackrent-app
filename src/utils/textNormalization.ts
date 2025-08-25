@@ -1,80 +1,73 @@
 /**
- * 🔍 Text Normalization Utility
- * Removes diacritics, converts to lowercase for search matching
+ * 🔤 TEXT NORMALIZATION UTILITIES
  * 
- * Examples:
- * - "Červený" → "cerveny"
- * - "MODRÝ" → "modry"
- * - "Žltá" → "zlta"
+ * Utility funkcie pre normalizáciu textu - odstránenie diakritiky, 
+ * konverzia na malé písmená pre vyhľadávanie bez ohľadu na diakritiku
  */
 
 /**
- * Normalize text for search - removes diacritics and converts to lowercase
+ * Normalizuje text - odstráni diakritiku a konvertuje na malé písmená
+ * @param text - text na normalizáciu
+ * @returns normalizovaný text bez diakritiky a malými písmenami
  */
-export function normalizeText(text: string): string {
+export function normalizeText(text: string | null | undefined): string {
   if (!text) return '';
   
   return text
     .toLowerCase()
-    .normalize('NFD') // Decompose characters with diacritics
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+    .normalize('NFD') // Rozloží znaky s diakritikou na základné znaky + diakritické značky
+    .replace(/[\u0300-\u036f]/g, '') // Odstráni diakritické značky
     .trim();
 }
 
 /**
- * Check if text contains search query (normalized)
+ * Kontroluje či text obsahuje hľadaný výraz (bez ohľadu na diakritiku a veľkosť písmen)
+ * @param text - text v ktorom hľadáme
+ * @param searchTerm - hľadaný výraz
+ * @returns true ak text obsahuje hľadaný výraz
  */
-export function textContains(text: string, searchQuery: string): boolean {
-  if (!text || !searchQuery) return false;
+export function textContains(text: string | null | undefined, searchTerm: string): boolean {
+  if (!text || !searchTerm) return false;
   
   const normalizedText = normalizeText(text);
-  const normalizedQuery = normalizeText(searchQuery);
+  const normalizedSearch = normalizeText(searchTerm);
   
-  return normalizedText.includes(normalizedQuery);
+  return normalizedText.includes(normalizedSearch);
 }
 
 /**
- * Check if any of the provided texts contains the search query
+ * Kontroluje či text presne zodpovedá hľadanému výrazu (bez ohľadu na diakritiku a veľkosť písmen)
+ * @param text - text na porovnanie
+ * @param searchTerm - hľadaný výraz
+ * @returns true ak texty sa zhodujú
  */
-export function anyTextContains(texts: (string | undefined | null)[], searchQuery: string): boolean {
-  if (!searchQuery.trim()) return true;
-  
-  return texts.some(text => text && textContains(text, searchQuery));
-}
-
-/**
- * Highlight matching text in search results
- */
-export function highlightText(text: string, searchQuery: string): string {
-  if (!searchQuery.trim() || !text) return text;
+export function textEquals(text: string | null | undefined, searchTerm: string): boolean {
+  if (!text || !searchTerm) return false;
   
   const normalizedText = normalizeText(text);
-  const normalizedQuery = normalizeText(searchQuery);
+  const normalizedSearch = normalizeText(searchTerm);
   
-  if (!normalizedText.includes(normalizedQuery)) return text;
-  
-  // Find the actual position in the original text
-  const regex = new RegExp(`(${escapeRegExp(searchQuery)})`, 'gi');
-  return text.replace(regex, '<mark>$1</mark>');
+  return normalizedText === normalizedSearch;
 }
 
 /**
- * Escape special regex characters
+ * Vyhľadáva v poli textov (bez ohľadu na diakritiku a veľkosť písmen)
+ * @param texts - pole textov na prehľadanie
+ * @param searchTerm - hľadaný výraz
+ * @returns true ak niektorý z textov obsahuje hľadaný výraz
  */
-function escapeRegExp(string: string): string {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export function searchInTexts(texts: (string | null | undefined)[], searchTerm: string): boolean {
+  if (!searchTerm) return false;
+  
+  return texts.some(text => textContains(text, searchTerm));
 }
 
 /**
- * Test examples for development
+ * Príklady použitia:
+ * 
+ * normalizeText('Švantnerová') // 'svantnerova'
+ * normalizeText('ĽUBOŠ') // 'lubos'
+ * textContains('Švantnerová', 'svatner') // true
+ * textContains('ĽUBOŠ NOVÁK', 'lubos') // true
+ * searchInTexts(['Švantnerová', 'Bratislava'], 'svatner') // true
  */
-export const testNormalization = () => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🧪 Text normalization tests:');
-    console.log('normalizeText("Červený") =', normalizeText("Červený")); // Should be "cerveny"
-    console.log('normalizeText("MODRÝ") =', normalizeText("MODRÝ")); // Should be "modry"
-    console.log('normalizeText("Žltá") =', normalizeText("Žltá")); // Should be "zlta"
-    console.log('textContains("Červený", "cerveny") =', textContains("Červený", "cerveny")); // Should be true
-    console.log('textContains("BMW X5", "bmw") =', textContains("BMW X5", "bmw")); // Should be true
-  }
-};
