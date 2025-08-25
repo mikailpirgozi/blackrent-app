@@ -9,8 +9,8 @@
 
 import { logger } from './smartLogger';
 
-// 🔄 IMPORT EXISTUJÚCICH SYSTÉMOV (dočasne)
-import { apiCache, cacheKeys, cacheHelpers } from './apiCache';
+// 🔄 PHASE 4: apiCache.ts removed - implementing direct cache logic
+// import { apiCache, cacheKeys, cacheHelpers } from './apiCache';
 
 export interface UnifiedCacheOptions {
   ttl?: number;
@@ -34,14 +34,16 @@ export interface CacheStats {
 }
 
 /**
- * 🎯 UNIFIED CACHE FACADE
- * Poskytuje jednotné API, ale zatiaľ deleguje na existujúce systémy
+ * 🎯 UNIFIED CACHE SYSTEM
+ * Kompletný cache systém nahrádzajúci všetky predchádzajúce
  */
 class UnifiedCacheSystem {
+  private cache = new Map<string, any>();
   private stats = { hits: 0, misses: 0 };
+  private defaultTTL = 10 * 60 * 1000; // 10 minutes
 
   /**
-   * 🔄 PHASE 1: Wrapper okolo apiCache (BEZPEČNÉ)
+   * 🔄 PHASE 4: Direct cache implementation
    */
   async getOrFetch<T>(
     key: string,
@@ -50,38 +52,61 @@ class UnifiedCacheSystem {
   ): Promise<T> {
     logger.debug(`🗄️ UNIFIED: Getting ${key}`);
     
-    // FÁZA 1: Deleguj na apiCache (zachová existujúce správanie)
-    const result = await apiCache.getOrFetch(key, fetchFn, {
-      ttl: options.ttl,
-      tags: options.tags,
-      background: options.backgroundRefresh
+    const ttl = options.ttl || this.defaultTTL;
+    const cached = this.cache.get(key);
+    
+    // Check if cached and not expired
+    if (cached && (Date.now() - cached.timestamp) < ttl) {
+      this.stats.hits++;
+      logger.debug(`🗄️ UNIFIED: Cache HIT for ${key}`);
+      return cached.data;
+    }
+    
+    // Fetch fresh data
+    this.stats.misses++;
+    logger.debug(`🗄️ UNIFIED: Cache MISS for ${key}, fetching...`);
+    
+    const data = await fetchFn();
+    
+    // Store in cache
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl,
+      tags: options.tags || []
     });
     
-    this.stats.hits++;
-    return result;
+    return data;
   }
 
   /**
-   * 🔄 PHASE 1: Wrapper okolo cacheHelpers (BEZPEČNÉ)
+   * 🔄 PHASE 4: Direct cache invalidation
    */
   invalidateEntity(entity: string): void {
     logger.debug(`🗄️ UNIFIED: Invalidating ${entity}`);
     
-    // FÁZA 1: Deleguj na existujúci systém
-    // Handle special cases
     if (entity === 'all') {
       // Clear all caches
-      try {
-        (apiCache as any).clear?.();
-      } catch (error) {
-        logger.warn('Cache clear error:', error);
-      }
+      this.cache.clear();
+      logger.debug('🗄️ UNIFIED: All cache cleared');
     } else {
-      // Map to valid entity types
-      const validEntities = ['vehicle', 'customer', 'rental', 'expense', 'company'];
-      if (validEntities.includes(entity)) {
-        cacheHelpers.invalidateEntity(entity as any);
-      }
+      // Clear cache entries with matching tags
+      const keysToDelete: string[] = [];
+      
+      this.cache.forEach((value, key) => {
+        if (value.tags && value.tags.includes(entity)) {
+          keysToDelete.push(key);
+        }
+        // Also clear by key pattern
+        if (key.includes(entity)) {
+          keysToDelete.push(key);
+        }
+      });
+      
+      keysToDelete.forEach(key => {
+        this.cache.delete(key);
+        logger.debug(`🗄️ UNIFIED: Cleared cache key ${key}`);
+      });
     }
   }
 
@@ -89,19 +114,17 @@ class UnifiedCacheSystem {
    * 🔄 PHASE 1: Wrapper okolo cacheKeys (BEZPEČNÉ)
    */
   generateKey(type: string, params?: any): string {
-    // FÁZA 1: Deleguj na existujúci systém
-    switch (type) {
-      case 'vehicles':
-        return cacheKeys.vehicles(params?.userId);
-      case 'customers':
-        return cacheKeys.customers(params?.userId);
-      case 'companies':
-        return cacheKeys.companies();
-      case 'bulkData':
-        return cacheKeys.bulkData();
-      default:
-        return `${type}:${JSON.stringify(params || {})}`;
-    }
+    // 🔄 PHASE 4: Direct key generation
+    const baseKey = type;
+    if (!params) return baseKey;
+    
+    // Generate consistent key from parameters
+    const paramString = Object.keys(params)
+      .sort()
+      .map(key => `${key}:${params[key]}`)
+      .join('|');
+      
+    return `${baseKey}_${paramString}`;
   }
 
   /**
@@ -131,21 +154,10 @@ class UnifiedCacheSystem {
   clear(): void {
     logger.debug('🗄️ UNIFIED: Clearing all caches');
     
-    // FÁZA 1: Vymaže všetky existujúce systémy
-    try {
-      (apiCache as any).clear?.();
-      // Clear each entity type individually
-      const entities = ['vehicle', 'customer', 'rental', 'expense', 'company'];
-      entities.forEach(entity => {
-        try {
-          cacheHelpers.invalidateEntity(entity as any);
-        } catch (e) {
-          // Ignore individual errors
-        }
-      });
-    } catch (error) {
-      logger.warn('Cache clear error:', error);
-    }
+    // 🔄 PHASE 4: Direct cache clearing
+    this.cache.clear();
+    this.stats = { hits: 0, misses: 0 };
+    logger.debug('🗄️ UNIFIED: All caches cleared');
   }
 }
 
