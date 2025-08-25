@@ -111,9 +111,9 @@ const OptimizedRentalRow: React.FC<OptimizedRentalRowProps> = ({
             <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
               {rental.customerName || 'Nezadané'}
             </Typography>
-            {rental.customerPhone && (
+            {(rental.customerPhone || rental.customer?.phone) && (
               <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }}>
-                {rental.customerPhone}
+                {rental.customerPhone || rental.customer?.phone}
               </Typography>
             )}
           </Box>

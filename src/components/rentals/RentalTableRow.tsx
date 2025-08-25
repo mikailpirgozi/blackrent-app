@@ -102,11 +102,11 @@ const RentalTableRow = memo<RentalTableRowProps>(({
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
             {rental.customerName}
           </Typography>
-          {rental.customer?.phone && (
+          {(rental.customerPhone || rental.customer?.phone) && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
               <PhoneIcon sx={{ fontSize: 14 }} />
               <Typography variant="caption">
-                {rental.customer.phone}
+                {rental.customerPhone || rental.customer?.phone}
               </Typography>
             </Box>
           )}

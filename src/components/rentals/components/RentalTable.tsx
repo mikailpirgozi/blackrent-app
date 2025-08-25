@@ -341,6 +341,19 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                         }}>
                           👤 {rental.customerName}
                         </Typography>
+                        {(rental.customerPhone || rental.customer?.phone) && (
+                          <Typography variant="caption" sx={{ 
+                            color: '#666',
+                            fontSize: { xs: '0.55rem', sm: '0.6rem' },
+                            display: 'block',
+                            mb: { xs: 0.25, sm: 0.5 },
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            📞 {rental.customerPhone || rental.customer?.phone}
+                          </Typography>
+                        )}
                         <Typography variant="caption" sx={{ 
                           color: '#666',
                           fontSize: { xs: '0.6rem', sm: '0.65rem' },
@@ -932,6 +945,19 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                       }}>
                         👤 {rental.customerName}
                       </Typography>
+                      {(rental.customerPhone || rental.customer?.phone) && (
+                        <Typography variant="caption" sx={{ 
+                          color: '#666',
+                          fontSize: '0.7rem',
+                          display: 'block',
+                          mb: 0.5,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          📞 {rental.customerPhone || rental.customer?.phone}
+                        </Typography>
+                      )}
                       <Typography variant="caption" sx={{ 
                         color: '#666',
                         fontSize: '0.75rem',

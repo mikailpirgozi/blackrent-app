@@ -198,6 +198,19 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
           }}>
             👤 {rental.customerName}
           </Typography>
+          {(rental.customerPhone || rental.customer?.phone) && (
+            <Typography variant="caption" sx={{ 
+              color: '#666',
+              fontSize: { xs: '0.55rem', sm: '0.6rem' },
+              display: 'block',
+              mb: 0.25,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              📞 {rental.customerPhone || rental.customer?.phone}
+            </Typography>
+          )}
           <Typography variant="caption" sx={{ 
             color: '#666',
             fontSize: { xs: '0.6rem', sm: '0.65rem' },

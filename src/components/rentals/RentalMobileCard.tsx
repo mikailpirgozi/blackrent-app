@@ -98,10 +98,10 @@ const RentalMobileCard = memo<RentalMobileCardProps>(({
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
             👤 {rental.customerName}
           </Typography>
-          {rental.customer?.phone && (
+          {(rental.customerPhone || rental.customer?.phone) && (
             <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
               <PhoneIcon sx={{ fontSize: 12 }} />
-              {rental.customer.phone}
+              {rental.customerPhone || rental.customer?.phone}
             </Typography>
           )}
         </Box>
