@@ -18,14 +18,21 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
+        registry-url: 'https://registry.npmjs.org'
         cache: 'npm'
         cache-dependency-path: package-lock.json
     
-    - name: Clear npm cache (temporary fix)
-      run: npm cache clean --force
+    - name: Clear npm cache and fix registry
+      run: |
+        npm cache clean --force
+        npm config set registry https://registry.npmjs.org/
+        npm config set fetch-retries 5
+        npm config set fetch-retry-mintimeout 20000
+        npm config set fetch-retry-maxtimeout 120000
     
-    - name: Install dependencies
-      run: npm install
+    - name: Install dependencies with retry
+      run: |
+        npm install --no-optional --prefer-offline || npm install --no-optional || npm install
     
     - name: Build frontend
       run: npm run build
@@ -35,7 +42,8 @@ jobs:
     - name: Build backend
       run: |
         cd backend
-        npm install
+        npm config set registry https://registry.npmjs.org/
+        npm install --no-optional --prefer-offline || npm install --no-optional || npm install
         npm run build
     
     - name: Test build
