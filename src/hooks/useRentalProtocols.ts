@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Rental, ProtocolImage, ProtocolVideo } from '../types';
 import { logger } from '../utils/logger';
 import { apiService } from '../services/api';
@@ -10,7 +10,7 @@ interface UseRentalProtocolsProps {
 interface UseRentalProtocolsReturn {
   // Protocol state
   protocols: Record<string, { handover?: any; return?: any }>;
-  setProtocols: (protocols: Record<string, { handover?: any; return?: any }>) => void;
+  setProtocols: React.Dispatch<React.SetStateAction<Record<string, { handover?: any; return?: any }>>>;
   loadingProtocols: string[];
   setLoadingProtocols: (loading: string[]) => void;
   
@@ -21,12 +21,12 @@ interface UseRentalProtocolsReturn {
     handoverProtocolId?: string;
     returnProtocolId?: string;
   }>;
-  setProtocolStatusMap: (statusMap: Record<string, {
+  setProtocolStatusMap: React.Dispatch<React.SetStateAction<Record<string, {
     hasHandoverProtocol: boolean;
     hasReturnProtocol: boolean;
     handoverProtocolId?: string;
     returnProtocolId?: string;
-  }>) => void;
+  }>>>;
   isLoadingProtocolStatus: boolean;
   setIsLoadingProtocolStatus: (loading: boolean) => void;
   protocolStatusLoaded: boolean;
@@ -74,6 +74,9 @@ interface UseRentalProtocolsReturn {
   handleCloseProtocolMenu: () => void;
   handleDownloadPDF: () => void;
   handleViewGallery: () => void;
+  
+  // Callback
+  onProtocolUpdate?: (rentalId: string, protocolType: 'handover' | 'return', data: any) => void;
 }
 
 export const useRentalProtocols = ({
@@ -365,5 +368,8 @@ export const useRentalProtocols = ({
     handleCloseProtocolMenu,
     handleDownloadPDF,
     handleViewGallery,
+    
+    // Callback
+    onProtocolUpdate,
   };
 };

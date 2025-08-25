@@ -94,9 +94,35 @@ export default function RentalList() {
 
   // 🚀 EXTRACTED: Use protocol hook first
   const protocolsHook = useRentalProtocols({
-    onProtocolUpdate: (rentalId, protocolType, data) => {
+    onProtocolUpdate: async (rentalId, protocolType, data) => {
       console.log('📋 Protocol updated', { rentalId, protocolType });
-      // Refresh rentals after protocol update would be handled here
+      
+      // ✅ OKAMŽITÁ AKTUALIZÁCIA: Vyčisti cache a znovu načítaj protokoly
+      protocolsHook.setProtocols(prev => {
+        const newProtocols = { ...prev };
+        delete newProtocols[rentalId];
+        return newProtocols;
+      });
+      
+      // Znovu načítaj protokoly pre tento rental
+      await protocolsHook.loadProtocolsForRental(rentalId);
+      
+      // ✅ OPTIMISTIC UPDATE: Okamžite aktualizuj protocol status
+      protocolsHook.setProtocolStatusMap(prev => ({
+        ...prev,
+        [rentalId]: {
+          hasHandoverProtocol: protocolType === 'handover' ? true : (prev[rentalId]?.hasHandoverProtocol || false),
+          hasReturnProtocol: protocolType === 'return' ? true : (prev[rentalId]?.hasReturnProtocol || false),
+          handoverProtocolId: protocolType === 'handover' ? data.id : prev[rentalId]?.handoverProtocolId,
+          returnProtocolId: protocolType === 'return' ? data.id : prev[rentalId]?.returnProtocolId,
+        }
+      }));
+      
+      // ✅ REFRESH RENTALS: Aktualizuj aj rental list pre zobrazenie zelených ikoniek
+      // Note: updateRentalInList expects full Rental object, so we'll rely on protocol status map instead
+      // The UI will update automatically based on protocolStatusMap changes
+      
+      console.log('✅ Protocol update completed - UI should refresh immediately');
     }
   });
 
@@ -789,34 +815,33 @@ export default function RentalList() {
         handleCancel={handleCancel}
         handleSaveHandover={async (protocolData) => {
           try {
-            console.log('💾 Saving handover protocol:', protocolData);
-            const data = await apiService.createHandoverProtocol(protocolData);
-            console.log('✅ Handover protocol created:', data);
+            console.log('💾 Handover protocol already saved, updating UI:', protocolData);
             
-            // ✅ OPTIMISTIC UPDATE BULK-STATUS
-            protocolsHook.setProtocolStatusMap({
-              ...protocolsHook.protocolStatusMap,
-              [protocolData.rentalId]: {
-                hasHandoverProtocol: true,
-                hasReturnProtocol: protocolsHook.protocolStatusMap[protocolData.rentalId]?.hasReturnProtocol || false,
-              }
-            });
+            // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
+            await protocolsHook.onProtocolUpdate?.(protocolData.rentalId, 'handover', protocolData);
 
             protocolsHook.setOpenHandoverDialog(false);
             protocolsHook.setSelectedRentalForProtocol(null);
+            
+            console.log('✅ Handover protocol UI updated successfully');
           } catch (error) {
-            console.error('❌ Error saving handover protocol:', error);
-            alert('Chyba pri ukladaní protokolu. Skúste to znovu.');
+            console.error('❌ Error updating handover protocol UI:', error);
+            alert('Chyba pri aktualizácii protokolu. Skúste to znovu.');
           }
         }}
         handleSaveReturn={async (protocolData) => {
           try {
             console.log('💾 Return protocol already saved, updating UI:', protocolData);
             
+            // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
+            await protocolsHook.onProtocolUpdate?.(protocolData.rentalId, 'return', protocolData);
+            
             protocolsHook.setOpenReturnDialog(false);
             protocolsHook.setSelectedRentalForProtocol(null);
+            
+            console.log('✅ Return protocol UI updated successfully');
           } catch (error) {
-            console.error('❌ Error updating UI after return protocol save:', error);
+            console.error('❌ Error updating return protocol UI:', error);
             alert('Protokol bol uložený, ale UI sa nepodarilo aktualizovať. Obnovte stránku.');
           }
         }}
