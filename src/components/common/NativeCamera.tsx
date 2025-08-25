@@ -545,6 +545,44 @@ export default function NativeCamera({
                   </Typography>
                 </Box>
               )}
+
+              {/* 💾 FLOATING SAVE BUTTON - Hlavné tlačidlo na uloženie */}
+              {photosInSession > 0 && (
+                <Box sx={{
+                  position: 'absolute',
+                  top: 80, // Pod success indikátorom
+                  right: 20,
+                  zIndex: 1000,
+                }}>
+                  <Button
+                    onClick={onClose}
+                    variant="contained"
+                    size="large"
+                    startIcon={<CheckCircle />}
+                    sx={{
+                      bgcolor: '#4CAF50', // Zelená farba
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '16px',
+                      px: 3,
+                      py: 1.5,
+                      borderRadius: 3,
+                      boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)',
+                      '&:hover': {
+                        bgcolor: '#45a049',
+                        boxShadow: '0 6px 16px rgba(76, 175, 80, 0.6)',
+                      },
+                      '&:active': {
+                        transform: 'scale(0.98)',
+                      },
+                      transition: 'all 0.2s ease',
+                      minWidth: '160px',
+                    }}
+                  >
+                    Uložiť fotky ({photosInSession})
+                  </Button>
+                </Box>
+              )}
             </Box>
           </>
         )}
@@ -557,8 +595,14 @@ export default function NativeCamera({
         py: 1,
         display: photosInSession > 0 ? 'flex' : 'none', // Skryť ak nie sú žiadne fotky
       }}>
-        <Button onClick={onClose} sx={{ color: 'white' }}>
-          Hotovo ({photosInSession} fotiek)
+        <Button 
+          onClick={onClose} 
+          sx={{ 
+            color: 'rgba(255,255,255,0.7)',
+            fontSize: '14px',
+          }}
+        >
+          ✓ Dokončiť ({photosInSession} fotiek)
         </Button>
       </DialogActions>
     </Dialog>

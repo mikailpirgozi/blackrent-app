@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Box,
-  Button,
   Typography,
   Dialog,
   DialogTitle,
@@ -9,13 +8,10 @@ import {
   TextField,
   IconButton,
   Tooltip,
-  Chip,
   Alert,
   useMediaQuery,
   useTheme,
   CircularProgress,
-  Card,
-  CardContent,
   Collapse,
   FormControl,
   InputLabel,
@@ -25,8 +21,11 @@ import {
   FormControlLabel,
   Grid,
   Divider,
-  FormGroup
+  FormGroup,
+  Chip,
+  Button
 } from '@mui/material';
+import { PrimaryButton, SecondaryButton, DefaultCard, StatusChip } from '../ui';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -350,29 +349,26 @@ export default function CustomerListNew() {
           👥 Databáza zákazníkov
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button
-            variant="outlined"
+          <SecondaryButton
             startIcon={<UploadIcon />}
             onClick={handleImportExistingCustomers}
             size="small"
             disabled={loading}
           >
             Import z prenájmov
-          </Button>
+          </SecondaryButton>
           {/* CSV tlačidlá - len na desktope */}
           {!isMobile && (
             <>
-              <Button
-                variant="outlined"
+              <SecondaryButton
                 startIcon={<DownloadIcon />}
                 onClick={handleExportCSV}
                 size="small"
               >
                 📊 Export CSV
-              </Button>
+              </SecondaryButton>
               
-              <Button
-                variant="outlined"
+              <SecondaryButton
                 component="label"
                 startIcon={<UploadIcon />}
                 size="small"
@@ -389,30 +385,22 @@ export default function CustomerListNew() {
                   onChange={handleImportCSV}
                   style={{ display: 'none' }}
                 />
-              </Button>
+              </SecondaryButton>
             </>
           )}
           
-          <Button
-            variant="contained"
+          <PrimaryButton
             startIcon={<AddIcon />}
             onClick={() => setOpenDialog(true)}
-            sx={{
-              bgcolor: '#1976d2',
-              '&:hover': { bgcolor: '#1565c0' },
-              borderRadius: 2,
-              px: 3,
-              py: 1
-            }}
+            sx={{ px: 3, py: 1 }}
           >
             Nový zákazník
-          </Button>
+          </PrimaryButton>
         </Box>
       </Box>
 
       {/* Search and Filters */}
-      <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <CardContent>
+      <DefaultCard sx={{ mb: 3 }}>
           {/* Search Bar */}
           <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
             <TextField
@@ -497,8 +485,7 @@ export default function CustomerListNew() {
               </FormGroup>
             </Box>
           </Collapse>
-        </CardContent>
-      </Card>
+      </DefaultCard>
 
       {/* Results Count */}
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -520,8 +507,8 @@ export default function CustomerListNew() {
       {/* Customer List */}
       {isMobile ? (
         /* MOBILE CARDS VIEW */
-        <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
-          <CardContent sx={{ p: 0 }}>
+        <DefaultCard padding="none"
+          sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)' }}>
             <Box 
               sx={{ maxHeight: '70vh', overflowY: 'auto' }}
               onScroll={handleScroll}
@@ -784,12 +771,11 @@ export default function CustomerListNew() {
                 </Box>
               )}
             </Box>
-          </CardContent>
-        </Card>
+        </DefaultCard>
       ) : (
         /* DESKTOP TABLE VIEW */
-        <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
-          <CardContent sx={{ p: 0 }}>
+        <DefaultCard padding="none"
+          sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)' }}>
             {/* Desktop Header */}
             <Box sx={{ 
               display: 'flex',
@@ -1169,8 +1155,7 @@ export default function CustomerListNew() {
                 </Box>
               )}
             </Box>
-          </CardContent>
-        </Card>
+        </DefaultCard>
       )}
 
       {/* Customer Form Dialog */}

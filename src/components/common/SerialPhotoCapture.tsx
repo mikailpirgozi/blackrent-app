@@ -1,9 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
   Box,
-  Button,
-  Card,
-  CardContent,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -11,7 +8,6 @@ import {
   IconButton,
   Typography,
   LinearProgress,
-  Chip,
   TextField,
   Select,
   MenuItem,
@@ -19,7 +15,9 @@ import {
   InputLabel,
   FormControlLabel,
   Switch,
+  Chip
 } from '@mui/material';
+import { PrimaryButton, SecondaryButton, WarningButton, DefaultCard, StatusChip } from '../ui';
 // import { Grid } from '@mui/material';
 import {
   PhotoCamera,
@@ -660,43 +658,38 @@ export default function SerialPhotoCapture({
         <DialogContent>
           {/* Action buttons */}
           <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Button
-              variant="contained"
+            <PrimaryButton
               startIcon={<PhotoCamera />}
               onClick={() => fileInputRef.current?.click()}
               disabled={processing}
             >
               Pridať fotky
-            </Button>
+            </PrimaryButton>
             
-            <Button
-              variant="contained"
+            <PrimaryButton
               startIcon={<VideoCall />}
               onClick={() => videoInputRef.current?.click()}
               disabled={processing}
             >
               Pridať video
-            </Button>
+            </PrimaryButton>
             
-            <Button
-              variant="contained"
+            <SecondaryButton
               startIcon={<PhotoCamera />}
               onClick={() => setNativeCameraOpen(true)}
               disabled={processing}
-              color="secondary"
             >
               📱 Natívna kamera
-            </Button>
+            </SecondaryButton>
             
             {(compressImages || compressVideos) && (
-              <Button
-                variant="outlined"
+              <SecondaryButton
                 startIcon={<Compress />}
                 onClick={handleCompress}
                 disabled={processing || capturedMedia.length === 0}
               >
                 Komprimovať
-              </Button>
+              </SecondaryButton>
             )}
 
             {/* Rapid Mode Toggle */}
@@ -812,8 +805,7 @@ export default function SerialPhotoCapture({
             gap: 2 
           }}>
             {capturedMedia.map((media) => (
-              <Card key={media.id}>
-                <CardContent>
+              <DefaultCard key={media.id}>
                   <Box sx={{ position: 'relative', mb: 2 }}>
                     {media.type === 'image' ? (
                       <img 
@@ -904,24 +896,24 @@ export default function SerialPhotoCapture({
                       `${(media.file.size / 1024 / 1024).toFixed(2)} MB`
                     )}
                   </Typography>
-                </CardContent>
-              </Card>
+              </DefaultCard>
             ))}
           </Box>
         </DialogContent>
         
         <DialogActions>
-          <Button onClick={handleClose} color="inherit">
+          <SecondaryButton onClick={handleClose}>
             Zrušiť
-          </Button>
-          <Button 
+          </SecondaryButton>
+          <PrimaryButton 
             onClick={handleSave} 
-            variant="contained" 
             startIcon={<Save />}
             disabled={capturedMedia.length === 0 || processing}
+            loading={processing}
+            loadingText="Ukladám..."
           >
             Uložiť ({capturedMedia.length})
-          </Button>
+          </PrimaryButton>
         </DialogActions>
       </Dialog>
 
@@ -952,7 +944,7 @@ export default function SerialPhotoCapture({
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPreviewMedia(null)}>Zatvoriť</Button>
+          <SecondaryButton onClick={() => setPreviewMedia(null)}>Zatvoriť</SecondaryButton>
         </DialogActions>
       </Dialog>
 

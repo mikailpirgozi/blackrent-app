@@ -8,7 +8,6 @@ import React, { memo } from 'react';
 import { 
   Box, 
   Typography, 
-  Button, 
   TextField, 
   IconButton,
   Tooltip,
@@ -16,6 +15,7 @@ import {
   useMediaQuery,
   InputAdornment
 } from '@mui/material';
+import { PrimaryButton } from '../ui';
 import {
   Add as AddIcon,
   Search as SearchIcon,
@@ -169,20 +169,14 @@ const RentalTableHeader: React.FC<RentalTableHeaderProps> = ({
           </IconButton>
         </Tooltip>
 
-        <Button
-          variant="contained"
+        <PrimaryButton
           startIcon={<AddIcon />}
           onClick={onAddRental}
           disabled={isLoading}
-          sx={{ 
-            borderRadius: 2,
-            textTransform: 'none',
-            fontWeight: 600,
-            px: 3
-          }}
+          sx={{ px: 3 }}
         >
           {isMobile ? 'Pridať' : 'Nová rezervácia'}
-        </Button>
+        </PrimaryButton>
       </Box>
     </Box>
   );

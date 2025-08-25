@@ -15,19 +15,18 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
   Typography,
   Grid,
-  Chip,
   IconButton,
   TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Button,
   Table,
+  Card,
+  Chip,
+  Button,
   TableBody,
   TableCell,
   TableContainer,
@@ -45,6 +44,7 @@ import {
   Switch,
   FormControlLabel
 } from '@mui/material';
+import { PrimaryButton, SecondaryButton, WarningButton, DefaultCard, StatusChip } from '../ui';
 import {
   CalendarToday as CalendarIcon,
   DirectionsCar as CarIcon,
@@ -784,10 +784,8 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           flexWrap="wrap"
         >
           {/* 🚫 ADD UNAVAILABILITY BUTTON */}
-          <Button
+          <WarningButton
             size="small"
-            variant="contained"
-            color="error"
             startIcon={<AddIcon />}
             onClick={() => {
               setSelectedVehicleForUnavailability(undefined);
@@ -797,45 +795,55 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
             sx={{ mr: 2 }}
           >
             Pridať nedostupnosť
-          </Button>
+          </WarningButton>
           
-          <Button 
+          <SecondaryButton 
             size="small" 
-            variant={filters.dateTo === format(new Date(), 'yyyy-MM-dd') ? "contained" : "outlined"}
             onClick={() => applyQuickFilter('today')}
+            sx={{ 
+              backgroundColor: filters.dateTo === format(new Date(), 'yyyy-MM-dd') ? '#1976d2' : 'transparent',
+              color: filters.dateTo === format(new Date(), 'yyyy-MM-dd') ? 'white' : '#1976d2'
+            }}
           >
             Dnes
-          </Button>
-          <Button 
+          </SecondaryButton>
+          <SecondaryButton 
             size="small" 
-            variant={filters.dateTo === format(addDays(new Date(), 7), 'yyyy-MM-dd') ? "contained" : "outlined"}
             onClick={() => applyQuickFilter('week')}
+            sx={{ 
+              backgroundColor: filters.dateTo === format(addDays(new Date(), 7), 'yyyy-MM-dd') ? '#1976d2' : 'transparent',
+              color: filters.dateTo === format(addDays(new Date(), 7), 'yyyy-MM-dd') ? 'white' : '#1976d2'
+            }}
           >
             7 dní
-          </Button>
-          <Button 
+          </SecondaryButton>
+          <SecondaryButton 
             size="small" 
-            variant={filters.dateTo === format(addDays(new Date(), 30), 'yyyy-MM-dd') ? "contained" : "outlined"}
             onClick={() => applyQuickFilter('month')}
+            sx={{ 
+              backgroundColor: filters.dateTo === format(addDays(new Date(), 30), 'yyyy-MM-dd') ? '#1976d2' : 'transparent',
+              color: filters.dateTo === format(addDays(new Date(), 30), 'yyyy-MM-dd') ? 'white' : '#1976d2'
+            }}
           >
             30 dní
-          </Button>
-          <Button 
+          </SecondaryButton>
+          <SecondaryButton 
             size="small" 
-            variant={filters.availableOnly ? "contained" : "outlined"}
-            color={filters.availableOnly ? "success" : "primary"}
             onClick={() => applyQuickFilter('available-only')}
+            sx={{ 
+              backgroundColor: filters.availableOnly ? '#2e7d32' : 'transparent',
+              color: filters.availableOnly ? 'white' : '#2e7d32'
+            }}
           >
             {filters.availableOnly ? "✓ Len dostupné" : "Len dostupné"}
-          </Button>
-          <Button 
+          </SecondaryButton>
+          <SecondaryButton 
             size="small" 
-            variant="outlined"
             startIcon={<FilterIcon />}
             onClick={() => setFilterDialogOpen(true)}
           >
             Filtre
-          </Button>
+          </SecondaryButton>
         </Stack>
 
         {/* Summary */}
@@ -1157,18 +1165,17 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFilterDialogOpen(false)}>
+          <SecondaryButton onClick={() => setFilterDialogOpen(false)}>
             Zrušiť
-          </Button>
-          <Button 
+          </SecondaryButton>
+          <PrimaryButton 
             onClick={() => {
               setFilterDialogOpen(false);
               loadAvailabilityData();
             }}
-            variant="contained"
           >
             Aplikovať
-          </Button>
+          </PrimaryButton>
         </DialogActions>
       </Dialog>
 
