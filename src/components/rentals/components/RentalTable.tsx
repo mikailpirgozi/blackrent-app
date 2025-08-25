@@ -165,7 +165,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                   }
                 }}
               >
-                {VirtualizedRentalRow}
+                {VirtualizedRentalRow || (() => <div>Loading...</div>)}
               </List>
             </Box>
             
