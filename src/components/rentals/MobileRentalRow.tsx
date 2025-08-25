@@ -220,7 +220,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
           }}>
-            📅 {format(new Date(rental.startDate), 'd.M.yy')} - {format(new Date(rental.endDate), 'd.M.yy')}
+            📅 {format(new Date(rental.startDate), 'd.M.yy HH:mm')} - {format(new Date(rental.endDate), 'd.M.yy HH:mm')}
           </Typography>
           <Typography variant="caption" sx={{ 
             color: '#4caf50',

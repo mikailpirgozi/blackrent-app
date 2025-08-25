@@ -221,11 +221,11 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
               <ScheduleIcon color="action" fontSize="small" />
               <Typography variant="body2" fontWeight="medium">
-                {format(new Date(rental.startDate), 'dd.MM.yyyy', { locale: sk })}
+                {format(new Date(rental.startDate), 'dd.MM.yyyy HH:mm', { locale: sk })}
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
-              do {format(new Date(rental.endDate), 'dd.MM.yyyy', { locale: sk })}
+              do {format(new Date(rental.endDate), 'dd.MM.yyyy HH:mm', { locale: sk })}
             </Typography>
           </Box>
 
@@ -471,7 +471,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
-              {format(new Date(rental.startDate), 'dd.MM.yyyy', { locale: sk })} - {format(new Date(rental.endDate), 'dd.MM.yyyy', { locale: sk })}
+              {format(new Date(rental.startDate), 'dd.MM.yyyy HH:mm', { locale: sk })} - {format(new Date(rental.endDate), 'dd.MM.yyyy HH:mm', { locale: sk })}
             </Typography>
           </Box>
 

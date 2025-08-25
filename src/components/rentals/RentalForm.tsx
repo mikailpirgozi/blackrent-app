@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import Autocomplete from '@mui/material/Autocomplete';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { useApp } from '../../context/AppContext';
 import { Rental, PaymentMethod, Vehicle, RentalPayment, Customer } from '../../types';
 import { apiService } from '../../services/api';
@@ -935,63 +936,42 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
           </Select>
         </FormControl>
 
-        <TextField
-          fullWidth
-          label="Dátum od"
-          type="date"
-          value={formData.startDate ? (() => {
-            const date = new Date(formData.startDate);
-            const year = date.getFullYear();
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            return `${year}-${month}-${day}`;
-          })() : ''}
-          onChange={(e) => {
-            // Iba dátum bez času - vytvorí dátum s rokom, mesiacom, dňom
-            const dateValue = e.target.value;
-            if (dateValue) {
-              const [year, month, day] = dateValue.split('-').map(Number);
-              const date = new Date(year, month - 1, day); // mesiac je 0-indexovaný
-              handleInputChange('startDate', date);
-              // ✅ Povoliť prepočítanie cien pri zmene dátumu
-              setPreserveImportedValues(false);
-            }
+        <DateTimePicker
+          label="Dátum a čas od *"
+          value={formData.startDate ? new Date(formData.startDate) : null}
+          onChange={(newValue) => {
+            handleInputChange('startDate', newValue);
+            // ✅ Povoliť prepočítanie cien pri zmene dátumu
+            setPreserveImportedValues(false);
           }}
-          InputLabelProps={{ shrink: true }}
-          required
+          ampm={false}
+          slots={{
+            textField: TextField,
+          }}
+          slotProps={{
+            textField: { fullWidth: true, required: true },
+          }}
         />
 
-        <TextField
-          fullWidth
-          label={formData.isFlexible ? "Dátum do (voliteľné)" : "Dátum do"}
-          type="date"
-          value={formData.endDate ? (() => {
-            const date = new Date(formData.endDate);
-            const year = date.getFullYear();
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            return `${year}-${month}-${day}`;
-          })() : ''}
-          onChange={(e) => {
-            // Iba dátum bez času - vytvorí dátum s rokom, mesiacom, dňom
-            const dateValue = e.target.value;
-            if (dateValue) {
-              const [year, month, day] = dateValue.split('-').map(Number);
-              const date = new Date(year, month - 1, day); // mesiac je 0-indexovaný
-              handleInputChange('endDate', date);
-              // ✅ Povoliť prepočítanie cien pri zmene dátumu
-              setPreserveImportedValues(false);
-            } else {
-              // 🔄 NOVÉ: Umožniť vymazanie dátumu pre flexibilné prenájmy
-              if (formData.isFlexible) {
-                handleInputChange('endDate', undefined);
-                setPreserveImportedValues(false);
-              }
-            }
+        <DateTimePicker
+          label={formData.isFlexible ? "Dátum a čas do (voliteľné)" : "Dátum a čas do *"}
+          value={formData.endDate ? new Date(formData.endDate) : null}
+          onChange={(newValue) => {
+            handleInputChange('endDate', newValue);
+            // ✅ Povoliť prepočítanie cien pri zmene dátumu
+            setPreserveImportedValues(false);
           }}
-          InputLabelProps={{ shrink: true }}
-          required={!formData.isFlexible}
-          helperText={formData.isFlexible ? "Pre flexibilný prenájom môžete nechať prázdne" : undefined}
+          ampm={false}
+          slots={{
+            textField: TextField,
+          }}
+          slotProps={{
+            textField: { 
+              fullWidth: true, 
+              required: !formData.isFlexible,
+              helperText: formData.isFlexible ? "Pre flexibilný prenájom môžete nechať prázdne" : undefined
+            },
+          }}
         />
 
         {/* 🔄 NOVÉ: Flexibilné prenájmy sekcia */}
@@ -1081,29 +1061,22 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
               {formData.isFlexible && (
                 <>
                   <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Odhadovaný dátum vrátenia"
-                      type="date"
-                      value={formData.flexibleEndDate ? (() => {
-                        const date = new Date(formData.flexibleEndDate);
-                        const year = date.getFullYear();
-                        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                        const day = date.getDate().toString().padStart(2, '0');
-                        return `${year}-${month}-${day}`;
-                      })() : ''}
-                      onChange={(e) => {
-                        const dateValue = e.target.value;
-                        if (dateValue) {
-                          const [year, month, day] = dateValue.split('-').map(Number);
-                          const date = new Date(year, month - 1, day);
-                          handleInputChange('flexibleEndDate', date);
-                        } else {
-                          handleInputChange('flexibleEndDate', undefined);
-                        }
+                    <DateTimePicker
+                      label="Odhadovaný dátum a čas vrátenia"
+                      value={formData.flexibleEndDate ? new Date(formData.flexibleEndDate) : null}
+                      onChange={(newValue) => {
+                        handleInputChange('flexibleEndDate', newValue);
                       }}
-                      InputLabelProps={{ shrink: true }}
-                      helperText="Orientačný dátum ukončenia pre flexibilný prenájom"
+                      ampm={false}
+                      slots={{
+                        textField: TextField,
+                      }}
+                      slotProps={{
+                        textField: { 
+                          fullWidth: true,
+                          helperText: "Orientačný dátum ukončenia pre flexibilný prenájom"
+                        },
+                      }}
                     />
                   </Grid>
 

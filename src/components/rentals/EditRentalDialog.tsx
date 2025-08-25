@@ -296,6 +296,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
               label="Začiatok prenájmu *"
               value={formData.startDate ? new Date(formData.startDate) : null}
               onChange={(newValue) => handleInputChange('startDate', newValue)}
+              ampm={false}
               slots={{
                 textField: TextField,
               }}
@@ -310,6 +311,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
               label="Koniec prenájmu *"
               value={formData.endDate ? new Date(formData.endDate) : null}
               onChange={(newValue) => handleInputChange('endDate', newValue)}
+              ampm={false}
               slots={{
                 textField: TextField,
               }}

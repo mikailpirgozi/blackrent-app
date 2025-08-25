@@ -115,13 +115,19 @@ const RentalTableRow = memo<RentalTableRowProps>(({
       
       <TableCell>
         <Typography variant="body2">
-          {formatDate(rental.startDate)}
+          {format(new Date(rental.startDate), 'dd.MM.yyyy', { locale: sk })}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
+          {format(new Date(rental.startDate), 'HH:mm', { locale: sk })}
         </Typography>
       </TableCell>
       
       <TableCell>
         <Typography variant="body2">
-          {formatDate(rental.endDate)}
+          {format(new Date(rental.endDate), 'dd.MM.yyyy', { locale: sk })}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
+          {format(new Date(rental.endDate), 'HH:mm', { locale: sk })}
         </Typography>
       </TableCell>
       

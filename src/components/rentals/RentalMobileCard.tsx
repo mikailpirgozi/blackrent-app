@@ -19,6 +19,7 @@ import {
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { Rental } from '../../types';
+import { formatTime } from '../../utils/formatters';
 
 interface RentalMobileCardProps {
   rental: Rental;
@@ -120,11 +121,17 @@ const RentalMobileCard = memo<RentalMobileCardProps>(({
             <Typography variant="body2" sx={{ fontWeight: 500 }}>
               {formatDate(rental.startDate)}
             </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+              {formatTime(rental.startDate)}
+            </Typography>
           </Box>
           <Box>
             <Typography variant="caption" color="text.secondary">Do:</Typography>
             <Typography variant="body2" sx={{ fontWeight: 500 }}>
               {formatDate(rental.endDate)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+              {formatTime(rental.endDate)}
             </Typography>
           </Box>
         </Box>

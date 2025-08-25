@@ -363,7 +363,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap'
                         }}>
-                          📅 {format(new Date(rental.startDate), 'd.M.yy')} - {format(new Date(rental.endDate), 'd.M.yy')}
+                          📅 {format(new Date(rental.startDate), 'd.M.yy HH:mm')} - {format(new Date(rental.endDate), 'd.M.yy HH:mm')}
                         </Typography>
                         <Box>
                           <Typography variant="caption" sx={{ 
@@ -987,7 +987,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                         color: '#333',
                         mb: 0.5
                       }}>
-                        📅 {format(new Date(rental.startDate), 'd.M.yyyy')}
+                        📅 {format(new Date(rental.startDate), 'd.M.yyyy HH:mm')}
                       </Typography>
                       <Typography variant="caption" sx={{ 
                         color: '#666',
@@ -1001,7 +1001,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                         fontSize: '0.8rem',
                         color: '#333'
                       }}>
-                        📅 {format(new Date(rental.endDate), 'd.M.yyyy')}
+                        📅 {format(new Date(rental.endDate), 'd.M.yyyy HH:mm')}
                       </Typography>
                     </Box>
 

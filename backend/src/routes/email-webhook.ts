@@ -22,6 +22,10 @@ interface ParsedEmailData {
   pickupPlace?: string;
   returnPlace?: string;
   reservationTime?: string;
+  // Nové polia pre presné časové údaje
+  handoverDate?: string; // DD.MM.YYYY HH:MM:SS
+  returnDate?: string;   // DD.MM.YYYY HH:MM:SS
+  handoverLocation?: string;
   deposit?: number;
   totalAmount?: number;
   vehicleName?: string;
@@ -118,10 +122,29 @@ class EmailParsingService {
         data.returnPlace = returnMatch[1].trim();
       }
 
-      // Parsovanie času rezervácie
+      // Parsovanie času rezervácie (komplex formát) - IDENTICKÉ s emailParsingUtils.ts
       const reservationMatch = text.match(/Čas rezervacie\s+(.+)/);
       if (reservationMatch) {
-        data.reservationTime = reservationMatch[1].trim();
+        const timeStr = reservationMatch[1].trim();
+        data.reservationTime = timeStr; // Zachovaj pôvodné pole pre kompatibilitu
+        
+        // Pattern: "DD.MM.YYYY HH:MM:SS - DD.MM.YYYY HH:MM:SS"
+        const dateRangePattern = /(\d{1,2}\.\d{1,2}\.\d{4})\s+(\d{1,2}:\d{2}:\d{2})\s*-\s*(\d{1,2}\.\d{1,2}\.\d{4})\s+(\d{1,2}:\d{2}:\d{2})/;
+        const dateRangeMatch = timeStr.match(dateRangePattern);
+        
+        if (dateRangeMatch) {
+          data.handoverDate = `${dateRangeMatch[1]} ${dateRangeMatch[2]}`;
+          data.returnDate = `${dateRangeMatch[3]} ${dateRangeMatch[4]}`;
+        } else {
+          // Alternatívny pattern: "YYYY-MM-DD HH:MM:SS - YYYY-MM-DD HH:MM:SS"
+          const isoDateRangePattern = /(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/;
+          const isoDateRangeMatch = timeStr.match(isoDateRangePattern);
+          
+          if (isoDateRangeMatch) {
+            data.handoverDate = `${isoDateRangeMatch[1]} ${isoDateRangeMatch[2]}`;
+            data.returnDate = `${isoDateRangeMatch[3]} ${isoDateRangeMatch[4]}`;
+          }
+        }
       }
 
       // Parsovanie depozitu
@@ -545,18 +568,51 @@ router.post('/webhook', async (req: Request, res: Response<ApiResponse>) => {
     // Parsovanie dátumov z rezervačného času
     let startDate = new Date();
     let endDate = new Date();
-    if (parsedData.reservationTime) {
+    
+    // Preferuj handoverDate a returnDate ak sú dostupné (z emailParsingUtils.ts)
+    if (parsedData.handoverDate && parsedData.returnDate) {
+      try {
+        // Formát: "DD.MM.YYYY HH:MM:SS"
+        const parseDate = (dateStr: string) => {
+          const [datePart, timePart] = dateStr.split(' ');
+          const [day, month, year] = datePart.split('.');
+          return new Date(`${year}-${month}-${day}T${timePart}`);
+        };
+        
+        startDate = parseDate(parsedData.handoverDate);
+        endDate = parseDate(parsedData.returnDate);
+        
+        console.log('✅ Parsed dates from handoverDate/returnDate:', {
+          handoverDate: parsedData.handoverDate,
+          returnDate: parsedData.returnDate,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        });
+      } catch (error) {
+        console.error('❌ Error parsing handoverDate/returnDate:', error);
+      }
+    } else if (parsedData.reservationTime) {
+      // Fallback na starý formát
       const timeMatch = parsedData.reservationTime.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) - (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
       if (timeMatch) {
         startDate = new Date(timeMatch[1]);
         endDate = new Date(timeMatch[2]);
+        console.log('✅ Parsed dates from reservationTime (legacy):', {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        });
       }
-    } else {
-      // Fallback: začni zajatra, konci o 3 dni
+    }
+    
+    // Fallback ak sa nepodarilo parsovať žiadne dátumy
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      console.log('⚠️ Using fallback dates (tomorrow + 3 days)');
       startDate = new Date();
       startDate.setDate(startDate.getDate() + 1);
+      startDate.setHours(10, 0, 0, 0); // 10:00 ráno
       endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 3);
+      endDate.setHours(18, 0, 0, 0); // 18:00 večer
     }
 
     // Vytvor pending rental
