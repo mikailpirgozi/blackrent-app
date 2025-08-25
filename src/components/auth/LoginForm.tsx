@@ -109,9 +109,9 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
                 <LockIcon />
               </Avatar>
-                      <Typography component="h1" variant="h4" color="text.primary" sx={{ fontWeight: 'bold' }}>
-          BlackRent
-        </Typography>
+              <Typography component="h1" variant="h4" color="text.primary" sx={{ fontWeight: 'bold' }}>
+                BlackRent
+              </Typography>
               <Typography variant="h6" sx={{ color: 'text.secondary', mt: 1 }}>
                 Prihlásenie do systému
               </Typography>
@@ -159,9 +159,9 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   />
                 }
                 label={
-                                  <Typography color="text.primary" sx={{ fontWeight: 'bold' }}>
-                  Zapamätať si prihlásenie
-                </Typography>
+                  <Typography color="text.primary" sx={{ fontWeight: 'bold' }}>
+                    Zapamätať si prihlásenie
+                  </Typography>
                 }
                 sx={{ mb: 2 }}
               />
@@ -175,14 +175,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   py: 1.5,
                   fontSize: '1.1rem',
                   fontWeight: 'bold',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
-                  },
-                  transition: 'all 0.2s ease-in-out',
+                  bgcolor: 'primary.main',
+                  '&:hover': { bgcolor: 'primary.dark' },
                 }}
                 disabled={state.isLoading}
               >
@@ -200,15 +194,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               <Button
                 variant="outlined"
                 onClick={() => setShowDemo(!showDemo)}
-                sx={{ 
-                  fontWeight: 'bold',
-                  borderColor: '#667eea',
-                  color: '#667eea',
-                  '&:hover': {
-                    borderColor: '#5a67d8',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                  },
-                }}
+                sx={{ fontWeight: 'bold' }}
               >
                 {showDemo ? 'Skryť demo účty' : 'Ukázať demo účty'}
               </Button>
