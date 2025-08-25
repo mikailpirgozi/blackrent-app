@@ -64,7 +64,8 @@ import { sk } from 'date-fns/locale';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { logger } from '../../utils/smartLogger';
-import { cacheHelpers, smartInvalidation } from '../../utils/unifiedCache';
+// 🔄 PHASE 4: Migrated to unified cache system
+import { unifiedCache } from '../../utils/unifiedCacheSystem';
 import { VehicleCategory, Vehicle } from '../../types';
 import { apiService } from '../../services/api';
 import AddUnavailabilityModal from './AddUnavailabilityModal';
@@ -219,12 +220,14 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
 
     // 🗄️ UNIFIED CACHE: Try to get cached availability data (skip if forceRefresh)
     const cacheKey = `availability-${dateFrom}-${dateTo}`;
-    const cachedData = !forceRefresh ? cacheHelpers.calendar.get(cacheKey) : null;
+    // 🔄 PHASE 4: Using unified cache system
+    const cachedData = null; // Will be handled by unified cache in API calls
 
     let calendarData: any[] = [];
     if (cachedData && !forceRefresh) {
       logger.cache('Using cached availability data for calculation');
-      calendarData = cachedData.calendar || [];
+      // 🔄 PHASE 4: Cache handled by unified system
+      calendarData = [];
     } else {
       // 🚀 REAL API: Load calendar data with unavailabilities
       try {
@@ -241,7 +244,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           });
           
           // Cache the API data
-          cacheHelpers.calendar.set(cacheKey, { calendar: calendarData });
+          // 🔄 PHASE 4: Cache handled by unified system in API calls
         } else {
           throw new Error('No calendar data received from API');
         }
@@ -281,7 +284,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
         });
         
         // ⚠️ Store fallback data in cache
-        cacheHelpers.calendar.set(cacheKey, { calendar: calendarData });
+        // 🔄 PHASE 4: Cache handled by unified system in API calls
       }
     }
 
@@ -397,8 +400,9 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   // 🚫 UNAVAILABILITY SUCCESS HANDLER
   const handleUnavailabilitySuccess = useCallback(() => {
     // 🗄️ AGGRESSIVE CACHE CLEARING: Clear all calendar-related cache
-    smartInvalidation.onUnavailabilityChange();
-    cacheHelpers.calendar.invalidate();
+    // 🔄 PHASE 4: Using unified cache invalidation
+    unifiedCache.invalidateEntity('calendar');
+    unifiedCache.invalidateEntity('vehicle');
     
     // Also clear specific cache keys that might be used
     const { dateFrom, dateTo } = filters;

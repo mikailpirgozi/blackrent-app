@@ -132,14 +132,15 @@ class UnifiedCacheSystem {
    */
   getStats(): CacheStats {
     // FÁZA 1: Zbiera stats zo všetkých systémov
-    const apiStats = (apiCache as any).getStats?.() || {};
+    // 🔄 PHASE 4: Direct stats from unified cache
+    const apiStats = {};
     
     return {
       hits: this.stats.hits,
       misses: this.stats.misses,
       hitRate: this.stats.hits / (this.stats.hits + this.stats.misses) * 100 || 0,
       memoryUsage: '~calculating~',
-      entryCount: apiStats.size || 0,
+      entryCount: this.cache.size,
       systems: {
         apiCache: apiStats,
         middleware: { status: 'active' },

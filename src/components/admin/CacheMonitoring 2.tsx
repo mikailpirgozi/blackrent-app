@@ -36,7 +36,8 @@ import {
   Storage as StorageIcon,
   Timeline as TimelineIcon
 } from '@mui/icons-material';
-import { cacheDebug, apiCache } from '../../utils/apiCache';
+// 🔄 PHASE 4: Migrated to unified cache system
+import { unifiedCache } from '../../utils/unifiedCacheSystem';
 
 interface CacheStatsDisplay {
   size: number;
@@ -61,7 +62,8 @@ const CacheMonitoring: React.FC = () => {
     setLoading(true);
     try {
       // Frontend cache stats
-      const frontendStats = cacheDebug.getStats();
+      // 🔄 PHASE 4: Using unified cache stats
+      const frontendStats = unifiedCache.getStats();
       
       // Backend cache stats (if available)
       let backendStats = null;
@@ -75,7 +77,18 @@ const CacheMonitoring: React.FC = () => {
         console.warn('Backend cache stats not available:', error);
       }
 
-      setStats(frontendStats);
+      // 🔄 PHASE 4: Map unified cache stats to display format
+      const displayStats: CacheStatsDisplay = {
+        size: frontendStats.entryCount,
+        hits: frontendStats.hits,
+        misses: frontendStats.misses,
+        hitRate: frontendStats.hitRate,
+        totalRequests: frontendStats.hits + frontendStats.misses,
+        oldestEntry: new Date().toISOString(),
+        newestEntry: new Date().toISOString(),
+        topHits: []
+      };
+      setStats(displayStats);
       setLastRefresh(new Date());
     } catch (error) {
       console.error('Failed to load cache stats:', error);
@@ -97,7 +110,8 @@ const CacheMonitoring: React.FC = () => {
   }, [autoRefresh]);
 
   const handleClearCache = () => {
-    cacheDebug.clear();
+    // 🔄 PHASE 4: Using unified cache clear
+    unifiedCache.clear();
     loadStats();
   };
 

@@ -33,7 +33,8 @@ import { useApp } from '../context/AppContext';
 import { VehicleCategory, Vehicle } from '../types';
 import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
 import AddUnavailabilityModal from '../components/availability/AddUnavailabilityModal';
-import { smartInvalidation } from '../utils/unifiedCache';
+// 🔄 PHASE 4: Migrated to unified cache system
+import { unifiedCache } from '../utils/unifiedCacheSystem';
 
 const AvailabilityPageNew: React.FC = () => {
   const { state, getFilteredVehicles } = useApp();
@@ -88,7 +89,9 @@ const AvailabilityPageNew: React.FC = () => {
 
   const handleUnavailabilitySuccess = () => {
     // 🗄️ CLEAR CACHE: Invalidate calendar cache after unavailability change
-    smartInvalidation.onUnavailabilityChange();
+    // 🔄 PHASE 4: Using unified cache invalidation
+    unifiedCache.invalidateEntity('calendar');
+    unifiedCache.invalidateEntity('vehicle');
     
     // Force calendar refresh by triggering a re-render
     // Use a small delay to ensure cache invalidation is processed
