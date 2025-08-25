@@ -1,16 +1,41 @@
 /**
- * ⚡ MOBILE RENTAL ROW COMPONENT
+ * 📱 MOBILE RENTAL ROW COMPONENT - ENHANCED VERSION
  * 
- * Memory-optimized rental row pre mobile view:
- * - React.memo pre prevent unnecessary re-renders
- * - Optimized props structure
- * - Memoized callbacks
+ * Optimalizovaný pre mobilné zariadenia s kartovým dizajnom:
+ * - Zachováva všetky existujúce funkcie
+ * - Väčšie fonty a tlačidlá (touch-friendly)
+ * - Lepšie rozloženie informácií
+ * - Kartový dizajn namiesto tabuľkového riadku
+ * - React.memo pre performance
  */
 
-import React, { memo } from 'react';
-import { Box, Typography, Chip, Fade, IconButton } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import React, { memo, useState } from 'react';
+import {
+  Box,
+  Typography,
+  Chip,
+  Fade,
+  IconButton,
+  Card,
+  CardContent,
+  Collapse,
+  Divider,
+  Button
+} from '@mui/material';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Phone as PhoneIcon,
+  Business as BusinessIcon,
+  DirectionsCar as CarIcon,
+  Schedule as ScheduleIcon,
+  Euro as EuroIcon,
+  Check as CheckIcon
+} from '@mui/icons-material';
 import { format } from 'date-fns';
+import { sk } from 'date-fns/locale';
 
 interface MobileRentalRowProps {
   rental: any;
@@ -41,86 +66,25 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
   onCheckProtocols,
   onDelete
 }) => {
-  // 🎯 Memoized styles to prevent recalculation
-  const rowStyles = React.useMemo(() => ({
-    display: 'flex',
-    borderBottom: index < totalRentals - 1 ? '1px solid #e0e0e0' : 'none',
-    '&:hover': { backgroundColor: '#f8f9fa' },
-    minHeight: 60, // Zmenšené z 80 na 60px pre kompaktnejšie zobrazenie
-    cursor: 'pointer'
-  }), [index, totalRentals]);
-
-  // 🎯 Memoized protocol chip styles
-  const chipStyles = React.useMemo(() => ({
-    handover: {
-      height: { xs: 32, sm: 28 },
-      fontSize: { xs: '0.8rem', sm: '0.75rem' },
-      bgcolor: hasHandover ? '#4caf50' : '#ccc',
-      color: 'white',
-      fontWeight: 700,
-      minWidth: { xs: 44, sm: 42 },
-      maxWidth: { xs: 60, sm: 60 },
-      cursor: hasHandover ? 'pointer' : 'default',
-      borderRadius: { xs: 2, sm: 2.5 },
-      boxShadow: hasHandover ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
-      transform: hasHandover ? 'scale(1)' : 'scale(0.95)',
-      opacity: hasHandover ? 1 : 0.7,
-      '&:hover': hasHandover ? {
-        bgcolor: '#388e3c',
-        transform: 'scale(1.1)',
-        boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
-        animation: 'bounce 0.6s ease'
-      } : {
-        transform: 'scale(0.98)',
-        opacity: 0.8
-      },
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      '@keyframes bounce': {
-        '0%, 20%, 60%, 100%': { transform: 'scale(1.1)' },
-        '40%': { transform: 'scale(1.15)' },
-        '80%': { transform: 'scale(1.05)' }
-      }
-    },
-    return: {
-      height: { xs: 32, sm: 28 },
-      fontSize: { xs: '0.8rem', sm: '0.75rem' },
-      bgcolor: hasReturn ? '#4caf50' : '#ccc',
-      color: 'white',
-      fontWeight: 700,
-      minWidth: { xs: 44, sm: 42 },
-      maxWidth: { xs: 60, sm: 60 },
-      cursor: hasReturn ? 'pointer' : 'default',
-      borderRadius: { xs: 2, sm: 2.5 },
-      boxShadow: hasReturn ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
-      transform: hasReturn ? 'scale(1)' : 'scale(0.95)',
-      opacity: hasReturn ? 1 : 0.7,
-      '&:hover': hasReturn ? {
-        bgcolor: '#388e3c',
-        transform: 'scale(1.1)',
-        boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
-        animation: 'bounce 0.6s ease'
-      } : {
-        transform: 'scale(0.98)',
-        opacity: 0.8
-      },
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-    }
-  }), [hasHandover, hasReturn]);
+  const [expanded, setExpanded] = useState(false);
 
   // 🎯 Memoized handlers to prevent recreation
-  const handleRowClick = React.useCallback(() => {
+  const handleCardClick = React.useCallback(() => {
     onEdit(rental);
   }, [rental, onEdit]);
 
+  const handleExpandClick = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpanded(!expanded);
+  }, [expanded]);
+
   const handleHandoverClick = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    // Vždy zavolaj onOpenProtocolMenu - nech sa rozhodne či vytvoriť alebo zobraziť
     onOpenProtocolMenu(rental, 'handover');
   }, [rental, onOpenProtocolMenu]);
 
   const handleReturnClick = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    // Vždy zavolaj onOpenProtocolMenu - nech sa rozhodne či vytvoriť alebo zobraziť
     onOpenProtocolMenu(rental, 'return');
   }, [rental, onOpenProtocolMenu]);
 
@@ -129,243 +93,405 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
     onCheckProtocols(rental);
   }, [rental, onCheckProtocols]);
 
-  return (
-    <Box sx={rowStyles} onClick={handleRowClick}>
-      {/* Vozidlo info - sticky left */}
-      <Box sx={{ 
-        width: { xs: 120, sm: 140 },
-        maxWidth: { xs: 120, sm: 140 },
-        p: { xs: 1, sm: 1.5 },
-        borderRight: '2px solid #e0e0e0',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        backgroundColor: '#ffffff',
-        position: 'sticky',
-        left: 0,
-        zIndex: 10,
-        overflow: 'hidden'
-      }}>
-        <Typography variant="subtitle2" sx={{ 
-          fontWeight: 600, 
-          fontSize: { xs: '0.75rem', sm: '0.8rem' },
-          color: '#1976d2',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          mb: 0.5
-        }}>
-          {vehicle?.licensePlate || 'N/A'}
-        </Typography>
-        <Typography variant="caption" sx={{ 
-          color: '#666',
-          fontSize: { xs: '0.6rem', sm: '0.65rem' },
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
-        }}>
-          {vehicle?.brand} {vehicle?.model}
-        </Typography>
-        {(rental.vehicleVin || vehicle?.vin) && (
-          <Typography variant="caption" sx={{
-            color: '#888',
-            fontSize: { xs: '0.55rem', sm: '0.6rem' },
-            fontFamily: 'monospace'
-          }}>
-            VIN: {(rental.vehicleVin || vehicle?.vin)?.slice(-6)}
-          </Typography>
-        )}
-      </Box>
+  const handleDeleteClick = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) onDelete(rental.id);
+  }, [rental.id, onDelete]);
 
-      {/* Detaily & Status */}
-      <Box sx={{ 
-        flex: 1,
-        p: { xs: 0.75, sm: 1 }, // Zmenšené padding pre kompaktnejšie zobrazenie
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        overflow: 'hidden'
-      }}>
-        <Box>
-          <Typography variant="subtitle2" sx={{ 
-            fontWeight: 600,
-            fontSize: { xs: '0.7rem', sm: '0.75rem' },
-            color: '#333',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            mb: 0.25
-          }}>
-            👤 {rental.customerName}
-          </Typography>
-          {(rental.customerPhone || rental.customer?.phone) && (
-            <Typography variant="caption" sx={{ 
-              color: '#666',
-              fontSize: { xs: '0.55rem', sm: '0.6rem' },
-              display: 'block',
-              mb: 0.25,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}>
-              📞 {rental.customerPhone || rental.customer?.phone}
-            </Typography>
-          )}
-          <Typography variant="caption" sx={{ 
-            color: '#666',
-            fontSize: { xs: '0.6rem', sm: '0.65rem' },
-            display: 'block',
-            mb: { xs: 0.25, sm: 0.5 },
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}>
-            📅 {format(new Date(rental.startDate), 'd.M.yy HH:mm')} - {format(new Date(rental.endDate), 'd.M.yy HH:mm')}
-          </Typography>
-          <Typography variant="caption" sx={{ 
-            color: '#4caf50',
-            fontSize: { xs: '0.65rem', sm: '0.7rem' },
-            fontWeight: 600,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}>
-            💰 {rental.totalPrice?.toFixed(2)}€
-          </Typography>
-        </Box>
-        
-        {/* Protokoly a Delete tlačidlo v jednom riadku */}
-        <Box sx={{ 
-          display: 'flex', 
-          gap: { xs: 0.5, sm: 0.75 }, 
-          mt: { xs: 0.25, sm: 0.5 }, // Zmenšené top margin pre kompaktnejšie zobrazenie
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-          flexWrap: 'wrap'
-        }}>
-          <Fade in timeout={600}>
-            <Chip
-              size="small"
-              label={hasHandover ? '🚗→' : '⏳→'}
-              title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Vytvoriť odovzdávací protokol'}
-              onClick={handleHandoverClick}
-              sx={{
-                ...chipStyles.handover,
-                bgcolor: hasHandover ? '#4caf50' : '#ff9800',
-                '&:hover': hasHandover ? {
-                  bgcolor: '#388e3c',
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
-                  animation: 'bounce 0.6s ease'
-                } : {
-                  bgcolor: '#f57c00',
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 4px 12px rgba(255,152,0,0.4)'
-                }
-              }}
-            />
-          </Fade>
-          
-          <Fade in timeout={800}>
-            <Chip
-              size="small"
-              label={hasReturn ? '←🚗' : '⏳←'}
-              title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Vytvoriť preberací protokol'}
-              onClick={handleReturnClick}
-              sx={{
-                ...chipStyles.return,
-                bgcolor: hasReturn ? '#4caf50' : '#ff9800',
-                '&:hover': hasReturn ? {
-                  bgcolor: '#388e3c',
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
-                  animation: 'bounce 0.6s ease'
-                } : {
-                  bgcolor: '#f57c00',
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 4px 12px rgba(255,152,0,0.4)'
-                }
-              }}
-            />
-          </Fade>
-          
-          {/* Loading or fallback button */}
-          {isLoadingProtocolStatus ? (
-            <Chip
-              size="small"
-              label="⏳"
-              title="Načítavam protocol status..."
-              sx={{
-                height: { xs: 32, sm: 28 },
-                fontSize: { xs: '0.8rem', sm: '0.75rem' },
-                bgcolor: '#ff9800',
-                color: 'white',
+  // 🎨 Status helpers
+  const getStatusColor = () => {
+    switch (rental.status) {
+      case 'active': return '#4caf50';
+      case 'finished': return '#2196f3';
+      case 'pending': return '#ff9800';
+      default: return '#757575';
+    }
+  };
+
+  const getStatusLabel = () => {
+    switch (rental.status) {
+      case 'active': return 'AKTÍVNY';
+      case 'finished': return 'UKONČENÝ';
+      case 'pending': return 'ČAKAJÚCI';
+      default: return 'NOVÝ';
+    }
+  };
+
+  // 🔄 Detekcia flexibilného prenájmu
+  const isFlexible = rental.isFlexible || false;
+
+  return (
+    <Fade in timeout={300 + index * 50}>
+      <Card 
+        sx={{ 
+          mb: 2,
+          mx: 1, // Malé okraje po stranách
+          borderRadius: 3,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          border: isFlexible ? '2px solid #ff9800' : '1px solid rgba(0,0,0,0.08)',
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          backgroundColor: isFlexible ? '#fff8f0' : 'white',
+          '&:hover': {
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+            transform: 'translateY(-2px)'
+          },
+          '&:active': {
+            transform: 'translateY(0px)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }
+        }}
+        onClick={handleCardClick}
+      >
+        <CardContent sx={{ p: 2.5 }}>
+          {/* 🚗 HLAVIČKA S VOZIDLOM A STATUSOM */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" sx={{ 
                 fontWeight: 700,
-                minWidth: { xs: 44, sm: 42 },
-                maxWidth: { xs: 60, sm: 60 },
-                borderRadius: { xs: 2, sm: 2.5 },
-                boxShadow: '0 2px 8px rgba(255,152,0,0.3)',
-                animation: 'pulse 2s infinite'
-              }}
-            />
-          ) : (
-            !protocolStatusLoaded && (
+                fontSize: '1.1rem', // Väčší font
+                color: '#1976d2',
+                mb: 0.5,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}>
+                <CarIcon fontSize="small" />
+                {vehicle?.licensePlate || 'N/A'}
+              </Typography>
+              <Typography variant="body2" sx={{ 
+                color: '#666',
+                fontSize: '0.9rem', // Väčší font
+                mb: 1
+              }}>
+                {vehicle?.brand} {vehicle?.model}
+              </Typography>
+              {(rental.vehicleVin || vehicle?.vin) && (
+                <Typography variant="caption" sx={{
+                  color: '#888',
+                  fontSize: '0.75rem', // Väčší font
+                  fontFamily: 'monospace',
+                  display: 'block'
+                }}>
+                  VIN: {(rental.vehicleVin || vehicle?.vin)?.slice(-8)}
+                </Typography>
+              )}
+            </Box>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
               <Chip
-                size="small"
-                label="🔍"
-                title="Skontrolovať protokoly"
-                onClick={handleProtocolCheck}
+                label={getStatusLabel()}
+                size="medium" // Väčší chip
                 sx={{
-                  height: { xs: 32, sm: 28 },
-                  fontSize: { xs: '0.8rem', sm: '0.75rem' },
-                  bgcolor: '#2196f3',
+                  bgcolor: getStatusColor(),
                   color: 'white',
-                  fontWeight: 700,
-                  minWidth: { xs: 44, sm: 42 },
-                  maxWidth: { xs: 60, sm: 60 },
-                  cursor: 'pointer',
-                  borderRadius: { xs: 2, sm: 2.5 },
-                  boxShadow: '0 2px 8px rgba(33,150,243,0.3)',
-                  '&:hover': {
-                    bgcolor: '#1976d2',
-                    transform: 'scale(1.05)',
-                    boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
-                  },
-                  transition: 'all 0.2s ease'
+                  fontWeight: 600,
+                  fontSize: '0.8rem', // Väčší font
+                  height: 32 // Väčšia výška
                 }}
               />
-            )
-          )}
-          
-          {/* Delete Button - presunúť vedľa protokolov */}
-          {onDelete && (
-            <IconButton
-              size="small"
-              title="Zmazať prenájom"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(rental.id);
-              }}
-              sx={{ 
-                bgcolor: '#f44336', 
-                color: 'white',
-                width: { xs: 32, sm: 28 },
-                height: { xs: 32, sm: 28 },
-                ml: { xs: 0.5, sm: 1 },
-                '&:hover': { 
-                  bgcolor: '#d32f2f',
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 4px 12px rgba(244,67,54,0.4)'
+              {isFlexible && (
+                <Chip
+                  label="FLEXIBILNÝ"
+                  size="medium"
+                  sx={{
+                    bgcolor: '#ff9800',
+                    color: 'white',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    height: 28
+                  }}
+                />
+              )}
+            </Box>
+          </Box>
+
+          {/* 👤 ZÁKAZNÍK */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle1" sx={{ 
+              fontWeight: 600,
+              fontSize: '1rem', // Väčší font
+              color: '#333',
+              mb: 0.5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}>
+              <Box sx={{ 
+                width: 8, 
+                height: 8, 
+                borderRadius: '50%', 
+                bgcolor: '#4caf50' 
+              }} />
+              {rental.customerName}
+            </Typography>
+            
+            {(rental.customerPhone || rental.customer?.phone) && (
+              <Typography variant="body2" sx={{ 
+                color: '#666',
+                fontSize: '0.85rem', // Väčší font
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                mb: 0.5
+              }}>
+                <PhoneIcon fontSize="small" />
+                {rental.customerPhone || rental.customer?.phone}
+              </Typography>
+            )}
+          </Box>
+
+          {/* 📅 DÁTUMY A CENA */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            mb: 3,
+            p: 2,
+            bgcolor: '#f8f9fa',
+            borderRadius: 2
+          }}>
+            <Box>
+              <Typography variant="body2" sx={{ 
+                color: '#666',
+                fontSize: '0.8rem',
+                mb: 0.5
+              }}>
+                Obdobie prenájmu
+              </Typography>
+              <Typography variant="body2" sx={{ 
+                fontWeight: 600,
+                fontSize: '0.85rem', // Väčší font
+                color: '#333'
+              }}>
+                {format(new Date(rental.startDate), 'd.M.yyyy HH:mm', { locale: sk })}
+              </Typography>
+              <Typography variant="body2" sx={{ 
+                fontWeight: 600,
+                fontSize: '0.85rem', // Väčší font
+                color: '#333'
+              }}>
+                {format(new Date(rental.endDate), 'd.M.yyyy HH:mm', { locale: sk })}
+              </Typography>
+            </Box>
+            
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="body2" sx={{ 
+                color: '#666',
+                fontSize: '0.8rem',
+                mb: 0.5
+              }}>
+                Celková cena
+              </Typography>
+              <Typography variant="h6" sx={{ 
+                fontWeight: 700,
+                fontSize: '1.2rem', // Väčší font
+                color: '#4caf50',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5
+              }}>
+                <EuroIcon fontSize="small" />
+                {rental.totalPrice?.toFixed(2)}
+              </Typography>
+              {rental.extraKmCharge && rental.extraKmCharge > 0 && (
+                <Typography variant="caption" sx={{ 
+                  display: 'block',
+                  fontSize: '0.7rem',
+                  color: '#ff9800',
+                  fontWeight: 600,
+                  mt: 0.5
+                }}>
+                  +{rental.extraKmCharge.toFixed(2)}€ extra km
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          {/* 🔧 PROTOKOLY - VEĽKÉ TLAČIDLÁ */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2, 
+            mb: 2
+          }}>
+            <Button
+              variant={hasHandover ? "contained" : "outlined"}
+              size="large"
+              fullWidth
+              onClick={handleHandoverClick}
+              startIcon={hasHandover ? <CheckIcon /> : <ScheduleIcon />}
+              sx={{
+                height: 48, // Veľké tlačidlo pre touch
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                bgcolor: hasHandover ? '#4caf50' : 'transparent',
+                borderColor: hasHandover ? '#4caf50' : '#ff9800',
+                color: hasHandover ? 'white' : '#ff9800',
+                '&:hover': {
+                  bgcolor: hasHandover ? '#388e3c' : 'rgba(255,152,0,0.1)',
+                  transform: 'scale(1.02)',
+                  boxShadow: hasHandover 
+                    ? '0 4px 12px rgba(76,175,80,0.3)' 
+                    : '0 4px 12px rgba(255,152,0,0.2)'
                 },
                 transition: 'all 0.2s ease'
               }}
             >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
+              {hasHandover ? 'Odovzdané' : 'Odovzdať'}
+            </Button>
+            
+            <Button
+              variant={hasReturn ? "contained" : "outlined"}
+              size="large"
+              fullWidth
+              onClick={handleReturnClick}
+              startIcon={hasReturn ? <CheckIcon /> : <ScheduleIcon />}
+              sx={{
+                height: 48, // Veľké tlačidlo pre touch
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                bgcolor: hasReturn ? '#4caf50' : 'transparent',
+                borderColor: hasReturn ? '#4caf50' : '#ff9800',
+                color: hasReturn ? 'white' : '#ff9800',
+                '&:hover': {
+                  bgcolor: hasReturn ? '#388e3c' : 'rgba(255,152,0,0.1)',
+                  transform: 'scale(1.02)',
+                  boxShadow: hasReturn 
+                    ? '0 4px 12px rgba(76,175,80,0.3)' 
+                    : '0 4px 12px rgba(255,152,0,0.2)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {hasReturn ? 'Prevzaté' : 'Prevziať'}
+            </Button>
+          </Box>
+
+          {/* 🔍 PROTOKOL CHECK & LOADING */}
+          {isLoadingProtocolStatus && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <Button
+                variant="outlined"
+                size="medium"
+                disabled
+                sx={{
+                  borderColor: '#ff9800',
+                  color: '#ff9800',
+                  fontSize: '0.85rem'
+                }}
+              >
+                Načítavam protokoly...
+              </Button>
+            </Box>
           )}
-        </Box>
-      </Box>
-    </Box>
+
+          {!protocolStatusLoaded && !isLoadingProtocolStatus && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <Button
+                variant="outlined"
+                size="medium"
+                onClick={handleProtocolCheck}
+                sx={{
+                  borderColor: '#2196f3',
+                  color: '#2196f3',
+                  fontSize: '0.85rem',
+                  '&:hover': {
+                    bgcolor: 'rgba(33,150,243,0.1)'
+                  }
+                }}
+              >
+                Skontrolovať protokoly
+              </Button>
+            </Box>
+          )}
+
+          {/* 💰 PLATBA STATUS */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            <Chip
+              label={rental.paid ? '💰 UHRADENÉ' : '⏰ NEUHRADENÉ'}
+              size="medium"
+              sx={{
+                height: 32,
+                fontSize: '0.8rem',
+                bgcolor: rental.paid ? '#4caf50' : '#f44336',
+                color: 'white',
+                fontWeight: 600
+              }}
+            />
+          </Box>
+
+          {/* 📋 ROZŠÍRENÉ DETAILY */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <IconButton
+              onClick={handleExpandClick}
+              sx={{
+                color: '#666',
+                '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' }
+              }}
+            >
+              {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              <Typography variant="caption" sx={{ ml: 1, fontSize: '0.8rem' }}>
+                {expanded ? 'Menej' : 'Viac detailov'}
+              </Typography>
+            </IconButton>
+            
+            {onDelete && (
+              <IconButton
+                onClick={handleDeleteClick}
+                sx={{
+                  color: '#f44336',
+                  width: 44, // Väčšie tlačidlo pre touch
+                  height: 44,
+                  '&:hover': { 
+                    bgcolor: 'rgba(244,67,54,0.1)',
+                    transform: 'scale(1.1)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            )}
+          </Box>
+
+          {/* 📄 ROZŠÍRENÉ INFORMÁCIE */}
+          <Collapse in={expanded} timeout="auto" unmountOnExit>
+            <Divider sx={{ my: 2 }} />
+            <Box sx={{ pt: 1 }}>
+              {vehicle?.company && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <BusinessIcon fontSize="small" sx={{ color: '#666' }} />
+                  <Typography variant="body2" sx={{ color: '#666', fontSize: '0.85rem' }}>
+                    Firma: <strong>{vehicle.company}</strong>
+                  </Typography>
+                </Box>
+              )}
+              
+              {rental.notes && (
+                <Box sx={{ mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: '#666', mb: 0.5, fontSize: '0.85rem' }}>
+                    Poznámky:
+                  </Typography>
+                  <Typography variant="body2" sx={{ 
+                    color: '#333',
+                    bgcolor: '#f5f5f5',
+                    p: 1.5,
+                    borderRadius: 1,
+                    fontSize: '0.85rem'
+                  }}>
+                    {rental.notes}
+                  </Typography>
+                </Box>
+              )}
+              
+              <Typography variant="caption" sx={{ color: '#999', fontSize: '0.75rem' }}>
+                ID: {rental.id?.slice(-8)}
+              </Typography>
+            </Box>
+          </Collapse>
+        </CardContent>
+      </Card>
+    </Fade>
   );
 });
 
