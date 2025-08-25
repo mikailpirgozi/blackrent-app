@@ -499,13 +499,86 @@ export default function RentalList() {
     handleCloseProtocolMenu();
   }, [selectedProtocolRental, selectedProtocolType, protocolsHook.protocols, handleCloseProtocolMenu]);
 
-  const handleViewGallery = useCallback(() => {
-    if (selectedProtocolRental && selectedProtocolType) {
-      // Otvor galériu cez protocolsHook
-      protocolsHook.handleViewGallery();
+  const handleViewGallery = useCallback(async () => {
+    if (!selectedProtocolRental || !selectedProtocolType) return;
+    
+    try {
+      console.log('🔍 Opening gallery for protocol:', selectedProtocolType, 'rental:', selectedProtocolRental.id);
+      
+      // Zatvor protocol menu najprv
+      handleCloseProtocolMenu();
+      
+      // Načítaj protokol ak nie je načítaný
+      let protocol = protocolsHook.protocols[selectedProtocolRental.id]?.[selectedProtocolType];
+      
+      if (!protocol) {
+        console.log('📥 Loading protocol for gallery...');
+        const freshProtocolData = await protocolsHook.loadProtocolsForRental(selectedProtocolRental.id);
+        protocol = freshProtocolData?.[selectedProtocolType];
+      }
+      
+      if (!protocol) {
+        alert('Protokol nebol nájdený!');
+        return;
+      }
+
+      // Parsovanie obrázkov z protokolu
+      const parseImages = (imageData: any): any[] => {
+        if (!imageData) return [];
+        
+        if (typeof imageData === 'string') {
+          try {
+            const parsed = JSON.parse(imageData);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (error) {
+            console.warn('⚠️ Failed to parse image data as JSON:', imageData);
+            return [];
+          }
+        }
+        
+        if (Array.isArray(imageData)) {
+          return imageData;
+        }
+        
+        return [];
+      };
+
+      const images = [
+        ...parseImages(protocol.vehicleImages),
+        ...parseImages(protocol.documentImages),
+        ...parseImages(protocol.damageImages)
+      ];
+      
+      const videos = [
+        ...parseImages(protocol.vehicleVideos),
+        ...parseImages(protocol.documentVideos),
+        ...parseImages(protocol.damageVideos)
+      ];
+
+      console.log('🖼️ Gallery data prepared:', {
+        imagesCount: images.length,
+        videosCount: videos.length
+      });
+
+      if (images.length === 0 && videos.length === 0) {
+        alert('Nenašli sa žiadne obrázky pre tento protokol!');
+        return;
+      }
+      
+      // Nastav galériu cez protocolsHook
+      protocolsHook.setGalleryImages(images);
+      protocolsHook.setGalleryVideos(videos);
+      const vehicle = getVehicleByRental(selectedProtocolRental);
+      protocolsHook.setGalleryTitle(`${selectedProtocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} - ${vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Neznáme vozidlo'}`);
+      protocolsHook.galleryOpenRef.current = true;
+      
+      console.log('✅ Gallery opened successfully with protocol data');
+      
+    } catch (error) {
+      console.error('❌ Error opening gallery:', error);
+      alert('Chyba pri otváraní galérie!');
     }
-    handleCloseProtocolMenu();
-  }, [selectedProtocolRental, selectedProtocolType, protocolsHook, handleCloseProtocolMenu]);
+  }, [selectedProtocolRental, selectedProtocolType, protocolsHook, handleCloseProtocolMenu, getVehicleByRental]);
 
   // Error handling
   if (paginatedError) {
@@ -583,16 +656,28 @@ export default function RentalList() {
         handleCreateReturn={protocolsHook.handleCreateReturn}
         handleOpenProtocolMenu={(rental, type) => {
           console.log('📋 Opening protocol menu', rental.id, type);
-          // Ak protokol existuje, otvor menu s možnosťami
+          
+          // Kontrola existencie protokolu cez protocolStatusMap (rýchlejšie a spoľahlivejšie)
+          const protocolStatus = protocolsHook.protocolStatusMap[rental.id];
           const hasProtocol = type === 'handover' 
-            ? !!protocolsHook.protocols[rental.id]?.handover
-            : !!protocolsHook.protocols[rental.id]?.return;
+            ? protocolStatus?.hasHandoverProtocol
+            : protocolStatus?.hasReturnProtocol;
+            
+          console.log('🔍 Protocol check:', {
+            rentalId: rental.id,
+            type,
+            hasProtocol,
+            protocolStatus
+          });
             
           if (hasProtocol) {
-            // Otvor protocol menu pre existujúci protokol
-            setSelectedProtocolRental(rental);
-            setSelectedProtocolType(type);
-            setProtocolMenuOpen(true);
+            // Najprv načítaj protokoly do state pre menu
+            protocolsHook.loadProtocolsForRental(rental.id).then(() => {
+              // Otvor protocol menu pre existujúci protokol
+              setSelectedProtocolRental(rental);
+              setSelectedProtocolType(type);
+              setProtocolMenuOpen(true);
+            });
           } else {
             // Vytvor nový protokol
             if (type === 'handover') {
