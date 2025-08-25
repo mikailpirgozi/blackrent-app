@@ -384,15 +384,17 @@ export default function Layout({ children }: LayoutProps) {
             </Box>
             
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Chip
-                label={state.user?.role === 'admin' ? 'Admin' : 'User'}
-                size="small"
-                color={state.user?.role === 'admin' ? 'primary' : 'default'}
-                sx={{ fontSize: '0.75rem' }}
-              />
+              {state.user && (
+                <Chip
+                  label={state.user.role === 'admin' ? 'Admin' : 'User'}
+                  size="small"
+                  color={state.user.role === 'admin' ? 'primary' : 'default'}
+                  sx={{ fontSize: '0.75rem' }}
+                />
+              )}
               
               {/* 🔴 Real-time Notifications */}
-              <RealTimeNotifications />
+              {/* <RealTimeNotifications /> */}
               
               <IconButton
                 onClick={toggleTheme}
@@ -638,7 +640,7 @@ export default function Layout({ children }: LayoutProps) {
       />
 
       {/* 📱 Mobile Debug Panel */}
-      <MobileDebugPanel />
+      {/* <MobileDebugPanel /> */}
     </Box>
   );
 }
