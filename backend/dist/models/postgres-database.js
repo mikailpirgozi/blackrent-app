@@ -2731,21 +2731,21 @@ class PostgresDatabase {
             let paramIndex = 1;
             // 🔍 SEARCH filter - live vyhľadávanie s normalizáciou diakritiky
             if (params.search && params.search.trim()) {
-                // Normalizujeme search query (odstránime diakritiku)
-                const normalizedSearch = params.search.trim()
-                    .toLowerCase()
-                    .normalize('NFD')
-                    .replace(/[\u0300-\u036f]/g, '');
-                // 🔍 NORMALIZOVANÉ VYHĽADÁVANIE: Použiť normalizovaný search term (už bez diakritiky)
-                // Porovnávame normalizovaný search s normalizovanými stĺpcami
+                // Search term už je normalizovaný na frontende, len ho použijeme
+                const searchTerm = params.search.trim().toLowerCase();
+                // 🔍 NORMALIZOVANÉ VYHĽADÁVANIE: Porovnávame normalizovaný search s normalizovanými stĺpcami
+                // Mapovanie slovenských znakov: á→a, ä→a, č→c, ď→d, é→e, í→i, ĺ→l, ľ→l, ň→n, ó→o, ô→o, ŕ→r, š→s, ť→t, ú→u, ý→y, ž→z
+                //                              Á→a, Ä→a, Č→c, Ď→d, É→e, Í→i, Ĺ→l, Ľ→l, Ň→n, Ó→o, Ô→o, Ŕ→r, Š→s, Ť→t, Ú→u, Ý→y, Ž→z
+                const diacriticsFrom = 'áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ';
+                const diacriticsTo = 'aacdeillnoorstuyzaacdeillnoorstuyz';
                 whereConditions.push(`(
-          LOWER(translate(r.customer_name, 'áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ', 'aacdeillnoorsstuyzAACDEILLNOORSSTUYZ')) ILIKE $${paramIndex} OR 
-          LOWER(translate(r.order_number, 'áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ', 'aacdeillnoorsstuyzAACDEILLNOORSSTUYZ')) ILIKE $${paramIndex} OR 
-          LOWER(translate(v.license_plate, 'áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ', 'aacdeillnoorsstuyzAACDEILLNOORSSTUYZ')) ILIKE $${paramIndex} OR
-          LOWER(translate(v.brand, 'áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ', 'aacdeillnoorsstuyzAACDEILLNOORSSTUYZ')) ILIKE $${paramIndex} OR
-          LOWER(translate(v.model, 'áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ', 'aacdeillnoorsstuyzAACDEILLNOORSSTUYZ')) ILIKE $${paramIndex}
+          LOWER(translate(r.customer_name, '${diacriticsFrom}', '${diacriticsTo}')) ILIKE $${paramIndex} OR 
+          LOWER(translate(r.order_number, '${diacriticsFrom}', '${diacriticsTo}')) ILIKE $${paramIndex} OR 
+          LOWER(translate(v.license_plate, '${diacriticsFrom}', '${diacriticsTo}')) ILIKE $${paramIndex} OR
+          LOWER(translate(v.brand, '${diacriticsFrom}', '${diacriticsTo}')) ILIKE $${paramIndex} OR
+          LOWER(translate(v.model, '${diacriticsFrom}', '${diacriticsTo}')) ILIKE $${paramIndex}
         )`);
-                queryParams.push(`%${normalizedSearch}%`);
+                queryParams.push(`%${searchTerm}%`);
                 paramIndex++;
             }
             // 📅 DATE filter
