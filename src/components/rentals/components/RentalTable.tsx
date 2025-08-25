@@ -23,7 +23,6 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { Rental } from '../../../types';
-import { FixedSizeList as List } from 'react-window';
 import {
   formatCurrency,
   formatDate,
