@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   TextField,
-  Button,
   Typography,
   Alert,
   Container,
@@ -18,6 +17,7 @@ import {
 import { LockOutlined as LockIcon, AccountCircle as AccountIcon } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { LoginCredentials } from '../../types';
+import { UnifiedButton } from '../ui';
 import { useNavigate } from 'react-router-dom';
 import { useAuthError } from '../../hooks/useEnhancedError';
 import { EnhancedErrorToast } from '../common/EnhancedErrorToast';
@@ -166,22 +166,17 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                 sx={{ mb: 2 }}
               />
               
-              <Button
+              <UnifiedButton
                 type="submit"
+                variant="primary"
+                size="lg"
                 fullWidth
-                variant="contained"
-                sx={{ 
-                  mb: 2, 
-                  py: 1.5,
-                  fontSize: '1.1rem',
-                  fontWeight: 'bold',
-                  bgcolor: 'primary.main',
-                  '&:hover': { bgcolor: 'primary.dark' },
-                }}
-                disabled={state.isLoading}
+                loading={state.isLoading}
+                loadingText="Prihlasuje sa..."
+                sx={{ mb: 2 }}
               >
-                {state.isLoading ? 'Prihlasuje sa...' : 'Prihlásiť sa'}
-              </Button>
+                Prihlásiť sa
+              </UnifiedButton>
             </Box>
 
             <Divider sx={{ my: 2 }}>
@@ -191,13 +186,12 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             </Divider>
 
             <Box sx={{ textAlign: 'center', mb: 2 }}>
-              <Button
-                variant="outlined"
+              <UnifiedButton
+                variant="secondary"
                 onClick={() => setShowDemo(!showDemo)}
-                sx={{ fontWeight: 'bold' }}
               >
                 {showDemo ? 'Skryť demo účty' : 'Ukázať demo účty'}
-              </Button>
+              </UnifiedButton>
             </Box>
 
             {showDemo && (

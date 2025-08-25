@@ -8,9 +8,10 @@
  */
 
 import React, { memo } from 'react';
-import { Box, Typography, Chip, Fade, IconButton } from '@mui/material';
+import { Box, Typography, Fade, IconButton } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
+import { UnifiedChip } from '../ui';
 
 interface MobileRentalRowProps {
   rental: any;
@@ -231,46 +232,34 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
           flexWrap: 'wrap'
         }}>
           <Fade in timeout={600}>
-            <Chip
-              size="small"
-              label={hasHandover ? '🚗→' : '⏳→'}
+            <UnifiedChip
+              variant="protocol"
+              size="sm"
+              label={hasHandover ? 'H' : '⏳'}
               title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Vytvoriť odovzdávací protokol'}
               onClick={handleHandoverClick}
+              animated
               sx={{
-                ...chipStyles.handover,
                 bgcolor: hasHandover ? '#4caf50' : '#ff9800',
-                '&:hover': hasHandover ? {
-                  bgcolor: '#388e3c',
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
-                  animation: 'bounce 0.6s ease'
-                } : {
-                  bgcolor: '#f57c00',
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 4px 12px rgba(255,152,0,0.4)'
+                '&:hover': {
+                  bgcolor: hasHandover ? '#388e3c' : '#f57c00',
                 }
               }}
             />
           </Fade>
           
           <Fade in timeout={800}>
-            <Chip
-              size="small"
-              label={hasReturn ? '←🚗' : '⏳←'}
+            <UnifiedChip
+              variant="protocol"
+              size="sm"
+              label={hasReturn ? 'R' : '⏳'}
               title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Vytvoriť preberací protokol'}
               onClick={handleReturnClick}
+              animated
               sx={{
-                ...chipStyles.return,
-                bgcolor: hasReturn ? '#4caf50' : '#ff9800',
-                '&:hover': hasReturn ? {
-                  bgcolor: '#388e3c',
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
-                  animation: 'bounce 0.6s ease'
-                } : {
-                  bgcolor: '#f57c00',
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 4px 12px rgba(255,152,0,0.4)'
+                bgcolor: hasReturn ? '#4caf50' : '#ccc',
+                '&:hover': {
+                  bgcolor: hasReturn ? '#388e3c' : '#999',
                 }
               }}
             />
