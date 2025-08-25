@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { MobileRentalRow } from '../MobileRentalRow';
 import {
   Box,
   Card,
@@ -8,7 +9,8 @@ import {
   Chip,
   Fade,
   CircularProgress,
-  useTheme
+  useTheme,
+  List
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -53,6 +55,7 @@ interface RentalTableProps {
   isLoadingProtocolStatus: boolean;
   protocolStatusLoaded: boolean;
   handleCheckProtocols: (rental: Rental) => void;
+  loadingProtocols: string[];
   VirtualizedRentalRow: any;
 }
 
@@ -77,6 +80,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
   isLoadingProtocolStatus,
   protocolStatusLoaded,
   handleCheckProtocols,
+  loadingProtocols,
   VirtualizedRentalRow,
 }) => {
   const theme = useTheme();
@@ -165,7 +169,23 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                   }
                 }}
               >
-                {VirtualizedRentalRow || (() => <div>Loading...</div>)}
+                {filteredRentals.map((rental, index) => (
+                  <MobileRentalRow
+                    key={rental.id}
+                    rental={rental}
+                    vehicle={getVehicleByRental(rental)}
+                    index={index}
+                    totalRentals={filteredRentals.length}
+                    hasHandover={!!protocols[rental.id]?.handover}
+                    hasReturn={!!protocols[rental.id]?.return}
+                    isLoadingProtocolStatus={loadingProtocols.includes(rental.id)}
+                    protocolStatusLoaded={protocolStatusMap[rental.id] !== undefined}
+                    onEdit={handleEdit}
+                    onOpenProtocolMenu={handleOpenProtocolMenu}
+                    onCheckProtocols={handleCheckProtocols}
+                    onDelete={(id) => handleDelete(id)}
+                  />
+                ))}
               </List>
             </Box>
             

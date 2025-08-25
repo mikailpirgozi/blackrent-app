@@ -544,6 +544,7 @@ export default function RentalList() {
         handleCheckProtocols={(rental) => {
           protocolsHook.loadProtocolsForRental(rental.id);
         }}
+        loadingProtocols={protocolsHook.loadingProtocols}
         VirtualizedRentalRow={null}
         onScroll={({ scrollOffset }) => {
           // 🎯 UNIFIED: Use the new unified scroll handler
