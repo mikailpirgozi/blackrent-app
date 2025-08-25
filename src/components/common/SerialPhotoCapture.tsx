@@ -107,6 +107,34 @@ export default function SerialPhotoCapture({
     isWebPSupported().then(setWebPSupported);
   }, []);
 
+  // ⚡ NOVÉ: Keyboard shortcuts pre rýchle fotenie
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (!open) return;
+      
+      // Cmd/Ctrl + K = Kvalitné fotky (natívna galéria)
+      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+        event.preventDefault();
+        fileInputRef.current?.click();
+      }
+      
+      // Cmd/Ctrl + R = Rýchle fotky (prehliadač)
+      if ((event.metaKey || event.ctrlKey) && event.key === 'r') {
+        event.preventDefault();
+        setNativeCameraOpen(true);
+      }
+      
+      // Space = Rýchle fotky (najčastejšie)
+      if (event.code === 'Space' && !nativeCameraOpen) {
+        event.preventDefault();
+        setNativeCameraOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [open, nativeCameraOpen]);
+
   // Funkcia pre upload na R2
   // ✅ NOVÁ FUNKCIA: Direct upload (fallback)
   const directUpload = useCallback(async (file: File): Promise<string> => {
@@ -599,8 +627,17 @@ export default function SerialPhotoCapture({
               startIcon={<PhotoCamera />}
               onClick={() => fileInputRef.current?.click()}
               disabled={processing}
+              sx={{ 
+                fontSize: '1.1rem',
+                py: 1.5,
+                px: 3,
+                '&:hover': {
+                  transform: 'scale(1.02)',
+                  transition: 'transform 0.1s'
+                }
+              }}
             >
-              Pridať fotky
+              📸 Kvalitné fotky
             </PrimaryButton>
             
             <PrimaryButton
@@ -615,8 +652,16 @@ export default function SerialPhotoCapture({
               startIcon={<PhotoCamera />}
               onClick={() => setNativeCameraOpen(true)}
               disabled={processing}
+              sx={{
+                borderColor: 'orange.main',
+                color: 'orange.main',
+                '&:hover': {
+                  borderColor: 'orange.dark',
+                  backgroundColor: 'orange.50'
+                }
+              }}
             >
-              📱 Natívna kamera
+              ⚡ Rýchle fotky
             </SecondaryButton>
 
             {/* 🎯 NOVÉ: Výber kvality */}
@@ -664,6 +709,18 @@ export default function SerialPhotoCapture({
               />
             )}
           </Box>
+
+          {/* 💡 NOVÉ: Smart Tips pre rýchle fotenie */}
+          <Alert severity="info" sx={{ mb: 2, bgcolor: 'blue.50' }}>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              <strong>⚡ Rýchle fotenie:</strong>
+            </Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2 }}>
+              <li><kbd>Space</kbd> alebo <kbd>⌘R</kbd> = Rýchle fotky cez prehliadač</li>
+              <li><kbd>⌘K</kbd> = Kvalitné fotky z galérie/fotoaparátu</li>
+              <li><strong>Tip:</strong> Pre škody použiť kvalitné, pre celkové zábery rýchle</li>
+            </Box>
+          </Alert>
 
           {/* File inputs */}
           <input
