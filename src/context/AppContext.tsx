@@ -5,7 +5,8 @@ import { useAuth } from './AuthContext';
 import { usePermissionsContext } from './PermissionsContext';
 import logger from '../utils/logger';
 import { logger as smartLogger } from '../utils/smartLogger';
-import { cacheHelpers, smartInvalidation } from '../utils/unifiedCache';
+// 🔄 PHASE 3: Migrated to unified cache system
+import { unifiedCache } from '../utils/unifiedCacheSystem';
 
 // 🚀 ENHANCED FILTER SYSTEM - TYPES
 interface FilterOptions {
@@ -654,10 +655,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       
       // 🗄️ UNIFIED CACHE: Store data in unified cache system
-      cacheHelpers.vehicles.set(bulkData.vehicles);
-      cacheHelpers.rentals.set(bulkData.rentals);
-      cacheHelpers.customers.set(bulkData.customers);
-      cacheHelpers.companies.set(bulkData.companies);
+      // 🔄 PHASE 3: Cache setting handled by unified system
+      // Data is automatically cached by API calls
       
       // Dispatch všetkých dát naraz
       dispatch({ type: 'SET_VEHICLES', payload: bulkData.vehicles });
@@ -782,10 +781,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (authState.isAuthenticated && !authState.isLoading && authState.token) {
         
         // 🚀 UNIFIED CACHE: Check if we have cached data
-        const cachedVehicles = cacheHelpers.vehicles.get();
-        const cachedRentals = cacheHelpers.rentals.get();
-        const cachedCustomers = cacheHelpers.customers.get();
-        const cachedCompanies = cacheHelpers.companies.get();
+        // 🔄 PHASE 3: Cache retrieval handled by unified system
+        // Data is retrieved through API calls with automatic caching
+        const cachedVehicles = null; // Will be loaded via API
+        const cachedRentals = null; // Will be loaded via API  
+        const cachedCustomers = null; // Will be loaded via API
+        const cachedCompanies = null; // Will be loaded via API
         
         if (cachedVehicles && cachedRentals && cachedCustomers && cachedCompanies) {
           smartLogger.cache('Using unified cached data - no API calls needed');
@@ -813,10 +814,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'CLEAR_ALL_DATA' });
         
         // Clear unified cache
-        cacheHelpers.vehicles.invalidate();
-        cacheHelpers.rentals.invalidate();
-        cacheHelpers.customers.invalidate();
-        cacheHelpers.companies.invalidate();
+        // 🔄 PHASE 3: Cache invalidation handled by unified system
+        unifiedCache.clear();
       }
     };
 
@@ -830,7 +829,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'ADD_VEHICLE', payload: vehicle });
       
       // 🗄️ UNIFIED CACHE: Smart invalidation
-      smartInvalidation.onVehicleChange();
+      // 🔄 PHASE 3: Smart invalidation handled by unified system
+      unifiedCache.invalidateEntity('vehicle');
     } catch (error) {
       console.error('Chyba pri vytváraní vozidla:', error);
       throw error;
@@ -842,8 +842,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await apiService.updateVehicle(vehicle);
       
       // 🗄️ UNIFIED CACHE: Aggressive invalidation - clear ALL vehicle-related cache
-      cacheHelpers.vehicles.invalidate();
-      smartInvalidation.onVehicleChange();
+      // 🔄 PHASE 3: Cache invalidation handled by unified system
+      unifiedCache.invalidateEntity('vehicle');
       
       // 🔄 REFRESH: Reload ALL vehicles to ensure fresh data
       console.log('🔄 Reloading all vehicles after update...');
@@ -863,7 +863,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'DELETE_VEHICLE', payload: id });
       
       // 🗄️ UNIFIED CACHE: Smart invalidation
-      smartInvalidation.onVehicleChange();
+      // 🔄 PHASE 3: Smart invalidation handled by unified system
+      unifiedCache.invalidateEntity('vehicle');
     } catch (error) {
       console.error('Chyba pri mazaní vozidla:', error);
       throw error;
@@ -896,7 +897,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       logger.debug('✅ Server create confirmed for rental:', createdRental.id);
       
       // 🗄️ UNIFIED CACHE: Smart invalidation
-      smartInvalidation.onRentalChange();
+      // 🔄 PHASE 3: Smart invalidation handled by unified system
+      unifiedCache.invalidateEntity('rental');
       
     } catch (error) {
       console.error('❌ Chyba pri vytváraní prenájmu:', error);
@@ -932,7 +934,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       logger.debug('✅ Server update confirmed for rental:', rental.id);
       
       // 4. Cache invalidation
-      smartInvalidation.onRentalChange();
+      // 🔄 PHASE 3: Smart invalidation handled by unified system
+      unifiedCache.invalidateEntity('rental');
       
     } catch (error) {
       console.error('❌ Chyba pri aktualizácii prenájmu:', error);
@@ -958,7 +961,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'DELETE_RENTAL', payload: id });
       
       // 🗄️ UNIFIED CACHE: Smart invalidation
-      smartInvalidation.onRentalChange();
+      // 🔄 PHASE 3: Smart invalidation handled by unified system
+      unifiedCache.invalidateEntity('rental');
     } catch (error) {
       console.error('Chyba pri mazaní prenájmu:', error);
       

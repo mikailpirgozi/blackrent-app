@@ -20,12 +20,25 @@ import {
   measurePerformance,
   type DebounceOptions 
 } from '../utils/debounce';
+// 🔄 PHASE 3: Migrating to unified cache system
 import { 
-  apiCache, 
-  cacheKeys, 
-  cacheHelpers,
-  type CacheOptions 
-} from '../utils/apiCache';
+  unifiedCache,
+  compatibilityCache,
+  type UnifiedCacheOptions as CacheOptions 
+} from '../utils/unifiedCacheSystem';
+
+// 🔄 COMPATIBILITY: Alias pre postupnú migráciu
+const apiCache = compatibilityCache;
+const cacheKeys = {
+  vehicles: (userId?: string) => compatibilityCache.generateKey('vehicles', { userId }),
+  customers: (userId?: string) => compatibilityCache.generateKey('customers', { userId }),
+  companies: () => compatibilityCache.generateKey('companies'),
+  bulkData: () => compatibilityCache.generateKey('bulkData'),
+  vehicleOwnership: () => compatibilityCache.generateKey('vehicleOwnership')
+};
+const cacheHelpers = {
+  invalidateEntity: compatibilityCache.invalidateEntity
+};
 import { 
   withRetry as newWithRetry,
   parseApiError,
