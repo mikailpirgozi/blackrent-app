@@ -269,12 +269,12 @@ class UnifiedFilterEngine {
     if (options.showOnlyOverdue) {
       filtered = filtered.filter(rental => {
         const endDate = new Date(rental.endDate);
-        return endDate < new Date() && rental.status !== 'completed';
+        return endDate < new Date() && rental.status !== 'finished';
       });
     }
 
     if (options.showOnlyCompleted) {
-      filtered = filtered.filter(rental => rental.status === 'completed');
+      filtered = filtered.filter(rental => rental.status === 'finished');
     }
 
     return filtered;
@@ -293,7 +293,7 @@ class UnifiedFilterEngine {
     if (options.showTodayReturns) {
       const today = new Date().toISOString().split('T')[0];
       filtered = filtered.filter(rental => 
-        rental.endDate.split('T')[0] === today
+        new Date(rental.endDate).toISOString().split('T')[0] === today
       );
     }
 
@@ -302,7 +302,7 @@ class UnifiedFilterEngine {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split('T')[0];
       filtered = filtered.filter(rental => 
-        rental.endDate.split('T')[0] === tomorrowStr
+        new Date(rental.endDate).toISOString().split('T')[0] === tomorrowStr
       );
     }
 
@@ -441,8 +441,8 @@ class UnifiedFilterEngine {
       case 'today':
         const today = now.toISOString().split('T')[0];
         return data.filter(rental => 
-          rental.startDate.split('T')[0] === today ||
-          rental.endDate.split('T')[0] === today
+          new Date(rental.startDate).toISOString().split('T')[0] === today ||
+          new Date(rental.endDate).toISOString().split('T')[0] === today
         );
         
       case 'week':

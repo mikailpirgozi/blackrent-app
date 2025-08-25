@@ -86,7 +86,8 @@ const CacheMonitoring: React.FC = () => {
         totalRequests: frontendStats.hits + frontendStats.misses,
         oldestEntry: new Date().toISOString(),
         newestEntry: new Date().toISOString(),
-        topHits: []
+        topHits: [],
+        memoryUsage: frontendStats.memoryUsage || '~calculating~'
       };
       setStats(displayStats);
       setLastRefresh(new Date());

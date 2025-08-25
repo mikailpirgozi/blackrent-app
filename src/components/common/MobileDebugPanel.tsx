@@ -30,10 +30,12 @@ import {
 
 // Fallback interface
 interface LogEntry {
-  timestamp: Date;
+  timestamp: number; // Changed from Date to number
   level: string;
   message: string;
   data?: any;
+  category?: string; // Added missing property
+  stackTrace?: string; // Added missing property
 }
 
 const MobileDebugPanel: React.FC = () => {

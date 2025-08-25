@@ -62,14 +62,14 @@ class ErrorBoundary extends Component<Props, State> {
     // 🔄 MOBILE CLEANUP: mobileLogger disabled
     const mobileLogger = null; // getMobileLogger();
     if (mobileLogger) {
-      mobileLogger.log('CRITICAL', 'ErrorBoundary', 'React Error Boundary caught error', {
-        error: error.message,
-        stack: error.stack,
-        componentStack: errorInfo.componentStack,
-        errorBoundary: true,
-        retryCount: this.state.retryCount,
-        level: this.props.level || 'component',
-      });
+      // mobileLogger.log('CRITICAL', 'ErrorBoundary', 'React Error Boundary caught error', {
+        // error: error.message,
+        // stack: error.stack,
+        // componentStack: errorInfo.componentStack,
+        // errorBoundary: true,
+        // retryCount: this.state.retryCount,
+        // level: this.props.level || 'component',
+      // });
     }
 
     // Auto-retry for certain recoverable errors
