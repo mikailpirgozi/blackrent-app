@@ -3,7 +3,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getMobileStabilizer } from '../utils/mobileStabilizer';
+// 🔄 PHASE 2: mobileStabilizer was removed as unused
+// import { getMobileStabilizer } from '../utils/mobileStabilizer';
 
 interface RecoveryState {
   isRecovering: boolean;
@@ -164,20 +165,23 @@ export const useMobileRecovery = (options: Partial<UseMobileRecoveryOptions> = {
       log('Attempting recovery', { targetPath });
 
       // Get stabilizer data
-      const stabilizer = getMobileStabilizer();
+      // 🔄 PHASE 2: mobileStabilizer was removed, using fallback
+      const stabilizer = null; // getMobileStabilizer();
       let recoveredData: any = null;
 
       if (stabilizer) {
-        const snapshots = stabilizer.getFormSnapshots();
-        const relevantSnapshot = snapshots.find(snapshot => 
-          snapshot.url.includes(targetPath) || 
-          snapshot.formType === detectFormType(targetPath)
-        );
+        // 🔄 PHASE 2: Disabled due to mobileStabilizer removal
+        // const snapshots = stabilizer.getFormSnapshots();
+        // const relevantSnapshot = snapshots.find((snapshot: any) => 
+        //   snapshot.url.includes(targetPath) || 
+        //   snapshot.formType === detectFormType(targetPath)
+        // );
 
-        if (relevantSnapshot) {
-          recoveredData = relevantSnapshot;
-          log('Found relevant form snapshot', relevantSnapshot);
-        }
+        // 🔄 PHASE 2: Disabled due to mobileStabilizer removal
+        // if (relevantSnapshot) {
+        //   recoveredData = relevantSnapshot;
+        //   log('Found relevant form snapshot', relevantSnapshot);
+        // }
       }
 
       // Get saved state from session storage
@@ -327,10 +331,12 @@ export const useMobileRecovery = (options: Partial<UseMobileRecoveryOptions> = {
     if (!formData) return;
     
     try {
-      const stabilizer = getMobileStabilizer();
+      // 🔄 PHASE 2: mobileStabilizer was removed, using fallback
+      const stabilizer = null; // getMobileStabilizer();
       if (stabilizer && formData.formData) {
-        stabilizer.restoreFormSnapshot(formData);
-        log('Form data restored', formData);
+        // 🔄 PHASE 2: Disabled due to mobileStabilizer removal
+        // stabilizer.restoreFormSnapshot(formData);
+        log('Form data restore disabled (mobileStabilizer removed)', formData);
       }
     } catch (error) {
       log('Error restoring form data', error);

@@ -17,6 +17,7 @@ export interface UnifiedCacheOptions {
   tags?: string[];
   priority?: 'low' | 'normal' | 'high';
   backgroundRefresh?: boolean;
+  background?: boolean; // Compatibility with old API
 }
 
 export interface CacheStats {
@@ -67,7 +68,21 @@ class UnifiedCacheSystem {
     logger.debug(`🗄️ UNIFIED: Invalidating ${entity}`);
     
     // FÁZA 1: Deleguj na existujúci systém
-    cacheHelpers.invalidateEntity(entity);
+    // Handle special cases
+    if (entity === 'all') {
+      // Clear all caches
+      try {
+        (apiCache as any).clear?.();
+      } catch (error) {
+        logger.warn('Cache clear error:', error);
+      }
+    } else {
+      // Map to valid entity types
+      const validEntities = ['vehicle', 'customer', 'rental', 'expense', 'company'];
+      if (validEntities.includes(entity)) {
+        cacheHelpers.invalidateEntity(entity as any);
+      }
+    }
   }
 
   /**
@@ -119,7 +134,15 @@ class UnifiedCacheSystem {
     // FÁZA 1: Vymaže všetky existujúce systémy
     try {
       (apiCache as any).clear?.();
-      cacheHelpers.invalidateEntity('all');
+      // Clear each entity type individually
+      const entities = ['vehicle', 'customer', 'rental', 'expense', 'company'];
+      entities.forEach(entity => {
+        try {
+          cacheHelpers.invalidateEntity(entity as any);
+        } catch (e) {
+          // Ignore individual errors
+        }
+      });
     } catch (error) {
       logger.warn('Cache clear error:', error);
     }
