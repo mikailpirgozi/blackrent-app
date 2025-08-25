@@ -233,9 +233,6 @@ export default function Layout({ children }: LayoutProps) {
                   mb: 0.5,
                   minHeight: 48,
                   color: 'white',
-                  background: location.pathname === item.path 
-                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                    : 'transparent',
                   '&:hover': {
                     backgroundColor: isDarkMode 
                       ? 'rgba(255, 255, 255, 0.1)'
@@ -244,11 +241,15 @@ export default function Layout({ children }: LayoutProps) {
                     transition: 'all 0.2s ease-in-out',
                   },
                   '&.Mui-selected': {
-                    backgroundColor: 'transparent',
+                    backgroundColor: isDarkMode 
+                      ? 'rgba(255, 255, 255, 0.15)'
+                      : 'rgba(255, 255, 255, 0.2)',
                     color: 'white',
-                    boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
                     '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      backgroundColor: isDarkMode 
+                        ? 'rgba(255, 255, 255, 0.2)'
+                        : 'rgba(255, 255, 255, 0.25)',
                     },
                   },
                   transition: 'all 0.2s ease-in-out',
@@ -307,7 +308,7 @@ export default function Layout({ children }: LayoutProps) {
                 fontWeight: 600,
               }}
             >
-              {state.user?.username?.charAt(0).toUpperCase()}
+              {state.user?.username?.charAt(0).toUpperCase() || 'U'}
             </Avatar>
             <Box sx={{ flex: 1 }}>
               <Typography 
@@ -318,7 +319,7 @@ export default function Layout({ children }: LayoutProps) {
                   fontSize: '0.875rem',
                 }}
               >
-                {state.user?.username}
+                {state.user?.username || 'Používateľ'}
               </Typography>
               <Typography 
                 variant="caption" 
@@ -384,17 +385,15 @@ export default function Layout({ children }: LayoutProps) {
             </Box>
             
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {state.user && (
-                <Chip
-                  label={state.user.role === 'admin' ? 'Admin' : 'User'}
-                  size="small"
-                  color={state.user.role === 'admin' ? 'primary' : 'default'}
-                  sx={{ fontSize: '0.75rem' }}
-                />
-              )}
+              <Chip
+                label={state.user?.role === 'admin' ? 'Admin' : 'User'}
+                size="small"
+                color={state.user?.role === 'admin' ? 'primary' : 'default'}
+                sx={{ fontSize: '0.75rem' }}
+              />
               
               {/* 🔴 Real-time Notifications */}
-              {/* <RealTimeNotifications /> */}
+              <RealTimeNotifications />
               
               <IconButton
                 onClick={toggleTheme}
@@ -623,24 +622,24 @@ export default function Layout({ children }: LayoutProps) {
       />
 
       {/* 🛡️ Enhanced Global Error Toast */}
-      {/* <EnhancedErrorToast
+      <EnhancedErrorToast
         error={currentError}
         context={{ location: 'global' }}
         onClose={handleErrorClose}
         onRetry={handleErrorRetry}
         position="top"
-      /> */}
+      />
 
       {/* 🎉 Global Success Toast */}
-      {/* <SuccessToast
+      <SuccessToast
         message={successMessage}
         onClose={handleSuccessClose}
         showStats={successStats}
         icon="check"
-      /> */}
+      />
 
       {/* 📱 Mobile Debug Panel */}
-      {/* <MobileDebugPanel /> */}
+      <MobileDebugPanel />
     </Box>
   );
 }

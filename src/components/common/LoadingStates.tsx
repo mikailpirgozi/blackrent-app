@@ -265,7 +265,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
         open={true}
       >
         <Fade in={true}>
-          {content}
+          <div>{content}</div>
         </Fade>
       </Backdrop>
     );
