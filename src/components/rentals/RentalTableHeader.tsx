@@ -8,8 +8,8 @@ import React, { memo } from 'react';
 import { 
   Box, 
   Typography, 
+  Button, 
   TextField, 
-  Button,
   IconButton,
   Tooltip,
   useTheme,
@@ -178,15 +178,7 @@ const RentalTableHeader: React.FC<RentalTableHeaderProps> = ({
             borderRadius: 2,
             textTransform: 'none',
             fontWeight: 600,
-            px: 3,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
-              transform: 'translateY(-2px)',
-              boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
-            },
-            transition: 'all 0.2s ease-in-out',
+            px: 3
           }}
         >
           {isMobile ? 'Pridať' : 'Nová rezervácia'}

@@ -9,8 +9,7 @@ import {
   Chip,
   Fade,
   CircularProgress,
-  useTheme,
-  List
+  useTheme
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -152,13 +151,14 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                 overflow: 'auto' // Povoliť scrollovanie
               }}
             >
-              <List
-                height={typeof window !== 'undefined' ? Math.min(window.innerHeight * 0.6, 600) : 600} // Dynamická výška založená na veľkosti okna
-                width="100%"
-                itemCount={(paginatedRentals || []).length}
-                itemSize={160}
-                itemData={paginatedRentals || []}
-                onScroll={({ scrollOffset }) => {
+              <Box
+                sx={{
+                  height: typeof window !== 'undefined' ? Math.min(window.innerHeight * 0.6, 600) : 600,
+                  width: '100%',
+                  overflow: 'auto'
+                }}
+                onScroll={(e) => {
+                  const scrollOffset = e.currentTarget.scrollTop;
                   // 🎯 UNIFIED: Use the new unified scroll handler
                   if ((window as any).__unifiedRentalScrollHandler) {
                     (window as any).__unifiedRentalScrollHandler({ scrollOffset });
@@ -186,7 +186,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                     onDelete={(id) => handleDelete(id)}
                   />
                 ))}
-              </List>
+              </Box>
             </Box>
             
             {/* FALLBACK: Tradičný rendering pre debug */}

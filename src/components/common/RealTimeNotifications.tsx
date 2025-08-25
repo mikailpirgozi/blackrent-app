@@ -100,7 +100,7 @@ const RealTimeNotifications: React.FC = () => {
   return (
     <Box>
       {/* Connection Status Indicator */}
-      <Tooltip title={isConnected ? `Pripojené - ${connectedUsers?.count || 0} užívateľov online` : 'Odpojené od real-time updates'}>
+      <Tooltip title={isConnected ? `Pripojené - ${connectedUsers.count} užívateľov online` : 'Odpojené od real-time updates'}>
         <Chip
           icon={isConnected ? <WiFiIcon /> : <WiFiOffIcon />}
           label={isConnected ? 'Live' : 'Offline'}
@@ -169,7 +169,7 @@ const RealTimeNotifications: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, gap: 1 }}>
             <Chip
               icon={isConnected ? <WiFiIcon /> : <WiFiOffIcon />}
-              label={isConnected ? `${connectedUsers?.count || 0} online` : 'Offline'}
+              label={isConnected ? `${connectedUsers.count} online` : 'Offline'}
               color={isConnected ? 'success' : 'error'}
               size="small"
             />
