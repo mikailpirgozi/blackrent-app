@@ -20,6 +20,13 @@ import {
   measurePerformance,
   type DebounceOptions 
 } from '../utils/debounce';
+import { 
+  withRetry as newWithRetry,
+  parseApiError,
+  createApiErrorHandler,
+  handleApiResponse 
+} from '../utils/apiErrorHandler';
+import { getApiBaseUrl } from '../utils/apiUrl';
 // 🔄 PHASE 3: Migrating to unified cache system
 import { 
   unifiedCache,
@@ -39,13 +46,6 @@ const cacheKeys = {
 const cacheHelpers = {
   invalidateEntity: compatibilityCache.invalidateEntity
 };
-import { 
-  withRetry as newWithRetry,
-  parseApiError,
-  createApiErrorHandler,
-  handleApiResponse 
-} from '../utils/apiErrorHandler';
-import { getApiBaseUrl } from '../utils/apiUrl';
 
 // Export for compatibility
 export const getApiBaseUrlDynamic = getApiBaseUrl;
