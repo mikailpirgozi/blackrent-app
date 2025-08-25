@@ -152,12 +152,39 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
         commission: rental.commission
       });
       setCalculatedPrice(basePriceWithoutExtraKm);
-      setCalculatedCommission(rental.commission);
+      
+      // Calculate commission for existing rental if not already set
+      let calculatedCommissionValue = rental.commission || 0;
+      
+      // If commission is 0 or missing, calculate it from vehicle data
+      if (!calculatedCommissionValue || calculatedCommissionValue === 0) {
+        const vehicle = state.vehicles.find(v => v.id === rental.vehicleId);
+        if (vehicle?.commission) {
+          if (rental.customCommission?.value && rental.customCommission.value > 0) {
+            // Use custom commission if set
+            if (rental.customCommission.type === 'percentage') {
+              calculatedCommissionValue = (basePriceWithoutExtraKm * rental.customCommission.value) / 100;
+            } else {
+              calculatedCommissionValue = rental.customCommission.value;
+            }
+          } else {
+            // Use vehicle's default commission
+            if (vehicle.commission.type === 'percentage') {
+              calculatedCommissionValue = (basePriceWithoutExtraKm * vehicle.commission.value) / 100;
+            } else {
+              calculatedCommissionValue = vehicle.commission.value;
+            }
+          }
+        }
+      }
+      
+      setCalculatedCommission(calculatedCommissionValue);
       
       console.log('🔍 RENTAL FORM SET STATE:', {
         rentalId: rental.id,
         calculatedPrice: basePriceWithoutExtraKm,
-        calculatedCommission: rental.commission,
+        calculatedCommission: calculatedCommissionValue,
+        originalCommission: rental.commission,
         preserveImportedValues: true
       });
       
@@ -248,6 +275,12 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
 
   const handleInputChange = (field: keyof Rental, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Reset preserveImportedValues when user changes discount or commission
+    if (field === 'discount' || field === 'customCommission') {
+      console.log('🔄 RESET preserveImportedValues:', { field, value });
+      setPreserveImportedValues(false);
+    }
   };
 
   const handleCustomerChange = (customer: Customer | null) => {
@@ -424,10 +457,16 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
   }, [dailyKilometers, formData.startDate, formData.endDate]);
 
   useEffect(() => {
-    // ✅ OPRAVENÉ: Neprepisuj importované hodnoty
-    if (preserveImportedValues) {
+    // ✅ OPRAVENÉ: Neprepisuj importované hodnoty, ale povoľ prepočítavanie pri zmene discount/commission
+    if (preserveImportedValues && !formData.discount && !formData.customCommission) {
       console.log('🔍 USEEFFECT SKIP:', { preserveImportedValues: true, reason: 'imported values preserved' });
       return;
+    }
+    
+    // Ak používateľ mení discount alebo commission, povoľ prepočítavanie
+    if (preserveImportedValues && (formData.discount || formData.customCommission)) {
+      console.log('🔍 USEEFFECT ALLOW:', { preserveImportedValues: true, reason: 'discount/commission changed - allowing recalculation' });
+      setPreserveImportedValues(false);
     }
     
     console.log('🔍 USEEFFECT RUN:', { 

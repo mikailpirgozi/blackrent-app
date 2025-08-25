@@ -15,8 +15,13 @@ import {
   Typography,
   Alert,
   Autocomplete,
+  IconButton,
+  Card,
+  CardContent,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { Edit as EditIcon, Percent as PercentIcon } from '@mui/icons-material';
+import { differenceInDays } from 'date-fns';
 
 import { Rental, Vehicle, Customer } from '../../types';
 import { apiService } from '../../services/api';
@@ -41,6 +46,9 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
   const [formData, setFormData] = useState<Partial<Rental>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [calculatedPrice, setCalculatedPrice] = useState(0);
+  const [calculatedCommission, setCalculatedCommission] = useState(0);
+  const [showDiscountCommission, setShowDiscountCommission] = useState(false);
 
   useEffect(() => {
     if (rental && open) {
@@ -59,10 +67,96 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
         dailyKilometers: rental.dailyKilometers,
         paymentMethod: rental.paymentMethod,
         notes: rental.notes,
+        discount: rental.discount,
+        customCommission: rental.customCommission,
       });
+      setCalculatedPrice(rental.totalPrice || 0);
+      setCalculatedCommission(rental.commission || 0);
       setError(null);
     }
   }, [rental, open]);
+
+  // Utility function to calculate rental days
+  const calculateRentalDays = (startDate: Date, endDate: Date): number => {
+    const timeDiff = endDate.getTime() - startDate.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    return Math.max(1, daysDiff);
+  };
+
+  // Auto-calculate price and commission when relevant fields change
+  useEffect(() => {
+    if (!formData.vehicleId || !formData.startDate || !formData.endDate) {
+      setCalculatedPrice(0);
+      setCalculatedCommission(0);
+      return;
+    }
+
+    const vehicle = vehicles.find(v => v.id === formData.vehicleId);
+    if (!vehicle) {
+      setCalculatedPrice(0);
+      setCalculatedCommission(0);
+      return;
+    }
+
+    // Calculate rental days
+    const startDate = formData.startDate instanceof Date ? formData.startDate : new Date(formData.startDate || '');
+    const endDate = formData.endDate instanceof Date ? formData.endDate : new Date(formData.endDate || '');
+    
+    const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    
+    const daysDifference = differenceInDays(endDateOnly, startDateOnly);
+    const days = Math.max(1, daysDifference);
+    
+    // Find pricing tier
+    const pricingTier = vehicle.pricing?.find(p => days >= p.minDays && days <= p.maxDays);
+    if (!pricingTier) {
+      setCalculatedPrice(0);
+      setCalculatedCommission(0);
+      return;
+    }
+
+    // Calculate base price
+    const basePrice = pricingTier.pricePerDay * days;
+
+    // Apply discount
+    let discount = 0;
+    if (formData.discount?.value && formData.discount.value > 0) {
+      if (formData.discount.type === 'percentage') {
+        discount = (basePrice * formData.discount.value) / 100;
+      } else {
+        discount = formData.discount.value;
+      }
+    }
+
+    const basePriceAfterDiscount = Math.max(0, basePrice - discount);
+    setCalculatedPrice(basePriceAfterDiscount);
+
+    // Calculate commission
+    let commission = 0;
+    if (formData.customCommission?.value && formData.customCommission.value > 0) {
+      if (formData.customCommission.type === 'percentage') {
+        commission = (basePriceAfterDiscount * formData.customCommission.value) / 100;
+      } else {
+        commission = formData.customCommission.value;
+      }
+    } else if (vehicle.commission) {
+      if (vehicle.commission.type === 'percentage') {
+        commission = (basePriceAfterDiscount * vehicle.commission.value) / 100;
+      } else {
+        commission = vehicle.commission.value;
+      }
+    }
+    setCalculatedCommission(commission);
+
+    // Update formData with calculated price
+    setFormData(prev => ({
+      ...prev,
+      totalPrice: basePriceAfterDiscount,
+      commission: commission
+    }));
+
+  }, [formData.vehicleId, formData.startDate, formData.endDate, formData.discount, formData.customCommission, vehicles]);
 
   const handleSave = async () => {
     if (!rental) return;
@@ -77,10 +171,18 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
         return;
       }
 
-      // Update rental via API
-      await apiService.updatePendingRental(rental.id, formData);
+      // Update rental via API with calculated values
+      const updatedData = {
+        ...formData,
+        totalPrice: calculatedPrice,
+        commission: calculatedCommission,
+        discount: formData.discount?.value && formData.discount.value > 0 ? formData.discount : undefined,
+        customCommission: formData.customCommission?.value && formData.customCommission.value > 0 ? formData.customCommission : undefined,
+      };
       
-      onSave(formData);
+      await apiService.updatePendingRental(rental.id, updatedData);
+      
+      onSave(updatedData);
       onClose();
     } catch (err: any) {
       console.error('Error updating rental:', err);
@@ -229,9 +331,10 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
               fullWidth
               label="Celková cena *"
               type="number"
-              value={formData.totalPrice || ''}
-              onChange={(e) => handleInputChange('totalPrice', parseFloat(e.target.value) || 0)}
+              value={calculatedPrice || ''}
+              onChange={(e) => setCalculatedPrice(parseFloat(e.target.value) || 0)}
               InputProps={{ endAdornment: '€' }}
+              helperText="Automaticky prepočítaná podľa zľavy"
             />
           </Grid>
           
@@ -259,6 +362,81 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
                 <MenuItem value="direct_to_owner">Priamo majiteľovi</MenuItem>
               </Select>
             </FormControl>
+          </Grid>
+
+          {/* Price Calculation Summary */}
+          <Grid item xs={12}>
+            <Card sx={{ mt: 2, mb: 2 }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Box>
+                    <Typography variant="h6" color="primary">
+                      Celková cena: <strong>{calculatedPrice.toFixed(2)} €</strong>
+                    </Typography>
+                    <Typography>
+                      Provízia: <strong>{calculatedCommission.toFixed(2)} €</strong>
+                    </Typography>
+                  </Box>
+                  <IconButton onClick={() => setShowDiscountCommission(!showDiscountCommission)}>
+                    {showDiscountCommission ? <PercentIcon /> : <EditIcon />}
+                  </IconButton>
+                </Box>
+                
+                {showDiscountCommission && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Zľava / Provízia
+                    </Typography>
+                    
+                    {/* Discount */}
+                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                      <FormControl sx={{ minWidth: 80 }} size="small">
+                        <InputLabel>Zľava</InputLabel>
+                        <Select
+                          value={formData.discount?.type || ''}
+                          label="Zľava"
+                          onChange={(e) => handleInputChange('discount', { ...formData.discount, type: e.target.value })}
+                        >
+                          <MenuItem value="percentage">%</MenuItem>
+                          <MenuItem value="fixed">€</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <TextField
+                        label="Hodnota"
+                        type="number"
+                        value={formData.discount?.value || ''}
+                        onChange={(e) => handleInputChange('discount', { ...formData.discount, value: Number(e.target.value) })}
+                        size="small"
+                        sx={{ maxWidth: 100 }}
+                      />
+                    </Box>
+                    
+                    {/* Commission */}
+                    <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                      <FormControl sx={{ minWidth: 120 }} size="small">
+                        <InputLabel>Provízia</InputLabel>
+                        <Select
+                          value={formData.customCommission?.type || ''}
+                          label="Provízia"
+                          onChange={(e) => handleInputChange('customCommission', { ...formData.customCommission, type: e.target.value })}
+                        >
+                          <MenuItem value="percentage">%</MenuItem>
+                          <MenuItem value="fixed">€</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <TextField
+                        label="Hodnota"
+                        type="number"
+                        value={formData.customCommission?.value || ''}
+                        onChange={(e) => handleInputChange('customCommission', { ...formData.customCommission, value: Number(e.target.value) })}
+                        size="small"
+                        sx={{ maxWidth: 100 }}
+                      />
+                    </Box>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
           </Grid>
 
           {/* Additional Info */}
