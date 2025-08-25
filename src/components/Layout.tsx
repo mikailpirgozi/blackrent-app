@@ -623,21 +623,21 @@ export default function Layout({ children }: LayoutProps) {
       />
 
       {/* 🛡️ Enhanced Global Error Toast */}
-      <EnhancedErrorToast
+      {/* <EnhancedErrorToast
         error={currentError}
         context={{ location: 'global' }}
         onClose={handleErrorClose}
         onRetry={handleErrorRetry}
         position="top"
-      />
+      /> */}
 
       {/* 🎉 Global Success Toast */}
-      <SuccessToast
+      {/* <SuccessToast
         message={successMessage}
         onClose={handleSuccessClose}
         showStats={successStats}
         icon="check"
-      />
+      /> */}
 
       {/* 📱 Mobile Debug Panel */}
       {/* <MobileDebugPanel /> */}

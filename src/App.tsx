@@ -80,9 +80,9 @@ const AppContent: React.FC = () => {
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
       <ErrorProvider>
-        <ErrorToastContainer />
+        {/* <ErrorToastContainer /> */}
         {/* PWA Install moved to sidebar - no auto-popup */}
-        <OfflineIndicator position="top" showDetails={true} />
+        {/* <OfflineIndicator position="top" showDetails={true} /> */}
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
           <AuthProvider>
             <PermissionsProvider>
@@ -110,7 +110,8 @@ const AppContent: React.FC = () => {
                         <Layout>
                           <ErrorBoundary level="page" maxRetries={3}>
                             <Suspense fallback={<PageLoader />}>
-                              <VehicleList />
+                              <div>TEST - VehicleList zakomentovaný</div>
+                              {/* <VehicleList /> */}
                             </Suspense>
                           </ErrorBoundary>
                         </Layout>
