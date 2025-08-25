@@ -8,10 +8,9 @@
  */
 
 import React, { memo } from 'react';
-import { Box, Typography, Fade, IconButton } from '@mui/material';
+import { Box, Typography, Chip, Fade, IconButton } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { UnifiedChip } from '../ui';
 
 interface MobileRentalRowProps {
   rental: any;
@@ -232,35 +231,60 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
           flexWrap: 'wrap'
         }}>
           <Fade in timeout={600}>
-            <UnifiedChip
-              variant="protocol"
-              size="sm"
+            <Chip
+              size="small"
               label={hasHandover ? 'H' : '⏳'}
               title={hasHandover ? 'Kliknite pre zobrazenie protokolu' : 'Vytvoriť odovzdávací protokol'}
               onClick={handleHandoverClick}
-              animated
               sx={{
+                height: { xs: 32, sm: 28 },
+                fontSize: { xs: '0.8rem', sm: '0.75rem' },
                 bgcolor: hasHandover ? '#4caf50' : '#ff9800',
+                color: 'white',
+                fontWeight: 700,
+                minWidth: { xs: 44, sm: 42 },
+                maxWidth: { xs: 60, sm: 60 },
+                cursor: 'pointer',
+                borderRadius: { xs: 2, sm: 2.5 },
+                boxShadow: hasHandover ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 8px rgba(255,152,0,0.3)',
                 '&:hover': {
                   bgcolor: hasHandover ? '#388e3c' : '#f57c00',
-                }
+                  transform: 'scale(1.1)',
+                  boxShadow: hasHandover ? '0 4px 12px rgba(76,175,80,0.4)' : '0 4px 12px rgba(255,152,0,0.4)',
+                },
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
             />
           </Fade>
           
           <Fade in timeout={800}>
-            <UnifiedChip
-              variant="protocol"
-              size="sm"
+            <Chip
+              size="small"
               label={hasReturn ? 'R' : '⏳'}
               title={hasReturn ? 'Kliknite pre zobrazenie protokolu' : 'Vytvoriť preberací protokol'}
               onClick={handleReturnClick}
-              animated
               sx={{
+                height: { xs: 32, sm: 28 },
+                fontSize: { xs: '0.8rem', sm: '0.75rem' },
                 bgcolor: hasReturn ? '#4caf50' : '#ccc',
-                '&:hover': {
-                  bgcolor: hasReturn ? '#388e3c' : '#999',
-                }
+                color: 'white',
+                fontWeight: 700,
+                minWidth: { xs: 44, sm: 42 },
+                maxWidth: { xs: 60, sm: 60 },
+                cursor: hasReturn ? 'pointer' : 'default',
+                borderRadius: { xs: 2, sm: 2.5 },
+                boxShadow: hasReturn ? '0 2px 8px rgba(76,175,80,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+                transform: hasReturn ? 'scale(1)' : 'scale(0.95)',
+                opacity: hasReturn ? 1 : 0.7,
+                '&:hover': hasReturn ? {
+                  bgcolor: '#388e3c',
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
+                } : {
+                  transform: 'scale(0.98)',
+                  opacity: 0.8
+                },
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
             />
           </Fade>

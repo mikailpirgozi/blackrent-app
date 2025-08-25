@@ -233,6 +233,9 @@ export default function Layout({ children }: LayoutProps) {
                   mb: 0.5,
                   minHeight: 48,
                   color: 'white',
+                  background: location.pathname === item.path 
+                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    : 'transparent',
                   '&:hover': {
                     backgroundColor: isDarkMode 
                       ? 'rgba(255, 255, 255, 0.1)'
@@ -241,15 +244,11 @@ export default function Layout({ children }: LayoutProps) {
                     transition: 'all 0.2s ease-in-out',
                   },
                   '&.Mui-selected': {
-                    backgroundColor: isDarkMode 
-                      ? 'rgba(255, 255, 255, 0.15)'
-                      : 'rgba(255, 255, 255, 0.2)',
+                    backgroundColor: 'transparent',
                     color: 'white',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
                     '&:hover': {
-                      backgroundColor: isDarkMode 
-                        ? 'rgba(255, 255, 255, 0.2)'
-                        : 'rgba(255, 255, 255, 0.25)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
                     },
                   },
                   transition: 'all 0.2s ease-in-out',

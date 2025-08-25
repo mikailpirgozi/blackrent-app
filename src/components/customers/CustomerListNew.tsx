@@ -27,6 +27,7 @@ import {
   Divider,
   FormGroup
 } from '@mui/material';
+
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -356,6 +357,19 @@ export default function CustomerListNew() {
             onClick={handleImportExistingCustomers}
             size="small"
             disabled={loading}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              borderColor: '#667eea',
+              color: '#667eea',
+              '&:hover': {
+                borderColor: '#5a67d8',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.2s ease-in-out',
+            }}
           >
             Import z prenájmov
           </Button>

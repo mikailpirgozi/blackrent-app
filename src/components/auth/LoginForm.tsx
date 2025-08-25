@@ -4,6 +4,7 @@ import {
   Card,
   CardContent,
   TextField,
+  Button,
   Typography,
   Alert,
   Container,
@@ -17,7 +18,6 @@ import {
 import { LockOutlined as LockIcon, AccountCircle as AccountIcon } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { LoginCredentials } from '../../types';
-import { UnifiedButton } from '../ui';
 import { useNavigate } from 'react-router-dom';
 import { useAuthError } from '../../hooks/useEnhancedError';
 import { EnhancedErrorToast } from '../common/EnhancedErrorToast';
@@ -166,17 +166,28 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                 sx={{ mb: 2 }}
               />
               
-              <UnifiedButton
+              <Button
                 type="submit"
-                variant="primary"
-                size="lg"
                 fullWidth
-                loading={state.isLoading}
-                loadingText="Prihlasuje sa..."
-                sx={{ mb: 2 }}
+                variant="contained"
+                sx={{ 
+                  mb: 2, 
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
+                  },
+                  transition: 'all 0.2s ease-in-out',
+                }}
+                disabled={state.isLoading}
               >
-                Prihlásiť sa
-              </UnifiedButton>
+                {state.isLoading ? 'Prihlasuje sa...' : 'Prihlásiť sa'}
+              </Button>
             </Box>
 
             <Divider sx={{ my: 2 }}>
@@ -186,12 +197,21 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             </Divider>
 
             <Box sx={{ textAlign: 'center', mb: 2 }}>
-              <UnifiedButton
-                variant="secondary"
+              <Button
+                variant="outlined"
                 onClick={() => setShowDemo(!showDemo)}
+                sx={{ 
+                  fontWeight: 'bold',
+                  borderColor: '#667eea',
+                  color: '#667eea',
+                  '&:hover': {
+                    borderColor: '#5a67d8',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                  },
+                }}
               >
                 {showDemo ? 'Skryť demo účty' : 'Ukázať demo účty'}
-              </UnifiedButton>
+              </Button>
             </Box>
 
             {showDemo && (

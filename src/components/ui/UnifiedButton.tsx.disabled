@@ -283,6 +283,10 @@ export const UnifiedButton: React.FC<UnifiedButtonProps> = ({
     ...sx,
   };
 
+  // Ensure we always have valid children - never null or undefined
+  const buttonText = loading && loadingText ? loadingText : children;
+  const hasValidText = buttonText && typeof buttonText === 'string' && buttonText.trim() !== '';
+  
   return (
     <Button
       {...props}
@@ -293,9 +297,11 @@ export const UnifiedButton: React.FC<UnifiedButtonProps> = ({
       <Box sx={{ 
         display: 'flex', 
         alignItems: 'center', 
-        gap: 1,
+        gap: hasValidText && icon ? 1 : 0,
         opacity: loading ? 0.7 : 1,
         transition: 'opacity 0.2s ease',
+        justifyContent: 'center',
+        alignItems: 'center',
       }}>
         {/* Loading spinner */}
         {loading && (
@@ -303,33 +309,23 @@ export const UnifiedButton: React.FC<UnifiedButtonProps> = ({
             size={size === 'xs' ? 12 : size === 'sm' ? 14 : 16} 
             sx={{ 
               color: 'inherit',
-              position: iconPosition === 'left' ? 'static' : 'absolute',
-              left: iconPosition === 'right' ? '50%' : 'auto',
-              transform: iconPosition === 'right' ? 'translateX(-50%)' : 'none',
             }} 
           />
         )}
         
         {/* Left icon */}
-        {!loading && icon && iconPosition === 'left' && (
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {icon}
-          </Box>
-        )}
+        {!loading && icon && iconPosition === 'left' && icon}
         
-        {/* Button text */}
-        <Box sx={{ 
-          visibility: loading && iconPosition === 'right' ? 'hidden' : 'visible',
-        }}>
-          {loading && loadingText ? loadingText : children}
-        </Box>
+        {/* Button text - only render if we have valid text */}
+        {!loading && hasValidText && (
+          <span>{buttonText}</span>
+        )}
         
         {/* Right icon */}
-        {!loading && icon && iconPosition === 'right' && (
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {icon}
-          </Box>
-        )}
+        {!loading && icon && iconPosition === 'right' && icon}
+        
+        {/* Fallback - if no text and no icon, render empty span */}
+        {!loading && !hasValidText && !icon && <span>&nbsp;</span>}
       </Box>
     </Button>
   );

@@ -1,25 +1,15 @@
 // 🎨 UNIFIED UI DESIGN SYSTEM
 // Centralizované komponenty pre konzistentné UI
 
-// Button System
-export { UnifiedButton } from './UnifiedButton';
-export type { UnifiedButtonProps, UnifiedButtonVariant, UnifiedButtonSize } from './UnifiedButton';
-
 // Card System
 export { UnifiedCard } from './UnifiedCard';
 export type { UnifiedCardProps, UnifiedCardVariant } from './UnifiedCard';
-
-// Chip System
-export { UnifiedChip } from './UnifiedChip';
-export type { UnifiedChipProps, UnifiedChipVariant, UnifiedChipSize } from './UnifiedChip';
 
 // Demo Component
 export { UnifiedDemo } from './UnifiedDemo';
 
 // 🎯 QUICK IMPORTS
-export { UnifiedButton as UButton } from './UnifiedButton';
 export { UnifiedCard as UCard } from './UnifiedCard';
-export { UnifiedChip as UChip } from './UnifiedChip';
 
 // 🎨 DESIGN TOKENS
 export const designTokens = {
