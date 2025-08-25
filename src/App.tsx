@@ -19,6 +19,7 @@ import { initializeCriticalResources } from './utils/criticalResources';
 // import { initializeMobileOptimizations } from './utils/mobileOptimization';
 // import { initializeMobileStabilizer } from './utils/mobileStabilizer';
 // import { initializeMobilePerformance } from './utils/mobilePerformance';
+// 🔄 MOBILE CLEANUP: mobileLogger removed
 // import { initializeMobileLogger } from './utils/mobileLogger';
 
 import ErrorBoundary from './components/common/ErrorBoundary';

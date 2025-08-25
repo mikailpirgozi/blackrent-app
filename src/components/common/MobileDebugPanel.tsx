@@ -25,23 +25,34 @@ import {
   Memory as MemoryIcon,
   Speed as SpeedIcon
 } from '@mui/icons-material';
-import { getMobileLogger, LogEntry } from '../../utils/mobileLogger';
+// 🔄 MOBILE CLEANUP: mobileLogger removed
+// import { getMobileLogger, LogEntry } from '../../utils/mobileLogger';
+
+// Fallback interface
+interface LogEntry {
+  timestamp: Date;
+  level: string;
+  message: string;
+  data?: any;
+}
 
 const MobileDebugPanel: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [expandedLog, setExpandedLog] = useState<number | null>(null);
   const [stats, setStats] = useState<any>(null);
-  const mobileLogger = getMobileLogger();
+  // 🔄 MOBILE CLEANUP: mobileLogger disabled
+  const mobileLogger = null; // getMobileLogger();
 
   // Detect if mobile
   const isMobile = window.matchMedia('(max-width: 900px)').matches;
 
   const refreshLogs = () => {
+    // 🔄 MOBILE CLEANUP: mobileLogger disabled
     if (!mobileLogger) return;
-    const currentLogs = mobileLogger.getLogs();
-    setLogs(currentLogs.slice(-50)); // Last 50 logs
-    setStats(mobileLogger.getStats());
+    // const currentLogs = mobileLogger.getLogs();
+    // setLogs(currentLogs.slice(-50)); // Last 50 logs
+    // setStats(mobileLogger.getStats());
   };
 
   useEffect(() => {
@@ -59,12 +70,14 @@ const MobileDebugPanel: React.FC = () => {
   }
 
   const handleDownloadLogs = () => {
-    mobileLogger.downloadLogs();
+    // 🔄 MOBILE CLEANUP: mobileLogger disabled
+    // mobileLogger.downloadLogs();
   };
 
   const handleClearLogs = () => {
-    mobileLogger.clearLogs();
-    refreshLogs();
+    // 🔄 MOBILE CLEANUP: mobileLogger disabled
+    // mobileLogger.clearLogs();
+    // refreshLogs();
   };
 
   const getLevelColor = (level: LogEntry['level']) => {

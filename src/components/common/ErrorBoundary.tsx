@@ -17,7 +17,8 @@ import {
   Home as HomeIcon,
   BugReport as BugReportIcon,
 } from '@mui/icons-material';
-import { getMobileLogger } from '../../utils/mobileLogger';
+// 🔄 MOBILE CLEANUP: mobileLogger removed
+// import { getMobileLogger } from '../../utils/mobileLogger';
 
 interface Props {
   children: ReactNode;
@@ -58,7 +59,8 @@ class ErrorBoundary extends Component<Props, State> {
     console.groupEnd();
     
     // Report to MobileLogger with enhanced context
-    const mobileLogger = getMobileLogger();
+    // 🔄 MOBILE CLEANUP: mobileLogger disabled
+    const mobileLogger = null; // getMobileLogger();
     if (mobileLogger) {
       mobileLogger.log('CRITICAL', 'ErrorBoundary', 'React Error Boundary caught error', {
         error: error.message,

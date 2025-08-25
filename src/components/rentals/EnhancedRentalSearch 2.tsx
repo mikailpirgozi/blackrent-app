@@ -23,7 +23,8 @@ import { useApp } from '../../context/AppContext';
 import { Rental } from '../../types';
 import EnhancedSearchBar from '../common/EnhancedSearchBar';
 import QuickFilters, { RENTAL_QUICK_FILTERS } from '../common/QuickFilters';
-import MobileFilterDrawer from '../common/MobileFilterDrawer';
+// 🔄 MOBILE CLEANUP: MobileFilterDrawer removed
+// import MobileFilterDrawer from '../common/MobileFilterDrawer';
 import type { QuickFilter, SearchSuggestion } from '../../hooks/useEnhancedSearch';
 
 interface EnhancedRentalSearchProps {
@@ -363,8 +364,8 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
         </Box>
       )}
 
-      {/* Mobile Filter Drawer */}
-      <MobileFilterDrawer
+      {/* 🔄 MOBILE CLEANUP: MobileFilterDrawer removed */}
+      {/* <MobileFilterDrawer
         open={showMobileFilters}
         onClose={() => setShowMobileFilters(false)}
         title="Filtre prenájmov"
@@ -381,7 +382,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
         }}
         resultCount={state.rentals?.length}
         hasActiveFilters={Boolean(hasActiveFilters)}
-      />
+      /> */}
 
       {/* Results info */}
       {!compact && (
