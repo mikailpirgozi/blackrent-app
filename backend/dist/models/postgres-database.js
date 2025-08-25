@@ -2042,11 +2042,16 @@ class PostgresDatabase {
                 excludedStatuses.push('private');
             }
             const whereClause = excludedStatuses.length > 0
-                ? `WHERE status NOT IN (${excludedStatuses.map(s => `'${s}'`).join(', ')})`
+                ? `WHERE v.status NOT IN (${excludedStatuses.map(s => `'${s}'`).join(', ')})`
                 : '';
-            const result = await client.query(`SELECT * FROM vehicles 
+            // 🚀 N+1 OPTIMIZATION: JOIN s companies pre načítanie company_name v jednom dotaze
+            const result = await client.query(`SELECT 
+           v.*,
+           c.name as company_name
+         FROM vehicles v 
+         LEFT JOIN companies c ON v.company_id = c.id
          ${whereClause}
-         ORDER BY created_at DESC`);
+         ORDER BY v.created_at DESC`);
             const vehicles = result.rows.map(row => ({
                 id: row.id?.toString() || '',
                 brand: row.brand,
@@ -2054,7 +2059,7 @@ class PostgresDatabase {
                 year: row.year,
                 licensePlate: row.license_plate, // Mapovanie column názvu
                 vin: row.vin || null, // 🆔 VIN číslo mapovanie
-                company: row.company,
+                company: row.company_name || row.company || 'N/A', // 🚀 OPTIMALIZOVANÉ: Používa company_name z JOIN
                 category: row.category || null, // 🚗 Mapovanie category
                 ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
@@ -2063,8 +2068,7 @@ class PostgresDatabase {
                 stk: row.stk ? new Date(row.stk) : undefined, // 📋 STK date mapping
                 createdAt: new Date(row.created_at)
             }));
-            // ✅ AUTO-FIX REMOVED: No longer automatically creating companies or modifying data
-            // All vehicles should have company_id set properly during creation
+            console.log(`🚀 N+1 OPTIMIZED: Loaded ${vehicles.length} vehicles with companies in 1 query (was ${vehicles.length + 1} queries)`);
             return vehicles;
         }
         finally {
@@ -2074,7 +2078,13 @@ class PostgresDatabase {
     async getVehicle(id) {
         const client = await this.pool.connect();
         try {
-            const result = await client.query('SELECT * FROM vehicles WHERE id = $1', [id]); // Removed parseInt for UUID
+            // 🚀 N+1 OPTIMIZATION: JOIN s companies pre načítanie company_name v jednom dotaze
+            const result = await client.query(`SELECT 
+           v.*,
+           c.name as company_name
+         FROM vehicles v 
+         LEFT JOIN companies c ON v.company_id = c.id
+         WHERE v.id = $1`, [id]);
             if (result.rows.length === 0)
                 return null;
             const row = result.rows[0];
@@ -2085,7 +2095,7 @@ class PostgresDatabase {
                 year: row.year,
                 licensePlate: row.license_plate, // Mapovanie column názvu
                 vin: row.vin || null, // 🆔 VIN číslo mapovanie
-                company: row.company,
+                company: row.company_name || row.company || 'N/A', // 🚀 OPTIMALIZOVANÉ: Používa company_name z JOIN
                 category: row.category || null, // 🚗 Mapovanie category
                 ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
                 pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
