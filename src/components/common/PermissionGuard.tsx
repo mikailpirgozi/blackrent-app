@@ -38,7 +38,7 @@ export function PermissionGuard({
         </Alert>
       );
     }
-    return fallback ? <>{fallback}</> : null;
+    return fallback ? <>{fallback}</> : <></>;
   }
 
   // Ak vyžaduje schválenie, zobraz warning
@@ -85,7 +85,7 @@ export function RoleGuard({
         </Alert>
       );
     }
-    return fallback ? <>{fallback}</> : null;
+    return fallback ? <>{fallback}</> : <></>;
   }
 
   return <>{children}</>;
@@ -120,7 +120,7 @@ export function Can({
   if (update && permissions.canUpdate(update, context)) hasAccess = true;
   if (deleteResource && permissions.canDelete(deleteResource, context)) hasAccess = true;
 
-  return hasAccess ? <>{children}</> : (fallback ? <>{fallback}</> : null);
+  return hasAccess ? <>{children}</> : (fallback ? <>{fallback}</> : <></>);
 }
 
 // 🏢 COMPANY OWNER GUARD
@@ -142,12 +142,12 @@ export function CompanyOnly({
   // Company owner môže vidieť len svoje company resources
   if (currentUser?.role === 'company_owner') {
     const canAccess = canRead(resource, { companyId });
-    return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : null);
+    return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : <></>);
   }
 
   // Iné role môžu vidieť všetko (ak majú permission)
   const canAccess = canRead(resource);
-  return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : null);
+  return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : <></>);
 }
 
 // 🔨 MECHANIC ONLY GUARD
@@ -167,12 +167,12 @@ export function MechanicOnly({
   // Mechanic môže vidieť len vozidlá v firmách kde má oprávnenia
   if (currentUser?.role === 'mechanic') {
     const canAccess = canUpdate('vehicles', { companyId });
-    return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : null);
+    return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : <></>);
   }
 
   // Iné role môžu vidieť všetko (ak majú permission)
   const canAccess = canUpdate('vehicles');
-  return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : null);
+  return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : <></>);
 }
 
 // 💰 AMOUNT LIMIT GUARD
