@@ -65,9 +65,9 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
     if (success) {
       onLoginSuccess?.();
-      // 🚀 DIRECT navigation to /vehicles to bypass root redirect timing issue
+      // 🚀 DIRECT navigation to /rentals to bypass root redirect timing issue
       setTimeout(() => {
-        navigate('/vehicles');
+        navigate('/rentals');
       }, 100);
     }
   };
@@ -84,9 +84,9 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       const success = await login({ username, password: account.password }, rememberMe);
       if (success) {
         onLoginSuccess?.();
-        // 🚀 DIRECT navigation to /vehicles to bypass root redirect timing issue
+        // 🚀 DIRECT navigation to /rentals to bypass root redirect timing issue
         setTimeout(() => {
-          navigate('/vehicles');
+          navigate('/rentals');
         }, 100);
       }
     }

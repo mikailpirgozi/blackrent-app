@@ -99,7 +99,7 @@ const AppContent: React.FC = () => {
                     <Route path="/" element={
                       <ProtectedRoute>
                         <Layout>
-                          <Navigate to="/vehicles" replace />
+                          <Navigate to="/rentals" replace />
                         </Layout>
                       </ProtectedRoute>
                     } />
