@@ -310,6 +310,65 @@ export const useRentalFilters = ({
       );
     }
 
+    // 🎯 CUSTOM TIME FILTERS - pre rýchle filtre z dashboard
+    if (advancedFilters.timeFilter && advancedFilters.timeFilter !== 'all') {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      
+      // Calculate week boundaries
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
+      endOfWeek.setHours(23, 59, 59, 999);
+
+      switch (advancedFilters.timeFilter) {
+        case 'todayActivity':
+          // Prenájmy ktoré sa dnes začínajú ALEBO končia
+          filtered = filtered.filter(rental => {
+            const startDate = new Date(rental.startDate);
+            const endDate = new Date(rental.endDate);
+            const isToday = (date: Date) => {
+              return date.toDateString() === today.toDateString();
+            };
+            return isToday(startDate) || isToday(endDate);
+          });
+          break;
+
+        case 'tomorrowReturns':
+          // Prenájmy ktoré sa zajtra končia
+          filtered = filtered.filter(rental => {
+            const endDate = new Date(rental.endDate);
+            return endDate.toDateString() === tomorrow.toDateString();
+          });
+          break;
+
+        case 'weekActivity':
+          // Prenájmy ktoré sa tento týždeň začínajú ALEBO končia
+          filtered = filtered.filter(rental => {
+            const startDate = new Date(rental.startDate);
+            const endDate = new Date(rental.endDate);
+            
+            const startsThisWeek = startDate >= today && startDate <= endOfWeek;
+            const endsThisWeek = endDate >= today && endDate <= endOfWeek;
+            
+            return startsThisWeek || endsThisWeek;
+          });
+          break;
+
+        case 'newToday':
+          // Prenájmy vytvorené dnes
+          filtered = filtered.filter(rental => {
+            if (!rental.createdAt) return false;
+            const createdDate = new Date(rental.createdAt);
+            return createdDate.toDateString() === today.toDateString();
+          });
+          break;
+
+        default:
+          break;
+      }
+    }
+
     return filtered;
   }, [rentals, debouncedSearchQuery, advancedFilters, vehicleLookupMap, protocols]);
 
@@ -318,6 +377,11 @@ export const useRentalFilters = ({
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
+    
+    // Calculate week boundaries
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
+    endOfWeek.setHours(23, 59, 59, 999);
 
     // Reset all filters first
     const baseFilters: FilterState = {
@@ -338,7 +402,7 @@ export const useRentalFilters = ({
       customerCompany: '',
       insuranceCompany: '',
       insuranceType: '',
-      timeFilter: 'all',
+      timeFilter: filterType, // Set the time filter type
       priceRange: 'all',
       paymentStatus: 'all',
       showOnlyActive: false,
@@ -350,29 +414,48 @@ export const useRentalFilters = ({
 
     switch (filterType) {
       case 'overdue':
+        // Preterminované - prenájmy ktoré mali skončiť ale ešte sa nevrátili
         quickFilters.showOnlyOverdue = true;
         break;
+        
       case 'todayActivity':
-        const todayStr = today.toISOString().split('T')[0];
-        quickFilters.dateFrom = todayStr;
-        quickFilters.dateTo = todayStr;
+        // Dnes odovzdanie/vrátenie - prenájmy ktoré sa dnes začínajú ALEBO končia
+        // Potrebujeme custom filter pre toto, nie len dateFrom/dateTo
+        quickFilters.timeFilter = 'todayActivity';
         break;
+        
       case 'tomorrowReturns':
+        // Zajtra vrátenie - prenájmy ktoré sa zajtra končia
         const tomorrowStr = tomorrow.toISOString().split('T')[0];
         quickFilters.dateTo = tomorrowStr;
+        quickFilters.timeFilter = 'tomorrowReturns';
         break;
+        
+      case 'weekActivity':
+        // Tento týždeň odovzdanie/vrátenie - prenájmy ktoré sa tento týždeň začínajú ALEBO končia
+        quickFilters.timeFilter = 'weekActivity';
+        break;
+        
       case 'active':
+        // Aktívne prenájmy - prenájmy ktoré práve prebiehajú
         quickFilters.showOnlyActive = true;
         break;
+        
       case 'unpaid':
+        // Nezaplatené prenájmy
         quickFilters.paymentStatus = 'unpaid';
         break;
+        
       case 'pending':
+        // Čakajúce prenájmy
         quickFilters.status = ['pending'];
         break;
+        
       case 'newToday':
-        // Filter by creation date - would need additional logic
+        // Nové dnes - prenájmy vytvorené dnes
+        quickFilters.timeFilter = 'newToday';
         break;
+        
       default:
         break;
     }
