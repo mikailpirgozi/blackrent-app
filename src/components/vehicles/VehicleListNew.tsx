@@ -571,9 +571,9 @@ export default function VehicleListNew() {
   const hasMore = displayedVehicles < filteredVehicles.length;
 
   // Get unique values for filters
-  const uniqueBrands = [...new Set(state.vehicles.map(v => v.brand))].sort();
-  const uniqueModels = [...new Set(state.vehicles.map(v => v.model))].sort();
-  const uniqueCompanies = [...new Set(state.vehicles.map(v => v.company).filter(Boolean))].sort();
+  const uniqueBrands = [...new Set(state.vehicles.map(v => v.brand).filter(Boolean))].sort() as string[];
+  const uniqueModels = [...new Set(state.vehicles.map(v => v.model).filter(Boolean))].sort() as string[];
+  const uniqueCompanies = [...new Set(state.vehicles.map(v => v.company).filter(Boolean))].sort() as string[];
   const uniqueCategories = [...new Set(state.vehicles.map(v => v.category).filter(Boolean))].sort() as VehicleCategory[]; // 🚗 Unique categories
 
   // 🆕 TabPanel component

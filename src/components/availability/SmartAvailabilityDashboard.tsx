@@ -179,7 +179,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     [state.vehicles]
   );
   const availableBrands = useMemo(() => 
-    [...new Set(availableVehicles.map(v => v.brand).filter(Boolean))].sort(),
+    [...new Set(availableVehicles.map(v => v.brand).filter(Boolean))].sort() as string[],
     [availableVehicles]
   );
   const availableCategories = useMemo(() => 
@@ -187,7 +187,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     [availableVehicles]
   );
   const availableCompanies = useMemo(() => 
-    [...new Set(availableVehicles.map(v => v.company).filter(Boolean))].sort(),
+    [...new Set(availableVehicles.map(v => v.company).filter(Boolean))].sort() as string[],
     [availableVehicles]
   );
 
