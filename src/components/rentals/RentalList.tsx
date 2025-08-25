@@ -529,7 +529,12 @@ export default function RentalList() {
         handleCreateHandover={protocolsHook.handleCreateHandover}
         handleCreateReturn={protocolsHook.handleCreateReturn}
         handleOpenProtocolMenu={(rental, type) => {
-          console.log('Open protocol menu', rental.id, type);
+          console.log('📋 Opening protocol menu', rental.id, type);
+          if (type === 'handover') {
+            protocolsHook.handleCreateHandover(rental);
+          } else if (type === 'return') {
+            protocolsHook.handleCreateReturn(rental);
+          }
         }}
         handleViewRental={handleViewRental}
         getVehicleByRental={getVehicleByRental}
