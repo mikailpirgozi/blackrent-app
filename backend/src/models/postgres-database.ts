@@ -3133,13 +3133,14 @@ export class PostgresDatabase {
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '');
         
-        // 🔍 NORMALIZOVANÉ VYHĽADÁVANIE: unaccent() + LOWER() pre diakritiku
+        // 🔍 NORMALIZOVANÉ VYHĽADÁVANIE: Použiť normalizovaný search term (už bez diakritiky)
+        // Porovnávame normalizovaný search s normalizovanými stĺpcami
         whereConditions.push(`(
-          LOWER(unaccent(r.customer_name)) ILIKE $${paramIndex} OR 
-          LOWER(unaccent(r.order_number)) ILIKE $${paramIndex} OR 
-          LOWER(unaccent(v.license_plate)) ILIKE $${paramIndex} OR
-          LOWER(unaccent(v.brand)) ILIKE $${paramIndex} OR
-          LOWER(unaccent(v.model)) ILIKE $${paramIndex}
+          LOWER(translate(r.customer_name, 'áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ', 'aacdeillnoorsstuyzAACDEILLNOORSSTUYZ')) ILIKE $${paramIndex} OR 
+          LOWER(translate(r.order_number, 'áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ', 'aacdeillnoorsstuyzAACDEILLNOORSSTUYZ')) ILIKE $${paramIndex} OR 
+          LOWER(translate(v.license_plate, 'áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ', 'aacdeillnoorsstuyzAACDEILLNOORSSTUYZ')) ILIKE $${paramIndex} OR
+          LOWER(translate(v.brand, 'áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ', 'aacdeillnoorsstuyzAACDEILLNOORSSTUYZ')) ILIKE $${paramIndex} OR
+          LOWER(translate(v.model, 'áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ', 'aacdeillnoorsstuyzAACDEILLNOORSSTUYZ')) ILIKE $${paramIndex}
         )`);
         queryParams.push(`%${normalizedSearch}%`);
         paramIndex++;

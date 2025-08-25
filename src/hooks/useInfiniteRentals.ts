@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiService } from '../services/api';
 import { Rental } from '../types';
 import { logger } from '../utils/smartLogger';
+import { normalizeText } from '../utils/textNormalization';
 
 interface RentalFilters {
   search?: string;
@@ -66,10 +67,13 @@ export function useInfiniteRentals(initialFilters: RentalFilters = {}): UseInfin
       logger.info(`🔄 Loading rentals - Page ${page}`, { filters: filtersRef.current });
       // 🚀 GMAIL APPROACH: Server-side search with pagination
       
+      // 🔤 NORMALIZÁCIA: Normalizuj search term pred odoslaním na server
+      const normalizedSearchTerm = searchTerm ? normalizeText(searchTerm) : '';
+      
       const result = await apiService.getRentalsPaginated({
         page,
         limit: ITEMS_PER_PAGE,
-        search: searchTerm, // 🚀 GMAIL APPROACH: Server-side search
+        search: normalizedSearchTerm, // 🔤 NORMALIZED: Server-side search s normalizáciou
         ...filtersRef.current
       });
 
