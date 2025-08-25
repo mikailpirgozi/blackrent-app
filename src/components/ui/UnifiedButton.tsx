@@ -1,0 +1,338 @@
+import React from 'react';
+import { Button, ButtonProps, CircularProgress, Box, useTheme } from '@mui/material';
+import { SxProps, Theme } from '@mui/material/styles';
+
+// 🎨 UNIFIED BUTTON VARIANTS
+export type UnifiedButtonVariant = 
+  | 'primary'      // Main actions (save, submit, create)
+  | 'secondary'    // Secondary actions (cancel, back)
+  | 'success'      // Success actions (approve, complete)
+  | 'warning'      // Warning actions (edit, modify)
+  | 'danger'       // Dangerous actions (delete, remove)
+  | 'info'         // Info actions (view, details)
+  | 'ghost'        // Minimal actions (show/hide, toggle)
+  | 'gradient'     // Premium actions (upgrade, premium)
+  | 'mobile'       // Mobile-optimized buttons
+  | 'chip';        // Chip-style buttons
+
+// 🎨 UNIFIED BUTTON SIZES
+export type UnifiedButtonSize = 
+  | 'xs'     // 24px height - for chips, tags
+  | 'sm'     // 32px height - for mobile, compact spaces
+  | 'md'     // 40px height - default size
+  | 'lg'     // 48px height - for important actions
+  | 'xl';    // 56px height - for hero sections
+
+// 🎨 UNIFIED BUTTON INTERFACE
+export interface UnifiedButtonProps extends Omit<ButtonProps, 'variant' | 'size' | 'color'> {
+  variant?: UnifiedButtonVariant;
+  size?: UnifiedButtonSize;
+  loading?: boolean;
+  loadingText?: string;
+  icon?: React.ReactNode;
+  iconPosition?: 'left' | 'right';
+  fullWidth?: boolean;
+  rounded?: boolean;
+  elevated?: boolean;
+  animated?: boolean;
+  mobile?: boolean;
+  children: React.ReactNode;
+}
+
+// 🎨 VARIANT STYLES MAPPING
+const getVariantStyles = (variant: UnifiedButtonVariant, theme: Theme): any => {
+  const variants = {
+    primary: {
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: '#ffffff',
+      boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+      '&:hover': {
+        background: 'linear-gradient(135deg, #5a6fd8 0%, #634190 100%)',
+        boxShadow: '0 8px 25px rgba(102, 126, 234, 0.4)',
+        transform: 'translateY(-2px)',
+      },
+      '&:active': {
+        transform: 'translateY(0)',
+      },
+    },
+    secondary: {
+      background: 'rgba(255, 255, 255, 0.9)',
+      color: theme.palette.text.primary,
+      border: '1px solid #e2e8f0',
+      backdropFilter: 'blur(8px)',
+      '&:hover': {
+        background: 'rgba(102, 126, 234, 0.1)',
+        borderColor: '#667eea',
+        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.2)',
+        transform: 'translateY(-1px)',
+      },
+    },
+    success: {
+      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+      color: '#ffffff',
+      boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)',
+      '&:hover': {
+        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+        boxShadow: '0 8px 25px rgba(16, 185, 129, 0.4)',
+        transform: 'translateY(-2px)',
+      },
+    },
+    warning: {
+      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      color: '#ffffff',
+      boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)',
+      '&:hover': {
+        background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+        boxShadow: '0 8px 25px rgba(245, 158, 11, 0.4)',
+        transform: 'translateY(-2px)',
+      },
+    },
+    danger: {
+      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+      color: '#ffffff',
+      boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
+      '&:hover': {
+        background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+        boxShadow: '0 8px 25px rgba(239, 68, 68, 0.4)',
+        transform: 'translateY(-2px)',
+      },
+    },
+    info: {
+      background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+      color: '#ffffff',
+      boxShadow: '0 4px 15px rgba(6, 182, 212, 0.3)',
+      '&:hover': {
+        background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
+        boxShadow: '0 8px 25px rgba(6, 182, 212, 0.4)',
+        transform: 'translateY(-2px)',
+      },
+    },
+    ghost: {
+      background: 'transparent',
+      color: theme.palette.text.secondary,
+      border: 'none',
+      boxShadow: 'none',
+      '&:hover': {
+        background: 'rgba(102, 126, 234, 0.1)',
+        color: theme.palette.text.primary,
+        transform: 'translateY(-1px)',
+      },
+    },
+    gradient: {
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+      color: '#ffffff',
+      boxShadow: '0 8px 32px rgba(102, 126, 234, 0.4)',
+      position: 'relative',
+      overflow: 'hidden',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: '-100%',
+        width: '100%',
+        height: '100%',
+        background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+        transition: 'left 0.6s',
+      },
+      '&:hover': {
+        transform: 'translateY(-3px)',
+        boxShadow: '0 12px 40px rgba(102, 126, 234, 0.5)',
+        '&::before': {
+          left: '100%',
+        },
+      },
+    },
+    mobile: {
+      background: 'rgba(255, 255, 255, 0.95)',
+      color: theme.palette.text.primary,
+      border: '1px solid rgba(102, 126, 234, 0.2)',
+      borderRadius: '12px',
+      backdropFilter: 'blur(8px)',
+      fontSize: '0.875rem',
+      fontWeight: 600,
+      '&:hover': {
+        background: 'rgba(102, 126, 234, 0.1)',
+        borderColor: '#667eea',
+        transform: 'scale(1.02)',
+      },
+      '&:active': {
+        transform: 'scale(0.98)',
+      },
+    },
+    chip: {
+      background: 'rgba(102, 126, 234, 0.1)',
+      color: '#667eea',
+      border: '1px solid rgba(102, 126, 234, 0.2)',
+      borderRadius: '20px',
+      fontSize: '0.75rem',
+      fontWeight: 500,
+      minHeight: '28px',
+      padding: '4px 12px',
+      '&:hover': {
+        background: 'rgba(102, 126, 234, 0.2)',
+        transform: 'scale(1.05)',
+      },
+    },
+  };
+
+  return variants[variant] || variants.primary;
+};
+
+// 🎨 SIZE STYLES MAPPING
+const getSizeStyles = (size: UnifiedButtonSize): any => {
+  const sizes = {
+    xs: {
+      minHeight: '24px',
+      padding: '2px 8px',
+      fontSize: '0.625rem',
+      borderRadius: '6px',
+    },
+    sm: {
+      minHeight: '32px',
+      padding: '6px 16px',
+      fontSize: '0.75rem',
+      borderRadius: '8px',
+    },
+    md: {
+      minHeight: '40px',
+      padding: '10px 20px',
+      fontSize: '0.875rem',
+      borderRadius: '10px',
+    },
+    lg: {
+      minHeight: '48px',
+      padding: '14px 28px',
+      fontSize: '1rem',
+      borderRadius: '12px',
+    },
+    xl: {
+      minHeight: '56px',
+      padding: '18px 36px',
+      fontSize: '1.125rem',
+      borderRadius: '14px',
+    },
+  };
+
+  return sizes[size] || sizes.md;
+};
+
+// 🎨 UNIFIED BUTTON COMPONENT
+export const UnifiedButton: React.FC<UnifiedButtonProps> = ({
+  variant = 'primary',
+  size = 'md',
+  loading = false,
+  loadingText,
+  icon,
+  iconPosition = 'left',
+  fullWidth = false,
+  rounded = false,
+  elevated = false,
+  animated = true,
+  mobile = false,
+  children,
+  disabled,
+  sx,
+  ...props
+}) => {
+  const theme = useTheme();
+
+  // 🎯 Combine all styles
+  const combinedSx: any = {
+    // Base styles
+    textTransform: 'none' as const,
+    fontWeight: 600,
+    transition: animated ? 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+    position: 'relative' as const,
+    overflow: 'hidden' as const,
+    
+    // Variant styles
+    ...getVariantStyles(mobile ? 'mobile' : variant, theme),
+    
+    // Size styles
+    ...getSizeStyles(size),
+    
+    // Modifier styles
+    ...(rounded && { borderRadius: '50px' }),
+    ...(elevated && { 
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+      '&:hover': {
+        boxShadow: '0 12px 40px rgba(0, 0, 0, 0.16)',
+      }
+    }),
+    ...(fullWidth && { width: '100%' }),
+    
+    // Disabled styles
+    ...(disabled && {
+      opacity: 0.6,
+      cursor: 'not-allowed',
+      transform: 'none !important',
+      '&:hover': {
+        transform: 'none !important',
+      },
+    }),
+    
+    // Loading styles
+    ...(loading && {
+      cursor: 'wait',
+      '&:hover': {
+        transform: 'none',
+      },
+    }),
+    
+    // Custom sx
+    ...sx,
+  };
+
+  return (
+    <Button
+      {...props}
+      disabled={disabled || loading}
+      fullWidth={fullWidth}
+      sx={combinedSx}
+    >
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 1,
+        opacity: loading ? 0.7 : 1,
+        transition: 'opacity 0.2s ease',
+      }}>
+        {/* Loading spinner */}
+        {loading && (
+          <CircularProgress 
+            size={size === 'xs' ? 12 : size === 'sm' ? 14 : 16} 
+            sx={{ 
+              color: 'inherit',
+              position: iconPosition === 'left' ? 'static' : 'absolute',
+              left: iconPosition === 'right' ? '50%' : 'auto',
+              transform: iconPosition === 'right' ? 'translateX(-50%)' : 'none',
+            }} 
+          />
+        )}
+        
+        {/* Left icon */}
+        {!loading && icon && iconPosition === 'left' && (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {icon}
+          </Box>
+        )}
+        
+        {/* Button text */}
+        <Box sx={{ 
+          visibility: loading && iconPosition === 'right' ? 'hidden' : 'visible',
+        }}>
+          {loading && loadingText ? loadingText : children}
+        </Box>
+        
+        {/* Right icon */}
+        {!loading && icon && iconPosition === 'right' && (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {icon}
+          </Box>
+        )}
+      </Box>
+    </Button>
+  );
+};
+
+export default UnifiedButton;
