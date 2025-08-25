@@ -664,6 +664,13 @@ export default function ReturnProtocolForm({ open, onClose, rental, handoverProt
           
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
             <TextField
+              label="Povolený nájazd km"
+              value={`${rental.allowedKilometers || 0} km`}
+              InputProps={{ readOnly: true }}
+              color="info"
+              fullWidth
+            />
+            <TextField
               label="Najazdené km"
               value={fees.kilometersUsed}
               InputProps={{ readOnly: true }}
