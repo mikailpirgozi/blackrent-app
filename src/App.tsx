@@ -39,7 +39,7 @@ import { Suspense, lazy } from 'react';
 const VehicleList = lazy(() => import('./components/vehicles/VehicleListNew'));
 const RentalList = lazy(() => import('./components/rentals/RentalList'));
 // const ImapEmailMonitoring = lazy(() => import('./components/admin/ImapEmailMonitoring'));
-const EmailManagementDashboard = lazy(() => import('./components/admin/EmailManagementDashboard'));
+const EmailManagementDashboard = lazy(() => import('./components/email-management/EmailManagementLayout'));
 
 const CustomerList = lazy(() => import('./components/customers/CustomerListNew'));
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));

@@ -1,0 +1,416 @@
+/**
+ * Email Management Layout - Hlavný refaktorovaný komponent
+ * Nahradí pôvodný EmailManagementDashboard.tsx
+ */
+
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  Alert,
+  Chip,
+  Tabs,
+  Tab,
+  Badge,
+  useTheme,
+  useMediaQuery,
+} from '@mui/material';
+import {
+  Email as EmailIcon,
+  PlayArrow as StartIcon,
+  Stop as StopIcon,
+  Refresh as RefreshIcon,
+  CheckCircle as TestIcon,
+  Schedule as PendingIcon,
+  Archive as ArchiveIcon,
+  NotificationsNone as NotificationIcon,
+} from '@mui/icons-material';
+
+// Hooks
+import { useEmailApi } from './hooks/useEmailApi';
+import { useImapStatus } from './hooks/useImapStatus';
+import { usePendingRentals } from './hooks/usePendingRentals';
+
+// Components
+import { EmailStatsCards } from './components/EmailStatsCards';
+import { ImapStatusCard } from './components/ImapStatusCard';
+import { EmailFilters } from './components/EmailFilters';
+import { EmailHistoryTab } from './components/EmailHistoryTab';
+import { PendingRentalsTab } from './components/PendingRentalsTab';
+import { EmailArchiveTab } from './components/EmailArchiveTab';
+
+// Types
+import { EmailStats } from './types/email-types';
+
+const EmailManagementLayout: React.FC = () => {
+  // Theme and responsive hooks
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isExtraSmall = useMediaQuery(theme.breakpoints.down(400));
+  
+  // Tabs state
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Filters state
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [senderFilter, setSenderFilter] = useState<string>('');
+
+  // Stats state
+  const [stats, setStats] = useState<EmailStats | null>(null);
+
+  // API Hooks
+  const {
+    error: emailError,
+    success: emailSuccess,
+    setError: setEmailError,
+    setSuccess: setEmailSuccess,
+    fetchStats,
+  } = useEmailApi();
+
+  const {
+    imapStatus,
+    imapLoading,
+    error: imapError,
+    success: imapSuccess,
+    setError: setImapError,
+    setSuccess: setImapSuccess,
+    fetchImapStatus,
+    testImapConnection,
+    startImapMonitoring,
+    stopImapMonitoring,
+  } = useImapStatus();
+
+  const {
+    pendingRentals,
+    fetchPendingRentals,
+  } = usePendingRentals();
+
+  // Combine errors and success messages
+  const error = emailError || imapError;
+  const success = emailSuccess || imapSuccess;
+  const setError = (msg: string | null) => {
+    setEmailError(msg);
+    setImapError(msg);
+  };
+  const setSuccess = (msg: string | null) => {
+    setEmailSuccess(msg);
+    setImapSuccess(msg);
+  };
+
+  // Initial load
+  useEffect(() => {
+    console.log('🚀 EMAIL MANAGEMENT LAYOUT useEffect triggered');
+    
+    const initializeData = async () => {
+      try {
+        const [statsData] = await Promise.all([
+          fetchStats(),
+          fetchImapStatus(),
+          fetchPendingRentals(),
+        ]);
+        
+        if (statsData) {
+          setStats(statsData);
+        }
+      } catch (err) {
+        console.error('❌ Error initializing email management data:', err);
+      }
+    };
+
+    initializeData();
+  }, []);
+
+  // Handle filter changes
+  const handleClearFilters = () => {
+    setStatusFilter('');
+    setSenderFilter('');
+  };
+
+  // Handle refresh
+  const handleRefresh = async () => {
+    try {
+      const [statsData] = await Promise.all([
+        fetchStats(),
+        fetchImapStatus(),
+        fetchPendingRentals(),
+      ]);
+      
+      if (statsData) {
+        setStats(statsData);
+      }
+    } catch (err) {
+      console.error('❌ Error refreshing data:', err);
+    }
+  };
+
+  return (
+    <Box sx={{ 
+      p: isExtraSmall ? 1 : isSmallMobile ? 2 : 3,
+      minHeight: '100vh',
+      bgcolor: 'background.default'
+    }}>
+      {/* Header */}
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems={isMobile ? "flex-start" : "center"} 
+        mb={3}
+        flexDirection={isSmallMobile ? "column" : "row"}
+        gap={isSmallMobile ? 2 : 0}
+      >
+        <Typography 
+          variant={isExtraSmall ? "h5" : isSmallMobile ? "h4" : "h4"} 
+          gutterBottom={!isSmallMobile}
+          sx={{ 
+            fontSize: isExtraSmall ? '1.25rem' : isSmallMobile ? '1.5rem' : undefined,
+            textAlign: isSmallMobile ? 'center' : 'left',
+            width: isSmallMobile ? '100%' : 'auto'
+          }}
+        >
+          📧 Email Management Dashboard
+        </Typography>
+        <Box 
+          display="flex" 
+          gap={isExtraSmall ? 0.5 : 1} 
+          alignItems="center"
+          flexWrap={isMobile ? "wrap" : "nowrap"}
+          justifyContent={isSmallMobile ? "center" : "flex-end"}
+          width={isSmallMobile ? '100%' : 'auto'}
+        >
+          {/* IMAP Status Chip */}
+          {imapStatus && (
+            <Chip
+              icon={<EmailIcon />}
+              label={
+                imapStatus.enabled 
+                  ? (imapStatus.running ? 'IMAP Beží' : 'IMAP Zastavený')
+                  : 'IMAP Vypnutý'
+              }
+              color={
+                imapStatus.enabled 
+                  ? (imapStatus.running ? 'success' : 'warning')
+                  : 'default'
+              }
+              size="small"
+              sx={{ mr: 1 }}
+            />
+          )}
+
+          {/* IMAP Control Buttons */}
+          <Button
+            variant="outlined"
+            size={isExtraSmall ? "small" : "small"}
+            startIcon={!isExtraSmall && <TestIcon />}
+            onClick={testImapConnection}
+            disabled={imapLoading || !imapStatus?.enabled}
+            sx={{ 
+              minWidth: 'auto', 
+              px: isExtraSmall ? 0.5 : 1,
+              fontSize: isExtraSmall ? '0.75rem' : undefined
+            }}
+          >
+            {isExtraSmall ? 'T' : 'Test'}
+          </Button>
+
+          {imapStatus?.enabled && (
+            <>
+              {!imapStatus.running ? (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={!isExtraSmall && <StartIcon />}
+                  onClick={startImapMonitoring}
+                  disabled={imapLoading}
+                  color="success"
+                  sx={{ 
+                    minWidth: 'auto', 
+                    px: isExtraSmall ? 0.5 : 1,
+                    fontSize: isExtraSmall ? '0.75rem' : undefined
+                  }}
+                >
+                  {isExtraSmall ? 'S' : 'Spusiť'}
+                </Button>
+              ) : (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={!isExtraSmall && <StopIcon />}
+                  onClick={stopImapMonitoring}
+                  disabled={imapLoading}
+                  color="error"
+                  sx={{ 
+                    minWidth: 'auto', 
+                    px: isExtraSmall ? 0.5 : 1,
+                    fontSize: isExtraSmall ? '0.75rem' : undefined
+                  }}
+                >
+                  {isExtraSmall ? 'Z' : 'Zastaviť'}
+                </Button>
+              )}
+            </>
+          )}
+
+          <Button
+            variant="outlined"
+            startIcon={!isExtraSmall && <RefreshIcon />}
+            onClick={handleRefresh}
+            size={isSmallMobile ? "small" : "medium"}
+            sx={{ 
+              fontSize: isExtraSmall ? '0.75rem' : undefined,
+              px: isExtraSmall ? 1 : undefined
+            }}
+          >
+            {isExtraSmall ? 'R' : 'Obnoviť'}
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Error/Success Messages */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+          {success}
+        </Alert>
+      )}
+
+      {/* Statistics Cards */}
+      <EmailStatsCards stats={stats} />
+
+      {/* IMAP Configuration Info */}
+      <ImapStatusCard imapStatus={imapStatus} />
+
+      {/* Filters */}
+      <EmailFilters
+        statusFilter={statusFilter}
+        senderFilter={senderFilter}
+        onStatusFilterChange={setStatusFilter}
+        onSenderFilterChange={setSenderFilter}
+        onClearFilters={handleClearFilters}
+      />
+
+      {/* Tabs Navigation */}
+      <Box sx={{ 
+        borderBottom: 1, 
+        borderColor: 'divider', 
+        mb: 3,
+        overflowX: 'auto',
+        '&::-webkit-scrollbar': {
+          height: 4,
+        },
+        '&::-webkit-scrollbar-track': {
+          backgroundColor: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: 'rgba(0,0,0,0.2)',
+          borderRadius: 2,
+        }
+      }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={(event, newValue) => setActiveTab(newValue)}
+          aria-label="Email management tabs"
+          variant={isMobile ? "scrollable" : "standard"}
+          scrollButtons={isMobile ? "auto" : false}
+          allowScrollButtonsMobile
+          sx={{
+            minHeight: isExtraSmall ? 40 : 48,
+            '& .MuiTab-root': {
+              minHeight: isExtraSmall ? 40 : 48,
+              fontSize: isExtraSmall ? '0.75rem' : isSmallMobile ? '0.875rem' : undefined,
+              padding: isExtraSmall ? '6px 8px' : isSmallMobile ? '8px 12px' : undefined,
+              minWidth: isExtraSmall ? 'auto' : undefined
+            },
+            '& .MuiTabs-flexContainer': {
+              gap: isExtraSmall ? 0.5 : 1
+            }
+          }}
+        >
+          <Tab 
+            label={isExtraSmall ? "Emaily" : isSmallMobile ? "História" : "História Emailov"}
+            icon={!isExtraSmall ? <EmailIcon /> : undefined} 
+            iconPosition={isSmallMobile ? "top" : "start"}
+            sx={{
+              '& .MuiTab-iconWrapper': {
+                marginBottom: isSmallMobile ? 0.5 : undefined,
+                marginRight: isSmallMobile ? 0 : undefined
+              }
+            }}
+          />
+          <Tab 
+            label={
+              <Box 
+                display="flex" 
+                alignItems="center" 
+                gap={isExtraSmall ? 0.5 : 1}
+                flexDirection={isSmallMobile ? "column" : "row"}
+              >
+                <span>{isExtraSmall ? "Prenájmy" : isSmallMobile ? "Čakajúce" : "Čakajúce Prenájmy"}</span>
+                {pendingRentals.length > 0 && (
+                  <Badge 
+                    badgeContent={pendingRentals.length} 
+                    color="warning"
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        fontSize: isExtraSmall ? '0.625rem' : '0.75rem',
+                        minWidth: isExtraSmall ? 16 : 20,
+                        height: isExtraSmall ? 16 : 20
+                      }
+                    }}
+                  >
+                    <NotificationIcon sx={{ fontSize: isExtraSmall ? 16 : 20 }} />
+                  </Badge>
+                )}
+              </Box>
+            } 
+            icon={!isExtraSmall ? <PendingIcon /> : undefined} 
+            iconPosition={isSmallMobile ? "top" : "start"}
+            sx={{
+              '& .MuiTab-iconWrapper': {
+                marginBottom: isSmallMobile ? 0.5 : undefined,
+                marginRight: isSmallMobile ? 0 : undefined
+              }
+            }}
+          />
+          <Tab 
+            label={isExtraSmall ? "Archív" : isSmallMobile ? "Archív" : "Archív Emailov"}
+            icon={!isExtraSmall ? <ArchiveIcon /> : undefined} 
+            iconPosition={isSmallMobile ? "top" : "start"}
+            sx={{
+              '& .MuiTab-iconWrapper': {
+                marginBottom: isSmallMobile ? 0.5 : undefined,
+                marginRight: isSmallMobile ? 0 : undefined
+              }
+            }}
+          />
+        </Tabs>
+      </Box>
+
+      {/* Tab Content */}
+      {activeTab === 0 && (
+        <EmailHistoryTab
+          statusFilter={statusFilter}
+          senderFilter={senderFilter}
+        />
+      )}
+
+      {activeTab === 1 && (
+        <PendingRentalsTab />
+      )}
+
+      {activeTab === 2 && (
+        <EmailArchiveTab
+          senderFilter={senderFilter}
+        />
+      )}
+    </Box>
+  );
+};
+
+export default EmailManagementLayout;
