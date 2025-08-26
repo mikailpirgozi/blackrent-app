@@ -262,20 +262,15 @@ class InsuranceRepository extends BaseRepository_1.BaseRepository {
             insurerId: row.insurer_id || undefined,
             type: row.type,
             policyNumber: row.policy_number,
-            startDate: new Date(row.start_date),
-            endDate: new Date(row.end_date),
-            premium: row.premium,
-            deductible: row.deductible || undefined,
-            coverage: row.coverage ? (typeof row.coverage === 'string' ? JSON.parse(row.coverage) : row.coverage) : undefined,
-            status: row.status || 'active',
-            notes: row.notes || undefined,
-            createdAt: new Date(row.created_at),
-            updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
-            // Rozšírené info ak je dostupné
-            vehicleBrand: row.vehicle_brand || undefined,
-            vehicleModel: row.vehicle_model || undefined,
-            vehicleLicensePlate: row.vehicle_license_plate || undefined,
-            insurerName: row.insurer_name || undefined
+            validFrom: new Date(row.valid_from || row.start_date),
+            validTo: new Date(row.valid_to || row.end_date),
+            price: row.premium || row.price,
+            company: row.company || row.insurer_name || '',
+            paymentFrequency: row.payment_frequency || 'monthly',
+            filePath: row.file_path || undefined,
+            filePaths: row.file_paths ? (typeof row.file_paths === 'string' ? JSON.parse(row.file_paths) : row.file_paths) : undefined,
+            greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined,
+            greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined
         };
     }
     /**
@@ -285,8 +280,7 @@ class InsuranceRepository extends BaseRepository_1.BaseRepository {
         return {
             id: row.id,
             name: row.name,
-            createdAt: new Date(row.created_at),
-            updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+            createdAt: row.created_at ? new Date(row.created_at) : new Date()
         };
     }
     /**
@@ -297,22 +291,22 @@ class InsuranceRepository extends BaseRepository_1.BaseRepository {
             id: row.id,
             vehicleId: row.vehicle_id,
             insuranceId: row.insurance_id || undefined,
-            claimNumber: row.claim_number,
+            claimNumber: row.claim_number || undefined,
             incidentDate: new Date(row.incident_date),
             reportedDate: new Date(row.reported_date),
             description: row.description,
-            estimatedCost: row.estimated_cost || undefined,
-            actualCost: row.actual_cost || undefined,
-            status: row.status || 'pending',
+            location: row.location || undefined,
+            incidentType: row.incident_type || 'other',
+            estimatedDamage: row.estimated_damage || row.estimated_cost || undefined,
+            deductible: row.deductible || undefined,
+            payoutAmount: row.payout_amount || undefined,
+            status: row.status || 'reported',
+            filePaths: row.file_paths ? (typeof row.file_paths === 'string' ? JSON.parse(row.file_paths) : row.file_paths) : undefined,
+            policeReportNumber: row.police_report_number || undefined,
+            otherPartyInfo: row.other_party_info || undefined,
             notes: row.notes || undefined,
             createdAt: new Date(row.created_at),
-            updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
-            // Rozšírené info ak je dostupné
-            vehicleBrand: row.vehicle_brand || undefined,
-            vehicleModel: row.vehicle_model || undefined,
-            vehicleLicensePlate: row.vehicle_license_plate || undefined,
-            insurancePolicyNumber: row.insurance_policy_number || undefined,
-            insurerName: row.insurer_name || undefined
+            updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
         };
     }
 }

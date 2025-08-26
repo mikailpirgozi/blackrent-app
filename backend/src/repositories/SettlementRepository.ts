@@ -169,20 +169,18 @@ export class SettlementRepository extends BaseRepository {
   private mapRowToSettlement(row: any): Settlement {
     return {
       id: row.id,
-      companyId: row.company_id,
-      periodStart: new Date(row.period_start),
-      periodEnd: new Date(row.period_end),
-      totalRevenue: row.total_revenue,
-      totalExpenses: row.total_expenses,
-      commission: row.commission,
-      netAmount: row.net_amount,
-      status: row.status || 'draft',
-      notes: row.notes || undefined,
-      details: row.details ? (typeof row.details === 'string' ? JSON.parse(row.details) : row.details) : undefined,
-      createdAt: new Date(row.created_at),
-      updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
-      // Rozšírené info ak je dostupné
-      companyName: row.company_name || undefined
+      period: {
+        from: new Date(row.period_start),
+        to: new Date(row.period_end)
+      },
+      rentals: [],
+      expenses: [],
+      totalIncome: row.total_revenue || 0,
+      totalExpenses: row.total_expenses || 0,
+      totalCommission: row.commission || 0,
+      profit: row.net_amount || 0,
+      company: row.company || undefined,
+      vehicleId: row.vehicle_id || undefined
     };
   }
 

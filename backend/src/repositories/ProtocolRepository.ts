@@ -338,17 +338,27 @@ export class ProtocolRepository extends BaseRepository {
     return {
       id: row.id,
       rentalId: row.rental_id,
-      vehicleCondition: typeof row.vehicle_condition === 'string' ? JSON.parse(row.vehicle_condition) : row.vehicle_condition,
-      fuelLevel: row.fuel_level,
-      mileage: row.mileage,
-      photos: row.photos ? (typeof row.photos === 'string' ? JSON.parse(row.photos) : row.photos) : undefined,
-      notes: row.notes || undefined,
-      signature: row.signature || undefined,
-      createdBy: row.created_by || undefined,
+
+      type: 'handover',
+      status: row.status || 'draft',
       createdAt: new Date(row.created_at),
-      updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
-      filePath: row.file_path || undefined,
-      pdfPath: row.pdf_path || undefined
+      completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+      location: row.location || '',
+      vehicleCondition: typeof row.vehicle_condition === 'string' ? JSON.parse(row.vehicle_condition) : row.vehicle_condition,
+      vehicleImages: row.vehicle_images ? (typeof row.vehicle_images === 'string' ? JSON.parse(row.vehicle_images) : row.vehicle_images) : [],
+      vehicleVideos: row.vehicle_videos ? (typeof row.vehicle_videos === 'string' ? JSON.parse(row.vehicle_videos) : row.vehicle_videos) : [],
+      documentImages: row.document_images ? (typeof row.document_images === 'string' ? JSON.parse(row.document_images) : row.document_images) : [],
+      documentVideos: row.document_videos ? (typeof row.document_videos === 'string' ? JSON.parse(row.document_videos) : row.document_videos) : [],
+      damageImages: row.damage_images ? (typeof row.damage_images === 'string' ? JSON.parse(row.damage_images) : row.damage_images) : [],
+      damageVideos: row.damage_videos ? (typeof row.damage_videos === 'string' ? JSON.parse(row.damage_videos) : row.damage_videos) : [],
+      damages: row.damages ? (typeof row.damages === 'string' ? JSON.parse(row.damages) : row.damages) : [],
+      signatures: row.signatures ? (typeof row.signatures === 'string' ? JSON.parse(row.signatures) : row.signatures) : [],
+      rentalData: row.rental_data ? (typeof row.rental_data === 'string' ? JSON.parse(row.rental_data) : row.rental_data) : {} as any,
+      pdfUrl: row.pdf_url || undefined,
+      emailSent: Boolean(row.email_sent),
+      emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,
+      createdBy: row.created_by || '',
+      notes: row.notes || undefined
     };
   }
 
@@ -359,18 +369,39 @@ export class ProtocolRepository extends BaseRepository {
     return {
       id: row.id,
       rentalId: row.rental_id,
-      vehicleCondition: typeof row.vehicle_condition === 'string' ? JSON.parse(row.vehicle_condition) : row.vehicle_condition,
-      fuelLevel: row.fuel_level,
-      mileage: row.mileage,
-      damages: row.damages ? (typeof row.damages === 'string' ? JSON.parse(row.damages) : row.damages) : undefined,
-      photos: row.photos ? (typeof row.photos === 'string' ? JSON.parse(row.photos) : row.photos) : undefined,
-      notes: row.notes || undefined,
-      signature: row.signature || undefined,
-      createdBy: row.created_by || undefined,
+
+      handoverProtocolId: row.handover_protocol_id || '',
+
+      type: 'return',
+      status: row.status || 'draft',
       createdAt: new Date(row.created_at),
-      updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
-      filePath: row.file_path || undefined,
-      pdfPath: row.pdf_path || undefined
+      completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+      location: row.location || '',
+      vehicleCondition: typeof row.vehicle_condition === 'string' ? JSON.parse(row.vehicle_condition) : row.vehicle_condition,
+      vehicleImages: row.vehicle_images ? (typeof row.vehicle_images === 'string' ? JSON.parse(row.vehicle_images) : row.vehicle_images) : [],
+      vehicleVideos: row.vehicle_videos ? (typeof row.vehicle_videos === 'string' ? JSON.parse(row.vehicle_videos) : row.vehicle_videos) : [],
+      documentImages: row.document_images ? (typeof row.document_images === 'string' ? JSON.parse(row.document_images) : row.document_images) : [],
+      documentVideos: row.document_videos ? (typeof row.document_videos === 'string' ? JSON.parse(row.document_videos) : row.document_videos) : [],
+      damageImages: row.damage_images ? (typeof row.damage_images === 'string' ? JSON.parse(row.damage_images) : row.damage_images) : [],
+      damageVideos: row.damage_videos ? (typeof row.damage_videos === 'string' ? JSON.parse(row.damage_videos) : row.damage_videos) : [],
+      damages: row.damages ? (typeof row.damages === 'string' ? JSON.parse(row.damages) : row.damages) : [],
+      newDamages: row.new_damages ? (typeof row.new_damages === 'string' ? JSON.parse(row.new_damages) : row.new_damages) : [],
+      signatures: row.signatures ? (typeof row.signatures === 'string' ? JSON.parse(row.signatures) : row.signatures) : [],
+      kilometersUsed: row.kilometers_used || 0,
+      kilometerOverage: row.kilometer_overage || 0,
+      kilometerFee: row.kilometer_fee || 0,
+      fuelUsed: row.fuel_used || 0,
+      fuelFee: row.fuel_fee || 0,
+      totalExtraFees: row.total_extra_fees || 0,
+      depositRefund: row.deposit_refund || 0,
+      additionalCharges: row.additional_charges || 0,
+      finalRefund: row.final_refund || 0,
+      rentalData: row.rental_data ? (typeof row.rental_data === 'string' ? JSON.parse(row.rental_data) : row.rental_data) : {} as any,
+      pdfUrl: row.pdf_url || undefined,
+      emailSent: Boolean(row.email_sent),
+      emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,
+      createdBy: row.created_by || '',
+      notes: row.notes || undefined
     };
   }
 }
