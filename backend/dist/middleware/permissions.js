@@ -5,6 +5,7 @@ exports.hasPermission = hasPermission;
 exports.checkPermission = checkPermission;
 exports.getUserPermissions = getUserPermissions;
 exports.canUserAccess = canUserAccess;
+const logger_1 = require("../utils/logger");
 // 🔐 ROLE PERMISSIONS MATRIX
 exports.ROLE_PERMISSIONS = {
     // 👑 ADMIN - Úplné práva na všetko
@@ -221,33 +222,33 @@ exports.ROLE_PERMISSIONS = {
 };
 // 🛡️ PERMISSION CHECK FUNCTION
 function hasPermission(userRole, resource, action, context) {
-    console.log('🛡️ hasPermission called:', { userRole, resource, action, context });
+    logger_1.logger.auth('🛡️ hasPermission called:', { userRole, resource, action, context });
     const rolePermissions = exports.ROLE_PERMISSIONS[userRole];
-    console.log('📋 Role permissions:', rolePermissions);
+    logger_1.logger.auth('📋 Role permissions:', rolePermissions);
     // Admin má vždy práva
     if (userRole === 'admin') {
-        console.log('👑 Admin access granted');
+        logger_1.logger.auth('👑 Admin access granted');
         return { hasAccess: true, requiresApproval: false };
     }
     // Nájdi relevantné permission pre resource
     const permission = rolePermissions.find(p => p.resource === resource || p.resource === '*');
-    console.log('🔍 Found permission:', permission);
+    logger_1.logger.auth('🔍 Found permission:', permission);
     if (!permission) {
-        console.log('❌ No permission found for resource');
+        logger_1.logger.auth('❌ No permission found for resource');
         return { hasAccess: false, requiresApproval: false, reason: 'Žiadne oprávnenie pre tento resource' };
     }
     // Skontroluj action
     if (!permission.actions.includes(action)) {
-        console.log('❌ Action not allowed:', { allowedActions: permission.actions, requestedAction: action });
+        logger_1.logger.auth('❌ Action not allowed:', { allowedActions: permission.actions, requestedAction: action });
         return { hasAccess: false, requiresApproval: false, reason: `Akcia '${action}' nie je povolená` };
     }
-    console.log('✅ Action is allowed');
+    logger_1.logger.auth('✅ Action is allowed');
     // Skontroluj podmienky
     const conditions = permission.conditions;
     if (conditions && context) {
         // Kontrola "ownOnly" - len ak máme resourceOwnerId (nie pre list endpoints)
         if (conditions.ownOnly && context.resourceOwnerId && context.resourceOwnerId !== context.userId) {
-            console.log('❌ OwnOnly check failed:', {
+            logger_1.logger.auth('❌ OwnOnly check failed:', {
                 resourceOwnerId: context.resourceOwnerId,
                 userId: context.userId
             });
@@ -255,7 +256,7 @@ function hasPermission(userRole, resource, action, context) {
         }
         // Kontrola "companyOnly" - len ak máme resourceCompanyId (nie pre list endpoints)
         if (conditions.companyOnly && context.resourceCompanyId && context.resourceCompanyId !== context.companyId) {
-            console.log('❌ CompanyOnly check failed:', {
+            logger_1.logger.auth('❌ CompanyOnly check failed:', {
                 resourceCompanyId: context.resourceCompanyId,
                 userCompanyId: context.companyId
             });
@@ -279,14 +280,14 @@ function hasPermission(userRole, resource, action, context) {
         hasAccess: true,
         requiresApproval: conditions?.approvalRequired || false
     };
-    console.log('✅ hasPermission final result:', result);
+    logger_1.logger.auth('✅ hasPermission final result:', result);
     return result;
 }
 // 🚀 EXPRESS MIDDLEWARE
 function checkPermission(resource, action, options) {
     return async (req, res, next) => {
         try {
-            console.log('🔐 Permission check:', {
+            logger_1.logger.auth('🔐 Permission check:', {
                 resource,
                 action,
                 user: req.user ? {
@@ -297,7 +298,7 @@ function checkPermission(resource, action, options) {
                 } : null
             });
             if (!req.user) {
-                console.log('❌ Permission denied: No user');
+                logger_1.logger.auth('❌ Permission denied: No user');
                 return res.status(401).json({
                     success: false,
                     error: 'Používateľ nie je prihlásený'
@@ -308,7 +309,7 @@ function checkPermission(resource, action, options) {
             if (options?.getContext) {
                 context = await options.getContext(req);
             }
-            console.log('🔍 Permission context:', context);
+            logger_1.logger.auth('🔍 Permission context:', context);
             // Skontroluj oprávnenie
             const permissionCheck = hasPermission(req.user.role, resource, action, {
                 userId: req.user.id,
@@ -317,21 +318,21 @@ function checkPermission(resource, action, options) {
             });
             // Admin má práva na všetko - preskoč kontrolu
             if (req.user.role === 'admin') {
-                console.log('✅ Admin access granted');
+                logger_1.logger.auth('✅ Admin access granted');
                 req.permissionCheck = { hasAccess: true, requiresApproval: false };
                 return next();
             }
-            console.log('🔐 Permission result:', permissionCheck);
+            logger_1.logger.auth('🔐 Permission result:', permissionCheck);
             // Ulož výsledok do request
             req.permissionCheck = permissionCheck;
             if (!permissionCheck.hasAccess) {
-                console.log('❌ Permission denied:', permissionCheck.reason);
+                logger_1.logger.auth('❌ Permission denied:', permissionCheck.reason);
                 return res.status(403).json({
                     success: false,
                     error: permissionCheck.reason || 'Nemáte oprávnenie pre túto akciu'
                 });
             }
-            console.log('✅ Permission granted');
+            logger_1.logger.auth('✅ Permission granted');
             if (permissionCheck.requiresApproval) {
                 if (options?.onApprovalRequired) {
                     return options.onApprovalRequired(req, res);

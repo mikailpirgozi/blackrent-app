@@ -88,7 +88,8 @@ export const RentalTable: React.FC<RentalTableProps> = ({
       {isMobile ? (
         /* MOBILNÝ KARTOVÝ DIZAJN PRE PRENÁJMY */
         <Box sx={{ 
-          p: 2,
+          px: 1, // Menší horizontal padding pre lepšie centrované karty
+          py: 2,
           minHeight: '60vh',
           maxHeight: '80vh',
           overflow: 'auto',

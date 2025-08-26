@@ -114,7 +114,6 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(({
       <Card 
         sx={{ 
           mb: 1.5, // Menší spacing medzi kartami
-          mx: 1,
           borderRadius: 2, // Menší border radius
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)', // Jemnejší shadow
           border: isFlexible ? '2px solid #ff9800' : '1px solid rgba(0,0,0,0.06)',

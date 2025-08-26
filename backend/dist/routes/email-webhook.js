@@ -5,6 +5,7 @@ const postgres_database_1 = require("../models/postgres-database");
 const auth_1 = require("../middleware/auth");
 const permissions_1 = require("../middleware/permissions");
 const uuid_1 = require("uuid");
+const logger_1 = require("../utils/logger");
 const router = (0, express_1.Router)();
 const postgresDatabase = new postgres_database_1.PostgresDatabase();
 // =====================================================
@@ -97,7 +98,7 @@ class EmailParsingService {
             const vehicleMatch = text.match(/Položky objednávky\s*\n\s*Názov\s+Kód\s+Cena\s+Spolu\s*\n([^\n]+)/);
             if (vehicleMatch) {
                 const vehicleLine = vehicleMatch[1].trim();
-                console.log('🔍 Parsing vehicle line:', vehicleLine);
+                logger_1.logger.info('🔍 Parsing vehicle line:', vehicleLine);
                 const parts = vehicleLine.split(/\s+/).filter(part => part.trim());
                 // Nájdi ŠPZ (6-7 znakov, len písmená a čísla)
                 const spzIndex = parts.findIndex(part => /^[A-Z0-9]{6,7}$/.test(part.trim()));
@@ -140,7 +141,7 @@ class EmailParsingService {
             if (fuelMatch) {
                 data.fuelLevel = parseInt(fuelMatch[1]);
             }
-            console.log('📧 Parsed email data:', data);
+            logger_1.logger.info('📧 Parsed email data:', data);
             return data;
         }
         catch (error) {
@@ -167,14 +168,14 @@ class EmailParsingService {
         const content = (subject + ' ' + body).toLowerCase();
         const foundSpamWords = spamKeywords.filter(keyword => content.includes(keyword.toLowerCase()));
         if (foundSpamWords.length > 0) {
-            console.log('🚫 Spam detected, keywords found:', foundSpamWords);
+            logger_1.logger.info('🚫 Spam detected, keywords found:', foundSpamWords);
             return true;
         }
         // Kontrola či obsahuje základné polia prenájmu
         if (!body.includes('Číslo objednávky') &&
             !body.includes('Odoberateľ') &&
             !body.includes('vozidlo')) {
-            console.log('🚫 Spam detected: missing essential rental fields');
+            logger_1.logger.info('🚫 Spam detected: missing essential rental fields');
             return true;
         }
         return false;
@@ -187,7 +188,7 @@ const emailParsingService = new EmailParsingService();
 // GET /api/email-webhook/test - Test endpoint pre debugging
 router.get('/test', async (req, res) => {
     try {
-        console.log('🧪 Test endpoint called');
+        logger_1.logger.info('🧪 Test endpoint called');
         // Test 1: Základný response
         const testResult = {
             message: 'Email webhook test endpoint',
@@ -200,7 +201,7 @@ router.get('/test', async (req, res) => {
         try {
             const testQuery = await postgresDatabase.query('SELECT NOW() as current_time');
             testResult.databaseConnected = true;
-            console.log('✅ Database connection OK');
+            logger_1.logger.info('✅ Database connection OK');
         }
         catch (dbError) {
             console.error('❌ Database connection failed:', dbError);
@@ -209,7 +210,7 @@ router.get('/test', async (req, res) => {
         try {
             const vehicles = await postgresDatabase.getVehicles();
             testResult.vehiclesCount = vehicles.length;
-            console.log('✅ Got vehicles count:', vehicles.length);
+            logger_1.logger.info('✅ Got vehicles count:', vehicles.length);
         }
         catch (vehicleError) {
             console.error('❌ Vehicle query failed:', vehicleError);
@@ -218,7 +219,7 @@ router.get('/test', async (req, res) => {
         try {
             const customers = await postgresDatabase.getCustomers();
             testResult.customersCount = customers.length;
-            console.log('✅ Got customers count:', customers.length);
+            logger_1.logger.info('✅ Got customers count:', customers.length);
         }
         catch (customerError) {
             console.error('❌ Customer query failed:', customerError);
@@ -239,7 +240,7 @@ router.get('/test', async (req, res) => {
 // POST /api/email-webhook/debug - Postupný debug webhook endpoint  
 router.post('/debug', async (req, res) => {
     try {
-        console.log('🔧 DEBUG WEBHOOK: Starting step-by-step test');
+        logger_1.logger.info('🔧 DEBUG WEBHOOK: Starting step-by-step test');
         const result = {
             step1_received: false,
             step2_validation: false,
@@ -252,10 +253,10 @@ router.post('/debug', async (req, res) => {
             parsedData: null
         };
         // Step 1: Request received
-        console.log('🔍 STEP 1: Request received');
+        logger_1.logger.info('🔍 STEP 1: Request received');
         result.step1_received = true;
         // Step 2: Validation
-        console.log('🔍 STEP 2: Validating payload...');
+        logger_1.logger.info('🔍 STEP 2: Validating payload...');
         const payload = req.body;
         if (!payload.from || !payload.subject || !payload.body) {
             result.error = 'Missing required fields';
@@ -263,7 +264,7 @@ router.post('/debug', async (req, res) => {
         }
         result.step2_validation = true;
         // Step 3: Spam check
-        console.log('🔍 STEP 3: Spam check...');
+        logger_1.logger.info('🔍 STEP 3: Spam check...');
         const isSpam = emailParsingService.isSpamEmail(payload.from, payload.subject, payload.body);
         if (isSpam) {
             result.step3_spam_check = false;
@@ -272,20 +273,20 @@ router.post('/debug', async (req, res) => {
         }
         result.step3_spam_check = true;
         // Step 4: Email parsing
-        console.log('🔍 STEP 4: Email parsing...');
+        logger_1.logger.info('🔍 STEP 4: Email parsing...');
         let parsedData;
         try {
             parsedData = emailParsingService.parseEmailText(payload.body);
             result.step4_parsing = true;
             result.parsedData = parsedData;
-            console.log('✅ STEP 4: Parsed data:', parsedData);
+            logger_1.logger.info('✅ STEP 4: Parsed data:', parsedData);
         }
         catch (parseError) {
             result.error = `Parsing failed: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`;
             return res.status(422).json({ success: false, data: result });
         }
         // Step 5: Vehicle lookup
-        console.log('🔍 STEP 5: Vehicle lookup...');
+        logger_1.logger.info('🔍 STEP 5: Vehicle lookup...');
         let vehicleId = '';
         if (parsedData.vehicleCode) {
             try {
@@ -296,7 +297,7 @@ router.post('/debug', async (req, res) => {
                     vehicleId = vehicle.id;
                 }
                 result.step5_vehicle_lookup = true;
-                console.log('✅ STEP 5: Vehicle lookup completed, found:', !!vehicle);
+                logger_1.logger.info('✅ STEP 5: Vehicle lookup completed, found:', !!vehicle);
             }
             catch (vehicleError) {
                 result.error = `Vehicle lookup failed: ${vehicleError instanceof Error ? vehicleError.message : 'Unknown error'}`;
@@ -307,7 +308,7 @@ router.post('/debug', async (req, res) => {
             result.step5_vehicle_lookup = true; // No vehicle code to lookup
         }
         // Step 6: Customer lookup
-        console.log('🔍 STEP 6: Customer lookup...');
+        logger_1.logger.info('🔍 STEP 6: Customer lookup...');
         let customerId = '';
         if (parsedData.customerName) {
             try {
@@ -318,7 +319,7 @@ router.post('/debug', async (req, res) => {
                     customerId = customer.id;
                 }
                 result.step6_customer_lookup = true;
-                console.log('✅ STEP 6: Customer lookup completed, found:', !!customer);
+                logger_1.logger.info('✅ STEP 6: Customer lookup completed, found:', !!customer);
             }
             catch (customerError) {
                 result.error = `Customer lookup failed: ${customerError instanceof Error ? customerError.message : 'Unknown error'}`;
@@ -329,7 +330,7 @@ router.post('/debug', async (req, res) => {
             result.step6_customer_lookup = true; // No customer to lookup
         }
         // STOP HERE - don't create rental yet, just return success
-        console.log('✅ DEBUG WEBHOOK: All steps completed successfully');
+        logger_1.logger.info('✅ DEBUG WEBHOOK: All steps completed successfully');
         return res.json({
             success: true,
             data: {
@@ -351,13 +352,13 @@ router.post('/debug', async (req, res) => {
 // POST /api/email-webhook/webhook - Hlavný webhook endpoint pre príjem emailov
 router.post('/webhook', async (req, res) => {
     try {
-        console.log('📧 Email webhook received:', {
+        logger_1.logger.info('📧 Email webhook received:', {
             from: req.body.from,
             subject: req.body.subject,
             bodyLength: req.body.body?.length || 0,
             timestamp: new Date().toISOString()
         });
-        console.log('🔍 DEBUG: Full request body:', JSON.stringify(req.body, null, 2));
+        logger_1.logger.info('🔍 DEBUG: Full request body:', JSON.stringify(req.body, null, 2));
         const payload = req.body;
         // Validácia payload
         if (!payload.from || !payload.subject || !payload.body) {
@@ -367,11 +368,11 @@ router.post('/webhook', async (req, res) => {
             });
         }
         // Spam filter
-        console.log('🔍 DEBUG: Checking spam filter...');
+        logger_1.logger.info('🔍 DEBUG: Checking spam filter...');
         if (emailParsingService.isSpamEmail(payload.from, payload.subject, payload.body)) {
-            console.log('🚫 Email marked as spam and ignored');
+            logger_1.logger.info('🚫 Email marked as spam and ignored');
             // Log spam attempt
-            console.log('🚫 SPAM FILTERED:', {
+            logger_1.logger.info('🚫 SPAM FILTERED:', {
                 from: payload.from,
                 subject: payload.subject,
                 reason: 'spam_filter'
@@ -382,16 +383,16 @@ router.post('/webhook', async (req, res) => {
             });
         }
         // Parse email content
-        console.log('🔍 DEBUG: Starting email parsing...');
+        logger_1.logger.info('🔍 DEBUG: Starting email parsing...');
         let parsedData;
         try {
             parsedData = emailParsingService.parseEmailText(payload.body);
-            console.log('✅ DEBUG: Email parsed successfully:', parsedData);
+            logger_1.logger.info('✅ DEBUG: Email parsed successfully:', parsedData);
         }
         catch (parseError) {
             console.error('❌ Email parsing failed:', parseError);
             // Log parsing failure
-            console.log('❌ PARSE FAILED:', {
+            logger_1.logger.info('❌ PARSE FAILED:', {
                 from: payload.from,
                 subject: payload.subject,
                 error: parseError instanceof Error ? parseError.message : 'Unknown error'
@@ -402,20 +403,20 @@ router.post('/webhook', async (req, res) => {
             });
         }
         // Nájdi vozidlo podľa ŠPZ
-        console.log('🔍 DEBUG: Looking for vehicle with code:', parsedData.vehicleCode);
+        logger_1.logger.info('🔍 DEBUG: Looking for vehicle with code:', parsedData.vehicleCode);
         let vehicleId = '';
         if (parsedData.vehicleCode) {
             try {
                 const vehicles = await postgresDatabase.getVehicles();
-                console.log('✅ DEBUG: Got vehicles from database, count:', vehicles.length);
+                logger_1.logger.info('✅ DEBUG: Got vehicles from database, count:', vehicles.length);
                 const vehicle = vehicles.find(v => v.licensePlate?.toUpperCase().replace(/\s/g, '') ===
                     parsedData.vehicleCode?.toUpperCase().replace(/\s/g, ''));
                 if (vehicle) {
                     vehicleId = vehicle.id;
-                    console.log('✅ DEBUG: Vehicle found:', vehicle.id);
+                    logger_1.logger.info('✅ DEBUG: Vehicle found:', vehicle.id);
                 }
                 else {
-                    console.log('⚠️ Vehicle not found:', parsedData.vehicleCode);
+                    logger_1.logger.info('⚠️ Vehicle not found:', parsedData.vehicleCode);
                 }
             }
             catch (vehicleError) {
@@ -444,7 +445,7 @@ router.post('/webhook', async (req, res) => {
                     createdAt: new Date(),
                 };
                 await postgresDatabase.createCustomer(customer);
-                console.log('✅ New customer created:', customer.name);
+                logger_1.logger.info('✅ New customer created:', customer.name);
             }
             if (customer) {
                 customerId = customer.id;
@@ -469,7 +470,7 @@ router.post('/webhook', async (req, res) => {
                 };
                 startDate = parseDate(parsedData.handoverDate);
                 endDate = parseDate(parsedData.returnDate);
-                console.log('✅ Parsed dates from handoverDate/returnDate:', {
+                logger_1.logger.info('✅ Parsed dates from handoverDate/returnDate:', {
                     handoverDate: parsedData.handoverDate,
                     returnDate: parsedData.returnDate,
                     startDate: startDate.toISOString(),
@@ -486,7 +487,7 @@ router.post('/webhook', async (req, res) => {
             if (timeMatch) {
                 startDate = new Date(timeMatch[1]);
                 endDate = new Date(timeMatch[2]);
-                console.log('✅ Parsed dates from reservationTime (legacy):', {
+                logger_1.logger.info('✅ Parsed dates from reservationTime (legacy):', {
                     startDate: startDate.toISOString(),
                     endDate: endDate.toISOString()
                 });
@@ -494,7 +495,7 @@ router.post('/webhook', async (req, res) => {
         }
         // Fallback ak sa nepodarilo parsovať žiadne dátumy
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-            console.log('⚠️ Using fallback dates (tomorrow + 3 days)');
+            logger_1.logger.info('⚠️ Using fallback dates (tomorrow + 3 days)');
             startDate = new Date();
             startDate.setDate(startDate.getDate() + 1);
             startDate.setHours(10, 0, 0, 0); // 10:00 ráno
@@ -528,7 +529,7 @@ router.post('/webhook', async (req, res) => {
         };
         const createdRental = await postgresDatabase.createRental(rentalData);
         // Log successful processing
-        console.log('✅ RENTAL PROCESSED:', {
+        logger_1.logger.info('✅ RENTAL PROCESSED:', {
             rentalId: createdRental.id,
             from: payload.from,
             subject: payload.subject,
@@ -537,7 +538,7 @@ router.post('/webhook', async (req, res) => {
             vehicleCode: parsedData.vehicleCode,
             vehicleFound: !!vehicleId
         });
-        console.log('✅ Automatic rental created:', {
+        logger_1.logger.info('✅ Automatic rental created:', {
             id: createdRental.id,
             orderNumber: parsedData.orderNumber,
             customer: parsedData.customerName,
@@ -565,7 +566,7 @@ router.post('/webhook', async (req, res) => {
             fullError: error
         });
         // Log system error
-        console.log('❌ SYSTEM ERROR:', {
+        logger_1.logger.info('❌ SYSTEM ERROR:', {
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : 'No stack trace',
             from: req.body?.from || 'unknown',
@@ -615,7 +616,7 @@ router.post('/approve/:id', auth_1.authenticateToken, (0, permissions_1.checkPer
         WHERE id = $1 AND approval_status = 'pending'
       `, [id, userId]);
         // Log approval
-        console.log('✅ RENTAL APPROVED:', {
+        logger_1.logger.info('✅ RENTAL APPROVED:', {
             rentalId: id,
             approvedBy: userId
         });
@@ -659,7 +660,7 @@ router.post('/reject/:id', auth_1.authenticateToken, (0, permissions_1.checkPerm
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (order_number) DO NOTHING
           `, [order_number, 'rejected', reason || 'Zamietnuté používateľom', userId]);
-                console.log(`🚫 BLACKLIST: ${order_number} pridaný do blacklistu`);
+                logger_1.logger.info(`🚫 BLACKLIST: ${order_number} pridaný do blacklistu`);
             }
             catch (blacklistError) {
                 console.error('❌ Chyba pri pridávaní do blacklistu:', blacklistError);
@@ -672,7 +673,7 @@ router.post('/reject/:id', auth_1.authenticateToken, (0, permissions_1.checkPerm
         RETURNING id
       `, [id]);
         // Log rejection
-        console.log('❌ RENTAL REJECTED & BLACKLISTED:', {
+        logger_1.logger.info('❌ RENTAL REJECTED & BLACKLISTED:', {
             rentalId: id,
             orderNumber: order_number,
             customerName: customer_name,
@@ -739,7 +740,7 @@ router.put('/rentals/:id', auth_1.authenticateToken, (0, permissions_1.checkPerm
                 error: 'Prenájom nenájdený alebo už nie je pending'
             });
         }
-        console.log('✅ Rental updated:', id);
+        logger_1.logger.info('✅ Rental updated:', id);
         res.json({
             success: true,
             data: result.rows[0]
@@ -781,7 +782,7 @@ router.post('/blacklist/:orderNumber', async (req, res) => {
     try {
         const { orderNumber } = req.params;
         const { reason = 'rejected', notes = '' } = req.body;
-        console.log(`🚫 BLACKLIST: Blokujem objednávku ${orderNumber}`);
+        logger_1.logger.info(`🚫 BLACKLIST: Blokujem objednávku ${orderNumber}`);
         // Pridaj do blacklistu
         await postgresDatabase.query(`
       INSERT INTO email_blacklist (order_number, reason, notes, created_by) 
@@ -795,7 +796,7 @@ router.post('/blacklist/:orderNumber', async (req, res) => {
       RETURNING id
     `, [orderNumber]);
         const deletedCount = deleteResult.rows.length;
-        console.log(`✅ BLACKLIST: ${orderNumber} zablokovaný, zmazaných ${deletedCount} pending záznamov`);
+        logger_1.logger.info(`✅ BLACKLIST: ${orderNumber} zablokovaný, zmazaných ${deletedCount} pending záznamov`);
         res.json({
             success: true,
             data: {
