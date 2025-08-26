@@ -23,6 +23,7 @@ export const RentalActions: React.FC<RentalActionsProps> = ({
       display: 'flex', 
       gap: { xs: 1, md: 2 }, 
       mb: 3,
+      mx: { xs: 2, md: 0 }, // Margin len na mobile pre správne centrovanie
       flexWrap: 'wrap',
       alignItems: 'center'
     }}>
