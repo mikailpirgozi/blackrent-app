@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { HandoverProtocol, Rental, ProtocolImage, ProtocolVideo, ProtocolSignature, Vehicle } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '../../utils/logger';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
 import { useAuth } from '../../context/AuthContext';
@@ -83,8 +84,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
   
   // Log component mount
   React.useEffect(() => {
-    console.log('🟢 MOBILE DEBUG: HandoverProtocolForm MOUNTED');
-    console.log('🟢 MOBILE DEBUG: rental:', rental?.id);
+    logger.debug('🟢 MOBILE DEBUG: HandoverProtocolForm MOUNTED');
+    logger.debug('🟢 MOBILE DEBUG: rental:', rental?.id);
     
     // logMobile('INFO', 'HandoverProtocol', 'Component mounted', {
     //   open,
@@ -97,21 +98,21 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     
     return () => {
       // Minimal cleanup to prevent memory leaks
-      console.log('🔴 MOBILE DEBUG: HandoverProtocolForm UNMOUNTING');
+      logger.debug('🔴 MOBILE DEBUG: HandoverProtocolForm UNMOUNTING');
     };
   }, []);
 
   // Log open state changes only in development
   React.useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 MOBILE DEBUG: HandoverProtocolForm open state changed:', open);
-      console.log('🔍 MOBILE DEBUG: rental ID:', rental?.id);
-      console.log('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
+      logger.debug('🔍 MOBILE DEBUG: HandoverProtocolForm open state changed:', open);
+      logger.debug('🔍 MOBILE DEBUG: rental ID:', rental?.id);
+      logger.debug('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
       
       if (open) {
-        console.log('✅ MOBILE DEBUG: HandoverProtocolForm is OPENING');
+        logger.debug('✅ MOBILE DEBUG: HandoverProtocolForm is OPENING');
       } else {
-        console.log('❌ MOBILE DEBUG: HandoverProtocolForm is CLOSING');
+        logger.debug('❌ MOBILE DEBUG: HandoverProtocolForm is CLOSING');
       }
     }
     
@@ -237,7 +238,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
 
   // 🚀 OPTIMALIZÁCIA: Memoized signature handlers
   const handleAddSignature = useCallback((signerName: string, signerRole: 'customer' | 'employee') => {
-    console.log('🖊️ Adding signature:', { signerName, signerRole, rentalCustomer: rental.customer?.name, rentalCustomerName: rental.customerName });
+    logger.debug('🖊️ Adding signature:', { signerName, signerRole, rentalCustomer: rental.customer?.name, rentalCustomerName: rental.customerName });
     setCurrentSigner({ name: signerName, role: signerRole });
     setShowSignaturePad(true);
   }, [rental.customer?.name, rental.customerName]);
@@ -426,20 +427,20 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
         }))
       };
 
-      console.log('🧹 Cleaned handover protocol for DB:', cleanedProtocol);
+      logger.debug('🧹 Cleaned handover protocol for DB:', cleanedProtocol);
 
       // 🚀 QUICK SAVE: Uloženie protokolu s flag-om pre background PDF
       const apiBaseUrl = getApiBaseUrl();
       const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
       
-      console.log('⚡ QUICK SAVE: Sending protocol data...');
+      logger.debug('⚡ QUICK SAVE: Sending protocol data...');
       const quickSaveStart = Date.now();
       
       // 🔧 MOBILE FIX: Pridáme timeout protection pre mobile zariadenia
       const isMobile = window.matchMedia('(max-width: 900px)').matches;
       const timeoutMs = isMobile ? 30000 : 60000; // 30s na mobile, 60s na desktop
       
-      console.log(`📱 Using ${timeoutMs/1000}s timeout for ${isMobile ? 'mobile' : 'desktop'}`);
+      logger.debug(`📱 Using ${timeoutMs/1000}s timeout for ${isMobile ? 'mobile' : 'desktop'}`);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
@@ -466,7 +467,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       const result = await response.json();
       const quickSaveTime = Date.now() - quickSaveStart;
       
-      console.log(`✅ Protocol saved in ${quickSaveTime}ms`);
+      logger.info(`✅ Protocol saved in ${quickSaveTime}ms`);
       
       // 🔴 REMOVED: Redundant refresh - WebSocket už triggeruje refresh
       
@@ -486,13 +487,13 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
         cacheCompanyDefaults(currentVehicle.company, cacheData);
       }
       
-      console.log('🔄 Form defaults cached for future use');
+      logger.debug('🔄 Form defaults cached for future use');
       
       // 🎯 BACKGROUND PDF DOWNLOAD - na pozadí (neblokuje UI)
       if (result.protocol?.pdfProxyUrl) {
         setTimeout(async () => {
           try {
-            console.log('📄 Background PDF download starting...');
+            logger.debug('📄 Background PDF download starting...');
             const pdfResponse = await fetch(`${apiBaseUrl}${result.protocol.pdfProxyUrl}`, {
               headers: {
                 'Authorization': `Bearer ${localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token')}`
@@ -508,7 +509,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
               link.click();
               document.body.removeChild(link);
               URL.revokeObjectURL(url);
-              console.log('✅ Background PDF download completed');
+              logger.debug('✅ Background PDF download completed');
             }
           } catch (pdfError) {
             console.warn('PDF background download failed:', pdfError);
@@ -559,7 +560,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       console.error('❌ Protocol save failed:', errorMessage);
       
       // 🚫 PREVENT REFRESH: Zabránime automatickému refreshu
-      console.log('🛑 Error handled gracefully, preventing page refresh');
+      logger.warn('🛑 Error handled gracefully, preventing page refresh');
       
       // 📱 MOBILE PROTECTION: Mark that an error occurred but don't refresh
       // if (stabilizer) {
@@ -612,7 +613,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       
       // Počkáme 4 sekundy pred zatvorením aby užívateľ videl email status
       setTimeout(() => {
-        console.log('✅ Email status zobrazený, zatváram modal');
+        logger.debug('✅ Email status zobrazený, zatváram modal');
         onClose();
       }, 4000);
     } catch (error) {
@@ -634,8 +635,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
     
     const isMobile = window.matchMedia('(max-width: 900px)').matches;
     if (isMobile) {
-      console.log('📱 HandoverProtocolForm: Starting to render on mobile');
-      console.log('📊 Memory info:', {
+      logger.debug('📱 HandoverProtocolForm: Starting to render on mobile');
+      logger.debug('📊 Memory info:', {
         rental: rental?.id,
         vehicleImages: formData.vehicleImages?.length || 0,
         documentImages: formData.documentImages?.length || 0,
@@ -657,7 +658,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       // Kontrola memory
       if ('memory' in performance) {
         const memInfo = (performance as any).memory;
-        console.log('💾 Memory usage:', {
+        logger.debug('💾 Memory usage:', {
           used: Math.round(memInfo.usedJSHeapSize / 1024 / 1024) + 'MB',
           total: Math.round(memInfo.totalJSHeapSize / 1024 / 1024) + 'MB',
           limit: Math.round(memInfo.jsHeapSizeLimit / 1024 / 1024) + 'MB'
@@ -666,7 +667,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       
       return () => {
         // Keep stabilizer active - don't destroy on unmount as user might return
-        console.log('📱 Protocol form unmounted');
+        logger.debug('📱 Protocol form unmounted');
       };
     }
   }, [open, rental?.id, formData]);
@@ -677,7 +678,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
       const isMobile = window.matchMedia('(max-width: 900px)').matches;
       if (isMobile) {
         console.error('🚨 HandoverProtocolForm error on mobile:', event.error);
-        console.log('📱 Error details:', {
+        logger.error('📱 Error details:', {
           message: event.message,
           filename: event.filename,
           lineno: event.lineno,
@@ -701,7 +702,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(({ open, onClose, r
 
   // Reduced logging for better performance
   if (isMobile) {
-    console.log('📱 HandoverProtocolForm: Mobile render');
+    logger.debug('📱 HandoverProtocolForm: Mobile render');
   }
 
   return (

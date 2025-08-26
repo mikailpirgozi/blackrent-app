@@ -87,7 +87,7 @@ export default function RentalList() {
   } = useInfiniteRentals();
 
   // 🔍 DEBUG: Základné informácie o komponente
-  console.log('🚀 RentalList LOADED:', {
+  logger.debug('🚀 RentalList LOADED:', {
     isMobile,
     screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'unknown',
     breakpoint: theme.breakpoints.values.md
@@ -96,7 +96,7 @@ export default function RentalList() {
   // 🚀 EXTRACTED: Use protocol hook first
   const protocolsHook = useRentalProtocols({
     onProtocolUpdate: async (rentalId, protocolType, data) => {
-      console.log('📋 Protocol updated', { rentalId, protocolType });
+      logger.debug('📋 Protocol updated', { rentalId, protocolType });
       
       // ✅ OKAMŽITÁ AKTUALIZÁCIA: Vyčisti cache a znovu načítaj protokoly
       protocolsHook.setProtocols(prev => {
@@ -123,7 +123,7 @@ export default function RentalList() {
       // Note: updateRentalInList expects full Rental object, so we'll rely on protocol status map instead
       // The UI will update automatically based on protocolStatusMap changes
       
-      console.log('✅ Protocol update completed - UI should refresh immediately');
+      logger.debug('✅ Protocol update completed - UI should refresh immediately');
     }
   });
 
@@ -156,7 +156,7 @@ export default function RentalList() {
   // 🚀 SERVER-SIDE SEARCH: Sync search between useRentalFilters and useInfiniteRentals
   React.useEffect(() => {
     if (debouncedSearchQuery !== searchTerm) {
-      console.log('🔍 SEARCH: Syncing search term:', debouncedSearchQuery);
+      logger.debug('🔍 SEARCH: Syncing search term:', debouncedSearchQuery);
       setSearchTerm(debouncedSearchQuery);
     }
   }, [debouncedSearchQuery, searchTerm, setSearchTerm]);
@@ -176,13 +176,13 @@ export default function RentalList() {
       priceMax: advancedFilters.priceMax || undefined,
     };
 
-    console.log('🔧 FILTERS: Syncing filters to server:', serverFilters);
+    logger.debug('🔧 FILTERS: Syncing filters to server:', serverFilters);
     updateFilters(serverFilters);
   }, [advancedFilters, updateFilters]);
 
   // 🚀 ENHANCED RESET: Reset both local and server-side filters
   const handleResetAllFilters = useCallback(() => {
-    console.log('🔄 RESET: Resetting all filters');
+    logger.debug('🔄 RESET: Resetting all filters');
     resetFilters(); // Reset local filters
     setSearchTerm(''); // Reset server search
     updateFilters({}); // Reset server filters
@@ -191,7 +191,7 @@ export default function RentalList() {
 
   // 🚀 MULTI-SELECT FILTER HELPERS: For server-side filtering
   const toggleFilterValue = useCallback((filterKey: keyof typeof advancedFilters, value: string) => {
-    console.log(`🎯 TOGGLE FILTER: ${filterKey} = ${value}`);
+    logger.debug(`🎯 TOGGLE FILTER: ${filterKey} = ${value}`);
     
     const currentValues = advancedFilters[filterKey] as string[];
     const newValues = Array.isArray(currentValues) 
@@ -205,7 +205,7 @@ export default function RentalList() {
       [filterKey]: newValues
     };
     
-    console.log(`🎯 NEW FILTERS:`, newFilters);
+    logger.debug(`🎯 NEW FILTERS:`, newFilters);
     setAdvancedFilters(newFilters);
   }, [advancedFilters, setAdvancedFilters]);
 
@@ -230,13 +230,13 @@ export default function RentalList() {
     restoreScrollPosition
   } = useRentalActions({
     onEdit: (rental) => {
-      console.log('🔍 External edit handler called', { rentalId: rental.id });
+      logger.debug('🔍 External edit handler called', { rentalId: rental.id });
     },
     onDelete: (id) => {
-      console.log('🗑️ External delete handler called', { rentalId: id });
+      logger.debug('🗑️ External delete handler called', { rentalId: id });
     },
     onScrollRestore: () => {
-      console.log('📜 External scroll restore handler called');
+      logger.debug('📜 External scroll restore handler called');
     }
   });
 
@@ -264,7 +264,7 @@ export default function RentalList() {
       savedScrollPosition.current = desktopScrollRef.current.scrollTop;
     }
     
-    console.log('📜 INFINITE SCROLL: Saved position before load more:', savedScrollPosition.current);
+    logger.debug('📜 INFINITE SCROLL: Saved position before load more:', savedScrollPosition.current);
     
     // 🚀 INFINITE SCROLL: Load more rentals
     loadMore();
@@ -302,7 +302,7 @@ export default function RentalList() {
           scrollPercentage = event.scrollOffset / maxScroll;
           
           if (process.env.NODE_ENV === 'development') {
-            console.log(`📱 Virtual scroll: ${Math.round(scrollPercentage * 100)}%`);
+            logger.debug(`📱 Virtual scroll: ${Math.round(scrollPercentage * 100)}%`);
           }
         } else if (event.target || event.currentTarget) {
           // Native scroll from container (desktop)
@@ -312,13 +312,13 @@ export default function RentalList() {
           scrollPercentage = scrollTop / maxScroll;
           
           if (process.env.NODE_ENV === 'development') {
-            console.log(`💻 Desktop scroll: ${Math.round(scrollPercentage * 100)}%`);
+            logger.debug(`💻 Desktop scroll: ${Math.round(scrollPercentage * 100)}%`);
           }
         }
         
         // Trigger infinite loading at threshold
         if (scrollPercentage >= SCROLL_THRESHOLD) {
-          console.log(`🚀 INFINITE SCROLL: Triggered at ${Math.round(scrollPercentage * 100)}%`);
+          logger.debug(`🚀 INFINITE SCROLL: Triggered at ${Math.round(scrollPercentage * 100)}%`);
           handleLoadMore();
         }
       }, DEBOUNCE_DELAY);
@@ -530,7 +530,7 @@ export default function RentalList() {
     if (!selectedProtocolRental || !selectedProtocolType) return;
     
     try {
-      console.log('🔍 Opening gallery for protocol:', selectedProtocolType, 'rental:', selectedProtocolRental.id);
+      logger.debug('🔍 Opening gallery for protocol:', selectedProtocolType, 'rental:', selectedProtocolRental.id);
       
       // Zatvor protocol menu najprv
       handleCloseProtocolMenu();
@@ -539,7 +539,7 @@ export default function RentalList() {
       let protocol = protocolsHook.protocols[selectedProtocolRental.id]?.[selectedProtocolType];
       
       if (!protocol) {
-        console.log('📥 Loading protocol for gallery...');
+        logger.debug('📥 Loading protocol for gallery...');
         const freshProtocolData = await protocolsHook.loadProtocolsForRental(selectedProtocolRental.id);
         protocol = freshProtocolData?.[selectedProtocolType];
       }
@@ -582,7 +582,7 @@ export default function RentalList() {
         ...parseImages(protocol.damageVideos)
       ];
 
-      console.log('🖼️ Gallery data prepared:', {
+      logger.debug('🖼️ Gallery data prepared:', {
         imagesCount: images.length,
         videosCount: videos.length
       });
@@ -599,7 +599,7 @@ export default function RentalList() {
       protocolsHook.setGalleryTitle(`${selectedProtocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} - ${vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Neznáme vozidlo'}`);
       protocolsHook.galleryOpenRef.current = true;
       
-      console.log('✅ Gallery opened successfully with protocol data');
+      logger.debug('✅ Gallery opened successfully with protocol data');
       
     } catch (error) {
       console.error('❌ Error opening gallery:', error);
@@ -625,7 +625,7 @@ export default function RentalList() {
   }
 
   return (
-    <Box sx={{ p: { xs: 1, md: 3 } }}>
+    <Box sx={{ p: { xs: 0, md: 3 } }}>
       {/* 📊 EXTRACTED: RentalStats komponent */}
       <RentalStats
         rentals={filteredRentals}
@@ -682,7 +682,7 @@ export default function RentalList() {
         handleCreateHandover={protocolsHook.handleCreateHandover}
         handleCreateReturn={protocolsHook.handleCreateReturn}
         handleOpenProtocolMenu={(rental, type) => {
-          console.log('📋 Opening protocol menu', rental.id, type);
+          logger.debug('📋 Opening protocol menu', rental.id, type);
           
           // Kontrola existencie protokolu cez protocolStatusMap (rýchlejšie a spoľahlivejšie)
           const protocolStatus = protocolsHook.protocolStatusMap[rental.id];
@@ -690,7 +690,7 @@ export default function RentalList() {
             ? protocolStatus?.hasHandoverProtocol
             : protocolStatus?.hasReturnProtocol;
             
-          console.log('🔍 Protocol check:', {
+          logger.debug('🔍 Protocol check:', {
             rentalId: rental.id,
             type,
             hasProtocol,
@@ -789,10 +789,10 @@ export default function RentalList() {
           try {
             if (editingRental) {
               await updateRental(rental);
-              console.log('✅ Rental updated successfully:', rental.id);
+              logger.info('✅ Rental updated successfully:', rental.id);
             } else {
               await createRental(rental);
-              console.log('✅ Rental created successfully');
+              logger.info('✅ Rental created successfully');
             }
             setOpenDialog(false);
             setEditingRental(null);
@@ -811,7 +811,7 @@ export default function RentalList() {
         handleCancel={handleCancel}
         handleSaveHandover={async (protocolData) => {
           try {
-            console.log('💾 Handover protocol already saved, updating UI:', protocolData);
+            logger.debug('💾 Handover protocol already saved, updating UI:', protocolData);
             
             // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
             await protocolsHook.onProtocolUpdate?.(protocolData.rentalId, 'handover', protocolData);
@@ -819,7 +819,7 @@ export default function RentalList() {
             protocolsHook.setOpenHandoverDialog(false);
             protocolsHook.setSelectedRentalForProtocol(null);
             
-            console.log('✅ Handover protocol UI updated successfully');
+            logger.debug('✅ Handover protocol UI updated successfully');
           } catch (error) {
             console.error('❌ Error updating handover protocol UI:', error);
             alert('Chyba pri aktualizácii protokolu. Skúste to znovu.');
@@ -827,7 +827,7 @@ export default function RentalList() {
         }}
         handleSaveReturn={async (protocolData) => {
           try {
-            console.log('💾 Return protocol already saved, updating UI:', protocolData);
+            logger.debug('💾 Return protocol already saved, updating UI:', protocolData);
             
             // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
             await protocolsHook.onProtocolUpdate?.(protocolData.rentalId, 'return', protocolData);
@@ -835,7 +835,7 @@ export default function RentalList() {
             protocolsHook.setOpenReturnDialog(false);
             protocolsHook.setSelectedRentalForProtocol(null);
             
-            console.log('✅ Return protocol UI updated successfully');
+            logger.debug('✅ Return protocol UI updated successfully');
           } catch (error) {
             console.error('❌ Error updating return protocol UI:', error);
             alert('Protokol bol uložený, ale UI sa nepodarilo aktualizovať. Obnovte stránku.');

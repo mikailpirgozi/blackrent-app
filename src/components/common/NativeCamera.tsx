@@ -20,6 +20,7 @@ import {
   FlashOff,
   CheckCircle,
 } from '@mui/icons-material';
+import { logger } from '../../utils/logger';
 
 interface NativeCameraProps {
   open: boolean;
@@ -66,7 +67,7 @@ export default function NativeCamera({
 
   // Inicializácia kamery
   const initCamera = useCallback(async (facingMode: 'environment' | 'user' = 'environment') => {
-    console.log('🚀 Starting camera initialization...');
+    logger.debug('🚀 Starting camera initialization...');
     setCameraState(prev => ({ ...prev, isInitializing: true, error: null }));
 
     // Kontrola podpory MediaDevices API
@@ -85,7 +86,7 @@ export default function NativeCamera({
     try {
       // Zastavenie existujúceho streamu
       if (streamRef.current) {
-        console.log('🛑 Stopping existing stream...');
+        logger.debug('🛑 Stopping existing stream...');
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
@@ -100,7 +101,7 @@ export default function NativeCamera({
         audio: false,
       };
 
-      console.log('📱 Requesting camera with constraints:', constraints);
+      logger.debug('📱 Requesting camera with constraints:', constraints);
 
       // Timeout pre loading state (5 sekúnd)
       const timeoutId = setTimeout(() => {
@@ -120,8 +121,8 @@ export default function NativeCamera({
         // Zastaviť timeout ak sa stream podarilo získať
         clearTimeout(timeoutId);
 
-        console.log('✅ Stream získaný:', stream);
-        console.log('📹 Video tracks:', stream.getVideoTracks());
+        logger.debug('✅ Stream získaný:', stream);
+        logger.debug('📹 Video tracks:', stream.getVideoTracks());
         
         // Počkaj na video element (môže trvať chvíľu kým sa vytvorí)
         let retries = 0;
@@ -129,12 +130,12 @@ export default function NativeCamera({
         
         const setupVideo = () => {
           if (videoRef.current) {
-            console.log('✅ Video ref found, setting up stream');
+            logger.debug('✅ Video ref found, setting up stream');
             videoRef.current.srcObject = stream;
             
             // Počkaj na loadedmetadata event
             videoRef.current.onloadedmetadata = () => {
-              console.log('✅ Video metadata loaded');
+              logger.debug('✅ Video metadata loaded');
               if (videoRef.current) {
                 videoRef.current.play().catch(err => {
                   console.error('❌ Video play error:', err);
@@ -165,7 +166,7 @@ export default function NativeCamera({
         const capabilities = videoTrack.getCapabilities?.();
         const flashSupported = capabilities && (capabilities as any).torch === true;
 
-        console.log('🔦 Flash supported:', flashSupported);
+        logger.debug('🔦 Flash supported:', flashSupported);
 
         setCameraState(prev => ({
           ...prev,
@@ -216,15 +217,15 @@ export default function NativeCamera({
   // Spustenie kamery pri otvorení dialógu
   useEffect(() => {
     if (open) {
-      console.log('🎬 NativeCamera opening, initializing...');
+      logger.debug('🎬 NativeCamera opening, initializing...');
       setPhotosInSession(0);
       initCamera();
     } else {
-      console.log('🚪 NativeCamera closing, cleaning up...');
+      logger.debug('🚪 NativeCamera closing, cleaning up...');
       // Zastavenie kamery pri zatvorení
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => {
-          console.log('🛑 Stopping track:', track.kind);
+          logger.debug('🛑 Stopping track:', track.kind);
           track.stop();
         });
         streamRef.current = null;
@@ -234,7 +235,7 @@ export default function NativeCamera({
 
     return () => {
       if (streamRef.current) {
-        console.log('🧹 Cleanup: stopping all tracks');
+        logger.debug('🧹 Cleanup: stopping all tracks');
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
@@ -298,7 +299,7 @@ export default function NativeCamera({
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              console.log('✅ WebP capture successful, size:', (blob.size / 1024).toFixed(1) + 'KB');
+              logger.debug('✅ WebP capture successful, size:', (blob.size / 1024).toFixed(1) + 'KB');
               onCapture(blob);
               setPhotosInSession(prev => prev + 1);
               setTimeout(() => setCapturing(false), 200);
@@ -316,7 +317,7 @@ export default function NativeCamera({
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              console.log('✅ JPEG capture successful, size:', (blob.size / 1024).toFixed(1) + 'KB');
+              logger.debug('✅ JPEG capture successful, size:', (blob.size / 1024).toFixed(1) + 'KB');
               onCapture(blob);
               setPhotosInSession(prev => prev + 1);
               setTimeout(() => setCapturing(false), 200);
@@ -457,7 +458,7 @@ export default function NativeCamera({
                 autoPlay
                 playsInline
                 muted
-                onCanPlay={() => console.log('✅ Video can play')}
+                onCanPlay={() => logger.debug('✅ Video can play')}
                 onError={(e) => console.error('❌ Video error:', e)}
                 style={{
                   width: '100%',

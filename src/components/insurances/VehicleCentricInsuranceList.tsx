@@ -379,12 +379,43 @@ export default function VehicleCentricInsuranceList() {
       case 'expiry':
       default:
         return sorted.sort((a, b) => {
+          // 1. Najprv vypršané dokumenty (najviac vypršaných najprv)
+          if (a.stats.expired !== b.stats.expired) {
+            return b.stats.expired - a.stats.expired;
+          }
+          
+          // 2. Ak oba majú vypršané dokumenty, zoraď podľa počtu vypršaných
+          if (a.stats.expired > 0 && b.stats.expired > 0) {
+            return b.stats.expired - a.stats.expired;
+          }
+          
+          // 3. Potom tie čo vypršia čoskoro (podľa najbližšieho dátumu)
+          if (a.stats.expiring > 0 || b.stats.expiring > 0) {
+            // Ak jeden má expirujúce a druhý nie, expirujúce má prioritu
+            if (a.stats.expiring > 0 && b.stats.expiring === 0) return -1;
+            if (b.stats.expiring > 0 && a.stats.expiring === 0) return 1;
+            
+            // Ak oba majú expirujúce, zoraď podľa najbližšieho dátumu
+            if (a.stats.nextExpiry && b.stats.nextExpiry) {
+              return a.stats.nextExpiry.getTime() - b.stats.nextExpiry.getTime();
+            }
+          }
+          
+          // 4. Nakoniec tie v poriadku - zoraď abecedne
+          if (a.stats.expired === 0 && a.stats.expiring === 0 && 
+              b.stats.expired === 0 && b.stats.expiring === 0) {
+            return `${a.vehicle.brand} ${a.vehicle.model}`.localeCompare(`${b.vehicle.brand} ${b.vehicle.model}`);
+          }
+          
+          // 5. Fallback - ak má jeden nextExpiry a druhý nie
           if (a.stats.nextExpiry && b.stats.nextExpiry) {
             return a.stats.nextExpiry.getTime() - b.stats.nextExpiry.getTime();
           }
           if (a.stats.nextExpiry) return -1;
           if (b.stats.nextExpiry) return 1;
-          return 0;
+          
+          // 6. Posledný fallback - abecedne
+          return `${a.vehicle.brand} ${a.vehicle.model}`.localeCompare(`${b.vehicle.brand} ${b.vehicle.model}`);
         });
     }
   }, [vehiclesWithDocuments, sortBy]);

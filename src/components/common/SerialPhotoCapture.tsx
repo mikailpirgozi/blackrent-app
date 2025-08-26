@@ -28,6 +28,7 @@ import {
   VideoCall,
 } from '@mui/icons-material';
 import { compressImage, compressForProtocol, compressImageSmart, QUALITY_PRESETS, isWebPSupported } from '../../utils/imageCompression';
+import { logger } from '../../utils/logger';
 import { compressVideo } from '../../utils/videoCompression';
 import { ProtocolImage, ProtocolVideo } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -181,7 +182,7 @@ export default function SerialPhotoCapture({
       const apiBaseUrl = getApiBaseUrl();
       
       // 🚀 NOVÝ SYSTÉM: Signed URL upload
-      console.log('🔄 Getting presigned URL for:', {
+      logger.debug('🔄 Getting presigned URL for:', {
         protocolId: entityId,
         filename: file.name,
         size: file.size,
@@ -213,7 +214,7 @@ export default function SerialPhotoCapture({
       }
 
       const presignedData = await presignedResponse.json();
-      console.log('✅ Presigned URL received:', presignedData);
+      logger.debug('✅ Presigned URL received:', presignedData);
 
       // 2. Upload priamo do R2 cez presigned URL
       const uploadResponse = await fetch(presignedData.presignedUrl, {
@@ -228,7 +229,7 @@ export default function SerialPhotoCapture({
         throw new Error(`Failed to upload to R2: ${uploadResponse.status}`);
       }
 
-      console.log('✅ File uploaded directly to R2');
+      logger.debug('✅ File uploaded directly to R2');
 
       // 3. Uloženie metadát do databázy
       const metadataResponse = await fetch(`${apiBaseUrl}/protocols/${entityId}/save-uploaded-photo`, {
@@ -250,7 +251,7 @@ export default function SerialPhotoCapture({
       });
 
       if (metadataResponse.ok) {
-        console.log('✅ Photo metadata saved to database');
+        logger.debug('✅ Photo metadata saved to database');
       } else {
         console.warn('⚠️ Photo uploaded to R2 but failed to save metadata');
       }
@@ -261,7 +262,7 @@ export default function SerialPhotoCapture({
       console.error('❌ Signed URL upload failed:', error);
       
       // Fallback na direct upload ak signed URL zlyhá
-      console.log('🔄 Falling back to direct upload...');
+      logger.debug('🔄 Falling back to direct upload...');
       return await directUpload(file);
     }
   }, [autoUploadToR2, category, directUpload, entityId, mediaType, protocolType]);
@@ -328,7 +329,7 @@ export default function SerialPhotoCapture({
         }
 
         // Okamžitý upload na R2 ak je povolený
-        console.log('🔍 R2 UPLOAD CHECK:', {
+        logger.debug('🔍 R2 UPLOAD CHECK:', {
           autoUploadToR2,
           entityId,
           hasEntityId: !!entityId,
@@ -338,12 +339,12 @@ export default function SerialPhotoCapture({
         
         let url: string;
         if (autoUploadToR2 && entityId) {
-          console.log('✅ STARTING R2 UPLOAD:', processedFile.name);
+          logger.debug('✅ STARTING R2 UPLOAD:', processedFile.name);
           setUploadingToR2(true);
           setUploadProgress((processedCount / files.length) * 100);
           try {
             url = await uploadToR2(processedFile, isVideo ? 'video' : 'image');
-            console.log('✅ R2 UPLOAD SUCCESS:', url);
+            logger.debug('✅ R2 UPLOAD SUCCESS:', url);
           } catch (error) {
             console.error('❌ R2 UPLOAD FAILED, falling back to base64:', error);
             url = await new Promise<string>((resolve) => {
@@ -354,7 +355,7 @@ export default function SerialPhotoCapture({
           }
           setUploadingToR2(false);
         } else {
-          console.log('⚠️ USING BASE64 FALLBACK - R2 conditions not met');
+          logger.debug('⚠️ USING BASE64 FALLBACK - R2 conditions not met');
           // Fallback na base64
           url = await new Promise<string>((resolve) => {
             const reader = new FileReader();
@@ -383,7 +384,7 @@ export default function SerialPhotoCapture({
       }
 
       setCapturedMedia(prev => [...prev, ...newMedia]);
-      console.log(`✅ Pridané ${newMedia.length} médií s ${autoUploadToR2 ? 'R2 upload' : 'base64'}`);
+      logger.debug(`✅ Pridané ${newMedia.length} médií s ${autoUploadToR2 ? 'R2 upload' : 'base64'}`);
 
     } catch (error) {
       console.error('❌ Chyba pri spracovaní súborov:', error);
@@ -408,7 +409,7 @@ export default function SerialPhotoCapture({
     // Vytvor dočasný preview URL
     let preview = URL.createObjectURL(imageBlob);
     
-    console.log('📸 Native camera capture - R2 upload check:', {
+    logger.debug('📸 Native camera capture - R2 upload check:', {
       autoUploadToR2,
       entityId,
       hasEntityId: !!entityId,
@@ -419,12 +420,12 @@ export default function SerialPhotoCapture({
     
     // Okamžitý upload na R2 ak je povolený
     if (autoUploadToR2 && entityId) {
-      console.log('🚀 NATIVE CAMERA: Starting R2 upload for:', file.name);
+      logger.debug('🚀 NATIVE CAMERA: Starting R2 upload for:', file.name);
       setUploadingToR2(true);
       
       try {
         const r2Url = await uploadToR2(file, 'image');
-        console.log('✅ NATIVE CAMERA: R2 upload success:', r2Url);
+        logger.debug('✅ NATIVE CAMERA: R2 upload success:', r2Url);
         
         // Zruš dočasný blob URL a použij R2 URL
         URL.revokeObjectURL(preview);
@@ -436,7 +437,7 @@ export default function SerialPhotoCapture({
       
       setUploadingToR2(false);
     } else {
-      console.log('⚠️ NATIVE CAMERA: Using blob URL (R2 conditions not met)');
+      logger.debug('⚠️ NATIVE CAMERA: Using blob URL (R2 conditions not met)');
     }
     
     // Vytvor media objekt
@@ -456,7 +457,7 @@ export default function SerialPhotoCapture({
     
     // Pridaj do capturedMedia
     setCapturedMedia(prev => [...prev, media]);
-    console.log('✅ Fotka z natívnej kamery pridaná', media);
+    logger.debug('✅ Fotka z natívnej kamery pridaná', media);
   }, [allowedTypes, autoUploadToR2, entityId, uploadToR2]);
 
   const handleMediaTypeChange = (id: string, type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer') => {
@@ -495,16 +496,16 @@ export default function SerialPhotoCapture({
       
       // Ak je to už R2 URL, použij ho priamo
       if (url.startsWith('https://') && (url.includes('r2.dev') || url.includes('cloudflare.com'))) {
-        console.log('✅ Using existing R2 URL:', url);
+        logger.debug('✅ Using existing R2 URL:', url);
       } else {
         // 🎯 KOMPRESOVAŤ obrázky pre PDF (max 800x600, qualita 0.7)
-        console.log('⚠️ Converting to base64 for PDF - compressing:', media.file.name);
+        logger.debug('⚠️ Converting to base64 for PDF - compressing:', media.file.name);
         
         let processedFile = media.file;
         
         // Ak je obrázok veľký, kompresuj ho
         if (media.type === 'image' && media.file.size > 100000) { // > 100KB
-          console.log(`🗜️ Komprimujem veľký obrázok: ${(media.file.size / 1024).toFixed(1)}KB`);
+          logger.debug(`🗜️ Komprimujem veľký obrázok: ${(media.file.size / 1024).toFixed(1)}KB`);
           
           try {
             // Vytvoriť canvas pre resize
@@ -539,7 +540,7 @@ export default function SerialPhotoCapture({
                       type: 'image/jpeg',
                       lastModified: Date.now()
                     });
-                    console.log(`✅ Komprimované: ${(blob.size / 1024).toFixed(1)}KB`);
+                    logger.debug(`✅ Komprimované: ${(blob.size / 1024).toFixed(1)}KB`);
                     resolve(compressedFile);
                   } else {
                     reject(new Error('Canvas toBlob failed'));
@@ -587,7 +588,7 @@ export default function SerialPhotoCapture({
       }
     }
 
-    console.log(`✅ Ukladám ${images.length} obrázkov a ${videos.length} videí`);
+    logger.debug(`✅ Ukladám ${images.length} obrázkov a ${videos.length} videí`);
     onSave(images, videos);
     handleClose();
   };

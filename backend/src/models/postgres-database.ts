@@ -2,6 +2,7 @@ import { Pool, PoolClient } from 'pg';
 import { Vehicle, Customer, Rental, Expense, ExpenseCategory, RecurringExpense, RecurringExpenseGeneration, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions, CompanyInvestor, CompanyInvestorShare, CompanyDocument } from '../types';
 import bcrypt from 'bcryptjs';
 import { r2Storage } from '../utils/r2-storage';
+import { logger } from '../utils/logger';
 
 export class PostgresDatabase {
   private pool: Pool;
@@ -88,7 +89,7 @@ export class PostgresDatabase {
       const now = Date.now();
       if (this.calendarConnection && 
           (now - this.calendarConnectionLastUsed) > this.CONNECTION_REUSE_TIMEOUT) {
-        console.log('🧹 CLEANUP: Releasing unused calendar connection');
+        logger.db('🧹 CLEANUP: Releasing unused calendar connection');
         this.releaseReusableConnection(true);
       }
     }, 2 * 60 * 1000); // Každé 2 minúty
@@ -159,7 +160,7 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS signature_template TEXT
         `);
       } catch (error) {
-        console.log('ℹ️ Users table columns already exist or error occurred:', error);
+        logger.db('ℹ️ Users table columns already exist or error occurred:', error);
       }
 
       // Tabuľka vozidiel
@@ -180,7 +181,7 @@ export class PostgresDatabase {
 
       // FÁZA 1: Rozšírenie vehicles tabuľky o company ownership a mechanic assignment
       // Poznámka: Skipped - vehicles už má company_id (integer) foreign key na companies(id)
-      console.log('ℹ️ Vehicles table - using existing company_id column (integer type)');
+      logger.db('ℹ️ Vehicles table - using existing company_id column (integer type)');
 
       // Tabuľka zákazníkov
       await client.query(`
@@ -274,7 +275,7 @@ export class PostgresDatabase {
           ALTER TABLE insurances ADD COLUMN IF NOT EXISTS policy_number VARCHAR(100) NOT NULL DEFAULT ''
         `);
       } catch (error) {
-        console.log('ℹ️ Policy number column already exists or error occurred:', error);
+        logger.db('ℹ️ Policy number column already exists or error occurred:', error);
       }
 
       // Pridáme stĺpec payment_frequency ak neexistuje (migrácia existujúcich tabuliek)
@@ -283,7 +284,7 @@ export class PostgresDatabase {
           ALTER TABLE insurances ADD COLUMN IF NOT EXISTS payment_frequency VARCHAR(20) NOT NULL DEFAULT 'yearly'
         `);
       } catch (error) {
-        console.log('ℹ️ Payment frequency column already exists or error occurred:', error);
+        logger.db('ℹ️ Payment frequency column already exists or error occurred:', error);
       }
 
       // Pridáme stĺpec file_path ak neexistuje (migrácia pre file uploads)
@@ -292,7 +293,7 @@ export class PostgresDatabase {
           ALTER TABLE insurances ADD COLUMN IF NOT EXISTS file_path TEXT
         `);
       } catch (error) {
-        console.log('ℹ️ Insurance file_path column already exists or error occurred:', error);
+        logger.db('ℹ️ Insurance file_path column already exists or error occurred:', error);
       }
 
       // Migrácia na viacero súborov - pridáme file_paths array
@@ -308,7 +309,7 @@ export class PostgresDatabase {
           WHERE file_path IS NOT NULL AND file_path != '' AND file_paths IS NULL
         `);
       } catch (error) {
-        console.log('ℹ️ Insurance file_paths column migration error:', error);
+        logger.db('ℹ️ Insurance file_paths column migration error:', error);
       }
 
       // Tabuľka firiem
@@ -433,7 +434,7 @@ export class PostgresDatabase {
           ALTER TABLE vehicle_documents ADD COLUMN IF NOT EXISTS file_path TEXT
         `);
       } catch (error) {
-        console.log('ℹ️ Vehicle documents file_path column already exists or error occurred:', error);
+        logger.db('ℹ️ Vehicle documents file_path column already exists or error occurred:', error);
       }
 
       // Tabuľka nedostupností vozidiel (servis, údržba, blokovanie)
@@ -491,7 +492,7 @@ export class PostgresDatabase {
       // DATA INTEGRITY VALIDATION - Kompletná kontrola dát
       await this.validateDataIntegrity(client);
       
-      console.log('✅ PostgreSQL tabuľky inicializované');
+      logger.info('✅ PostgreSQL tabuľky inicializované');
     } catch (error) {
       console.error('❌ Chyba pri inicializácii tabuliek:', error);
     } finally {
@@ -501,11 +502,11 @@ export class PostgresDatabase {
 
   private async runMigrations(client: any) {
     try {
-      console.log('🔄 Spúšťam databázové migrácie...');
+      logger.migration('🔄 Spúšťam databázové migrácie...');
       
       // Migrácia 1: Pridanie chýbajúcich stĺpcov do vehicles (bez NOT NULL)
       try {
-        console.log('📋 Migrácia 1: Pridávanie stĺpcov do vehicles...');
+        logger.migration('📋 Migrácia 1: Pridávanie stĺpcov do vehicles...');
         await client.query(`
           ALTER TABLE vehicles 
           ADD COLUMN IF NOT EXISTS company VARCHAR(100) DEFAULT 'Default Company',
@@ -513,14 +514,14 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS commission JSONB DEFAULT '{"type": "percentage", "value": 20}',
           ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'available';
         `);
-        console.log('✅ Migrácia 1: Stĺpce do vehicles pridané');
+        logger.migration('✅ Migrácia 1: Stĺpce do vehicles pridané');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 1 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 1 chyba:', error.message);
       }
       
       // Migrácia 2: Pridanie základných polí do rentals tabuľky
       try {
-        console.log('📋 Migrácia 2: Pridávanie stĺpcov do rentals...');
+        logger.migration('📋 Migrácia 2: Pridávanie stĺpcov do rentals...');
         await client.query(`
           ALTER TABLE rentals 
           ADD COLUMN IF NOT EXISTS commission DECIMAL(10,2) DEFAULT 0,
@@ -535,28 +536,28 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS paid BOOLEAN DEFAULT false,
           ADD COLUMN IF NOT EXISTS handover_place TEXT;
         `);
-        console.log('✅ Migrácia 2: Stĺpce do rentals pridané');
+        logger.migration('✅ Migrácia 2: Stĺpce do rentals pridané');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 2 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 2 chyba:', error.message);
       }
       
       // Migrácia 2b: Pridanie chýbajúcich stĺpcov do customers
       try {
-        console.log('📋 Migrácia 2b: Pridávanie stĺpcov do customers...');
+        logger.migration('📋 Migrácia 2b: Pridávanie stĺpcov do customers...');
         await client.query(`
           ALTER TABLE customers 
           ADD COLUMN IF NOT EXISTS name VARCHAR(100) DEFAULT 'Unknown',
           ADD COLUMN IF NOT EXISTS email VARCHAR(100),
           ADD COLUMN IF NOT EXISTS phone VARCHAR(30);
         `);
-        console.log('✅ Migrácia 2b: Stĺpce do customers pridané');
+        logger.migration('✅ Migrácia 2b: Stĺpce do customers pridané');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 2b chyba:', error.message);
+        logger.migration('⚠️ Migrácia 2b chyba:', error.message);
       }
       
       // Migrácia 3: Zvýšenie limitov varchar polí
       try {
-        console.log('📋 Migrácia 3: Zvyšovanie varchar limitov...');
+        logger.migration('📋 Migrácia 3: Zvyšovanie varchar limitov...');
         await client.query(`
           ALTER TABLE vehicles 
           ALTER COLUMN license_plate TYPE VARCHAR(50),
@@ -577,42 +578,42 @@ export class PostgresDatabase {
           ALTER TABLE rentals 
           ALTER COLUMN status TYPE VARCHAR(30);
         `);
-        console.log('✅ Migrácia 3: VARCHAR limity aktualizované');
+        logger.migration('✅ Migrácia 3: VARCHAR limity aktualizované');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 3 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 3 chyba:', error.message);
       }
       
       // Migrácia 4: Nastavenie NOT NULL pre dôležité polia
       try {
-        console.log('📋 Migrácia 4: Nastavovanie NOT NULL constraints...');
+        logger.migration('📋 Migrácia 4: Nastavovanie NOT NULL constraints...');
         await client.query(`
           UPDATE vehicles SET company = 'Default Company' WHERE company IS NULL;
         `);
         await client.query(`
           ALTER TABLE vehicles ALTER COLUMN company SET NOT NULL;
         `);
-        console.log('✅ Migrácia 4: NOT NULL constraints nastavené');
+        logger.migration('✅ Migrácia 4: NOT NULL constraints nastavené');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 4 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 4 chyba:', error.message);
       }
       
       // Migrácia 5: Pridanie signature_template a user info stĺpcov do users tabuľky
       try {
-        console.log('📋 Migrácia 5: Pridávanie signature_template a user info stĺpcov do users...');
+        logger.migration('📋 Migrácia 5: Pridávanie signature_template a user info stĺpcov do users...');
         await client.query(`
           ALTER TABLE users 
           ADD COLUMN IF NOT EXISTS signature_template TEXT,
           ADD COLUMN IF NOT EXISTS first_name VARCHAR(100),
           ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
         `);
-        console.log('✅ Migrácia 5: signature_template, first_name, last_name stĺpce pridané do users');
+        logger.migration('✅ Migrácia 5: signature_template, first_name, last_name stĺpce pridané do users');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 5 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 5 chyba:', error.message);
       }
       
       // Migrácia 6: Pridanie rozšírených polí do rentals tabuľky
       try {
-        console.log('📋 Migrácia 6: Pridávanie rozšírených polí do rentals...');
+        logger.migration('📋 Migrácia 6: Pridávanie rozšírených polí do rentals...');
         await client.query(`
           ALTER TABLE rentals 
           ADD COLUMN IF NOT EXISTS deposit DECIMAL(10,2),
@@ -629,14 +630,14 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS handover_protocol_id UUID,
           ADD COLUMN IF NOT EXISTS return_protocol_id UUID;
         `);
-        console.log('✅ Migrácia 5: Rozšírené polia do rentals pridané');
+        logger.migration('✅ Migrácia 5: Rozšírené polia do rentals pridané');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 5 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 5 chyba:', error.message);
       }
       
       // Migrácia 6: Aktualizácia pricing tiers pre všetky existujúce vozidlá
       try {
-        console.log('📋 Migrácia 6: Aktualizácia pricing tiers pre vozidlá...');
+        logger.migration('📋 Migrácia 6: Aktualizácia pricing tiers pre vozidlá...');
         
         // Kompletné pricing tiers pre všetky vozidlá
         const fullPricingTiers = [
@@ -683,14 +684,14 @@ export class PostgresDatabase {
           );
         }
         
-        console.log(`✅ Migrácia 6: Pricing aktualizované pre ${vehiclesResult.rows.length} vozidiel`);
+        logger.migration(`✅ Migrácia 6: Pricing aktualizované pre ${vehiclesResult.rows.length} vozidiel`);
       } catch (error: any) {
-        console.log('⚠️ Migrácia 6 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 6 chyba:', error.message);
       }
       
       // Migrácia 7: Aktualizácia commission na 20% pre všetky vozidlá
       try {
-        console.log('📋 Migrácia 7: Aktualizácia commission na 20%...');
+        logger.migration('📋 Migrácia 7: Aktualizácia commission na 20%...');
         
         const commissionResult = await client.query(`
           UPDATE vehicles 
@@ -698,38 +699,38 @@ export class PostgresDatabase {
           WHERE commission->>'value' != '20'
         `);
         
-        console.log(`✅ Migrácia 7: Commission aktualizovaná na 20% pre všetky vozidlá`);
+        logger.migration(`✅ Migrácia 7: Commission aktualizovaná na 20% pre všetky vozidlá`);
       } catch (error: any) {
-        console.log('⚠️ Migrácia 7 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 7 chyba:', error.message);
       }
       
       // Migrácia 8: Pridanie owner_name stĺpca do vehicles tabuľky
       try {
-        console.log('📋 Migrácia 8: Pridávanie owner_name stĺpca do vehicles...');
+        logger.migration('📋 Migrácia 8: Pridávanie owner_name stĺpca do vehicles...');
         await client.query(`
           ALTER TABLE vehicles 
           ADD COLUMN IF NOT EXISTS owner_name VARCHAR(255);
         `);
-        console.log('✅ Migrácia 8: owner_name stĺpec pridaný do vehicles tabuľky');
+        logger.migration('✅ Migrácia 8: owner_name stĺpec pridaný do vehicles tabuľky');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 8 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 8 chyba:', error.message);
       }
       
             // Migrácia 9: Pridanie company_id stĺpca do vehicles tabuľky
       try {
-        console.log('📋 Migrácia 9: Pridávanie company_id stĺpca do vehicles...');
+        logger.migration('📋 Migrácia 9: Pridávanie company_id stĺpca do vehicles...');
         await client.query(`
           ALTER TABLE vehicles
           ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id);
         `);
-        console.log('✅ Migrácia 9: company_id stĺpec pridaný do vehicles tabuľky');
+        logger.migration('✅ Migrácia 9: company_id stĺpec pridaný do vehicles tabuľky');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 9 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 9 chyba:', error.message);
       }
 
       // Migrácia 10: Oprava company_id typu v users tabuľke z INTEGER na UUID
       try {
-        console.log('📋 Migrácia 10: Opravujem company_id typ v users tabuľke...');
+        logger.migration('📋 Migrácia 10: Opravujem company_id typ v users tabuľke...');
         
         // Najprv odstráň foreign key constraint ak existuje
         await client.query(`
@@ -747,24 +748,24 @@ export class PostgresDatabase {
           FOREIGN KEY (company_id) REFERENCES companies(id);
         `);
         
-        console.log('✅ Migrácia 10: company_id typ opravený na UUID');
+        logger.migration('✅ Migrácia 10: company_id typ opravený na UUID');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 10 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 10 chyba:', error.message);
         // Ak zlyhá konverzia, skús pridať stĺpec nanovo
         try {
           await client.query(`
             ALTER TABLE users DROP COLUMN IF EXISTS company_id;
             ALTER TABLE users ADD COLUMN company_id UUID REFERENCES companies(id);
           `);
-          console.log('✅ Migrácia 10: company_id stĺpec znovu vytvorený ako UUID');
+          logger.migration('✅ Migrácia 10: company_id stĺpec znovu vytvorený ako UUID');
         } catch (retryError: any) {
-          console.log('⚠️ Migrácia 10 retry chyba:', retryError.message);
+          logger.migration('⚠️ Migrácia 10 retry chyba:', retryError.message);
         }
       }
 
       // Migrácia 11: Oprava vehicles.id typu z INTEGER na UUID
       try {
-        console.log('📋 Migrácia 11: Opravujem vehicles.id typ z INTEGER na UUID...');
+        logger.migration('📋 Migrácia 11: Opravujem vehicles.id typ z INTEGER na UUID...');
         
         // Najprv odstráň všetky foreign key constraints
         await client.query(`
@@ -802,48 +803,48 @@ export class PostgresDatabase {
           FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE;
         `);
         
-        console.log('✅ Migrácia 11: vehicles.id typ opravený na UUID');
+        logger.migration('✅ Migrácia 11: vehicles.id typ opravený na UUID');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 11 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 11 chyba:', error.message);
         // Ak zlyhá konverzia, skús pridať stĺpec nanovo
         try {
           await client.query(`
             ALTER TABLE vehicles DROP COLUMN IF EXISTS id;
             ALTER TABLE vehicles ADD COLUMN id UUID PRIMARY KEY DEFAULT gen_random_uuid();
           `);
-          console.log('✅ Migrácia 11: vehicles.id stĺpec znovu vytvorený ako UUID');
+          logger.migration('✅ Migrácia 11: vehicles.id stĺpec znovu vytvorený ako UUID');
         } catch (retryError: any) {
-          console.log('⚠️ Migrácia 11 retry chyba:', retryError.message);
+          logger.migration('⚠️ Migrácia 11 retry chyba:', retryError.message);
         }
       }
 
       // Migrácia 12: Oprava users.id typu z INTEGER na UUID
       try {
-        console.log('📋 Migrácia 12: Opravujem users.id typ z INTEGER na UUID...');
+        logger.migration('📋 Migrácia 12: Opravujem users.id typ z INTEGER na UUID...');
         
         // Zmeň typ stĺpca z INTEGER na UUID
         await client.query(`
           ALTER TABLE users ALTER COLUMN id TYPE UUID USING id::text::uuid;
         `);
         
-        console.log('✅ Migrácia 12: users.id typ opravený na UUID');
+        logger.migration('✅ Migrácia 12: users.id typ opravený na UUID');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 12 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 12 chyba:', error.message);
         // Ak zlyhá konverzia, skús pridať stĺpec nanovo
         try {
           await client.query(`
             ALTER TABLE users DROP COLUMN IF EXISTS id;
             ALTER TABLE users ADD COLUMN id UUID PRIMARY KEY DEFAULT gen_random_uuid();
           `);
-          console.log('✅ Migrácia 12: users.id stĺpec znovu vytvorený ako UUID');
+          logger.migration('✅ Migrácia 12: users.id stĺpec znovu vytvorený ako UUID');
         } catch (retryError: any) {
-          console.log('⚠️ Migrácia 12 retry chyba:', retryError.message);
+          logger.migration('⚠️ Migrácia 12 retry chyba:', retryError.message);
         }
       }
       
               // Migrácia 27: Rozšírenie VARCHAR stĺpcov pre email parsing
         try {
-          console.log('📋 Migrácia 27: Rozširujem VARCHAR stĺpce pre email parsing...');
+          logger.migration('📋 Migrácia 27: Rozširujem VARCHAR stĺpce pre email parsing...');
           
           const fieldsToExpand = [
             'customer_phone', 'order_number', 'vehicle_name', 
@@ -855,16 +856,16 @@ export class PostgresDatabase {
               ALTER TABLE rentals 
               ALTER COLUMN ${field} TYPE VARCHAR(500)
             `);
-            console.log(`✅ ${field} rozšírený na VARCHAR(500)`);
+            logger.migration(`✅ ${field} rozšírený na VARCHAR(500)`);
           }
           
         } catch (error) {
-          console.log('⚠️ Migrácia 27 chyba:', error);
+          logger.migration('⚠️ Migrácia 27 chyba:', error);
         }
 
         // Migrácia 28: Blacklist zamietnutých objednávok
         try {
-          console.log('📋 Migrácia 28: Vytváram blacklist pre zamietnuté objednávky...');
+          logger.migration('📋 Migrácia 28: Vytváram blacklist pre zamietnuté objednávky...');
           
           await this.pool.query(`
             CREATE TABLE IF NOT EXISTS email_blacklist (
@@ -883,13 +884,13 @@ export class PostgresDatabase {
             ON email_blacklist(order_number)
           `);
           
-          console.log('✅ Blacklist tabuľka vytvorená');
+          logger.migration('✅ Blacklist tabuľka vytvorená');
           
         } catch (error) {
-          console.log('⚠️ Migrácia 28 chyba:', error);
+          logger.migration('⚠️ Migrácia 28 chyba:', error);
         }
 
-        console.log('✅ Databázové migrácie úspešne dokončené');
+        logger.migration('✅ Databázové migrácie úspešne dokončené');
       
       // MIGRATION TRACKING SYSTEM - Vytvor tabuľku pre tracking migrácií
       await client.query(`
@@ -905,19 +906,19 @@ export class PostgresDatabase {
 
       // Migrácia 14: FINAL COMPANY CLEANUP - Odstránenie owner_name a priradenie company všetkým
       try {
-        console.log('📋 Migrácia 14: Final Company Cleanup...');
+        logger.migration('📋 Migrácia 14: Final Company Cleanup...');
         
         // 14.1: Odstráň owner_name z vehicles (nie je potrebné)
-        console.log('📋 14.1: Odstraňujem owner_name z vehicles...');
+        logger.migration('📋 14.1: Odstraňujem owner_name z vehicles...');
         try {
           await client.query('ALTER TABLE vehicles DROP COLUMN IF EXISTS owner_name');
-          console.log('   ✅ vehicles.owner_name odstránené');
+          logger.migration('   ✅ vehicles.owner_name odstránené');
         } catch (e: any) {
-          console.log('   ⚠️ vehicles.owner_name už neexistuje');
+          logger.migration('   ⚠️ vehicles.owner_name už neexistuje');
         }
         
         // 14.2: Priradenie company všetkým používateľom (Lubka ako default)
-        console.log('📋 14.2: Priradenie company všetkým používateľom...');
+        logger.migration('📋 14.2: Priradenie company všetkým používateľom...');
         const lubkaId = await this.getCompanyIdByName('Lubka');
         
         if (lubkaId) {
@@ -927,31 +928,31 @@ export class PostgresDatabase {
             WHERE company_id IS NULL
           `, [lubkaId]);
           
-          console.log(`   ✅ ${result.rowCount} používateľov priradených k Lubka company`);
+          logger.migration(`   ✅ ${result.rowCount} používateľov priradených k Lubka company`);
         } else {
-          console.log('   ⚠️ Lubka company nenájdená');
+          logger.migration('   ⚠️ Lubka company nenájdená');
         }
         
         // 14.3: Skontroluj že všetko má company assignment
-        console.log('📋 14.3: Kontrola company assignments...');
+        logger.migration('📋 14.3: Kontrola company assignments...');
         
         const usersWithoutCompany = await client.query('SELECT COUNT(*) FROM users WHERE company_id IS NULL');
-        console.log(`   Users bez company: ${usersWithoutCompany.rows[0].count}`);
+        logger.migration(`   Users bez company: ${usersWithoutCompany.rows[0].count}`);
         
         const vehiclesWithCompany = await client.query('SELECT COUNT(*) FROM vehicles WHERE company IS NOT NULL');
-        console.log(`   Vehicles s company: ${vehiclesWithCompany.rows[0].count}`);
+        logger.migration(`   Vehicles s company: ${vehiclesWithCompany.rows[0].count}`);
         
-        console.log('✅ Migrácia 14: Final Company Cleanup dokončená');
+        logger.migration('✅ Migrácia 14: Final Company Cleanup dokončená');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 14 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 14 chyba:', error.message);
       }
       
       // ❌ MIGRÁCIA 15 ZMAZANÁ - Spôsobovala chaos s vehicle_id remappingom ❌
       
       // Migrácia 16: Pridanie STK stĺpca do vehicles
       try {
-        console.log('📋 Migrácia 16: Pridávanie STK stĺpca do vehicles...');
+        logger.migration('📋 Migrácia 16: Pridávanie STK stĺpca do vehicles...');
         
         // Skontroluj či stĺpec už existuje
         const columnExists = await client.query(`
@@ -966,20 +967,20 @@ export class PostgresDatabase {
             ALTER TABLE vehicles 
             ADD COLUMN stk DATE
           `);
-          console.log('   ✅ STK stĺpec pridaný do vehicles tabuľky');
+          logger.migration('   ✅ STK stĺpec pridaný do vehicles tabuľky');
         } else {
-          console.log('   ℹ️ STK stĺpec už existuje');
+          logger.migration('   ℹ️ STK stĺpec už existuje');
         }
         
-        console.log('✅ Migrácia 16: STK stĺpec úspešne pridaný');
+        logger.migration('✅ Migrácia 16: STK stĺpec úspešne pridaný');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 16 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 16 chyba:', error.message);
       }
 
       // Migrácia 17: Pridanie Foreign Key constraint pre rentals.vehicle_id
       try {
-        console.log('📋 Migrácia 17: Pridávanie FK constraint pre rentals.vehicle_id...');
+        logger.migration('📋 Migrácia 17: Pridávanie FK constraint pre rentals.vehicle_id...');
         
         // Skontroluj či constraint už existuje
         const constraintExists = await client.query(`
@@ -996,7 +997,7 @@ export class PostgresDatabase {
             WHERE vehicle_id IS NOT NULL 
             AND vehicle_id NOT IN (SELECT id FROM vehicles)
           `);
-          console.log('   🔧 Neplatné vehicle_id nastavené na NULL');
+          logger.migration('   🔧 Neplatné vehicle_id nastavené na NULL');
           
           // Pridaj FK constraint
           await client.query(`
@@ -1004,18 +1005,18 @@ export class PostgresDatabase {
             ADD CONSTRAINT rentals_vehicle_id_fkey 
             FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL
           `);
-          console.log('   ✅ FK constraint pridaný pre rentals.vehicle_id');
+          logger.migration('   ✅ FK constraint pridaný pre rentals.vehicle_id');
         } else {
-          console.log('   ℹ️ FK constraint už existuje');
+          logger.migration('   ℹ️ FK constraint už existuje');
         }
-        console.log('✅ Migrácia 17: FK constraint úspešne pridaný');
+        logger.migration('✅ Migrácia 17: FK constraint úspešne pridaný');
       } catch (error: any) {
-        console.log('⚠️ Migrácia 17 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 17 chyba:', error.message);
       }
 
       // Migrácia 18: Vehicle Ownership History - Pre tracking zmien vlastníctva vozidiel
       try {
-        console.log('📋 Migrácia 18: Vytváram vehicle ownership history tabuľku...');
+        logger.migration('📋 Migrácia 18: Vytváram vehicle ownership history tabuľku...');
         
         // Skontroluj či tabuľka už existuje
         const tableExists = await client.query(`
@@ -1040,7 +1041,7 @@ export class PostgresDatabase {
               updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
           `);
-          console.log('   ✅ vehicle_ownership_history tabuľka vytvorená');
+          logger.migration('   ✅ vehicle_ownership_history tabuľka vytvorená');
           
           // Vytvor indexy pre performance
           await client.query(`
@@ -1060,7 +1061,7 @@ export class PostgresDatabase {
             ON vehicle_ownership_history(vehicle_id) 
             WHERE valid_to IS NULL
           `);
-          console.log('   ✅ Indexy pre ownership history vytvorené');
+          logger.migration('   ✅ Indexy pre ownership history vytvorené');
           
           // Migrácia existujúcich dát - vytvor historický záznam pre každé vozidlo
           const migratedRows = await client.query(`
@@ -1086,21 +1087,21 @@ export class PostgresDatabase {
             )
             RETURNING id
           `);
-          console.log(`   ✅ ${migratedRows.rowCount} existujúcich vozidiel migrovanych do ownership history`);
+          logger.migration(`   ✅ ${migratedRows.rowCount} existujúcich vozidiel migrovanych do ownership history`);
           
         } else {
-          console.log('   ℹ️ vehicle_ownership_history tabuľka už existuje');
+          logger.migration('   ℹ️ vehicle_ownership_history tabuľka už existuje');
         }
         
-        console.log('✅ Migrácia 18: Vehicle Ownership History úspešne vytvorená');
+        logger.migration('✅ Migrácia 18: Vehicle Ownership History úspešne vytvorená');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 18 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 18 chyba:', error.message);
       }
 
       // Migrácia 19: Vehicle Company Snapshot - Zamrazenie historických prenájmov 🎯
       try {
-        console.log('📋 Migrácia 19: Pridávanie vehicle_company_snapshot do rentals...');
+        logger.migration('📋 Migrácia 19: Pridávanie vehicle_company_snapshot do rentals...');
         
         // Pridaj stĺpec pre snapshot company name
         await client.query(`
@@ -1108,10 +1109,10 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS vehicle_company_snapshot VARCHAR(255)
         `);
         
-        console.log('   ✅ vehicle_company_snapshot stĺpec pridaný');
+        logger.migration('   ✅ vehicle_company_snapshot stĺpec pridaný');
         
         // Migrácia existujúcich prenájmov - nastav historical ownership
-        console.log('   🔄 Nastavujem historical ownership pre existujúce prenájmy...');
+        logger.migration('   🔄 Nastavujem historical ownership pre existujúce prenájmy...');
         
         const existingRentals = await client.query(`
           SELECT r.id, r.vehicle_id, r.start_date, r.vehicle_company_snapshot
@@ -1119,7 +1120,7 @@ export class PostgresDatabase {
           WHERE r.vehicle_company_snapshot IS NULL
         `);
         
-        console.log(`   📊 Našiel som ${existingRentals.rows.length} prenájmov na migráciu`);
+        logger.migration(`   📊 Našiel som ${existingRentals.rows.length} prenájmov na migráciu`);
         
         let migratedCount = 0;
         for (const rental of existingRentals.rows) {
@@ -1159,16 +1160,16 @@ export class PostgresDatabase {
           }
         }
         
-        console.log(`   ✅ Migrácia dokončená pre ${migratedCount} prenájmov`);
-        console.log('✅ Migrácia 19: Vehicle Company Snapshot úspešne vytvorená');
+        logger.migration(`   ✅ Migrácia dokončená pre ${migratedCount} prenájmov`);
+        logger.migration('✅ Migrácia 19: Vehicle Company Snapshot úspešne vytvorená');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 19 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 19 chyba:', error.message);
       }
 
       // Migrácia 20: CLEAN SOLUTION - Nahradiť komplikovaný snapshot jednoduchým company field 🎯
       try {
-        console.log('📋 Migrácia 20: CLEAN SOLUTION - Jednoduchý company field...');
+        logger.migration('📋 Migrácia 20: CLEAN SOLUTION - Jednoduchý company field...');
         
         // Pridaj jednoduchý company stĺpec
         await client.query(`
@@ -1176,10 +1177,10 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS company VARCHAR(255)
         `);
         
-        console.log('   ✅ company stĺpec pridaný');
+        logger.migration('   ✅ company stĺpec pridaný');
         
         // Migrácia dát z vehicle_company_snapshot do company
-        console.log('   🔄 Kopírujem dáta z vehicle_company_snapshot do company...');
+        logger.migration('   🔄 Kopírujem dáta z vehicle_company_snapshot do company...');
         
         const migrateResult = await client.query(`
           UPDATE rentals 
@@ -1191,34 +1192,34 @@ export class PostgresDatabase {
           WHERE company IS NULL
         `);
         
-        console.log(`   📊 Migrovaných ${migrateResult.rowCount} prenájmov`);
+        logger.migration(`   📊 Migrovaných ${migrateResult.rowCount} prenájmov`);
         
         // Po úspešnej migrácii môžeme odstrániť starý komplikovaný stĺpec
-        console.log('   🧹 Odstraňujem starý vehicle_company_snapshot stĺpec...');
+        logger.migration('   🧹 Odstraňujem starý vehicle_company_snapshot stĺpec...');
         
         try {
           await client.query(`ALTER TABLE rentals DROP COLUMN IF EXISTS vehicle_company_snapshot`);
-          console.log('   ✅ vehicle_company_snapshot stĺpec odstránený');
+          logger.migration('   ✅ vehicle_company_snapshot stĺpec odstránený');
         } catch (dropError: any) {
-          console.log('   ⚠️ Nemožno odstrániť vehicle_company_snapshot:', dropError.message);
+          logger.migration('   ⚠️ Nemožno odstrániť vehicle_company_snapshot:', dropError.message);
         }
         
-        console.log('✅ Migrácia 20: CLEAN SOLUTION úspešne dokončená');
+        logger.migration('✅ Migrácia 20: CLEAN SOLUTION úspešne dokončená');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 20 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 20 chyba:', error.message);
       }
 
       // Migrácia 21: 🛡️ BULLETPROOF - Historický backfill company (NIKDY sa nezmení!) ✅
       try {
-        console.log('📋 Migrácia 21: 🛡️ BULLETPROOF - Historické company pre prenájmy...');
+        logger.migration('📋 Migrácia 21: 🛡️ BULLETPROOF - Historické company pre prenájmy...');
         
         // Reset všetkých company na NULL pre rebackfill
-        console.log('   🧹 Resetujem company stĺpce pre rebackfill...');
+        logger.migration('   🧹 Resetujem company stĺpce pre rebackfill...');
         await client.query(`UPDATE rentals SET company = NULL`);
         
         // Backfill pomocou HISTORICKEJ ownership na základe rental.startDate
-        console.log('   📅 Backfillujem historické company na základe startDate...');
+        logger.migration('   📅 Backfillujem historické company na základe startDate...');
         
         const backfillResult = await client.query(`
           UPDATE rentals 
@@ -1233,10 +1234,10 @@ export class PostgresDatabase {
           WHERE company IS NULL
         `);
         
-        console.log(`   📊 Backfillované ${backfillResult.rowCount} prenájmov s historickou company`);
+        logger.migration(`   📊 Backfillované ${backfillResult.rowCount} prenájmov s historickou company`);
         
         // Fallback pre prenájmy bez ownership history - použij aktuálnu company
-        console.log('   🔄 Fallback pre prenájmy bez ownership history...');
+        logger.migration('   🔄 Fallback pre prenájmy bez ownership history...');
         
         const fallbackResult = await client.query(`
           UPDATE rentals 
@@ -1248,69 +1249,69 @@ export class PostgresDatabase {
           WHERE company IS NULL
         `);
         
-        console.log(`   📊 Fallback ${fallbackResult.rowCount} prenájmov s aktuálnou company`);
+        logger.migration(`   📊 Fallback ${fallbackResult.rowCount} prenájmov s aktuálnou company`);
         
         // Overenie výsledku
         const nullCompanyCount = await client.query(`
           SELECT COUNT(*) as count FROM rentals WHERE company IS NULL
         `);
         
-        console.log(`   ✅ Zostáva ${nullCompanyCount.rows[0].count} prenájmov bez company`);
-        console.log('✅ Migrácia 21: 🛡️ BULLETPROOF historické company FIX dokončený');
+        logger.migration(`   ✅ Zostáva ${nullCompanyCount.rows[0].count} prenájmov bez company`);
+        logger.migration('✅ Migrácia 21: 🛡️ BULLETPROOF historické company FIX dokončený');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 21 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 21 chyba:', error.message);
       }
 
       // Migrácia 22: ⚡ PERFORMANCE INDEXY - Optimalizácia rýchlosti načítavania dát
       try {
-        console.log('📋 Migrácia 22: ⚡ Pridávanie performance indexov pre rýchlejšie načítanie...');
+        logger.migration('📋 Migrácia 22: ⚡ Pridávanie performance indexov pre rýchlejšie načítanie...');
         
         // 🚀 INDEX 1: rentals.vehicle_id - Pre rýchlejší JOIN v getRentals()
         await client.query(`
           CREATE INDEX IF NOT EXISTS idx_rentals_vehicle_id ON rentals(vehicle_id)
         `);
-        console.log('   ✅ Index idx_rentals_vehicle_id pridaný');
+        logger.migration('   ✅ Index idx_rentals_vehicle_id pridaný');
 
         // 🚀 INDEX 2: vehicles.owner_company_id - Pre rýchlejšie permission filtering
         await client.query(`
           CREATE INDEX IF NOT EXISTS idx_vehicles_owner_company_id ON vehicles(owner_company_id)
         `);
-        console.log('   ✅ Index idx_vehicles_owner_company_id pridaný');
+        logger.migration('   ✅ Index idx_vehicles_owner_company_id pridaný');
 
         // 🚀 INDEX 3: rentals.created_at DESC - Pre rýchlejšie ORDER BY v getRentals()
         await client.query(`
           CREATE INDEX IF NOT EXISTS idx_rentals_created_at_desc ON rentals(created_at DESC)
         `);
-        console.log('   ✅ Index idx_rentals_created_at_desc pridaný');
+        logger.migration('   ✅ Index idx_rentals_created_at_desc pridaný');
 
         // 🚀 INDEX 4: vehicles.created_at DESC - Pre rýchlejšie ORDER BY v getVehicles()
         await client.query(`
           CREATE INDEX IF NOT EXISTS idx_vehicles_created_at_desc ON vehicles(created_at DESC)
         `);
-        console.log('   ✅ Index idx_vehicles_created_at_desc pridaný');
+        logger.migration('   ✅ Index idx_vehicles_created_at_desc pridaný');
 
         // 🚀 INDEX 5: expenses.vehicle_id - Pre rýchlejšie queries v expense API
         await client.query(`
           CREATE INDEX IF NOT EXISTS idx_expenses_vehicle_id ON expenses(vehicle_id)
         `);
-        console.log('   ✅ Index idx_expenses_vehicle_id pridaný');
+        logger.migration('   ✅ Index idx_expenses_vehicle_id pridaný');
 
         // 🚀 INDEX 6: expenses.date DESC - Pre rýchlejšie date filtering
         await client.query(`
           CREATE INDEX IF NOT EXISTS idx_expenses_date_desc ON expenses(date DESC)
         `);
-        console.log('   ✅ Index idx_expenses_date_desc pridaný');
+        logger.migration('   ✅ Index idx_expenses_date_desc pridaný');
 
-        console.log('✅ Migrácia 22: ⚡ Performance indexy úspešne pridané (očakávaná úspora: 30-50% rýchlosť)');
+        logger.migration('✅ Migrácia 22: ⚡ Performance indexy úspešne pridané (očakávaná úspora: 30-50% rýchlosť)');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 22 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 22 chyba:', error.message);
       }
 
       // Migrácia 23: 🔄 FLEXIBILNÉ PRENÁJMY - Pridanie stĺpcov pre hybridný prístup
       try {
-        console.log('📋 Migrácia 23: 🔄 Pridávanie stĺpcov pre flexibilné prenájmy...');
+        logger.migration('📋 Migrácia 23: 🔄 Pridávanie stĺpcov pre flexibilné prenájmy...');
         
         await client.query(`
           ALTER TABLE rentals 
@@ -1324,7 +1325,7 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS override_history JSONB DEFAULT '[]'::jsonb;
         `);
         
-        console.log('   ✅ Flexibilné prenájmy stĺpce pridané do rentals tabuľky');
+        logger.migration('   ✅ Flexibilné prenájmy stĺpce pridané do rentals tabuľky');
         
         // Vytvorenie indexu pre rýchlejšie vyhľadávanie flexibilných prenájmov
         await client.query(`
@@ -1332,7 +1333,7 @@ export class PostgresDatabase {
           WHERE is_flexible = true;
         `);
         
-        console.log('   ✅ Index pre flexibilné prenájmy vytvorený');
+        logger.migration('   ✅ Index pre flexibilné prenájmy vytvorený');
         
         // Vytvorenie indexu pre override priority
         await client.query(`
@@ -1340,26 +1341,26 @@ export class PostgresDatabase {
           WHERE can_be_overridden = true;
         `);
         
-        console.log('   ✅ Index pre override priority vytvorený');
+        logger.migration('   ✅ Index pre override priority vytvorený');
         
-        console.log('✅ Migrácia 23: 🔄 Flexibilné prenájmy úspešne implementované!');
-        console.log('   📝 Nové funkcie:');
-        console.log('   • rental_type: standard | flexible | priority');
-        console.log('   • is_flexible: true/false flag');
-        console.log('   • flexible_end_date: odhadovaný koniec');
-        console.log('   • can_be_overridden: možnosť prepísania');
-        console.log('   • override_priority: priorita (1-10)');
-        console.log('   • notification_threshold: dni vopred na upozornenie');
-        console.log('   • auto_extend: automatické predĺženie');
-        console.log('   • override_history: história zmien');
+        logger.migration('✅ Migrácia 23: 🔄 Flexibilné prenájmy úspešne implementované!');
+        logger.migration('   📝 Nové funkcie:');
+        logger.migration('   • rental_type: standard | flexible | priority');
+        logger.migration('   • is_flexible: true/false flag');
+        logger.migration('   • flexible_end_date: odhadovaný koniec');
+        logger.migration('   • can_be_overridden: možnosť prepísania');
+        logger.migration('   • override_priority: priorita (1-10)');
+        logger.migration('   • notification_threshold: dni vopred na upozornenie');
+        logger.migration('   • auto_extend: automatické predĺženie');
+        logger.migration('   • override_history: história zmien');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 23 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 23 chyba:', error.message);
       }
 
       // Migrácia 24: 🚗 VEHICLE CATEGORIES - Pridanie kategórií vozidiel pre lepšie filtrovanie
       try {
-        console.log('📋 Migrácia 24: 🚗 Pridávanie kategórií vozidiel...');
+        logger.migration('📋 Migrácia 24: 🚗 Pridávanie kategórií vozidiel...');
         
         // Skontroluj či category stĺpec už existuje
         const columnExists = await client.query(`
@@ -1393,39 +1394,39 @@ export class PostgresDatabase {
             ADD COLUMN category vehicle_category DEFAULT 'stredna-trieda'
           `);
           
-          console.log('   ✅ ENUM vehicle_category vytvorený');
-          console.log('   ✅ category stĺpec pridaný do vehicles tabuľky');
-          console.log('   📋 8 kategórií dostupných: nizka-trieda, stredna-trieda, vyssia-stredna, luxusne, sportove, suv, viacmiestne, dodavky');
+          logger.migration('   ✅ ENUM vehicle_category vytvorený');
+          logger.migration('   ✅ category stĺpec pridaný do vehicles tabuľky');
+          logger.migration('   📋 8 kategórií dostupných: nizka-trieda, stredna-trieda, vyssia-stredna, luxusne, sportove, suv, viacmiestne, dodavky');
         } else {
-          console.log('   ℹ️ category stĺpec už existuje');
+          logger.migration('   ℹ️ category stĺpec už existuje');
         }
         
-        console.log('✅ Migrácia 24: 🚗 Vehicle Categories úspešne implementované!');
-        console.log('   🎯 Vozidlá teraz môžu byť kategorizované pre lepšie filtrovanie');
-        console.log('   🔍 Frontend môže používať multi-select category filter');
+        logger.migration('✅ Migrácia 24: 🚗 Vehicle Categories úspešne implementované!');
+        logger.migration('   🎯 Vozidlá teraz môžu byť kategorizované pre lepšie filtrovanie');
+        logger.migration('   🔍 Frontend môže používať multi-select category filter');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 24 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 24 chyba:', error.message);
       }
 
       // Migrácia 25: 🗑️ AUDIT LOGGING REMOVAL - Odstraňujeme audit logs systém
       try {
-        console.log('📋 Migrácia 25: 🗑️ Odstraňujem audit_logs tabuľku...');
+        logger.migration('📋 Migrácia 25: 🗑️ Odstraňujem audit_logs tabuľku...');
         
         // Odstránenie audit_logs tabuľky a všetkých indexov
         await client.query(`DROP TABLE IF EXISTS audit_logs CASCADE;`);
 
-        console.log('✅ Migrácia 25: 🗑️ Audit Logs systém úspešne odstránený!');
-        console.log('   🧹 Tabuľka audit_logs a všetky indexy odstránené');
-        console.log('   ⚡ Znížená záťaž na databázu a lepšie performance');
+        logger.migration('✅ Migrácia 25: 🗑️ Audit Logs systém úspešne odstránený!');
+        logger.migration('   🧹 Tabuľka audit_logs a všetky indexy odstránené');
+        logger.migration('   ⚡ Znížená záťaž na databázu a lepšie performance');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 25 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 25 chyba:', error.message);
       }
 
       // Migrácia 27: 📁 EMAIL ARCHIVE SYSTEM - Pridanie archived_at stĺpca
       try {
-        console.log('📋 Migrácia 27: 📁 Pridávanie email archive systému...');
+        logger.migration('📋 Migrácia 27: 📁 Pridávanie email archive systému...');
         
         // Skontroluj či archived_at stĺpec už existuje
         const columnCheck = await client.query(`
@@ -1435,7 +1436,7 @@ export class PostgresDatabase {
         `);
         
         if (columnCheck.rows.length === 0) {
-          console.log('   📁 Pridávam archived_at stĺpec...');
+          logger.migration('   📁 Pridávam archived_at stĺpec...');
           
           await client.query(`
             ALTER TABLE email_processing_history 
@@ -1458,20 +1459,20 @@ export class PostgresDatabase {
             AND archived_at IS NULL
           `);
           
-          console.log('✅ Migrácia 27: 📁 Email archive systém úspešne pridaný!');
-          console.log('   📁 Archived_at stĺpec pridaný');
-          console.log('   🗂️ Index pre archived_at vytvorený');
-          console.log('   🔄 Staré emaily automaticky archivované');
+          logger.migration('✅ Migrácia 27: 📁 Email archive systém úspešne pridaný!');
+          logger.migration('   📁 Archived_at stĺpec pridaný');
+          logger.migration('   🗂️ Index pre archived_at vytvorený');
+          logger.migration('   🔄 Staré emaily automaticky archivované');
         } else {
-          console.log('   ✅ Migrácia 27: Email archive systém už existuje');
+          logger.migration('   ✅ Migrácia 27: Email archive systém už existuje');
         }
       } catch (error: any) {
-        console.log('⚠️ Migrácia 27 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 27 chyba:', error.message);
       }
 
       // Migrácia 26: 📧 IMAP EMAIL SUPPORT - Pridanie customer email stĺpcov do rentals
       try {
-        console.log('📋 Migrácia 26: 📧 Pridávanie IMAP email support stĺpcov do rentals...');
+        logger.migration('📋 Migrácia 26: 📧 Pridávanie IMAP email support stĺpcov do rentals...');
         
         // Skontroluj či stĺpce už existujú
         const columnCheck = await client.query(`
@@ -1490,7 +1491,7 @@ export class PostgresDatabase {
         const missingColumns = neededColumns.filter(col => !existingColumns.includes(col));
         
         if (missingColumns.length > 0) {
-          console.log(`   📧 Pridávam ${missingColumns.length} chýbajúcich stĺpcov:`, missingColumns);
+          logger.migration(`   📧 Pridávam ${missingColumns.length} chýbajúcich stĺpcov:`, missingColumns);
           
           await client.query(`
             ALTER TABLE rentals 
@@ -1506,9 +1507,9 @@ export class PostgresDatabase {
             ADD COLUMN IF NOT EXISTS email_content TEXT
           `);
           
-          console.log('   ✅ IMAP stĺpce pridané do rentals tabuľky');
+          logger.migration('   ✅ IMAP stĺpce pridané do rentals tabuľky');
         } else {
-          console.log('   ℹ️ Všetky IMAP stĺpce už existujú');
+          logger.migration('   ℹ️ Všetky IMAP stĺpce už existujú');
         }
 
         // Pridaj indexy pre lepšiu performance pri vyhľadávaní emailových objednávok
@@ -1519,20 +1520,20 @@ export class PostgresDatabase {
           CREATE INDEX IF NOT EXISTS idx_rentals_auto_processed_at ON rentals(auto_processed_at DESC);
         `);
         
-        console.log('✅ Migrácia 26: 📧 IMAP Email Support úspešne implementovaný!');
-        console.log('   📧 Customer email, phone, order number support');
-        console.log('   🚗 Vehicle name a code pre email parsing');
-        console.log('   📍 Handover place a daily kilometers');
-        console.log('   ⚖️ Approval status workflow pre email objednávky');
-        console.log('   🔍 Optimalizované indexy pre email vyhľadávanie');
+        logger.migration('✅ Migrácia 26: 📧 IMAP Email Support úspešne implementovaný!');
+        logger.migration('   📧 Customer email, phone, order number support');
+        logger.migration('   🚗 Vehicle name a code pre email parsing');
+        logger.migration('   📍 Handover place a daily kilometers');
+        logger.migration('   ⚖️ Approval status workflow pre email objednávky');
+        logger.migration('   🔍 Optimalizované indexy pre email vyhľadávanie');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 26 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 26 chyba:', error.message);
       }
 
       // Migrácia 27: 📧 EMAIL MANAGEMENT DASHBOARD - Email History & Tracking
       try {
-        console.log('📋 Migrácia 27: 📧 Vytváram Email Management Dashboard štruktúru...');
+        logger.migration('📋 Migrácia 27: 📧 Vytváram Email Management Dashboard štruktúru...');
 
         // Vytvorenie tabuľky pre email históriu a tracking
         await client.query(`
@@ -1610,24 +1611,24 @@ export class PostgresDatabase {
             EXECUTE FUNCTION update_email_history_updated_at();
         `);
         
-        console.log('✅ Migrácia 27: 📧 Email Management Dashboard úspešne vytvorený!');
-        console.log('   📧 Email processing history tabuľka');
-        console.log('   📊 Email action logs pre audit trail');
-        console.log('   🔍 Optimalizované indexy pre search & filtering');
-        console.log('   ⚡ Auto-update triggers pre timestamp tracking');
+        logger.migration('✅ Migrácia 27: 📧 Email Management Dashboard úspešne vytvorený!');
+        logger.migration('   📧 Email processing history tabuľka');
+        logger.migration('   📊 Email action logs pre audit trail');
+        logger.migration('   🔍 Optimalizované indexy pre search & filtering');
+        logger.migration('   ⚡ Auto-update triggers pre timestamp tracking');
         
       } catch (error: any) {
-        console.log('⚠️ Migrácia 27 chyba:', error.message);
+        logger.migration('⚠️ Migrácia 27 chyba:', error.message);
       }
 
     } catch (error: any) {
-      console.log('⚠️ Migrácie celkovo preskočené:', error.message);
+      logger.migration('⚠️ Migrácie celkovo preskočené:', error.message);
     }
   }
 
   // DATA INTEGRITY VALIDATION
   private async validateDataIntegrity(client: PoolClient) {
-    console.log('🔍 Spúšťam data integrity validation...');
+    logger.migration('🔍 Spúšťam data integrity validation...');
     
     try {
       // 1. Kontrola orphaned rentals (rentals bez platných vehicles)
@@ -1639,12 +1640,12 @@ export class PostgresDatabase {
       `);
       
       if (orphanedRentals.rows.length > 0) {
-        console.log(`⚠️ PROBLÉM: ${orphanedRentals.rows.length} rentals má neplatné vehicle_id`);
+        logger.migration(`⚠️ PROBLÉM: ${orphanedRentals.rows.length} rentals má neplatné vehicle_id`);
         for (const rental of orphanedRentals.rows) {
-          console.log(`   ❌ Rental ${rental.id} (${rental.customer_name}) -> neexistujúce vehicle_id: ${rental.vehicle_id}`);
+          logger.migration(`   ❌ Rental ${rental.id} (${rental.customer_name}) -> neexistujúce vehicle_id: ${rental.vehicle_id}`);
         }
       } else {
-        console.log('✅ Všetky rentals majú platné vehicle_id');
+        logger.migration('✅ Všetky rentals majú platné vehicle_id');
       }
       
       // 2. Kontrola vehicles bez owner_company_id
@@ -1655,9 +1656,9 @@ export class PostgresDatabase {
       `);
       
       if (vehiclesWithoutCompany.rows.length > 0) {
-        console.log(`⚠️ PROBLÉM: ${vehiclesWithoutCompany.rows.length} vozidiel nemá owner_company_id`);
+        logger.migration(`⚠️ PROBLÉM: ${vehiclesWithoutCompany.rows.length} vozidiel nemá owner_company_id`);
       } else {
-        console.log('✅ Všetky vozidlá majú owner_company_id');
+        logger.migration('✅ Všetky vozidlá majú owner_company_id');
       }
       
       // 3. Kontrola users bez company_id
@@ -1668,9 +1669,9 @@ export class PostgresDatabase {
       `);
       
       if (usersWithoutCompany.rows.length > 0) {
-        console.log(`⚠️ PROBLÉM: ${usersWithoutCompany.rows.length} company_owner users nemá company_id`);
+        logger.migration(`⚠️ PROBLÉM: ${usersWithoutCompany.rows.length} company_owner users nemá company_id`);
       } else {
-        console.log('✅ Všetci company_owner users majú company_id');
+        logger.migration('✅ Všetci company_owner users majú company_id');
       }
       
       // 4. Kontrola UUID konzistentnosti
@@ -1684,15 +1685,15 @@ export class PostgresDatabase {
       
       const uuidData = uuidConsistency.rows[0];
       if (uuidData.valid_vehicle_uuids == uuidData.total_vehicles && uuidData.valid_user_uuids == uuidData.total_users) {
-        console.log('✅ UUID formát je konzistentný');
+        logger.migration('✅ UUID formát je konzistentný');
       } else {
-        console.log(`⚠️ PROBLÉM: UUID formát nie je konzistentný - Vehicles: ${uuidData.valid_vehicle_uuids}/${uuidData.total_vehicles}, Users: ${uuidData.valid_user_uuids}/${uuidData.total_users}`);
+        logger.migration(`⚠️ PROBLÉM: UUID formát nie je konzistentný - Vehicles: ${uuidData.valid_vehicle_uuids}/${uuidData.total_vehicles}, Users: ${uuidData.valid_user_uuids}/${uuidData.total_users}`);
       }
       
-      console.log('✅ Data integrity validation dokončená');
+      logger.migration('✅ Data integrity validation dokončená');
       
     } catch (error: any) {
-      console.log('⚠️ Data integrity validation chyba:', error.message);
+      logger.migration('⚠️ Data integrity validation chyba:', error.message);
     }
   }
 
@@ -1706,7 +1707,7 @@ export class PostgresDatabase {
           'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4)',
           ['admin', 'admin@blackrent.sk', hashedPassword, 'admin']
         );
-        console.log('👤 Admin používateľ vytvorený (username: admin, password: admin123)');
+        logger.migration('👤 Admin používateľ vytvorený (username: admin, password: admin123)');
       }
     } catch (error) {
       console.error('Chyba pri vytváraní admin používateľa:', error);
@@ -1720,11 +1721,11 @@ export class PostgresDatabase {
       const customerCount = await client.query('SELECT COUNT(*) FROM customers');
       const rentalCount = await client.query('SELECT COUNT(*) FROM rentals');
       
-      console.log('📊 Počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
+      logger.migration('📊 Počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
       
       // VYPNUTÉ: Automatické vytváranie testových dát
       if (false && rentalCount.rows[0].count === '0' && vehicleCount.rows[0].count === '0') {
-        console.log('📋 Vytváranie testovacích dát...');
+        logger.migration('📋 Vytváranie testovacích dát...');
         
         // Vytvorenie firiem - jednoducho bez duplicitov
         try {
@@ -1738,10 +1739,10 @@ export class PostgresDatabase {
           if (companiesToInsert.length > 0) {
             const values = companiesToInsert.map((name, index) => `($${index + 1})`).join(', ');
             await client.query(`INSERT INTO companies (name) VALUES ${values}`, companiesToInsert);
-            console.log('✅ Firmy vytvorené:', companiesToInsert);
+            logger.migration('✅ Firmy vytvorené:', companiesToInsert);
           }
         } catch (error: any) {
-          console.log('⚠️ Chyba pri vytváraní firiem:', error.message);
+          logger.migration('⚠️ Chyba pri vytváraní firiem:', error.message);
         }
         
         // Vytvorenie poisťovní
@@ -1756,10 +1757,10 @@ export class PostgresDatabase {
           if (insurersToInsert.length > 0) {
             const values = insurersToInsert.map((name, index) => `($${index + 1})`).join(', ');
             await client.query(`INSERT INTO insurers (name) VALUES ${values}`, insurersToInsert);
-            console.log('✅ Poisťovne vytvorené:', insurersToInsert);
+            logger.migration('✅ Poisťovne vytvorené:', insurersToInsert);
           }
         } catch (error: any) {
-          console.log('⚠️ Chyba pri vytváraní poisťovní:', error.message);
+          logger.migration('⚠️ Chyba pri vytváraní poisťovní:', error.message);
         }
         
         // Vytvorenie vozidiel - len ak neexistujú
@@ -1835,7 +1836,7 @@ export class PostgresDatabase {
             ]);
             
             const vehicles = vehicleResult.rows;
-            console.log('✅ Vozidlá vytvorené:', vehicles.length);
+            logger.migration('✅ Vozidlá vytvorené:', vehicles.length);
             
             // Vytvorenie zákazníkov
             const customerResult = await client.query(`
@@ -1846,7 +1847,7 @@ export class PostgresDatabase {
               RETURNING id, name
             `);
             const customers = customerResult.rows;
-            console.log('✅ Zákazníci vytvorení:', customers.length);
+            logger.migration('✅ Zákazníci vytvorení:', customers.length);
             
             // Vytvorenie prenájmov s reálnymi ID
             if (vehicles.length > 0 && customers.length > 0) {
@@ -1860,24 +1861,24 @@ export class PostgresDatabase {
                 vehicles[1]?.id, customers[1]?.id, customers[1]?.name,
                 vehicles[2]?.id, customers[2]?.id, customers[2]?.name
               ]);
-              console.log('✅ Prenájmy vytvorené: 3');
+              logger.migration('✅ Prenájmy vytvorené: 3');
             }
             
-            console.log('🎉 Testové dáta úspešne vytvorené!');
-            console.log('📊 Vytvorené:');
-            console.log('   - 3 vozidlá (BMW X5, Mercedes E-Class, Audi A4)');
-            console.log('   - 3 zákazníkov (Ján Novák, Mária Svobodová, Peter Horváth)');
-            console.log('   - 3 prenájmy s rôznymi stavmi');
-            console.log('   - 3 firmy (ABC Rent, Premium Cars, City Rent)');
-            console.log('   - 2 poisťovne (Allianz, Generali)');
+            logger.migration('🎉 Testové dáta úspešne vytvorené!');
+            logger.migration('📊 Vytvorené:');
+            logger.migration('   - 3 vozidlá (BMW X5, Mercedes E-Class, Audi A4)');
+            logger.migration('   - 3 zákazníkov (Ján Novák, Mária Svobodová, Peter Horváth)');
+            logger.migration('   - 3 prenájmy s rôznymi stavmi');
+            logger.migration('   - 3 firmy (ABC Rent, Premium Cars, City Rent)');
+            logger.migration('   - 2 poisťovne (Allianz, Generali)');
           } else {
-            console.log('ℹ️ Vozidlá už existujú, preskakujem vytváranie testovacích dát');
+            logger.migration('ℹ️ Vozidlá už existujú, preskakujem vytváranie testovacích dát');
           }
                  } catch (vehicleError: any) {
-           console.log('⚠️ Chyba pri vytváraní vozidiel:', vehicleError.message);
+           logger.migration('⚠️ Chyba pri vytváraní vozidiel:', vehicleError.message);
          }
       } else {
-        console.log('ℹ️ Databáza už obsahuje dáta, preskakujem vytváranie testovacích dát');
+        logger.migration('ℹ️ Databáza už obsahuje dáta, preskakujem vytváranie testovacích dát');
       }
     } catch (error) {
       console.error('⚠️ Chyba pri vytváraní testovacích dát:', error);
@@ -1974,7 +1975,7 @@ export class PostgresDatabase {
   }): Promise<User> {
     const client = await this.pool.connect();
     try {
-      console.log('🗄️ Database createUser - userData:', userData);
+      logger.migration('🗄️ Database createUser - userData:', userData);
       
       const hashedPassword = await bcrypt.hash(userData.password, 12);
       const result = await client.query(
@@ -2002,7 +2003,7 @@ export class PostgresDatabase {
       );
       
       const row = result.rows[0];
-      console.log('🗄️ Database createUser - result row:', row);
+      logger.migration('🗄️ Database createUser - result row:', row);
       
       return {
         id: row.id.toString(),
@@ -2100,18 +2101,18 @@ export class PostgresDatabase {
   async getVehicles(includeRemoved: boolean = false, includePrivate: boolean = false): Promise<Vehicle[]> {
     // Pre zahrnutie vyradených alebo súkromných vozidiel nepoužívame cache
     if (includeRemoved || includePrivate) {
-      console.log('🔄 Loading ALL vehicles (including removed/private) from DB');
+      logger.migration('🔄 Loading ALL vehicles (including removed/private) from DB');
       return await this.getVehiclesFresh(includeRemoved, includePrivate);
     }
 
     // Skontroluj cache len pre aktívne vozidlá
     const now = Date.now();
     if (this.vehicleCache && (now - this.vehicleCache.timestamp) < this.VEHICLE_CACHE_TTL) {
-      console.log('⚡ VEHICLE CACHE HIT - using cached vehicles');
+      logger.migration('⚡ VEHICLE CACHE HIT - using cached vehicles');
       return this.vehicleCache.data;
     }
 
-    console.log('🔄 VEHICLE CACHE MISS - loading fresh vehicles from DB');
+    logger.migration('🔄 VEHICLE CACHE MISS - loading fresh vehicles from DB');
     const vehicles = await this.getVehiclesFresh(includeRemoved, includePrivate);
     
     // Uložiť do cache
@@ -2120,14 +2121,14 @@ export class PostgresDatabase {
       timestamp: now
     };
     
-    console.log(`✅ VEHICLE CACHE UPDATED - cached ${vehicles.length} vehicles for 10min`);
+    logger.migration(`✅ VEHICLE CACHE UPDATED - cached ${vehicles.length} vehicles for 10min`);
     return vehicles;
   }
 
   // Cache invalidation helper
   private invalidateVehicleCache(): void {
     if (this.vehicleCache) {
-      console.log('🗑️ VEHICLE CACHE INVALIDATED - will reload on next request');
+      logger.migration('🗑️ VEHICLE CACHE INVALIDATED - will reload on next request');
       this.vehicleCache = null;
     }
   }
@@ -2139,13 +2140,13 @@ export class PostgresDatabase {
     // Skontroluj, či máme aktívne connection čo môžeme reusovať
     if (this.calendarConnection && 
         (now - this.calendarConnectionLastUsed) < this.CONNECTION_REUSE_TIMEOUT) {
-      console.log('⚡ REUSING calendar connection (connection reuse)');
+      logger.migration('⚡ REUSING calendar connection (connection reuse)');
       this.calendarConnectionLastUsed = now;
       return this.calendarConnection;
     }
 
     // Získaj nové connection a ulož ho pre reuse
-    console.log('🔄 ACQUIRING new calendar connection');
+    logger.migration('🔄 ACQUIRING new calendar connection');
     if (this.calendarConnection) {
       try { this.calendarConnection.release(); } catch (e) {}
     }
@@ -2157,7 +2158,7 @@ export class PostgresDatabase {
 
   private releaseReusableConnection(forceRelease = false) {
     if (forceRelease && this.calendarConnection) {
-      console.log('🗑️ FORCE RELEASING calendar connection');
+      logger.migration('🗑️ FORCE RELEASING calendar connection');
       this.calendarConnection.release();
       this.calendarConnection = null;
       this.calendarConnectionLastUsed = 0;
@@ -2179,13 +2180,13 @@ export class PostgresDatabase {
   private invalidateCalendarCache(): void {
     const beforeSize = this.calendarCache.size;
     this.calendarCache.clear();
-    console.log(`🗑️ CALENDAR CACHE INVALIDATED - cleared ${beforeSize} entries`);
+    logger.migration(`🗑️ CALENDAR CACHE INVALIDATED - cleared ${beforeSize} entries`);
   }
 
   private invalidateUnavailabilityCache(): void {
     const beforeSize = this.unavailabilityCache.size;
     this.unavailabilityCache.clear();
-    console.log(`🗑️ UNAVAILABILITY CACHE INVALIDATED - cleared ${beforeSize} entries`);
+    logger.migration(`🗑️ UNAVAILABILITY CACHE INVALIDATED - cleared ${beforeSize} entries`);
   }
 
   private cleanupExpiredCache(): void {
@@ -2211,7 +2212,7 @@ export class PostgresDatabase {
     const unavailabilityCleaned = unavailabilityBefore - this.unavailabilityCache.size;
     
     if (calendarCleaned > 0 || unavailabilityCleaned > 0) {
-      console.log(`🧹 CACHE CLEANUP: Removed ${calendarCleaned} calendar + ${unavailabilityCleaned} unavailability entries`);
+      logger.migration(`🧹 CACHE CLEANUP: Removed ${calendarCleaned} calendar + ${unavailabilityCleaned} unavailability entries`);
     }
   }
 
@@ -2262,7 +2263,7 @@ export class PostgresDatabase {
     const sizeSaved = originalSize - optimizedSize;
     const percentSaved = ((sizeSaved / originalSize) * 100).toFixed(1);
     
-    console.log(`🎯 DATA STRUCTURE OPTIMIZED: ${originalSize} → ${optimizedSize} bytes (${percentSaved}% smaller) in ${optimizedTime}ms`);
+    logger.migration(`🎯 DATA STRUCTURE OPTIMIZED: ${originalSize} → ${optimizedSize} bytes (${percentSaved}% smaller) in ${optimizedTime}ms`);
     
     return {
       calendar: optimizedCalendar,
@@ -2323,7 +2324,7 @@ export class PostgresDatabase {
         createdAt: new Date(row.created_at)
       }));
 
-      console.log(`🚀 N+1 OPTIMIZED: Loaded ${vehicles.length} vehicles with companies in 1 query (was ${vehicles.length + 1} queries)`);
+      logger.migration(`🚀 N+1 OPTIMIZED: Loaded ${vehicles.length} vehicles with companies in 1 query (was ${vehicles.length + 1} queries)`);
 
       return vehicles;
     } finally {
@@ -2391,7 +2392,7 @@ export class PostgresDatabase {
         
         if (existingVehicle.rows.length > 0) {
           const existing = existingVehicle.rows[0];
-          console.log(`⚠️ Vozidlo s ŠPZ ${vehicleData.licensePlate} už existuje: ${existing.brand} ${existing.model}`);
+          logger.migration(`⚠️ Vozidlo s ŠPZ ${vehicleData.licensePlate} už existuje: ${existing.brand} ${existing.model}`);
           throw new Error(`Vozidlo s ŠPZ ${vehicleData.licensePlate} už existuje v databáze`);
         }
       }
@@ -2414,7 +2415,7 @@ export class PostgresDatabase {
               type: 'percentage',
               value: existingCompany.defaultCommissionRate || 20
             };
-            console.log(`💰 Using company default commission: ${defaultCommission.value}% for ${vehicleData.brand} ${vehicleData.model}`);
+            logger.migration(`💰 Using company default commission: ${defaultCommission.value}% for ${vehicleData.brand} ${vehicleData.model}`);
           }
         } else {
           // Vytvor novú firmu s default províziou
@@ -2490,12 +2491,12 @@ export class PostgresDatabase {
           if (existingCompany.rows.length > 0) {
             // Firma existuje - použij jej ID
             companyId = existingCompany.rows[0].id.toString();
-            console.log(`✅ Nájdená existujúca firma: "${vehicle.company}" → ID: ${companyId}`);
+            logger.migration(`✅ Nájdená existujúca firma: "${vehicle.company}" → ID: ${companyId}`);
           } else {
             // Firma neexistuje - vytvor ju
             const newCompany = await client.query('INSERT INTO companies (name) VALUES ($1) RETURNING id', [vehicle.company.trim()]);
             companyId = newCompany.rows[0].id.toString();
-            console.log(`🆕 Vytvorená nová firma: "${vehicle.company}" → ID: ${companyId}`);
+            logger.migration(`🆕 Vytvorená nová firma: "${vehicle.company}" → ID: ${companyId}`);
           }
         } catch (companyError: any) {
           console.error('❌ Chyba pri aktualizácii firmy:', companyError.message);
@@ -2623,7 +2624,7 @@ export class PostgresDatabase {
   }): Promise<{ vehicles: Vehicle[]; total: number }> {
     const client = await this.pool.connect();
     try {
-      console.log('🚀 Loading paginated vehicles with filters:', params);
+      logger.migration('🚀 Loading paginated vehicles with filters:', params);
 
       // Build WHERE clause dynamically
       const whereClauses: string[] = [];
@@ -2768,7 +2769,7 @@ export class PostgresDatabase {
   }): Promise<{ companies: Company[]; total: number }> {
     const client = await this.pool.connect();
     try {
-      console.log('🚀 Loading paginated companies with filters:', params);
+      logger.migration('🚀 Loading paginated companies with filters:', params);
 
       // Build WHERE clause dynamically
       const whereClauses: string[] = [];
@@ -2883,7 +2884,7 @@ export class PostgresDatabase {
   }): Promise<{ users: User[]; total: number }> {
     const client = await this.pool.connect();
     try {
-      console.log('🚀 Loading paginated users with filters:', params);
+      logger.migration('🚀 Loading paginated users with filters:', params);
 
       // Build WHERE clause dynamically
       const whereClauses: string[] = [];
@@ -3000,7 +3001,7 @@ export class PostgresDatabase {
   }): Promise<{ customers: Customer[]; total: number }> {
     const client = await this.pool.connect();
     try {
-      console.log('🚀 Loading paginated customers with filters:', params);
+      logger.migration('🚀 Loading paginated customers with filters:', params);
 
       // Build WHERE clause dynamically
       const whereClauses: string[] = [];
@@ -3117,7 +3118,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🚀 Loading paginated rentals with filters:', params);
+        logger.migration('🚀 Loading paginated rentals with filters:', params);
       }
 
       // Základný WHERE clause
@@ -3402,12 +3403,12 @@ export class PostgresDatabase {
       queryParams.push(params.limit, params.offset);
       const result = await client.query(mainQuery, queryParams);
 
-      console.log(`📊 Paginated query: ${result.rows.length}/${total} rentals (limit: ${params.limit}, offset: ${params.offset})`);
+      logger.migration(`📊 Paginated query: ${result.rows.length}/${total} rentals (limit: ${params.limit}, offset: ${params.offset})`);
 
       // 🐛 DEBUG: Log rentals with extra_km_charge
       const rentalsWithExtraKm = result.rows.filter(row => row.extra_km_charge);
       if (rentalsWithExtraKm.length > 0) {
-        console.log(`🐛 PAGINATED DEBUG: Found ${rentalsWithExtraKm.length} rentals with extra_km_charge:`, 
+        logger.migration(`🐛 PAGINATED DEBUG: Found ${rentalsWithExtraKm.length} rentals with extra_km_charge:`, 
           rentalsWithExtraKm.slice(0, 2).map(row => ({
             id: row.id,
             extra_km_charge: row.extra_km_charge,
@@ -3445,7 +3446,7 @@ export class PostgresDatabase {
           return false;
         });
 
-        console.log('🔐 Permission filtering applied:', {
+        logger.migration('🔐 Permission filtering applied:', {
           originalCount: rentals.length,
           filteredCount: filteredRentals.length
         });
@@ -3526,10 +3527,10 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       // 🚀 NOVÝ PRÍSTUP: Priamy JOIN ako getVehicles() - STABILNÝ ✅
-      console.log('🔍 Loading rentals with direct JOIN...');
+      logger.migration('🔍 Loading rentals with direct JOIN...');
       
       // 🐛 DEBUG: Check vehicle_id types in rentals before JOIN
-      console.log('🔍 DEBUG: Checking vehicle_id types in rentals...');
+      logger.migration('🔍 DEBUG: Checking vehicle_id types in rentals...');
       const typeCheck = await client.query(`
         SELECT 
           id, 
@@ -3539,7 +3540,7 @@ export class PostgresDatabase {
         FROM rentals 
         LIMIT 3
       `);
-      console.log('🔍 DEBUG: Sample rentals data:', typeCheck.rows);
+      logger.migration('🔍 DEBUG: Sample rentals data:', typeCheck.rows);
       
       // 🔧 FIX: Remove ::uuid cast - if vehicle_id is already uuid, casting is unnecessary
       const result = await client.query(`
@@ -3564,12 +3565,12 @@ export class PostgresDatabase {
         LEFT JOIN customers cust ON r.customer_id = cust.id
         ORDER BY r.created_at DESC
       `);
-      console.log(`📊 Found ${result.rows.length} rentals`);
+      logger.migration(`📊 Found ${result.rows.length} rentals`);
       
       // 🔧 DEBUG: Log first 2 raw SQL results
-      console.log('🔍 RAW SQL RESULTS (first 2 rows):');
+      logger.migration('🔍 RAW SQL RESULTS (first 2 rows):');
       result.rows.slice(0, 2).forEach((row, i) => {
-        console.log(`  Row ${i}:`, {
+        logger.migration(`  Row ${i}:`, {
           customer_name: row.customer_name,
           vehicle_id: row.vehicle_id,
           brand: row.brand,
@@ -3598,7 +3599,7 @@ export class PostgresDatabase {
       const rentals = result.rows.map(row => {
         // 🐛 DEBUG: Log first rental with extra_km_charge
         if (row.extra_km_charge) {
-          console.log('🐛 BACKEND DEBUG: Found rental with extra_km_charge:', {
+          logger.migration('🐛 BACKEND DEBUG: Found rental with extra_km_charge:', {
             id: row.id,
             extra_km_charge: row.extra_km_charge,
             total_price: row.total_price
@@ -3670,9 +3671,9 @@ export class PostgresDatabase {
       }
 
       // 🔧 DEBUG: Log mapped rentals (first 2)
-      console.log('🔍 MAPPED RENTALS (first 2):');
+      logger.migration('🔍 MAPPED RENTALS (first 2):');
       rentals.slice(0, 2).forEach((rental, i) => {
-        console.log(`  Mapped ${i}:`, {
+        logger.migration(`  Mapped ${i}:`, {
           customer: rental.customerName,
           company: rental.company,
           vehicleId: rental.vehicleId,
@@ -3692,7 +3693,7 @@ export class PostgresDatabase {
           console.error(`  ❌ Rental ${rental.id} (${rental.customerName}) - ŽIADNA company! StartDate: ${rental.startDate.toISOString()}`);
         });
       } else {
-        console.log(`✅ BULLETPROOF VALIDÁCIA: Všetkých ${rentals.length} prenájmov má company`);
+        logger.migration(`✅ BULLETPROOF VALIDÁCIA: Všetkých ${rentals.length} prenájmov má company`);
       }
 
       return rentals;
@@ -3901,7 +3902,7 @@ export class PostgresDatabase {
   async getRental(id: string): Promise<Rental | null> {
     const client = await this.pool.connect();
     try {
-      console.log('🔍 getRental called for ID:', id);
+      logger.migration('🔍 getRental called for ID:', id);
       const result = await client.query(`
         SELECT r.*, v.brand, v.model, v.license_plate, v.vin, v.company as vehicle_company,
                COALESCE(c.name, v.company, 'BlackRent') as billing_company_name
@@ -3911,7 +3912,7 @@ export class PostgresDatabase {
         WHERE r.id = $1
       `, [parseInt(id)]);
       
-      console.log('📊 getRental result:', {
+      logger.migration('📊 getRental result:', {
         found: result.rows.length > 0,
         vehicleId: result.rows[0]?.vehicle_id,
         vehicleBrand: result.rows[0]?.brand,
@@ -3981,7 +3982,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     
     try {
-      console.log(`🔧 RENTAL UPDATE: ${rental.id}`, {
+      logger.migration(`🔧 RENTAL UPDATE: ${rental.id}`, {
         customer: rental.customerName,
         vehicle: rental.vehicleId,
         price: rental.totalPrice,
@@ -4028,7 +4029,7 @@ export class PostgresDatabase {
           rental.id // UUID as string, not parseInt
         ]);
         
-        console.log(`✅ RENTAL UPDATE SUCCESS: ${rental.id} (${result.rowCount} row updated)`);
+        logger.migration(`✅ RENTAL UPDATE SUCCESS: ${rental.id} (${result.rowCount} row updated)`);
         
     } catch (error) {
       console.error(`❌ RENTAL UPDATE ERROR: ${rental.id}`, error);
@@ -4057,7 +4058,7 @@ export class PostgresDatabase {
       
       try {
         // 🛡️ OCHRANA LEVEL 4: Log delete pokus
-        console.log(`🛡️ RENTAL DELETE START: ${id}`, {
+        logger.migration(`🛡️ RENTAL DELETE START: ${id}`, {
           customer: existing.customerName,
           vehicle: existing.vehicleId,
           totalPrice: existing.totalPrice,
@@ -4065,7 +4066,7 @@ export class PostgresDatabase {
         });
         
         // 🛡️ OCHRANA LEVEL 5: Cleanup závislých záznamov pred DELETE
-        console.log(`🧹 Cleaning up related records for rental ${id}...`);
+        logger.migration(`🧹 Cleaning up related records for rental ${id}...`);
         
         // 1. Vyčisti email_action_logs záznamy (závislé na email_processing_history)
         const emailActionResult = await client.query(`
@@ -4074,27 +4075,27 @@ export class PostgresDatabase {
             SELECT id FROM email_processing_history WHERE rental_id = $1
           )
         `, [id]);
-        console.log(`🧹 Deleted ${emailActionResult.rowCount || 0} email action logs`);
+        logger.migration(`🧹 Deleted ${emailActionResult.rowCount || 0} email action logs`);
         
         // 2. Vyčisti email_processing_history záznamy
         const emailHistoryResult = await client.query(
           'DELETE FROM email_processing_history WHERE rental_id = $1', 
           [id]
         );
-        console.log(`🧹 Deleted ${emailHistoryResult.rowCount || 0} email history records`);
+        logger.migration(`🧹 Deleted ${emailHistoryResult.rowCount || 0} email history records`);
         
         // 2. Vyčisti protokoly ak existujú
         const handoverResult = await client.query(
           'DELETE FROM handover_protocols WHERE rental_id = $1', 
           [id]
         );
-        console.log(`🧹 Deleted ${handoverResult.rowCount || 0} handover protocols`);
+        logger.migration(`🧹 Deleted ${handoverResult.rowCount || 0} handover protocols`);
         
         const returnResult = await client.query(
           'DELETE FROM return_protocols WHERE rental_id = $1', 
           [id]
         );
-        console.log(`🧹 Deleted ${returnResult.rowCount || 0} return protocols`);
+        logger.migration(`🧹 Deleted ${returnResult.rowCount || 0} return protocols`);
         
         // 3. Teraz môžeme bezpečne zmazať rental
         const result = await client.query('DELETE FROM rentals WHERE id = $1', [id]);
@@ -4109,7 +4110,7 @@ export class PostgresDatabase {
         }
         
         await client.query('COMMIT');
-        console.log(`✅ RENTAL DELETE SUCCESS: ${id}`, {
+        logger.migration(`✅ RENTAL DELETE SUCCESS: ${id}`, {
           rentalDeleted: result.rowCount,
           emailActionLogsDeleted: emailActionResult.rowCount || 0,
           emailHistoryDeleted: emailHistoryResult.rowCount || 0,
@@ -4162,14 +4163,14 @@ export class PostgresDatabase {
   }): Promise<Customer> {
     const client = await this.pool.connect();
     try {
-      console.log('📝 Creating customer with data:', customerData);
+      logger.migration('📝 Creating customer with data:', customerData);
       
       // Rozdelenie mena na first_name a last_name
       const nameParts = customerData.name.trim().split(/\s+/);
       const firstName = nameParts[0] || customerData.name.trim();
       const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
       
-      console.log('📝 Name parsing:', { 
+      logger.migration('📝 Name parsing:', { 
         originalName: customerData.name, 
         firstName, 
         lastName 
@@ -4181,7 +4182,7 @@ export class PostgresDatabase {
       );
 
       const row = result.rows[0];
-      console.log('✅ Customer created with ID:', row.id);
+      logger.migration('✅ Customer created with ID:', row.id);
       
       return {
         id: row.id.toString(),
@@ -4261,10 +4262,10 @@ export class PostgresDatabase {
           const existingCompany = await client.query('SELECT name FROM companies WHERE name = $1', [expenseData.company.trim()]);
           if (existingCompany.rows.length === 0) {
             await client.query('INSERT INTO companies (name) VALUES ($1)', [expenseData.company.trim()]);
-            console.log('✅ Company vytvorená pre expense:', expenseData.company.trim());
+            logger.migration('✅ Company vytvorená pre expense:', expenseData.company.trim());
           }
         } catch (companyError: any) {
-          console.log('⚠️ Company pre expense už existuje:', companyError.message);
+          logger.migration('⚠️ Company pre expense už existuje:', companyError.message);
         }
       }
 
@@ -4311,7 +4312,7 @@ export class PostgresDatabase {
             await client.query('INSERT INTO companies (name) VALUES ($1)', [expense.company.trim()]);
           }
         } catch (companyError: any) {
-          console.log('⚠️ Company update pre expense error:', companyError.message);
+          logger.migration('⚠️ Company update pre expense error:', companyError.message);
         }
       }
 
@@ -4618,11 +4619,11 @@ export class PostgresDatabase {
         AND (end_date IS NULL OR end_date >= $1)
       `, [today]);
 
-      console.log(`🔄 Generating recurring expenses for ${today.toISOString().split('T')[0]}: ${recurringResult.rows.length} candidates`);
+      logger.migration(`🔄 Generating recurring expenses for ${today.toISOString().split('T')[0]}: ${recurringResult.rows.length} candidates`);
 
       for (const row of recurringResult.rows) {
         try {
-          console.log('🔄 Processing recurring expense:', { 
+          logger.migration('🔄 Processing recurring expense:', { 
             id: row.id, 
             idType: typeof row.id, 
             name: row.name 
@@ -4682,7 +4683,7 @@ export class PostgresDatabase {
           `, [recurringExpense.generationDate, nextDate, row.id]);
 
           results.generated++;
-          console.log(`✅ Generated expense: ${row.description} for ${recurringExpense.generationDate.toISOString().split('T')[0]}`);
+          logger.migration(`✅ Generated expense: ${row.description} for ${recurringExpense.generationDate.toISOString().split('T')[0]}`);
 
         } catch (error: any) {
           results.errors.push(`Error generating ${row.name}: ${error.message}`);
@@ -4818,7 +4819,7 @@ export class PostgresDatabase {
         
         if (insurerResult.rows.length > 0) {
           finalInsurerId = insurerResult.rows[0].id;
-          console.log(`🔧 INSURANCE: Mapped company "${insuranceData.company}" to insurerId ${finalInsurerId}`);
+          logger.migration(`🔧 INSURANCE: Mapped company "${insuranceData.company}" to insurerId ${finalInsurerId}`);
         }
       }
       
@@ -4893,7 +4894,7 @@ export class PostgresDatabase {
         
         if (insurerResult.rows.length > 0) {
           finalInsurerId = insurerResult.rows[0].id;
-          console.log(`🔧 UPDATE INSURANCE: Mapped company "${insuranceData.company}" to insurerId ${finalInsurerId}`);
+          logger.migration(`🔧 UPDATE INSURANCE: Mapped company "${insuranceData.company}" to insurerId ${finalInsurerId}`);
         }
       }
       
@@ -4991,7 +4992,7 @@ export class PostgresDatabase {
   }): Promise<Company> {
     const client = await this.pool.connect();
     try {
-      console.log('🏢 Creating company:', companyData.name);
+      logger.migration('🏢 Creating company:', companyData.name);
       
       const result = await client.query(
         `INSERT INTO companies (
@@ -5011,7 +5012,7 @@ export class PostgresDatabase {
         ]
       );
       
-      console.log('🏢 Company created successfully:', result.rows[0]);
+      logger.migration('🏢 Company created successfully:', result.rows[0]);
       
       const row = result.rows[0];
       return {
@@ -5061,7 +5062,7 @@ export class PostgresDatabase {
   }>): Promise<Company> {
     const client = await this.pool.connect();
     try {
-      console.log('🏢 Updating company:', id, companyData);
+      logger.migration('🏢 Updating company:', id, companyData);
       
       const result = await client.query(
         `UPDATE companies SET 
@@ -5472,7 +5473,7 @@ export class PostgresDatabase {
   async getSettlements(): Promise<Settlement[]> {
     const client = await this.pool.connect();
     try {
-      console.log('🔍 Starting getSettlements - checking/creating table...');
+      logger.migration('🔍 Starting getSettlements - checking/creating table...');
       
       // Ensure settlements table exists with correct schema
       await client.query(`
@@ -5489,9 +5490,9 @@ export class PostgresDatabase {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      console.log('✅ Settlements table ensured');
+      logger.migration('✅ Settlements table ensured');
       
-      console.log('✅ Settlements table ready');
+      logger.migration('✅ Settlements table ready');
 
       // Simple query without JOINs that can cause issues
       const result = await client.query(`
@@ -5510,7 +5511,7 @@ export class PostgresDatabase {
         ORDER BY created_at DESC
       `);
       
-      console.log(`📊 Found ${result.rows.length} settlements`);
+      logger.migration(`📊 Found ${result.rows.length} settlements`);
 
       // Load rentals and expenses for filtering
       const allRentals = await this.getRentals();
@@ -5533,7 +5534,7 @@ export class PostgresDatabase {
            const hasMatchingCompany = vehicleCompany === company || rentalCompany === company;
           
           if (row.id && (isInPeriod || hasMatchingCompany)) {
-            console.log(`🏠 Settlement ${row.id} - Rental ${rental.id}: Vehicle company: "${vehicleCompany}", Historical company: "${rentalCompany}", Settlement company: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
+            logger.migration(`🏠 Settlement ${row.id} - Rental ${rental.id}: Vehicle company: "${vehicleCompany}", Historical company: "${rentalCompany}", Settlement company: "${company}", Match: ${hasMatchingCompany}, Period: ${isInPeriod}`);
           }
            
            return isInPeriod && hasMatchingCompany;
@@ -5645,7 +5646,7 @@ export class PostgresDatabase {
   }): Promise<Settlement> {
     const client = await this.pool.connect();
     try {
-      console.log('🔍 Creating settlement with data:', settlementData);
+      logger.migration('🔍 Creating settlement with data:', settlementData);
       
       // Ensure settlements table exists with correct schema
       await client.query(`
@@ -5662,7 +5663,7 @@ export class PostgresDatabase {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      console.log('✅ Settlements table ensured for create operation');
+      logger.migration('✅ Settlements table ensured for create operation');
       
       const result = await client.query(`
         INSERT INTO settlements (
@@ -5683,7 +5684,7 @@ export class PostgresDatabase {
       ]);
 
       const row = result.rows[0];
-      console.log('✅ Settlement created successfully:', row.id);
+      logger.migration('✅ Settlement created successfully:', row.id);
       
       return {
         id: row.id?.toString() || '',
@@ -5762,16 +5763,16 @@ export class PostgresDatabase {
   private extractMediaData(mediaArray: any[]): any[] {
     try {
       if (!Array.isArray(mediaArray)) {
-        console.log('⚠️ extractMediaData: mediaArray is not an array, returning empty array');
+        logger.migration('⚠️ extractMediaData: mediaArray is not an array, returning empty array');
         return [];
       }
       
       if (mediaArray.length === 0) {
-        console.log('🔍 extractMediaData: Empty mediaArray, returning empty array');
+        logger.migration('🔍 extractMediaData: Empty mediaArray, returning empty array');
         return [];
       }
       
-      console.log('🔍 extractMediaData: Processing mediaArray with', mediaArray.length, 'items');
+      logger.migration('🔍 extractMediaData: Processing mediaArray with', mediaArray.length, 'items');
       
       const mediaData = mediaArray
         .filter(item => item !== null && item !== undefined)
@@ -5779,7 +5780,7 @@ export class PostgresDatabase {
           try {
             // Ak je item string (base64 URL), vytvor objekt
             if (typeof item === 'string') {
-              console.log('🔍 extractMediaData: Found string item (base64 URL)');
+              logger.migration('🔍 extractMediaData: Found string item (base64 URL)');
               return {
                 id: `${Date.now()}_${Math.random()}`,
                 url: item,
@@ -5790,10 +5791,10 @@ export class PostgresDatabase {
             }
             // Ak je item objekt, použij ho ako je
             if (item && typeof item === 'object') {
-              console.log('🔍 extractMediaData: Found object item:', item.id || 'no id');
+              logger.migration('🔍 extractMediaData: Found object item:', item.id || 'no id');
               return item;
             }
-            console.log('⚠️ extractMediaData: Ignoring invalid item:', item);
+            logger.migration('⚠️ extractMediaData: Ignoring invalid item:', item);
             return null;
           } catch (error) {
             console.error('❌ extractMediaData: Error processing item:', error);
@@ -5802,7 +5803,7 @@ export class PostgresDatabase {
         })
         .filter(item => item !== null);
       
-      console.log('✅ extractMediaData: Successfully extracted', mediaData.length, 'media items');
+      logger.migration('✅ extractMediaData: Successfully extracted', mediaData.length, 'media items');
       return mediaData;
     } catch (error) {
       console.error('❌ extractMediaData: Critical error:', error);
@@ -5812,7 +5813,7 @@ export class PostgresDatabase {
 
   private mapMediaObjectsFromDB(mediaData: any[]): any[] {
     if (!Array.isArray(mediaData)) {
-      console.log('⚠️ mapMediaObjectsFromDB: mediaData is not an array, returning empty array');
+      logger.migration('⚠️ mapMediaObjectsFromDB: mediaData is not an array, returning empty array');
       return [];
     }
     
@@ -5856,7 +5857,7 @@ export class PostgresDatabase {
         uploaded_at: new Date().toISOString()
       });
       
-      console.log(`✅ Protocol ${mediaType} uploaded to R2:`, url);
+      logger.migration(`✅ Protocol ${mediaType} uploaded to R2:`, url);
       return url;
     } catch (error) {
       console.error(`❌ Error uploading protocol ${mediaType} to R2:`, error);
@@ -5876,7 +5877,7 @@ export class PostgresDatabase {
         uploaded_at: new Date().toISOString()
       });
       
-      console.log(`✅ Protocol PDF (${protocolType}) uploaded to R2:`, url);
+      logger.migration(`✅ Protocol PDF (${protocolType}) uploaded to R2:`, url);
       return url;
     } catch (error) {
       console.error(`❌ Error uploading protocol PDF (${protocolType}) to R2:`, error);
@@ -5888,7 +5889,7 @@ export class PostgresDatabase {
   async initProtocolTables(): Promise<void> {
     const client = await this.pool.connect();
     try {
-      console.log('🔧 Initializing protocol tables...');
+      logger.migration('🔧 Initializing protocol tables...');
 
       // Handover Protocols table
       await client.query(`
@@ -5982,7 +5983,7 @@ export class PostgresDatabase {
 
       // Migrácia existujúcich tabuliek na JSONB
       try {
-        console.log('🔄 Running protocol tables migration...');
+        logger.migration('🔄 Running protocol tables migration...');
         
         // Migrácia handover_protocols
         await client.query(`
@@ -6078,17 +6079,17 @@ export class PostgresDatabase {
             ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT FALSE;
           `);
           
-          console.log('✅ Added missing columns to handover_protocols');
+          logger.migration('✅ Added missing columns to handover_protocols');
         } catch (columnError) {
-          console.log('⚠️ Column migration failed (columns might already exist):', columnError);
+          logger.migration('⚠️ Column migration failed (columns might already exist):', columnError);
         }
         
-        console.log('✅ Protocol tables migration completed');
+        logger.migration('✅ Protocol tables migration completed');
       } catch (migrationError) {
-        console.log('⚠️ Protocol tables migration failed (tables might already be migrated):', migrationError);
+        logger.migration('⚠️ Protocol tables migration failed (tables might already be migrated):', migrationError);
       }
 
-      console.log('✅ Protocol tables initialized successfully');
+      logger.migration('✅ Protocol tables initialized successfully');
 
     } catch (error) {
       console.error('❌ Error initializing protocol tables:', error);
@@ -6102,12 +6103,12 @@ export class PostgresDatabase {
   async createHandoverProtocol(protocolData: any): Promise<any> {
     const client = await this.pool.connect();
     try {
-      console.log('🔄 [DB] createHandoverProtocol - input:', JSON.stringify(protocolData, null, 2));
+      logger.migration('🔄 [DB] createHandoverProtocol - input:', JSON.stringify(protocolData, null, 2));
       await this.initProtocolTables();
       
-      console.log('🔄 Creating handover protocol:', protocolData.id);
-      console.log('🔄 Protocol data:', JSON.stringify(protocolData, null, 2));
-      console.log('🔄 PDF URL from input:', protocolData.pdfUrl);
+      logger.migration('🔄 Creating handover protocol:', protocolData.id);
+      logger.migration('🔄 Protocol data:', JSON.stringify(protocolData, null, 2));
+      logger.migration('🔄 PDF URL from input:', protocolData.pdfUrl);
 
       // Validácia dát
       if (!protocolData.rentalId) {
@@ -6115,14 +6116,14 @@ export class PostgresDatabase {
       }
 
       // MÉDIA: Použij priamo médiá z frontendu - už sú v správnom formáte
-      console.log('🔄 [DB] Media before DB insert:', {
+      logger.migration('🔄 [DB] Media before DB insert:', {
         vehicleImages: protocolData.vehicleImages?.length || 0,
         vehicleVideos: protocolData.vehicleVideos?.length || 0,
         documentImages: protocolData.documentImages?.length || 0,
         damageImages: protocolData.damageImages?.length || 0
       });
 
-      console.log('🔄 PDF URL before DB insert:', protocolData.pdfUrl);
+      logger.migration('🔄 PDF URL before DB insert:', protocolData.pdfUrl);
 
       const result = await client.query(`
         INSERT INTO handover_protocols (
@@ -6156,9 +6157,9 @@ export class PostgresDatabase {
       ]);
 
       const row = result.rows[0];
-      console.log('✅ Handover protocol created:', row.id);
-      console.log('✅ PDF URL in database:', row.pdf_url);
-      console.log('✅ Media in database:', {
+      logger.migration('✅ Handover protocol created:', row.id);
+      logger.migration('✅ PDF URL in database:', row.pdf_url);
+      logger.migration('✅ Media in database:', {
         vehicleImages: row.vehicle_images_urls?.length || 0,
         vehicleVideos: row.vehicle_videos_urls?.length || 0,
         documentImages: row.document_images_urls?.length || 0,
@@ -6171,11 +6172,11 @@ export class PostgresDatabase {
         SET handover_protocol_id = $1 
         WHERE id = $2
       `, [row.id, protocolData.rentalId]);
-      console.log('✅ Updated rental', protocolData.rentalId, 'with handover protocol ID:', row.id);
+      logger.migration('✅ Updated rental', protocolData.rentalId, 'with handover protocol ID:', row.id);
       
       const mappedProtocol = this.mapHandoverProtocolFromDB(row);
-      console.log('✅ Mapped protocol pdfUrl:', mappedProtocol.pdfUrl);
-      console.log('✅ Mapped protocol media:', {
+      logger.migration('✅ Mapped protocol pdfUrl:', mappedProtocol.pdfUrl);
+      logger.migration('✅ Mapped protocol media:', {
         vehicleImages: mappedProtocol.vehicleImages?.length || 0,
         vehicleVideos: mappedProtocol.vehicleVideos?.length || 0,
         documentImages: mappedProtocol.documentImages?.length || 0,
@@ -6240,7 +6241,7 @@ export class PostgresDatabase {
     try {
       await this.initProtocolTables();
       
-      console.log('🔄 Creating return protocol:', protocolData.id);
+      logger.migration('🔄 Creating return protocol:', protocolData.id);
 
       const result = await client.query(`
         INSERT INTO return_protocols (
@@ -6293,7 +6294,7 @@ export class PostgresDatabase {
       ]);
 
       const row = result.rows[0];
-      console.log('✅ Return protocol created:', row.id);
+      logger.migration('✅ Return protocol created:', row.id);
       
       // ✅ UPDATE RENTAL with protocol ID
       await client.query(`
@@ -6301,7 +6302,7 @@ export class PostgresDatabase {
         SET return_protocol_id = $1 
         WHERE id = $2
       `, [row.id, protocolData.rentalId]);
-      console.log('✅ Updated rental', protocolData.rentalId, 'with return protocol ID:', row.id);
+      logger.migration('✅ Updated rental', protocolData.rentalId, 'with return protocol ID:', row.id);
       
       return this.mapReturnProtocolFromDB(row);
     } catch (error) {
@@ -6393,7 +6394,7 @@ export class PostgresDatabase {
   private mapHandoverProtocolFromDB(row: any): any {
     // Safe JSON parsing function for JSONB fields
     const safeJsonParse = (value: any, fallback: any = []) => {
-      console.log('🔍 [DB] safeJsonParse input:', {
+      logger.migration('🔍 [DB] safeJsonParse input:', {
         value: value,
         type: typeof value,
         isArray: Array.isArray(value),
@@ -6403,7 +6404,7 @@ export class PostgresDatabase {
       });
 
       if (!value || value === 'null' || value === 'undefined') {
-        console.log('🔍 [DB] safeJsonParse: returning fallback (null/undefined)');
+        logger.migration('🔍 [DB] safeJsonParse: returning fallback (null/undefined)');
         return fallback;
       }
       
@@ -6411,7 +6412,7 @@ export class PostgresDatabase {
       if (typeof value === 'object' && value !== null) {
         // ✅ NOVÁ LOGIKA: Ak je to pole stringov, parsuj každý string
         if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
-          console.log('🔍 [DB] safeJsonParse: parsing array of JSON strings');
+          logger.migration('🔍 [DB] safeJsonParse: parsing array of JSON strings');
           try {
             const parsed = value.map(item => {
               if (typeof item === 'string') {
@@ -6419,15 +6420,15 @@ export class PostgresDatabase {
               }
               return item;
             });
-            console.log('🔍 [DB] safeJsonParse: successfully parsed array of strings:', parsed);
+            logger.migration('🔍 [DB] safeJsonParse: successfully parsed array of strings:', parsed);
             return parsed;
           } catch (error) {
-            console.log('⚠️ Error parsing array of JSON strings:', error);
+            logger.migration('⚠️ Error parsing array of JSON strings:', error);
             return fallback;
           }
         }
         
-        console.log('🔍 [DB] safeJsonParse: value is already object, returning as is');
+        logger.migration('🔍 [DB] safeJsonParse: value is already object, returning as is');
         return value;
       }
       
@@ -6435,19 +6436,19 @@ export class PostgresDatabase {
       if (typeof value === 'string') {
         try {
           const parsed = JSON.parse(value);
-          console.log('🔍 [DB] safeJsonParse: successfully parsed string to:', parsed);
+          logger.migration('🔍 [DB] safeJsonParse: successfully parsed string to:', parsed);
           return parsed;
         } catch (error) {
-          console.log('⚠️ JSON parse error in mapHandoverProtocolFromDB:', error);
+          logger.migration('⚠️ JSON parse error in mapHandoverProtocolFromDB:', error);
           return fallback;
         }
       }
       
-      console.log('🔍 [DB] safeJsonParse: returning fallback (unknown type)');
+      logger.migration('🔍 [DB] safeJsonParse: returning fallback (unknown type)');
       return fallback;
     };
 
-    console.log('🔄 [DB] Mapping handover protocol from DB row:', {
+    logger.migration('🔄 [DB] Mapping handover protocol from DB row:', {
       id: row.id,
       pdf_url: row.pdf_url,
       pdf_url_type: typeof row.pdf_url,
@@ -6486,7 +6487,7 @@ export class PostgresDatabase {
       createdBy: row.created_by
     };
 
-    console.log('🔄 [DB] Mapped protocol media:', {
+    logger.migration('🔄 [DB] Mapped protocol media:', {
       vehicleImages: mappedProtocol.vehicleImages?.length || 0,
       vehicleVideos: mappedProtocol.vehicleVideos?.length || 0,
       documentImages: mappedProtocol.documentImages?.length || 0,
@@ -6512,7 +6513,7 @@ export class PostgresDatabase {
         try {
           return JSON.parse(value);
         } catch (error) {
-          console.log('⚠️ JSON parse error in mapReturnProtocolFromDB:', error);
+          logger.migration('⚠️ JSON parse error in mapReturnProtocolFromDB:', error);
           return fallback;
         }
       }
@@ -6565,12 +6566,12 @@ export class PostgresDatabase {
   async deleteHandoverProtocol(id: string): Promise<boolean> {
     const client = await this.pool.connect();
     try {
-      console.log(`🗑️ Deleting handover protocol: ${id}`);
+      logger.migration(`🗑️ Deleting handover protocol: ${id}`);
       
       // Najprv získaj protokol aby sme vedeli vymazať súbory
       const protocol = await this.getHandoverProtocolById(id);
       if (!protocol) {
-        console.log(`⚠️ Protocol ${id} not found`);
+        logger.migration(`⚠️ Protocol ${id} not found`);
         return false;
       }
       
@@ -6580,20 +6581,20 @@ export class PostgresDatabase {
       `, [id]);
       
       if (result.rowCount === 0) {
-        console.log(`⚠️ No protocol deleted from database: ${id}`);
+        logger.migration(`⚠️ No protocol deleted from database: ${id}`);
         return false;
       }
       
       // ✅ MAZANIE SÚBOROV Z R2
       try {
         await r2Storage.deleteProtocolFiles(id);
-        console.log(`✅ Protocol files deleted from R2: ${id}`);
+        logger.migration(`✅ Protocol files deleted from R2: ${id}`);
       } catch (error) {
         console.error(`❌ Error deleting protocol files from R2: ${error}`);
         // Pokračujeme aj keď sa súbory nevymazali
       }
       
-      console.log(`✅ Handover protocol deleted successfully: ${id}`);
+      logger.migration(`✅ Handover protocol deleted successfully: ${id}`);
       return true;
     } catch (error) {
       console.error('❌ Error deleting handover protocol:', error);
@@ -6606,12 +6607,12 @@ export class PostgresDatabase {
   async deleteReturnProtocol(id: string): Promise<boolean> {
     const client = await this.pool.connect();
     try {
-      console.log(`🗑️ Deleting return protocol: ${id}`);
+      logger.migration(`🗑️ Deleting return protocol: ${id}`);
       
       // Najprv získaj protokol aby sme vedeli vymazať súbory
       const protocol = await this.getReturnProtocolById(id);
       if (!protocol) {
-        console.log(`⚠️ Protocol ${id} not found`);
+        logger.migration(`⚠️ Protocol ${id} not found`);
         return false;
       }
       
@@ -6621,20 +6622,20 @@ export class PostgresDatabase {
       `, [id]);
       
       if (result.rowCount === 0) {
-        console.log(`⚠️ No protocol deleted from database: ${id}`);
+        logger.migration(`⚠️ No protocol deleted from database: ${id}`);
         return false;
       }
       
       // ✅ MAZANIE SÚBOROV Z R2
       try {
         await r2Storage.deleteProtocolFiles(id);
-        console.log(`✅ Protocol files deleted from R2: ${id}`);
+        logger.migration(`✅ Protocol files deleted from R2: ${id}`);
       } catch (error) {
         console.error(`❌ Error deleting protocol files from R2: ${error}`);
         // Pokračujeme aj keď sa súbory nevymazali
       }
       
-      console.log(`✅ Return protocol deleted successfully: ${id}`);
+      logger.migration(`✅ Return protocol deleted successfully: ${id}`);
       return true;
     } catch (error) {
       console.error('❌ Error deleting return protocol:', error);
@@ -6656,8 +6657,8 @@ export class PostgresDatabase {
   async updateHandoverProtocol(id: string, updateData: any): Promise<any> {
     const client = await this.pool.connect();
     try {
-      console.log('🔄 Updating handover protocol:', id);
-      console.log('🔄 Update data:', JSON.stringify(updateData, null, 2));
+      logger.migration('🔄 Updating handover protocol:', id);
+      logger.migration('🔄 Update data:', JSON.stringify(updateData, null, 2));
 
       // Dynamické vytvorenie SET klauzuly
       const setFields: string[] = [];
@@ -6714,8 +6715,8 @@ export class PostgresDatabase {
       `;
       values.push(id);
 
-      console.log('🔄 Update query:', query);
-      console.log('🔄 Update values:', values);
+      logger.migration('🔄 Update query:', query);
+      logger.migration('🔄 Update values:', values);
 
       const result = await client.query(query, values);
 
@@ -6724,7 +6725,7 @@ export class PostgresDatabase {
       }
 
       const updatedProtocol = this.mapHandoverProtocolFromDB(result.rows[0]);
-      console.log('✅ Handover protocol updated successfully');
+      logger.migration('✅ Handover protocol updated successfully');
       
       return updatedProtocol;
 
@@ -7002,16 +7003,16 @@ export class PostgresDatabase {
     const cachedEntry = this.calendarCache.get(cacheKey);
     
     if (cachedEntry && this.isValidCacheEntry(cachedEntry, this.CALENDAR_CACHE_TTL)) {
-      console.log(`⚡ CALENDAR CACHE HIT - using cached data for ${cacheKey}`);
+      logger.migration(`⚡ CALENDAR CACHE HIT - using cached data for ${cacheKey}`);
       return cachedEntry.data;
     }
 
-    console.log(`🔄 CALENDAR CACHE MISS - generating fresh data for ${cacheKey}`);
+    logger.migration(`🔄 CALENDAR CACHE MISS - generating fresh data for ${cacheKey}`);
     
     // 🚀 FÁZA 2.2: CONNECTION REUSE - reusovanie connection pre calendar queries
     const client = await this.getReusableConnection();
     try {
-      console.log('🚀 PHASE 2.3 OPTIMIZED: Smart cached calendar data + connection reuse + pre-filtered CTE');
+      logger.migration('🚀 PHASE 2.3 OPTIMIZED: Smart cached calendar data + connection reuse + pre-filtered CTE');
       
       // 🚀 FÁZA 2.1: OPTIMALIZED CTE - 31% rýchlejšie, 94% menej filtrovaných riadkov
       const result = await client.query(`
@@ -7093,7 +7094,7 @@ export class PostgresDatabase {
         ORDER BY date, brand, model, license_plate
       `, [startDate, endDate]);
       
-      console.log('✅ UNIFIED QUERY: Retrieved', result.rows.length, 'calendar records');
+      logger.migration('✅ UNIFIED QUERY: Retrieved', result.rows.length, 'calendar records');
       
       // 🚀 FÁZA 1.2: Pôvodná logika grupovanie podľa dátumu (funguje správne)
       const groupedByDate = result.rows.reduce((acc: any, row: any) => {
@@ -7151,7 +7152,7 @@ export class PostgresDatabase {
           priority: row.unavailability_priority
         }));
       
-      console.log('🎯 PHASE 2.3 OPTIMIZED RESULT:', {
+      logger.migration('🎯 PHASE 2.3 OPTIMIZED RESULT:', {
         calendarDays: calendarData.length,
         vehiclesCount: vehicles.length,
         unavailabilitiesCount: unavailabilities.length,
@@ -7172,7 +7173,7 @@ export class PostgresDatabase {
         dateRange: { start: startDate, end: endDate }
       });
       
-      console.log(`✅ CALENDAR CACHED - saved ${cacheKey} to cache (TTL: 5min)`);
+      logger.migration(`✅ CALENDAR CACHED - saved ${cacheKey} to cache (TTL: 5min)`);
       return calendarResult;
       
     } catch (error) {
@@ -7588,28 +7589,28 @@ export class PostgresDatabase {
       const isValid = (now - cached.timestamp) < this.PERMISSION_CACHE_TTL;
       
       if (isValid) {
-        console.log('⚡ getUserCompanyAccess CACHE HIT for userId:', userId, '(saved SQL query)');
+        logger.migration('⚡ getUserCompanyAccess CACHE HIT for userId:', userId, '(saved SQL query)');
         return cached.data;
       } else {
         // Cache expired, remove it
         this.permissionCache.delete(cacheKey);
-        console.log('🕒 getUserCompanyAccess cache EXPIRED for userId:', userId);
+        logger.migration('🕒 getUserCompanyAccess cache EXPIRED for userId:', userId);
       }
     }
 
     // ⚡ CACHE MISS: Load from database
     const client = await this.pool.connect();
     try {
-      console.log('🔍 getUserCompanyAccess CACHE MISS - loading from DB for userId:', userId);
+      logger.migration('🔍 getUserCompanyAccess CACHE MISS - loading from DB for userId:', userId);
       
       // 1. Získaj používateľa a skontroluj či má linked investor
       const userResult = await client.query(
-        'SELECT role, linked_investor_id FROM users WHERE id = $1',
+        'SELECT role, linked_investor_id FROM users WHERE id = $1::uuid',
         [userId]
       );
       
       if (userResult.rows.length === 0) {
-        console.log('❌ User not found:', userId);
+        logger.migration('❌ User not found:', userId);
         return [];
       }
       
@@ -7643,13 +7644,45 @@ export class PostgresDatabase {
           timestamp: Date.now()
         });
         
-        console.log('👑 Admin access - all companies:', adminData.length);
+        logger.migration('👑 Admin access - all companies:', adminData.length);
         return adminData;
+      }
+      
+      // 2.5. Employee má prístup k všetkým firmám (read-only pre väčšinu, write pre protocols)
+      if (user.role === 'employee') {
+        const allCompaniesResult = await client.query(
+          'SELECT id as company_id, name as company_name FROM companies WHERE is_active = true ORDER BY name'
+        );
+        
+        const employeeData = allCompaniesResult.rows.map(row => ({
+          companyId: row.company_id.toString(),
+          companyName: row.company_name,
+          permissions: {
+            vehicles: { read: true, write: false, delete: false },
+            rentals: { read: true, write: false, delete: false },
+            expenses: { read: true, write: false, delete: false },
+            settlements: { read: true, write: false, delete: false },
+            customers: { read: true, write: false, delete: false },
+            insurances: { read: true, write: false, delete: false },
+            maintenance: { read: true, write: false, delete: false },
+            protocols: { read: true, write: true, delete: false }, // Zamestnanci môžu vytvárať protokoly
+            statistics: { read: true, write: false, delete: false }
+          }
+        }));
+        
+        // Cache employee permissions
+        this.permissionCache.set(cacheKey, {
+          data: employeeData,
+          timestamp: Date.now()
+        });
+        
+        logger.migration('👷 Employee access - all companies (read-only + protocols):', employeeData.length);
+        return employeeData;
       }
       
       // 3. Ak má linked investor → použiť investor shares
       if (user.linked_investor_id) {
-        console.log('🔗 User has linked investor:', user.linked_investor_id);
+        logger.migration('🔗 User has linked investor:', user.linked_investor_id);
         
         const sharesResult = await client.query(`
           SELECT s.company_id, s.ownership_percentage, s.profit_share_percentage,
@@ -7687,7 +7720,7 @@ export class PostgresDatabase {
           timestamp: Date.now()
         });
         
-        console.log('📊 Investor-based access:', {
+        logger.migration('📊 Investor-based access:', {
           investorId: user.linked_investor_id,
           companies: shareData.map(s => ({ name: s.companyName, companyId: s.companyId }))
         });
@@ -7700,7 +7733,7 @@ export class PostgresDatabase {
         SELECT up.company_id, c.name as company_name, up.permissions
         FROM user_permissions up
         JOIN companies c ON up.company_id = c.id
-        WHERE up.user_id = $1
+        WHERE up.user_id = $1::uuid
         ORDER BY c.name
         `, [userId]);
 
@@ -7716,7 +7749,7 @@ export class PostgresDatabase {
         timestamp: Date.now()
       });
 
-      console.log('⚡ getUserCompanyAccess CACHED for userId:', userId, {
+      logger.migration('⚡ getUserCompanyAccess CACHED for userId:', userId, {
         rowCount: result.rows.length,
         companies: result.rows.map(r => ({ companyId: r.company_id, companyName: r.company_name }))
       });
@@ -7742,7 +7775,7 @@ export class PostgresDatabase {
       // ⚡ CACHE INVALIDATION: Vymaž cache pre tohoto používateľa
       const cacheKey = `permissions:${userId}`;
       this.permissionCache.delete(cacheKey);
-      console.log('🧹 Permission cache INVALIDATED for userId:', userId);
+      logger.migration('🧹 Permission cache INVALIDATED for userId:', userId);
       
     } finally {
       client.release();
@@ -7804,7 +7837,7 @@ export class PostgresDatabase {
       });
 
       const investors = Array.from(investorsMap.values());
-      console.log('📊 Loaded investors with shares:', investors.length);
+      logger.migration('📊 Loaded investors with shares:', investors.length);
       
       return investors;
     } finally {
@@ -7891,7 +7924,7 @@ export class PostgresDatabase {
       
       for (const table of tables) {
         await client.query(`DROP TABLE IF EXISTS ${table} CASCADE`);
-        console.log(`🗑️ Dropped table: ${table}`);
+        logger.migration(`🗑️ Dropped table: ${table}`);
       }
       
       // Zapnúť foreign key constraints
@@ -7911,19 +7944,19 @@ export class PostgresDatabase {
       const exactResult = await client.query('SELECT id FROM companies WHERE name = $1', [companyName]);
       if (exactResult.rows.length > 0) {
         const companyId = exactResult.rows[0].id; // UUID as string, not parseInt
-        console.log(`✅ Company found (exact): "${companyName}" ID: ${companyId}`);
+        logger.migration(`✅ Company found (exact): "${companyName}" ID: ${companyId}`);
         return companyId;
       }
 
       // 2. Ak nenájdem presný názov, vytvor novú firmu
-      console.log(`⚠️ Company "${companyName}" not found, creating new one...`);
+      logger.migration(`⚠️ Company "${companyName}" not found, creating new one...`);
       const insertResult = await client.query(
         'INSERT INTO companies (name) VALUES ($1) RETURNING id',
         [companyName]
       );
       
       const newCompanyId = insertResult.rows[0].id; // UUID as string, not parseInt
-      console.log(`✅ Company created: "${companyName}" ID: ${newCompanyId}`);
+      logger.migration(`✅ Company created: "${companyName}" ID: ${newCompanyId}`);
       return newCompanyId;
       
     } catch (error) {
@@ -7990,7 +8023,7 @@ export class PostgresDatabase {
     }
     
     // Log každý update pokus
-    console.log(`🛡️ RENTAL UPDATE VALIDATION: ${id}`, {
+    logger.migration(`🛡️ RENTAL UPDATE VALIDATION: ${id}`, {
       existingCustomer: existing.customerName,
       newCustomer: newData.customerName,
       vehicleId: newData.vehicleId,
@@ -8023,7 +8056,7 @@ export class PostgresDatabase {
           VALUES ($1, $2, $3)
         `, [id, JSON.stringify(rental), 'pre_update']);
         
-        console.log(`✅ RENTAL BACKUP created for ${id}`);
+        logger.migration(`✅ RENTAL BACKUP created for ${id}`);
       }
     } catch (error) {
       console.error(`❌ RENTAL BACKUP failed for ${id}:`, error);
@@ -8051,14 +8084,14 @@ export class PostgresDatabase {
       const backup = backupResult.rows[0];
       const rentalData = backup.backup_data;
       
-      console.log(`🔄 RECOVERING RENTAL: ${rentalId} from backup ${backup.id}`);
-      console.log(`   Backup timestamp: ${backup.backup_timestamp}`);
-      console.log(`   Customer: ${rentalData.customerName}`);
+      logger.migration(`🔄 RECOVERING RENTAL: ${rentalId} from backup ${backup.id}`);
+      logger.migration(`   Backup timestamp: ${backup.backup_timestamp}`);
+      logger.migration(`   Customer: ${rentalData.customerName}`);
       
       // Restore rental from backup
       await this.updateRental(rentalData);
       
-      console.log(`✅ RENTAL RECOVERED: ${rentalId}`);
+      logger.migration(`✅ RENTAL RECOVERED: ${rentalId}`);
       return rentalData;
       
     } catch (error) {
@@ -8126,7 +8159,7 @@ export class PostgresDatabase {
         issues
       };
       
-      console.log('🛡️ RENTAL INTEGRITY CHECK:', report);
+      logger.migration('🛡️ RENTAL INTEGRITY CHECK:', report);
       return report;
       
     } finally {
@@ -8144,7 +8177,7 @@ export class PostgresDatabase {
   }>> {
     const client = await this.pool.connect();
     try {
-      console.log(`🚀 BULK: Checking ownership for ${vehicleTimeChecks.length} vehicle-time pairs...`);
+      logger.migration(`🚀 BULK: Checking ownership for ${vehicleTimeChecks.length} vehicle-time pairs...`);
       const startTime = Date.now();
 
       // Build complex query for all checks at once
@@ -8189,7 +8222,7 @@ export class PostgresDatabase {
       });
 
       const loadTime = Date.now() - startTime;
-      console.log(`✅ BULK: Checked ${vehicleTimeChecks.length} ownership records in ${loadTime}ms`);
+      logger.migration(`✅ BULK: Checked ${vehicleTimeChecks.length} ownership records in ${loadTime}ms`);
 
       return results;
 
@@ -8205,7 +8238,7 @@ export class PostgresDatabase {
   }>> {
     const client = await this.pool.connect();
     try {
-      console.log(`🚀 BULK: Getting current owners for ${vehicleIds.length} vehicles...`);
+      logger.migration(`🚀 BULK: Getting current owners for ${vehicleIds.length} vehicles...`);
       const startTime = Date.now();
 
       if (vehicleIds.length === 0) return [];
@@ -8237,7 +8270,7 @@ export class PostgresDatabase {
       }));
 
       const loadTime = Date.now() - startTime;
-      console.log(`✅ BULK: Got current owners for ${vehicleIds.length} vehicles in ${loadTime}ms`);
+      logger.migration(`✅ BULK: Got current owners for ${vehicleIds.length} vehicles in ${loadTime}ms`);
 
       return results;
 
@@ -8250,12 +8283,12 @@ export class PostgresDatabase {
   private clearPermissionCache(userId: string): void {
     const cacheKey = `permissions:${userId}`;
     this.permissionCache.delete(cacheKey);
-    console.log('🧹 Permission cache CLEARED for userId:', userId);
+    logger.migration('🧹 Permission cache CLEARED for userId:', userId);
   }
 
   private clearAllPermissionCache(): void {
     this.permissionCache.clear();
-    console.log('🧹 ALL permission cache CLEARED');
+    logger.migration('🧹 ALL permission cache CLEARED');
   }
 
   // ⚡ BULK PROTOCOL STATUS - Získa protocol status pre všetky rentals naraz
@@ -8270,7 +8303,7 @@ export class PostgresDatabase {
   }>> {
     const client = await this.pool.connect();
     try {
-      console.log('🚀 BULK: Loading protocol status for all rentals...');
+      logger.migration('🚀 BULK: Loading protocol status for all rentals...');
       const startTime = Date.now();
 
       // Ensure protocol tables exist
@@ -8301,7 +8334,7 @@ export class PostgresDatabase {
       }));
 
       const loadTime = Date.now() - startTime;
-      console.log(`✅ BULK: Protocol status loaded for ${protocolStatus.length} rentals in ${loadTime}ms`);
+      logger.migration(`✅ BULK: Protocol status loaded for ${protocolStatus.length} rentals in ${loadTime}ms`);
 
       return protocolStatus;
 
@@ -8324,7 +8357,7 @@ export class PostgresDatabase {
   }>> {
     const client = await this.pool.connect();
     try {
-      console.log('📊 Loading all protocols for employee statistics...');
+      logger.migration('📊 Loading all protocols for employee statistics...');
       const startTime = Date.now();
 
       // Ensure protocol tables exist
@@ -8378,7 +8411,7 @@ export class PostgresDatabase {
       protocols.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
       const loadTime = Date.now() - startTime;
-      console.log(`✅ Loaded ${protocols.length} protocols for statistics in ${loadTime}ms`);
+      logger.migration(`✅ Loaded ${protocols.length} protocols for statistics in ${loadTime}ms`);
 
       return protocols;
 

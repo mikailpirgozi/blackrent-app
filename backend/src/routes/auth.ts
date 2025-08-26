@@ -5,6 +5,7 @@ import { postgresDatabase } from '../models/postgres-database';
 import { LoginCredentials, AuthResponse, User, ApiResponse, AuthRequest } from '../types';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '../utils/logger';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'blackrent-secret-key-2024';
@@ -12,7 +13,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'blackrent-secret-key-2024';
 // POST /api/auth/create-admin - Dočasný endpoint na vytvorenie admin používateľa
 router.post('/create-admin', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔧 Pokus o vytvorenie admin používateľa...');
+    logger.auth('🔧 Pokus o vytvorenie admin používateľa...');
     
     // Skontroluj či už admin existuje
     const existingAdmin = await postgresDatabase.getUserByUsername('admin');
@@ -34,7 +35,7 @@ router.post('/create-admin', async (req: Request, res: Response<ApiResponse>) =>
         [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
       );
       
-      console.log('✅ Admin používateľ úspešne vytvorený');
+      logger.auth('✅ Admin používateľ úspešne vytvorený');
       
       return res.json({
         success: true,
@@ -55,7 +56,7 @@ router.post('/create-admin', async (req: Request, res: Response<ApiResponse>) =>
 // GET /api/auth/create-admin - GET verzia pre testovanie v prehliadači
 router.get('/create-admin', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔧 GET request - Pokus o vytvorenie admin používateľa...');
+    logger.auth('🔧 GET request - Pokus o vytvorenie admin používateľa...');
     
     // Skontroluj či už admin existuje
     const existingAdmin = await postgresDatabase.getUserByUsername('admin');
@@ -77,7 +78,7 @@ router.get('/create-admin', async (req: Request, res: Response<ApiResponse>) => 
         [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
       );
       
-      console.log('✅ Admin používateľ úspešne vytvorený s heslom Black123');
+      logger.auth('✅ Admin používateľ úspešne vytvorený s heslom Black123');
       
       return res.json({
         success: true,
@@ -103,13 +104,13 @@ router.get('/create-admin', async (req: Request, res: Response<ApiResponse>) => 
 // GET /api/auth/reset-admin-get - GET verzia pre reset admin hesla
 router.get('/reset-admin-get', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔧 GET request - Resetujem admin používateľa...');
+    logger.auth('🔧 GET request - Resetujem admin používateľa...');
     
     // Vymaž existujúceho admin používateľa
     const client = await (postgresDatabase as any).pool.connect();
     try {
       await client.query('DELETE FROM users WHERE username = $1', ['admin']);
-      console.log('🗑️ Starý admin účet vymazaný');
+      logger.auth('🗑️ Starý admin účet vymazaný');
       
       // Vytvor nový hashovane heslo - Black123
       const hashedPassword = await bcrypt.hash('Black123', 12);
@@ -120,7 +121,7 @@ router.get('/reset-admin-get', async (req: Request, res: Response<ApiResponse>) 
         [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
       );
       
-      console.log('✅ Admin účet úspešne resetovaný s heslom Black123');
+      logger.auth('✅ Admin účet úspešne resetovaný s heslom Black123');
       
       return res.json({
         success: true,
@@ -146,12 +147,12 @@ router.get('/reset-admin-get', async (req: Request, res: Response<ApiResponse>) 
 // GET /api/auth/init-database - Inicializácia databázy a vytvorenie vzorových dát  
 router.get('/init-database', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔧 GET request - Inicializujem databázu a vytváram vzorové dáta...');
+    logger.auth('🔧 GET request - Inicializujem databázu a vytváram vzorové dáta...');
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
       // NAJSKÔR VYTVORIŤ VŠETKY TABUĽKY!
-      console.log('📋 Vytváranie tabuliek...');
+      logger.auth('📋 Vytváranie tabuliek...');
       
       // Tabuľka vozidiel
       await client.query(`
@@ -238,7 +239,7 @@ router.get('/init-database', async (req: Request, res: Response<ApiResponse>) =>
         )
       `);
       
-      console.log('✅ Všetky tabuľky vytvorené!');
+      logger.auth('✅ Všetky tabuľky vytvorené!');
       
       // TERAZ VZOROVÉ DÁTA...
       let created = {
@@ -255,11 +256,11 @@ router.get('/init-database', async (req: Request, res: Response<ApiResponse>) =>
       const customerCount = await client.query('SELECT COUNT(*) FROM customers');
       const rentalCount = await client.query('SELECT COUNT(*) FROM rentals');
       
-      console.log('📊 Aktuálny počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
+      logger.auth('📊 Aktuálny počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
       
       // Vytvorenie vzorových dát len ak neexistujú
       if (vehicleCount.rows[0].count === '0') {
-        console.log('📋 Vytváram vzorové dáta...');
+        logger.auth('📋 Vytváram vzorové dáta...');
         
         // ... Pokračuje rovnako s vytváraním vzorových dát
         return res.json({
@@ -301,7 +302,7 @@ router.get('/init-database', async (req: Request, res: Response<ApiResponse>) =>
 // GET /api/auth/create-sample-data - Vytvorenie vzorových dát (keď tabuľky už existujú)
 router.get('/create-sample-data', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔧 GET request - Vytváram vzorové dáta...');
+    logger.auth('🔧 GET request - Vytváram vzorové dáta...');
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
@@ -310,7 +311,7 @@ router.get('/create-sample-data', async (req: Request, res: Response<ApiResponse
       const customerCount = await client.query('SELECT COUNT(*) FROM customers');
       const rentalCount = await client.query('SELECT COUNT(*) FROM rentals');
       
-      console.log('📊 Aktuálny počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
+      logger.auth('📊 Aktuálny počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
       
       let created = {
         companies: 0,
@@ -418,7 +419,7 @@ router.get('/create-sample-data', async (req: Request, res: Response<ApiResponse
         }
       }
       
-      console.log('🎉 Vzorové dáta úspešne vytvorené!', created);
+      logger.auth('🎉 Vzorové dáta úspešne vytvorené!', created);
       
       return res.json({
         success: true,
@@ -451,7 +452,7 @@ router.get('/create-sample-data', async (req: Request, res: Response<ApiResponse
 // POST /api/auth/reset-admin - Reset admin používateľa pre debugging
 router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔧 Resetujem admin používateľa...');
+    logger.auth('🔧 Resetujem admin používateľa...');
     
     const { password } = req.body;
     const adminPassword = password || 'Black123'; // Default heslo alebo z request
@@ -460,7 +461,7 @@ router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => 
     const client = await (postgresDatabase as any).pool.connect();
     try {
       await client.query('DELETE FROM users WHERE username = $1', ['admin']);
-      console.log('🗑️ Starý admin účet vymazaný');
+      logger.auth('🗑️ Starý admin účet vymazaný');
       
       // Vytvor nový hashovane heslo
       const hashedPassword = await bcrypt.hash(adminPassword, 12);
@@ -471,7 +472,7 @@ router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => 
         [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
       );
       
-      console.log('✅ Nový admin používateľ vytvorený s heslom:', adminPassword);
+      logger.auth('✅ Nový admin používateľ vytvorený s heslom:', adminPassword);
       
       return res.json({
         success: true,
@@ -494,17 +495,17 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
   try {
     const { username, password } = req.body;
     
-    console.log('🔍 LOGIN DEBUG - Starting login for:', username);
+    logger.auth('🔍 LOGIN DEBUG - Starting login for:', username);
 
     if (!username || !password) {
-      console.log('❌ LOGIN DEBUG - Missing username or password');
+      logger.auth('❌ LOGIN DEBUG - Missing username or password');
       return res.status(400).json({
         success: false,
         error: 'Username a password sú povinné'
       });
     }
 
-    console.log('🔍 LOGIN DEBUG - Getting user from database...');
+    logger.auth('🔍 LOGIN DEBUG - Getting user from database...');
     
     // Get user directly from database with detailed logging
     const client = await (postgresDatabase as any).pool.connect();
@@ -516,7 +517,7 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
         [username]
       );
       user = result.rows[0];
-      console.log('🔍 LOGIN DEBUG - Database query result:', {
+      logger.auth('🔍 LOGIN DEBUG - Database query result:', {
         found: !!user,
         username: user?.username,
         hasPasswordHash: !!user?.password_hash,
@@ -530,29 +531,29 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
     }
 
     if (!user) {
-      console.log('❌ LOGIN DEBUG - User not found in database');
+      logger.auth('❌ LOGIN DEBUG - User not found in database');
       return res.status(401).json({
         success: false,
         error: 'Nesprávne prihlasovacie údaje'
       });
     }
 
-    console.log('🔍 LOGIN DEBUG - Comparing passwords...');
-    console.log('🔍 LOGIN DEBUG - Input password:', password);
-    console.log('🔍 LOGIN DEBUG - Stored hash starts with:', user.password_hash?.substring(0, 10));
+    logger.auth('🔍 LOGIN DEBUG - Comparing passwords...');
+    logger.auth('🔍 LOGIN DEBUG - Input password:', password);
+    logger.auth('🔍 LOGIN DEBUG - Stored hash starts with:', user.password_hash?.substring(0, 10));
     
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-    console.log('🔍 LOGIN DEBUG - Password comparison result:', isPasswordValid);
+    logger.auth('🔍 LOGIN DEBUG - Password comparison result:', isPasswordValid);
 
     if (!isPasswordValid) {
-      console.log('❌ LOGIN DEBUG - Password comparison failed');
+      logger.auth('❌ LOGIN DEBUG - Password comparison failed');
       return res.status(401).json({
         success: false,
         error: 'Nesprávne prihlasovacie údaje'
       });
     }
 
-    console.log('✅ LOGIN DEBUG - Password valid, creating token...');
+    logger.auth('✅ LOGIN DEBUG - Password valid, creating token...');
     
     const token = jwt.sign(
       { 
@@ -564,7 +565,7 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
       { expiresIn: '30d' }
     );
 
-    console.log('✅ LOGIN DEBUG - Token created successfully');
+    logger.auth('✅ LOGIN DEBUG - Token created successfully');
 
     const userData = {
       id: user.id,
@@ -612,7 +613,7 @@ router.post('/logout', authenticateToken, (req: Request, res: Response<ApiRespon
 // GET /api/auth/reset-pavlik - Dočasný endpoint na reset hesla pre pavlik
 router.get('/reset-pavlik', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔧 Resetujem heslo pre pavlik...');
+    logger.auth('🔧 Resetujem heslo pre pavlik...');
     
     // Vytvor hashovane heslo - pavlik123
     const hashedPassword = await bcrypt.hash('pavlik123', 12);
@@ -632,7 +633,7 @@ router.get('/reset-pavlik', async (req: Request, res: Response<ApiResponse>) => 
         });
       }
       
-      console.log('✅ Heslo pre pavlik úspešne resetované');
+      logger.auth('✅ Heslo pre pavlik úspešne resetované');
       
       return res.json({
         success: true,
@@ -711,7 +712,7 @@ router.post('/users', authenticateToken, requireRole(['admin']), async (req: Req
       linkedInvestorId
     } = req.body;
 
-    console.log('📋 Create user request body:', req.body);
+    logger.auth('📋 Create user request body:', req.body);
 
     if (!username || !email || !password || !role) {
       return res.status(400).json({
@@ -744,7 +745,7 @@ router.post('/users', authenticateToken, requireRole(['admin']), async (req: Req
       linkedInvestorId: linkedInvestorId || null
     };
 
-    console.log('👤 Creating user with data:', userData);
+    logger.auth('👤 Creating user with data:', userData);
     const createdUser = await postgresDatabase.createUser(userData);
 
     res.status(201).json({
@@ -941,7 +942,7 @@ router.post('/change-password', authenticateToken, async (req: Request, res: Res
 // GET /api/auth/setup-admin - Jednoduchý setup admin používateľa
 router.get('/setup-admin', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔧 Setup admin používateľa...');
+    logger.auth('🔧 Setup admin používateľa...');
     
     // Vytvor hashovane heslo
     const hashedPassword = await bcrypt.hash('Black123', 12);
@@ -958,7 +959,7 @@ router.get('/setup-admin', async (req: Request, res: Response<ApiResponse>) => {
         [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
       );
       
-      console.log('✅ Admin používateľ created: admin / Black123');
+      logger.auth('✅ Admin používateľ created: admin / Black123');
       
       return res.json({
         success: true,
@@ -1045,13 +1046,13 @@ router.get('/init-admin', async (req: Request, res: Response) => {
 // POST /api/auth/init-database - Emergency database initialization
 router.post('/init-database', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🚨 EMERGENCY: Initializing database...');
+    logger.auth('🚨 EMERGENCY: Initializing database...');
     
     const client = await (postgresDatabase as any).pool.connect();
     
     try {
       // First drop all existing tables to ensure clean slate
-      console.log('🗑️ Dropping existing tables...');
+      logger.auth('🗑️ Dropping existing tables...');
       await client.query('DROP TABLE IF EXISTS insurances CASCADE');
       await client.query('DROP TABLE IF EXISTS rentals CASCADE');
       await client.query('DROP TABLE IF EXISTS expenses CASCADE');
@@ -1061,7 +1062,7 @@ router.post('/init-database', async (req: Request, res: Response<ApiResponse>) =
       await client.query('DROP TABLE IF EXISTS vehicles CASCADE');
       await client.query('DROP TABLE IF EXISTS users CASCADE');
       
-      console.log('📋 Creating clean database structure...');
+      logger.auth('📋 Creating clean database structure...');
       
       // Users table (keep this first as other tables might reference it)
       await client.query(`
@@ -1179,7 +1180,7 @@ router.post('/init-database', async (req: Request, res: Response<ApiResponse>) =
       `);
       
       // Create admin user
-      console.log('👤 Creating admin user...');
+      logger.auth('👤 Creating admin user...');
       const hashedPassword = await bcrypt.hash('admin123', 12);
       
       await client.query(`
@@ -1187,7 +1188,7 @@ router.post('/init-database', async (req: Request, res: Response<ApiResponse>) =
         VALUES ('admin', 'admin@blackrent.sk', $1, 'admin', CURRENT_TIMESTAMP)
       `, [hashedPassword]);
       
-      console.log('🎉 Database initialization completed!');
+      logger.auth('🎉 Database initialization completed!');
       
       // Test queries
       const tableCheck = await client.query(`
@@ -1236,21 +1237,21 @@ router.get('/fix-customers', async (req: Request, res: Response) => {
         ORDER BY ordinal_position
       `);
       
-      console.log('📋 Current customers table schema:', schema.rows);
+      logger.auth('📋 Current customers table schema:', schema.rows);
       
       // Skús opraviť customers tabuľku
       if (schema.rows.some((col: any) => col.column_name === 'first_name')) {
-        console.log('🔧 Found first_name column, fixing...');
+        logger.auth('🔧 Found first_name column, fixing...');
         
         // Rename first_name to name if needed
         await client.query(`
           ALTER TABLE customers RENAME COLUMN first_name TO name
-        `).catch((e: any) => console.log('Rename error:', e.message));
+        `).catch((e: any) => logger.auth('Rename error:', e.message));
         
         // Remove last_name if exists  
         await client.query(`
           ALTER TABLE customers DROP COLUMN IF EXISTS last_name
-        `).catch((e: any) => console.log('Drop error:', e.message));
+        `).catch((e: any) => logger.auth('Drop error:', e.message));
       }
       
       // Ensure proper constraints
@@ -1258,7 +1259,7 @@ router.get('/fix-customers', async (req: Request, res: Response) => {
         ALTER TABLE customers 
         ALTER COLUMN name SET NOT NULL,
         ALTER COLUMN name TYPE VARCHAR(100)
-      `).catch((e: any) => console.log('Constraint error:', e.message));
+      `).catch((e: any) => logger.auth('Constraint error:', e.message));
       
       // Get final schema
       const finalSchema = await client.query(`
@@ -1355,7 +1356,7 @@ router.get('/debug-db', async (req: Request, res: Response<ApiResponse>) => {
 // GET /api/auth/force-create-data - FORCE vytvorenie vzorových dát (ignoruje existujúce)
 router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔧 GET request - FORCE vytváram vzorové dáta (ignorujem existujúce)...');
+    logger.auth('🔧 GET request - FORCE vytváram vzorové dáta (ignorujem existujúce)...');
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
@@ -1377,7 +1378,7 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
         `);
         created.companies = result.rows.length;
       } catch (e: any) {
-        console.log('⚠️ Firmy:', e.message);
+        logger.auth('⚠️ Firmy:', e.message);
       }
       
       // 2. POISŤOVNE  
@@ -1389,7 +1390,7 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
         `);
         created.insurers = result.rows.length;
       } catch (e: any) {
-        console.log('⚠️ Poisťovne:', e.message);
+        logger.auth('⚠️ Poisťovne:', e.message);
       }
       
       // 3. VOZIDLÁ - FORCE INSERT ALEBO IGNORE
@@ -1475,10 +1476,10 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
         }
         
       } catch (vehicleError: any) {
-        console.log('⚠️ Chyba pri vozidlách/dátach:', vehicleError.message);
+        logger.auth('⚠️ Chyba pri vozidlách/dátach:', vehicleError.message);
       }
       
-      console.log('🎉 FORCE vytvorenie dát dokončené!', created);
+      logger.auth('🎉 FORCE vytvorenie dát dokončené!', created);
       
       return res.json({
         success: true,
@@ -1511,7 +1512,7 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
 // GET /api/auth/debug-tables - Debug check tables existence  
 router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔍 DEBUG - Kontrolujem existenciu tabuliek...');
+    logger.auth('🔍 DEBUG - Kontrolujem existenciu tabuliek...');
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
@@ -1576,7 +1577,7 @@ router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => 
         };
       }
       
-      console.log('🔍 DEBUG tables result:', tables);
+      logger.auth('🔍 DEBUG tables result:', tables);
       
       return res.json({
         success: true,
@@ -1598,7 +1599,7 @@ router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => 
 // GET /api/auth/simple-vehicle-test - Jednoduchý test na vytvorenie jedného vozidla
 router.get('/simple-vehicle-test', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🚗 TEST - Vytváram jedno testové vozidlo...');
+    logger.auth('🚗 TEST - Vytváram jedno testové vozidlo...');
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
@@ -1618,7 +1619,7 @@ router.get('/simple-vehicle-test', async (req: Request, res: Response<ApiRespons
         'available'
       ]);
       
-      console.log('✅ Vozidlo vytvorené:', result.rows[0]);
+      logger.auth('✅ Vozidlo vytvorené:', result.rows[0]);
       
       return res.json({
         success: true,
@@ -1644,7 +1645,7 @@ router.get('/simple-vehicle-test', async (req: Request, res: Response<ApiRespons
 // GET /api/auth/fix-vehicles-schema - Oprava schémy vehicles tabuľky  
 router.get('/fix-vehicles-schema', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔧 FIX - Opravujem schému vehicles tabuľky...');
+    logger.auth('🔧 FIX - Opravujem schému vehicles tabuľky...');
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
@@ -1704,7 +1705,7 @@ router.get('/fix-vehicles-schema', async (req: Request, res: Response<ApiRespons
       `);
       fixes.newColumns = newSchema.rows.map((row: any) => row.column_name);
       
-      console.log('🔧 Schema fixes completed:', fixes);
+      logger.auth('🔧 Schema fixes completed:', fixes);
       
       return res.json({
         success: true,
@@ -1726,7 +1727,7 @@ router.get('/fix-vehicles-schema', async (req: Request, res: Response<ApiRespons
 // GET /api/auth/step-by-step-data - Postupné vytvorenie vzorových dát s debug info
 router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('📋 STEP-BY-STEP - Postupne vytváram vzorové dáta...');
+    logger.auth('📋 STEP-BY-STEP - Postupne vytváram vzorové dáta...');
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
@@ -1791,7 +1792,7 @@ router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>
         steps.push({ step: 4, name: 'prenájom', success: false, error: 'Chýba vozidlo alebo zákazník' });
       }
       
-      console.log('📋 STEP-BY-STEP dokončené:', steps);
+      logger.auth('📋 STEP-BY-STEP dokončené:', steps);
       
       return res.json({
         success: true,
@@ -1813,7 +1814,7 @@ router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>
 // PUT /api/auth/signature-template - Update user signature template
 router.put('/signature-template', authenticateToken, async (req: AuthRequest, res: Response<ApiResponse>) => {
   try {
-    console.log('🖊️ Updating signature template for user:', req.user?.username);
+    logger.auth('🖊️ Updating signature template for user:', req.user?.username);
     
     const { signatureTemplate } = req.body;
     
@@ -1842,8 +1843,8 @@ router.put('/signature-template', authenticateToken, async (req: AuthRequest, re
       // Načítaj aktualizovaný user objekt
       const updatedUser = await postgresDatabase.getUserById(req.user.id);
       
-      console.log('✅ Signature template updated successfully');
-      console.log('🖊️ Updated signature template for user:', updatedUser?.username);
+      logger.auth('✅ Signature template updated successfully');
+      logger.auth('🖊️ Updated signature template for user:', updatedUser?.username);
       
       res.json({
         success: true,
@@ -1865,7 +1866,7 @@ router.put('/signature-template', authenticateToken, async (req: AuthRequest, re
 // PUT /api/auth/profile - Update user profile (firstName, lastName)
 router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response<ApiResponse>) => {
   try {
-    console.log('👤 Updating profile for user:', req.user?.username);
+    logger.auth('👤 Updating profile for user:', req.user?.username);
     
     const { firstName, lastName } = req.body;
     
@@ -1887,8 +1888,8 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
       // Načítaj aktualizovaný user objekt
       const updatedUser = await postgresDatabase.getUserById(req.user.id);
       
-      console.log('✅ User profile updated successfully');
-      console.log('👤 Updated user data:', {
+      logger.auth('✅ User profile updated successfully');
+      logger.auth('👤 Updated user data:', {
         id: updatedUser?.id,
         username: updatedUser?.username,
         firstName: updatedUser?.firstName,
@@ -1918,8 +1919,8 @@ router.get('/debug-token', async (req: Request, res: Response<ApiResponse>) => {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
     
-    console.log('🔍 TOKEN DEBUG - Auth header:', authHeader);
-    console.log('🔍 TOKEN DEBUG - Extracted token:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
+    logger.auth('🔍 TOKEN DEBUG - Auth header:', authHeader);
+    logger.auth('🔍 TOKEN DEBUG - Extracted token:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
     
     if (!token) {
       return res.json({
@@ -1935,11 +1936,11 @@ router.get('/debug-token', async (req: Request, res: Response<ApiResponse>) => {
     try {
       // Manuálne overenie tokenu
       const decoded = jwt.verify(token, JWT_SECRET) as any;
-      console.log('🔍 TOKEN DEBUG - Token successfully decoded:', decoded);
+      logger.auth('🔍 TOKEN DEBUG - Token successfully decoded:', decoded);
       
       // Skús získať používateľa z databázy
       const user = await postgresDatabase.getUserById(decoded.userId);
-      console.log('🔍 TOKEN DEBUG - User from database:', user ? 'FOUND' : 'NOT FOUND');
+      logger.auth('🔍 TOKEN DEBUG - User from database:', user ? 'FOUND' : 'NOT FOUND');
       
       return res.json({
         success: true,
@@ -1991,7 +1992,7 @@ router.get('/debug-token', async (req: Request, res: Response<ApiResponse>) => {
 // DEBUG endpoint na kontrolu users tabuľky a migrácií
 router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
   try {
-    console.log('🔍 DEBUG: Kontrolujem users tabuľku...');
+    logger.auth('🔍 DEBUG: Kontrolujem users tabuľku...');
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
@@ -2004,7 +2005,7 @@ router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
         );
       `);
       
-      console.log('🔍 Users tabuľka existuje:', tableExists.rows[0].exists);
+      logger.auth('🔍 Users tabuľka existuje:', tableExists.rows[0].exists);
       
       if (!tableExists.rows[0].exists) {
         return res.json({
@@ -2022,7 +2023,7 @@ router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
         ORDER BY ordinal_position;
       `);
       
-      console.log('🔍 Stĺpce v users tabuľke:', columns.rows);
+      logger.auth('🔍 Stĺpce v users tabuľke:', columns.rows);
       
       // 3. Skontroluj či existujú potrebné stĺpce
       const hasFirstName = columns.rows.some((col: any) => col.column_name === 'first_name');
@@ -2031,7 +2032,7 @@ router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
       
       // 4. Ak chýbajú stĺpce, spusti migráciu
       if (!hasFirstName || !hasLastName || !hasSignatureTemplate) {
-        console.log('🔧 Spúšťam migráciu pre chýbajúce stĺpce...');
+        logger.auth('🔧 Spúšťam migráciu pre chýbajúce stĺpce...');
         
         await client.query(`
           ALTER TABLE users 
@@ -2040,7 +2041,7 @@ router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
           ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
         `);
         
-        console.log('✅ Migrácia dokončená');
+        logger.auth('✅ Migrácia dokončená');
       }
       
       // 5. Skontroluj admin používateľa
@@ -2051,7 +2052,7 @@ router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
         LIMIT 1;
       `);
       
-      console.log('🔍 Admin používateľ:', adminUser.rows[0] || 'Nenájdený');
+      logger.auth('🔍 Admin používateľ:', adminUser.rows[0] || 'Nenájdený');
       
       return res.json({
         success: true,
@@ -2329,11 +2330,11 @@ router.post('/auto-assign-vehicles',
   requireRole(['admin']),
   async (req: Request, res: Response<ApiResponse>) => {
     try {
-      console.log('🚗 Spúšťam automatické priradenie vozidiel k firmám...');
+      logger.auth('🚗 Spúšťam automatické priradenie vozidiel k firmám...');
       
       // 1. Načítaj všetky vozidlá
       const vehicles = await postgresDatabase.getVehicles();
-      console.log(`📊 Nájdených ${vehicles.length} vozidiel`);
+      logger.auth(`📊 Nájdených ${vehicles.length} vozidiel`);
       
       // 2. Načítaj všetky existujúce firmy
       const companies = await postgresDatabase.getCompanies();
@@ -2342,7 +2343,7 @@ router.post('/auto-assign-vehicles',
         existingCompanies.set(company.name.toLowerCase(), company.id);
       });
       
-      console.log(`🏢 Existujúce firmy: ${companies.map(c => c.name).join(', ')}`);
+      logger.auth(`🏢 Existujúce firmy: ${companies.map(c => c.name).join(', ')}`);
       
       let assignedCount = 0;
       let createdCompanies = 0;
@@ -2371,7 +2372,7 @@ router.post('/auto-assign-vehicles',
           
           // 4. Ak firma neexistuje, vytvor ju
           if (!companyId) {
-            console.log(`🆕 Vytváram novú firmu: ${companyName}`);
+            logger.auth(`🆕 Vytváram novú firmu: ${companyName}`);
             try {
               const newCompany = await postgresDatabase.createCompany({
                 name: companyName
@@ -2390,7 +2391,7 @@ router.post('/auto-assign-vehicles',
           try {
             await postgresDatabase.assignVehiclesToCompany([vehicle.id], companyId);
             const result = `✅ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) → ${companyName}`;
-            console.log(result);
+            logger.auth(result);
             results.push(result);
             assignedCount++;
           } catch (assignError: unknown) {
@@ -2430,11 +2431,11 @@ router.post('/auto-assign-vehicles',
 router.get('/debug-vincursky', authenticateToken, requireRole(['admin']), 
   async (req: Request, res: Response<ApiResponse>) => {
     try {
-      console.log('🔍 DEBUG: Analyzing Vincursky account...');
+      logger.auth('🔍 DEBUG: Analyzing Vincursky account...');
       
       // 1. Find Vincursky user
       const vincurskyUser = await postgresDatabase.getUserByUsername('vincursky');
-      console.log('👤 Vincursky user:', vincurskyUser ? {
+      logger.auth('👤 Vincursky user:', vincurskyUser ? {
         id: vincurskyUser.id,
         username: vincurskyUser.username,
         role: vincurskyUser.role,
@@ -2443,22 +2444,22 @@ router.get('/debug-vincursky', authenticateToken, requireRole(['admin']),
       
       // 2. Find all companies
       const companies = await postgresDatabase.getCompanies();
-      console.log('🏢 All companies:', companies.map(c => ({ id: c.id, name: c.name })));
+      logger.auth('🏢 All companies:', companies.map(c => ({ id: c.id, name: c.name })));
       
       // 3. Find Vincursky company
       const vincurskyCompany = companies.find(c => c.name.toLowerCase().includes('vincursky'));
-      console.log('🏢 Vincursky company:', vincurskyCompany || 'NOT FOUND');
+      logger.auth('🏢 Vincursky company:', vincurskyCompany || 'NOT FOUND');
       
       // 4. Find all vehicles
       const allVehicles = await postgresDatabase.getVehicles();
-      console.log('🚗 Total vehicles:', allVehicles.length);
+      logger.auth('🚗 Total vehicles:', allVehicles.length);
       
       // 5. Find vehicles with Vincursky company
       const vincurskyVehicles = allVehicles.filter(v => 
         v.company?.toLowerCase().includes('vincursky') || 
         (vincurskyCompany && v.ownerCompanyId === vincurskyCompany.id)
       );
-      console.log('🚗 Vincursky vehicles:', vincurskyVehicles.map(v => ({
+      logger.auth('🚗 Vincursky vehicles:', vincurskyVehicles.map(v => ({
         id: v.id,
         brand: v.brand,
         model: v.model,
@@ -2471,7 +2472,7 @@ router.get('/debug-vincursky', authenticateToken, requireRole(['admin']),
       let filteredVehicles = allVehicles;
       if (vincurskyUser?.role === 'company_owner' && vincurskyUser.companyId) {
         filteredVehicles = allVehicles.filter(v => v.ownerCompanyId === vincurskyUser.companyId);
-        console.log('🔍 Filtered vehicles for Vincursky:', filteredVehicles.length);
+        logger.auth('🔍 Filtered vehicles for Vincursky:', filteredVehicles.length);
       }
       
       res.json({
@@ -2514,15 +2515,15 @@ router.get('/debug-vincursky', authenticateToken, requireRole(['admin']),
 router.post('/migrate-vehicle-companies', authenticateToken, requireRole(['admin']), 
   async (req: Request, res: Response<ApiResponse>) => {
     try {
-      console.log('🔧 MIGRATION: Fixing ownerCompanyId for all vehicles...');
+      logger.auth('🔧 MIGRATION: Fixing ownerCompanyId for all vehicles...');
       
       // 1. Get all vehicles
       const allVehicles = await postgresDatabase.getVehicles();
-      console.log(`📊 Found ${allVehicles.length} vehicles to process`);
+      logger.auth(`📊 Found ${allVehicles.length} vehicles to process`);
       
       // 2. Get all companies
       const allCompanies = await postgresDatabase.getCompanies();
-      console.log(`🏢 Found ${allCompanies.length} companies`);
+      logger.auth(`🏢 Found ${allCompanies.length} companies`);
       
       // Create company name -> ID mapping
       const companyMap = new Map();
@@ -2559,7 +2560,7 @@ router.post('/migrate-vehicle-companies', authenticateToken, requireRole(['admin
           
           // Create company if it doesn't exist
           if (!companyId) {
-            console.log(`🆕 Creating new company: ${companyName}`);
+            logger.auth(`🆕 Creating new company: ${companyName}`);
             try {
               const newCompany = await postgresDatabase.createCompany({
                 name: companyName
@@ -2584,7 +2585,7 @@ router.post('/migrate-vehicle-companies', authenticateToken, requireRole(['admin
             await postgresDatabase.updateVehicle(updatedVehicle);
             
             const result = `✅ ${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate}) → ${companyName} (ID: ${companyId})`;
-            console.log(result);
+            logger.auth(result);
             results.push(result);
             updatedCount++;
           } catch (updateError) {
@@ -2598,7 +2599,7 @@ router.post('/migrate-vehicle-companies', authenticateToken, requireRole(['admin
         }
       }
       
-      console.log(`🎉 Migration completed: ${updatedCount} updated, ${skippedCount} skipped, ${createdCompanies} companies created`);
+      logger.auth(`🎉 Migration completed: ${updatedCount} updated, ${skippedCount} skipped, ${createdCompanies} companies created`);
       
       res.json({
         success: true,
@@ -2630,13 +2631,13 @@ router.post('/auto-assign-user-companies',
   requireRole(['admin']),
   async (req: Request, res: Response<ApiResponse>) => {
     try {
-      console.log('🤖 AUTO-ASSIGN: Starting user-company assignment...');
+      logger.auth('🤖 AUTO-ASSIGN: Starting user-company assignment...');
 
       // Get all users and companies
       const users = await postgresDatabase.getUsers();
       const companies = await postgresDatabase.getCompanies();
 
-      console.log(`👥 Found ${users.length} users, ${companies.length} companies`);
+      logger.auth(`👥 Found ${users.length} users, ${companies.length} companies`);
 
       let assignedUsers = 0;
       let createdCompanies = 0;
@@ -2707,7 +2708,7 @@ router.post('/auto-assign-user-companies',
         }
       }
 
-      console.log(`🤖 AUTO-ASSIGN completed: ${assignedUsers} assigned, ${createdCompanies} companies created, ${skippedUsers} skipped`);
+      logger.auth(`🤖 AUTO-ASSIGN completed: ${assignedUsers} assigned, ${createdCompanies} companies created, ${skippedUsers} skipped`);
 
       res.json({
         success: true,

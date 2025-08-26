@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import archiver from 'archiver';
 import { r2Storage } from '../utils/r2-storage';
+import { logger } from '../utils/logger';
 import { postgresDatabase } from '../models/postgres-database';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
@@ -67,7 +68,7 @@ const generateMeaningfulFilename = (
       meaningfulName = `${vehicleName}_${plateClean}_${categoryName}_${indexPadded}.${extension}`;
     }
     
-    console.log('📸 Generated meaningful filename:', {
+    logger.info('📸 Generated meaningful filename:', {
       original: originalFilename,
       meaningful: meaningfulName,
       vehicle: `${brand} ${model} (${licensePlate})`,
@@ -110,7 +111,7 @@ router.post('/upload',
   upload.single('file'), 
   async (req, res) => {
   try {
-    console.log('🔄 Upload request received:', {
+    logger.info('🔄 Upload request received:', {
       hasFile: !!req.file,
       fileSize: req.file?.size,
       mimetype: req.file?.mimetype,
@@ -134,11 +135,11 @@ router.post('/upload',
       });
     }
 
-    console.log('🔍 Validating file...');
+    logger.info('🔍 Validating file...');
 
     // Validácia typu súboru
     if (!r2Storage.validateFileType(req.file.mimetype)) {
-      console.log('❌ Invalid file type:', req.file.mimetype);
+      logger.info('❌ Invalid file type:', req.file.mimetype);
       return res.status(400).json({ 
         success: false, 
         error: 'Nepodporovaný typ súboru' 
@@ -148,14 +149,14 @@ router.post('/upload',
     // Validácia veľkosti súboru
     const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'document';
     if (!r2Storage.validateFileSize(req.file.size, fileType)) {
-      console.log('❌ File too large:', req.file.size);
+      logger.info('❌ File too large:', req.file.size);
       return res.status(400).json({ 
         success: false, 
         error: 'Súbor je príliš veľký' 
       });
     }
 
-    console.log('🔍 Generating file key...');
+    logger.info('🔍 Generating file key...');
 
     // Generovanie file key
     const fileKey = r2Storage.generateFileKey(
@@ -165,18 +166,18 @@ router.post('/upload',
       mediaType
     );
 
-    console.log('🔍 File key generated:', fileKey);
+    logger.info('🔍 File key generated:', fileKey);
 
     // Kontrola R2 konfigurácie
     if (!r2Storage.isConfigured()) {
-      console.log('❌ R2 not configured');
+      logger.info('❌ R2 not configured');
       return res.status(500).json({
         success: false,
         error: 'R2 Storage nie je nakonfigurované'
       });
     }
 
-    console.log('🔍 Uploading to R2...');
+    logger.info('🔍 Uploading to R2...');
 
     // Upload do R2
     const url = await r2Storage.uploadFile(
@@ -191,7 +192,7 @@ router.post('/upload',
       }
     );
 
-    console.log('✅ File uploaded to R2:', url);
+    logger.info('✅ File uploaded to R2:', url);
 
     res.json({
       success: true,
@@ -286,7 +287,7 @@ router.delete('/:key', async (req, res) => {
 
     await r2Storage.deleteFile(key);
     
-    console.log('✅ File deleted from R2:', key);
+    logger.info('✅ File deleted from R2:', key);
     
     res.json({ 
       success: true, 
@@ -314,7 +315,7 @@ router.get('/proxy/:key', async (req, res) => {
       });
     }
 
-    console.log('🔄 Loading image from R2 via proxy:', key);
+    logger.info('🔄 Loading image from R2 via proxy:', key);
 
     // Načítanie súboru z R2
     const fileBuffer = await r2Storage.getFile(key);
@@ -338,7 +339,7 @@ router.get('/proxy/:key', async (req, res) => {
     // Odoslanie súboru
     res.send(fileBuffer);
     
-    console.log('✅ Image served via proxy:', key);
+    logger.info('✅ Image served via proxy:', key);
 
   } catch (error) {
     console.error('❌ Error serving image via proxy:', error);
@@ -405,7 +406,7 @@ router.post('/protocol-upload',
   upload.single('file'), 
   async (req, res) => {
   try {
-    console.log('🔄 Protocol upload request received:', {
+    logger.info('🔄 Protocol upload request received:', {
       hasFile: !!req.file,
       fileSize: req.file?.size,
       mimetype: req.file?.mimetype,
@@ -471,7 +472,7 @@ router.post('/protocol-upload',
       }
     );
 
-    console.log('✅ Protocol file uploaded to R2:', url);
+    logger.info('✅ Protocol file uploaded to R2:', url);
 
     res.json({
       success: true,
@@ -500,7 +501,7 @@ router.post('/protocol-pdf',
   upload.single('file'), 
   async (req, res) => {
   try {
-    console.log('🔄 Protocol PDF upload request received:', {
+    logger.info('🔄 Protocol PDF upload request received:', {
       hasFile: !!req.file,
       fileSize: req.file?.size,
       protocolId: req.body.protocolId
@@ -546,7 +547,7 @@ router.post('/protocol-pdf',
       }
     );
 
-    console.log('✅ Protocol PDF uploaded to R2:', url);
+    logger.info('✅ Protocol PDF uploaded to R2:', url);
 
     res.json({
       success: true,
@@ -602,7 +603,7 @@ router.post('/protocol-photo',
   upload.single('file'), 
   async (req, res) => {
   try {
-    console.log('🔄 Protocol photo upload request received:', {
+    logger.info('🔄 Protocol photo upload request received:', {
       hasFile: !!req.file,
       fileSize: req.file?.size,
       mimetype: req.file?.mimetype,
@@ -648,7 +649,7 @@ router.post('/protocol-photo',
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const fileKey = `protocols/${protocolType}/${today}/${protocolId}/${req.file.originalname}`;
 
-    console.log('🔍 Generated file key:', fileKey);
+    logger.info('🔍 Generated file key:', fileKey);
 
     // Upload do R2
     const url = await r2Storage.uploadFile(
@@ -665,7 +666,7 @@ router.post('/protocol-photo',
       }
     );
 
-    console.log('✅ Protocol photo uploaded to R2:', url);
+    logger.info('✅ Protocol photo uploaded to R2:', url);
 
     // Vytvorenie objektu pre databázu
     const photoObject = {
@@ -752,7 +753,7 @@ router.post('/presigned-upload', authenticateToken, async (req, res) => {
   try {
     const { protocolId, protocolType, mediaType, filename, contentType, category, rentalId } = req.body;
     
-    console.log('🔄 Generating organized presigned URL for:', {
+    logger.info('🔄 Generating organized presigned URL for:', {
       protocolId,
       rentalId,
       protocolType,
@@ -828,7 +829,7 @@ router.post('/presigned-upload', authenticateToken, async (req, res) => {
           }
 
           protocolInfo = result.rows[0];
-          console.log('ℹ️ Using rental-based info for presigned upload organization:', protocolInfo);
+          logger.info('ℹ️ Using rental-based info for presigned upload organization:', protocolInfo);
         } finally {
           client.release();
         }
@@ -885,7 +886,7 @@ router.post('/presigned-upload', authenticateToken, async (req, res) => {
 
     const fileKey = r2OrganizationManager.generatePath(pathVariables);
 
-    console.log('🗂️ Generated organized path with meaningful filename:', {
+    logger.info('🗂️ Generated organized path with meaningful filename:', {
       originalFilename: filename,
       meaningfulFilename: meaningfulFilename,
       oldPath: `protocols/${protocolType}/${new Date().toISOString().split('T')[0]}/${protocolId}/${filename}`,
@@ -903,7 +904,7 @@ router.post('/presigned-upload', authenticateToken, async (req, res) => {
     // 🌐 Public URL pre neskoršie použitie
     const publicUrl = r2Storage.getPublicUrl(fileKey);
 
-    console.log('✅ Organized presigned URL generated:', fileKey);
+    logger.info('✅ Organized presigned URL generated:', fileKey);
 
     res.json({
       success: true,
@@ -932,19 +933,19 @@ router.post('/presigned-upload', authenticateToken, async (req, res) => {
 // 🗜️ NOVÝ ENDPOINT: ZIP download pre viacero súborov
 router.post('/download-zip', async (req, res) => {
   try {
-    console.log('🗜️ ZIP DOWNLOAD REQUEST START');
-    console.log('🗜️ Request body:', req.body);
+    logger.info('🗜️ ZIP DOWNLOAD REQUEST START');
+    logger.info('🗜️ Request body:', req.body);
     
     const { filePaths, zipName } = req.body;
     
-    console.log('🔄 ZIP download request:', { 
+    logger.info('🔄 ZIP download request:', { 
       filePathsCount: filePaths?.length, 
       zipName,
       filePaths: filePaths?.slice(0, 3) // Log len prvé 3 pre debug
     });
     
     if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
-      console.log('❌ ZIP download: Invalid filePaths');
+      logger.info('❌ ZIP download: Invalid filePaths');
       return res.status(400).json({ 
         success: false, 
         error: 'Chýbajú cesty k súborom' 
@@ -975,7 +976,7 @@ router.post('/download-zip', async (req, res) => {
       const filePath = filePaths[i];
       
       try {
-        console.log(`🔄 Adding file ${i + 1}/${filePaths.length} to ZIP:`, filePath);
+        logger.info(`🔄 Adding file ${i + 1}/${filePaths.length} to ZIP:`, filePath);
         
         // Extrakcia file key z URL - podporuje R2 URLs
         let fileKey: string;
@@ -993,7 +994,7 @@ router.post('/download-zip', async (req, res) => {
           fileKey = filePath.replace(/^https?:\/\/[^\/]+\//, '');
         }
         
-        console.log(`🔍 Processing file ${i + 1}: ${filePath} -> ${fileKey}`);
+        logger.info(`🔍 Processing file ${i + 1}: ${filePath} -> ${fileKey}`);
         
         // Stiahnutie súboru z R2
         const fileBuffer = await r2Storage.getFile(fileKey);
@@ -1006,7 +1007,7 @@ router.post('/download-zip', async (req, res) => {
           
           // Pridanie súboru do ZIP
           archive.append(fileBuffer, { name: zipFileName });
-          console.log(`✅ Added to ZIP: ${zipFileName}`);
+          logger.info(`✅ Added to ZIP: ${zipFileName}`);
         } else {
           console.warn(`⚠️ File not found, skipping: ${filePath}`);
           // Pridaj textový súbor s chybou
@@ -1021,7 +1022,7 @@ router.post('/download-zip', async (req, res) => {
 
     // Dokončenie ZIP archívu
     await archive.finalize();
-    console.log('✅ ZIP download completed');
+    logger.info('✅ ZIP download completed');
 
   } catch (error) {
     console.error('❌ Error creating ZIP:', error);
@@ -1040,7 +1041,7 @@ router.post('/download-zip', async (req, res) => {
 // 🧪 TEST ENDPOINT: Jednoduchý ZIP test
 router.get('/test-zip', async (req, res) => {
   try {
-    console.log('🧪 Testing ZIP functionality...');
+    logger.info('🧪 Testing ZIP functionality...');
     
     // Nastavenie response headers pre ZIP download
     const fileName = `test_archive_${Date.now()}.zip`;
@@ -1068,7 +1069,7 @@ router.get('/test-zip', async (req, res) => {
 
     // Dokončenie ZIP archívu
     await archive.finalize();
-    console.log('✅ Test ZIP completed');
+    logger.info('✅ Test ZIP completed');
 
   } catch (error) {
     console.error('❌ Error creating test ZIP:', error);
