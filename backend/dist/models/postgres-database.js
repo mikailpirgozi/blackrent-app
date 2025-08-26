@@ -6628,7 +6628,7 @@ class PostgresDatabase {
         try {
             logger_1.logger.migration('🔍 getUserCompanyAccess CACHE MISS - loading from DB for userId:', userId);
             // 1. Získaj používateľa a skontroluj či má linked investor
-            const userResult = await client.query('SELECT role, linked_investor_id FROM users WHERE id = $1', [userId]);
+            const userResult = await client.query('SELECT role, linked_investor_id FROM users WHERE id = $1::uuid', [userId]);
             if (userResult.rows.length === 0) {
                 logger_1.logger.migration('❌ User not found:', userId);
                 return [];
@@ -6659,6 +6659,32 @@ class PostgresDatabase {
                 });
                 logger_1.logger.migration('👑 Admin access - all companies:', adminData.length);
                 return adminData;
+            }
+            // 2.5. Employee má prístup k všetkým firmám (read-only pre väčšinu, write pre protocols)
+            if (user.role === 'employee') {
+                const allCompaniesResult = await client.query('SELECT id as company_id, name as company_name FROM companies WHERE is_active = true ORDER BY name');
+                const employeeData = allCompaniesResult.rows.map(row => ({
+                    companyId: row.company_id.toString(),
+                    companyName: row.company_name,
+                    permissions: {
+                        vehicles: { read: true, write: false, delete: false },
+                        rentals: { read: true, write: false, delete: false },
+                        expenses: { read: true, write: false, delete: false },
+                        settlements: { read: true, write: false, delete: false },
+                        customers: { read: true, write: false, delete: false },
+                        insurances: { read: true, write: false, delete: false },
+                        maintenance: { read: true, write: false, delete: false },
+                        protocols: { read: true, write: true, delete: false }, // Zamestnanci môžu vytvárať protokoly
+                        statistics: { read: true, write: false, delete: false }
+                    }
+                }));
+                // Cache employee permissions
+                this.permissionCache.set(cacheKey, {
+                    data: employeeData,
+                    timestamp: Date.now()
+                });
+                logger_1.logger.migration('👷 Employee access - all companies (read-only + protocols):', employeeData.length);
+                return employeeData;
             }
             // 3. Ak má linked investor → použiť investor shares
             if (user.linked_investor_id) {
@@ -6706,7 +6732,7 @@ class PostgresDatabase {
         SELECT up.company_id, c.name as company_name, up.permissions
         FROM user_permissions up
         JOIN companies c ON up.company_id = c.id
-        WHERE up.user_id = $1
+        WHERE up.user_id = $1::uuid
         ORDER BY c.name
         `, [userId]);
             const data = result.rows.map(row => ({
