@@ -30,7 +30,7 @@ import R2FileUpload from './R2FileUpload';
 interface UnifiedDocumentData {
   id?: string;
   vehicleId: string;
-  type: 'insurance_pzp' | 'insurance_kasko' | 'stk' | 'ek' | 'vignette';
+  type: 'insurance_pzp' | 'insurance_kasko' | 'insurance_pzp_kasko' | 'stk' | 'ek' | 'vignette';
   
   // Insurance specific
   policyNumber?: string;
@@ -68,6 +68,8 @@ const getDocumentTypeInfo = (type: string) => {
       return { label: 'Poistka - PZP', icon: <SecurityIcon />, color: '#1976d2' };
     case 'insurance_kasko':
       return { label: 'Poistka - Kasko', icon: <SecurityIcon />, color: '#2196f3' };
+    case 'insurance_pzp_kasko':
+      return { label: 'Poistka - PZP + Kasko', icon: <SecurityIcon />, color: '#9c27b0' };
     case 'stk':
       return { label: 'STK', icon: <BuildIcon />, color: '#388e3c' };
     case 'ek':
@@ -84,6 +86,7 @@ const getDocumentTypeInfo = (type: string) => {
 
 export default function UnifiedDocumentForm({ document, onSave, onCancel }: UnifiedDocumentFormProps) {
   const { state } = useApp();
+  const [greenCardManuallyEdited, setGreenCardManuallyEdited] = useState(false);
   
   const [formData, setFormData] = useState<UnifiedDocumentData>(() => {
     const initialData = {
@@ -105,7 +108,7 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
     };
     
     // 🔄 Pre nové poistky automaticky vypočítaj validTo
-    if (!document && (initialData.type === 'insurance_pzp' || initialData.type === 'insurance_kasko') && initialData.validFrom) {
+    if (!document && (initialData.type === 'insurance_pzp' || initialData.type === 'insurance_kasko' || initialData.type === 'insurance_pzp_kasko') && initialData.validFrom) {
       const calculatedValidTo = (() => {
         const fromDate = new Date(initialData.validFrom);
         const toDate = new Date(fromDate);
@@ -155,11 +158,27 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
 
   // 🔄 Automatické prepočítanie validTo pri zmene validFrom alebo paymentFrequency
   useEffect(() => {
-    if ((formData.type === 'insurance_pzp' || formData.type === 'insurance_kasko') && formData.validFrom && formData.paymentFrequency) {
+    if ((formData.type === 'insurance_pzp' || formData.type === 'insurance_kasko' || formData.type === 'insurance_pzp_kasko') && formData.validFrom && formData.paymentFrequency) {
       const newValidTo = calculateValidToDate(formData.validFrom, formData.paymentFrequency);
       setFormData(prev => ({ ...prev, validTo: newValidTo }));
     }
   }, [formData.validFrom, formData.paymentFrequency, formData.type]);
+
+  // 🟢 Automatické prepočítanie platnosti zelenej karty pre PZP a PZP+Kasko
+  useEffect(() => {
+    if ((formData.type === 'insurance_pzp' || formData.type === 'insurance_pzp_kasko') && 
+        formData.validFrom && formData.validTo && 
+        !greenCardManuallyEdited && // Len ak nebola manuálne editovaná
+        !document) { // Len pre nové dokumenty, nie pri editácii
+      
+      // Automaticky nastav platnosť zelenej karty rovnako ako poistky
+      setFormData(prev => ({ 
+        ...prev, 
+        greenCardValidFrom: formData.validFrom,
+        greenCardValidTo: formData.validTo
+      }));
+    }
+  }, [formData.validFrom, formData.validTo, formData.type, document, greenCardManuallyEdited]);
 
   useEffect(() => {
     if (document) {
@@ -193,7 +212,7 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
       newErrors.validTo = 'Dátum platnosti do je povinný';
     }
 
-    if (formData.type === 'insurance_pzp' || formData.type === 'insurance_kasko') {
+    if (formData.type === 'insurance_pzp' || formData.type === 'insurance_kasko' || formData.type === 'insurance_pzp_kasko') {
       if (!formData.policyNumber) {
         newErrors.policyNumber = 'Číslo poistky je povinné';
       }
@@ -256,10 +275,10 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
   };
 
   const typeInfo = getDocumentTypeInfo(formData.type);
-  const isInsurance = formData.type === 'insurance_pzp' || formData.type === 'insurance_kasko';
-  const isPZP = formData.type === 'insurance_pzp'; // Only PZP type
-  const isKasko = formData.type === 'insurance_kasko';
-  const hasKmField = formData.type === 'insurance_kasko' || formData.type === 'stk' || formData.type === 'ek';
+  const isInsurance = formData.type === 'insurance_pzp' || formData.type === 'insurance_kasko' || formData.type === 'insurance_pzp_kasko';
+  const isPZP = formData.type === 'insurance_pzp' || formData.type === 'insurance_pzp_kasko'; // PZP alebo PZP+Kasko
+  const isKasko = formData.type === 'insurance_kasko' || formData.type === 'insurance_pzp_kasko'; // Kasko alebo PZP+Kasko
+  const hasKmField = formData.type === 'insurance_kasko' || formData.type === 'insurance_pzp_kasko' || formData.type === 'stk' || formData.type === 'ek';
 
   return (
     <>
@@ -331,6 +350,7 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                         >
                           <MenuItem value="insurance_pzp">Poistka - PZP</MenuItem>
                           <MenuItem value="insurance_kasko">Poistka - Kasko</MenuItem>
+                          <MenuItem value="insurance_pzp_kasko">Poistka - PZP + Kasko</MenuItem>
                           <MenuItem value="stk">STK</MenuItem>
                           <MenuItem value="ek">EK</MenuItem>
                           <MenuItem value="vignette">Dialničná známka</MenuItem>
@@ -414,12 +434,12 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                   <CardContent>
                     <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       🟢 Platnosť bielej karty
-                      <Chip size="small" label="Manuálne" color="info" variant="outlined" />
+                      <Chip size="small" label="Automatické" color="success" variant="outlined" />
                     </Typography>
                     
                     <Alert severity="info" sx={{ mb: 2 }}>
                       <Typography variant="body2">
-                        💡 Biela karta má vlastnú platnosť nezávislú od poistky. Dátumy zadávajte manuálne.
+                        💡 Platnosť zelenej karty sa automaticky nastaví podľa platnosti poistky. Môžete ju však upraviť podľa potreby.
                       </Typography>
                     </Alert>
                     
@@ -428,11 +448,14 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                         <DatePicker
                           label="Biela karta platná od"
                           value={formData.greenCardValidFrom ? new Date(formData.greenCardValidFrom) : null}
-                          onChange={(date) => setFormData(prev => ({ ...prev, greenCardValidFrom: date || undefined }))}
+                          onChange={(date) => {
+                            setFormData(prev => ({ ...prev, greenCardValidFrom: date || undefined }));
+                            setGreenCardManuallyEdited(true); // Označiť ako manuálne editované
+                          }}
                           slotProps={{
                             textField: {
                               fullWidth: true,
-                              placeholder: "Voliteľné"
+                              placeholder: "Automaticky nastavené"
                             }
                           }}
                         />
@@ -442,11 +465,14 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                         <DatePicker
                           label="Biela karta platná do"
                           value={formData.greenCardValidTo ? new Date(formData.greenCardValidTo) : null}
-                          onChange={(date) => setFormData(prev => ({ ...prev, greenCardValidTo: date || undefined }))}
+                          onChange={(date) => {
+                            setFormData(prev => ({ ...prev, greenCardValidTo: date || undefined }));
+                            setGreenCardManuallyEdited(true); // Označiť ako manuálne editované
+                          }}
                           slotProps={{
                             textField: {
                               fullWidth: true,
-                              placeholder: "Voliteľné"
+                              placeholder: "Automaticky nastavené"
                             }
                           }}
                         />

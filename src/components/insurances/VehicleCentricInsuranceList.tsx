@@ -70,7 +70,7 @@ import { getApiBaseUrl } from '../../utils/apiUrl';
 interface UnifiedDocument {
   id: string;
   vehicleId: string;
-  type: 'insurance_pzp' | 'insurance_kasko' | 'insurance' | 'stk' | 'ek' | 'vignette' | 'technical_certificate';
+  type: 'insurance_pzp' | 'insurance_kasko' | 'insurance_pzp_kasko' | 'insurance' | 'stk' | 'ek' | 'vignette' | 'technical_certificate';
   documentNumber?: string;
   policyNumber?: string;
   validFrom?: Date | string;
@@ -152,6 +152,8 @@ const getDocumentTypeInfo = (type: string) => {
       return { label: 'Poistka - PZP', icon: <SecurityIcon sx={{ fontSize: 20 }} />, color: '#1976d2' };
     case 'insurance_kasko':
       return { label: 'Poistka - Kasko', icon: <SecurityIcon sx={{ fontSize: 20 }} />, color: '#2196f3' };
+    case 'insurance_pzp_kasko':
+      return { label: 'Poistka - PZP + Kasko', icon: <SecurityIcon sx={{ fontSize: 20 }} />, color: '#9c27b0' };
     case 'stk':
       return { label: 'STK', icon: <BuildIcon sx={{ fontSize: 20 }} />, color: '#388e3c' };
     case 'ek':
@@ -230,15 +232,24 @@ export default function VehicleCentricInsuranceList() {
     // Add insurances
     insurances.forEach(insurance => {
       // Determine insurance type based on existing data
-      let insuranceType: 'insurance_pzp' | 'insurance_kasko' | 'insurance' = 'insurance_pzp';
+      let insuranceType: 'insurance_pzp' | 'insurance_kasko' | 'insurance_pzp_kasko' | 'insurance' = 'insurance_pzp';
       
-      // If insurance has kmState, it's likely Kasko
-      if ((insurance as any).kmState !== undefined) {
+      // Check if it's PZP + Kasko (has both green card and km state)
+      if ((insurance as any).kmState !== undefined && 
+          ((insurance as any).greenCardValidFrom || (insurance as any).greenCardValidTo)) {
+        insuranceType = 'insurance_pzp_kasko';
+      }
+      // If insurance has kmState only, it's Kasko
+      else if ((insurance as any).kmState !== undefined) {
         insuranceType = 'insurance_kasko';
       }
       // Check if it's explicitly marked as Kasko in type field
       else if (insurance.type && insurance.type.toLowerCase().includes('kasko')) {
         insuranceType = 'insurance_kasko';
+      }
+      // Check if it's explicitly marked as PZP+Kasko in type field
+      else if (insurance.type && insurance.type.toLowerCase().includes('pzp') && insurance.type.toLowerCase().includes('kasko')) {
+        insuranceType = 'insurance_pzp_kasko';
       }
       // Default to backward compatibility
       else {
@@ -431,7 +442,7 @@ export default function VehicleCentricInsuranceList() {
   const handleDelete = async (doc: UnifiedDocument) => {
     if (window.confirm('Naozaj chcete vymazať tento dokument?')) {
       try {
-        if (doc.type === 'insurance_pzp' || doc.type === 'insurance_kasko' || doc.type === 'insurance') {
+        if (doc.type === 'insurance_pzp' || doc.type === 'insurance_kasko' || doc.type === 'insurance_pzp_kasko' || doc.type === 'insurance') {
           await deleteInsurance(doc.id);
         } else {
           await deleteVehicleDocument(doc.id);
@@ -446,13 +457,14 @@ export default function VehicleCentricInsuranceList() {
   const handleSave = async (data: any) => {
     try {
       if (editingDocument) {
-        if (editingDocument.type === 'insurance_pzp' || editingDocument.type === 'insurance_kasko' || editingDocument.type === 'insurance') {
+        if (editingDocument.type === 'insurance_pzp' || editingDocument.type === 'insurance_kasko' || editingDocument.type === 'insurance_pzp_kasko' || editingDocument.type === 'insurance') {
           const selectedInsurer = state.insurers.find(insurer => insurer.name === data.company);
           const insuranceData = {
             id: editingDocument.id || '',
             vehicleId: data.vehicleId,
             type: data.type === 'insurance_kasko' ? 'Kasko poistenie' : 
                   data.type === 'insurance_pzp' ? 'PZP poistenie' : 
+                  data.type === 'insurance_pzp_kasko' ? 'PZP + Kasko poistenie' :
                   'Poistenie',
             policyNumber: data.policyNumber || '',
             validFrom: data.validFrom || new Date(),
@@ -484,12 +496,13 @@ export default function VehicleCentricInsuranceList() {
           await updateVehicleDocument(vehicleDocData);
         }
       } else {
-        if (data.type === 'insurance_pzp' || data.type === 'insurance_kasko' || data.type === 'insurance') {
+        if (data.type === 'insurance_pzp' || data.type === 'insurance_kasko' || data.type === 'insurance_pzp_kasko' || data.type === 'insurance') {
           const insuranceData = {
             id: '',
             vehicleId: data.vehicleId,
             type: data.type === 'insurance_kasko' ? 'Kasko poistenie' : 
                   data.type === 'insurance_pzp' ? 'PZP poistenie' : 
+                  data.type === 'insurance_pzp_kasko' ? 'PZP + Kasko poistenie' :
                   'Poistenie',
             policyNumber: data.policyNumber || '',
             validFrom: data.validFrom || new Date(),
@@ -1023,6 +1036,12 @@ export default function VehicleCentricInsuranceList() {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <SecurityIcon sx={{ fontSize: 16 }} />
                             Poistka - Kasko
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="insurance_pzp_kasko">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <SecurityIcon sx={{ fontSize: 16 }} />
+                            Poistka - PZP + Kasko
                           </Box>
                         </MenuItem>
                         <MenuItem value="stk">
