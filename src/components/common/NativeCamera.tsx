@@ -28,6 +28,7 @@ interface NativeCameraProps {
   title?: string;
   maxPhotos?: number;
   currentPhotoCount?: number;
+  enableVideo?: boolean;
 }
 
 interface CameraState {
@@ -238,7 +239,7 @@ export default function NativeCamera({
         streamRef.current = null;
       }
     };
-  }, [open]); // Len open dependency!
+  }, [open, initCamera]); // Pridané initCamera dependency
 
   // Prepnutie kamery (predná/zadná)
   const switchCamera = async () => {

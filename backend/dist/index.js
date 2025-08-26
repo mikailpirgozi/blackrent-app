@@ -43,18 +43,12 @@ const compression_1 = __importDefault(require("compression")); // 🚀 FÁZA 2.4
 const dotenv_1 = __importDefault(require("dotenv"));
 // Načítaj environment variables
 dotenv_1.default.config();
-// Sentry backend error tracking
-const sentry_1 = require("./utils/sentry");
+// Sentry removed - not needed for internal application
 // WebSocket service
 const websocket_service_1 = require("./services/websocket-service");
 const app = (0, express_1.default)();
 const port = Number(process.env.PORT) || 3001;
-// Sentry setup - vylepšená verzia
-const sentry = (0, sentry_1.initSentry)(app);
-if (sentry) {
-    app.use(sentry.requestHandler);
-    app.use(sentry.tracingHandler);
-}
+// Sentry removed - not needed for internal application
 // 🚀 FÁZA 2.4: RESPONSE COMPRESSION - gzip compression pre všetky responses
 app.use((0, compression_1.default)({
     filter: (req, res) => {
@@ -228,26 +222,16 @@ app.get('/api/health', (req, res) => {
         timestamp: new Date().toISOString(),
         database: 'PostgreSQL',
         environment: process.env.NODE_ENV || 'development',
-        sentry: !!sentry // True ak je Sentry aktívny
+        sentry: false // Sentry removed
     });
 });
 // Removed: Catch-all route - frontend is on Vercel
 // Railway backend is API-only, no frontend serving
-// Sentry error handler - musí byť pred ostatnými error handlermi
-if (sentry) {
-    app.use(sentry.errorHandler);
-}
+// Sentry removed - using standard error handling
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('💥 Unexpected error:', err);
-    // Report to Sentry if available
-    if (sentry && process.env.SENTRY_DSN_BACKEND) {
-        (0, sentry_1.reportError)(err, {
-            url: req.url,
-            method: req.method,
-            user: req.user?.id,
-        });
-    }
+    // Sentry removed - using console.error for development
     res.status(500).json({
         success: false,
         error: 'Internal Server Error',
@@ -296,7 +280,7 @@ httpServer.listen(Number(port), '0.0.0.0', async () => {
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🗄️  Database: PostgreSQL`);
     console.log(`🔴 WebSocket: Real-time updates aktívne`);
-    console.log(`📊 Sentry: ${sentry ? '✅ Backend aktívny' : '❌ Backend vypnutý'}, Frontend aktívny`);
+    console.log(`📊 Sentry: ❌ Backend vypnutý (removed), Frontend aktívny`);
     // Initialize cache warming
     try {
         const { warmCache } = await Promise.resolve().then(() => __importStar(require('./middleware/cache-middleware')));

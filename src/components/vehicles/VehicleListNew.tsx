@@ -65,6 +65,7 @@ import VehicleFilters from './components/VehicleFilters';
 import VehicleTable from './components/VehicleTable';
 import VehicleActions from './components/VehicleActions';
 import VehicleDialogs from './components/VehicleDialogs';
+import VehicleKmHistory from './components/VehicleKmHistory';
 
 
 
@@ -130,6 +131,10 @@ export default function VehicleListNew() {
   const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false);
   const [selectedVehicleHistory, setSelectedVehicleHistory] = useState<Vehicle | null>(null);
   const [ownershipHistory, setOwnershipHistory] = useState<any[]>([]);
+  
+  // 🚗 História kilometrov
+  const [kmHistoryDialog, setKmHistoryDialog] = useState(false);
+  const [selectedVehicleKmHistory, setSelectedVehicleKmHistory] = useState<Vehicle | null>(null);
   
   // 🆕 State pre vytvorenie novej firmy
   const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
@@ -430,6 +435,12 @@ export default function VehicleListNew() {
         setLoading(false);
       }
     }
+  };
+
+  // 🚗 Handler pre históriu kilometrov
+  const handleKmHistory = (vehicle: Vehicle) => {
+    setSelectedVehicleKmHistory(vehicle);
+    setKmHistoryDialog(true);
   };
 
   const handleCloseDialog = () => {
@@ -861,6 +872,7 @@ export default function VehicleListNew() {
         onDelete={handleDelete}
         onVehicleSelect={handleVehicleSelect}
         onLoadMore={loadMoreVehicles}
+        onKmHistory={handleKmHistory}
       />
       </TabPanel>
 
@@ -999,6 +1011,16 @@ export default function VehicleListNew() {
         onCloseAssignShare={() => setAssignShareDialogOpen(false)}
         onAssignShare={handleAssignShare}
         onShareDataChange={(field, value) => setNewShareData(prev => ({ ...prev, [field]: value }))}
+      />
+
+      {/* 🚗 História kilometrov */}
+      <VehicleKmHistory
+        open={kmHistoryDialog}
+        onClose={() => {
+          setKmHistoryDialog(false);
+          setSelectedVehicleKmHistory(null);
+        }}
+        vehicle={selectedVehicleKmHistory}
       />
     </Box>
   );

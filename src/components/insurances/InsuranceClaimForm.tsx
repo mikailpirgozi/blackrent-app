@@ -21,6 +21,7 @@ import {
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { sk } from 'date-fns/locale';
 
 import {
   Close as CloseIcon,
@@ -189,7 +190,7 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
   const statusInfo = getStatusInfo(formData.status || 'reported');
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sk}>
       <form onSubmit={handleSubmit}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

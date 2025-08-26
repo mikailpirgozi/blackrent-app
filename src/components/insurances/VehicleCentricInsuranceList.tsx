@@ -70,7 +70,7 @@ import { getApiBaseUrl } from '../../utils/apiUrl';
 interface UnifiedDocument {
   id: string;
   vehicleId: string;
-  type: 'insurance' | 'stk' | 'ek' | 'vignette' | 'technical_certificate';
+  type: 'insurance_pzp' | 'insurance_kasko' | 'insurance' | 'stk' | 'ek' | 'vignette' | 'technical_certificate';
   documentNumber?: string;
   policyNumber?: string;
   validFrom?: Date | string;
@@ -83,6 +83,7 @@ interface UnifiedDocument {
   filePaths?: string[];
   createdAt: Date | string;
   originalData: Insurance | VehicleDocument;
+  kmState?: number; // 🚗 Stav kilometrov
 }
 
 // Vehicle with documents grouped
@@ -147,8 +148,10 @@ const getExpiryStatus = (validTo: Date | string, documentType: string) => {
 
 const getDocumentTypeInfo = (type: string) => {
   switch (type) {
-    case 'insurance':
-      return { label: 'Poistka', icon: <SecurityIcon sx={{ fontSize: 20 }} />, color: '#1976d2' };
+    case 'insurance_pzp':
+      return { label: 'Poistka - PZP', icon: <SecurityIcon sx={{ fontSize: 20 }} />, color: '#1976d2' };
+    case 'insurance_kasko':
+      return { label: 'Poistka - Kasko', icon: <SecurityIcon sx={{ fontSize: 20 }} />, color: '#2196f3' };
     case 'stk':
       return { label: 'STK', icon: <BuildIcon sx={{ fontSize: 20 }} />, color: '#388e3c' };
     case 'ek':
@@ -157,6 +160,9 @@ const getDocumentTypeInfo = (type: string) => {
       return { label: 'Dialničná', icon: <HighwayIcon sx={{ fontSize: 20 }} />, color: '#7b1fa2' };
     case 'technical_certificate':
       return { label: 'Technický preukaz', icon: <FileIcon sx={{ fontSize: 20 }} />, color: '#9c27b0' };
+    // Backward compatibility
+    case 'insurance':
+      return { label: 'Poistka - PZP', icon: <SecurityIcon sx={{ fontSize: 20 }} />, color: '#1976d2' };
     default:
       return { label: type, icon: <ReportIcon sx={{ fontSize: 20 }} />, color: '#666' };
   }
@@ -223,10 +229,26 @@ export default function VehicleCentricInsuranceList() {
     
     // Add insurances
     insurances.forEach(insurance => {
+      // Determine insurance type based on existing data
+      let insuranceType: 'insurance_pzp' | 'insurance_kasko' | 'insurance' = 'insurance_pzp';
+      
+      // If insurance has kmState, it's likely Kasko
+      if ((insurance as any).kmState !== undefined) {
+        insuranceType = 'insurance_kasko';
+      }
+      // Check if it's explicitly marked as Kasko in type field
+      else if (insurance.type && insurance.type.toLowerCase().includes('kasko')) {
+        insuranceType = 'insurance_kasko';
+      }
+      // Default to backward compatibility
+      else {
+        insuranceType = 'insurance';
+      }
+      
       docs.push({
         id: insurance.id,
         vehicleId: insurance.vehicleId,
-        type: 'insurance',
+        type: insuranceType,
         policyNumber: insurance.policyNumber,
         validFrom: insurance.validFrom,
         validTo: insurance.validTo,
@@ -236,7 +258,8 @@ export default function VehicleCentricInsuranceList() {
         filePath: insurance.filePath,
         filePaths: insurance.filePaths,
         createdAt: insurance.validTo,
-        originalData: insurance
+        originalData: insurance,
+        kmState: (insurance as any).kmState
       });
     });
     
@@ -254,7 +277,8 @@ export default function VehicleCentricInsuranceList() {
           notes: doc.notes,
           filePath: doc.filePath,
           createdAt: doc.validTo,
-          originalData: doc
+          originalData: doc,
+          kmState: (doc as any).kmState // STK/EK môžu mať stav km
         });
       });
     }
@@ -397,7 +421,8 @@ export default function VehicleCentricInsuranceList() {
       filePath: doc.filePath,
       filePaths: doc.filePaths || (doc.filePath ? [doc.filePath] : []),
       greenCardValidFrom: doc.originalData && 'greenCardValidFrom' in doc.originalData ? doc.originalData.greenCardValidFrom : undefined,
-      greenCardValidTo: doc.originalData && 'greenCardValidTo' in doc.originalData ? doc.originalData.greenCardValidTo : undefined
+      greenCardValidTo: doc.originalData && 'greenCardValidTo' in doc.originalData ? doc.originalData.greenCardValidTo : undefined,
+      kmState: doc.kmState // 🚗 Stav kilometrov
     };
     setEditingDocument(formData as any);
     setOpenDialog(true);
@@ -406,7 +431,7 @@ export default function VehicleCentricInsuranceList() {
   const handleDelete = async (doc: UnifiedDocument) => {
     if (window.confirm('Naozaj chcete vymazať tento dokument?')) {
       try {
-        if (doc.type === 'insurance') {
+        if (doc.type === 'insurance_pzp' || doc.type === 'insurance_kasko' || doc.type === 'insurance') {
           await deleteInsurance(doc.id);
         } else {
           await deleteVehicleDocument(doc.id);
@@ -421,12 +446,14 @@ export default function VehicleCentricInsuranceList() {
   const handleSave = async (data: any) => {
     try {
       if (editingDocument) {
-        if (editingDocument.type === 'insurance') {
+        if (editingDocument.type === 'insurance_pzp' || editingDocument.type === 'insurance_kasko' || editingDocument.type === 'insurance') {
           const selectedInsurer = state.insurers.find(insurer => insurer.name === data.company);
           const insuranceData = {
             id: editingDocument.id || '',
             vehicleId: data.vehicleId,
-            type: data.policyNumber ? 'Havarijné poistenie' : 'Poistenie',
+            type: data.type === 'insurance_kasko' ? 'Kasko poistenie' : 
+                  data.type === 'insurance_pzp' ? 'PZP poistenie' : 
+                  'Poistenie',
             policyNumber: data.policyNumber || '',
             validFrom: data.validFrom || new Date(),
             validTo: data.validTo,
@@ -437,7 +464,8 @@ export default function VehicleCentricInsuranceList() {
             filePath: data.filePath,
             filePaths: data.filePaths,
             greenCardValidFrom: data.greenCardValidFrom,
-            greenCardValidTo: data.greenCardValidTo
+            greenCardValidTo: data.greenCardValidTo,
+            kmState: data.kmState // 🚗 Stav kilometrov
           };
           await updateInsurance(insuranceData);
         } else {
@@ -450,16 +478,19 @@ export default function VehicleCentricInsuranceList() {
             documentNumber: data.documentNumber,
             price: data.price,
             notes: data.notes,
-            filePath: data.filePath
+            filePath: data.filePath,
+            kmState: data.kmState // 🚗 Stav kilometrov pre STK/EK
           };
           await updateVehicleDocument(vehicleDocData);
         }
       } else {
-        if (data.type === 'insurance') {
+        if (data.type === 'insurance_pzp' || data.type === 'insurance_kasko' || data.type === 'insurance') {
           const insuranceData = {
             id: '',
             vehicleId: data.vehicleId,
-            type: data.policyNumber ? 'Havarijné poistenie' : 'Poistenie',
+            type: data.type === 'insurance_kasko' ? 'Kasko poistenie' : 
+                  data.type === 'insurance_pzp' ? 'PZP poistenie' : 
+                  'Poistenie',
             policyNumber: data.policyNumber || '',
             validFrom: data.validFrom || new Date(),
             validTo: data.validTo,
@@ -469,7 +500,8 @@ export default function VehicleCentricInsuranceList() {
             filePath: data.filePath,
             filePaths: data.filePaths,
             greenCardValidFrom: data.greenCardValidFrom,
-            greenCardValidTo: data.greenCardValidTo
+            greenCardValidTo: data.greenCardValidTo,
+            kmState: data.kmState // 🚗 Stav kilometrov pre Kasko
           };
           await createInsurance(insuranceData);
         } else {
@@ -482,7 +514,8 @@ export default function VehicleCentricInsuranceList() {
             documentNumber: data.documentNumber,
             price: data.price,
             notes: data.notes,
-            filePath: data.filePath
+            filePath: data.filePath,
+            kmState: data.kmState // 🚗 Stav kilometrov pre STK/EK
           };
           await createVehicleDocument(vehicleDocData);
         }
@@ -980,10 +1013,16 @@ export default function VehicleCentricInsuranceList() {
                         onChange={(e) => setFilterType(e.target.value)}
                       >
                         <MenuItem value="">Všetky typy</MenuItem>
-                        <MenuItem value="insurance">
+                        <MenuItem value="insurance_pzp">
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <SecurityIcon sx={{ fontSize: 16 }} />
-                            Poistka
+                            Poistka - PZP
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="insurance_kasko">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <SecurityIcon sx={{ fontSize: 16 }} />
+                            Poistka - Kasko
                           </Box>
                         </MenuItem>
                         <MenuItem value="stk">
@@ -1536,7 +1575,7 @@ function DocumentListItem({ document, onEdit, onDelete, isMobile, isLast }: Docu
                 >
                   {typeInfo.label}
                 </Typography>
-                {(document.policyNumber || document.documentNumber) && (
+                {(document.policyNumber || document.documentNumber || document.kmState) && (
                   <Typography 
                     variant="body2" 
                     color="text.secondary"
@@ -1545,7 +1584,12 @@ function DocumentListItem({ document, onEdit, onDelete, isMobile, isLast }: Docu
                       fontFamily: 'monospace'
                     }}
                   >
-                    {document.policyNumber || document.documentNumber}
+                    {document.type === 'stk' || document.type === 'ek' 
+                      ? (document.kmState ? `${document.kmState.toLocaleString()} km` : document.documentNumber)
+                      : document.type === 'insurance_kasko' && document.kmState
+                      ? `${document.kmState.toLocaleString()} km`
+                      : (document.policyNumber || document.documentNumber)
+                    }
                   </Typography>
                 )}
               </Box>

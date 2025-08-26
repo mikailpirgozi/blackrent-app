@@ -32,6 +32,7 @@ import { Vehicle, PricingTier, VehicleDocument, DocumentType, VehicleCategory } 
 import { useApp } from '../../context/AppContext';
 import { v4 as uuidv4 } from 'uuid';
 import TechnicalCertificateUpload from './TechnicalCertificateUpload';
+import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
 
 interface VehicleFormProps {
   vehicle?: Vehicle | null;
@@ -64,6 +65,8 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
   const [newCompanyName, setNewCompanyName] = useState('');
   const [vehicleDocuments, setVehicleDocuments] = useState<VehicleDocument[]>([]);
   const [editingDocument, setEditingDocument] = useState<VehicleDocument | null>(null);
+  const [showUnifiedDocumentForm, setShowUnifiedDocumentForm] = useState(false);
+  const [unifiedDocumentData, setUnifiedDocumentData] = useState<any>(null);
 
   useEffect(() => {
     if (vehicle) {
@@ -149,38 +152,33 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
   // 🏢 AKTÍVNE FIRMY PRE DROPDOWN
   const activeCompanies = state.companies?.filter(c => c.isActive !== false) || [];
 
-  // Helper funkcie pre dokumenty
-  const handleAddDocument = async (docData: Partial<VehicleDocument>) => {
-    if (!formData.id) return; // Môžeme pridávať dokumenty len pre existujúce vozidlá
-    
-    const newDocument: VehicleDocument = {
-      id: uuidv4(),
-      vehicleId: formData.id,
-      documentType: docData.documentType as DocumentType,
-      validFrom: docData.validFrom,
-      validTo: docData.validTo!,
-      documentNumber: docData.documentNumber,
-      price: docData.price,
-      notes: docData.notes
-    };
-
-    try {
-      await createVehicleDocument(newDocument);
-      setVehicleDocuments(prev => [...prev, newDocument]);
-      setEditingDocument(null);
-    } catch (error) {
-      console.error('Chyba pri pridávaní dokumentu:', error);
+  // Helper funkcie pre dokumenty - prepojené s UnifiedDocumentForm
+  const handleAddDocument = () => {
+    if (!formData.id) {
+      alert('Najprv uložte vozidlo, potom môžete pridávať dokumenty.');
+      return;
     }
+    
+    setUnifiedDocumentData({
+      vehicleId: formData.id,
+      type: 'stk' // Default typ
+    });
+    setShowUnifiedDocumentForm(true);
   };
 
-  const handleUpdateDocument = async (docData: VehicleDocument) => {
-    try {
-      await updateVehicleDocument(docData);
-      setVehicleDocuments(prev => prev.map(doc => doc.id === docData.id ? docData : doc));
-      setEditingDocument(null);
-    } catch (error) {
-      console.error('Chyba pri aktualizácii dokumentu:', error);
-    }
+  const handleEditDocument = (doc: VehicleDocument) => {
+    setUnifiedDocumentData({
+      id: doc.id,
+      vehicleId: doc.vehicleId,
+      type: doc.documentType,
+      documentNumber: doc.documentNumber,
+      validFrom: doc.validFrom,
+      validTo: doc.validTo,
+      price: doc.price,
+      notes: doc.notes,
+      kmState: (doc as any).kmState // Pre STK/EK s km stavom
+    });
+    setShowUnifiedDocumentForm(true);
   };
 
   const handleDeleteDocument = async (id: string) => {
@@ -191,6 +189,49 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
       } catch (error) {
         console.error('Chyba pri mazaní dokumentu:', error);
       }
+    }
+  };
+
+  const handleUnifiedDocumentSave = async (data: any) => {
+    try {
+      if (data.id) {
+        // Aktualizácia existujúceho dokumentu
+        const vehicleDocData = {
+          id: data.id,
+          vehicleId: data.vehicleId,
+          documentType: data.type,
+          validFrom: data.validFrom,
+          validTo: data.validTo,
+          documentNumber: data.documentNumber,
+          price: data.price,
+          notes: data.notes,
+          kmState: data.kmState // Pre STK/EK s km stavom
+        };
+        await updateVehicleDocument(vehicleDocData);
+      } else {
+        // Vytvorenie nového dokumentu
+        const vehicleDocData = {
+          id: uuidv4(),
+          vehicleId: data.vehicleId,
+          documentType: data.type,
+          validFrom: data.validFrom,
+          validTo: data.validTo,
+          documentNumber: data.documentNumber,
+          price: data.price,
+          notes: data.notes,
+          kmState: data.kmState // Pre STK/EK s km stavom
+        };
+        await createVehicleDocument(vehicleDocData);
+      }
+      
+      // Obnovenie zoznamu dokumentov
+      const vehicleDocs = state.vehicleDocuments.filter(doc => doc.vehicleId === formData.id);
+      setVehicleDocuments(vehicleDocs);
+      setShowUnifiedDocumentForm(false);
+      setUnifiedDocumentData(null);
+    } catch (error) {
+      console.error('Chyba pri ukladaní dokumentu:', error);
+      alert('Chyba pri ukladaní dokumentu');
     }
   };
 
@@ -465,12 +506,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
                   <Button
                     startIcon={<AddIcon />}
                     variant="outlined"
-                    onClick={() => setEditingDocument({
-                      id: '',
-                      vehicleId: formData.id!,
-                      documentType: 'stk',
-                      validTo: new Date()
-                    } as VehicleDocument)}
+                    onClick={handleAddDocument}
                   >
                     Pridať dokument
                   </Button>
@@ -520,7 +556,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
                             <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
                               <IconButton
                                 size="small"
-                                onClick={() => setEditingDocument(doc)}
+                                onClick={() => handleEditDocument(doc)}
                                 color="primary"
                               >
                                 <EditIcon fontSize="small" />
@@ -562,18 +598,25 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
         </Box>
       </Box>
 
-      {/* Dialog pre editáciu dokumentov */}
-      <DocumentDialog
-        document={editingDocument}
-        onSave={async (docData: VehicleDocument | Partial<VehicleDocument>) => {
-          if (editingDocument?.id) {
-            await handleUpdateDocument(docData as VehicleDocument);
-          } else {
-            await handleAddDocument(docData);
-          }
+      {/* UnifiedDocumentForm pre STK/EK/Dialničné dokumenty */}
+      <Dialog
+        open={showUnifiedDocumentForm}
+        onClose={() => {
+          setShowUnifiedDocumentForm(false);
+          setUnifiedDocumentData(null);
         }}
-        onCancel={() => setEditingDocument(null)}
-      />
+        maxWidth="lg"
+        fullWidth
+      >
+        <UnifiedDocumentForm
+          document={unifiedDocumentData}
+          onSave={handleUnifiedDocumentSave}
+          onCancel={() => {
+            setShowUnifiedDocumentForm(false);
+            setUnifiedDocumentData(null);
+          }}
+        />
+      </Dialog>
 
       {/* 📄 NOVÉ: Technický preukaz vozidla */}
       {vehicle?.id && (
@@ -586,116 +629,4 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
   );
 }
 
-// Dialóg pre editáciu/pridávanie dokumentov
-interface DocumentDialogProps {
-  document: VehicleDocument | null;
-  onSave: (document: VehicleDocument | Partial<VehicleDocument>) => Promise<void>;
-  onCancel: () => void;
-}
-
-function DocumentDialog({ document, onSave, onCancel }: DocumentDialogProps) {
-  const [formData, setFormData] = useState<Partial<VehicleDocument>>({});
-
-  useEffect(() => {
-    if (document) {
-      setFormData({
-        ...document,
-        validFrom: document.validFrom || undefined,
-        validTo: document.validTo || new Date()
-      });
-    } else {
-      setFormData({});
-    }
-  }, [document]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.documentType || !formData.validTo) return;
-
-    await onSave(document?.id ? { ...document, ...formData } as VehicleDocument : formData);
-  };
-
-  return (
-    <Dialog open={!!document} onClose={onCancel} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {document?.id ? 'Upraviť dokument' : 'Pridať dokument'}
-      </DialogTitle>
-      <form onSubmit={handleSubmit}>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-            <FormControl fullWidth>
-              <InputLabel>Typ dokumentu</InputLabel>
-              <Select
-                value={formData.documentType || 'stk'}
-                onChange={(e) => setFormData(prev => ({ ...prev, documentType: e.target.value as DocumentType }))}
-                label="Typ dokumentu"
-                required
-              >
-                <MenuItem value="stk">STK</MenuItem>
-                <MenuItem value="ek">EK</MenuItem>
-                <MenuItem value="vignette">Dialničná známka</MenuItem>
-              </Select>
-            </FormControl>
-
-            <TextField
-              fullWidth
-              label="Číslo dokumentu"
-              value={formData.documentNumber || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, documentNumber: e.target.value }))}
-            />
-
-            <TextField
-              fullWidth
-              label="Platný od"
-              type="date"
-              value={
-                formData.validFrom && !isNaN(new Date(formData.validFrom).getTime())
-                  ? new Date(formData.validFrom).toISOString().split('T')[0]
-                  : ''
-              }
-              onChange={(e) => setFormData(prev => ({ ...prev, validFrom: e.target.value ? new Date(e.target.value) : undefined }))}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              fullWidth
-              label="Platný do"
-              type="date"
-              value={
-                formData.validTo && !isNaN(new Date(formData.validTo).getTime())
-                  ? new Date(formData.validTo).toISOString().split('T')[0]
-                  : ''
-              }
-              onChange={(e) => setFormData(prev => ({ ...prev, validTo: new Date(e.target.value) }))}
-              InputLabelProps={{ shrink: true }}
-              required
-            />
-
-            <TextField
-              fullWidth
-              label="Cena (€)"
-              type="number"
-              value={formData.price || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value ? parseFloat(e.target.value) : undefined }))}
-            />
-
-            <TextField
-              fullWidth
-              label="Poznámky"
-              multiline
-              rows={3}
-              value={formData.notes || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onCancel}>Zrušiť</Button>
-          <Button type="submit" variant="contained">
-            {document?.id ? 'Uložiť' : 'Pridať'}
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
-  );
-} 
+ 

@@ -14,7 +14,8 @@ import {
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Speed as KmIcon
 } from '@mui/icons-material';
 import { Vehicle } from '../../../types';
 import { Can } from '../../common/PermissionGuard';
@@ -34,6 +35,7 @@ interface VehicleTableProps {
   onDelete: (vehicleId: string) => void;
   onVehicleSelect: (vehicleId: string, checked: boolean) => void;
   onLoadMore: () => void;
+  onKmHistory?: (vehicle: Vehicle) => void; // 🚗 História kilometrov
 }
 
 const VehicleTable: React.FC<VehicleTableProps> = ({
@@ -49,7 +51,8 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
   onEdit,
   onDelete,
   onVehicleSelect,
-  onLoadMore
+  onLoadMore,
+  onKmHistory
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -579,6 +582,32 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Can>
+                    
+                    {/* Km History Button */}
+                    {onKmHistory && (
+                      <IconButton
+                        size="small"
+                        title="História kilometrov"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onKmHistory(vehicle);
+                        }}
+                        sx={{ 
+                          bgcolor: '#2196f3', 
+                          color: 'white',
+                          width: 28,
+                          height: 28,
+                          '&:hover': { 
+                            bgcolor: '#1976d2',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <KmIcon fontSize="small" />
+                      </IconButton>
+                    )}
                     
                     {/* History Button */}
                     <IconButton

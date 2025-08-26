@@ -10,6 +10,7 @@ import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { sk } from 'date-fns/locale';
 import { ThemeProvider, useThemeMode } from './context/ThemeContext';
 
 // Performance optimization imports
@@ -83,7 +84,7 @@ const AppContent: React.FC = () => {
         <ErrorToastContainer />
         {/* PWA Install moved to sidebar - no auto-popup */}
         <OfflineIndicator position="top" showDetails={true} />
-                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sk}>
           <AuthProvider>
             <PermissionsProvider>
               <AppProvider>

@@ -8,8 +8,7 @@ import dotenv from 'dotenv';
 // Načítaj environment variables
 dotenv.config();
 
-// Sentry backend error tracking
-import { initSentry, reportError } from './utils/sentry';
+// Sentry removed - not needed for internal application
 
 // WebSocket service
 import { initializeWebSocketService } from './services/websocket-service';
@@ -17,12 +16,7 @@ import { initializeWebSocketService } from './services/websocket-service';
 const app = express();
 const port = Number(process.env.PORT) || 3001;
 
-// Sentry setup - vylepšená verzia
-const sentry = initSentry(app);
-if (sentry) {
-  app.use(sentry.requestHandler);
-  app.use(sentry.tracingHandler);
-}
+// Sentry removed - not needed for internal application
 
 // 🚀 FÁZA 2.4: RESPONSE COMPRESSION - gzip compression pre všetky responses
 app.use(compression({
@@ -215,30 +209,20 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     database: 'PostgreSQL',
     environment: process.env.NODE_ENV || 'development',
-    sentry: !!sentry  // True ak je Sentry aktívny
+    sentry: false  // Sentry removed
   });
 });
 
 // Removed: Catch-all route - frontend is on Vercel
 // Railway backend is API-only, no frontend serving
 
-// Sentry error handler - musí byť pred ostatnými error handlermi
-if (sentry) {
-  app.use(sentry.errorHandler);
-}
+// Sentry removed - using standard error handling
 
 // Error handling middleware
 app.use((err: any, req: any, res: any, next: any) => {
   console.error('💥 Unexpected error:', err);
   
-  // Report to Sentry if available
-  if (sentry && process.env.SENTRY_DSN_BACKEND) {
-    reportError(err, {
-      url: req.url,
-      method: req.method,
-      user: req.user?.id,
-    });
-  }
+  // Sentry removed - using console.error for development
   
   res.status(500).json({
     success: false,
@@ -300,7 +284,7 @@ httpServer.listen(Number(port), '0.0.0.0', async () => {
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  Database: PostgreSQL`);
   console.log(`🔴 WebSocket: Real-time updates aktívne`);
-  console.log(`📊 Sentry: ${sentry ? '✅ Backend aktívny' : '❌ Backend vypnutý'}, Frontend aktívny`);
+  console.log(`📊 Sentry: ❌ Backend vypnutý (removed), Frontend aktívny`);
   
   // Initialize cache warming
   try {
