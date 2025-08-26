@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 
 // Načítaj environment variables
 dotenv.config();
+import { logger } from './utils/logger';
 
 // Sentry removed - not needed for internal application
 
@@ -47,41 +48,41 @@ app.use(cors({
       process.env.FRONTEND_URL || 'http://localhost:3000'
     ];
     
-    console.log('🌐 CORS request from:', origin);
+    logger.info('🌐 CORS request from:', origin);
     
     // Ak nie je origin (napr. direct request, Postman, lokálne HTML súbory)
     if (!origin || origin === 'null') {
-      console.log('✅ No origin or null origin (local HTML files via file://) - allowing request');
+      logger.info('✅ No origin or null origin (local HTML files via file://) - allowing request');
       return callback(null, true);
     }
     
     // Skontroluj základné allowed origins
     if (allowedOrigins.includes(origin)) {
-      console.log('✅ Origin in allowed list');
+      logger.info('✅ Origin in allowed list');
       return callback(null, true);
     }
     
     // ✅ KĽÚČOVÁ OPRAVA: Povolím všetky Vercel domény
     if (origin.endsWith('.vercel.app')) {
-      console.log('✅ Vercel domain detected - allowing:', origin);
+      logger.info('✅ Vercel domain detected - allowing:', origin);
       return callback(null, true);
     }
     
     // Povolím file:// protokol pre lokálne súbory
     if (origin.startsWith('file://')) {
-      console.log('✅ Local file protocol detected - allowing:', origin);
+      logger.info('✅ Local file protocol detected - allowing:', origin);
       return callback(null, true);
     }
     
     // ✅ NOVÉ: Povolím lokálne IP adresy (pre development na sieti)
     const ipPattern = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+|127\.0\.0\.1|localhost)(:\d+)?$/;
     if (ipPattern.test(origin)) {
-      console.log('✅ Local IP address detected - allowing:', origin);
+      logger.info('✅ Local IP address detected - allowing:', origin);
       return callback(null, true);
     }
     
     // Inak zamietni
-    console.log('❌ Origin not allowed:', origin);
+    logger.info('❌ Origin not allowed:', origin);
     callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
   credentials: true,
@@ -162,7 +163,7 @@ app.use('/api/company-documents', companyDocumentsRoutes);
 
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {
-  console.log('🧪 Simple test endpoint called');
+  logger.info('🧪 Simple test endpoint called');
   res.json({ success: true, message: 'Backend funguje!', timestamp: new Date().toISOString() });
 });
 
@@ -245,16 +246,16 @@ async function autoStartImapMonitoring() {
     const autoStart = process.env.IMAP_AUTO_START !== 'false'; // Default: true
     
     if (!isEnabled) {
-      console.log('📧 IMAP: Auto-start preskočený - služba je vypnutá');
+      logger.info('📧 IMAP: Auto-start preskočený - služba je vypnutá');
       return;
     }
     
     if (!autoStart) {
-      console.log('📧 IMAP: Auto-start vypnutý (IMAP_AUTO_START=false)');
+      logger.info('📧 IMAP: Auto-start vypnutý (IMAP_AUTO_START=false)');
       return;
     }
     
-    console.log('🚀 IMAP: Auto-start monitoring...');
+    logger.info('🚀 IMAP: Auto-start monitoring...');
     
     globalImapService = new ImapEmailService();
     
@@ -264,11 +265,11 @@ async function autoStartImapMonitoring() {
     // Set environment flag for status tracking
     process.env.IMAP_AUTO_STARTED = 'true';
     
-    console.log('✅ IMAP: Auto-start úspešný - monitoring beží automaticky');
-    console.log('📧 IMAP: Nové emaily sa budú automaticky pridávať do Email Management Dashboard');
+    logger.info('✅ IMAP: Auto-start úspešný - monitoring beží automaticky');
+    logger.info('📧 IMAP: Nové emaily sa budú automaticky pridávať do Email Management Dashboard');
   } catch (error) {
     console.error('❌ IMAP: Auto-start chyba:', error);
-    console.log('⚠️ IMAP: Môžete ho manuálne spustiť cez Email Management Dashboard');
+    logger.info('⚠️ IMAP: Môžete ho manuálne spustiť cez Email Management Dashboard');
   }
 }
 
@@ -280,11 +281,11 @@ const websocketService = initializeWebSocketService(httpServer);
 
 // Start server with WebSocket support
 httpServer.listen(Number(port), '0.0.0.0', async () => {
-  console.log(`🚀 BlackRent server beží na porte ${port}`);
-  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🗄️  Database: PostgreSQL`);
-  console.log(`🔴 WebSocket: Real-time updates aktívne`);
-  console.log(`📊 Sentry: ❌ Backend vypnutý (removed), Frontend aktívny`);
+  logger.info(`🚀 BlackRent server beží na porte ${port}`);
+  logger.info(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`🗄️  Database: PostgreSQL`);
+  logger.info(`🔴 WebSocket: Real-time updates aktívne`);
+  logger.info(`📊 Sentry: ❌ Backend vypnutý (removed), Frontend aktívny`);
   
   // Initialize cache warming
   try {
@@ -302,7 +303,7 @@ httpServer.listen(Number(port), '0.0.0.0', async () => {
     try {
       const { recurringExpenseScheduler } = await import('./utils/recurring-expense-scheduler');
       recurringExpenseScheduler.startScheduler();
-      console.log('🔄 Recurring expense scheduler štartovaný');
+      logger.info('🔄 Recurring expense scheduler štartovaný');
     } catch (error) {
       console.warn('Recurring expense scheduler initialization failed:', error);
     }
@@ -311,11 +312,11 @@ httpServer.listen(Number(port), '0.0.0.0', async () => {
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+  logger.info('SIGTERM received, shutting down gracefully');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
+  logger.info('SIGINT received, shutting down gracefully');
   process.exit(0);
 }); 

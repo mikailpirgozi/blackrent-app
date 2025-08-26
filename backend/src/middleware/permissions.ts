@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserRole, Permission, PermissionCheck, PermissionResult, User } from '../types';
+import { logger } from '../utils/logger';
 
 // Rozšírenie Request interface o user a permissions
 declare global {
@@ -245,14 +246,14 @@ export function hasPermission(
     amount?: number;
   }
 ): PermissionResult {
-  console.log('🛡️ hasPermission called:', { userRole, resource, action, context });
+  logger.auth('🛡️ hasPermission called:', { userRole, resource, action, context });
   
   const rolePermissions = ROLE_PERMISSIONS[userRole];
-  console.log('📋 Role permissions:', rolePermissions);
+  logger.auth('📋 Role permissions:', rolePermissions);
   
   // Admin má vždy práva
   if (userRole === 'admin') {
-    console.log('👑 Admin access granted');
+    logger.auth('👑 Admin access granted');
     return { hasAccess: true, requiresApproval: false };
   }
 
@@ -261,27 +262,27 @@ export function hasPermission(
     p.resource === resource || p.resource === '*'
   );
 
-  console.log('🔍 Found permission:', permission);
+  logger.auth('🔍 Found permission:', permission);
 
   if (!permission) {
-    console.log('❌ No permission found for resource');
+    logger.auth('❌ No permission found for resource');
     return { hasAccess: false, requiresApproval: false, reason: 'Žiadne oprávnenie pre tento resource' };
   }
 
   // Skontroluj action
   if (!permission.actions.includes(action)) {
-    console.log('❌ Action not allowed:', { allowedActions: permission.actions, requestedAction: action });
+    logger.auth('❌ Action not allowed:', { allowedActions: permission.actions, requestedAction: action });
     return { hasAccess: false, requiresApproval: false, reason: `Akcia '${action}' nie je povolená` };
   }
 
-  console.log('✅ Action is allowed');
+  logger.auth('✅ Action is allowed');
 
   // Skontroluj podmienky
   const conditions = permission.conditions;
   if (conditions && context) {
     // Kontrola "ownOnly" - len ak máme resourceOwnerId (nie pre list endpoints)
     if (conditions.ownOnly && context.resourceOwnerId && context.resourceOwnerId !== context.userId) {
-      console.log('❌ OwnOnly check failed:', { 
+      logger.auth('❌ OwnOnly check failed:', { 
         resourceOwnerId: context.resourceOwnerId, 
         userId: context.userId 
       });
@@ -290,7 +291,7 @@ export function hasPermission(
 
     // Kontrola "companyOnly" - len ak máme resourceCompanyId (nie pre list endpoints)
     if (conditions.companyOnly && context.resourceCompanyId && context.resourceCompanyId !== context.companyId) {
-      console.log('❌ CompanyOnly check failed:', { 
+      logger.auth('❌ CompanyOnly check failed:', { 
         resourceCompanyId: context.resourceCompanyId, 
         userCompanyId: context.companyId 
       });
@@ -316,7 +317,7 @@ export function hasPermission(
     requiresApproval: conditions?.approvalRequired || false 
   };
   
-  console.log('✅ hasPermission final result:', result);
+  logger.auth('✅ hasPermission final result:', result);
   return result;
 }
 
@@ -331,7 +332,7 @@ export function checkPermission(
 ) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log('🔐 Permission check:', {
+      logger.auth('🔐 Permission check:', {
         resource,
         action,
         user: req.user ? {
@@ -343,7 +344,7 @@ export function checkPermission(
       });
 
       if (!req.user) {
-        console.log('❌ Permission denied: No user');
+        logger.auth('❌ Permission denied: No user');
         return res.status(401).json({
           success: false,
           error: 'Používateľ nie je prihlásený'
@@ -356,7 +357,7 @@ export function checkPermission(
         context = await options.getContext(req);
       }
 
-      console.log('🔍 Permission context:', context);
+      logger.auth('🔍 Permission context:', context);
 
       // Skontroluj oprávnenie
       const permissionCheck = hasPermission(
@@ -372,25 +373,25 @@ export function checkPermission(
 
       // Admin má práva na všetko - preskoč kontrolu
       if (req.user.role === 'admin') {
-        console.log('✅ Admin access granted');
+        logger.auth('✅ Admin access granted');
         req.permissionCheck = { hasAccess: true, requiresApproval: false };
         return next();
       }
 
-      console.log('🔐 Permission result:', permissionCheck);
+      logger.auth('🔐 Permission result:', permissionCheck);
 
       // Ulož výsledok do request
       req.permissionCheck = permissionCheck;
 
       if (!permissionCheck.hasAccess) {
-        console.log('❌ Permission denied:', permissionCheck.reason);
+        logger.auth('❌ Permission denied:', permissionCheck.reason);
         return res.status(403).json({
           success: false,
           error: permissionCheck.reason || 'Nemáte oprávnenie pre túto akciu'
         });
       }
 
-      console.log('✅ Permission granted');
+      logger.auth('✅ Permission granted');
 
       if (permissionCheck.requiresApproval) {
         if (options?.onApprovalRequired) {
