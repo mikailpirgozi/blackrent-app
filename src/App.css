@@ -24,7 +24,7 @@ body, html, #root, .App {
   }
   .MuiContainer-root, .MuiCard-root, .MuiPaper-root {
     border-radius: 16px;
-    margin: 8px 0;
+    margin: 0; /* Odstránený automatický margin pre lepšie centrovanie */
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   }
   .MuiButton-root {

@@ -597,7 +597,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
       display: 'flex', 
       gap: { xs: 1, md: 2 }, 
       mb: 3,
-      mx: { xs: 2, md: 0 }, // Margin len na mobile pre správne centrovanie
+      mx: { xs: 1, md: 0 }, // Menší symetrický margin na mobile
       flexWrap: 'wrap',
       alignItems: 'center'
     }}>

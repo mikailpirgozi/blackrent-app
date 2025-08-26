@@ -212,7 +212,7 @@ export const RentalStats: React.FC<RentalStatsProps> = ({
   return (
     <Card sx={{ 
       mb: 3, 
-      mx: { xs: 2, md: 0 }, // Margin len na mobile pre správne centrovanie
+      mx: { xs: 1, md: 0 }, // Menší symetrický margin na mobile
       backgroundColor: 'background.paper',
       boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
       border: '1px solid rgba(0,0,0,0.06)',

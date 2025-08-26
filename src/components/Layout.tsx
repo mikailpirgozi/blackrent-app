@@ -586,7 +586,7 @@ export default function Layout({ children }: LayoutProps) {
         <Box 
           className="custom-font-app protocol-custom-font"
           sx={{ 
-            p: { xs: 2, md: 3 },
+            p: { xs: 0, md: 3 }, // Žiadny padding na mobile pre dokonalé centrovanie
             maxWidth: '1400px',
             mx: 'auto',
             minHeight: 'calc(100vh - 64px - 56px)',

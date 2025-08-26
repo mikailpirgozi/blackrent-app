@@ -625,7 +625,7 @@ export default function RentalList() {
   }
 
   return (
-    <Box sx={{ p: { xs: 0, md: 3 } }}>
+    <Box sx={{ p: { xs: 0, md: 0 } }}>
       {/* 📊 EXTRACTED: RentalStats komponent */}
       <RentalStats
         rentals={filteredRentals}
