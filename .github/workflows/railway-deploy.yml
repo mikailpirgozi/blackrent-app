@@ -17,7 +17,7 @@ jobs:
     - name: Use Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         registry-url: 'https://registry.npmjs.org'
         cache: 'npm'
         cache-dependency-path: package-lock.json
@@ -32,7 +32,13 @@ jobs:
     
     - name: Install dependencies with retry
       run: |
+        echo "📦 Installing frontend dependencies..."
+        npm --version
+        node --version
+        ls -la package*.json
         npm install --no-optional --prefer-offline || npm install --no-optional || npm install
+        echo "✅ Frontend dependencies installed"
+        ls -la node_modules/.bin/react-scripts || echo "❌ react-scripts not found"
     
     - name: Build frontend
       run: npm run build
@@ -41,10 +47,14 @@ jobs:
     
     - name: Build backend
       run: |
+        echo "🔧 Building backend..."
         cd backend
+        ls -la package*.json
         npm config set registry https://registry.npmjs.org/
         npm install --no-optional --prefer-offline || npm install --no-optional || npm install
+        echo "✅ Backend dependencies installed"
         npm run build
+        echo "✅ Backend build completed"
     
     - name: Test build
       run: |
