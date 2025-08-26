@@ -61,11 +61,6 @@
     "NODE_OPTIONS": "--max-old-space-size=4096"
   },
   "framework": "create-react-app",
-  "functions": {
-    "app/api/**/*.js": {
-      "maxDuration": 30
-    }
-  },
   "build": {
     "env": {
       "NPM_CONFIG_PROGRESS": "false",
