@@ -462,10 +462,12 @@ router.post('/webhook', async (req, res) => {
                     const [datePart, timePart] = dateStr.split(' ');
                     const [day, month, year] = datePart.split('.');
                     // Vytvor dátum explicitne v slovenskom timezone
-                    // Pridaj +01:00 pre CET alebo +02:00 pre CEST
-                    const now = new Date();
-                    const isWinter = now.getMonth() < 2 || now.getMonth() > 9; // Zjednodušené DST
-                    const timezone = isWinter ? '+01:00' : '+02:00';
+                    const date = new Date(`${year}-${month}-${day}`);
+                    const monthNum = date.getMonth(); // 0-11
+                    // DST: marec (2) až október (9) = letný čas (+02:00)
+                    // november (10) až február (1) = zimný čas (+01:00)
+                    const isSummer = monthNum >= 2 && monthNum <= 9;
+                    const timezone = isSummer ? '+02:00' : '+01:00';
                     return new Date(`${year}-${month}-${day}T${timePart}${timezone}`);
                 };
                 startDate = parseDate(parsedData.handoverDate);
@@ -483,10 +485,19 @@ router.post('/webhook', async (req, res) => {
         }
         else if (parsedData.reservationTime) {
             // Fallback na starý formát
-            const timeMatch = parsedData.reservationTime.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) - (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
+            const timeMatch = parsedData.reservationTime.match(/(\d{4}-\d{2}-\d{2}[\s\n]+\d{2}:\d{2}:\d{2}) - (\d{4}-\d{2}-\d{2}[\s\n]+\d{2}:\d{2}:\d{2})/);
             if (timeMatch) {
-                startDate = new Date(timeMatch[1]);
-                endDate = new Date(timeMatch[2]);
+                // Parsuj časy presne ako prichádzajú v emaili - ako UTC aby sa nezmenili
+                const parseAsPlainTime = (dateStr) => {
+                    // Nahraď newline medzi dátumom a časom medzerou
+                    const cleanDateStr = dateStr.replace(/\n/g, ' ');
+                    const [datePart, timePart] = cleanDateStr.split(' ');
+                    const [year, month, day] = datePart.split('-');
+                    // Vytvor dátum ako UTC aby sa nezmenil časový posun
+                    return new Date(`${year}-${month}-${day}T${timePart}Z`);
+                };
+                startDate = parseAsPlainTime(timeMatch[1]);
+                endDate = parseAsPlainTime(timeMatch[2]);
                 logger_1.logger.info('✅ Parsed dates from reservationTime (legacy):', {
                     startDate: startDate.toISOString(),
                     endDate: endDate.toISOString()

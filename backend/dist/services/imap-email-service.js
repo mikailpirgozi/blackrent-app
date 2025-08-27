@@ -522,10 +522,19 @@ class ImapEmailService {
             let startDate = new Date();
             let endDate = new Date();
             if (parsedData.reservationTime) {
-                const timeMatch = parsedData.reservationTime.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) - (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
+                const timeMatch = parsedData.reservationTime.match(/(\d{4}-\d{2}-\d{2}[\s\n]+\d{2}:\d{2}:\d{2}) - (\d{4}-\d{2}-\d{2}[\s\n]+\d{2}:\d{2}:\d{2})/);
                 if (timeMatch) {
-                    startDate = new Date(timeMatch[1]);
-                    endDate = new Date(timeMatch[2]);
+                    // Parsuj časy presne ako prichádzajú v emaili - ako UTC aby sa nezmenili
+                    const parseAsPlainTime = (dateStr) => {
+                        // Nahraď newline medzi dátumom a časom medzerou
+                        const cleanDateStr = dateStr.replace(/\n/g, ' ');
+                        const [datePart, timePart] = cleanDateStr.split(' ');
+                        const [year, month, day] = datePart.split('-');
+                        // Vytvor dátum ako UTC aby sa nezmenil časový posun
+                        return new Date(`${year}-${month}-${day}T${timePart}Z`);
+                    };
+                    startDate = parseAsPlainTime(timeMatch[1]);
+                    endDate = parseAsPlainTime(timeMatch[2]);
                 }
             }
             // Určenie spôsobu platby - identické s manuálnym

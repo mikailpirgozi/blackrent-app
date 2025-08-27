@@ -262,13 +262,22 @@ router.post('/:id/approve',
                 const startStr = dateParts[0].trim();
                 const endStr = dateParts[1].trim();
                 
-                // Parse Slovak date format YYYY-MM-DD HH:mm:ss
-                if (startStr.match(/\d{4}-\d{2}-\d{2}/)) {
-                  startDate = new Date(startStr).toISOString();
-                }
-                if (endStr.match(/\d{4}-\d{2}-\d{2}/)) {
-                  endDate = new Date(endStr).toISOString();
-                }
+                // Parse časy presne ako prichádzajú v emaili - ako UTC aby sa nezmenili
+                const parseAsPlainTime = (dateStr: string) => {
+                  if (dateStr.match(/\d{4}-\d{2}-\d{2}/)) {
+                    // Nahraď newline medzi dátumom a časom medzerou
+                    const cleanDateStr = dateStr.replace(/\n/g, ' ');
+                    const [datePart, timePart] = cleanDateStr.split(' ');
+                    const [year, month, day] = datePart.split('-');
+                    
+                    // Vytvor dátum ako UTC aby sa nezmenil časový posun
+                    return new Date(`${year}-${month}-${day}T${timePart}Z`).toISOString();
+                  }
+                  return new Date().toISOString();
+                };
+                
+                startDate = parseAsPlainTime(startStr);
+                endDate = parseAsPlainTime(endStr);
               }
             } catch (dateError) {
               console.log('⚠️ Date parsing error, using defaults:', dateError);
