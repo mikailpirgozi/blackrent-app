@@ -203,12 +203,15 @@ export class PDFLibCustomFontGenerator {
     }
     
     // 8. Obrázky vozidla 🖼️
+    console.log('🖼️ DEBUG: Volám addImagesSection pre vehicleImages:', protocol.vehicleImages?.length || 0);
     await this.addImagesSection('🚗 FOTKY VOZIDLA', protocol.vehicleImages || []);
     
     // 9. Obrázky dokumentov 🖼️
+    console.log('🖼️ DEBUG: Volám addImagesSection pre documentImages:', protocol.documentImages?.length || 0);
     await this.addImagesSection('📄 FOTKY DOKUMENTOV', protocol.documentImages || []);
     
     // 10. Obrázky poškodení 🖼️  
+    console.log('🖼️ DEBUG: Volám addImagesSection pre damageImages:', protocol.damageImages?.length || 0);
     await this.addImagesSection('⚠️ FOTKY POŠKODENÍ', protocol.damageImages || []);
     
     // 11. Podpisy
@@ -734,6 +737,56 @@ export class PDFLibCustomFontGenerator {
   }
 
   /**
+   * 🔍 Detekcia formátu obrázka podľa magic bytes
+   */
+  private detectImageFormat(bytes: Uint8Array): { format: string; mimeType: string } {
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+      return { format: 'png', mimeType: 'image/png' };
+    }
+    
+    // JPEG: FF D8 FF
+    if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+      return { format: 'jpeg', mimeType: 'image/jpeg' };
+    }
+    
+    // WebP: RIFF ... WEBP
+    if (bytes.length >= 12 && 
+        bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 && // RIFF
+        bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) { // WEBP
+      return { format: 'webp', mimeType: 'image/webp' };
+    }
+    
+    // GIF: GIF87a alebo GIF89a
+    if (bytes.length >= 6 && 
+        bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && // GIF
+        bytes[3] === 0x38 && (bytes[4] === 0x37 || bytes[4] === 0x39) && bytes[5] === 0x61) {
+      return { format: 'gif', mimeType: 'image/gif' };
+    }
+    
+    return { format: 'unknown', mimeType: 'application/octet-stream' };
+  }
+
+  /**
+   * 🔄 Konverzia WebP na JPEG pomocou Sharp
+   */
+  private async convertWebPToJpeg(webpBytes: Uint8Array): Promise<Uint8Array | null> {
+    try {
+      const sharp = require('sharp');
+      
+      // Konvertuj WebP na JPEG s kvalitou 85%
+      const jpegBuffer = await sharp(Buffer.from(webpBytes))
+        .jpeg({ quality: 85, mozjpeg: true })
+        .toBuffer();
+      
+      return new Uint8Array(jpegBuffer);
+    } catch (error) {
+      console.error('❌ Error converting WebP to JPEG:', error);
+      return null;
+    }
+  }
+
+  /**
    * 🖼️ Stiahnutie obrázka z R2 URL alebo konverzia z base64
    */
   private async downloadImageFromR2(imageUrl: string): Promise<Uint8Array | null> {
@@ -750,6 +803,24 @@ export class PDFLibCustomFontGenerator {
         
         const uint8Array = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
         console.log(`✅ Base64 image converted: ${uint8Array.length} bytes`);
+        
+        // 🔍 DETEKCIA SKUTOČNÉHO FORMÁTU PODĽA MAGIC BYTES
+        const formatInfo = this.detectImageFormat(uint8Array);
+        console.log(`🔍 Detected image format: ${formatInfo.format} (MIME: ${formatInfo.mimeType})`);
+        
+        // 🔄 KONVERZIA WebP → JPEG ak je potrebná
+        if (formatInfo.format === 'webp') {
+          console.log('🔄 Converting WebP to JPEG for PDF compatibility...');
+          const convertedBytes = await this.convertWebPToJpeg(uint8Array);
+          if (convertedBytes) {
+            console.log(`✅ WebP converted to JPEG: ${convertedBytes.length} bytes`);
+            return convertedBytes;
+          } else {
+            console.log('⚠️ WebP conversion not available, will use placeholder');
+            return null; // Vráti null aby sa použil placeholder
+          }
+        }
+        
         return uint8Array;
         
       } else if (imageUrl.startsWith('http')) {
@@ -783,7 +854,11 @@ export class PDFLibCustomFontGenerator {
    * 🖼️ Pridanie obrázkov do PDF pomocou pdf-lib - MODERNÝ DESIGN
    */
   private async addImagesSection(title: string, images: any[]): Promise<void> {
+    console.log(`🖼️ DEBUG: addImagesSection called with title: ${title}, images count: ${images?.length || 0}`);
+    console.log(`🖼️ DEBUG: First image sample:`, images?.[0] ? { id: images[0].id, url: images[0].url?.substring(0, 50) + '...', type: images[0].type } : 'No images');
+    
     if (!images || images.length === 0) {
+      console.log(`🖼️ DEBUG: No images found for ${title}, adding placeholder`);
       // Jednoduchá sekcia pre prázdne obrázky
       this.currentPage.drawText(title, {
         x: this.margin,
@@ -835,8 +910,8 @@ export class PDFLibCustomFontGenerator {
         const imageBytes = await this.downloadImageFromR2(image.url);
         
         if (!imageBytes) {
-          // Placeholder pre chybný obrázok
-          await this.addImagePlaceholderInGrid(i + 1, 'Obrázok sa nepodarilo načítať', currentCol, actualMaxWidth, 100);
+          // Placeholder pre chybný obrázok alebo nepodporovaný formát
+          await this.addImagePlaceholderInGrid(i + 1, 'WebP formát - konverzia nedostupná', currentCol, actualMaxWidth, 100);
           this.moveToNextGridPosition();
           continue;
         }
