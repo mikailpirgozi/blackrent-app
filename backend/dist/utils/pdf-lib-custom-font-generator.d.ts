@@ -92,6 +92,14 @@ export declare class PDFLibCustomFontGenerator {
      */
     private getStatusText;
     /**
+     * 🔍 Detekcia formátu obrázka podľa magic bytes
+     */
+    private detectImageFormat;
+    /**
+     * 🔄 Konverzia WebP na JPEG pomocou Sharp
+     */
+    private convertWebPToJpeg;
+    /**
      * 🖼️ Stiahnutie obrázka z R2 URL alebo konverzia z base64
      */
     private downloadImageFromR2;

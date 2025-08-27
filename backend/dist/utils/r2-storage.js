@@ -226,48 +226,51 @@ class R2Storage {
         return `${folderName}/${timestamp}/${protocolId}/${sanitizedFilename}`;
     }
     /**
-     * Mazanie všetkých súborov protokolu
+     * Mazanie všetkých súborov protokolu (nová aj stará štruktúra)
      */
     async deleteProtocolFiles(protocolId) {
         try {
-            // Zmené cesty pre slovenské názvy priečinkov
-            const prefixesToDelete = [
-                `PDF protokoly/*/${protocolId}/*`,
-                `Fotky protokoly/vozidlo/*/${protocolId}/*`,
-                `Fotky protokoly/dokumenty/*/${protocolId}/*`,
-                `Fotky protokoly/poskodenia/*/${protocolId}/*`,
-                `Fotky protokoly/videa-vozidlo/*/${protocolId}/*`
-            ];
-            const deletePromises = prefixesToDelete.map(async (prefix) => {
-                try {
-                    console.log(`🗑️ Mazanie súborov s prefixom: ${prefix}`);
-                    const listCommand = new client_s3_1.ListObjectsV2Command({
-                        Bucket: this.config.bucketName,
-                        Prefix: prefix.replace(/\/\*\//g, '/').replace(/\/\*/g, '')
-                    });
-                    const objects = await this.client.send(listCommand);
-                    if (objects.Contents && objects.Contents.length > 0) {
-                        // AWS SDK v3 vyžaduje individuálne mazanie súborov
-                        const deleteFilePromises = objects.Contents.map((obj) => {
-                            if (obj.Key) {
-                                const deleteCommand = new client_s3_1.DeleteObjectCommand({
-                                    Bucket: this.config.bucketName,
-                                    Key: obj.Key
-                                });
-                                return this.client.send(deleteCommand);
-                            }
-                            return Promise.resolve();
+            console.log(`🗑️ Mazanie všetkých súborov pre protokol: ${protocolId}`);
+            // 🔍 UNIVERZÁLNE HĽADANIE: Hľadáme súbory obsahujúce protocolId v ceste
+            const listCommand = new client_s3_1.ListObjectsV2Command({
+                Bucket: this.config.bucketName,
+                // Hľadáme všetky súbory ktoré obsahujú protocolId v ceste
+                Prefix: '', // Začneme od root-u
+                MaxKeys: 1000
+            });
+            const objects = await this.client.send(listCommand);
+            if (!objects.Contents || objects.Contents.length === 0) {
+                console.log(`⚠️ Žiadne súbory nenájdené pre protokol: ${protocolId}`);
+                return;
+            }
+            // Filtruj súbory ktoré obsahujú protocolId v ceste
+            const protocolFiles = objects.Contents.filter(obj => obj.Key && obj.Key.includes(protocolId));
+            if (protocolFiles.length === 0) {
+                console.log(`⚠️ Žiadne súbory s protocolId ${protocolId} nenájdené`);
+                return;
+            }
+            console.log(`🔍 Našiel som ${protocolFiles.length} súborov pre protokol ${protocolId}:`);
+            protocolFiles.forEach(file => {
+                console.log(`  📄 ${file.Key}`);
+            });
+            // Vymaž všetky nájdené súbory
+            const deletePromises = protocolFiles.map(async (obj) => {
+                if (obj.Key) {
+                    try {
+                        const deleteCommand = new client_s3_1.DeleteObjectCommand({
+                            Bucket: this.config.bucketName,
+                            Key: obj.Key
                         });
-                        await Promise.all(deleteFilePromises);
-                        console.log(`✅ Vymazané ${objects.Contents.length} súborov pre prefix: ${prefix}`);
+                        await this.client.send(deleteCommand);
+                        console.log(`✅ Vymazaný súbor: ${obj.Key}`);
                     }
-                }
-                catch (error) {
-                    console.error(`❌ Chyba pri mazaní súborov pre ${prefix}:`, error);
+                    catch (error) {
+                        console.error(`❌ Chyba pri mazaní súboru ${obj.Key}:`, error);
+                    }
                 }
             });
             await Promise.all(deletePromises);
-            console.log(`✅ Všetky súbory protokolu ${protocolId} vymazané`);
+            console.log(`✅ Všetky súbory protokolu ${protocolId} vymazané (${protocolFiles.length} súborov)`);
         }
         catch (error) {
             console.error('❌ Chyba pri mazaní súborov protokolu:', error);

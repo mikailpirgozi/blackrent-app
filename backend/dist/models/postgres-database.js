@@ -3590,11 +3590,41 @@ class PostgresDatabase {
                 // 2. Vyčisti email_processing_history záznamy
                 const emailHistoryResult = await client.query('DELETE FROM email_processing_history WHERE rental_id = $1', [id]);
                 logger_1.logger.migration(`🧹 Deleted ${emailHistoryResult.rowCount || 0} email history records`);
-                // 2. Vyčisti protokoly ak existujú
+                // 2. Vyčisti protokoly ak existujú (vrátane R2 súborov)
+                // Najprv získaj všetky protokoly pre tento rental
+                const handoverProtocols = await client.query('SELECT id FROM handover_protocols WHERE rental_id = $1', [id]);
+                const returnProtocols = await client.query('SELECT id FROM return_protocols WHERE rental_id = $1', [id]);
+                // Vymaž handover protokoly vrátane R2 súborov
+                let handoverDeletedCount = 0;
+                for (const protocol of handoverProtocols.rows) {
+                    try {
+                        // Vymaž súbory z R2 storage
+                        await r2_storage_1.r2Storage.deleteProtocolFiles(protocol.id);
+                        logger_1.logger.migration(`✅ R2 files deleted for handover protocol: ${protocol.id}`);
+                    }
+                    catch (error) {
+                        console.error(`❌ Error deleting R2 files for handover protocol ${protocol.id}:`, error);
+                    }
+                    handoverDeletedCount++;
+                }
+                // Vymaž return protokoly vrátane R2 súborov
+                let returnDeletedCount = 0;
+                for (const protocol of returnProtocols.rows) {
+                    try {
+                        // Vymaž súbory z R2 storage
+                        await r2_storage_1.r2Storage.deleteProtocolFiles(protocol.id);
+                        logger_1.logger.migration(`✅ R2 files deleted for return protocol: ${protocol.id}`);
+                    }
+                    catch (error) {
+                        console.error(`❌ Error deleting R2 files for return protocol ${protocol.id}:`, error);
+                    }
+                    returnDeletedCount++;
+                }
+                // Teraz vymaž protokoly z databázy
                 const handoverResult = await client.query('DELETE FROM handover_protocols WHERE rental_id = $1', [id]);
-                logger_1.logger.migration(`🧹 Deleted ${handoverResult.rowCount || 0} handover protocols`);
+                logger_1.logger.migration(`🧹 Deleted ${handoverResult.rowCount || 0} handover protocols from DB + ${handoverDeletedCount} R2 file sets`);
                 const returnResult = await client.query('DELETE FROM return_protocols WHERE rental_id = $1', [id]);
-                logger_1.logger.migration(`🧹 Deleted ${returnResult.rowCount || 0} return protocols`);
+                logger_1.logger.migration(`🧹 Deleted ${returnResult.rowCount || 0} return protocols from DB + ${returnDeletedCount} R2 file sets`);
                 // 3. Teraz môžeme bezpečne zmazať rental
                 const result = await client.query('DELETE FROM rentals WHERE id = $1', [id]);
                 // 🛡️ OCHRANA LEVEL 6: Verify delete success

@@ -35,7 +35,7 @@ declare class R2Storage {
      */
     generateProtocolMediaKey(protocolId: string, mediaType: 'vehicle-images' | 'document-images' | 'damage-images' | 'vehicle-videos', filename: string): string;
     /**
-     * Mazanie všetkých súborov protokolu
+     * Mazanie všetkých súborov protokolu (nová aj stará štruktúra)
      */
     deleteProtocolFiles(protocolId: string): Promise<void>;
     /**
