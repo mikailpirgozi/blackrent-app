@@ -25,6 +25,7 @@ export interface Vehicle {
   assignedMechanicId?: string; // 🔨 ID priradeného mechanika
   stk?: Date; // 📋 STK platnosť do
   imageUrl?: string; // 🖼️ URL obrázka vozidla
+  extraKilometerRate?: number; // 🚗 Cena za každý km nad povolený limit
 }
 
 export interface PricingTier {

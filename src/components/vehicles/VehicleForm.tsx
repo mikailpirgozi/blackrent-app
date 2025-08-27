@@ -60,6 +60,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
     commission: { type: 'percentage', value: 20 },
     status: 'available',
     category: 'stredna-trieda' as VehicleCategory, // Default kategória
+    extraKilometerRate: 0.30, // 🚗 Default cena za extra km
   });
   const [addingCompany, setAddingCompany] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
@@ -137,6 +138,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
       commission: formData.commission || { type: 'percentage', value: 20 },
       status: formData.status || 'available',
       category: formData.category || 'stredna-trieda',
+      extraKilometerRate: formData.extraKilometerRate || 0.30, // 🚗 NOVÉ: Extra kilometer rate
     };
     onSave(completeVehicle);
   };
@@ -489,6 +491,24 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
                   />
                 </Box>
               ))}
+              
+              {/* 🚗 NOVÉ: Extra kilometer rate */}
+              <Divider sx={{ my: 2 }} />
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <TextField
+                  label="Cena za extra km (€/km)"
+                  type="number"
+                  value={formData.extraKilometerRate || 0.30}
+                  onChange={(e) => handleInputChange('extraKilometerRate', parseFloat(e.target.value) || 0.30)}
+                  sx={{ width: 200 }}
+                  inputProps={{ 
+                    step: 0.01, 
+                    min: 0,
+                    max: 10 
+                  }}
+                  helperText="Cena za každý kilometer nad povolený limit"
+                />
+              </Box>
             </CardContent>
           </Card>
         </Box>

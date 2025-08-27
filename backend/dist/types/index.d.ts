@@ -16,12 +16,17 @@ export interface Vehicle {
     assignedMechanicId?: string;
     stk?: Date;
     createdAt?: Date;
+    extraKilometerRate?: number;
 }
 export interface PricingTier {
     id: string;
     minDays: number;
     maxDays: number;
     pricePerDay: number;
+}
+export interface VehiclePricing {
+    tiers: PricingTier[];
+    extraKilometerRate: number;
 }
 export interface Commission {
     type: 'percentage' | 'fixed';

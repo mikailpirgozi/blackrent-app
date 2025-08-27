@@ -331,16 +331,29 @@ router.post('/:id/approve',
             }
           }
           
-          // Find vehicle by code
+          // Find vehicle by code and get extraKilometerRate
           let vehicleId = null;
+          let extraKilometerRate = 0.30; // Default hodnota
           if (parsedData.vehicleCode) {
             try {
               const vehicleResult = await postgresDatabase.query(`
-                SELECT id FROM vehicles WHERE license_plate = $1 OR license_plate = $2
+                SELECT id, pricing FROM vehicles WHERE license_plate = $1 OR license_plate = $2
               `, [parsedData.vehicleCode, parsedData.vehicleCode.toUpperCase()]);
               
               if (vehicleResult.rows.length > 0) {
                 vehicleId = vehicleResult.rows[0].id;
+                
+                // 🚗 NOVÉ: Extrahovanie extraKilometerRate z pricing JSONB
+                const pricing = vehicleResult.rows[0].pricing;
+                if (Array.isArray(pricing)) {
+                  // Hľadáme posledný extraKilometerRate objekt (najnovší)
+                  const extraKmObjects = pricing.filter(item => item.extraKilometerRate !== undefined);
+                  if (extraKmObjects.length > 0) {
+                    const lastExtraKmObj = extraKmObjects[extraKmObjects.length - 1];
+                    extraKilometerRate = parseFloat(lastExtraKmObj.extraKilometerRate) || 0.30;
+                    console.log(`🚗 Using vehicle extra km rate: ${extraKilometerRate}€/km for ${parsedData.vehicleCode}`);
+                  }
+                }
               }
             } catch (vehicleError) {
               console.log('⚠️ Vehicle lookup error:', vehicleError);
@@ -374,8 +387,8 @@ router.post('/:id/approve',
             parsedData.orderNumber,
             paymentMethod,
             allowedKilometers,
-            0.30, // Default extra km rate
-            `Email: ${parsedData.customerEmail}, Telefón: ${parsedData.customerPhone}, Vozidlo: ${parsedData.vehicleName} (${parsedData.vehicleCode}), Denné km: ${parsedData.dailyKilometers}`
+            extraKilometerRate, // 🚗 NOVÉ: Extra km rate z vozidla
+            `Email: ${parsedData.customerEmail}, Telefón: ${parsedData.customerPhone}, Vozidlo: ${parsedData.vehicleName} (${parsedData.vehicleCode}), Denné km: ${parsedData.dailyKilometers}, Extra km: ${extraKilometerRate}€/km`
           ]);
 
           const rentalId = result.rows[0].id;

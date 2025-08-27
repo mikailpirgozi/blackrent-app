@@ -228,7 +228,7 @@ router.post('/',
   invalidateCache('vehicle'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { brand, model, licensePlate, vin, company, pricing, commission, status, year } = req.body;
+    const { brand, model, licensePlate, vin, company, pricing, commission, status, year, extraKilometerRate } = req.body;
 
     if (!brand || !model || !company) {
       return res.status(400).json({
@@ -246,7 +246,8 @@ router.post('/',
       company,
       pricing: pricing || [],
       commission: commission || { type: 'percentage', value: 0 },
-      status: status || 'available'
+      status: status || 'available',
+      extraKilometerRate: extraKilometerRate || 0.30 // 🚗 NOVÉ: Extra kilometer rate
     });
 
     res.status(201).json({
@@ -273,7 +274,7 @@ router.put('/:id',
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const { brand, model, licensePlate, vin, company, category, pricing, commission, status, year, stk } = req.body;
+    const { brand, model, licensePlate, vin, company, category, pricing, commission, status, year, stk, extraKilometerRate } = req.body;
 
     // Skontroluj, či vozidlo existuje
     const existingVehicle = await postgresDatabase.getVehicle(id);
@@ -297,6 +298,7 @@ router.put('/:id',
       status: status || existingVehicle.status,
       year: year !== undefined ? year : existingVehicle.year,
       stk: stk !== undefined ? (stk ? new Date(stk) : undefined) : existingVehicle.stk,
+      extraKilometerRate: extraKilometerRate !== undefined ? extraKilometerRate : existingVehicle.extraKilometerRate, // 🚗 NOVÉ: Extra kilometer rate
       ownerCompanyId: existingVehicle.ownerCompanyId,
       assignedMechanicId: existingVehicle.assignedMechanicId,
       createdAt: existingVehicle.createdAt

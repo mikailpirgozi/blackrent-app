@@ -266,13 +266,22 @@ export default function RentalForm({ rental, onSave, onCancel, isLoading = false
   useEffect(() => {
     if (formData.vehicleId) {
       const vehicle = state.vehicles.find(v => v.id === formData.vehicleId);
-      if (vehicle && vehicle.id !== selectedVehicle?.id) {
-        setSelectedVehicle(vehicle);
+      
+      if (vehicle) {
+        // Nastav selectedVehicle ak ešte nie je nastavené
+        if (vehicle.id !== selectedVehicle?.id) {
+          setSelectedVehicle(vehicle);
+        }
+        
+        // 🚗 Automaticky nastav extraKilometerRate z vozidla
+        if (vehicle.extraKilometerRate !== undefined && !preserveImportedValues && extraKilometerRate === 0) {
+          setExtraKilometerRate(vehicle.extraKilometerRate);
+        }
       }
     } else if (selectedVehicle) {
       setSelectedVehicle(null);
     }
-  }, [formData.vehicleId, state.vehicles, selectedVehicle?.id]);
+  }, [formData.vehicleId, state.vehicles, selectedVehicle?.id, preserveImportedValues, extraKilometerRate]);
 
   const handleInputChange = (field: keyof Rental, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));

@@ -187,7 +187,7 @@ router.get('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
 // POST /api/vehicles - Vytvorenie nového vozidla s cache invalidation
 router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'create'), (0, cache_middleware_1.invalidateCache)('vehicle'), async (req, res) => {
     try {
-        const { brand, model, licensePlate, vin, company, pricing, commission, status, year } = req.body;
+        const { brand, model, licensePlate, vin, company, pricing, commission, status, year, extraKilometerRate } = req.body;
         if (!brand || !model || !company) {
             return res.status(400).json({
                 success: false,
@@ -203,7 +203,8 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('v
             company,
             pricing: pricing || [],
             commission: commission || { type: 'percentage', value: 0 },
-            status: status || 'available'
+            status: status || 'available',
+            extraKilometerRate: extraKilometerRate || 0.30 // 🚗 NOVÉ: Extra kilometer rate
         });
         res.status(201).json({
             success: true,
@@ -224,7 +225,7 @@ router.post('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('v
 router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)('vehicles', 'update', { getContext: getVehicleContext }), (0, cache_middleware_1.invalidateCache)('vehicle'), async (req, res) => {
     try {
         const { id } = req.params;
-        const { brand, model, licensePlate, vin, company, category, pricing, commission, status, year, stk } = req.body;
+        const { brand, model, licensePlate, vin, company, category, pricing, commission, status, year, stk, extraKilometerRate } = req.body;
         // Skontroluj, či vozidlo existuje
         const existingVehicle = await postgres_database_1.postgresDatabase.getVehicle(id);
         if (!existingVehicle) {
@@ -246,6 +247,7 @@ router.put('/:id', auth_1.authenticateToken, (0, permissions_1.checkPermission)(
             status: status || existingVehicle.status,
             year: year !== undefined ? year : existingVehicle.year,
             stk: stk !== undefined ? (stk ? new Date(stk) : undefined) : existingVehicle.stk,
+            extraKilometerRate: extraKilometerRate !== undefined ? extraKilometerRate : existingVehicle.extraKilometerRate, // 🚗 NOVÉ: Extra kilometer rate
             ownerCompanyId: existingVehicle.ownerCompanyId,
             assignedMechanicId: existingVehicle.assignedMechanicId,
             createdAt: existingVehicle.createdAt

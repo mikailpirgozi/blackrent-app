@@ -62,6 +62,7 @@ export declare class PostgresDatabase {
         commission: any;
         status: string;
         year?: number;
+        extraKilometerRate?: number;
     }): Promise<Vehicle>;
     updateVehicle(vehicle: Vehicle): Promise<void>;
     deleteVehicle(id: string): Promise<void>;

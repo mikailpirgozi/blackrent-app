@@ -2307,22 +2307,43 @@ export class PostgresDatabase {
          ORDER BY v.created_at DESC`
       );
       
-      const vehicles = result.rows.map(row => ({
-        id: row.id?.toString() || '',
-        brand: row.brand,
-        model: row.model,
-        year: row.year,
-        licensePlate: row.license_plate, // Mapovanie column názvu
-        vin: row.vin || null, // 🆔 VIN číslo mapovanie
-        company: row.company_name || row.company || 'N/A', // 🚀 OPTIMALIZOVANÉ: Používa company_name z JOIN
-        category: row.category || null, // 🚗 Mapovanie category
-        ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
-        pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
-        commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
-        status: row.status,
-        stk: row.stk ? new Date(row.stk) : undefined, // 📋 STK date mapping
-        createdAt: new Date(row.created_at)
-      }));
+      const vehicles = result.rows.map(row => {
+        // Parsovanie pricing JSONB
+        const pricing = typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing;
+        
+        // Extrahovanie extraKilometerRate z pricing JSONB
+        let extraKilometerRate = 0.30; // Default hodnota
+        if (Array.isArray(pricing)) {
+          // Ak je pricing array, hľadáme posledný extraKilometerRate objekt (najnovší)
+          const extraKmObjects = pricing.filter(item => item.extraKilometerRate !== undefined);
+          if (extraKmObjects.length > 0) {
+            const lastExtraKmObj = extraKmObjects[extraKmObjects.length - 1];
+            extraKilometerRate = parseFloat(lastExtraKmObj.extraKilometerRate) || 0.30;
+          }
+        } else if (pricing && typeof pricing === 'object' && pricing.extraKilometerRate !== undefined) {
+          // Ak je pricing objekt s extraKilometerRate
+          extraKilometerRate = parseFloat(pricing.extraKilometerRate) || 0.30;
+        }
+
+        return {
+          id: row.id?.toString() || '',
+          brand: row.brand,
+          model: row.model,
+          year: row.year,
+          licensePlate: row.license_plate, // Mapovanie column názvu
+          vin: row.vin || null, // 🆔 VIN číslo mapovanie
+          company: row.company_name || row.company || 'N/A', // 🚀 OPTIMALIZOVANÉ: Používa company_name z JOIN
+          category: row.category || null, // 🚗 Mapovanie category
+          ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
+          pricing: Array.isArray(pricing) ? pricing.filter(item => item.extraKilometerRate === undefined) : pricing, // Odstránenie extraKilometerRate z pricing array
+          commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
+          status: row.status,
+          stk: row.stk ? new Date(row.stk) : undefined, // 📋 STK date mapping
+          createdAt: new Date(row.created_at),
+          // 🚗 NOVÉ: Extra kilometer rate z pricing JSONB
+          extraKilometerRate: extraKilometerRate
+        };
+      });
 
       logger.migration(`🚀 N+1 OPTIMIZED: Loaded ${vehicles.length} vehicles with companies in 1 query (was ${vehicles.length + 1} queries)`);
 
@@ -2349,6 +2370,24 @@ export class PostgresDatabase {
       if (result.rows.length === 0) return null;
       
       const row = result.rows[0];
+      
+      // Parsovanie pricing JSONB
+      const pricing = typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing;
+      
+      // Extrahovanie extraKilometerRate z pricing JSONB
+      let extraKilometerRate = 0.30; // Default hodnota
+      if (Array.isArray(pricing)) {
+        // Ak je pricing array, hľadáme posledný extraKilometerRate objekt (najnovší)
+        const extraKmObjects = pricing.filter(item => item.extraKilometerRate !== undefined);
+        if (extraKmObjects.length > 0) {
+          const lastExtraKmObj = extraKmObjects[extraKmObjects.length - 1];
+          extraKilometerRate = parseFloat(lastExtraKmObj.extraKilometerRate) || 0.30;
+        }
+      } else if (pricing && typeof pricing === 'object' && pricing.extraKilometerRate !== undefined) {
+        // Ak je pricing objekt s extraKilometerRate
+        extraKilometerRate = parseFloat(pricing.extraKilometerRate) || 0.30;
+      }
+      
       return {
         id: row.id.toString(),
         brand: row.brand,
@@ -2359,9 +2398,11 @@ export class PostgresDatabase {
         company: row.company_name || row.company || 'N/A', // 🚀 OPTIMALIZOVANÉ: Používa company_name z JOIN
         category: row.category || null, // 🚗 Mapovanie category
         ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
-        pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing, // Parsovanie JSON
+        pricing: Array.isArray(pricing) ? pricing.filter(item => item.extraKilometerRate === undefined) : pricing, // Odstránenie extraKilometerRate z pricing array
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
         status: row.status,
+        // 🚗 NOVÉ: Extra kilometer rate z pricing JSONB
+        extraKilometerRate: extraKilometerRate,
         stk: row.stk ? new Date(row.stk) : undefined, // 📋 STK date mapping
         createdAt: new Date(row.created_at)
       };
@@ -2380,6 +2421,7 @@ export class PostgresDatabase {
     commission: any;
     status: string;
     year?: number;
+    extraKilometerRate?: number; // 🚗 NOVÉ: Extra kilometer rate
   }): Promise<Vehicle> {
     const client = await this.pool.connect();
     try {
@@ -2431,6 +2473,14 @@ export class PostgresDatabase {
         }
       }
 
+      // 🚗 NOVÉ: Pridanie extraKilometerRate do pricing JSONB
+      const pricingWithExtraKm = [...vehicleData.pricing];
+      if (vehicleData.extraKilometerRate !== undefined) {
+        pricingWithExtraKm.push({ extraKilometerRate: vehicleData.extraKilometerRate });
+      } else {
+        pricingWithExtraKm.push({ extraKilometerRate: 0.30 }); // Default hodnota
+      }
+
       // ✅ OPRAVENÉ: Používame company_id (nie owner_company_id) + VIN
       const result = await client.query(
         'INSERT INTO vehicles (brand, model, year, license_plate, vin, company, company_id, pricing, commission, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, brand, model, year, license_plate, vin, company, company_id, pricing, commission, status, created_at',
@@ -2442,7 +2492,7 @@ export class PostgresDatabase {
           vehicleData.vin || null, // 🆕 VIN číslo
           vehicleData.company,
           ownerCompanyId, // 🆕 Správne company_id (nie owner_company_id)
-          JSON.stringify(vehicleData.pricing),
+          JSON.stringify(pricingWithExtraKm), // 🚗 NOVÉ: Pricing s extraKilometerRate
           JSON.stringify(defaultCommission),
           vehicleData.status
         ]
@@ -2455,6 +2505,22 @@ export class PostgresDatabase {
       // 🚀 FÁZA 2.3: Calendar cache invalidation po vytvorení vozidla
       this.invalidateCalendarCache();
 
+      // Parsovanie pricing JSONB pre extraKilometerRate
+      const pricing = typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing;
+      let extraKilometerRate = 0.30; // Default hodnota
+      let cleanPricing = pricing;
+      
+      if (Array.isArray(pricing)) {
+        // Ak je pricing array, hľadáme posledný extraKilometerRate objekt (najnovší)
+        const extraKmObjects = pricing.filter(item => item.extraKilometerRate !== undefined);
+        if (extraKmObjects.length > 0) {
+          const lastExtraKmObj = extraKmObjects[extraKmObjects.length - 1];
+          extraKilometerRate = parseFloat(lastExtraKmObj.extraKilometerRate) || 0.30;
+        }
+        // Odstránenie všetkých extraKilometerRate objektov z pricing array
+        cleanPricing = pricing.filter(item => item.extraKilometerRate === undefined);
+      }
+
       return {
         id: row.id.toString(),
         brand: row.brand,
@@ -2464,10 +2530,12 @@ export class PostgresDatabase {
         vin: row.vin, // 🆕 VIN číslo
         company: row.company,
         ownerCompanyId: row.company_id?.toString(), // ✅ OPRAVENÉ: Používame company_id (nie owner_company_id)
-        pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing,
+        pricing: cleanPricing,
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission,
         status: row.status,
-        createdAt: new Date(row.created_at)
+        createdAt: new Date(row.created_at),
+        // 🚗 NOVÉ: Extra kilometer rate
+        extraKilometerRate: extraKilometerRate
       };
     } catch (error) {
       console.error('❌ Detailed createVehicle error:', error);
@@ -2504,6 +2572,17 @@ export class PostgresDatabase {
         }
       }
 
+      // 🚗 NOVÉ: Pridanie extraKilometerRate do pricing JSONB
+      const pricingWithExtraKm: any[] = [...vehicle.pricing];
+      if (vehicle.extraKilometerRate !== undefined) {
+        // Odstráň staré extraKilometerRate objekty
+        const cleanPricing = pricingWithExtraKm.filter((item: any) => item.extraKilometerRate === undefined);
+        // Pridaj nový extraKilometerRate
+        cleanPricing.push({ extraKilometerRate: vehicle.extraKilometerRate });
+        pricingWithExtraKm.length = 0;
+        pricingWithExtraKm.push(...cleanPricing);
+      }
+
       await client.query(
         'UPDATE vehicles SET brand = $1, model = $2, license_plate = $3, vin = $4, company = $5, category = $6, company_id = $7, pricing = $8, commission = $9, status = $10, year = $11, stk = $12 WHERE id = $13',
         [
@@ -2514,7 +2593,7 @@ export class PostgresDatabase {
           vehicle.company,
           vehicle.category || null,
           companyId || null, // 🏢 OPRAVENÉ: Používa aktualizované company_id
-          JSON.stringify(vehicle.pricing),
+          JSON.stringify(pricingWithExtraKm), // 🚗 NOVÉ: Pricing s extraKilometerRate
           JSON.stringify(vehicle.commission),
           vehicle.status,
           vehicle.year || null,

@@ -27,6 +27,8 @@ export interface Vehicle {
   assignedMechanicId?: string; // 🔨 ID priradeného mechanika
   stk?: Date; // 📋 STK platnosť do
   createdAt?: Date;
+  // 🚗 NOVÉ: Extra kilometer rate pre každé vozidlo
+  extraKilometerRate?: number; // Cena za každý km nad povolený limit
 }
 
 export interface PricingTier {
@@ -34,6 +36,12 @@ export interface PricingTier {
   minDays: number;
   maxDays: number;
   pricePerDay: number;
+}
+
+// 🚗 ROZŠÍRENIE: Pricing configuration s extra km rate
+export interface VehiclePricing {
+  tiers: PricingTier[];
+  extraKilometerRate: number; // Cena za každý km nad povolený limit
 }
 
 export interface Commission {
