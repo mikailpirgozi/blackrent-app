@@ -123,16 +123,20 @@ export const useRentalProtocols = ({
 
   // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
   const loadProtocolsForRental = useCallback(async (rentalId: string) => {
-    // Ak už sa načítavajú protokoly pre tento rental, počkaj
+    // Ak už sa načítavajú protokoly pre tento rental, vráť existujúce dáta ak sú dostupné
     if (loadingProtocols.includes(rentalId)) {
-      return null;
+      logger.debug('Protocols already loading for rental', { rentalId });
+      // Vráť existujúce protokoly ak sú dostupné
+      return protocols[rentalId] || null;
     }
     
     logger.debug('Loading protocols for rental', { rentalId });
     setLoadingProtocols(prev => [...prev, rentalId]);
     
     try {
+      logger.debug('🔄 API call starting for rental', { rentalId });
       const data = await apiService.getProtocolsByRental(rentalId);
+      logger.debug('✅ API call completed for rental', { rentalId, hasData: !!data });
       
       // ✅ NAJNOVŠÍ PROTOKOL: Zoradiť podľa createdAt a vziať najnovší
       const latestHandover = data?.handoverProtocols?.length > 0 
@@ -161,20 +165,47 @@ export const useRentalProtocols = ({
         return: latestReturn,
       };
       
+      logger.debug('🔄 Setting protocols state for rental', { rentalId, protocolData });
       setProtocols(prev => ({
         ...prev,
         [rentalId]: protocolData
       }));
       
+      logger.debug('✅ Protocols loaded successfully for rental', { rentalId });
       // ⚡ RETURN načítané dáta pre okamžité použitie
       return protocolData;
     } catch (error) {
-      logger.error('Failed to load protocols', { rentalId, error });
+      logger.error('❌ Failed to load protocols', { rentalId, error });
       return null;
     } finally {
-      setLoadingProtocols(prev => prev.filter(id => id !== rentalId));
+      logger.debug('🧹 Cleaning up loading state for rental', { rentalId });
+      setLoadingProtocols(prev => {
+        const newState = prev.filter(id => id !== rentalId);
+        logger.debug('🧹 Loading protocols updated', { before: prev, after: newState });
+        return newState;
+      });
     }
-  }, [loadingProtocols]);
+  }, [loadingProtocols, protocols]);
+
+  // 🚀 AGGRESSIVE PRELOADING - preloaduje protokoly pre prvých 10 prenájmov
+  const preloadTopProtocols = useCallback(async (rentals: Rental[]) => {
+    if (!rentals || rentals.length === 0) return;
+    
+    // Vezmi prvých 10 prenájmov (najnovšie/najčastejšie používané)
+    const topRentals = rentals.slice(0, 10);
+    
+    console.log(`🚀 PRELOADING: Starting aggressive preload for ${topRentals.length} top rentals...`);
+    
+    // Preloaduj protokoly paralelne (bez await)
+    topRentals.forEach(rental => {
+      if (protocolStatusMap[rental.id]?.hasHandoverProtocol || protocolStatusMap[rental.id]?.hasReturnProtocol) {
+        // Spusti preloading na pozadí bez čakania
+        loadProtocolsForRental(rental.id).catch(error => {
+          console.log(`⚠️ Preload failed for rental ${rental.id}:`, error);
+        });
+      }
+    });
+  }, [protocolStatusMap, loadProtocolsForRental]);
 
   // ⚡ BACKGROUND PROTOCOL LOADING - načíta protocol status na pozadí bez spomalenia
   const loadProtocolStatusInBackground = useCallback(async () => {
@@ -225,14 +256,17 @@ export const useRentalProtocols = ({
     console.log('📝 Creating handover protocol for rental:', rental.id);
     
     try {
-      // Načítaj protokoly ak nie sú načítané
-      await loadProtocolsForRental(rental.id);
-      
+      // ✅ OKAMŽITÉ OTVORENIE: Najprv otvor dialog, potom načítaj protokoly na pozadí
       setSelectedRentalForProtocol(rental);
       setSelectedProtocolType('handover');
       setOpenHandoverDialog(true);
       
       logger.info('Opening handover protocol dialog', { rentalId: rental.id });
+      
+      // Načítaj protokoly na pozadí (bez await)
+      loadProtocolsForRental(rental.id).catch(error => {
+        logger.error('Failed to load protocols in background', { rentalId: rental.id, error });
+      });
       
     } catch (error) {
       logger.error('Failed to prepare handover protocol', { rentalId: rental.id, error });
@@ -244,14 +278,22 @@ export const useRentalProtocols = ({
     console.log('📝 Creating return protocol for rental:', rental.id);
     
     try {
-      // Načítaj protokoly ak nie sú načítané
-      await loadProtocolsForRental(rental.id);
-      
+      // ✅ PRE RETURN PROTOCOL: Najprv otvor dialog, potom načítaj protokoly
       setSelectedRentalForProtocol(rental);
       setSelectedProtocolType('return');
       setOpenReturnDialog(true);
       
       logger.info('Opening return protocol dialog', { rentalId: rental.id });
+      
+      // ✅ NAČÍTAJ PROTOKOLY: Pre return protocol potrebujeme handover protocol
+      loadProtocolsForRental(rental.id).catch(error => {
+        logger.error('Failed to load protocols for return dialog', { rentalId: rental.id, error });
+        // Ak sa nepodarí načítať protokoly, zatvor dialog a zobraz chybu
+        setOpenReturnDialog(false);
+        setSelectedRentalForProtocol(null);
+        setSelectedProtocolType(null);
+        alert('Chyba pri načítavaní protokolov. Skúste to znovu.');
+      });
       
     } catch (error) {
       logger.error('Failed to prepare return protocol', { rentalId: rental.id, error });
@@ -359,6 +401,7 @@ export const useRentalProtocols = ({
     // Protocol handlers
     loadProtocolsForRental,
     loadProtocolStatusInBackground,
+    preloadTopProtocols,
     handleCreateHandover,
     handleCreateReturn,
     handleCloseHandoverDialog,

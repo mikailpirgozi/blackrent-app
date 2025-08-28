@@ -782,6 +782,7 @@ export default function RentalList() {
         galleryVideos={protocolsHook.galleryVideos}
         galleryTitle={protocolsHook.galleryTitle}
         protocols={protocolsHook.protocols}
+        protocolStatusMap={protocolsHook.protocolStatusMap}
         setOpenDialog={setOpenDialog}
         setOpenHandoverDialog={protocolsHook.setOpenHandoverDialog}
         setOpenReturnDialog={protocolsHook.setOpenReturnDialog}

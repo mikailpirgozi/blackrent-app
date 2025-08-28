@@ -39,8 +39,7 @@ import {
   CalendarToday as CalendarIcon,
   Business as BusinessIcon,
   Download as DownloadIcon,
-  Upload as UploadIcon,
-  MergeType as MergeIcon
+  Upload as UploadIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -48,7 +47,6 @@ import { useApp } from '../../context/AppContext';
 import { Customer } from '../../types';
 import CustomerForm from './CustomerForm';
 import CustomerRentalHistory from './CustomerRentalHistory';
-import CustomerMergeManager from './CustomerMergeManager';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
@@ -66,7 +64,6 @@ export default function CustomerListNew() {
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(false);
   const [importError, setImportError] = useState('');
-  const [mergeManagerOpen, setMergeManagerOpen] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   // Filters
@@ -391,14 +388,6 @@ export default function CustomerListNew() {
               </SecondaryButton>
             </>
           )}
-          
-          <SecondaryButton
-            startIcon={<MergeIcon />}
-            onClick={() => setMergeManagerOpen(true)}
-            sx={{ px: 3, py: 1, mr: 2 }}
-          >
-            Zjednotiť duplicity
-          </SecondaryButton>
           
           <PrimaryButton
             startIcon={<AddIcon />}
@@ -1199,30 +1188,6 @@ export default function CustomerListNew() {
           onClose={() => setSelectedCustomerForHistory(null)}
         />
       )}
-
-      {/* Customer Merge Manager Dialog */}
-      <Dialog 
-        open={mergeManagerOpen} 
-        onClose={() => setMergeManagerOpen(false)}
-        maxWidth="lg"
-        fullWidth
-        fullScreen={isMobile}
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <MergeIcon sx={{ mr: 1 }} />
-            Správa duplicitných zákazníkov
-          </Box>
-        </DialogTitle>
-        <DialogContent sx={{ p: 0 }}>
-          <CustomerMergeManager 
-            onMergeComplete={() => {
-              setMergeManagerOpen(false);
-              // Data sa automaticky refreshnú v CustomerMergeManager
-            }}
-          />
-        </DialogContent>
-      </Dialog>
     </Box>
   );
 } 

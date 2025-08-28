@@ -41,6 +41,7 @@ interface RentalDialogsProps {
   
   // Protocols data
   protocols: Record<string, { handover?: any; return?: any }>;
+  protocolStatusMap: Record<string, { hasHandoverProtocol: boolean; hasReturnProtocol: boolean }>;
   
   // Event handlers
   setOpenDialog: (open: boolean) => void;
@@ -77,6 +78,7 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
   
   // Protocols data
   protocols,
+  protocolStatusMap,
   
   // Event handlers
   setOpenDialog,
@@ -172,13 +174,38 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
         <DialogTitle>Preberací protokol</DialogTitle>
         <DialogContent>
           {selectedRentalForProtocol && (
-            <ReturnProtocolForm
-              open={openReturnDialog}
-              onClose={() => setOpenReturnDialog(false)}
-              rental={selectedRentalForProtocol}
-              handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
-              onSave={handleSaveReturn}
-            />
+            <>
+              {/* ✅ LOADING STATE: Zobraz loading kým sa načítajú protokoly */}
+              {(() => {
+                // ✅ POUŽIŤ PROTOCOL STATUS MAP: Rýchlejšia kontrola existencie protokolu
+                const backgroundStatus = protocolStatusMap[selectedRentalForProtocol.id];
+                const fallbackProtocols = protocols[selectedRentalForProtocol.id];
+                
+                const hasHandover = backgroundStatus 
+                  ? backgroundStatus.hasHandoverProtocol 
+                  : !!fallbackProtocols?.handover;
+                
+                return !hasHandover;
+              })() ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 4 }}>
+                  <CircularProgress sx={{ mb: 2 }} />
+                  <Typography variant="body1" color="text.secondary">
+                    Načítavam odovzdávací protokol...
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Pre vytvorenie preberacieho protokolu je potrebný odovzdávací protokol.
+                  </Typography>
+                </Box>
+              ) : (
+                <ReturnProtocolForm
+                  open={openReturnDialog}
+                  onClose={() => setOpenReturnDialog(false)}
+                  rental={selectedRentalForProtocol}
+                  handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
+                  onSave={handleSaveReturn}
+                />
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>
