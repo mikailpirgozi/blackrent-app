@@ -7523,6 +7523,187 @@ class PostgresDatabase {
             createdBy: row.created_by
         };
     }
+    // 🔄 CUSTOMER MERGE FUNCTIONALITY
+    /**
+     * Detekuje možných duplicitných zákazníkov na základe podobnosti mien, emailov a telefónov
+     */
+    async findDuplicateCustomers() {
+        const client = await this.pool.connect();
+        try {
+            // Nájdi zákazníkov s podobnými menami (fuzzy matching)
+            const nameQuery = `
+        SELECT c1.id as id1, c1.name as name1, c1.email as email1, c1.phone as phone1,
+               c2.id as id2, c2.name as name2, c2.email as email2, c2.phone as phone2,
+               similarity(LOWER(c1.name), LOWER(c2.name)) as name_similarity
+        FROM customers c1, customers c2
+        WHERE c1.id < c2.id 
+          AND c1.name IS NOT NULL 
+          AND c2.name IS NOT NULL
+          AND c1.name != ''
+          AND c2.name != ''
+          AND (
+            similarity(LOWER(c1.name), LOWER(c2.name)) > 0.6
+            OR LOWER(c1.name) LIKE '%' || LOWER(c2.name) || '%'
+            OR LOWER(c2.name) LIKE '%' || LOWER(c1.name) || '%'
+          )
+        ORDER BY name_similarity DESC
+      `;
+            // Nájdi zákazníkov s rovnakými emailmi
+            const emailQuery = `
+        SELECT c1.id as id1, c1.name as name1, c1.email as email1, c1.phone as phone1,
+               c2.id as id2, c2.name as name2, c2.email as email2, c2.phone as phone2,
+               1.0 as email_similarity
+        FROM customers c1, customers c2
+        WHERE c1.id < c2.id 
+          AND c1.email IS NOT NULL 
+          AND c2.email IS NOT NULL
+          AND c1.email != ''
+          AND c2.email != ''
+          AND LOWER(c1.email) = LOWER(c2.email)
+      `;
+            // Nájdi zákazníkov s rovnakými telefónmi
+            const phoneQuery = `
+        SELECT c1.id as id1, c1.name as name1, c1.email as email1, c1.phone as phone1,
+               c2.id as id2, c2.name as name2, c2.email as email2, c2.phone as phone2,
+               1.0 as phone_similarity
+        FROM customers c1, customers c2
+        WHERE c1.id < c2.id 
+          AND c1.phone IS NOT NULL 
+          AND c2.phone IS NOT NULL
+          AND c1.phone != ''
+          AND c2.phone != ''
+          AND c1.phone = c2.phone
+      `;
+            const [nameResults, emailResults, phoneResults] = await Promise.all([
+                client.query(nameQuery),
+                client.query(emailQuery),
+                client.query(phoneQuery)
+            ]);
+            const duplicateGroups = [];
+            // Spracuj výsledky mien
+            for (const row of nameResults.rows) {
+                const customer1 = {
+                    id: row.id1,
+                    name: row.name1,
+                    email: row.email1 || '',
+                    phone: row.phone1 || '',
+                    createdAt: new Date()
+                };
+                const customer2 = {
+                    id: row.id2,
+                    name: row.name2,
+                    email: row.email2 || '',
+                    phone: row.phone2 || '',
+                    createdAt: new Date()
+                };
+                duplicateGroups.push({
+                    group: [customer1, customer2],
+                    similarity: 'name',
+                    score: parseFloat(row.name_similarity)
+                });
+            }
+            // Spracuj výsledky emailov
+            for (const row of emailResults.rows) {
+                const customer1 = {
+                    id: row.id1,
+                    name: row.name1,
+                    email: row.email1 || '',
+                    phone: row.phone1 || '',
+                    createdAt: new Date()
+                };
+                const customer2 = {
+                    id: row.id2,
+                    name: row.name2,
+                    email: row.email2 || '',
+                    phone: row.phone2 || '',
+                    createdAt: new Date()
+                };
+                duplicateGroups.push({
+                    group: [customer1, customer2],
+                    similarity: 'email',
+                    score: 1.0
+                });
+            }
+            // Spracuj výsledky telefónov
+            for (const row of phoneResults.rows) {
+                const customer1 = {
+                    id: row.id1,
+                    name: row.name1,
+                    email: row.email1 || '',
+                    phone: row.phone1 || '',
+                    createdAt: new Date()
+                };
+                const customer2 = {
+                    id: row.id2,
+                    name: row.name2,
+                    email: row.email2 || '',
+                    phone: row.phone2 || '',
+                    createdAt: new Date()
+                };
+                duplicateGroups.push({
+                    group: [customer1, customer2],
+                    similarity: 'phone',
+                    score: 1.0
+                });
+            }
+            return duplicateGroups;
+        }
+        finally {
+            client.release();
+        }
+    }
+    /**
+     * Zjednotí dvoch zákazníkov - prenesie všetky prenájmy z source na target a vymaže source
+     */
+    async mergeCustomers(targetCustomerId, sourceCustomerId, mergedData) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+            // 1. Aktualizuj target zákazníka s najlepšími údajmi
+            await client.query('UPDATE customers SET name = $1, email = $2, phone = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4', [mergedData.name, mergedData.email, mergedData.phone, targetCustomerId]);
+            // 2. Presuň všetky prenájmy z source na target
+            const rentalUpdateResult = await client.query('UPDATE rentals SET customer_id = $1 WHERE customer_id = $2', [targetCustomerId, sourceCustomerId]);
+            // 3. Vymaž source zákazníka
+            await client.query('DELETE FROM customers WHERE id = $1', [sourceCustomerId]);
+            await client.query('COMMIT');
+            logger_1.logger.migration(`✅ CUSTOMER MERGE: Merged customer ${sourceCustomerId} into ${targetCustomerId}, moved ${rentalUpdateResult.rowCount} rentals`);
+        }
+        catch (error) {
+            await client.query('ROLLBACK');
+            logger_1.logger.migration(`❌ CUSTOMER MERGE FAILED: ${error}`);
+            throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
+    /**
+     * Získa štatistiky zákazníka (počet prenájmov, dátumy)
+     */
+    async getCustomerStats(customerId) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+        SELECT 
+          COUNT(*) as rental_count,
+          MIN(start_date) as first_rental,
+          MAX(end_date) as last_rental,
+          COALESCE(SUM(total_price), 0) as total_revenue
+        FROM rentals 
+        WHERE customer_id = $1
+      `, [customerId]);
+            const row = result.rows[0];
+            return {
+                rentalCount: parseInt(row.rental_count) || 0,
+                firstRental: row.first_rental ? new Date(row.first_rental) : null,
+                lastRental: row.last_rental ? new Date(row.last_rental) : null,
+                totalRevenue: parseFloat(row.total_revenue) || 0
+            };
+        }
+        finally {
+            client.release();
+        }
+    }
 }
 exports.PostgresDatabase = PostgresDatabase;
 exports.postgresDatabase = new PostgresDatabase();

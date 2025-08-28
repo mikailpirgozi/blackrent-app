@@ -127,6 +127,7 @@ import emailManagementRoutes from './routes/email-management';
 import cacheRoutes from './routes/cache';
 import pushRoutes from './routes/push';
 import companyDocumentsRoutes from './routes/company-documents';
+import customerMergeRoutes from './routes/customer-merge';
 
 
 // API routes
@@ -159,6 +160,7 @@ app.use('/api/email-management', emailManagementRoutes);
 app.use('/api/cache', cacheRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/company-documents', companyDocumentsRoutes);
+app.use('/api/customer-merge', customerMergeRoutes);
 
 
 // SIMPLE TEST ENDPOINT - bez middleware

@@ -147,6 +147,7 @@ const email_management_1 = __importDefault(require("./routes/email-management"))
 const cache_1 = __importDefault(require("./routes/cache"));
 const push_1 = __importDefault(require("./routes/push"));
 const company_documents_1 = __importDefault(require("./routes/company-documents"));
+const customer_merge_1 = __importDefault(require("./routes/customer-merge"));
 // API routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/vehicles', vehicles_1.default);
@@ -177,6 +178,7 @@ app.use('/api/email-management', email_management_1.default);
 app.use('/api/cache', cache_1.default);
 app.use('/api/push', push_1.default);
 app.use('/api/company-documents', company_documents_1.default);
+app.use('/api/customer-merge', customer_merge_1.default);
 // SIMPLE TEST ENDPOINT - bez middleware
 app.get('/api/test-simple', (req, res) => {
     logger_1.logger.info('🧪 Simple test endpoint called');

@@ -559,6 +559,31 @@ export declare class PostgresDatabase {
     getCompanyDocumentsByType(companyId: string | number, documentType: 'contract' | 'invoice'): Promise<CompanyDocument[]>;
     getCompanyInvoicesByMonth(companyId: string | number, year: number, month: number): Promise<CompanyDocument[]>;
     private mapCompanyDocument;
+    /**
+     * Detekuje možných duplicitných zákazníkov na základe podobnosti mien, emailov a telefónov
+     */
+    findDuplicateCustomers(): Promise<Array<{
+        group: Customer[];
+        similarity: 'name' | 'email' | 'phone';
+        score: number;
+    }>>;
+    /**
+     * Zjednotí dvoch zákazníkov - prenesie všetky prenájmy z source na target a vymaže source
+     */
+    mergeCustomers(targetCustomerId: string, sourceCustomerId: string, mergedData: {
+        name: string;
+        email: string;
+        phone: string;
+    }): Promise<void>;
+    /**
+     * Získa štatistiky zákazníka (počet prenájmov, dátumy)
+     */
+    getCustomerStats(customerId: string): Promise<{
+        rentalCount: number;
+        firstRental: Date | null;
+        lastRental: Date | null;
+        totalRevenue: number;
+    }>;
 }
 export declare const postgresDatabase: PostgresDatabase;
 //# sourceMappingURL=postgres-database.d.ts.map
