@@ -2,8 +2,10 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+test('renders BlackRent login form', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  const loginElement = screen.getByText(/Prihlásenie do systému/i);
+  const usernameField = screen.getByLabelText(/Používateľské meno/i);
+  expect(loginElement).toBeInTheDocument();
+  expect(usernameField).toBeInTheDocument();
 });

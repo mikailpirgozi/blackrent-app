@@ -60,7 +60,7 @@ fi
 
 # Spustenie frontendu
 echo "🎨 Spúšťam frontend aplikáciu..."
-npm start > logs/frontend.log 2>&1 &
+npm run dev > logs/frontend.log 2>&1 &
 FRONTEND_PID=$!
 
 # Čakanie na frontend
