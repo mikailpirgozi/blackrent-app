@@ -14,6 +14,7 @@ class PostgresDatabase {
         return this.pool;
     }
     constructor() {
+        this.protocolTablesInitialized = false;
         // ⚡ PERFORMANCE CACHE: Permission caching pre getUserCompanyAccess
         this.permissionCache = new Map();
         this.PERMISSION_CACHE_TTL = 5 * 60 * 1000; // 5 minút
@@ -3660,12 +3661,12 @@ class PostgresDatabase {
         `, [id]);
                 logger_1.logger.migration(`🧹 Deleted ${emailActionResult.rowCount || 0} email action logs`);
                 // 2. Vyčisti email_processing_history záznamy
-                const emailHistoryResult = await client.query('DELETE FROM email_processing_history WHERE rental_id = $1', [id]);
+                const emailHistoryResult = await client.query('DELETE FROM email_processing_history WHERE rental_id = $1', [parseInt(id)]);
                 logger_1.logger.migration(`🧹 Deleted ${emailHistoryResult.rowCount || 0} email history records`);
                 // 2. Vyčisti protokoly ak existujú (vrátane R2 súborov)
                 // Najprv získaj všetky protokoly pre tento rental
-                const handoverProtocols = await client.query('SELECT id FROM handover_protocols WHERE rental_id = $1', [id]);
-                const returnProtocols = await client.query('SELECT id FROM return_protocols WHERE rental_id = $1', [id]);
+                const handoverProtocols = await client.query('SELECT id FROM handover_protocols WHERE rental_id = $1', [parseInt(id)]);
+                const returnProtocols = await client.query('SELECT id FROM return_protocols WHERE rental_id = $1', [parseInt(id)]);
                 // Vymaž handover protokoly vrátane R2 súborov
                 let handoverDeletedCount = 0;
                 for (const protocol of handoverProtocols.rows) {
@@ -3693,9 +3694,9 @@ class PostgresDatabase {
                     returnDeletedCount++;
                 }
                 // Teraz vymaž protokoly z databázy
-                const handoverResult = await client.query('DELETE FROM handover_protocols WHERE rental_id = $1', [id]);
+                const handoverResult = await client.query('DELETE FROM handover_protocols WHERE rental_id = $1', [parseInt(id)]);
                 logger_1.logger.migration(`🧹 Deleted ${handoverResult.rowCount || 0} handover protocols from DB + ${handoverDeletedCount} R2 file sets`);
-                const returnResult = await client.query('DELETE FROM return_protocols WHERE rental_id = $1', [id]);
+                const returnResult = await client.query('DELETE FROM return_protocols WHERE rental_id = $1', [parseInt(id)]);
                 logger_1.logger.migration(`🧹 Deleted ${returnResult.rowCount || 0} return protocols from DB + ${returnDeletedCount} R2 file sets`);
                 // 3. Teraz môžeme bezpečne zmazať rental
                 const result = await client.query('DELETE FROM rentals WHERE id = $1', [id]);
@@ -5215,8 +5216,27 @@ class PostgresDatabase {
     }
     // PROTOCOLS METHODS
     async initProtocolTables() {
+        // ✅ CACHE: Ak už sú tabuľky inicializované, preskoč
+        if (this.protocolTablesInitialized) {
+            return;
+        }
         const client = await this.pool.connect();
         try {
+            // ✅ RÝCHLA KONTROLA: Skontroluj či tabuľky už existujú
+            const tablesExist = await client.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'handover_protocols'
+        ) AND EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'return_protocols'
+        )
+      `);
+            if (tablesExist.rows[0].exists) {
+                logger_1.logger.migration('✅ Protocol tables already exist, skipping migration');
+                this.protocolTablesInitialized = true;
+                return;
+            }
             logger_1.logger.migration('🔧 Initializing protocol tables...');
             // Handover Protocols table
             await client.query(`
@@ -5404,6 +5424,8 @@ class PostgresDatabase {
                 logger_1.logger.migration('⚠️ Protocol tables migration failed (tables might already be migrated):', migrationError);
             }
             logger_1.logger.migration('✅ Protocol tables initialized successfully');
+            // ✅ CACHE: Označ že tabuľky sú inicializované
+            this.protocolTablesInitialized = true;
         }
         catch (error) {
             console.error('❌ Error initializing protocol tables:', error);
@@ -5503,12 +5525,12 @@ class PostgresDatabase {
     async getHandoverProtocolsByRental(rentalId) {
         const client = await this.pool.connect();
         try {
-            await this.initProtocolTables();
+            // ✅ PERFORMANCE: Odstránené initProtocolTables() - tabuľky už existujú
             const result = await client.query(`
         SELECT * FROM handover_protocols 
-        WHERE rental_id = $1 
+        WHERE rental_id = $1::integer 
         ORDER BY created_at DESC
-      `, [rentalId]);
+      `, [parseInt(rentalId)]);
             return result.rows.map(row => this.mapHandoverProtocolFromDB(row));
         }
         catch (error) {
@@ -5615,12 +5637,12 @@ class PostgresDatabase {
     async getReturnProtocolsByRental(rentalId) {
         const client = await this.pool.connect();
         try {
-            await this.initProtocolTables();
+            // ✅ PERFORMANCE: Odstránené initProtocolTables() - tabuľky už existujú
             const result = await client.query(`
         SELECT * FROM return_protocols 
-        WHERE rental_id = $1 
+        WHERE rental_id = $1::integer 
         ORDER BY created_at DESC
-      `, [rentalId]);
+      `, [parseInt(rentalId)]);
             return result.rows.map(row => this.mapReturnProtocolFromDB(row));
         }
         catch (error) {
@@ -7308,8 +7330,7 @@ class PostgresDatabase {
         try {
             logger_1.logger.migration('🚀 BULK: Loading protocol status for all rentals...');
             const startTime = Date.now();
-            // Ensure protocol tables exist
-            await this.initProtocolTables();
+            // ✅ PERFORMANCE: Odstránené initProtocolTables() - tabuľky už existujú
             // Direct query using protocol IDs from rentals table (more efficient)
             const result = await client.query(`
         SELECT 
@@ -7350,8 +7371,7 @@ class PostgresDatabase {
         try {
             logger_1.logger.migration('📊 Loading all protocols for employee statistics...');
             const startTime = Date.now();
-            // Ensure protocol tables exist
-            await this.initProtocolTables();
+            // ✅ PERFORMANCE: Odstránené initProtocolTables() - tabuľky už existujú
             // Get all handover protocols
             const handoverResult = await client.query(`
         SELECT 

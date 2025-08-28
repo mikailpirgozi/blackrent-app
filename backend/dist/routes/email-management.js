@@ -209,20 +209,19 @@ router.post('/:id/approve', auth_1.authenticateToken, (0, permissions_1.checkPer
                         if (dateParts.length >= 2) {
                             const startStr = dateParts[0].trim();
                             const endStr = dateParts[1].trim();
-                            // Parse časy presne ako prichádzajú v emaili - ako UTC aby sa nezmenili
-                            const parseAsPlainTime = (dateStr) => {
+                            // Parse časy presne ako prichádzajú v emaili - ako plain string pre PostgreSQL
+                            const parseAsPlainString = (dateStr) => {
                                 if (dateStr.match(/\d{4}-\d{2}-\d{2}/)) {
                                     // Nahraď newline medzi dátumom a časom medzerou
                                     const cleanDateStr = dateStr.replace(/\n/g, ' ');
                                     const [datePart, timePart] = cleanDateStr.split(' ');
-                                    const [year, month, day] = datePart.split('-');
-                                    // Vytvor dátum ako UTC aby sa nezmenil časový posun
-                                    return new Date(`${year}-${month}-${day}T${timePart}Z`).toISOString();
+                                    // Vráť ako plain string pre PostgreSQL TIMESTAMP (bez timezone)
+                                    return `${datePart} ${timePart}`;
                                 }
                                 return new Date().toISOString();
                             };
-                            startDate = parseAsPlainTime(startStr);
-                            endDate = parseAsPlainTime(endStr);
+                            startDate = parseAsPlainString(startStr);
+                            endDate = parseAsPlainString(endStr);
                         }
                     }
                     catch (dateError) {
@@ -315,7 +314,7 @@ router.post('/:id/approve', auth_1.authenticateToken, (0, permissions_1.checkPer
               start_date, end_date, handover_place, total_price, deposit, 
               order_number, payment_method, allowed_kilometers, 
               extra_kilometer_rate, notes, created_at
-            ) VALUES ('pending', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+            ) VALUES ('pending', $1, $2, $3, $4::timestamp, $5::timestamp, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
             RETURNING id
           `, [
                     parsedData.customerName,

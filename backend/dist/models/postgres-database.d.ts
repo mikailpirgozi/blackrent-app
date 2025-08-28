@@ -2,6 +2,7 @@ import { Pool, PoolClient } from 'pg';
 import { Vehicle, Customer, Rental, Expense, ExpenseCategory, RecurringExpense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions, CompanyInvestor, CompanyInvestorShare, CompanyDocument } from '../types';
 export declare class PostgresDatabase {
     private pool;
+    private protocolTablesInitialized;
     get dbPool(): Pool;
     private permissionCache;
     private readonly PERMISSION_CACHE_TTL;

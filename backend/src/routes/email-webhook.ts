@@ -603,15 +603,15 @@ router.post('/webhook', async (req: Request, res: Response<ApiResponse>) => {
       // Fallback na starý formát
       const timeMatch = parsedData.reservationTime.match(/(\d{4}-\d{2}-\d{2}[\s\n]+\d{2}:\d{2}:\d{2}) - (\d{4}-\d{2}-\d{2}[\s\n]+\d{2}:\d{2}:\d{2})/);
       if (timeMatch) {
-        // Parsuj časy presne ako prichádzajú v emaili - ako UTC aby sa nezmenili
+        // Parsuj časy presne ako prichádzajú v emaili - bez akejkoľvek timezone konverzie
         const parseAsPlainTime = (dateStr: string) => {
           // Nahraď newline medzi dátumom a časom medzerou
           const cleanDateStr = dateStr.replace(/\n/g, ' ');
           const [datePart, timePart] = cleanDateStr.split(' ');
           const [year, month, day] = datePart.split('-');
           
-          // Vytvor dátum ako UTC aby sa nezmenil časový posun
-          return new Date(`${year}-${month}-${day}T${timePart}Z`);
+          // Vytvor dátum presne ako je v emaili - bez timezone (naive datetime)
+          return new Date(`${year}-${month}-${day}T${timePart}`);
         };
         
         startDate = parseAsPlainTime(timeMatch[1]);

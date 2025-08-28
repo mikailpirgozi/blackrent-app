@@ -656,19 +656,26 @@ class ImapEmailService {
       if (parsedData.reservationTime) {
         const timeMatch = parsedData.reservationTime.match(/(\d{4}-\d{2}-\d{2}[\s\n]+\d{2}:\d{2}:\d{2}) - (\d{4}-\d{2}-\d{2}[\s\n]+\d{2}:\d{2}:\d{2})/);
         if (timeMatch) {
-          // Parsuj časy presne ako prichádzajú v emaili - ako UTC aby sa nezmenili
-          const parseAsPlainTime = (dateStr: string) => {
+          // Parsuj časy presne ako prichádzajú v emaili - ako plain string pre PostgreSQL
+          const parseAsPlainString = (dateStr: string) => {
             // Nahraď newline medzi dátumom a časom medzerou
             const cleanDateStr = dateStr.replace(/\n/g, ' ');
             const [datePart, timePart] = cleanDateStr.split(' ');
-            const [year, month, day] = datePart.split('-');
             
-            // Vytvor dátum ako UTC aby sa nezmenil časový posun
-            return new Date(`${year}-${month}-${day}T${timePart}Z`);
+            // Vráť ako plain string pre PostgreSQL TIMESTAMP (bez timezone)
+            return `${datePart} ${timePart}`;
           };
           
-          startDate = parseAsPlainTime(timeMatch[1]);
-          endDate = parseAsPlainTime(timeMatch[2]);
+          const startDateString = parseAsPlainString(timeMatch[1]);
+          const endDateString = parseAsPlainString(timeMatch[2]);
+          
+          // Vytvor Date objekty len pre validáciu, ale použijem stringy v SQL
+          startDate = new Date(startDateString);
+          endDate = new Date(endDateString);
+          
+          // Uložím plain stringy pre použitie v SQL
+          (startDate as any).plainString = startDateString;
+          (endDate as any).plainString = endDateString;
         }
       }
 
@@ -928,6 +935,10 @@ class ImapEmailService {
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || firstName;
 
+      // Použijem plain stringy pre časy ak sú dostupné
+      const startDateValue = (rentalData.startDate as any)?.plainString || rentalData.startDate;
+      const endDateValue = (rentalData.endDate as any)?.plainString || rentalData.endDate;
+      
       // Vytvor pending rental
       const result = await postgresDatabase.query(`
         INSERT INTO rentals (
@@ -937,7 +948,7 @@ class ImapEmailService {
           payment_method, commission, auto_processed_at, email_content, 
           created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending', 'pending',
+          $1, $2, $3, $4, $5, $6, $7, $8::timestamp, $9::timestamp, $10, $11, $12, $13, 'pending', 'pending',
           $14, 0.00, CURRENT_TIMESTAMP, $15, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         ) RETURNING id
       `, [
@@ -948,8 +959,8 @@ class ImapEmailService {
         rentalData.vehicleName,
         rentalData.vehicleCode,
         rentalData.vehicleId || null, // NOVÉ: vehicle_id pre automatické napárovanie
-        rentalData.startDate,
-        rentalData.endDate,
+        startDateValue,
+        endDateValue,
         rentalData.totalPrice,
         rentalData.deposit,
         rentalData.handoverPlace,
