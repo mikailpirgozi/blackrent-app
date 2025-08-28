@@ -247,10 +247,14 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
                 <Card>
                   <CardMedia
                     component="img"
-                    height="200"
                     image={image.url}
                     alt={`Fotka vozidla ${index + 1}`}
-                    sx={{ cursor: 'pointer' }}
+                    sx={{ 
+                      cursor: 'pointer',
+                      maxHeight: '400px',
+                      objectFit: 'contain',
+                      width: '100%'
+                    }}
                     onClick={() => handleViewOriginalImage(image)}
                   />
                   <CardContent sx={{ py: 1 }}>
@@ -349,9 +353,14 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
                 <Card>
                   <CardMedia
                     component="img"
-                    height="100"
                     image={signature.signature || signature.url}
                     alt={`Podpis ${signature.signerName || index + 1}`}
+                    sx={{ 
+                      maxHeight: '150px',
+                      objectFit: 'contain',
+                      width: '100%',
+                      backgroundColor: 'rgba(0,0,0,0.02)'
+                    }}
                   />
                   <CardContent sx={{ py: 1 }}>
                     <Typography variant="caption" color="text.secondary">

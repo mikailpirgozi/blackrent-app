@@ -125,28 +125,24 @@ export default function ProtocolGallery({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose, handlePrevious, handleNext, setZoom]);
 
-  // Helper function to convert R2 URL to proxy URL
-  const getProxyUrl = (r2Url: string | undefined): string => {
+  // Helper function to get direct R2 URL (no proxy, full quality)
+  const getDirectR2Url = (r2Url: string | undefined): string => {
     try {
       // Kontrola či URL existuje
       if (!r2Url) {
-        console.warn('⚠️ getProxyUrl: URL is undefined or null');
+        console.warn('⚠️ getDirectR2Url: URL is undefined or null');
         return ''; // Vráť prázdny string pre undefined URL
       }
 
-      // Ak je to R2 URL, konvertuj na proxy
+      // Pre R2 URLs vráť priamo originálne URL (plná kvalita)
       if (r2Url.includes('r2.dev') || r2Url.includes('cloudflare.com')) {
-        const urlParts = r2Url.split('/');
-        // Zober všetky časti po doméne ako key (preskoč https:// a doménu)
-        const key = urlParts.slice(3).join('/');
-        const apiBaseUrl = getApiBaseUrl();
-      const proxyUrl = `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
-        console.log('🔄 Converting R2 URL to proxy:', r2Url, '→', proxyUrl);
-        return proxyUrl;
+        console.log('✅ Using direct R2 URL for full quality:', r2Url);
+        return r2Url; // Priamo originálne R2 URL
       }
+      
       return r2Url; // Ak nie je R2 URL, vráť pôvodné
     } catch (error) {
-      console.error('❌ Error converting to proxy URL:', error);
+      console.error('❌ Error processing R2 URL:', error);
       return r2Url || ''; // Vráť pôvodné URL alebo prázdny string
     }
   };
@@ -159,8 +155,8 @@ export default function ProtocolGallery({
     }
     
     try {
-      // Použi proxy URL pre download
-      const downloadUrl = getProxyUrl(currentMedia.url);
+      // Použi priame R2 URL pre download
+      const downloadUrl = getDirectR2Url(currentMedia.url);
       if (!downloadUrl) {
         alert('Nepodarilo sa stiahnuť súbor - neplatné URL');
         return;
@@ -284,20 +280,21 @@ export default function ProtocolGallery({
                   >
                     {image.url ? (
                       <img
-                        src={getProxyUrl(image.url)}
+                        src={getDirectR2Url(image.url)}
                         alt={image.description || `Obrázok ${index + 1}`}
                         style={{
                           width: '100%',
-                          height: '200px',
-                          objectFit: 'cover',
-                          display: 'block'
+                          maxHeight: '400px', // Maximálna výška namiesto fixnej
+                          objectFit: 'contain', // Zachová pomer strán a zobrazí celý obrázok
+                          display: 'block',
+                          borderRadius: '8px'
                         }}
                         onError={(e) => {
                           console.error('❌ Chyba načítania obrázka:', image.url);
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
                         onLoad={() => {
-                          console.log('✅ Obrázok úspešne načítaný:', image.url);
+                          console.log('✅ Obrázok úspešne načítaný v plnej kvalite:', image.url);
                         }}
                       />
                     ) : (
@@ -367,7 +364,7 @@ export default function ProtocolGallery({
                   >
                                         {video.url ? (
                       <video
-                        src={getProxyUrl(video.url)}
+                        src={getDirectR2Url(video.url)}
                         style={{
                           width: '100%',
                           height: '200px',
@@ -469,9 +466,14 @@ export default function ProtocolGallery({
           p: 2,
           borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
         }}>
-          <Typography variant="h6">
-            {currentMedia?.description || `Médium ${selectedIndex + 1}`}
-          </Typography>
+          <Box>
+            <Typography variant="h6">
+              {currentMedia?.description || `Médium ${selectedIndex + 1}`}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+              Originálna kvalita • {selectedIndex + 1} z {totalCount}
+            </Typography>
+          </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <IconButton
               onClick={() => setZoom(prev => Math.max(prev - 0.25, 0.5))}
@@ -550,20 +552,24 @@ export default function ProtocolGallery({
             {currentMedia && (
               <>
                 {selectedIndex < images.length ? (
-                  // Image
+                  // Image - Fullscreen originál v plnej kvalite
                   currentMedia.url ? (
                     <img
-                      src={getProxyUrl(currentMedia.url)}
+                      src={getDirectR2Url(currentMedia.url)}
                       alt={currentMedia.description || 'Obrázok'}
                       style={{
                         maxWidth: `${100 * zoom}%`,
                         maxHeight: `${100 * zoom}%`,
                         objectFit: 'contain',
-                        transition: 'transform 0.2s ease'
+                        transition: 'transform 0.2s ease',
+                        cursor: zoom > 1 ? 'grab' : 'default'
                       }}
                       onError={(e) => {
-                        console.error('Chyba načítania obrázka:', currentMedia.url);
+                        console.error('Chyba načítania fullscreen obrázka:', currentMedia.url);
                         (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Fullscreen obrázok načítaný v originálnej kvalite:', currentMedia.url);
                       }}
                     />
                   ) : (
@@ -572,18 +578,22 @@ export default function ProtocolGallery({
                     </Box>
                   )
                 ) : (
-                  // Video
+                  // Video - Fullscreen originál v plnej kvalite
                   currentMedia.url ? (
                     <video
-                      src={getProxyUrl(currentMedia.url)}
+                      src={getDirectR2Url(currentMedia.url)}
                       controls
                       style={{
                         maxWidth: `${100 * zoom}%`,
-                        maxHeight: `${100 * zoom}%`
+                        maxHeight: `${100 * zoom}%`,
+                        borderRadius: '8px'
                       }}
                       onError={(e) => {
-                        console.error('Chyba načítania videa:', currentMedia.url);
+                        console.error('Chyba načítania fullscreen videa:', currentMedia.url);
                         (e.target as HTMLVideoElement).style.display = 'none';
+                      }}
+                      onLoadedData={() => {
+                        console.log('✅ Fullscreen video načítané v originálnej kvalite:', currentMedia.url);
                       }}
                     />
                   ) : (
