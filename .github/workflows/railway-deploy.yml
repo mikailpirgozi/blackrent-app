@@ -36,9 +36,10 @@ jobs:
         npm --version
         node --version
         ls -la package*.json
-        npm install --no-optional --prefer-offline || npm install --no-optional || npm install
+        rm -rf node_modules package-lock.json
+        npm install
         echo "✅ Frontend dependencies installed"
-        ls -la node_modules/.bin/react-scripts || echo "❌ react-scripts not found"
+        ls -la node_modules/.bin/vite || echo "❌ vite not found"
     
     - name: Build frontend
       run: npm run build
