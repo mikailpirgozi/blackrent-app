@@ -1,12 +1,14 @@
+import { env } from '@/lib/env';
+
 /**
  * Centralizovaná funkcia pre získanie správnej API URL
  * na základe prostredia v ktorom aplikácia beží
  */
 export const getApiBaseUrl = (): string => {
   // PRIORITA 1: Ak je nastavená custom API URL v environment - VŽDY použiť túto
-  if (process.env.REACT_APP_API_URL) {
-    console.log('🌐 Používam API URL z .env (PRIORITY):', process.env.REACT_APP_API_URL);
-    return process.env.REACT_APP_API_URL;
+  if (env.API_URL) {
+    console.log('🌐 Používam API URL z .env (PRIORITY):', env.API_URL);
+    return env.API_URL;
   }
   
   // PRIORITA 2: Pre Vercel deployment používaj Railway API (len ak nie je .env)
@@ -30,9 +32,9 @@ export const getApiBaseUrl = (): string => {
     return railwayUrl;
   }
   
-  // Pre lokálny development
-  console.log('🌐 Development mode, používam localhost');
-  return 'http://localhost:3001/api';
+  // Pre lokálny development - používaj relatívne /api (Vite proxy)
+  console.log('🌐 Development mode, používam Vite proxy');
+  return '/api';
 };
 
 /**

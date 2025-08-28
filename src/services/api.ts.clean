@@ -6,9 +6,9 @@ const RAILWAY_API_URL = 'https://blackrent-app-production-4d6f.up.railway.app/ap
 
 const getApiBaseUrl = () => {
   // Ak je nastavená custom API URL v environment
-  if (process.env.REACT_APP_API_URL) {
-    console.log('🌐 Používam API URL z .env:', process.env.REACT_APP_API_URL);
-    return process.env.REACT_APP_API_URL;
+  if (import.meta.env.VITE_API_URL) {
+    console.log('🌐 Používam API URL z .env:', import.meta.env.VITE_API_URL);
+    return import.meta.env.VITE_API_URL;
   }
   
   // Pre Railway deployment (celá aplikácia na Railway)
@@ -24,10 +24,10 @@ const getApiBaseUrl = () => {
     return RAILWAY_API_URL;
   }
   
-  // Pre lokálny development
+  // Pre lokálny development - používaj Vite proxy
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    console.log('🌐 Localhost detekované, používam lokálny backend');
-    return 'http://localhost:5001/api';
+    console.log('🌐 Localhost detekované, používam Vite proxy');
+    return '/api';
   }
   
   // Fallback na Railway API

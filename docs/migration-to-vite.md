@@ -622,4 +622,65 @@ npm run test
 □ Upload súborov funguje
 ```
 
-Dokumentácia a skeleton súbory sú pripravené. Migrácia môže začať postupne po fázach s možnosťou rollback na CRA kedykoľvek.
+## 🧹 Cleanup & Rollback
+
+### Post-Migration Cleanup (FÁZA 7)
+
+Po úspešnej migrácii na Vite odstránené súbory a závislosti:
+
+#### Odstránené zo závislostí:
+- `react-scripts`: 5.0.1 (hlavná CRA závislosť)
+- `@types/jest`: ^27.5.2 (nahradené Vitest)
+
+#### Odstránené skripty:
+- `start:cra`: react-scripts start
+- `build:cra`: react-scripts build  
+- `test:cra`: react-scripts test
+- `eject`: react-scripts eject
+
+#### Odstránené konfiguračné súbory:
+- `babel.config.js` (2 súbory)
+- `next-env.d.ts`
+- ESLint config: odstránené `react-app/jest`
+
+### Rollback Policy
+
+⚠️ **Rollback už NEODPORÚČAME** - Vite migrácia je stabilná a otestovaná.
+
+Jediné bezpečné rollback riešenie:
+```bash
+# Vrátiť sa na posledný stabilný CRA stav
+git reset --hard vite-migration-start
+git clean -fd
+npm install
+npm run start:cra
+```
+
+### Final "How to Run"
+
+Po dokončení migrácie používaj **VÝLUČNE** tieto príkazy:
+
+```bash
+# Development
+npm run dev              # Vite dev server (:3000)
+
+# Production build  
+npm run build           # Vite build → build/
+npm run preview         # Preview buildu (:4173)
+
+# Testing
+npm run test            # Vitest (watch mode)
+npm run test:run        # Vitest (single run)  
+npm run test:ui         # Vitest GUI
+
+# BlackRent skripty (bez zmien)
+npm run dev:start       # Kompletný startup
+npm run health          # Diagnostika
+npm run fix             # Auto-fix
+```
+
+**POZOR**: `react-scripts` príkazy už nie sú dostupné!
+
+---
+
+Dokumentácia a skeleton súbory sú pripravené. Migrácia je dokončená a projekt beží výlučne na Vite.

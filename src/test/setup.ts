@@ -16,6 +16,9 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
 }
 
+// Import vi from vitest for mocking
+import { vi } from 'vitest'
+
 // Mock window.matchMedia (using vi instead of jest for Vitest)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

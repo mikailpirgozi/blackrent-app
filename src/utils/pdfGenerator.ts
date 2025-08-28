@@ -648,7 +648,7 @@ class PDFGenerator {
           const key = urlParts.slice(3).join('/');
           
           // Použi proxy endpoint
-          const proxyUrl = `${process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/files/proxy/${encodeURIComponent(key)}`;
+          const proxyUrl = `${import.meta.env.VITE_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/files/proxy/${encodeURIComponent(key)}`;
           
           console.log('🔄 Loading R2 image via proxy:', proxyUrl);
           

@@ -99,7 +99,7 @@ export default function SerialPhotoCapture({
     formData.append('type', 'protocol');
     formData.append('entityId', entityId);
 
-    const apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
     
     const response = await fetch(`${apiBaseUrl}/files/upload`, {
       method: 'POST',

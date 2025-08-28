@@ -10,7 +10,7 @@ export class ImageProcessor {
 
   constructor() {
     // Použi Railway backend URL
-    this.apiBaseUrl = process.env.REACT_APP_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
+    this.apiBaseUrl = import.meta.env.VITE_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api';
   }
 
   /**

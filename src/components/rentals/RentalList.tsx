@@ -511,8 +511,8 @@ export default function RentalList() {
           if (protocol.pdfUrl) {
             pdfUrl = protocol.pdfUrl;
           } else {
-            // Generate PDF URL
-            const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+            // Generate PDF URL - používaj relatívne /api v dev (Vite proxy)
+            const baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:3001');
             pdfUrl = `${baseUrl}/api/protocols/${selectedProtocolType}/${protocol.id}/pdf?token=${token}`;
           }
           

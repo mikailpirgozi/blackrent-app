@@ -1,15 +1,35 @@
-// Environment variables helper for Vite
+/**
+ * Centralizovaný prístup k environment premenným pre Vite
+ * Nahradza process.env.REACT_APP_* za import.meta.env.VITE_*
+ */
+
+/// <reference types="vite/client" />
+
 export const env = {
-  API_URL: import.meta.env.VITE_API_URL,
-  NODE_ENV: import.meta.env.MODE,
-} as const
+  // API konfigurácia
+  API_URL: import.meta.env.VITE_API_URL as string,
+  USE_WORKER_PROXY: import.meta.env.VITE_USE_WORKER_PROXY === 'true',
+  WORKER_URL: import.meta.env.VITE_WORKER_URL as string,
+  
+  // Debugging
+  DEBUG: import.meta.env.VITE_DEBUG === 'true',
+  
+  // Vite systémové premenné
+  MODE: import.meta.env.MODE as string,
+  DEV: import.meta.env.DEV as boolean,
+  PROD: import.meta.env.PROD as boolean,
+} as const;
 
-// Backward compatibility helper
-export const getApiUrl = (): string => {
-  return env.API_URL || 'http://localhost:3001/api'
+// Type safety helper
+export type EnvKeys = keyof typeof env;
+
+// Debug log pre development
+if (env.DEV) {
+  console.log('🔧 Environment variables loaded:', {
+    API_URL: env.API_URL,
+    USE_WORKER_PROXY: env.USE_WORKER_PROXY,
+    WORKER_URL: env.WORKER_URL,
+    DEBUG: env.DEBUG,
+    MODE: env.MODE,
+  });
 }
-
-// Type-safe environment access
-export const isDevelopment = env.NODE_ENV === 'development'
-export const isProduction = env.NODE_ENV === 'production'
-export const isTest = env.NODE_ENV === 'test'
