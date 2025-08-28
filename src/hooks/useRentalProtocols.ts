@@ -65,6 +65,7 @@ interface UseRentalProtocolsReturn {
   // Protocol handlers
   loadProtocolsForRental: (rentalId: string) => Promise<any>;
   loadProtocolStatusInBackground: () => Promise<void>;
+  preloadTopProtocols: (rentals: Rental[]) => Promise<void>;
   handleCreateHandover: (rental: Rental) => Promise<void>;
   handleCreateReturn: (rental: Rental) => Promise<void>;
   handleCloseHandoverDialog: () => void;
