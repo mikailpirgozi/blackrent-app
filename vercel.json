@@ -50,17 +50,12 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "https://blackrent-app-production-4d6f.up.railway.app/api",
-    "ESLINT_NO_DEV_ERRORS": "true",
-    "TSC_COMPILE_ON_ERROR": "true",
-    "GENERATE_SOURCEMAP": "false",
-    "CI": "false",
-    "DISABLE_ESLINT_PLUGIN": "true",
+    "VITE_API_URL": "https://blackrent-app-production-4d6f.up.railway.app/api",
     "NPM_CONFIG_REGISTRY": "https://registry.npmjs.org/",
     "NPM_CONFIG_CACHE": "/tmp/.npm",
     "NODE_OPTIONS": "--max-old-space-size=4096"
   },
-  "framework": "create-react-app",
+  "framework": "vite",
   "build": {
     "env": {
       "NPM_CONFIG_PROGRESS": "false",
