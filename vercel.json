@@ -3,50 +3,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "installCommand": "npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-
-    {
-      "src": "/sw.js",
-      "dest": "/sw.js",
-      "headers": {
-        "cache-control": "public, max-age=0, must-revalidate"
-      }
-    },
-    {
-      "src": "/offline.html",
-      "dest": "/offline.html",
-      "headers": {
-        "cache-control": "public, max-age=0, must-revalidate"
-      }
-    },
-
-    {
-      "src": "/favicon.ico",
-      "dest": "/favicon.ico"
-    },
-    {
-      "src": "/logo192.png", 
-      "dest": "/logo192.png"
-    },
-    {
-      "src": "/logo512.png",
-      "dest": "/logo512.png"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "/manifest.json"
-    },
-    {
-      "src": "/robots.txt",
-      "dest": "/robots.txt"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "env": {
