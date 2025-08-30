@@ -1,6 +1,6 @@
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
@@ -13,10 +13,10 @@ export default defineConfig({
     },
     exclude: [
       '**/node_modules/**',
-      '**/customer-website/**',  // Ignoruj customer-website testy
+      '**/customer-website/**', // Ignoruj customer-website testy
       '**/Figma-Context-MCP/**', // Ignoruj MCP testy
       '**/build/**',
-      '**/dist/**'
+      '**/dist/**',
     ],
   },
   resolve: {
@@ -24,4 +24,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-})
+});

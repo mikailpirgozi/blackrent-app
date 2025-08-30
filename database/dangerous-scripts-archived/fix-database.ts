@@ -8,31 +8,35 @@ const router = Router();
 interface FixResults {
   currentSchema: Array<{ column_name: string; data_type: string }>;
   actions: string[];
-  finalSchema?: Array<{ table_name: string; column_name: string; data_type: string }>;
+  finalSchema?: Array<{
+    table_name: string;
+    column_name: string;
+    data_type: string;
+  }>;
 }
 
 router.post('/fix-database', authenticateToken, async (req: any, res: any) => {
   try {
     console.log('🔧 Starting manual database fix via API...');
-    
+
     // Only allow admin users
     if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        error: 'Only admin users can run database fixes'
+        error: 'Only admin users can run database fixes',
       });
     }
-    
+
     const client = await (postgresDatabase as any).pool.connect();
-    
+
     try {
       const results: FixResults = {
         currentSchema: [],
-        actions: []
+        actions: [],
       };
-      
+
       console.log('📋 Step 1: Checking all table schemas...');
-      
+
       // Check all tables that might need UUID conversion
       const allTablesSchema = await client.query(`
         SELECT table_name, column_name, data_type 
@@ -41,33 +45,47 @@ router.post('/fix-database', authenticateToken, async (req: any, res: any) => {
         AND column_name = 'id'
         ORDER BY table_name
       `);
-      
+
       console.log('Current schemas:', allTablesSchema.rows);
       results.currentSchema = allTablesSchema.rows;
-      
+
       // First, drop all foreign key constraints by dropping tables with FK references
-      console.log('📋 Step 2: Dropping tables with foreign key dependencies...');
+      console.log(
+        '📋 Step 2: Dropping tables with foreign key dependencies...'
+      );
       await client.query('DROP TABLE IF EXISTS rentals CASCADE');
-      await client.query('DROP TABLE IF EXISTS expenses CASCADE');  
+      await client.query('DROP TABLE IF EXISTS expenses CASCADE');
       await client.query('DROP TABLE IF EXISTS insurances CASCADE');
       results.actions.push('Dropped tables with foreign key dependencies');
-      
+
       // Convert base tables first (vehicles, customers, companies, insurers, users)
-      const baseTables = ['vehicles', 'customers', 'companies', 'insurers', 'users'];
-      
+      const baseTables = [
+        'vehicles',
+        'customers',
+        'companies',
+        'insurers',
+        'users',
+      ];
+
       for (const tableName of baseTables) {
-        const tableSchema = allTablesSchema.rows.find((row: any) => 
-          row.table_name === tableName && row.column_name === 'id'
+        const tableSchema = allTablesSchema.rows.find(
+          (row: any) => row.table_name === tableName && row.column_name === 'id'
         );
-        
+
         if (tableSchema && tableSchema.data_type === 'integer') {
-          console.log(`🔄 Converting ${tableName} table from INTEGER to UUID...`);
-          results.actions.push(`Converting ${tableName} table from INTEGER to UUID`);
-          
+          console.log(
+            `🔄 Converting ${tableName} table from INTEGER to UUID...`
+          );
+          results.actions.push(
+            `Converting ${tableName} table from INTEGER to UUID`
+          );
+
           // Get existing data
           const existingData = await client.query(`SELECT * FROM ${tableName}`);
-          console.log(`📦 Backing up ${existingData.rows.length} ${tableName} records...`);
-          
+          console.log(
+            `📦 Backing up ${existingData.rows.length} ${tableName} records...`
+          );
+
           if (tableName === 'vehicles') {
             await client.query('DROP TABLE IF EXISTS vehicles CASCADE');
             await client.query(`
@@ -85,26 +103,31 @@ router.post('/fix-database', authenticateToken, async (req: any, res: any) => {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               )
             `);
-            
+
             // Restore data
             for (const record of existingData.rows) {
-              await client.query(`
+              await client.query(
+                `
                 INSERT INTO vehicles (make, model, year, license_plate, company, pricing, commission, status, created_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-              `, [
-                record.make,
-                record.model, 
-                record.year,
-                record.license_plate,
-                record.company || 'Default Company',
-                JSON.stringify(record.pricing || []),
-                JSON.stringify(record.commission || {"type": "percentage", "value": 15}),
-                record.status || 'available',
-                record.created_at || new Date()
-              ]);
+              `,
+                [
+                  record.make,
+                  record.model,
+                  record.year,
+                  record.license_plate,
+                  record.company || 'Default Company',
+                  JSON.stringify(record.pricing || []),
+                  JSON.stringify(
+                    record.commission || { type: 'percentage', value: 15 }
+                  ),
+                  record.status || 'available',
+                  record.created_at || new Date(),
+                ]
+              );
             }
           }
-          
+
           if (tableName === 'customers') {
             await client.query('DROP TABLE IF EXISTS customers CASCADE');
             await client.query(`
@@ -117,21 +140,24 @@ router.post('/fix-database', authenticateToken, async (req: any, res: any) => {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               )
             `);
-            
+
             // Restore data
             for (const record of existingData.rows) {
-              await client.query(`
+              await client.query(
+                `
                 INSERT INTO customers (name, email, phone, created_at)
                 VALUES ($1, $2, $3, $4)
-              `, [
-                record.name || record.first_name || 'Unknown', // Handle both name and first_name
-                record.email || '',
-                record.phone || '',
-                record.created_at || new Date()
-              ]);
+              `,
+                [
+                  record.name || record.first_name || 'Unknown', // Handle both name and first_name
+                  record.email || '',
+                  record.phone || '',
+                  record.created_at || new Date(),
+                ]
+              );
             }
           }
-          
+
           // Similar for other base tables...
           if (tableName === 'companies') {
             await client.query('DROP TABLE IF EXISTS companies CASCADE');
@@ -143,15 +169,18 @@ router.post('/fix-database', authenticateToken, async (req: any, res: any) => {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               )
             `);
-            
+
             for (const record of existingData.rows) {
-              await client.query(`
+              await client.query(
+                `
                 INSERT INTO companies (name, created_at)
                 VALUES ($1, $2)
-              `, [record.name, record.created_at || new Date()]);
+              `,
+                [record.name, record.created_at || new Date()]
+              );
             }
           }
-          
+
           if (tableName === 'insurers') {
             await client.query('DROP TABLE IF EXISTS insurers CASCADE');
             await client.query(`
@@ -162,15 +191,18 @@ router.post('/fix-database', authenticateToken, async (req: any, res: any) => {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               )
             `);
-            
+
             for (const record of existingData.rows) {
-              await client.query(`
+              await client.query(
+                `
                 INSERT INTO insurers (name, created_at)
                 VALUES ($1, $2)  
-              `, [record.name, record.created_at || new Date()]);
+              `,
+                [record.name, record.created_at || new Date()]
+              );
             }
           }
-          
+
           if (tableName === 'users') {
             await client.query('DROP TABLE IF EXISTS users CASCADE');
             await client.query(`
@@ -184,42 +216,51 @@ router.post('/fix-database', authenticateToken, async (req: any, res: any) => {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               )
             `);
-            
+
             for (const record of existingData.rows) {
               // Skip records with missing required fields
               if (!record.username || !record.email || !record.password) {
                 console.log(`⚠️ Skipping user record with missing fields:`, {
                   username: record.username,
                   email: record.email,
-                  hasPassword: !!record.password
+                  hasPassword: !!record.password,
                 });
                 continue;
               }
-              
-              await client.query(`
+
+              await client.query(
+                `
                 INSERT INTO users (username, email, password, role, created_at)
                 VALUES ($1, $2, $3, $4, $5)
-              `, [
-                record.username,
-                record.email,
-                record.password,
-                record.role || 'user',
-                record.created_at || new Date()
-              ]);
+              `,
+                [
+                  record.username,
+                  record.email,
+                  record.password,
+                  record.role || 'user',
+                  record.created_at || new Date(),
+                ]
+              );
             }
           }
-          
-          console.log(`✅ ${tableName} table converted and ${existingData.rows.length} records restored`);
-          results.actions.push(`${tableName} table converted and ${existingData.rows.length} records restored`);
+
+          console.log(
+            `✅ ${tableName} table converted and ${existingData.rows.length} records restored`
+          );
+          results.actions.push(
+            `${tableName} table converted and ${existingData.rows.length} records restored`
+          );
         } else {
           console.log(`✅ ${tableName} table already has UUID columns`);
           results.actions.push(`${tableName} table already has UUID columns`);
         }
       }
-      
+
       // Now recreate dependent tables with UUID foreign keys
-      console.log('📋 Step 3: Recreating dependent tables with UUID foreign keys...');
-      
+      console.log(
+        '📋 Step 3: Recreating dependent tables with UUID foreign keys...'
+      );
+
       // Rentals table
       await client.query(`
         CREATE TABLE rentals (
@@ -258,8 +299,8 @@ router.post('/fix-database', authenticateToken, async (req: any, res: any) => {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      
-      // Expenses table  
+
+      // Expenses table
       await client.query(`
         CREATE TABLE expenses (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -274,7 +315,7 @@ router.post('/fix-database', authenticateToken, async (req: any, res: any) => {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      
+
       // Insurances table
       await client.query(`
         CREATE TABLE insurances (
@@ -289,9 +330,9 @@ router.post('/fix-database', authenticateToken, async (req: any, res: any) => {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      
+
       results.actions.push('Recreated dependent tables with UUID foreign keys');
-      
+
       // 4. Final verification
       console.log('📋 Step 4: Final verification...');
       const finalSchema = await client.query(`
@@ -301,62 +342,65 @@ router.post('/fix-database', authenticateToken, async (req: any, res: any) => {
         AND column_name = 'id'
         ORDER BY table_name
       `);
-      
+
       console.log('Final schema:');
       finalSchema.rows.forEach((row: any) => {
         console.log(`  ${row.table_name}.${row.column_name}: ${row.data_type}`);
       });
-      
+
       results.finalSchema = finalSchema.rows;
-      results.actions.push('Final verification completed - all tables now use UUID');
-      
+      results.actions.push(
+        'Final verification completed - all tables now use UUID'
+      );
+
       console.log('🎉 Complete database UUID conversion completed!');
-      
+
       res.json({
         success: true,
         message: 'Database UUID conversion completed successfully',
-        data: results
+        data: results,
       });
-      
     } finally {
       client.release();
     }
-    
   } catch (error: any) {
     console.error('❌ Database fix failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Database fix failed: ' + error.message
+      error: 'Database fix failed: ' + error.message,
     });
   }
 });
 
-router.post('/fix-database-simple', authenticateToken, async (req: any, res: any) => {
-  try {
-    console.log('🔧 Starting SIMPLE database UUID fix...');
-    
-    // Only allow admin users (if we have one)
-    if (req.user && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Only admin users can run database fixes'
-      });
-    }
-    
-    const client = await (postgresDatabase as any).pool.connect();
-    
+router.post(
+  '/fix-database-simple',
+  authenticateToken,
+  async (req: any, res: any) => {
     try {
-      const results: FixResults = {
-        currentSchema: [],
-        actions: []
-      };
-      
-      // Simple approach: Just fix rentals and expenses tables
-      console.log('📋 Fixing only rentals and expenses tables...');
-      
-      // Drop and recreate rentals with UUID (don't preserve data for simplicity)
-      await client.query('DROP TABLE IF EXISTS rentals CASCADE');
-      await client.query(`
+      console.log('🔧 Starting SIMPLE database UUID fix...');
+
+      // Only allow admin users (if we have one)
+      if (req.user && req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Only admin users can run database fixes',
+        });
+      }
+
+      const client = await (postgresDatabase as any).pool.connect();
+
+      try {
+        const results: FixResults = {
+          currentSchema: [],
+          actions: [],
+        };
+
+        // Simple approach: Just fix rentals and expenses tables
+        console.log('📋 Fixing only rentals and expenses tables...');
+
+        // Drop and recreate rentals with UUID (don't preserve data for simplicity)
+        await client.query('DROP TABLE IF EXISTS rentals CASCADE');
+        await client.query(`
         CREATE TABLE rentals (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           vehicle_id VARCHAR(50),
@@ -393,11 +437,13 @@ router.post('/fix-database-simple', authenticateToken, async (req: any, res: any
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      results.actions.push('Recreated rentals table with UUID (no foreign keys)');
-      
-      // Drop and recreate expenses with UUID
-      await client.query('DROP TABLE IF EXISTS expenses CASCADE');
-      await client.query(`
+        results.actions.push(
+          'Recreated rentals table with UUID (no foreign keys)'
+        );
+
+        // Drop and recreate expenses with UUID
+        await client.query('DROP TABLE IF EXISTS expenses CASCADE');
+        await client.query(`
         CREATE TABLE expenses (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           description TEXT NOT NULL,
@@ -411,64 +457,70 @@ router.post('/fix-database-simple', authenticateToken, async (req: any, res: any
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      results.actions.push('Recreated expenses table with UUID (no foreign keys)');
-      
-      // Ensure admin user exists
-      console.log('👤 Creating admin user...');
-      const bcrypt = require('bcryptjs');
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-      
-      try {
-        await client.query(`
+        results.actions.push(
+          'Recreated expenses table with UUID (no foreign keys)'
+        );
+
+        // Ensure admin user exists
+        console.log('👤 Creating admin user...');
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash('admin123', 10);
+
+        try {
+          await client.query(
+            `
           INSERT INTO users (username, email, password, role, created_at)
           VALUES ('admin', 'admin@blackrent.sk', $1, 'admin', CURRENT_TIMESTAMP)
           ON CONFLICT (username) DO UPDATE SET 
             password = $1,
             role = 'admin',
             updated_at = CURRENT_TIMESTAMP
-        `, [hashedPassword]);
-        
-        results.actions.push('Admin user created/updated');
-      } catch (userError: any) {
-        console.log('⚠️ Admin user creation error:', userError.message);
-        results.actions.push('Admin user creation failed: ' + userError.message);
+        `,
+            [hashedPassword]
+          );
+
+          results.actions.push('Admin user created/updated');
+        } catch (userError: any) {
+          console.log('⚠️ Admin user creation error:', userError.message);
+          results.actions.push(
+            'Admin user creation failed: ' + userError.message
+          );
+        }
+
+        console.log('🎉 Simple database fix completed!');
+
+        res.json({
+          success: true,
+          message: 'Simple database UUID fix completed successfully',
+          data: results,
+        });
+      } finally {
+        client.release();
       }
-      
-      console.log('🎉 Simple database fix completed!');
-      
-      res.json({
-        success: true,
-        message: 'Simple database UUID fix completed successfully',
-        data: results
+    } catch (error: any) {
+      console.error('❌ Simple database fix failed:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Simple database fix failed: ' + error.message,
       });
-      
-    } finally {
-      client.release();
     }
-    
-  } catch (error: any) {
-    console.error('❌ Simple database fix failed:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Simple database fix failed: ' + error.message
-    });
   }
-});
+);
 
 router.post('/emergency-fix', async (req: any, res: any) => {
   try {
     console.log('🚨 Emergency database fix - NO AUTH REQUIRED');
-    
+
     const client = await (postgresDatabase as any).pool.connect();
-    
+
     try {
       const results = {
-        actions: [] as string[]
+        actions: [] as string[],
       };
-      
+
       // Emergency fix: Just create clean UUID tables and admin user
       console.log('🔧 Emergency: Creating clean rentals table...');
-      
+
       // Clean rentals table
       await client.query('DROP TABLE IF EXISTS rentals CASCADE');
       await client.query(`
@@ -491,8 +543,8 @@ router.post('/emergency-fix', async (req: any, res: any) => {
         )
       `);
       results.actions.push('Created clean rentals table with UUID');
-      
-      // Clean expenses table  
+
+      // Clean expenses table
       await client.query('DROP TABLE IF EXISTS expenses CASCADE');
       await client.query(`
         CREATE TABLE expenses (
@@ -508,12 +560,12 @@ router.post('/emergency-fix', async (req: any, res: any) => {
         )
       `);
       results.actions.push('Created clean expenses table with UUID');
-      
+
       // Force create admin user
       console.log('👤 Force creating admin user...');
       const bcrypt = require('bcryptjs');
       const hashedPassword = await bcrypt.hash('admin123', 12);
-      
+
       // Make sure users table exists with correct column name
       await client.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -525,71 +577,76 @@ router.post('/emergency-fix', async (req: any, res: any) => {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      
+
       // Delete existing admin and create new one
       await client.query('DELETE FROM users WHERE username = $1', ['admin']);
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO users (username, email, password_hash, role, created_at)
         VALUES ('admin', 'admin@blackrent.sk', $1, 'admin', CURRENT_TIMESTAMP)
-      `, [hashedPassword]);
-      
+      `,
+        [hashedPassword]
+      );
+
       results.actions.push('Force created admin user (admin/admin123)');
-      
+
       console.log('🎉 Emergency fix completed!');
-      
+
       res.json({
         success: true,
-        message: 'Emergency database fix completed - you can now login with admin/admin123',
-        data: results
+        message:
+          'Emergency database fix completed - you can now login with admin/admin123',
+        data: results,
       });
-      
     } finally {
       client.release();
     }
-    
   } catch (error: any) {
     console.error('❌ Emergency fix failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Emergency fix failed: ' + error.message
+      error: 'Emergency fix failed: ' + error.message,
     });
   }
 });
 
 router.post('/restore-basic-data', async (req: any, res: any) => {
   try {
-    console.log('🔄 Restoring basic data that was lost during emergency fix...');
-    
+    console.log(
+      '🔄 Restoring basic data that was lost during emergency fix...'
+    );
+
     const client = await (postgresDatabase as any).pool.connect();
-    
+
     try {
       const results = {
-        actions: [] as string[]
+        actions: [] as string[],
       };
-      
+
       // Restore basic vehicles from the backup data I saw
       console.log('📋 Restoring vehicles...');
-      
+
       const vehicles = [
         {
           make: 'BMW',
-          model: 'X5', 
+          model: 'X5',
           year: 2020,
           license_plate: 'BA-123-AB',
-          company: 'Default Company'
+          company: 'Default Company',
         },
         {
           make: 'Audi',
           model: 'A4',
-          year: 2019, 
+          year: 2019,
           license_plate: 'KE-456-CD',
-          company: 'Default Company'
-        }
+          company: 'Default Company',
+        },
       ];
-      
+
       for (const vehicle of vehicles) {
         try {
-          await client.query(`
+          await client.query(
+            `
             INSERT INTO vehicles (make, model, year, license_plate, company, pricing, commission, status, created_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
             ON CONFLICT (license_plate) DO UPDATE SET
@@ -598,101 +655,105 @@ router.post('/restore-basic-data', async (req: any, res: any) => {
               year = $3,
               company = $5,
               updated_at = CURRENT_TIMESTAMP
-          `, [
-            vehicle.make,
-            vehicle.model,
-            vehicle.year,
-            vehicle.license_plate,
-            vehicle.company,
-            JSON.stringify([]),
-            JSON.stringify({"type": "percentage", "value": 15}),
-            'available'
-          ]);
-          
+          `,
+            [
+              vehicle.make,
+              vehicle.model,
+              vehicle.year,
+              vehicle.license_plate,
+              vehicle.company,
+              JSON.stringify([]),
+              JSON.stringify({ type: 'percentage', value: 15 }),
+              'available',
+            ]
+          );
+
           console.log(`✅ Restored vehicle: ${vehicle.make} ${vehicle.model}`);
-          results.actions.push(`Restored vehicle: ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`);
+          results.actions.push(
+            `Restored vehicle: ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`
+          );
         } catch (err: any) {
           console.log(`⚠️ Error restoring vehicle:`, err.message);
           results.actions.push(`Error restoring vehicle: ${err.message}`);
         }
       }
-      
+
       // Restore basic companies
       console.log('📋 Restoring companies...');
-      
+
       const companies = [
         'Default Company',
         'BMW Slovakia',
         'Audi Centrum',
-        'Toyota Slovakia'
+        'Toyota Slovakia',
       ];
-      
+
       for (const companyName of companies) {
         try {
-          await client.query(`
+          await client.query(
+            `
             INSERT INTO companies (name, created_at)
             VALUES ($1, CURRENT_TIMESTAMP)
             ON CONFLICT (name) DO UPDATE SET
               updated_at = CURRENT_TIMESTAMP
-          `, [companyName]);
-          
+          `,
+            [companyName]
+          );
+
           console.log(`✅ Restored company: ${companyName}`);
           results.actions.push(`Restored company: ${companyName}`);
         } catch (err: any) {
           console.log(`⚠️ Error restoring company:`, err.message);
         }
       }
-      
+
       // Restore basic insurers
       console.log('📋 Restoring insurers...');
-      
-      const insurers = [
-        'Allianz',
-        'Generali',
-        'Kooperativa',
-        'UNIQA'
-      ];
-      
+
+      const insurers = ['Allianz', 'Generali', 'Kooperativa', 'UNIQA'];
+
       for (const insurerName of insurers) {
         try {
-          await client.query(`
+          await client.query(
+            `
             INSERT INTO insurers (name, created_at)
             VALUES ($1, CURRENT_TIMESTAMP)  
             ON CONFLICT (name) DO UPDATE SET
               updated_at = CURRENT_TIMESTAMP
-          `, [insurerName]);
-          
+          `,
+            [insurerName]
+          );
+
           console.log(`✅ Restored insurer: ${insurerName}`);
           results.actions.push(`Restored insurer: ${insurerName}`);
         } catch (err: any) {
           console.log(`⚠️ Error restoring insurer:`, err.message);
         }
       }
-      
+
       // Create sample customer
       console.log('📋 Creating sample customer...');
-      
+
       try {
-        await client.query(`
+        await client.query(
+          `
           INSERT INTO customers (name, email, phone, created_at)
           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
           ON CONFLICT (email) DO UPDATE SET
             name = $1,
             phone = $3,
             updated_at = CURRENT_TIMESTAMP
-        `, [
-          'Vzorový Zákazník',
-          'zakaznik@example.com',
-          '+421900000000'
-        ]);
-        
+        `,
+          ['Vzorový Zákazník', 'zakaznik@example.com', '+421900000000']
+        );
+
         results.actions.push('Created sample customer');
       } catch (err: any) {
         results.actions.push(`Error creating sample customer: ${err.message}`);
       }
-      
+
       console.log('🎉 Basic data restoration completed!');
-      
+
       // Final summary
       const summary = await client.query(`
         SELECT 
@@ -703,27 +764,25 @@ router.post('/restore-basic-data', async (req: any, res: any) => {
           (SELECT COUNT(*) FROM expenses) as expenses_count,
           (SELECT COUNT(*) FROM rentals) as rentals_count
       `);
-      
+
       results.actions.push(`Final counts: ${JSON.stringify(summary.rows[0])}`);
-      
+
       res.json({
         success: true,
         message: 'Basic data restoration completed',
         data: {
           actions: results.actions,
-          summary: summary.rows[0]
-        }
+          summary: summary.rows[0],
+        },
       });
-      
     } finally {
       client.release();
     }
-    
   } catch (error: any) {
     console.error('❌ Basic data restoration failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Basic data restoration failed: ' + error.message
+      error: 'Basic data restoration failed: ' + error.message,
     });
   }
 });
@@ -731,18 +790,18 @@ router.post('/restore-basic-data', async (req: any, res: any) => {
 router.get('/debug-admin', async (req: any, res: any) => {
   try {
     console.log('🔍 DEBUG: Checking admin user in database...');
-    
+
     const client = await (postgresDatabase as any).pool.connect();
-    
+
     try {
       // Check what's actually in the users table
       const result = await client.query(
         'SELECT id, username, email, password_hash, role, created_at FROM users WHERE username = $1',
         ['admin']
       );
-      
+
       const adminData = result.rows[0] || null;
-      
+
       if (adminData) {
         console.log('👤 Admin user found:', {
           id: adminData.id,
@@ -752,14 +811,17 @@ router.get('/debug-admin', async (req: any, res: any) => {
           hasPasswordHash: !!adminData.password_hash,
           passwordHashLength: adminData.password_hash?.length,
           passwordHashPrefix: adminData.password_hash?.substring(0, 30) + '...',
-          createdAt: adminData.created_at
+          createdAt: adminData.created_at,
         });
-        
+
         // Test password comparison
         const bcrypt = require('bcryptjs');
         const testPassword = 'admin123';
-        const isValid = await bcrypt.compare(testPassword, adminData.password_hash);
-        
+        const isValid = await bcrypt.compare(
+          testPassword,
+          adminData.password_hash
+        );
+
         res.json({
           success: true,
           message: 'Debug info for admin user',
@@ -770,16 +832,17 @@ router.get('/debug-admin', async (req: any, res: any) => {
               username: adminData.username,
               email: adminData.email,
               role: adminData.role,
-              createdAt: adminData.created_at
+              createdAt: adminData.created_at,
             },
             passwordTest: {
               testPassword: testPassword,
               hasPasswordHash: !!adminData.password_hash,
               passwordHashLength: adminData.password_hash?.length,
-              passwordHashPrefix: adminData.password_hash?.substring(0, 30) + '...',
-              passwordValid: isValid
-            }
-          }
+              passwordHashPrefix:
+                adminData.password_hash?.substring(0, 30) + '...',
+              passwordValid: isValid,
+            },
+          },
         });
       } else {
         console.log('❌ Admin user NOT found in database');
@@ -787,20 +850,18 @@ router.get('/debug-admin', async (req: any, res: any) => {
           success: false,
           message: 'Admin user not found in database',
           data: {
-            userFound: false
-          }
+            userFound: false,
+          },
         });
       }
-      
     } finally {
       client.release();
     }
-    
   } catch (error: any) {
     console.error('❌ Debug failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Debug failed: ' + error.message
+      error: 'Debug failed: ' + error.message,
     });
   }
 });
@@ -808,9 +869,9 @@ router.get('/debug-admin', async (req: any, res: any) => {
 router.post('/test-uuid-rental', async (req: any, res: any) => {
   try {
     console.log('🎯 Testing UUID rental creation without auth...');
-    
+
     const client = await (postgresDatabase as any).pool.connect();
-    
+
     try {
       // Simple insert test with UUID
       const testRental = {
@@ -819,26 +880,29 @@ router.post('/test-uuid-rental', async (req: any, res: any) => {
         end_date: '2025-07-20T08:00:00Z',
         total_price: 888,
         commission: 88,
-        payment_method: 'cash'
+        payment_method: 'cash',
       };
-      
-      const result = await client.query(`
+
+      const result = await client.query(
+        `
         INSERT INTO rentals (customer_name, start_date, end_date, total_price, commission, payment_method, created_at)
         VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
         RETURNING id, customer_name, total_price, created_at
-      `, [
-        testRental.customer_name,
-        testRental.start_date, 
-        testRental.end_date,
-        testRental.total_price,
-        testRental.commission,
-        testRental.payment_method
-      ]);
-      
+      `,
+        [
+          testRental.customer_name,
+          testRental.start_date,
+          testRental.end_date,
+          testRental.total_price,
+          testRental.commission,
+          testRental.payment_method,
+        ]
+      );
+
       const createdRental = result.rows[0];
-      
+
       console.log('✅ UUID rental created successfully:', createdRental);
-      
+
       res.json({
         success: true,
         message: 'UUID rental test successful',
@@ -847,25 +911,26 @@ router.post('/test-uuid-rental', async (req: any, res: any) => {
             id: createdRental.id,
             customerName: createdRental.customer_name,
             totalPrice: createdRental.total_price,
-            createdAt: createdRental.created_at
+            createdAt: createdRental.created_at,
           },
           uuidTest: {
             idType: typeof createdRental.id,
             idLength: createdRental.id ? createdRental.id.toString().length : 0,
-            isValidUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(createdRental.id)
-          }
-        }
+            isValidUUID:
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                createdRental.id
+              ),
+          },
+        },
       });
-      
     } finally {
       client.release();
     }
-    
   } catch (error: any) {
     console.error('❌ UUID rental test failed:', error);
     res.status(500).json({
       success: false,
-      error: 'UUID rental test failed: ' + error.message
+      error: 'UUID rental test failed: ' + error.message,
     });
   }
 });
@@ -874,10 +939,10 @@ router.post('/test-uuid-rental', async (req: any, res: any) => {
 router.post('/add-rental-columns', async (req: Request, res: Response) => {
   try {
     const client = await (postgresDatabase as any).pool.connect();
-    
+
     try {
       console.log('🔧 Starting rental table columns migration...');
-      
+
       // Get current columns
       const columnsResult = await client.query(`
         SELECT column_name, data_type 
@@ -885,15 +950,21 @@ router.post('/add-rental-columns', async (req: Request, res: Response) => {
         WHERE table_name = 'rentals' AND table_schema = 'public'
         ORDER BY ordinal_position
       `);
-      
-      const existingColumns = columnsResult.rows.map((row: any) => row.column_name);
+
+      const existingColumns = columnsResult.rows.map(
+        (row: any) => row.column_name
+      );
       console.log('📋 Existing columns:', existingColumns);
-      
+
       // Define required columns
       const requiredColumns = [
         { name: 'deposit', type: 'DECIMAL(10,2)', defaultValue: '0' },
         { name: 'allowed_kilometers', type: 'INTEGER', defaultValue: '0' },
-        { name: 'extra_kilometer_rate', type: 'DECIMAL(10,2)', defaultValue: '0' },
+        {
+          name: 'extra_kilometer_rate',
+          type: 'DECIMAL(10,2)',
+          defaultValue: '0',
+        },
         { name: 'return_conditions', type: 'TEXT', defaultValue: null },
         { name: 'fuel_level', type: 'INTEGER', defaultValue: '0' },
         { name: 'odometer', type: 'INTEGER', defaultValue: '0' },
@@ -902,26 +973,26 @@ router.post('/add-rental-columns', async (req: Request, res: Response) => {
         { name: 'actual_kilometers', type: 'INTEGER', defaultValue: null },
         { name: 'fuel_refill_cost', type: 'DECIMAL(10,2)', defaultValue: null },
         { name: 'handover_protocol_id', type: 'UUID', defaultValue: null },
-        { name: 'return_protocol_id', type: 'UUID', defaultValue: null }
+        { name: 'return_protocol_id', type: 'UUID', defaultValue: null },
       ];
-      
+
       const addedColumns: string[] = [];
-      
+
       // Add missing columns
       for (const column of requiredColumns) {
         if (!existingColumns.includes(column.name)) {
           console.log(`➕ Adding column: ${column.name} (${column.type})`);
-          
+
           let alterQuery = `ALTER TABLE rentals ADD COLUMN ${column.name} ${column.type}`;
           if (column.defaultValue !== null) {
             alterQuery += ` DEFAULT ${column.defaultValue}`;
           }
-          
+
           await client.query(alterQuery);
           addedColumns.push(column.name);
         }
       }
-      
+
       // Get final columns
       const finalColumnsResult = await client.query(`
         SELECT column_name, data_type 
@@ -929,77 +1000,81 @@ router.post('/add-rental-columns', async (req: Request, res: Response) => {
         WHERE table_name = 'rentals' AND table_schema = 'public'
         ORDER BY ordinal_position
       `);
-      
-      const finalColumns = finalColumnsResult.rows.map((row: any) => `${row.column_name} (${row.data_type})`);
-      
+
+      const finalColumns = finalColumnsResult.rows.map(
+        (row: any) => `${row.column_name} (${row.data_type})`
+      );
+
       console.log('✅ Rental table migration completed');
       console.log('📊 Added columns:', addedColumns);
       console.log('📊 Total columns:', finalColumns.length);
-      
+
       res.json({
         success: true,
         message: 'Rental table columns migration completed',
         data: {
           addedColumns,
           totalColumns: finalColumns.length,
-          finalColumns
-        }
+          finalColumns,
+        },
       });
-      
     } finally {
       client.release();
     }
-    
   } catch (error) {
     console.error('❌ Rental table migration error:', error);
     res.status(500).json({
       success: false,
-      error: `Migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      error: `Migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
     });
   }
 });
 
 // POST /api/fix-database/create-settlements-table
-router.post('/create-settlements-table', async (req: Request, res: Response) => {
-  try {
-    const client = await (postgresDatabase as any).pool.connect();
-    
+router.post(
+  '/create-settlements-table',
+  async (req: Request, res: Response) => {
     try {
-      console.log('🔧 Creating settlements table...');
-      
-      // Check if table exists
-      const tableExists = await client.query(`
+      const client = await (postgresDatabase as any).pool.connect();
+
+      try {
+        console.log('🔧 Creating settlements table...');
+
+        // Check if table exists
+        const tableExists = await client.query(`
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
           WHERE table_schema = 'public' 
           AND table_name = 'settlements'
         );
       `);
-      
-      if (tableExists.rows[0].exists) {
-        console.log('📋 Settlements table already exists');
-        
-        const columnsResult = await client.query(`
+
+        if (tableExists.rows[0].exists) {
+          console.log('📋 Settlements table already exists');
+
+          const columnsResult = await client.query(`
           SELECT column_name, data_type 
           FROM information_schema.columns 
           WHERE table_name = 'settlements' AND table_schema = 'public'
           ORDER BY ordinal_position
         `);
-        
-        const columns = columnsResult.rows.map((row: any) => `${row.column_name} (${row.data_type})`);
-        
-        return res.json({
-          success: true,
-          message: 'Settlements table already exists',
-          data: {
-            tableExists: true,
-            columns
-          }
-        });
-      }
-      
-      // Create settlements table
-      await client.query(`
+
+          const columns = columnsResult.rows.map(
+            (row: any) => `${row.column_name} (${row.data_type})`
+          );
+
+          return res.json({
+            success: true,
+            message: 'Settlements table already exists',
+            data: {
+              tableExists: true,
+              columns,
+            },
+          });
+        }
+
+        // Create settlements table
+        await client.query(`
         CREATE TABLE settlements (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           company VARCHAR(100),
@@ -1017,40 +1092,41 @@ router.post('/create-settlements-table', async (req: Request, res: Response) => 
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      
-      console.log('✅ Settlements table created successfully');
-      
-      // Get table structure
-      const columnsResult = await client.query(`
+
+        console.log('✅ Settlements table created successfully');
+
+        // Get table structure
+        const columnsResult = await client.query(`
         SELECT column_name, data_type 
         FROM information_schema.columns 
         WHERE table_name = 'settlements' AND table_schema = 'public'
         ORDER BY ordinal_position
       `);
-      
-      const columns = columnsResult.rows.map((row: any) => `${row.column_name} (${row.data_type})`);
-      
-      res.json({
-        success: true,
-        message: 'Settlements table created successfully',
-        data: {
-          tableCreated: true,
-          totalColumns: columns.length,
-          columns
-        }
-      });
-      
-    } finally {
-      client.release();
-    }
-    
-  } catch (error) {
-    console.error('❌ Settlements table creation error:', error);
-    res.status(500).json({
-      success: false,
-      error: `Table creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    });
-  }
-});
 
-export default router; 
+        const columns = columnsResult.rows.map(
+          (row: any) => `${row.column_name} (${row.data_type})`
+        );
+
+        res.json({
+          success: true,
+          message: 'Settlements table created successfully',
+          data: {
+            tableCreated: true,
+            totalColumns: columns.length,
+            columns,
+          },
+        });
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('❌ Settlements table creation error:', error);
+      res.status(500).json({
+        success: false,
+        error: `Table creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
+  }
+);
+
+export default router;

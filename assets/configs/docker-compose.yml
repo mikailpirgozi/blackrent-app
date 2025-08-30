@@ -14,11 +14,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backup:/backup
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - '${DB_PORT:-5432}:5432'
     networks:
       - blackrent-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -38,24 +38,24 @@ services:
       DB_NAME: blackrent
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-blackrent123}
-      
+
       # JWT
       JWT_SECRET: ${JWT_SECRET:-blackrent-super-secret-jwt-key-production-2024}
-      
+
       # Server
       PORT: 5001
       NODE_ENV: production
-      
+
       # CORS
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     ports:
-      - "${APP_PORT:-5001}:5001"
+      - '${APP_PORT:-5001}:5001'
     volumes:
       - ./logs:/app/logs
     networks:
       - blackrent-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5001/api/health || exit 1"]
+      test: ['CMD-SHELL', 'curl -f http://localhost:5001/api/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -68,8 +68,8 @@ services:
     depends_on:
       - blackrent
     ports:
-      - "${NGINX_PORT:-80}:80"
-      - "${NGINX_SSL_PORT:-443}:443"
+      - '${NGINX_PORT:-80}:80'
+      - '${NGINX_SSL_PORT:-443}:443'
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
@@ -81,7 +81,7 @@ services:
   backup:
     image: postgres:15-alpine
     container_name: blackrent-backup
-    restart: "no"
+    restart: 'no'
     depends_on:
       postgres:
         condition: service_healthy
@@ -108,4 +108,4 @@ volumes:
 
 networks:
   blackrent-network:
-    driver: bridge 
+    driver: bridge

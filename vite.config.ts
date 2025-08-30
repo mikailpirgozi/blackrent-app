@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import svgr from 'vite-plugin-svgr'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import svgr from 'vite-plugin-svgr';
+import path from 'path';
 
 export default defineConfig({
   plugins: [
@@ -11,7 +11,7 @@ export default defineConfig({
         icon: true,
       },
       include: '**/*.svg?react',
-    })
+    }),
   ],
   resolve: {
     alias: {
@@ -44,4 +44,4 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
-})
+});

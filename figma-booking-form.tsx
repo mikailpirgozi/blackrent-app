@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 
 interface FormField {
   id: string;
@@ -22,52 +22,52 @@ interface TravelOption {
 
 export const TabulkaObjednavky = (): JSX.Element => {
   const [formFields] = useState<FormField[]>([
-    { id: "pickup-location", label: "Miesto vyzdvihnutia", value: "" },
-    { id: "return-location", label: "Miesto vrátenia", value: "" },
-    { id: "pickup-date", label: "Deň vyzdvihnutia", value: "" },
-    { id: "return-date", label: "Deň vrátenia", value: "" },
-    { id: "pickup-time", label: "Čas vyzdvihnutia", value: "" },
-    { id: "return-time", label: "Čas vrátenia", value: "" },
+    { id: 'pickup-location', label: 'Miesto vyzdvihnutia', value: '' },
+    { id: 'return-location', label: 'Miesto vrátenia', value: '' },
+    { id: 'pickup-date', label: 'Deň vyzdvihnutia', value: '' },
+    { id: 'return-date', label: 'Deň vrátenia', value: '' },
+    { id: 'pickup-time', label: 'Čas vyzdvihnutia', value: '' },
+    { id: 'return-time', label: 'Čas vrátenia', value: '' },
   ]);
 
   const [pricingItems] = useState<PricingItem[]>([
-    { label: "Počet povolených km", value: "" },
-    { label: "Cena prenájmu", value: "" },
-    { label: "Poistenie", value: "" },
+    { label: 'Počet povolených km', value: '' },
+    { label: 'Cena prenájmu', value: '' },
+    { label: 'Poistenie', value: '' },
   ]);
 
   const [travelOptions, setTravelOptions] = useState<TravelOption[]>([
     {
-      id: "basic",
-      label: "Slovensko, Česko, Rakúsko",
+      id: 'basic',
+      label: 'Slovensko, Česko, Rakúsko',
       isSelected: true,
     },
     {
-      id: "extended",
-      label: "+Poľsko, Nemecko, Maďarsko",
-      description: "(+30% depozit)",
+      id: 'extended',
+      label: '+Poľsko, Nemecko, Maďarsko',
+      description: '(+30% depozit)',
       isSelected: false,
     },
     {
-      id: "eu",
-      label: "Celá EU okrem Rumunska",
-      description: "(+60% depozit)",
+      id: 'eu',
+      label: 'Celá EU okrem Rumunska',
+      description: '(+60% depozit)',
       isSelected: false,
     },
     {
-      id: "outside-eu",
-      label: "Mimo EU",
-      description: "(individuálne posúdenie, kontaktujte nás)",
+      id: 'outside-eu',
+      label: 'Mimo EU',
+      description: '(individuálne posúdenie, kontaktujte nás)',
       isSelected: false,
     },
   ]);
 
   const handleTravelOptionChange = (optionId: string) => {
-    setTravelOptions((options) =>
-      options.map((option) => ({
+    setTravelOptions(options =>
+      options.map(option => ({
         ...option,
         isSelected: option.id === optionId,
-      })),
+      }))
     );
   };
 
@@ -110,7 +110,7 @@ export const TabulkaObjednavky = (): JSX.Element => {
               {item.value}
             </div>
             <div className="relative w-fit mt-[-1.00px] mr-[-1.00px] [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap overflow-hidden text-ellipsis [display:-webkit-box] [-webkit-line-clamp:1] [-webkit-box-orient:vertical]">
-              {""}
+              {''}
             </div>
           </div>
         </div>
@@ -131,7 +131,7 @@ export const TabulkaObjednavky = (): JSX.Element => {
               {item.value}
             </div>
             <div className="relative w-fit mt-[-1.00px] mr-[-1.00px] [font-family:'Poppins',Helvetica] font-semibold text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap overflow-hidden text-ellipsis [display:-webkit-box] [-webkit-line-clamp:1] [-webkit-box-orient:vertical]">
-              {""}
+              {''}
             </div>
           </div>
         </div>
@@ -214,8 +214,8 @@ export const TabulkaObjednavky = (): JSX.Element => {
             <div
               className={`relative w-5 h-5 top-0.5 left-0.5 rounded-[10px] border-2 border-solid ${
                 option.isSelected
-                  ? "bg-colors-dark-yellow-accent-300 border-colors-dark-yellow-accent-300"
-                  : "border-colors-dark-gray-900"
+                  ? 'bg-colors-dark-yellow-accent-300 border-colors-dark-yellow-accent-300'
+                  : 'border-colors-dark-gray-900'
               }`}
             >
               {option.isSelected && (
@@ -269,7 +269,7 @@ export const TabulkaObjednavky = (): JSX.Element => {
           <section className="flex-col items-center gap-4 self-stretch w-full flex-[0_0_auto] flex relative">
             <div className="flex flex-col items-start gap-2 relative self-stretch w-full flex-[0_0_auto]">
               {pricingItems.map((item, index) =>
-                renderPricingItem(item, index),
+                renderPricingItem(item, index)
               )}
             </div>
 
@@ -287,11 +287,11 @@ export const TabulkaObjednavky = (): JSX.Element => {
                   </div>
 
                   <div className="mt-[-1.00px] text-colors-white-800 relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-base tracking-[0] leading-6 whitespace-nowrap overflow-hidden text-ellipsis [display:-webkit-box] [-webkit-line-clamp:1] [-webkit-box-orient:vertical]">
-                    {""}
+                    {''}
                   </div>
 
                   <div className="mt-[-1.00px] mr-[-1.00px] text-colors-green-accent-500 relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-base tracking-[0] leading-6 whitespace-nowrap overflow-hidden text-ellipsis [display:-webkit-box] [-webkit-line-clamp:1] [-webkit-box-orient:vertical]">
-                    {""}
+                    {''}
                   </div>
                 </div>
               </div>
@@ -303,7 +303,7 @@ export const TabulkaObjednavky = (): JSX.Element => {
                   <p className="relative w-fit [font-family:'Poppins',Helvetica] font-normal text-colors-white-800 text-base tracking-[0] leading-6 whitespace-nowrap">
                     <span className="font-semibold">Depozit</span>
                     <span className="[font-family:'Poppins',Helvetica] font-normal text-[#f0f0f5] text-base tracking-[0] leading-6">
-                      {" "}
+                      {' '}
                       (vratná záloha)
                     </span>
                   </p>
@@ -316,12 +316,12 @@ export const TabulkaObjednavky = (): JSX.Element => {
                 </div>
 
                 <div className="mr-[-1.00px] text-colors-white-800 relative w-fit [font-family:'Poppins',Helvetica] font-semibold text-base tracking-[0] leading-6 whitespace-nowrap overflow-hidden text-ellipsis [display:-webkit-box] [-webkit-line-clamp:1] [-webkit-box-orient:vertical]">
-                  {""}
+                  {''}
                 </div>
               </legend>
 
               {travelOptions.map((option, index) =>
-                renderTravelOption(option, index),
+                renderTravelOption(option, index)
               )}
             </fieldset>
           </section>
