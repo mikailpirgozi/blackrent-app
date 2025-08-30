@@ -15,7 +15,7 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
-
+    "@types/handlebars": "^4.0.40",
     "@types/jszip": "3.4.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.42",
@@ -24,6 +24,7 @@
     "date-fns": "2.30.0",
     "dayjs": "1.11.13",
     "file-saver": "^2.0.5",
+    "handlebars": "^4.7.8",
     "jspdf": "3.0.1",
     "jszip": "3.10.1",
     "papaparse": "^5.4.1",
@@ -33,10 +34,10 @@
     "react-dom": "^18.2.0",
     "react-infinite-scroll-component": "6.1.0",
     "react-router-dom": "^6.20.1",
-
     "react-window": "1.8.11",
     "recharts": "3.1.2",
     "socket.io-client": "4.8.1",
+    "tsx": "^4.20.5",
     "typescript": "^4.9.5",
     "uuid": "11.1.0",
     "web-vitals": "^2.1.4"
@@ -64,11 +65,17 @@
     "email:check": "./scripts/monitoring/email-monitoring-watchdog.sh check",
     "watchdog": "./scripts/watchdog.sh",
     "cleanup": "./scripts/diagnostics/cleanup-ports.sh",
-    "debug": "./scripts/diagnostics/debug-mode.sh"
+    "debug": "./scripts/diagnostics/debug-mode.sh",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings=50",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier -w .",
+    "format:check": "prettier -c .",
+    "prepare": "husky"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
     ]
   },
   "browserslist": {
@@ -89,9 +96,21 @@
     "@types/lodash": "4.17.20",
     "@types/papaparse": "^5.3.14",
     "@types/uuid": "10.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "@vitejs/plugin-react": "^4.2.0",
     "@vitest/ui": "^1.0.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-vitest": "^0.5.4",
+    "eslint-plugin-vitest-globals": "^1.5.0",
+    "husky": "^9.1.7",
     "jsdom": "^23.0.0",
+    "lint-staged": "^16.1.5",
+    "prettier": "^3.6.2",
     "rollup-plugin-visualizer": "^6.0.3",
     "vite": "^5.0.0",
     "vite-plugin-svgr": "^4.5.0",
