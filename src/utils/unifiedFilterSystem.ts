@@ -1,15 +1,17 @@
 /**
  * 🔍 UNIFIED FILTER SYSTEM
- * 
+ *
  * Konsoliduje všetky filter systémy do jedného inteligentného systému:
  * - RentalFilters.tsx (základné filtre)
- * - RentalAdvancedFilters.tsx (pokročilé filtre)  
+ * - RentalAdvancedFilters.tsx (pokročilé filtre)
  * - EnhancedRentalSearch.tsx (search s suggestions)
  * - useOptimizedFilters.ts (performance optimalizácie)
  */
 
 import { useMemo, useCallback } from 'react';
+
 import { Rental, Vehicle, Customer } from '../types';
+
 import { logger } from './smartLogger';
 
 // 🎯 UNIFIED FILTER INTERFACE
@@ -24,7 +26,7 @@ export interface UnifiedFilterOptions {
   dateTo?: string;
   paymentMethod?: string;
   searchQuery?: string;
-  
+
   // Priority filtre (z RentalFilters)
   showActive?: boolean;
   showTodayReturns?: boolean;
@@ -34,7 +36,7 @@ export interface UnifiedFilterOptions {
   showOldConfirmed?: boolean;
   showConfirmed?: boolean;
   showAll?: boolean;
-  
+
   // Pokročilé filtre (z RentalAdvancedFilters)
   priceMin?: string;
   priceMax?: string;
@@ -54,12 +56,12 @@ export interface UnifiedFilterOptions {
   showOnlyActive?: boolean;
   showOnlyOverdue?: boolean;
   showOnlyCompleted?: boolean;
-  
+
   // Search funkcie (z EnhancedRentalSearch)
   enableSearch?: boolean;
   enableSuggestions?: boolean;
   searchFields?: string[];
-  
+
   // Performance optimalizácie (z useOptimizedFilters)
   enableMemoization?: boolean;
   enableDebounce?: boolean;
@@ -109,11 +111,11 @@ class UnifiedFilterEngine {
     }
   ): Promise<FilterResult<T>> {
     const startTime = performance.now();
-    
+
     logger.debug('🔍 UNIFIED FILTER: Starting filter operation', {
       dataCount: data.length,
       options,
-      enableMemoization: options.enableMemoization
+      enableMemoization: options.enableMemoization,
     });
 
     // 🗄️ Check cache if memoization enabled
@@ -130,17 +132,17 @@ class UnifiedFilterEngine {
 
     // 1. Basic filters (z RentalFilters)
     filteredData = this.applyBasicFilters(filteredData, options);
-    
-    // 2. Advanced filters (z RentalAdvancedFilters)  
+
+    // 2. Advanced filters (z RentalAdvancedFilters)
     filteredData = this.applyAdvancedFilters(filteredData, options);
-    
+
     // 3. Priority filters (z RentalFilters)
     filteredData = this.applyPriorityFilters(filteredData, options);
-    
+
     // 4. Search filters (z EnhancedRentalSearch)
     const { data: searchFiltered, suggestions } = await this.applySearchFilters(
-      filteredData, 
-      options, 
+      filteredData,
+      options,
       context
     );
     filteredData = searchFiltered;
@@ -157,10 +159,10 @@ class UnifiedFilterEngine {
         hasFilters: this.hasActiveFilters(options),
         performance: {
           filterTime,
-          searchTime: totalTime - filterTime
-        }
+          searchTime: totalTime - filterTime,
+        },
       },
-      suggestions
+      suggestions,
     };
 
     // 🗄️ Cache result if memoization enabled
@@ -174,7 +176,7 @@ class UnifiedFilterEngine {
       filteredCount: filteredData.length,
       filterTime: `${filterTime.toFixed(2)}ms`,
       totalTime: `${totalTime.toFixed(2)}ms`,
-      cacheHitRate: `${(this.stats.hits / (this.stats.hits + this.stats.misses) * 100).toFixed(1)}%`
+      cacheHitRate: `${((this.stats.hits / (this.stats.hits + this.stats.misses)) * 100).toFixed(1)}%`,
     });
 
     return result;
@@ -183,11 +185,16 @@ class UnifiedFilterEngine {
   /**
    * 🔧 Basic filters (z RentalFilters.tsx)
    */
-  private applyBasicFilters<T extends Rental>(data: T[], options: UnifiedFilterOptions): T[] {
+  private applyBasicFilters<T extends Rental>(
+    data: T[],
+    options: UnifiedFilterOptions
+  ): T[] {
     let filtered = data;
 
     if (options.vehicle && options.vehicle !== 'all') {
-      filtered = filtered.filter(rental => rental.vehicleId === options.vehicle);
+      filtered = filtered.filter(
+        rental => rental.vehicleId === options.vehicle
+      );
     }
 
     if (options.company && options.company !== 'all') {
@@ -195,8 +202,10 @@ class UnifiedFilterEngine {
     }
 
     if (options.customer && options.customer !== 'all') {
-      filtered = filtered.filter(rental => 
-        rental.customerName?.toLowerCase().includes(options.customer!.toLowerCase())
+      filtered = filtered.filter(rental =>
+        rental.customerName
+          ?.toLowerCase()
+          .includes(options.customer!.toLowerCase())
       );
     }
 
@@ -210,19 +219,21 @@ class UnifiedFilterEngine {
     }
 
     if (options.dateFrom) {
-      filtered = filtered.filter(rental => 
-        new Date(rental.startDate) >= new Date(options.dateFrom!)
+      filtered = filtered.filter(
+        rental => new Date(rental.startDate) >= new Date(options.dateFrom!)
       );
     }
 
     if (options.dateTo) {
-      filtered = filtered.filter(rental => 
-        new Date(rental.endDate) <= new Date(options.dateTo!)
+      filtered = filtered.filter(
+        rental => new Date(rental.endDate) <= new Date(options.dateTo!)
       );
     }
 
     if (options.paymentMethod && options.paymentMethod !== 'all') {
-      filtered = filtered.filter(rental => rental.paymentMethod === options.paymentMethod);
+      filtered = filtered.filter(
+        rental => rental.paymentMethod === options.paymentMethod
+      );
     }
 
     return filtered;
@@ -231,17 +242,24 @@ class UnifiedFilterEngine {
   /**
    * 🚀 Advanced filters (z RentalAdvancedFilters.tsx)
    */
-  private applyAdvancedFilters<T extends Rental>(data: T[], options: UnifiedFilterOptions): T[] {
+  private applyAdvancedFilters<T extends Rental>(
+    data: T[],
+    options: UnifiedFilterOptions
+  ): T[] {
     let filtered = data;
 
     if (options.priceMin) {
       const minPrice = parseFloat(options.priceMin);
-      filtered = filtered.filter(rental => (rental.totalPrice || 0) >= minPrice);
+      filtered = filtered.filter(
+        rental => (rental.totalPrice || 0) >= minPrice
+      );
     }
 
     if (options.priceMax) {
       const maxPrice = parseFloat(options.priceMax);
-      filtered = filtered.filter(rental => (rental.totalPrice || 0) <= maxPrice);
+      filtered = filtered.filter(
+        rental => (rental.totalPrice || 0) <= maxPrice
+      );
     }
 
     if (options.protocolStatus && options.protocolStatus !== 'all') {
@@ -283,7 +301,10 @@ class UnifiedFilterEngine {
   /**
    * ⭐ Priority filters (z RentalFilters.tsx)
    */
-  private applyPriorityFilters<T extends Rental>(data: T[], options: UnifiedFilterOptions): T[] {
+  private applyPriorityFilters<T extends Rental>(
+    data: T[],
+    options: UnifiedFilterOptions
+  ): T[] {
     let filtered = data;
 
     if (options.showActive) {
@@ -292,8 +313,8 @@ class UnifiedFilterEngine {
 
     if (options.showTodayReturns) {
       const today = new Date().toISOString().split('T')[0];
-      filtered = filtered.filter(rental => 
-        new Date(rental.endDate).toISOString().split('T')[0] === today
+      filtered = filtered.filter(
+        rental => new Date(rental.endDate).toISOString().split('T')[0] === today
       );
     }
 
@@ -301,8 +322,9 @@ class UnifiedFilterEngine {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split('T')[0];
-      filtered = filtered.filter(rental => 
-        new Date(rental.endDate).toISOString().split('T')[0] === tomorrowStr
+      filtered = filtered.filter(
+        rental =>
+          new Date(rental.endDate).toISOString().split('T')[0] === tomorrowStr
       );
     }
 
@@ -312,9 +334,7 @@ class UnifiedFilterEngine {
 
     if (options.showFuture) {
       const now = new Date();
-      filtered = filtered.filter(rental => 
-        new Date(rental.startDate) > now
-      );
+      filtered = filtered.filter(rental => new Date(rental.startDate) > now);
     }
 
     return filtered;
@@ -324,7 +344,7 @@ class UnifiedFilterEngine {
    * 🔍 Search filters (z EnhancedRentalSearch.tsx)
    */
   private async applySearchFilters<T extends Rental>(
-    data: T[], 
+    data: T[],
     options: UnifiedFilterOptions,
     context?: {
       vehicles?: Vehicle[];
@@ -332,7 +352,6 @@ class UnifiedFilterEngine {
       companies?: string[];
     }
   ): Promise<{ data: T[]; suggestions?: SearchSuggestion[] }> {
-    
     if (!options.searchQuery || !options.enableSearch) {
       return { data };
     }
@@ -347,8 +366,12 @@ class UnifiedFilterEngine {
 
     // Apply search filter
     const searchFields = options.searchFields || [
-      'customerName', 'customerEmail', 'customerPhone', 
-      'company', 'licensePlate', 'notes'
+      'customerName',
+      'customerEmail',
+      'customerPhone',
+      'company',
+      'licensePlate',
+      'notes',
     ];
 
     const filtered = data.filter(rental => {
@@ -377,9 +400,10 @@ class UnifiedFilterEngine {
     // Customer suggestions
     if (context.customers) {
       context.customers
-        .filter(customer => 
-          customer.name.toLowerCase().includes(query) ||
-          customer.email?.toLowerCase().includes(query)
+        .filter(
+          customer =>
+            customer.name.toLowerCase().includes(query) ||
+            customer.email?.toLowerCase().includes(query)
         )
         .slice(0, 5)
         .forEach(customer => {
@@ -388,7 +412,7 @@ class UnifiedFilterEngine {
             type: 'customer',
             label: customer.name,
             value: customer.name,
-            metadata: { email: customer.email }
+            metadata: { email: customer.email },
           });
         });
     }
@@ -396,10 +420,11 @@ class UnifiedFilterEngine {
     // Vehicle suggestions
     if (context.vehicles) {
       context.vehicles
-        .filter(vehicle => 
-          vehicle.licensePlate.toLowerCase().includes(query) ||
-          vehicle.brand.toLowerCase().includes(query) ||
-          vehicle.model.toLowerCase().includes(query)
+        .filter(
+          vehicle =>
+            vehicle.licensePlate.toLowerCase().includes(query) ||
+            vehicle.brand.toLowerCase().includes(query) ||
+            vehicle.model.toLowerCase().includes(query)
         )
         .slice(0, 5)
         .forEach(vehicle => {
@@ -408,7 +433,7 @@ class UnifiedFilterEngine {
             type: 'vehicle',
             label: `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`,
             value: vehicle.licensePlate,
-            metadata: { brand: vehicle.brand, model: vehicle.model }
+            metadata: { brand: vehicle.brand, model: vehicle.model },
           });
         });
     }
@@ -423,7 +448,7 @@ class UnifiedFilterEngine {
             id: company,
             type: 'company',
             label: company,
-            value: company
+            value: company,
           });
         });
     }
@@ -434,41 +459,37 @@ class UnifiedFilterEngine {
   /**
    * ⏰ Apply time-based filters
    */
-  private applyTimeFilter<T extends Rental>(data: T[], timeFilter: string): T[] {
+  private applyTimeFilter<T extends Rental>(
+    data: T[],
+    timeFilter: string
+  ): T[] {
     const now = new Date();
-    
+
     switch (timeFilter) {
       case 'today':
         const today = now.toISOString().split('T')[0];
-        return data.filter(rental => 
-          new Date(rental.startDate).toISOString().split('T')[0] === today ||
-          new Date(rental.endDate).toISOString().split('T')[0] === today
+        return data.filter(
+          rental =>
+            new Date(rental.startDate).toISOString().split('T')[0] === today ||
+            new Date(rental.endDate).toISOString().split('T')[0] === today
         );
-        
+
       case 'week':
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return data.filter(rental => 
-          new Date(rental.startDate) >= weekAgo
-        );
-        
+        return data.filter(rental => new Date(rental.startDate) >= weekAgo);
+
       case 'month':
         const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        return data.filter(rental => 
-          new Date(rental.startDate) >= monthAgo
-        );
-        
+        return data.filter(rental => new Date(rental.startDate) >= monthAgo);
+
       case 'quarter':
         const quarterAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        return data.filter(rental => 
-          new Date(rental.startDate) >= quarterAgo
-        );
-        
+        return data.filter(rental => new Date(rental.startDate) >= quarterAgo);
+
       case 'year':
         const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        return data.filter(rental => 
-          new Date(rental.startDate) >= yearAgo
-        );
-        
+        return data.filter(rental => new Date(rental.startDate) >= yearAgo);
+
       default:
         return data;
     }
@@ -491,7 +512,7 @@ class UnifiedFilterEngine {
       if (key.startsWith('enable') || key.endsWith('Ms')) return false;
       return value && value !== 'all' && value !== '' && value !== false;
     });
-    
+
     return filterValues.length > 0;
   }
 
@@ -512,7 +533,8 @@ class UnifiedFilterEngine {
       cacheSize: this.cache.size,
       cacheHits: this.stats.hits,
       cacheMisses: this.stats.misses,
-      hitRate: this.stats.hits / (this.stats.hits + this.stats.misses) * 100 || 0
+      hitRate:
+        (this.stats.hits / (this.stats.hits + this.stats.misses)) * 100 || 0,
     };
   }
 }
@@ -540,8 +562,8 @@ export const useUnifiedFilters = <T extends Rental>(
           total: 0,
           filtered: 0,
           hasFilters: false,
-          performance: { filterTime: 0, searchTime: 0 }
-        }
+          performance: { filterTime: 0, searchTime: 0 },
+        },
       };
     }
 
@@ -573,7 +595,7 @@ export const compatibilityFilters = {
       showOldConfirmed: filters.showOldConfirmed,
       showConfirmed: filters.showConfirmed,
       showAll: filters.showAll,
-      enableMemoization: true
+      enableMemoization: true,
     });
   },
 
@@ -583,18 +605,22 @@ export const compatibilityFilters = {
       ...filters,
       enableMemoization: true,
       enableSearch: true,
-      enableSuggestions: true
+      enableSuggestions: true,
     });
   },
 
   // Wrapper pre EnhancedRentalSearch.tsx
   applySearchFilters: (data: Rental[], query: string, context: any) => {
-    return unifiedFilterEngine.filter(data, {
-      searchQuery: query,
-      enableSearch: true,
-      enableSuggestions: true,
-      enableMemoization: true,
-      debounceMs: 300
-    }, context);
-  }
+    return unifiedFilterEngine.filter(
+      data,
+      {
+        searchQuery: query,
+        enableSearch: true,
+        enableSuggestions: true,
+        enableMemoization: true,
+        debounceMs: 300,
+      },
+      context
+    );
+  },
 };

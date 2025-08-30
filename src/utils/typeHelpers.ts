@@ -1,6 +1,6 @@
 /**
  * 🔧 TYPE HELPERS
- * 
+ *
  * Utility funkcie pre type-safe operácie v BlackRent aplikácii
  */
 
@@ -8,7 +8,7 @@
  * Vytvorí unique array zo strings s type safety
  */
 export const createUniqueStringArray = <T>(
-  items: T[], 
+  items: T[],
   mapper: (item: T) => string | undefined
 ): string[] => {
   return [...new Set(items.map(mapper).filter(Boolean))].sort() as string[];
@@ -18,7 +18,7 @@ export const createUniqueStringArray = <T>(
  * Vytvorí unique array z objektov s type safety
  */
 export const createUniqueArray = <T, K>(
-  items: T[], 
+  items: T[],
   mapper: (item: T) => K | undefined
 ): K[] => {
   return [...new Set(items.map(mapper).filter(Boolean))] as K[];

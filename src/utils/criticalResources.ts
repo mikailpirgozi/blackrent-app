@@ -186,7 +186,7 @@ class CriticalResourceManager {
       this.resourcePriorities.normal = Array.from(new Set(normalResources));
       // Zachovaj už existujúce fonty v important a pridaj CSS
       const existingImportant = this.resourcePriorities.important.filter(
-        (p) => !p.endsWith('.css')
+        p => !p.endsWith('.css')
       );
       this.resourcePriorities.important = [
         ...existingImportant,
@@ -196,9 +196,8 @@ class CriticalResourceManager {
       // Ticho zlyhaj – v najhoršom prípade len nepreloadneme nič
       this.resourcePriorities.normal = [];
       // CSS nepreloadujeme, nechaj iba fonty
-      this.resourcePriorities.important = this.resourcePriorities.important.filter(
-        (p) => !p.endsWith('.css')
-      );
+      this.resourcePriorities.important =
+        this.resourcePriorities.important.filter(p => !p.endsWith('.css'));
     }
   }
 
@@ -330,7 +329,7 @@ export class CriticalCSSManager {
   // Inline critical CSS for above-the-fold content
   inlineCriticalCSS(): void {
     const criticalCSS = this.generateCriticalCSS();
-    
+
     if (criticalCSS && !this.inlinedCSS.has('critical')) {
       const style = document.createElement('style');
       style.id = 'critical-css';

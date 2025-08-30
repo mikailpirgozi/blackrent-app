@@ -28,7 +28,11 @@ export function useDebounce<T>(value: T, delay: number = 300): T {
  * @param itemsPerPage - počet položiek na stránku
  * @param initialPage - počiatočná stránka
  */
-export function usePagination<T>(data: T[], itemsPerPage: number = 20, initialPage: number = 1) {
+export function usePagination<T>(
+  data: T[],
+  itemsPerPage: number = 20,
+  initialPage: number = 1
+) {
   const [currentPage, setCurrentPage] = useState(initialPage);
 
   const totalItems = data.length;
@@ -68,8 +72,8 @@ export function usePagination<T>(data: T[], itemsPerPage: number = 20, initialPa
     pageInfo: {
       startIndex: startIndex + 1,
       endIndex: Math.min(endIndex, totalItems),
-      showing: `${startIndex + 1}-${Math.min(endIndex, totalItems)} z ${totalItems}`
-    }
+      showing: `${startIndex + 1}-${Math.min(endIndex, totalItems)} z ${totalItems}`,
+    },
   };
 }
 
@@ -113,12 +117,12 @@ export function useLazyImage(src: string, placeholder: string = '') {
     setLoading(true);
     const img = new Image();
     img.src = src;
-    
+
     img.onload = () => {
       setImageSrc(src);
       setLoading(false);
     };
-    
+
     img.onerror = () => {
       setImageSrc(placeholder);
       setLoading(false);
@@ -126,4 +130,4 @@ export function useLazyImage(src: string, placeholder: string = '') {
   }, [src, placeholder]);
 
   return { imageSrc, loading };
-} 
+}

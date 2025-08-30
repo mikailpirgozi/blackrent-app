@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.filterDataByRole = exports.requirePermission = exports.requireRole = exports.authenticateToken = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const postgres_database_1 = require("../models/postgres-database");
+const errorHandler_1 = require("./errorHandler");
 const JWT_SECRET = process.env.JWT_SECRET || 'blackrent-secret-key-2024';
 const authenticateToken = async (req, res, next) => {
     try {
@@ -16,17 +17,14 @@ const authenticateToken = async (req, res, next) => {
         console.log('🔍 AUTH MIDDLEWARE - Token extracted:', !!token);
         if (!token) {
             console.log('❌ AUTH MIDDLEWARE - No token provided');
-            return res.status(401).json({
-                success: false,
-                error: 'Access token je potrebný'
-            });
+            throw (0, errorHandler_1.createUnauthorizedError)('Access token je potrebný');
         }
         console.log('🔍 AUTH MIDDLEWARE - Verifying JWT token...');
         const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
         console.log('🔍 AUTH MIDDLEWARE - JWT decoded successfully:', {
             userId: decoded.userId,
             username: decoded.username,
-            role: decoded.role
+            role: decoded.role,
         });
         // Získaj aktuálne údaje používateľa z databázy
         console.log('🔍 AUTH MIDDLEWARE - Getting user from database...');
@@ -34,14 +32,11 @@ const authenticateToken = async (req, res, next) => {
         console.log('🔍 AUTH MIDDLEWARE - Database user result:', {
             found: !!user,
             id: user?.id,
-            username: user?.username
+            username: user?.username,
         });
         if (!user) {
             console.log('❌ AUTH MIDDLEWARE - User not found in database');
-            return res.status(401).json({
-                success: false,
-                error: 'Používateľ nenájdený'
-            });
+            throw (0, errorHandler_1.createUnauthorizedError)('Používateľ nenájdený');
         }
         // Pridaj používateľa do request objektu (bez hesla)
         req.user = {
@@ -59,7 +54,7 @@ const authenticateToken = async (req, res, next) => {
             permissions: user.permissions,
             signatureTemplate: user.signatureTemplate,
             createdAt: user.createdAt,
-            updatedAt: user.updatedAt
+            updatedAt: user.updatedAt,
         };
         console.log('✅ AUTH MIDDLEWARE - Authentication successful');
         next();
@@ -68,59 +63,59 @@ const authenticateToken = async (req, res, next) => {
         console.error('❌ AUTH MIDDLEWARE ERROR:', error);
         console.error('❌ AUTH MIDDLEWARE ERROR TYPE:', error instanceof Error ? error.name : typeof error);
         console.error('❌ AUTH MIDDLEWARE ERROR MESSAGE:', error instanceof Error ? error.message : String(error));
-        return res.status(403).json({
-            success: false,
-            error: 'Neplatný token'
-        });
+        // Ak je to už naša custom error, prehoď ju ďalej
+        if (error instanceof Error && error.name === 'ApiErrorWithCode') {
+            return next(error);
+        }
+        // Inak vytvor forbidden error
+        next((0, errorHandler_1.createForbiddenError)('Neplatný token'));
     }
 };
 exports.authenticateToken = authenticateToken;
 const requireRole = (roles) => {
     return (req, res, next) => {
-        if (!req.user) {
-            return res.status(401).json({
-                success: false,
-                error: 'Autentifikácia je potrebná'
-            });
+        try {
+            if (!req.user) {
+                throw (0, errorHandler_1.createUnauthorizedError)('Autentifikácia je potrebná');
+            }
+            if (!roles.includes(req.user.role)) {
+                throw (0, errorHandler_1.createForbiddenError)('Nemáte oprávnenie na túto akciu');
+            }
+            next();
         }
-        if (!roles.includes(req.user.role)) {
-            return res.status(403).json({
-                success: false,
-                error: 'Nemáte oprávnenie na túto akciu'
-            });
+        catch (error) {
+            next(error);
         }
-        next();
     };
 };
 exports.requireRole = requireRole;
 const requirePermission = (resource, action) => {
     return (req, res, next) => {
-        if (!req.user) {
-            return res.status(401).json({
-                success: false,
-                error: 'Autentifikácia je potrebná'
-            });
+        try {
+            if (!req.user) {
+                throw (0, errorHandler_1.createUnauthorizedError)('Autentifikácia je potrebná');
+            }
+            // Zjednodušené oprávnenia - admin má všetky práva
+            if (req.user.role === 'admin') {
+                return next();
+            }
+            // Pre ostatných používateľov - základné oprávnenia
+            const basicPermissions = {
+                vehicles: ['read', 'create', 'update', 'delete'],
+                rentals: ['read', 'create', 'update', 'delete'],
+                customers: ['read', 'create', 'update', 'delete'],
+                expenses: ['read', 'create', 'update', 'delete'],
+                insurances: ['read', 'create', 'update', 'delete'],
+            };
+            const allowedActions = basicPermissions[resource] || [];
+            if (!allowedActions.includes(action)) {
+                throw (0, errorHandler_1.createForbiddenError)(`Nemáte oprávnenie na ${action} pre ${resource}`);
+            }
+            next();
         }
-        // Zjednodušené oprávnenia - admin má všetky práva
-        if (req.user.role === 'admin') {
-            return next();
+        catch (error) {
+            next(error);
         }
-        // Pre ostatných používateľov - základné oprávnenia
-        const basicPermissions = {
-            'vehicles': ['read', 'create', 'update', 'delete'],
-            'rentals': ['read', 'create', 'update', 'delete'],
-            'customers': ['read', 'create', 'update', 'delete'],
-            'expenses': ['read', 'create', 'update', 'delete'],
-            'insurances': ['read', 'create', 'update', 'delete']
-        };
-        const allowedActions = basicPermissions[resource] || [];
-        if (!allowedActions.includes(action)) {
-            return res.status(403).json({
-                success: false,
-                error: `Nemáte oprávnenie na ${action} pre ${resource}`
-            });
-        }
-        next();
     };
 };
 exports.requirePermission = requirePermission;

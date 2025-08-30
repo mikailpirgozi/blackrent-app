@@ -1,4 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import {
+  ExpandMore as ExpandMoreIcon,
+  Business as BusinessIcon,
+  Visibility as ReadIcon,
+  Edit as WriteIcon,
+  Delete as DeleteIcon,
+  Check as CheckIcon,
+  Add as AddIcon,
+  Remove as RemoveIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -18,20 +27,17 @@ import {
   AccordionSummary,
   AccordionDetails,
   Stack,
-  Button
+  Button,
 } from '@mui/material';
-import {
-  ExpandMore as ExpandMoreIcon,
-  Business as BusinessIcon,
-  Visibility as ReadIcon,
-  Edit as WriteIcon,
-  Delete as DeleteIcon,
-  Check as CheckIcon,
-  Add as AddIcon,
-  Remove as RemoveIcon
-} from '@mui/icons-material';
-import { Company, UserCompanyAccess, CompanyPermissions, ResourcePermission } from '../../types';
+import React, { useState, useEffect } from 'react';
+
 import { apiService } from '../../services/api';
+import {
+  Company,
+  UserCompanyAccess,
+  CompanyPermissions,
+  ResourcePermission,
+} from '../../types';
 
 interface UserCompanyPermissionsProps {
   userId?: string; // undefined pre nového používateľa
@@ -46,7 +52,7 @@ const RESOURCES = [
   { key: 'customers', label: 'Zákazníci', icon: '👥' },
   { key: 'insurances', label: 'Poistky/STK', icon: '🛡️' },
   { key: 'maintenance', label: 'Údržba', icon: '🔧' },
-  { key: 'protocols', label: 'Protokoly', icon: '📝' }
+  { key: 'protocols', label: 'Protokoly', icon: '📝' },
 ] as const;
 
 const DEFAULT_PERMISSIONS: CompanyPermissions = {
@@ -57,10 +63,13 @@ const DEFAULT_PERMISSIONS: CompanyPermissions = {
   customers: { read: false, write: false, delete: false },
   insurances: { read: false, write: false, delete: false },
   maintenance: { read: false, write: false, delete: false },
-  protocols: { read: false, write: false, delete: false }
+  protocols: { read: false, write: false, delete: false },
 };
 
-export default function UserCompanyPermissions({ userId, onPermissionsChange }: UserCompanyPermissionsProps) {
+export default function UserCompanyPermissions({
+  userId,
+  onPermissionsChange,
+}: UserCompanyPermissionsProps) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [userAccess, setUserAccess] = useState<UserCompanyAccess[]>([]);
   const [loading, setLoading] = useState(false);
@@ -116,13 +125,15 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
     const company = companies.find(c => c.id === companyId);
     if (!company) return;
 
-    const existingAccess = userAccess.find(access => access.companyId === companyId);
+    const existingAccess = userAccess.find(
+      access => access.companyId === companyId
+    );
     if (existingAccess) return;
 
     const newAccess: UserCompanyAccess = {
       companyId: company.id,
       companyName: company.name,
-      permissions: DEFAULT_PERMISSIONS
+      permissions: DEFAULT_PERMISSIONS,
     };
 
     setUserAccess(prev => [...prev, newAccess]);
@@ -130,7 +141,9 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
   };
 
   const handleRemoveCompanyAccess = (companyId: string) => {
-    setUserAccess(prev => prev.filter(access => access.companyId !== companyId));
+    setUserAccess(prev =>
+      prev.filter(access => access.companyId !== companyId)
+    );
     if (expandedCompany === companyId) {
       setExpandedCompany(false);
     }
@@ -142,45 +155,54 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
     action: keyof ResourcePermission,
     value: boolean
   ) => {
-    setUserAccess(prev => prev.map(access => {
-      if (access.companyId === companyId) {
-        return {
-          ...access,
-          permissions: {
-            ...access.permissions,
-            [resource]: {
-              ...access.permissions[resource],
-              [action]: value
-            }
-          }
-        };
-      }
-      return access;
-    }));
+    setUserAccess(prev =>
+      prev.map(access => {
+        if (access.companyId === companyId) {
+          return {
+            ...access,
+            permissions: {
+              ...access.permissions,
+              [resource]: {
+                ...access.permissions[resource],
+                [action]: value,
+              },
+            },
+          };
+        }
+        return access;
+      })
+    );
   };
 
-  const handleSetAllPermissions = (companyId: string, action: keyof ResourcePermission, value: boolean) => {
-    setUserAccess(prev => prev.map(access => {
-      if (access.companyId === companyId) {
-        const newPermissions = { ...access.permissions };
-        RESOURCES.forEach(resource => {
-          newPermissions[resource.key as keyof CompanyPermissions] = {
-            ...newPermissions[resource.key as keyof CompanyPermissions],
-            [action]: value
+  const handleSetAllPermissions = (
+    companyId: string,
+    action: keyof ResourcePermission,
+    value: boolean
+  ) => {
+    setUserAccess(prev =>
+      prev.map(access => {
+        if (access.companyId === companyId) {
+          const newPermissions = { ...access.permissions };
+          RESOURCES.forEach(resource => {
+            newPermissions[resource.key as keyof CompanyPermissions] = {
+              ...newPermissions[resource.key as keyof CompanyPermissions],
+              [action]: value,
+            };
+          });
+          return {
+            ...access,
+            permissions: newPermissions,
           };
-        });
-        return {
-          ...access,
-          permissions: newPermissions
-        };
-      }
-      return access;
-    }));
+        }
+        return access;
+      })
+    );
   };
 
   const hasAnyPermission = (permissions: CompanyPermissions): boolean => {
     return RESOURCES.some(resource => {
-      const resourcePerms = permissions[resource.key as keyof CompanyPermissions];
+      const resourcePerms =
+        permissions[resource.key as keyof CompanyPermissions];
       return resourcePerms.read || resourcePerms.write || resourcePerms.delete;
     });
   };
@@ -191,7 +213,8 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
     let deleteCount = 0;
 
     RESOURCES.forEach(resource => {
-      const resourcePerms = permissions[resource.key as keyof CompanyPermissions];
+      const resourcePerms =
+        permissions[resource.key as keyof CompanyPermissions];
       if (resourcePerms.read) readCount++;
       if (resourcePerms.write) writeCount++;
       if (resourcePerms.delete) deleteCount++;
@@ -218,7 +241,11 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography
+        variant="h6"
+        gutterBottom
+        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+      >
         <BusinessIcon color="primary" />
         Oprávnenia na firmy
       </Typography>
@@ -238,7 +265,10 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
         <CardContent>
           <Stack direction="row" spacing={1} flexWrap="wrap">
             {companies
-              .filter(company => !userAccess.some(access => access.companyId === company.id))
+              .filter(
+                company =>
+                  !userAccess.some(access => access.companyId === company.id)
+              )
               .map(company => (
                 <Button
                   key={company.id}
@@ -251,7 +281,10 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
                   {company.name}
                 </Button>
               ))}
-            {companies.filter(company => !userAccess.some(access => access.companyId === company.id)).length === 0 && (
+            {companies.filter(
+              company =>
+                !userAccess.some(access => access.companyId === company.id)
+            ).length === 0 && (
               <Typography variant="body2" color="text.secondary">
                 Používateľ má prístup ku všetkým firmám
               </Typography>
@@ -261,15 +294,24 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
       </Card>
 
       {/* Zoznam firiem s oprávneniami */}
-      {userAccess.map((access) => (
+      {userAccess.map(access => (
         <Accordion
           key={access.companyId}
           expanded={expandedCompany === access.companyId}
-          onChange={(_, isExpanded) => setExpandedCompany(isExpanded ? access.companyId : false)}
+          onChange={(_, isExpanded) =>
+            setExpandedCompany(isExpanded ? access.companyId : false)
+          }
           sx={{ mb: 2 }}
         >
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                width: '100%',
+              }}
+            >
               <BusinessIcon color="primary" />
               <Box sx={{ flexGrow: 1 }}>
                 <Typography variant="subtitle1" fontWeight="bold">
@@ -280,11 +322,13 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {hasAnyPermission(access.permissions) && <CheckIcon color="success" fontSize="small" />}
+                {hasAnyPermission(access.permissions) && (
+                  <CheckIcon color="success" fontSize="small" />
+                )}
                 <IconButton
                   size="small"
                   color="error"
-                  onClick={(e) => {
+                  onClick={e => {
                     e.stopPropagation();
                     handleRemoveCompanyAccess(access.companyId);
                   }}
@@ -304,13 +348,17 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
               <Stack direction="row" spacing={2}>
                 <Button
                   size="small"
-                  onClick={() => handleSetAllPermissions(access.companyId, 'read', true)}
+                  onClick={() =>
+                    handleSetAllPermissions(access.companyId, 'read', true)
+                  }
                 >
                   Všetko čítanie
                 </Button>
                 <Button
                   size="small"
-                  onClick={() => handleSetAllPermissions(access.companyId, 'write', true)}
+                  onClick={() =>
+                    handleSetAllPermissions(access.companyId, 'write', true)
+                  }
                 >
                   Všetky úpravy
                 </Button>
@@ -330,13 +378,18 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
 
             {/* Detailné oprávnenia */}
             <Grid container spacing={2}>
-              {RESOURCES.map((resource) => {
-                const resourcePerms = access.permissions[resource.key as keyof CompanyPermissions];
+              {RESOURCES.map(resource => {
+                const resourcePerms =
+                  access.permissions[resource.key as keyof CompanyPermissions];
                 return (
                   <Grid item xs={12} sm={6} md={4} key={resource.key}>
                     <Card variant="outlined" sx={{ height: '100%' }}>
                       <CardContent sx={{ p: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography
+                          variant="subtitle2"
+                          gutterBottom
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
                           <span>{resource.icon}</span>
                           {resource.label}
                         </Typography>
@@ -346,18 +399,28 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
                               <Switch
                                 size="small"
                                 checked={resourcePerms.read}
-                                onChange={(e) => handlePermissionChange(
-                                  access.companyId,
-                                  resource.key as keyof CompanyPermissions,
-                                  'read',
-                                  e.target.checked
-                                )}
+                                onChange={e =>
+                                  handlePermissionChange(
+                                    access.companyId,
+                                    resource.key as keyof CompanyPermissions,
+                                    'read',
+                                    e.target.checked
+                                  )
+                                }
                               />
                             }
                             label={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                }}
+                              >
                                 <ReadIcon fontSize="small" color="primary" />
-                                <Typography variant="caption">Čítanie</Typography>
+                                <Typography variant="caption">
+                                  Čítanie
+                                </Typography>
                               </Box>
                             }
                           />
@@ -366,18 +429,28 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
                               <Switch
                                 size="small"
                                 checked={resourcePerms.write}
-                                onChange={(e) => handlePermissionChange(
-                                  access.companyId,
-                                  resource.key as keyof CompanyPermissions,
-                                  'write',
-                                  e.target.checked
-                                )}
+                                onChange={e =>
+                                  handlePermissionChange(
+                                    access.companyId,
+                                    resource.key as keyof CompanyPermissions,
+                                    'write',
+                                    e.target.checked
+                                  )
+                                }
                               />
                             }
                             label={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                }}
+                              >
                                 <WriteIcon fontSize="small" color="warning" />
-                                <Typography variant="caption">Úpravy</Typography>
+                                <Typography variant="caption">
+                                  Úpravy
+                                </Typography>
                               </Box>
                             }
                           />
@@ -386,18 +459,28 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
                               <Switch
                                 size="small"
                                 checked={resourcePerms.delete}
-                                onChange={(e) => handlePermissionChange(
-                                  access.companyId,
-                                  resource.key as keyof CompanyPermissions,
-                                  'delete',
-                                  e.target.checked
-                                )}
+                                onChange={e =>
+                                  handlePermissionChange(
+                                    access.companyId,
+                                    resource.key as keyof CompanyPermissions,
+                                    'delete',
+                                    e.target.checked
+                                  )
+                                }
                               />
                             }
                             label={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                }}
+                              >
                                 <DeleteIcon fontSize="small" color="error" />
-                                <Typography variant="caption">Mazanie</Typography>
+                                <Typography variant="caption">
+                                  Mazanie
+                                </Typography>
                               </Box>
                             }
                           />
@@ -414,9 +497,10 @@ export default function UserCompanyPermissions({ userId, onPermissionsChange }: 
 
       {userAccess.length === 0 && (
         <Alert severity="info">
-          Používateľ nemá prístup k žiadnej firme. Použite tlačidlá vyššie na pridanie prístupu k firmám.
+          Používateľ nemá prístup k žiadnej firme. Použite tlačidlá vyššie na
+          pridanie prístupu k firmám.
         </Alert>
       )}
     </Box>
   );
-} 
+}

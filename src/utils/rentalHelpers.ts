@@ -9,7 +9,7 @@
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('sk-SK', {
     style: 'currency',
-    currency: 'EUR'
+    currency: 'EUR',
   }).format(amount);
 };
 
@@ -23,13 +23,27 @@ export const formatDate = (dateString: string): string => {
 /**
  * Gets the appropriate Material-UI color for a rental status
  */
-export const getStatusColor = (status: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+export const getStatusColor = (
+  status: string
+):
+  | 'default'
+  | 'primary'
+  | 'secondary'
+  | 'error'
+  | 'info'
+  | 'success'
+  | 'warning' => {
   switch (status) {
-    case 'active': return 'success';
-    case 'pending': return 'warning';
-    case 'completed': return 'info';
-    case 'cancelled': return 'error';
-    default: return 'default';
+    case 'active':
+      return 'success';
+    case 'pending':
+      return 'warning';
+    case 'completed':
+      return 'info';
+    case 'cancelled':
+      return 'error';
+    default:
+      return 'default';
   }
 };
 
@@ -38,11 +52,16 @@ export const getStatusColor = (status: string): 'default' | 'primary' | 'seconda
  */
 export const getStatusLabel = (status: string): string => {
   switch (status) {
-    case 'active': return 'Aktívne';
-    case 'pending': return 'Čakajúci';
-    case 'completed': return 'Ukončené';
-    case 'cancelled': return 'Zrušené';
-    default: return status;
+    case 'active':
+      return 'Aktívne';
+    case 'pending':
+      return 'Čakajúci';
+    case 'completed':
+      return 'Ukončené';
+    case 'cancelled':
+      return 'Zrušené';
+    default:
+      return status;
   }
 };
 
@@ -51,11 +70,17 @@ export const getStatusLabel = (status: string): string => {
  */
 export const getPaymentMethodLabel = (method: string): string => {
   switch (method) {
-    case 'cash': return 'Hotovosť';
-    case 'bank_transfer': return 'Bankový prevod';
-    case 'direct_to_owner': return 'Priamo majiteľovi';
-    case 'card': return 'Kartou';
-    case 'crypto': return 'Kryptomeny';
-    default: return method;
+    case 'cash':
+      return 'Hotovosť';
+    case 'bank_transfer':
+      return 'Bankový prevod';
+    case 'direct_to_owner':
+      return 'Priamo majiteľovi';
+    case 'card':
+      return 'Kartou';
+    case 'crypto':
+      return 'Kryptomeny';
+    default:
+      return method;
   }
 };

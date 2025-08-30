@@ -28,18 +28,18 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
     if (error.code === 'NETWORK_ERROR') return true;
     if (error.status >= 500) return true;
     if (error.code === 'TIMEOUT') return true;
-    
+
     // Don't retry on client errors (4xx) except 408 (timeout), 429 (rate limit)
     if (error.status >= 400 && error.status < 500) {
       return error.status === 408 || error.status === 429;
     }
-    
+
     return false;
   },
 };
 
 // Sleep utility for delays
-const sleep = (ms: number): Promise<void> => 
+const sleep = (ms: number): Promise<void> =>
   new Promise(resolve => setTimeout(resolve, ms));
 
 // Calculate retry delay with exponential backoff
@@ -47,7 +47,7 @@ const calculateDelay = (attempt: number, config: RetryConfig): number => {
   if (!config.exponentialBackoff) {
     return config.baseDelay;
   }
-  
+
   // Exponential backoff with jitter
   const delay = config.baseDelay * Math.pow(2, attempt - 1);
   const jitter = Math.random() * 0.1 * delay; // Add 10% jitter
@@ -66,7 +66,7 @@ export const parseApiError = (error: any) => {
       { offline: true }
     );
   }
-  
+
   if (error.name === 'NetworkError' || error.code === 'NETWORK_ERROR') {
     return createError(
       ERROR_MESSAGES.NETWORK_TIMEOUT,
@@ -80,7 +80,7 @@ export const parseApiError = (error: any) => {
   // HTTP errors
   if (error.status) {
     const status = error.status;
-    
+
     if (status === 401) {
       return createError(
         ERROR_MESSAGES.AUTH_UNAUTHORIZED,
@@ -90,7 +90,7 @@ export const parseApiError = (error: any) => {
         { status, endpoint: error.config?.url }
       );
     }
-    
+
     if (status === 403) {
       return createError(
         'Nemáte oprávnenie pre túto akciu',
@@ -100,7 +100,7 @@ export const parseApiError = (error: any) => {
         { status, endpoint: error.config?.url }
       );
     }
-    
+
     if (status === 404) {
       return createError(
         'Požadované dáta sa nenašli',
@@ -110,17 +110,21 @@ export const parseApiError = (error: any) => {
         { status, endpoint: error.config?.url }
       );
     }
-    
+
     if (status === 422) {
       return createError(
         'Nesprávne zadané údaje',
         'validation',
         'warning',
         'Validation failed',
-        { status, endpoint: error.config?.url, validationErrors: error.data?.errors }
+        {
+          status,
+          endpoint: error.config?.url,
+          validationErrors: error.data?.errors,
+        }
       );
     }
-    
+
     if (status === 429) {
       return createError(
         'Príliš veľa požiadaviek. Skúste neskôr.',
@@ -130,7 +134,7 @@ export const parseApiError = (error: any) => {
         { status, endpoint: error.config?.url }
       );
     }
-    
+
     if (status >= 500) {
       return createError(
         ERROR_MESSAGES.NETWORK_SERVER_ERROR,
@@ -171,38 +175,38 @@ export const withRetry = async <T>(
 ): Promise<T> => {
   const retryConfig = { ...DEFAULT_RETRY_CONFIG, ...config };
   let lastError: any;
-  
+
   for (let attempt = 1; attempt <= retryConfig.maxRetries + 1; attempt++) {
     try {
       return await apiCall();
     } catch (error) {
       lastError = error;
-      
+
       // If this is the last attempt, don't retry
       if (attempt === retryConfig.maxRetries + 1) {
         break;
       }
-      
+
       // Check if we should retry this error
       if (!retryConfig.retryCondition?.(error, attempt)) {
         break;
       }
-      
+
       // Notify about retry attempt
       if (errorHandler.onRetryAttempt) {
         errorHandler.onRetryAttempt(attempt, retryConfig.maxRetries);
       }
-      
+
       // Calculate and wait for delay
       const delay = calculateDelay(attempt, retryConfig);
       await sleep(delay);
     }
   }
-  
+
   // All retries failed
   const parsedError = parseApiError(lastError);
   const errorId = errorHandler.showUserError(parsedError);
-  
+
   if (errorHandler.logError) {
     errorHandler.logError(lastError, {
       attempts: retryConfig.maxRetries + 1,
@@ -210,11 +214,11 @@ export const withRetry = async <T>(
       parsed: parsedError,
     });
   }
-  
+
   if (errorHandler.onRetryFailed) {
     errorHandler.onRetryFailed(lastError, retryConfig.maxRetries + 1);
   }
-  
+
   throw lastError;
 };
 
@@ -230,19 +234,19 @@ export const handleApiResponse = async <T>(
       url: response.url,
       data: null,
     };
-    
+
     try {
       error.data = await response.json();
     } catch {
       // Response doesn't have JSON body
     }
-    
+
     const parsedError = parseApiError(error);
     errorHandler.showUserError(parsedError);
-    
+
     throw error;
   }
-  
+
   try {
     return await response.json();
   } catch (error) {
@@ -253,7 +257,7 @@ export const handleApiResponse = async <T>(
       'Invalid JSON response',
       { originalError: error }
     );
-    
+
     errorHandler.showUserError(parsedError);
     throw error;
   }

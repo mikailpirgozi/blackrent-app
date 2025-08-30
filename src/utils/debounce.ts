@@ -1,6 +1,6 @@
 /**
  * 🚀 DEBOUNCE UTILITY
- * 
+ *
  * Performance optimization for search and API calls
  */
 
@@ -9,28 +9,22 @@ export function debounce<T extends (...args: any[]) => any>(
   delay: number
 ): (...args: Parameters<T>) => void {
   let timeoutId: NodeJS.Timeout;
-  
+
   return (...args: Parameters<T>) => {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func(...args), delay);
   };
 }
 
-export function measurePerformance<T>(
-  name: string,
-  fn: () => T
-): T;
-export function measurePerformance<T>(
-  fn: () => T,
-  name: string
-): T;
+export function measurePerformance<T>(name: string, fn: () => T): T;
+export function measurePerformance<T>(fn: () => T, name: string): T;
 export function measurePerformance<T>(
   nameOrFn: string | (() => T),
   fnOrName?: (() => T) | string
 ): T {
   let name: string;
   let fn: () => T;
-  
+
   if (typeof nameOrFn === 'string') {
     name = nameOrFn;
     fn = fnOrName as () => T;
@@ -38,7 +32,7 @@ export function measurePerformance<T>(
     fn = nameOrFn;
     name = fnOrName as string;
   }
-  
+
   const start = performance.now();
   const result = fn();
   const end = performance.now();
@@ -57,7 +51,7 @@ export function throttle<T extends (...args: any[]) => any>(
   delay: number
 ): (...args: Parameters<T>) => void {
   let lastCall = 0;
-  
+
   return (...args: Parameters<T>) => {
     const now = Date.now();
     if (now - lastCall >= delay) {

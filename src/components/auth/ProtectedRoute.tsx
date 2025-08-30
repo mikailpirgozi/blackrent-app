@@ -1,7 +1,8 @@
+import { Box, Typography, CircularProgress } from '@mui/material';
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+
 import { useAuth } from '../../context/AuthContext';
-import { Box, Typography, CircularProgress } from '@mui/material';
 import logger from '../../utils/logger';
 
 interface ProtectedRouteProps {
@@ -13,10 +14,10 @@ interface ProtectedRouteProps {
   allowedRoles?: string[];
 }
 
-export default function ProtectedRoute({ 
-  children, 
+export default function ProtectedRoute({
+  children,
   requiredPermission,
-  allowedRoles 
+  allowedRoles,
 }: ProtectedRouteProps) {
   const { state, hasPermission } = useAuth();
 
@@ -28,16 +29,16 @@ export default function ProtectedRoute({
         isLoading: state.isLoading,
         isAuthenticated: state.isAuthenticated,
         hasToken: !!state.token,
-        hasUser: !!state.user
+        hasUser: !!state.user,
       });
     }
-    
+
     // V production - loguj len authentication failures
     if (!state.isLoading && !state.isAuthenticated) {
       logger.auth('🛡️ ProtectedRoute: Authentication failed', {
         hasToken: !!state.token,
         hasUser: !!state.user,
-        currentPath: window.location.pathname
+        currentPath: window.location.pathname,
       });
     }
   }, [state.isLoading, state.isAuthenticated, state.token, state.user]);
@@ -45,7 +46,12 @@ export default function ProtectedRoute({
   // NAJPRV: Ak je loading (session restore prebieha), zobraz loading
   if (state.isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <CircularProgress />
         <Typography variant="body2" sx={{ ml: 2 }}>
           Overujem prihlásenie...
@@ -62,7 +68,9 @@ export default function ProtectedRoute({
       console.log('🚨 MOBILE DEBUG: Redirecting to /login');
       console.log('🚨 MOBILE DEBUG: Current path:', window.location.pathname);
       console.log('🚨 MOBILE DEBUG: Auth state:', state);
-      alert(`🚨 AUTH REDIRECT: Not authenticated! Redirecting to /login from ${window.location.pathname}`);
+      alert(
+        `🚨 AUTH REDIRECT: Not authenticated! Redirecting to /login from ${window.location.pathname}`
+      );
     } else {
       // Production: Silent redirect with minimal logging
       console.warn('🛡️ Authentication failed, redirecting to login');
@@ -71,15 +79,23 @@ export default function ProtectedRoute({
   }
 
   // Kontrola oprávnení
-  if (requiredPermission && !hasPermission(requiredPermission.resource, requiredPermission.action)) {
+  if (
+    requiredPermission &&
+    !hasPermission(requiredPermission.resource, requiredPermission.action)
+  ) {
     logger.warn('🛡️ ProtectedRoute: Permission denied', {
       user: state.user?.username,
       requiredPermission,
-      userRole: state.user?.role
+      userRole: state.user?.role,
     });
-    
+
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <Typography variant="h6" color="error">
           Nemáte oprávnение pristupovať k tejto stránke
         </Typography>
@@ -92,11 +108,16 @@ export default function ProtectedRoute({
     logger.warn('🛡️ ProtectedRoute: Role access denied', {
       user: state.user?.username,
       userRole: state.user?.role,
-      allowedRoles
+      allowedRoles,
     });
-    
+
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <Typography variant="h6" color="error">
           Nemáte oprávnenie pristupovať k tejto stránke
         </Typography>
@@ -106,4 +127,4 @@ export default function ProtectedRoute({
 
   // Ak všetky kontroly prešli, zobraz obsah
   return <>{children}</>;
-} 
+}

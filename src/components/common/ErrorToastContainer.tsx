@@ -1,7 +1,14 @@
 // 🍞 Error Toast Container
 // Displays error messages as elegant toast notifications
 
-import React, { useMemo } from 'react';
+import {
+  Close as CloseIcon,
+  Refresh as RefreshIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Wifi as WifiIcon,
+  WifiOff as WifiOffIcon,
+} from '@mui/icons-material';
 import {
   Snackbar,
   Alert,
@@ -14,25 +21,24 @@ import {
   Collapse,
   Button,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Wifi as WifiIcon,
-  WifiOff as WifiOffIcon,
-} from '@mui/icons-material';
+import React, { useMemo } from 'react';
+
 import { useError } from '../../context/ErrorContext';
 import { AppError, ErrorSeverity } from '../../types/errors';
 
 // Toast severity mapping
 const getSeverityColor = (severity: ErrorSeverity) => {
   switch (severity) {
-    case 'info': return 'info';
-    case 'warning': return 'warning'; 
-    case 'error': return 'error';
-    case 'critical': return 'error';
-    default: return 'info';
+    case 'info':
+      return 'info';
+    case 'warning':
+      return 'warning';
+    case 'error':
+      return 'error';
+    case 'critical':
+      return 'error';
+    default:
+      return 'info';
   }
 };
 
@@ -53,9 +59,13 @@ interface ErrorToastProps {
   isOnline: boolean;
 }
 
-const ErrorToast: React.FC<ErrorToastProps> = ({ error, onDismiss, isOnline }) => {
+const ErrorToast: React.FC<ErrorToastProps> = ({
+  error,
+  onDismiss,
+  isOnline,
+}) => {
   const [expanded, setExpanded] = React.useState(false);
-  
+
   const severity = getSeverityColor(error.severity);
   const icon = getErrorIcon(error);
 
@@ -87,11 +97,7 @@ const ErrorToast: React.FC<ErrorToastProps> = ({ error, onDismiss, isOnline }) =
       action={
         <Box>
           {error.details && (
-            <IconButton
-              size="small"
-              onClick={toggleExpanded}
-              sx={{ mr: 0.5 }}
-            >
+            <IconButton size="small" onClick={toggleExpanded} sx={{ mr: 0.5 }}>
               {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
           )}
@@ -124,33 +130,36 @@ const ErrorToast: React.FC<ErrorToastProps> = ({ error, onDismiss, isOnline }) =
           />
         </Stack>
       </AlertTitle>
-      
+
       <Collapse in={expanded}>
         {error.details && (
           <Typography variant="body2" sx={{ mt: 1, opacity: 0.8 }}>
             {error.details}
           </Typography>
         )}
-        
+
         {error.context && Object.keys(error.context).length > 0 && (
           <Box sx={{ mt: 1 }}>
             <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
               Technické detaily:
             </Typography>
-            <Box component="pre" sx={{ 
-              fontSize: '0.7rem', 
-              mt: 0.5, 
-              p: 1, 
-              bgcolor: 'rgba(0,0,0,0.1)', 
-              borderRadius: 1,
-              overflow: 'auto',
-              maxHeight: 100,
-            }}>
+            <Box
+              component="pre"
+              sx={{
+                fontSize: '0.7rem',
+                mt: 0.5,
+                p: 1,
+                bgcolor: 'rgba(0,0,0,0.1)',
+                borderRadius: 1,
+                overflow: 'auto',
+                maxHeight: 100,
+              }}
+            >
               {JSON.stringify(error.context, null, 2)}
             </Box>
           </Box>
         )}
-        
+
         {error.retry && (
           <Button
             size="small"
@@ -163,13 +172,16 @@ const ErrorToast: React.FC<ErrorToastProps> = ({ error, onDismiss, isOnline }) =
           </Button>
         )}
       </Collapse>
-      
-      <Typography variant="caption" sx={{ 
-        display: 'block', 
-        mt: 1, 
-        opacity: 0.6,
-        fontSize: '0.7rem'
-      }}>
+
+      <Typography
+        variant="caption"
+        sx={{
+          display: 'block',
+          mt: 1,
+          opacity: 0.6,
+          fontSize: '0.7rem',
+        }}
+      >
         {error.timestamp.toLocaleTimeString()}
       </Typography>
     </Alert>
@@ -177,7 +189,9 @@ const ErrorToast: React.FC<ErrorToastProps> = ({ error, onDismiss, isOnline }) =
 };
 
 // Network Status Indicator
-const NetworkStatusIndicator: React.FC<{ isOnline: boolean }> = ({ isOnline }) => (
+const NetworkStatusIndicator: React.FC<{ isOnline: boolean }> = ({
+  isOnline,
+}) => (
   <Box
     sx={{
       position: 'fixed',
@@ -195,9 +209,7 @@ const NetworkStatusIndicator: React.FC<{ isOnline: boolean }> = ({ isOnline }) =
     }}
   >
     <WifiOffIcon fontSize="small" />
-    <Typography variant="body2">
-      Offline
-    </Typography>
+    <Typography variant="body2">Offline</Typography>
   </Box>
 );
 
@@ -208,12 +220,12 @@ export const ErrorToastContainer: React.FC = () => {
   // Sort errors by severity and timestamp
   const sortedErrors = useMemo(() => {
     const severityOrder = { critical: 4, error: 3, warning: 2, info: 1 };
-    return [...errors]
-      .sort((a, b) => {
-        const severityDiff = severityOrder[b.severity] - severityOrder[a.severity];
-        if (severityDiff !== 0) return severityDiff;
-        return b.timestamp.getTime() - a.timestamp.getTime();
-      });
+    return [...errors].sort((a, b) => {
+      const severityDiff =
+        severityOrder[b.severity] - severityOrder[a.severity];
+      if (severityDiff !== 0) return severityDiff;
+      return b.timestamp.getTime() - a.timestamp.getTime();
+    });
   }, [errors]);
 
   // Get the most recent error for Snackbar positioning
@@ -222,7 +234,7 @@ export const ErrorToastContainer: React.FC = () => {
   return (
     <>
       <NetworkStatusIndicator isOnline={isOnline} />
-      
+
       <Snackbar
         open={sortedErrors.length > 0}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
@@ -236,7 +248,7 @@ export const ErrorToastContainer: React.FC = () => {
         }}
       >
         <Stack spacing={1} sx={{ minWidth: 300 }}>
-          {sortedErrors.map((error) => (
+          {sortedErrors.map(error => (
             <ErrorToast
               key={error.id}
               error={error}
@@ -244,7 +256,7 @@ export const ErrorToastContainer: React.FC = () => {
               isOnline={isOnline}
             />
           ))}
-          
+
           {sortedErrors.length > 3 && (
             <Alert severity="info" sx={{ opacity: 0.8 }}>
               <Typography variant="body2">

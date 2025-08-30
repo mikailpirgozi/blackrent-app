@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import {
+  DirectionsCar as CarIcon,
+  Security as InsuranceIcon,
+  Build as STKIcon,
+  Assignment as EKIcon,
+  TrendingUp as IncreaseIcon,
+  TrendingDown as DecreaseIcon,
+  Remove as SameIcon,
+} from '@mui/icons-material';
+import {
+  Timeline,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+  TimelineOppositeContent,
+} from '@mui/lab';
 import {
   Dialog,
   DialogTitle,
@@ -14,30 +31,14 @@ import {
   useTheme,
   useMediaQuery,
   Alert,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
-import {
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineOppositeContent
-} from '@mui/lab';
-import {
-  DirectionsCar as CarIcon,
-  Security as InsuranceIcon,
-  Build as STKIcon,
-  Assignment as EKIcon,
-  TrendingUp as IncreaseIcon,
-  TrendingDown as DecreaseIcon,
-  Remove as SameIcon
-} from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import { Vehicle } from '../../../types';
+import React, { useState, useEffect } from 'react';
+
 import { useApp } from '../../../context/AppContext';
+import { Vehicle } from '../../../types';
 
 interface KmHistoryEntry {
   id: string;
@@ -60,62 +61,67 @@ interface VehicleKmHistoryProps {
 const getDocumentTypeInfo = (type: string) => {
   switch (type) {
     case 'insurance_kasko':
-      return { 
-        label: 'Kasko poistka', 
-        icon: <InsuranceIcon sx={{ fontSize: 20 }} />, 
-        color: '#2196f3' 
+      return {
+        label: 'Kasko poistka',
+        icon: <InsuranceIcon sx={{ fontSize: 20 }} />,
+        color: '#2196f3',
       };
     case 'stk':
-      return { 
-        label: 'STK', 
-        icon: <STKIcon sx={{ fontSize: 20 }} />, 
-        color: '#388e3c' 
+      return {
+        label: 'STK',
+        icon: <STKIcon sx={{ fontSize: 20 }} />,
+        color: '#388e3c',
       };
     case 'ek':
-      return { 
-        label: 'EK', 
-        icon: <EKIcon sx={{ fontSize: 20 }} />, 
-        color: '#f57c00' 
+      return {
+        label: 'EK',
+        icon: <EKIcon sx={{ fontSize: 20 }} />,
+        color: '#f57c00',
       };
     default:
-      return { 
-        label: 'Dokument', 
-        icon: <CarIcon sx={{ fontSize: 20 }} />, 
-        color: '#666' 
+      return {
+        label: 'Dokument',
+        icon: <CarIcon sx={{ fontSize: 20 }} />,
+        color: '#666',
       };
   }
 };
 
 const getKmTrend = (currentKm: number, previousKm?: number) => {
-  if (!previousKm) return { icon: <SameIcon />, color: '#666', text: 'Prvý záznam' };
-  
+  if (!previousKm)
+    return { icon: <SameIcon />, color: '#666', text: 'Prvý záznam' };
+
   const diff = currentKm - previousKm;
   if (diff > 0) {
-    return { 
-      icon: <IncreaseIcon />, 
-      color: '#4caf50', 
-      text: `+${diff.toLocaleString()} km` 
+    return {
+      icon: <IncreaseIcon />,
+      color: '#4caf50',
+      text: `+${diff.toLocaleString()} km`,
     };
   } else if (diff < 0) {
-    return { 
-      icon: <DecreaseIcon />, 
-      color: '#f44336', 
-      text: `${diff.toLocaleString()} km` 
+    return {
+      icon: <DecreaseIcon />,
+      color: '#f44336',
+      text: `${diff.toLocaleString()} km`,
     };
   } else {
-    return { 
-      icon: <SameIcon />, 
-      color: '#666', 
-      text: 'Bez zmeny' 
+    return {
+      icon: <SameIcon />,
+      color: '#666',
+      text: 'Bez zmeny',
     };
   }
 };
 
-export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHistoryProps) {
+export default function VehicleKmHistory({
+  open,
+  onClose,
+  vehicle,
+}: VehicleKmHistoryProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { state } = useApp();
-  
+
   const [kmHistory, setKmHistory] = useState<KmHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -127,17 +133,18 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
 
   const loadKmHistory = async () => {
     if (!vehicle) return;
-    
+
     setLoading(true);
     try {
       const history: KmHistoryEntry[] = [];
-      
+
       // Načítaj Kasko poistky s kmState
       const kaskoInsurances = (state.insurances || [])
-        .filter(insurance => 
-          insurance.vehicleId === vehicle.id && 
-          insurance.type?.toLowerCase().includes('kasko') &&
-          (insurance as any).kmState
+        .filter(
+          insurance =>
+            insurance.vehicleId === vehicle.id &&
+            insurance.type?.toLowerCase().includes('kasko') &&
+            (insurance as any).kmState
         )
         .map(insurance => ({
           id: insurance.id,
@@ -147,15 +154,16 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
           documentId: insurance.id,
           policyNumber: insurance.policyNumber,
           company: insurance.company,
-          notes: `Kasko poistka ${insurance.policyNumber}`
+          notes: `Kasko poistka ${insurance.policyNumber}`,
         }));
 
       // Načítaj STK dokumenty s kmState
       const stkDocuments = (state.vehicleDocuments || [])
-        .filter(doc => 
-          doc.vehicleId === vehicle.id && 
-          doc.documentType === 'stk' &&
-          (doc as any).kmState
+        .filter(
+          doc =>
+            doc.vehicleId === vehicle.id &&
+            doc.documentType === 'stk' &&
+            (doc as any).kmState
         )
         .map(doc => ({
           id: doc.id,
@@ -164,15 +172,16 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
           documentType: 'stk' as const,
           documentId: doc.id,
           documentNumber: doc.documentNumber,
-          notes: doc.notes || `STK kontrola`
+          notes: doc.notes || `STK kontrola`,
         }));
 
       // Načítaj EK dokumenty s kmState
       const ekDocuments = (state.vehicleDocuments || [])
-        .filter(doc => 
-          doc.vehicleId === vehicle.id && 
-          doc.documentType === 'ek' &&
-          (doc as any).kmState
+        .filter(
+          doc =>
+            doc.vehicleId === vehicle.id &&
+            doc.documentType === 'ek' &&
+            (doc as any).kmState
         )
         .map(doc => ({
           id: doc.id,
@@ -181,7 +190,7 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
           documentType: 'ek' as const,
           documentId: doc.id,
           documentNumber: doc.documentNumber,
-          notes: doc.notes || `EK kontrola`
+          notes: doc.notes || `EK kontrola`,
         }));
 
       // Spoj všetky záznamy a zoraď podľa dátumu
@@ -214,16 +223,14 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <CarIcon />
           <Box>
-            <Typography variant="h6">
-              História stavu kilometrov
-            </Typography>
+            <Typography variant="h6">História stavu kilometrov</Typography>
             <Typography variant="subtitle2" color="text.secondary">
               {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
             </Typography>
           </Box>
         </Box>
       </DialogTitle>
-      
+
       <DialogContent>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -234,8 +241,13 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
             <Typography variant="body2">
               Žiadna história kilometrov nie je k dispozícii pre toto vozidlo.
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              História sa vytvára automaticky pri pridávaní STK, EK alebo Kasko poistky s uvedeným stavom kilometrov.
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: 1, display: 'block' }}
+            >
+              História sa vytvára automaticky pri pridávaní STK, EK alebo Kasko
+              poistky s uvedeným stavom kilometrov.
             </Typography>
           </Alert>
         ) : (
@@ -246,12 +258,15 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
               </Typography>
             </Alert>
 
-            <Timeline position={isMobile ? "right" : "alternate"}>
+            <Timeline position={isMobile ? 'right' : 'alternate'}>
               {kmHistory.map((entry, index) => {
                 const typeInfo = getDocumentTypeInfo(entry.documentType);
                 const previousEntry = kmHistory[index + 1];
                 const trend = getKmTrend(entry.kmState, previousEntry?.kmState);
-                const entryDate = typeof entry.date === 'string' ? parseISO(entry.date) : entry.date;
+                const entryDate =
+                  typeof entry.date === 'string'
+                    ? parseISO(entry.date)
+                    : entry.date;
 
                 return (
                   <TimelineItem key={entry.id}>
@@ -265,39 +280,76 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
                         {format(entryDate, 'dd.MM.yyyy', { locale: sk })}
                       </TimelineOppositeContent>
                     )}
-                    
+
                     <TimelineSeparator>
-                      <TimelineDot sx={{ bgcolor: typeInfo.color, color: 'white' }}>
+                      <TimelineDot
+                        sx={{ bgcolor: typeInfo.color, color: 'white' }}
+                      >
                         {typeInfo.icon}
                       </TimelineDot>
                       {index < kmHistory.length - 1 && <TimelineConnector />}
                     </TimelineSeparator>
-                    
+
                     <TimelineContent sx={{ py: '12px', px: 2 }}>
                       <Card variant="outlined">
                         <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'flex-start',
+                              mb: 1,
+                            }}
+                          >
                             <Box>
-                              <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography
+                                variant="h6"
+                                component="div"
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                }}
+                              >
                                 {typeInfo.label}
-                                <Chip 
-                                  label={`${entry.kmState.toLocaleString()} km`} 
-                                  color="primary" 
-                                  size="small" 
+                                <Chip
+                                  label={`${entry.kmState.toLocaleString()} km`}
+                                  color="primary"
+                                  size="small"
                                 />
                               </Typography>
                               {isMobile && (
-                                <Typography variant="caption" color="text.secondary">
-                                  {format(entryDate, 'dd.MM.yyyy', { locale: sk })}
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  {format(entryDate, 'dd.MM.yyyy', {
+                                    locale: sk,
+                                  })}
                                 </Typography>
                               )}
                             </Box>
-                            
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Box sx={{ color: trend.color, display: 'flex', alignItems: 'center' }}>
+
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  color: trend.color,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                }}
+                              >
                                 {trend.icon}
                               </Box>
-                              <Typography variant="caption" sx={{ color: trend.color }}>
+                              <Typography
+                                variant="caption"
+                                sx={{ color: trend.color }}
+                              >
                                 {trend.text}
                               </Typography>
                             </Box>
@@ -305,24 +357,44 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
 
                           <Divider sx={{ my: 1 }} />
 
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 0.5,
+                            }}
+                          >
                             {entry.policyNumber && (
-                              <Typography variant="body2" color="text.secondary">
-                                <strong>Číslo poistky:</strong> {entry.policyNumber}
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                <strong>Číslo poistky:</strong>{' '}
+                                {entry.policyNumber}
                               </Typography>
                             )}
                             {entry.documentNumber && (
-                              <Typography variant="body2" color="text.secondary">
-                                <strong>Číslo dokumentu:</strong> {entry.documentNumber}
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                <strong>Číslo dokumentu:</strong>{' '}
+                                {entry.documentNumber}
                               </Typography>
                             )}
                             {entry.company && (
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
                                 <strong>Spoločnosť:</strong> {entry.company}
                               </Typography>
                             )}
                             {entry.notes && (
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
                                 <strong>Poznámka:</strong> {entry.notes}
                               </Typography>
                             )}
@@ -342,7 +414,13 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
                   <Typography variant="h6" gutterBottom>
                     📈 Štatistiky
                   </Typography>
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2 }}>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
+                      gap: 2,
+                    }}
+                  >
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography variant="h4" color="primary">
                         {kmHistory[0].kmState.toLocaleString()}
@@ -353,7 +431,11 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
                     </Box>
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography variant="h4" color="success.main">
-                        +{(kmHistory[0].kmState - kmHistory[kmHistory.length - 1].kmState).toLocaleString()}
+                        +
+                        {(
+                          kmHistory[0].kmState -
+                          kmHistory[kmHistory.length - 1].kmState
+                        ).toLocaleString()}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         Celkový nárast km
@@ -374,11 +456,9 @@ export default function VehicleKmHistory({ open, onClose, vehicle }: VehicleKmHi
           </>
         )}
       </DialogContent>
-      
+
       <DialogActions>
-        <Button onClick={onClose}>
-          Zavrieť
-        </Button>
+        <Button onClick={onClose}>Zavrieť</Button>
       </DialogActions>
     </Dialog>
   );

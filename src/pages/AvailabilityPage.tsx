@@ -1,5 +1,6 @@
-import React from 'react';
 import { Box, Container, Typography } from '@mui/material';
+import React from 'react';
+
 import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
 
 const AvailabilityPage: React.FC = () => {
@@ -12,11 +13,11 @@ const AvailabilityPage: React.FC = () => {
         <Typography variant="body1" color="textSecondary" paragraph>
           Kalendárny prehľad dostupnosti všetkých vozidiel v systéme
         </Typography>
-        
+
         <AvailabilityCalendar />
       </Box>
     </Container>
   );
 };
 
-export default AvailabilityPage; 
+export default AvailabilityPage;

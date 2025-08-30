@@ -1,10 +1,14 @@
 /**
  * 📊 STATISTICS CARD
- * 
+ *
  * Reusable card component pre štatistiky s responsive design
  */
 
-import React, { memo } from 'react';
+import {
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  Remove as StableIcon,
+} from '@mui/icons-material';
 import {
   Card,
   CardContent,
@@ -13,13 +17,9 @@ import {
   Avatar,
   Chip,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
 } from '@mui/material';
-import {
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-  Remove as StableIcon
-} from '@mui/icons-material';
+import React, { memo } from 'react';
 
 interface StatisticsCardProps {
   title: string;
@@ -44,7 +44,7 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
   trend,
   color = 'primary',
   compact = false,
-  onClick
+  onClick,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -67,12 +67,13 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
   const getTrendDisplay = () => {
     if (!trend) return null;
 
-    const isPositive = trend.isPositive !== undefined ? trend.isPositive : trend.value > 0;
+    const isPositive =
+      trend.isPositive !== undefined ? trend.isPositive : trend.value > 0;
     const absValue = Math.abs(trend.value);
-    
+
     let trendIcon;
     let trendColor;
-    
+
     if (absValue === 0) {
       trendIcon = <StableIcon fontSize="small" />;
       trendColor = theme.palette.text.secondary;
@@ -96,8 +97,8 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
           height: 20,
           '& .MuiChip-icon': {
             color: trendColor,
-            fontSize: 12
-          }
+            fontSize: 12,
+          },
         }}
       />
     );
@@ -110,23 +111,33 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
         transition: 'all 0.2s ease-in-out',
         borderRadius: compact ? 2 : 3,
         height: '100%',
-        background: compact 
+        background: compact
           ? `linear-gradient(135deg, ${cardColor}08 0%, ${cardColor}15 100%)`
           : theme.palette.background.paper,
         border: `1px solid ${cardColor}20`,
-        '&:hover': onClick ? {
-          transform: 'translateY(-2px)',
-          boxShadow: theme.shadows[6],
-          borderColor: `${cardColor}40`
-        } : {}
+        '&:hover': onClick
+          ? {
+              transform: 'translateY(-2px)',
+              boxShadow: theme.shadows[6],
+              borderColor: `${cardColor}40`,
+            }
+          : {},
       }}
       onClick={onClick}
     >
-      <CardContent sx={{ 
-        p: compact ? 2 : 3,
-        '&:last-child': { pb: compact ? 2 : 3 }
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: compact ? 1.5 : 2 }}>
+      <CardContent
+        sx={{
+          p: compact ? 2 : 3,
+          '&:last-child': { pb: compact ? 2 : 3 },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: compact ? 1.5 : 2,
+          }}
+        >
           {/* Icon */}
           <Avatar
             sx={{
@@ -142,42 +153,41 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
           {/* Content */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             {/* Title */}
-            <Typography 
-              variant={compact ? "body2" : "subtitle2"} 
-              sx={{ 
+            <Typography
+              variant={compact ? 'body2' : 'subtitle2'}
+              sx={{
                 color: 'text.secondary',
                 fontWeight: 500,
                 mb: 0.5,
-                lineHeight: 1.2
+                lineHeight: 1.2,
               }}
             >
               {title}
             </Typography>
 
             {/* Value */}
-            <Typography 
-              variant={compact ? "h6" : "h5"} 
-              sx={{ 
+            <Typography
+              variant={compact ? 'h6' : 'h5'}
+              sx={{
                 fontWeight: 700,
                 color: 'text.primary',
                 lineHeight: 1.1,
-                mb: subtitle || trend ? 0.5 : 0
+                mb: subtitle || trend ? 0.5 : 0,
               }}
             >
-              {typeof value === 'number' && value % 1 === 0 
+              {typeof value === 'number' && value % 1 === 0
                 ? value.toLocaleString('sk-SK')
-                : value
-              }
+                : value}
             </Typography>
 
             {/* Subtitle */}
             {subtitle && (
-              <Typography 
-                variant="caption" 
-                sx={{ 
+              <Typography
+                variant="caption"
+                sx={{
                   color: 'text.secondary',
                   display: 'block',
-                  mb: trend ? 0.5 : 0
+                  mb: trend ? 0.5 : 0,
                 }}
               >
                 {subtitle}
@@ -186,12 +196,14 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
 
             {/* Trend */}
             {trend && (
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                mt: 0.5 
-              }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  mt: 0.5,
+                }}
+              >
                 {getTrendDisplay()}
                 <Typography variant="caption" sx={{ color: 'text.disabled' }}>
                   vs {trend.period}

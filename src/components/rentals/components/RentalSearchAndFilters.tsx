@@ -1,4 +1,10 @@
-import React from 'react';
+import {
+  Search as SearchIcon,
+  FilterList as FilterListIcon,
+  Clear as ClearIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+} from '@mui/icons-material';
 import {
   Box,
   TextField,
@@ -9,15 +15,9 @@ import {
   Typography,
   InputAdornment,
   Chip,
-  Stack
+  Stack,
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  Clear as ClearIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon
-} from '@mui/icons-material';
+import React from 'react';
 
 interface RentalSearchAndFiltersProps {
   searchQuery: string;
@@ -42,22 +42,24 @@ export function RentalSearchAndFilters({
   hasActiveFilters,
   activeFiltersCount,
   filteredCount,
-  totalCount
+  totalCount,
 }: RentalSearchAndFiltersProps) {
   return (
     <Box sx={{ mb: 3 }}>
       {/* Search bar */}
-      <Box sx={{ 
-        display: 'flex', 
-        gap: 2, 
-        mb: 2,
-        flexDirection: { xs: 'column', sm: 'row' }
-      }}>
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 2,
+          mb: 2,
+          flexDirection: { xs: 'column', sm: 'row' },
+        }}
+      >
         <TextField
           fullWidth
           placeholder="Hľadať prenájmy (zákazník, vozidlo, ŠPZ, poznámky...)"
           value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={e => onSearchChange(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -65,37 +67,41 @@ export function RentalSearchAndFilters({
               </InputAdornment>
             ),
           }}
-          sx={{ 
+          sx={{
             '& .MuiOutlinedInput-root': {
               backgroundColor: 'background.paper',
-            }
+            },
           }}
         />
-        
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 1,
-          flexShrink: 0,
-          flexDirection: { xs: 'row', sm: 'row' }
-        }}>
+
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            flexShrink: 0,
+            flexDirection: { xs: 'row', sm: 'row' },
+          }}
+        >
           <Button
-            variant={showFilters ? "contained" : "outlined"}
+            variant={showFilters ? 'contained' : 'outlined'}
             startIcon={showFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            endIcon={hasActiveFilters && (
-              <Chip 
-                label={activeFiltersCount} 
-                size="small" 
-                color="primary"
-                sx={{ ml: 0.5, minWidth: 20, height: 20 }}
-              />
-            )}
+            endIcon={
+              hasActiveFilters && (
+                <Chip
+                  label={activeFiltersCount}
+                  size="small"
+                  color="primary"
+                  sx={{ ml: 0.5, minWidth: 20, height: 20 }}
+                />
+              )
+            }
             onClick={onToggleFilters}
             sx={{ minWidth: 120 }}
           >
             <FilterListIcon sx={{ mr: 0.5 }} />
             Filtre
           </Button>
-          
+
           {hasActiveFilters && (
             <Button
               variant="outlined"
@@ -124,12 +130,16 @@ export function RentalSearchAndFilters({
       <Collapse in={showFilters}>
         <Card variant="outlined" sx={{ mb: 2 }}>
           <CardContent sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              mb: 2
-            }}>
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                mb: 2,
+              }}
+            >
               <FilterListIcon />
               Pokročilé filtre
             </Typography>

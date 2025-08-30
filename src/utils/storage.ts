@@ -7,16 +7,20 @@ export class StorageManager {
   /**
    * Nastaví cookie s expiration time
    */
-  static setCookie(name: string, value: string, days: number = this.COOKIE_EXPIRY_DAYS): void {
+  static setCookie(
+    name: string,
+    value: string,
+    days: number = this.COOKIE_EXPIRY_DAYS
+  ): void {
     try {
       const expires = new Date();
-      expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+      expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
       const expiresString = expires.toUTCString();
-      
+
       // Railway podporuje secure cookies len na HTTPS
       const isSecure = window.location.protocol === 'https:';
       const cookieString = `${this.COOKIE_PREFIX}${name}=${encodeURIComponent(value)};expires=${expiresString};path=/;${isSecure ? 'secure;' : ''}samesite=lax`;
-      
+
       document.cookie = cookieString;
       console.log(`🍪 Cookie nastavené: ${name}, secure: ${isSecure}`);
     } catch (error) {
@@ -31,9 +35,9 @@ export class StorageManager {
     try {
       const cookieName = `${this.COOKIE_PREFIX}${name}=`;
       const cookies = document.cookie.split(';');
-      
+
       for (let i = 0; i < cookies.length; i++) {
-        let cookie = cookies[i].trim();
+        const cookie = cookies[i].trim();
         if (cookie.indexOf(cookieName) === 0) {
           return decodeURIComponent(cookie.substring(cookieName.length));
         }
@@ -60,15 +64,23 @@ export class StorageManager {
   /**
    * Uloží token a user data s fallback na localStorage
    */
-  static setAuthData(token: string, user: any, rememberMe: boolean = true): void {
+  static setAuthData(
+    token: string,
+    user: any,
+    rememberMe: boolean = true
+  ): void {
     try {
-      console.log('💾 Ukladám auth data...', { rememberMe, token: !!token, user: !!user });
-      
+      console.log('💾 Ukladám auth data...', {
+        rememberMe,
+        token: !!token,
+        user: !!user,
+      });
+
       // VŽDY uložiť do localStorage ako primárny storage
       localStorage.setItem('blackrent_token', token);
       localStorage.setItem('blackrent_user', JSON.stringify(user));
       localStorage.setItem('blackrent_remember_me', rememberMe.toString());
-      
+
       // Pokus o uloženie do cookies ako bonus
       if (rememberMe) {
         try {
@@ -76,13 +88,16 @@ export class StorageManager {
           this.setCookie('user', JSON.stringify(user), this.COOKIE_EXPIRY_DAYS);
           this.setCookie('remember_me', 'true', this.COOKIE_EXPIRY_DAYS);
         } catch (cookieError) {
-          console.warn('Cookies sa nepodarilo uložiť, ale localStorage funguje:', cookieError);
+          console.warn(
+            'Cookies sa nepodarilo uložiť, ale localStorage funguje:',
+            cookieError
+          );
         }
       } else {
         // Pre session mode použiť sessionStorage ako fallback
         sessionStorage.setItem('blackrent_token', token);
         sessionStorage.setItem('blackrent_user', JSON.stringify(user));
-        
+
         try {
           this.setCookie('token', token, 1); // 1 deň
           this.setCookie('user', JSON.stringify(user), 1);
@@ -91,7 +106,7 @@ export class StorageManager {
           console.warn('Session cookies sa nepodarilo uložiť:', cookieError);
         }
       }
-      
+
       console.log('✅ Auth data uložené úspešne');
     } catch (error) {
       console.error('Chyba pri ukladaní auth data:', error);
@@ -115,25 +130,25 @@ export class StorageManager {
       // Primárne: localStorage (najspoľahlivejšie)
       let token = localStorage.getItem('blackrent_token');
       let userStr = localStorage.getItem('blackrent_user');
-      
+
       if (token && userStr) {
         console.log('📦 Auth data načítané z localStorage');
         return {
           token,
-          user: JSON.parse(userStr)
+          user: JSON.parse(userStr),
         };
       }
 
       // Fallback 1: cookies
       token = this.getCookie('token');
       userStr = this.getCookie('user');
-      
+
       if (token && userStr) {
         console.log('🍪 Auth data načítané z cookies');
         try {
           return {
             token,
-            user: JSON.parse(userStr)
+            user: JSON.parse(userStr),
           };
         } catch (parseError) {
           console.error('Chyba pri parsovaní user data z cookies:', parseError);
@@ -143,19 +158,22 @@ export class StorageManager {
       // Fallback 2: sessionStorage
       token = sessionStorage.getItem('blackrent_token');
       userStr = sessionStorage.getItem('blackrent_user');
-      
+
       if (token && userStr) {
         console.log('🗂️ Auth data načítané z sessionStorage');
         try {
           return {
             token,
-            user: JSON.parse(userStr)
+            user: JSON.parse(userStr),
           };
         } catch (parseError) {
-          console.error('Chyba pri parsovaní user data z sessionStorage:', parseError);
+          console.error(
+            'Chyba pri parsovaní user data z sessionStorage:',
+            parseError
+          );
         }
       }
-      
+
       console.log('❌ Žiadne auth data nenájdené');
       return { token: null, user: null };
     } catch (error) {
@@ -170,21 +188,21 @@ export class StorageManager {
   static clearAuthData(): void {
     try {
       console.log('🧹 Mažem všetky auth data...');
-      
+
       // Vymaž cookies
       this.removeCookie('token');
       this.removeCookie('user');
       this.removeCookie('remember_me');
-      
+
       // Vymaž localStorage
       localStorage.removeItem('blackrent_token');
       localStorage.removeItem('blackrent_user');
       localStorage.removeItem('blackrent_remember_me');
-      
+
       // Vymaž sessionStorage
       sessionStorage.removeItem('blackrent_token');
       sessionStorage.removeItem('blackrent_user');
-      
+
       console.log('✅ Všetky auth data vymazané');
     } catch (error) {
       console.error('Chyba pri mazaní auth data:', error);
@@ -201,7 +219,7 @@ export class StorageManager {
       if (cookieValue !== null) {
         return cookieValue === 'true';
       }
-      
+
       // Fallback na localStorage
       const localValue = localStorage.getItem('blackrent_remember_me');
       return localValue === 'true';
@@ -222,48 +240,47 @@ export class StorageManager {
     if (this.storageTestDone && process.env.NODE_ENV === 'production') {
       return; // Už bolo testované
     }
-    
+
     try {
       // Optimalized: Consolidated storage testing with single log
       const testKey = 'blackrent_test';
       const testValue = 'test_value';
-      
+
       // Test localStorage
       localStorage.setItem(testKey, testValue);
       const localResult = localStorage.getItem(testKey);
       localStorage.removeItem(testKey);
-      
+
       // Test cookies
       this.setCookie('test', testValue, 1);
       const cookieResult = this.getCookie('test');
       this.removeCookie('test');
-      
+
       // Test sessionStorage
       sessionStorage.setItem(testKey, testValue);
       const sessionResult = sessionStorage.getItem(testKey);
       sessionStorage.removeItem(testKey);
-      
+
       // Optimalized: Single consolidated storage test result
       const localOK = localResult === testValue;
       const cookieOK = cookieResult === testValue;
       const sessionOK = sessionResult === testValue;
       const allOK = localOK && cookieOK && sessionOK;
-      
+
       if (allOK) {
         console.log('✅ Storage: All tests passed');
       } else {
         console.warn('⚠️ Storage issues:', {
           localStorage: localOK ? 'OK' : 'FAIL',
           cookies: cookieOK ? 'OK' : 'FAIL',
-          sessionStorage: sessionOK ? 'OK' : 'FAIL'
+          sessionStorage: sessionOK ? 'OK' : 'FAIL',
         });
       }
-      
+
       // Označiť ako dokončené
       this.storageTestDone = true;
-      
     } catch (error) {
       console.error('🔍 Storage test error:', error);
     }
   }
-} 
+}

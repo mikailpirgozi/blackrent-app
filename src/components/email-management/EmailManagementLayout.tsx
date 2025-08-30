@@ -3,7 +3,16 @@
  * Nahradí pôvodný EmailManagementDashboard.tsx
  */
 
-import React, { useState, useEffect } from 'react';
+import {
+  Email as EmailIcon,
+  PlayArrow as StartIcon,
+  Stop as StopIcon,
+  Refresh as RefreshIcon,
+  CheckCircle as TestIcon,
+  Schedule as PendingIcon,
+  Archive as ArchiveIcon,
+  NotificationsNone as NotificationIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -16,29 +25,20 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import {
-  Email as EmailIcon,
-  PlayArrow as StartIcon,
-  Stop as StopIcon,
-  Refresh as RefreshIcon,
-  CheckCircle as TestIcon,
-  Schedule as PendingIcon,
-  Archive as ArchiveIcon,
-  NotificationsNone as NotificationIcon,
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
 
 // Hooks
+import { EmailArchiveTab } from './components/EmailArchiveTab';
+import { EmailFilters } from './components/EmailFilters';
+import { EmailHistoryTab } from './components/EmailHistoryTab';
+import { EmailStatsCards } from './components/EmailStatsCards';
+import { ImapStatusCard } from './components/ImapStatusCard';
+import { PendingRentalsTab } from './components/PendingRentalsTab';
 import { useEmailApi } from './hooks/useEmailApi';
 import { useImapStatus } from './hooks/useImapStatus';
 import { usePendingRentals } from './hooks/usePendingRentals';
 
 // Components
-import { EmailStatsCards } from './components/EmailStatsCards';
-import { ImapStatusCard } from './components/ImapStatusCard';
-import { EmailFilters } from './components/EmailFilters';
-import { EmailHistoryTab } from './components/EmailHistoryTab';
-import { PendingRentalsTab } from './components/PendingRentalsTab';
-import { EmailArchiveTab } from './components/EmailArchiveTab';
 
 // Types
 import { EmailStats } from './types/email-types';
@@ -49,7 +49,7 @@ const EmailManagementLayout: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isExtraSmall = useMediaQuery(theme.breakpoints.down(400));
-  
+
   // Tabs state
   const [activeTab, setActiveTab] = useState(0);
 
@@ -82,10 +82,7 @@ const EmailManagementLayout: React.FC = () => {
     stopImapMonitoring,
   } = useImapStatus();
 
-  const {
-    pendingRentals,
-    fetchPendingRentals,
-  } = usePendingRentals();
+  const { pendingRentals, fetchPendingRentals } = usePendingRentals();
 
   // Combine errors and success messages
   const error = emailError || imapError;
@@ -102,7 +99,7 @@ const EmailManagementLayout: React.FC = () => {
   // Initial load
   useEffect(() => {
     console.log('🚀 EMAIL MANAGEMENT LAYOUT useEffect triggered');
-    
+
     const initializeData = async () => {
       try {
         const [statsData] = await Promise.all([
@@ -110,7 +107,7 @@ const EmailManagementLayout: React.FC = () => {
           fetchImapStatus(),
           fetchPendingRentals(),
         ]);
-        
+
         if (statsData) {
           setStats(statsData);
         }
@@ -136,7 +133,7 @@ const EmailManagementLayout: React.FC = () => {
         fetchImapStatus(),
         fetchPendingRentals(),
       ]);
-      
+
       if (statsData) {
         setStats(statsData);
       }
@@ -146,37 +143,43 @@ const EmailManagementLayout: React.FC = () => {
   };
 
   return (
-    <Box sx={{ 
-      p: isExtraSmall ? 1 : isSmallMobile ? 2 : 3,
-      minHeight: '100vh',
-      bgcolor: 'background.default'
-    }}>
+    <Box
+      sx={{
+        p: isExtraSmall ? 1 : isSmallMobile ? 2 : 3,
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+      }}
+    >
       {/* Header */}
-      <Box 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems={isMobile ? "flex-start" : "center"} 
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems={isMobile ? 'flex-start' : 'center'}
         mb={3}
-        flexDirection={isSmallMobile ? "column" : "row"}
+        flexDirection={isSmallMobile ? 'column' : 'row'}
         gap={isSmallMobile ? 2 : 0}
       >
-        <Typography 
-          variant={isExtraSmall ? "h5" : isSmallMobile ? "h4" : "h4"} 
+        <Typography
+          variant={isExtraSmall ? 'h5' : isSmallMobile ? 'h4' : 'h4'}
           gutterBottom={!isSmallMobile}
-          sx={{ 
-            fontSize: isExtraSmall ? '1.25rem' : isSmallMobile ? '1.5rem' : undefined,
+          sx={{
+            fontSize: isExtraSmall
+              ? '1.25rem'
+              : isSmallMobile
+                ? '1.5rem'
+                : undefined,
             textAlign: isSmallMobile ? 'center' : 'left',
-            width: isSmallMobile ? '100%' : 'auto'
+            width: isSmallMobile ? '100%' : 'auto',
           }}
         >
           📧 Email Management Dashboard
         </Typography>
-        <Box 
-          display="flex" 
-          gap={isExtraSmall ? 0.5 : 1} 
+        <Box
+          display="flex"
+          gap={isExtraSmall ? 0.5 : 1}
           alignItems="center"
-          flexWrap={isMobile ? "wrap" : "nowrap"}
-          justifyContent={isSmallMobile ? "center" : "flex-end"}
+          flexWrap={isMobile ? 'wrap' : 'nowrap'}
+          justifyContent={isSmallMobile ? 'center' : 'flex-end'}
           width={isSmallMobile ? '100%' : 'auto'}
         >
           {/* IMAP Status Chip */}
@@ -184,13 +187,17 @@ const EmailManagementLayout: React.FC = () => {
             <Chip
               icon={<EmailIcon />}
               label={
-                imapStatus.enabled 
-                  ? (imapStatus.running ? 'IMAP Beží' : 'IMAP Zastavený')
+                imapStatus.enabled
+                  ? imapStatus.running
+                    ? 'IMAP Beží'
+                    : 'IMAP Zastavený'
                   : 'IMAP Vypnutý'
               }
               color={
-                imapStatus.enabled 
-                  ? (imapStatus.running ? 'success' : 'warning')
+                imapStatus.enabled
+                  ? imapStatus.running
+                    ? 'success'
+                    : 'warning'
                   : 'default'
               }
               size="small"
@@ -201,14 +208,14 @@ const EmailManagementLayout: React.FC = () => {
           {/* IMAP Control Buttons */}
           <Button
             variant="outlined"
-            size={isExtraSmall ? "small" : "small"}
+            size={isExtraSmall ? 'small' : 'small'}
             startIcon={!isExtraSmall && <TestIcon />}
             onClick={testImapConnection}
             disabled={imapLoading || !imapStatus?.enabled}
-            sx={{ 
-              minWidth: 'auto', 
+            sx={{
+              minWidth: 'auto',
               px: isExtraSmall ? 0.5 : 1,
-              fontSize: isExtraSmall ? '0.75rem' : undefined
+              fontSize: isExtraSmall ? '0.75rem' : undefined,
             }}
           >
             {isExtraSmall ? 'T' : 'Test'}
@@ -224,10 +231,10 @@ const EmailManagementLayout: React.FC = () => {
                   onClick={startImapMonitoring}
                   disabled={imapLoading}
                   color="success"
-                  sx={{ 
-                    minWidth: 'auto', 
+                  sx={{
+                    minWidth: 'auto',
                     px: isExtraSmall ? 0.5 : 1,
-                    fontSize: isExtraSmall ? '0.75rem' : undefined
+                    fontSize: isExtraSmall ? '0.75rem' : undefined,
                   }}
                 >
                   {isExtraSmall ? 'S' : 'Spusiť'}
@@ -240,10 +247,10 @@ const EmailManagementLayout: React.FC = () => {
                   onClick={stopImapMonitoring}
                   disabled={imapLoading}
                   color="error"
-                  sx={{ 
-                    minWidth: 'auto', 
+                  sx={{
+                    minWidth: 'auto',
                     px: isExtraSmall ? 0.5 : 1,
-                    fontSize: isExtraSmall ? '0.75rem' : undefined
+                    fontSize: isExtraSmall ? '0.75rem' : undefined,
                   }}
                 >
                   {isExtraSmall ? 'Z' : 'Zastaviť'}
@@ -256,10 +263,10 @@ const EmailManagementLayout: React.FC = () => {
             variant="outlined"
             startIcon={!isExtraSmall && <RefreshIcon />}
             onClick={handleRefresh}
-            size={isSmallMobile ? "small" : "medium"}
-            sx={{ 
+            size={isSmallMobile ? 'small' : 'medium'}
+            sx={{
               fontSize: isExtraSmall ? '0.75rem' : undefined,
-              px: isExtraSmall ? 1 : undefined
+              px: isExtraSmall ? 1 : undefined,
             }}
           >
             {isExtraSmall ? 'R' : 'Obnoviť'}
@@ -275,7 +282,11 @@ const EmailManagementLayout: React.FC = () => {
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+        <Alert
+          severity="success"
+          sx={{ mb: 2 }}
+          onClose={() => setSuccess(null)}
+        >
           {success}
         </Alert>
       )}
@@ -296,97 +307,127 @@ const EmailManagementLayout: React.FC = () => {
       />
 
       {/* Tabs Navigation */}
-      <Box sx={{ 
-        borderBottom: 1, 
-        borderColor: 'divider', 
-        mb: 3,
-        overflowX: 'auto',
-        '&::-webkit-scrollbar': {
-          height: 4,
-        },
-        '&::-webkit-scrollbar-track': {
-          backgroundColor: 'transparent',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          backgroundColor: 'rgba(0,0,0,0.2)',
-          borderRadius: 2,
-        }
-      }}>
-        <Tabs 
-          value={activeTab} 
+      <Box
+        sx={{
+          borderBottom: 1,
+          borderColor: 'divider',
+          mb: 3,
+          overflowX: 'auto',
+          '&::-webkit-scrollbar': {
+            height: 4,
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            borderRadius: 2,
+          },
+        }}
+      >
+        <Tabs
+          value={activeTab}
           onChange={(event, newValue) => setActiveTab(newValue)}
           aria-label="Email management tabs"
-          variant={isMobile ? "scrollable" : "standard"}
-          scrollButtons={isMobile ? "auto" : false}
+          variant={isMobile ? 'scrollable' : 'standard'}
+          scrollButtons={isMobile ? 'auto' : false}
           allowScrollButtonsMobile
           sx={{
             minHeight: isExtraSmall ? 40 : 48,
             '& .MuiTab-root': {
               minHeight: isExtraSmall ? 40 : 48,
-              fontSize: isExtraSmall ? '0.75rem' : isSmallMobile ? '0.875rem' : undefined,
-              padding: isExtraSmall ? '6px 8px' : isSmallMobile ? '8px 12px' : undefined,
-              minWidth: isExtraSmall ? 'auto' : undefined
+              fontSize: isExtraSmall
+                ? '0.75rem'
+                : isSmallMobile
+                  ? '0.875rem'
+                  : undefined,
+              padding: isExtraSmall
+                ? '6px 8px'
+                : isSmallMobile
+                  ? '8px 12px'
+                  : undefined,
+              minWidth: isExtraSmall ? 'auto' : undefined,
             },
             '& .MuiTabs-flexContainer': {
-              gap: isExtraSmall ? 0.5 : 1
-            }
+              gap: isExtraSmall ? 0.5 : 1,
+            },
           }}
         >
-          <Tab 
-            label={isExtraSmall ? "Emaily" : isSmallMobile ? "História" : "História Emailov"}
-            icon={!isExtraSmall ? <EmailIcon /> : undefined} 
-            iconPosition={isSmallMobile ? "top" : "start"}
+          <Tab
+            label={
+              isExtraSmall
+                ? 'Emaily'
+                : isSmallMobile
+                  ? 'História'
+                  : 'História Emailov'
+            }
+            icon={!isExtraSmall ? <EmailIcon /> : undefined}
+            iconPosition={isSmallMobile ? 'top' : 'start'}
             sx={{
               '& .MuiTab-iconWrapper': {
                 marginBottom: isSmallMobile ? 0.5 : undefined,
-                marginRight: isSmallMobile ? 0 : undefined
-              }
+                marginRight: isSmallMobile ? 0 : undefined,
+              },
             }}
           />
-          <Tab 
+          <Tab
             label={
-              <Box 
-                display="flex" 
-                alignItems="center" 
+              <Box
+                display="flex"
+                alignItems="center"
                 gap={isExtraSmall ? 0.5 : 1}
-                flexDirection={isSmallMobile ? "column" : "row"}
+                flexDirection={isSmallMobile ? 'column' : 'row'}
               >
-                <span>{isExtraSmall ? "Prenájmy" : isSmallMobile ? "Čakajúce" : "Čakajúce Prenájmy"}</span>
+                <span>
+                  {isExtraSmall
+                    ? 'Prenájmy'
+                    : isSmallMobile
+                      ? 'Čakajúce'
+                      : 'Čakajúce Prenájmy'}
+                </span>
                 {pendingRentals.length > 0 && (
-                  <Badge 
-                    badgeContent={pendingRentals.length} 
+                  <Badge
+                    badgeContent={pendingRentals.length}
                     color="warning"
                     sx={{
                       '& .MuiBadge-badge': {
                         fontSize: isExtraSmall ? '0.625rem' : '0.75rem',
                         minWidth: isExtraSmall ? 16 : 20,
-                        height: isExtraSmall ? 16 : 20
-                      }
+                        height: isExtraSmall ? 16 : 20,
+                      },
                     }}
                   >
-                    <NotificationIcon sx={{ fontSize: isExtraSmall ? 16 : 20 }} />
+                    <NotificationIcon
+                      sx={{ fontSize: isExtraSmall ? 16 : 20 }}
+                    />
                   </Badge>
                 )}
               </Box>
-            } 
-            icon={!isExtraSmall ? <PendingIcon /> : undefined} 
-            iconPosition={isSmallMobile ? "top" : "start"}
+            }
+            icon={!isExtraSmall ? <PendingIcon /> : undefined}
+            iconPosition={isSmallMobile ? 'top' : 'start'}
             sx={{
               '& .MuiTab-iconWrapper': {
                 marginBottom: isSmallMobile ? 0.5 : undefined,
-                marginRight: isSmallMobile ? 0 : undefined
-              }
+                marginRight: isSmallMobile ? 0 : undefined,
+              },
             }}
           />
-          <Tab 
-            label={isExtraSmall ? "Archív" : isSmallMobile ? "Archív" : "Archív Emailov"}
-            icon={!isExtraSmall ? <ArchiveIcon /> : undefined} 
-            iconPosition={isSmallMobile ? "top" : "start"}
+          <Tab
+            label={
+              isExtraSmall
+                ? 'Archív'
+                : isSmallMobile
+                  ? 'Archív'
+                  : 'Archív Emailov'
+            }
+            icon={!isExtraSmall ? <ArchiveIcon /> : undefined}
+            iconPosition={isSmallMobile ? 'top' : 'start'}
             sx={{
               '& .MuiTab-iconWrapper': {
                 marginBottom: isSmallMobile ? 0.5 : undefined,
-                marginRight: isSmallMobile ? 0 : undefined
-              }
+                marginRight: isSmallMobile ? 0 : undefined,
+              },
             }}
           />
         </Tabs>
@@ -400,15 +441,9 @@ const EmailManagementLayout: React.FC = () => {
         />
       )}
 
-      {activeTab === 1 && (
-        <PendingRentalsTab />
-      )}
+      {activeTab === 1 && <PendingRentalsTab />}
 
-      {activeTab === 2 && (
-        <EmailArchiveTab
-          senderFilter={senderFilter}
-        />
-      )}
+      {activeTab === 2 && <EmailArchiveTab senderFilter={senderFilter} />}
     </Box>
   );
 };

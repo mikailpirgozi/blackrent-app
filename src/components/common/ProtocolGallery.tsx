@@ -1,4 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import {
+  Close,
+  NavigateBefore,
+  NavigateNext,
+  Fullscreen,
+  FullscreenExit,
+  Download,
+  PhotoLibrary,
+  PlayArrow,
+  ZoomIn,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -12,20 +22,11 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import {
-  Close,
-  NavigateBefore,
-  NavigateNext,
-  Fullscreen,
-  FullscreenExit,
-  Download,
-  PhotoLibrary,
-  PlayArrow,
-  ZoomIn,
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
+
 import { ProtocolImage, ProtocolVideo } from '../../types';
-import logger from '../../utils/logger';
 import { getApiBaseUrl } from '../../utils/apiUrl';
+import logger from '../../utils/logger';
 
 interface ProtocolGalleryProps {
   open: boolean;
@@ -40,12 +41,12 @@ export default function ProtocolGallery({
   onClose,
   images,
   videos,
-  title = 'Galéria protokolu'
+  title = 'Galéria protokolu',
 }: ProtocolGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoom, setZoom] = useState(1);
-  
+
   // Debugovanie - zobraz čo galéria dostáva
   useEffect(() => {
     // 🐛 Debug len v development mode
@@ -57,19 +58,19 @@ export default function ProtocolGallery({
       images: images?.slice(0, 3).map(img => ({
         id: img.id,
         type: img.type,
-        url: img.url?.substring(0, 50) + '...'
+        url: img.url?.substring(0, 50) + '...',
       })),
       videos: videos?.slice(0, 2).map(vid => ({
         id: vid.id,
         type: vid.type,
-        url: vid.url?.substring(0, 50) + '...'
-      }))
+        url: vid.url?.substring(0, 50) + '...',
+      })),
     });
-    
+
     logger.debug('🔍 ProtocolGallery state:', {
       open,
       isFullscreen,
-      dialogShouldOpen: open && !isFullscreen
+      dialogShouldOpen: open && !isFullscreen,
     });
   }, [open, images, videos, title, isFullscreen]);
 
@@ -83,22 +84,18 @@ export default function ProtocolGallery({
   }, [selectedIndex]);
 
   const handlePrevious = () => {
-    setSelectedIndex(prev => 
-      prev === 0 ? totalCount - 1 : prev - 1
-    );
+    setSelectedIndex(prev => (prev === 0 ? totalCount - 1 : prev - 1));
   };
 
   const handleNext = () => {
-    setSelectedIndex(prev => 
-      prev === totalCount - 1 ? 0 : prev + 1
-    );
+    setSelectedIndex(prev => (prev === totalCount - 1 ? 0 : prev + 1));
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!open) return;
-    
+
     console.log('🎹 ProtocolGallery keyboard event:', event.key, 'open:', open);
-    
+
     switch (event.key) {
       case 'ArrowLeft':
         handlePrevious();
@@ -140,7 +137,7 @@ export default function ProtocolGallery({
         // Zober všetky časti po doméne ako key (preskoč https:// a doménu)
         const key = urlParts.slice(3).join('/');
         const apiBaseUrl = getApiBaseUrl();
-      const proxyUrl = `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
+        const proxyUrl = `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
         console.log('🔄 Converting R2 URL to proxy:', r2Url, '→', proxyUrl);
         return proxyUrl;
       }
@@ -157,7 +154,7 @@ export default function ProtocolGallery({
       alert('Nepodarilo sa stiahnuť súbor - chýba URL');
       return;
     }
-    
+
     try {
       // Použi proxy URL pre download
       const downloadUrl = getProxyUrl(currentMedia.url);
@@ -165,7 +162,7 @@ export default function ProtocolGallery({
         alert('Nepodarilo sa stiahnuť súbor - neplatné URL');
         return;
       }
-      
+
       const response = await fetch(downloadUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -197,13 +194,13 @@ export default function ProtocolGallery({
         onClose={(event, reason) => {
           console.log('🚪 Dialog onClose triggered with reason:', reason);
           console.trace('🔍 Dialog close stack trace:');
-          
+
           // Only allow manual close (via close button), ignore all automatic closes
           if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
             console.log('🛑 Ignoring automatic close reason:', reason);
             return; // Block automatic close
           }
-          
+
           // Only allow programmatic close
           onClose();
         }}
@@ -211,25 +208,27 @@ export default function ProtocolGallery({
         fullWidth
         disableEscapeKeyDown={true}
         BackdropProps={{
-          onClick: (e) => {
+          onClick: e => {
             console.log('🛑 Backdrop click blocked');
             e.stopPropagation();
-          }
+          },
         }}
         PaperProps={{
           sx: {
             backgroundColor: 'rgba(0, 0, 0, 0.9)',
             color: 'white',
-            minHeight: '80vh'
-          }
+            minHeight: '80vh',
+          },
         }}
       >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <PhotoLibrary />
             <Typography variant="h6">
@@ -243,12 +242,14 @@ export default function ProtocolGallery({
 
         <DialogContent sx={{ p: 2 }}>
           {totalCount === 0 ? (
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              height: '200px' 
-            }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '200px',
+              }}
+            >
               <Typography variant="h6" color="rgba(255, 255, 255, 0.7)">
                 Žiadne médiá na zobrazenie
               </Typography>
@@ -262,94 +263,119 @@ export default function ProtocolGallery({
                   url: image.url,
                   type: image.type,
                   hasUrl: !!image.url,
-                  urlType: typeof image.url
+                  urlType: typeof image.url,
                 });
-                
+
                 return (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={image.id || index}>
-                  <Box
-                    sx={{
-                      position: 'relative',
-                      borderRadius: 2,
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      border: '2px solid transparent',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        borderColor: 'primary.main',
-                        transform: 'scale(1.02)'
-                      }
-                    }}
-                    onClick={() => handleImageClick(index)}
+                  <Grid
+                    item
+                    xs={12}
+                    sm={6}
+                    md={4}
+                    lg={3}
+                    key={image.id || index}
                   >
-                    {image.url ? (
-                      <img
-                        src={getProxyUrl(image.url)}
-                        alt={image.description || `Obrázok ${index + 1}`}
-                        style={{
-                          width: '100%',
-                          height: '200px',
-                          objectFit: 'cover',
-                          display: 'block'
-                        }}
-                        onError={(e) => {
-                          console.error('❌ Chyba načítania obrázka:', image.url);
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                        onLoad={() => {
-                          console.log('✅ Obrázok úspešne načítaný:', image.url);
-                        }}
-                      />
-                    ) : (
-                      <Box
-                        sx={{
-                          width: '100%',
-                          height: '200px',
-                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          border: '2px dashed rgba(255, 255, 255, 0.3)'
-                        }}
-                      >
-                        <Typography variant="body2" color="rgba(255, 255, 255, 0.5)">
-                          Chýba URL
-                        </Typography>
-                      </Box>
-                    )}
-                    
-                    {/* Overlay s informáciami */}
                     <Box
                       sx={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-                        p: 1
+                        position: 'relative',
+                        borderRadius: 2,
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        border: '2px solid transparent',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          transform: 'scale(1.02)',
+                        },
                       }}
+                      onClick={() => handleImageClick(index)}
                     >
-                      <Typography variant="caption" color="white">
-                        {image.description || `Obrázok ${index + 1}`}
-                      </Typography>
-                      <Chip 
-                        label={image.type} 
-                        size="small" 
-                        sx={{ 
-                          ml: 1, 
-                          backgroundColor: 'rgba(255,255,255,0.2)',
-                          color: 'white'
-                        }} 
-                      />
+                      {image.url ? (
+                        <img
+                          src={getProxyUrl(image.url)}
+                          alt={image.description || `Obrázok ${index + 1}`}
+                          style={{
+                            width: '100%',
+                            height: '200px',
+                            objectFit: 'cover',
+                            display: 'block',
+                          }}
+                          onError={e => {
+                            console.error(
+                              '❌ Chyba načítania obrázka:',
+                              image.url
+                            );
+                            (e.target as HTMLImageElement).style.display =
+                              'none';
+                          }}
+                          onLoad={() => {
+                            console.log(
+                              '✅ Obrázok úspešne načítaný:',
+                              image.url
+                            );
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            width: '100%',
+                            height: '200px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '2px dashed rgba(255, 255, 255, 0.3)',
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            color="rgba(255, 255, 255, 0.5)"
+                          >
+                            Chýba URL
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Overlay s informáciami */}
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          background:
+                            'linear-gradient(transparent, rgba(0,0,0,0.8))',
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="caption" color="white">
+                          {image.description || `Obrázok ${index + 1}`}
+                        </Typography>
+                        <Chip
+                          label={image.type}
+                          size="small"
+                          sx={{
+                            ml: 1,
+                            backgroundColor: 'rgba(255,255,255,0.2)',
+                            color: 'white',
+                          }}
+                        />
+                      </Box>
                     </Box>
-                  </Box>
-                </Grid>
+                  </Grid>
                 );
               })}
 
               {/* Videos */}
               {videos.map((video, index) => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={video.id || `video-${index}`}>
+                <Grid
+                  item
+                  xs={12}
+                  sm={6}
+                  md={4}
+                  lg={3}
+                  key={video.id || `video-${index}`}
+                >
                   <Box
                     sx={{
                       position: 'relative',
@@ -360,21 +386,21 @@ export default function ProtocolGallery({
                       transition: 'all 0.2s ease',
                       '&:hover': {
                         borderColor: 'primary.main',
-                        transform: 'scale(1.02)'
-                      }
+                        transform: 'scale(1.02)',
+                      },
                     }}
                     onClick={() => handleImageClick(images.length + index)}
                   >
-                                        {video.url ? (
+                    {video.url ? (
                       <video
                         src={getProxyUrl(video.url)}
                         style={{
                           width: '100%',
                           height: '200px',
                           objectFit: 'cover',
-                          display: 'block'
+                          display: 'block',
                         }}
-                        onError={(e) => {
+                        onError={e => {
                           console.error('Chyba načítania videa:', video.url);
                           (e.target as HTMLVideoElement).style.display = 'none';
                         }}
@@ -388,15 +414,18 @@ export default function ProtocolGallery({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          border: '2px dashed rgba(255, 255, 255, 0.3)'
+                          border: '2px dashed rgba(255, 255, 255, 0.3)',
                         }}
                       >
-                        <Typography variant="body2" color="rgba(255, 255, 255, 0.5)">
+                        <Typography
+                          variant="body2"
+                          color="rgba(255, 255, 255, 0.5)"
+                        >
                           Chýba URL
                         </Typography>
                       </Box>
                     )}
-                    
+
                     {/* Play ikona */}
                     <Box
                       sx={{
@@ -410,7 +439,7 @@ export default function ProtocolGallery({
                         height: 48,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
                       }}
                     >
                       <PlayArrow sx={{ color: 'white', fontSize: 24 }} />
@@ -423,21 +452,22 @@ export default function ProtocolGallery({
                         bottom: 0,
                         left: 0,
                         right: 0,
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-                        p: 1
+                        background:
+                          'linear-gradient(transparent, rgba(0,0,0,0.8))',
+                        p: 1,
                       }}
                     >
                       <Typography variant="caption" color="white">
                         {video.description || `Video ${index + 1}`}
                       </Typography>
-                      <Chip 
-                        label={video.type} 
-                        size="small" 
-                        sx={{ 
-                          ml: 1, 
+                      <Chip
+                        label={video.type}
+                        size="small"
+                        sx={{
+                          ml: 1,
                           backgroundColor: 'rgba(255,255,255,0.2)',
-                          color: 'white'
-                        }} 
+                          color: 'white',
+                        }}
                       />
                     </Box>
                   </Box>
@@ -457,18 +487,20 @@ export default function ProtocolGallery({
         PaperProps={{
           sx: {
             backgroundColor: 'rgba(0, 0, 0, 0.95)',
-            color: 'white'
-          }
+            color: 'white',
+          },
         }}
       >
         {/* Header */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          p: 2,
-          borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            p: 2,
+            borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+          }}
+        >
           <Typography variant="h6">
             {currentMedia?.description || `Médium ${selectedIndex + 1}`}
           </Typography>
@@ -490,21 +522,26 @@ export default function ProtocolGallery({
             <IconButton onClick={handleDownload} sx={{ color: 'white' }}>
               <Download />
             </IconButton>
-            <IconButton onClick={() => setIsFullscreen(false)} sx={{ color: 'white' }}>
+            <IconButton
+              onClick={() => setIsFullscreen(false)}
+              sx={{ color: 'white' }}
+            >
               <Close />
             </IconButton>
           </Box>
         </Box>
 
         {/* Media Display */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: 'calc(100vh - 120px)',
-          p: 2,
-          position: 'relative'
-        }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: 'calc(100vh - 120px)',
+            p: 2,
+            position: 'relative',
+          }}
+        >
           {/* Navigation Buttons */}
           {totalCount > 1 && (
             <>
@@ -517,7 +554,7 @@ export default function ProtocolGallery({
                   transform: 'translateY(-50%)',
                   backgroundColor: 'rgba(0,0,0,0.5)',
                   color: 'white',
-                  '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' }
+                  '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' },
                 }}
               >
                 <NavigateBefore />
@@ -531,7 +568,7 @@ export default function ProtocolGallery({
                   transform: 'translateY(-50%)',
                   backgroundColor: 'rgba(0,0,0,0.5)',
                   color: 'white',
-                  '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' }
+                  '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' },
                 }}
               >
                 <NavigateNext />
@@ -540,13 +577,15 @@ export default function ProtocolGallery({
           )}
 
           {/* Media Content */}
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center',
-            width: '100%',
-            height: '100%'
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              height: '100%',
+            }}
+          >
             {currentMedia && (
               <>
                 {selectedIndex < images.length ? (
@@ -559,38 +598,49 @@ export default function ProtocolGallery({
                         maxWidth: `${100 * zoom}%`,
                         maxHeight: `${100 * zoom}%`,
                         objectFit: 'contain',
-                        transition: 'transform 0.2s ease'
+                        transition: 'transform 0.2s ease',
                       }}
-                      onError={(e) => {
-                        console.error('Chyba načítania obrázka:', currentMedia.url);
+                      onError={e => {
+                        console.error(
+                          'Chyba načítania obrázka:',
+                          currentMedia.url
+                        );
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}
                     />
                   ) : (
-                    <Box sx={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
+                    <Box
+                      sx={{
+                        textAlign: 'center',
+                        color: 'rgba(255, 255, 255, 0.5)',
+                      }}
+                    >
                       <Typography variant="h6">Chýba URL obrázka</Typography>
                     </Box>
                   )
+                ) : // Video
+                currentMedia.url ? (
+                  <video
+                    src={getProxyUrl(currentMedia.url)}
+                    controls
+                    style={{
+                      maxWidth: `${100 * zoom}%`,
+                      maxHeight: `${100 * zoom}%`,
+                    }}
+                    onError={e => {
+                      console.error('Chyba načítania videa:', currentMedia.url);
+                      (e.target as HTMLVideoElement).style.display = 'none';
+                    }}
+                  />
                 ) : (
-                  // Video
-                  currentMedia.url ? (
-                    <video
-                      src={getProxyUrl(currentMedia.url)}
-                      controls
-                      style={{
-                        maxWidth: `${100 * zoom}%`,
-                        maxHeight: `${100 * zoom}%`
-                      }}
-                      onError={(e) => {
-                        console.error('Chyba načítania videa:', currentMedia.url);
-                        (e.target as HTMLVideoElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <Box sx={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
-                      <Typography variant="h6">Chýba URL videa</Typography>
-                    </Box>
-                  )
+                  <Box
+                    sx={{
+                      textAlign: 'center',
+                      color: 'rgba(255, 255, 255, 0.5)',
+                    }}
+                  >
+                    <Typography variant="h6">Chýba URL videa</Typography>
+                  </Box>
                 )}
               </>
             )}
@@ -599,11 +649,13 @@ export default function ProtocolGallery({
 
         {/* Footer with counter */}
         {totalCount > 1 && (
-          <Box sx={{ 
-            p: 2, 
-            textAlign: 'center',
-            borderTop: '1px solid rgba(255, 255, 255, 0.2)'
-          }}>
+          <Box
+            sx={{
+              p: 2,
+              textAlign: 'center',
+              borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+            }}
+          >
             <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
               {selectedIndex + 1} z {totalCount}
             </Typography>
@@ -612,4 +664,4 @@ export default function ProtocolGallery({
       </Dialog>
     </>
   );
-} 
+}

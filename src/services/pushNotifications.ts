@@ -78,7 +78,6 @@ class PushNotificationService {
 
       console.log('✅ Push notifications initialized');
       return true;
-
     } catch (error) {
       console.error('❌ Failed to initialize push notifications:', error);
       return false;
@@ -136,7 +135,7 @@ class PushNotificationService {
       if (!subscription) {
         subscription = await this.registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey)
+          applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey),
         });
       }
 
@@ -144,7 +143,7 @@ class PushNotificationService {
 
       // Send subscription to server
       const success = await this.sendSubscriptionToServer(subscription);
-      
+
       if (success) {
         console.log('✅ Successfully subscribed to push notifications');
         return true;
@@ -152,7 +151,6 @@ class PushNotificationService {
         console.error('❌ Failed to save subscription on server');
         return false;
       }
-
     } catch (error) {
       console.error('❌ Failed to subscribe to push notifications:', error);
       return false;
@@ -166,12 +164,13 @@ class PushNotificationService {
         return false;
       }
 
-      const subscription = await this.registration.pushManager.getSubscription();
-      
+      const subscription =
+        await this.registration.pushManager.getSubscription();
+
       if (subscription) {
         // Unsubscribe from browser
         const unsubscribed = await subscription.unsubscribe();
-        
+
         if (unsubscribed) {
           // Remove from server
           await this.removeSubscriptionFromServer(subscription);
@@ -182,7 +181,6 @@ class PushNotificationService {
       }
 
       return false;
-
     } catch (error) {
       console.error('❌ Failed to unsubscribe from push notifications:', error);
       return false;
@@ -190,25 +188,26 @@ class PushNotificationService {
   }
 
   // Send subscription to server
-  private async sendSubscriptionToServer(subscription: PushSubscription): Promise<boolean> {
+  private async sendSubscriptionToServer(
+    subscription: PushSubscription
+  ): Promise<boolean> {
     try {
       const token = this.getAuthToken();
-      
+
       const response = await fetch(`${getAPI_BASE_URL()}/push/subscription`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           subscription: subscription.toJSON(),
           timestamp: Date.now(),
-          userAgent: navigator.userAgent
-        })
+          userAgent: navigator.userAgent,
+        }),
       });
 
       return response.ok;
-
     } catch (error) {
       console.error('❌ Error sending subscription to server:', error);
       return false;
@@ -216,23 +215,24 @@ class PushNotificationService {
   }
 
   // Remove subscription from server
-  private async removeSubscriptionFromServer(subscription: PushSubscription): Promise<boolean> {
+  private async removeSubscriptionFromServer(
+    subscription: PushSubscription
+  ): Promise<boolean> {
     try {
       const token = this.getAuthToken();
-      
+
       const response = await fetch(`${getAPI_BASE_URL()}/push/subscription`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          endpoint: subscription.endpoint
-        })
+          endpoint: subscription.endpoint,
+        }),
       });
 
       return response.ok;
-
     } catch (error) {
       console.error('❌ Error removing subscription from server:', error);
       return false;
@@ -247,28 +247,28 @@ class PushNotificationService {
     subscription?: PushSubscription;
   }> {
     const isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
-    
+
     if (!isSupported) {
       return {
         isSupported: false,
         isSubscribed: false,
-        permission: 'denied'
+        permission: 'denied',
       };
     }
 
     const permission = Notification.permission;
-    
+
     if (!this.registration) {
       this.registration = await navigator.serviceWorker.ready;
     }
 
     const subscription = await this.registration.pushManager.getSubscription();
-    
+
     return {
       isSupported,
       isSubscribed: !!subscription,
       permission,
-      subscription: subscription || undefined
+      subscription: subscription || undefined,
     };
   }
 
@@ -276,12 +276,12 @@ class PushNotificationService {
   async getNotificationPreferences(): Promise<PushNotificationPreferences | null> {
     try {
       const token = this.getAuthToken();
-      
+
       const response = await fetch(`${getAPI_BASE_URL()}/push/preferences`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {
@@ -289,7 +289,6 @@ class PushNotificationService {
       }
 
       return null;
-
     } catch (error) {
       console.error('❌ Error getting notification preferences:', error);
       return null;
@@ -297,21 +296,22 @@ class PushNotificationService {
   }
 
   // Update user notification preferences
-  async updateNotificationPreferences(preferences: Partial<PushNotificationPreferences>): Promise<boolean> {
+  async updateNotificationPreferences(
+    preferences: Partial<PushNotificationPreferences>
+  ): Promise<boolean> {
     try {
       const token = this.getAuthToken();
-      
+
       const response = await fetch(`${getAPI_BASE_URL()}/push/preferences`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(preferences)
+        body: JSON.stringify(preferences),
       });
 
       return response.ok;
-
     } catch (error) {
       console.error('❌ Error updating notification preferences:', error);
       return false;
@@ -322,18 +322,17 @@ class PushNotificationService {
   async sendTestNotification(payload: NotificationPayload): Promise<boolean> {
     try {
       const token = this.getAuthToken();
-      
+
       const response = await fetch(`${getAPI_BASE_URL()}/push/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       return response.ok;
-
     } catch (error) {
       console.error('❌ Error sending test notification:', error);
       return false;
@@ -357,27 +356,26 @@ class PushNotificationService {
         requireInteraction: payload.requireInteraction || false,
         silent: payload.silent || false,
         vibrate: payload.vibrate || [200, 100, 200],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       // Handle click event
-      notification.onclick = (event) => {
+      notification.onclick = event => {
         event.preventDefault();
-        
+
         const data = payload.data || {};
         const url = data.url || '/';
-        
+
         // Focus or open window
         window.focus();
         if (url !== '/') {
           window.location.href = url;
         }
-        
+
         notification.close();
       };
 
       return true;
-
     } catch (error) {
       console.error('❌ Error showing local notification:', error);
       return false;
@@ -385,27 +383,32 @@ class PushNotificationService {
   }
 
   // Get notification analytics (admin only)
-  async getNotificationAnalytics(startDate?: Date, endDate?: Date): Promise<any> {
+  async getNotificationAnalytics(
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<any> {
     try {
       const token = this.getAuthToken();
       const params = new URLSearchParams();
-      
+
       if (startDate) params.append('startDate', startDate.toISOString());
       if (endDate) params.append('endDate', endDate.toISOString());
-      
-      const response = await fetch(`${getAPI_BASE_URL()}/push/analytics?${params}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
+
+      const response = await fetch(
+        `${getAPI_BASE_URL()}/push/analytics?${params}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      });
+      );
 
       if (response.ok) {
         return await response.json();
       }
 
       return null;
-
     } catch (error) {
       console.error('❌ Error getting notification analytics:', error);
       return null;
@@ -414,7 +417,7 @@ class PushNotificationService {
 
   // Utility function to convert VAPID key
   private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding)
       .replace(/-/g, '+')
       .replace(/_/g, '/');
@@ -430,12 +433,19 @@ class PushNotificationService {
 
   // Get auth token from storage
   private getAuthToken(): string | null {
-    return localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+    return (
+      localStorage.getItem('blackrent_token') ||
+      sessionStorage.getItem('blackrent_token')
+    );
   }
 
   // Check if notifications are supported
   static isSupported(): boolean {
-    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    return (
+      'serviceWorker' in navigator &&
+      'PushManager' in window &&
+      'Notification' in window
+    );
   }
 
   // Get current permission status
@@ -452,7 +462,7 @@ export type {
   PushSubscriptionData,
   NotificationPayload,
   NotificationAction,
-  PushNotificationPreferences
+  PushNotificationPreferences,
 };
 
 export default PushNotificationService;

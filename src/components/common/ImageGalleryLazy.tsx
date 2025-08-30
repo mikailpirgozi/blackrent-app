@@ -1,10 +1,15 @@
 /**
  * 🖼️ IMAGE GALLERY LAZY
- * 
+ *
  * Optimalizovaná image gallery s lazy loading a virtualizáciou
  */
 
-import React, { memo, useState, useCallback, useMemo } from 'react';
+import {
+  Close as CloseIcon,
+  ChevronLeft as PrevIcon,
+  ChevronRight as NextIcon,
+  ZoomIn as ZoomInIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Grid,
@@ -15,16 +20,13 @@ import {
   useTheme,
   useMediaQuery,
   Fade,
-  Paper
+  Paper,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  ChevronLeft as PrevIcon,
-  ChevronRight as NextIcon,
-  ZoomIn as ZoomInIcon
-} from '@mui/icons-material';
-import LazyImage from './LazyImage';
+import React, { memo, useState, useCallback, useMemo } from 'react';
+
 import { VehicleImageUtils } from '../../utils/imageOptimization';
+
+import LazyImage from './LazyImage';
 
 interface GalleryImage {
   id: string;
@@ -51,16 +53,16 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
   images,
   columns = 3,
   spacing = 2,
-  aspectRatio = 4/3,
+  aspectRatio = 4 / 3,
   showCaptions = false,
   enableFullscreen = true,
   maxVisibleImages = 50, // Virtual scrolling threshold
   onImageClick,
-  className
+  className,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -71,9 +73,11 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
   }, [isMobile, columns]);
 
   // Virtual scrolling - show only subset of images initially
-  const [visibleCount, setVisibleCount] = useState(Math.min(maxVisibleImages, images.length));
-  const visibleImages = useMemo(() => 
-    images.slice(0, visibleCount), 
+  const [visibleCount, setVisibleCount] = useState(
+    Math.min(maxVisibleImages, images.length)
+  );
+  const visibleImages = useMemo(
+    () => images.slice(0, visibleCount),
     [images, visibleCount]
   );
 
@@ -85,25 +89,24 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
   }, [images.length, visibleCount]);
 
   // Handle image click
-  const handleImageClick = useCallback((image: GalleryImage, index: number) => {
-    if (enableFullscreen) {
-      setCurrentImageIndex(index);
-      setFullscreenOpen(true);
-    }
-    onImageClick?.(image, index);
-  }, [enableFullscreen, onImageClick]);
+  const handleImageClick = useCallback(
+    (image: GalleryImage, index: number) => {
+      if (enableFullscreen) {
+        setCurrentImageIndex(index);
+        setFullscreenOpen(true);
+      }
+      onImageClick?.(image, index);
+    },
+    [enableFullscreen, onImageClick]
+  );
 
   // Fullscreen navigation
   const handlePreviousImage = useCallback(() => {
-    setCurrentImageIndex(prev => 
-      prev === 0 ? images.length - 1 : prev - 1
-    );
+    setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
   }, [images.length]);
 
   const handleNextImage = useCallback(() => {
-    setCurrentImageIndex(prev => 
-      prev === images.length - 1 ? 0 : prev + 1
-    );
+    setCurrentImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
   }, [images.length]);
 
   const handleCloseFullscreen = useCallback(() => {
@@ -117,16 +120,14 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
 
   if (!images || images.length === 0) {
     return (
-      <Box 
-        sx={{ 
-          textAlign: 'center', 
+      <Box
+        sx={{
+          textAlign: 'center',
           py: 4,
-          color: 'text.secondary'
+          color: 'text.secondary',
         }}
       >
-        <Typography variant="body1">
-          🖼️ Žiadne obrázky na zobrazenie
-        </Typography>
+        <Typography variant="body1">🖼️ Žiadne obrázky na zobrazenie</Typography>
       </Box>
     );
   }
@@ -136,11 +137,7 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
       {/* Gallery Grid */}
       <Grid container spacing={spacing}>
         {visibleImages.map((image, index) => (
-          <Grid 
-            item 
-            xs={12 / responsiveColumns}
-            key={image.id}
-          >
+          <Grid item xs={12 / responsiveColumns} key={image.id}>
             <Paper
               elevation={2}
               sx={{
@@ -150,24 +147,28 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
                 transition: 'all 0.2s ease-in-out',
                 '&:hover': {
                   elevation: 4,
-                  transform: enableFullscreen ? 'scale(1.02)' : 'none'
-                }
+                  transform: enableFullscreen ? 'scale(1.02)' : 'none',
+                },
               }}
             >
               <Box
                 sx={{
                   position: 'relative',
                   paddingBottom: imageHeight,
-                  overflow: 'hidden'
+                  overflow: 'hidden',
                 }}
               >
                 <LazyImage
                   src={image.url}
-                  lowQualitySrc={image.thumbnailUrl || (
-                    image.vehicleId 
-                      ? VehicleImageUtils.getVehicleImageUrl(image.vehicleId, 'thumbnail')
-                      : undefined
-                  )}
+                  lowQualitySrc={
+                    image.thumbnailUrl ||
+                    (image.vehicleId
+                      ? VehicleImageUtils.getVehicleImageUrl(
+                          image.vehicleId,
+                          'thumbnail'
+                        )
+                      : undefined)
+                  }
                   alt={image.alt || `Obrázok ${index + 1}`}
                   width="100%"
                   height="100%"
@@ -177,7 +178,7 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
                   style={{
                     position: 'absolute',
                     top: 0,
-                    left: 0
+                    left: 0,
                   }}
                 />
 
@@ -198,16 +199,16 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
                         opacity: 0,
                         transition: 'opacity 0.2s ease-in-out',
                         '&:hover': {
-                          opacity: 1
-                        }
+                          opacity: 1,
+                        },
                       }}
                     >
-                      <ZoomInIcon 
-                        sx={{ 
+                      <ZoomInIcon
+                        sx={{
                           color: 'white',
                           fontSize: 32,
-                          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
-                        }} 
+                          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+                        }}
                       />
                     </Box>
                   </Fade>
@@ -217,14 +218,14 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
               {/* Caption */}
               {showCaptions && image.caption && (
                 <Box sx={{ p: 1 }}>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
+                  <Typography
+                    variant="caption"
+                    sx={{
                       color: 'text.secondary',
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
+                      overflow: 'hidden',
                     }}
                   >
                     {image.caption}
@@ -250,13 +251,15 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
               fontSize: '0.875rem',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'all 0.2s ease-in-out'
+              transition: 'all 0.2s ease-in-out',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.palette.primary.dark;
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor =
+                theme.palette.primary.dark;
             }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme.palette.primary.main;
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor =
+                theme.palette.primary.main;
             }}
           >
             Načítať ďalšie ({images.length - visibleCount} zostáva)
@@ -277,8 +280,8 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
               margin: 0,
               maxWidth: '100vw',
               maxHeight: '100vh',
-              borderRadius: 0
-            }
+              borderRadius: 0,
+            },
           }}
         >
           <DialogContent sx={{ p: 0, position: 'relative' }}>
@@ -293,8 +296,8 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
                 backgroundColor: 'rgba(0,0,0,0.5)',
                 color: 'white',
                 '&:hover': {
-                  backgroundColor: 'rgba(0,0,0,0.7)'
-                }
+                  backgroundColor: 'rgba(0,0,0,0.7)',
+                },
               }}
             >
               <CloseIcon />
@@ -314,8 +317,8 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
                     backgroundColor: 'rgba(0,0,0,0.5)',
                     color: 'white',
                     '&:hover': {
-                      backgroundColor: 'rgba(0,0,0,0.7)'
-                    }
+                      backgroundColor: 'rgba(0,0,0,0.7)',
+                    },
                   }}
                 >
                   <PrevIcon />
@@ -332,8 +335,8 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
                     backgroundColor: 'rgba(0,0,0,0.5)',
                     color: 'white',
                     '&:hover': {
-                      backgroundColor: 'rgba(0,0,0,0.7)'
-                    }
+                      backgroundColor: 'rgba(0,0,0,0.7)',
+                    },
                   }}
                 >
                   <NextIcon />
@@ -349,18 +352,21 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                p: 4
+                p: 4,
               }}
             >
               {images[currentImageIndex] && (
                 <img
                   src={images[currentImageIndex].url}
-                  alt={images[currentImageIndex].alt || `Obrázok ${currentImageIndex + 1}`}
+                  alt={
+                    images[currentImageIndex].alt ||
+                    `Obrázok ${currentImageIndex + 1}`
+                  }
                   style={{
                     maxWidth: '100%',
                     maxHeight: '100%',
                     objectFit: 'contain',
-                    borderRadius: '8px'
+                    borderRadius: '8px',
                   }}
                 />
               )}
@@ -378,7 +384,7 @@ const ImageGalleryLazy: React.FC<ImageGalleryLazyProps> = ({
                 px: 2,
                 py: 1,
                 borderRadius: 2,
-                fontSize: '0.875rem'
+                fontSize: '0.875rem',
               }}
             >
               {currentImageIndex + 1} / {images.length}

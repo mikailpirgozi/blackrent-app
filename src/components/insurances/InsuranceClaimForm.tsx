@@ -1,4 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import {
+  Close as CloseIcon,
+  DirectionsCar as CarIcon,
+  Event as EventIcon,
+  Euro as EuroIcon,
+  LocationOn as LocationIcon,
+  Assignment as DocumentIcon,
+  Security as InsuranceIcon,
+  ReportProblem as ClaimIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -16,26 +25,17 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
-  Autocomplete
+  Autocomplete,
 } from '@mui/material';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { sk } from 'date-fns/locale';
+import React, { useState, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
-import {
-  Close as CloseIcon,
-  DirectionsCar as CarIcon,
-  Event as EventIcon,
-  Euro as EuroIcon,
-  LocationOn as LocationIcon,
-  Assignment as DocumentIcon,
-  Security as InsuranceIcon,
-  ReportProblem as ClaimIcon
-} from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { InsuranceClaim } from '../../types';
-import { v4 as uuidv4 } from 'uuid';
 import R2FileUpload from '../common/R2FileUpload';
 
 interface InsuranceClaimFormProps {
@@ -76,9 +76,13 @@ const getStatusInfo = (status: string) => {
   }
 };
 
-export default function InsuranceClaimForm({ claim, onSave, onCancel }: InsuranceClaimFormProps) {
+export default function InsuranceClaimForm({
+  claim,
+  onSave,
+  onCancel,
+}: InsuranceClaimFormProps) {
   const { state, getEnhancedFilteredVehicles } = useApp();
-  
+
   const [formData, setFormData] = useState<Partial<InsuranceClaim>>({
     vehicleId: claim?.vehicleId || '',
     insuranceId: claim?.insuranceId || '',
@@ -94,7 +98,7 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
     filePaths: claim?.filePaths || [],
     policeReportNumber: claim?.policeReportNumber || '',
     otherPartyInfo: claim?.otherPartyInfo || '',
-    notes: claim?.notes || ''
+    notes: claim?.notes || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -104,15 +108,20 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
     if (claim) {
       setFormData({
         ...claim,
-        incidentDate: claim.incidentDate ? new Date(claim.incidentDate) : new Date()
+        incidentDate: claim.incidentDate
+          ? new Date(claim.incidentDate)
+          : new Date(),
       });
       setUploadedFiles(claim.filePaths || []);
     }
   }, [claim]);
 
   // Get available vehicles and their insurances (including private)
-  const availableVehicles = getEnhancedFilteredVehicles({ includePrivate: true }) || [];
-  const vehicleInsurances = (state.insurances || []).filter(ins => ins.vehicleId === formData.vehicleId);
+  const availableVehicles =
+    getEnhancedFilteredVehicles({ includePrivate: true }) || [];
+  const vehicleInsurances = (state.insurances || []).filter(
+    ins => ins.vehicleId === formData.vehicleId
+  );
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -145,7 +154,7 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -169,13 +178,17 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
       otherPartyInfo: formData.otherPartyInfo,
       notes: formData.notes,
       createdAt: claim?.createdAt || new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     onSave(claimData);
   };
 
-  const handleFileUploadSuccess = (fileData: { url: string; key: string; filename: string } | { url: string; key: string; filename: string }[]) => {
+  const handleFileUploadSuccess = (
+    fileData:
+      | { url: string; key: string; filename: string }
+      | { url: string; key: string; filename: string }[]
+  ) => {
     if (Array.isArray(fileData)) {
       setUploadedFiles(prev => [...prev, ...fileData.map(f => f.url)]);
     } else {
@@ -192,7 +205,14 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sk}>
       <form onSubmit={handleSubmit}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            pb: 1,
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <ClaimIcon sx={{ color: '#d32f2f' }} />
             <Typography variant="h6">
@@ -208,27 +228,42 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
           {/* Basic Information */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 <EventIcon sx={{ color: '#1976d2' }} />
                 Základné informácie
               </Typography>
-              
+
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <Box sx={{ position: 'relative' }}>
                     <Autocomplete
                       fullWidth
-                      options={availableVehicles
-                        .slice()
-                        .sort((a, b) => {
-                          const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
-                          const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
-                          return aText.localeCompare(bText, 'sk', { sensitivity: 'base' });
-                        })}
-                      getOptionLabel={(vehicle) => `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
-                      value={availableVehicles.find(v => v.id === formData.vehicleId) || null}
-                      onChange={(_, newValue) => setFormData(prev => ({ ...prev, vehicleId: newValue?.id || '', insuranceId: '' }))}
-                      renderInput={(params) => (
+                      options={availableVehicles.slice().sort((a, b) => {
+                        const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
+                        const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
+                        return aText.localeCompare(bText, 'sk', {
+                          sensitivity: 'base',
+                        });
+                      })}
+                      getOptionLabel={vehicle =>
+                        `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`
+                      }
+                      value={
+                        availableVehicles.find(
+                          v => v.id === formData.vehicleId
+                        ) || null
+                      }
+                      onChange={(_, newValue) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          vehicleId: newValue?.id || '',
+                          insuranceId: '',
+                        }))
+                      }
+                      renderInput={params => (
                         <TextField
                           {...params}
                           label="Vozidlo *"
@@ -239,7 +274,9 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                             ...params.InputProps,
                             startAdornment: (
                               <>
-                                <CarIcon sx={{ fontSize: 16, color: '#1976d2', mr: 1 }} />
+                                <CarIcon
+                                  sx={{ fontSize: 16, color: '#1976d2', mr: 1 }}
+                                />
                                 {params.InputProps.startAdornment}
                               </>
                             ),
@@ -248,23 +285,35 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                       )}
                       renderOption={(props, vehicle) => (
                         <Box component="li" {...props}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
                             <CarIcon sx={{ fontSize: 16, color: '#1976d2' }} />
-                            {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
+                            {vehicle.brand} {vehicle.model} (
+                            {vehicle.licensePlate})
                           </Box>
                         </Box>
                       )}
                       noOptionsText="Žiadne vozidlá nenájdené"
                       filterOptions={(options, { inputValue }) => {
-                        const filtered = options.filter((option) => {
-                          const searchText = `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
+                        const filtered = options.filter(option => {
+                          const searchText =
+                            `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
                           return searchText.includes(inputValue.toLowerCase());
                         });
                         return filtered;
                       }}
                     />
                     {errors.vehicleId && (
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                      <Typography
+                        variant="caption"
+                        color="error"
+                        sx={{ mt: 0.5, display: 'block' }}
+                      >
                         {errors.vehicleId}
                       </Typography>
                     )}
@@ -276,15 +325,28 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                     <InputLabel>Súvisiaca poistka</InputLabel>
                     <Select
                       value={formData.insuranceId || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, insuranceId: e.target.value }))}
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          insuranceId: e.target.value,
+                        }))
+                      }
                       label="Súvisiaca poistka"
                       disabled={!formData.vehicleId}
                     >
                       <MenuItem value="">Žiadna</MenuItem>
-                      {vehicleInsurances.map((insurance) => (
+                      {vehicleInsurances.map(insurance => (
                         <MenuItem key={insurance.id} value={insurance.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <InsuranceIcon sx={{ fontSize: 16, color: '#1976d2' }} />
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            <InsuranceIcon
+                              sx={{ fontSize: 16, color: '#1976d2' }}
+                            />
                             {insurance.company} - {insurance.policyNumber}
                           </Box>
                         </MenuItem>
@@ -296,17 +358,23 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                 <Grid item xs={12} md={6}>
                   <DateTimePicker
                     label="Dátum a čas udalosti *"
-                    value={formData.incidentDate ? new Date(formData.incidentDate) : null}
-                    onChange={(newValue) => setFormData(prev => ({ 
-                      ...prev, 
-                      incidentDate: newValue || new Date() 
-                    }))}
+                    value={
+                      formData.incidentDate
+                        ? new Date(formData.incidentDate)
+                        : null
+                    }
+                    onChange={newValue =>
+                      setFormData(prev => ({
+                        ...prev,
+                        incidentDate: newValue || new Date(),
+                      }))
+                    }
                     slotProps={{
                       textField: {
                         fullWidth: true,
                         error: !!errors.incidentDate,
-                        helperText: errors.incidentDate
-                      }
+                        helperText: errors.incidentDate,
+                      },
                     }}
                   />
                 </Grid>
@@ -316,37 +384,56 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                     <InputLabel>Typ udalosti *</InputLabel>
                     <Select
                       value={formData.incidentType || 'accident'}
-                      onChange={(e) => setFormData(prev => ({ ...prev, incidentType: e.target.value as any }))}
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          incidentType: e.target.value as any,
+                        }))
+                      }
                       label="Typ udalosti *"
                     >
                       <MenuItem value="accident">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
                           🚗 Nehoda
                         </Box>
                       </MenuItem>
                       <MenuItem value="theft">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
                           🔒 Krádež
                         </Box>
                       </MenuItem>
                       <MenuItem value="vandalism">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
                           🔨 Vandalizmus
                         </Box>
                       </MenuItem>
                       <MenuItem value="weather">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
                           ⛈️ Poveternostná udalosť
                         </Box>
                       </MenuItem>
                       <MenuItem value="other">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
                           ❓ Iné
                         </Box>
                       </MenuItem>
                     </Select>
                     {errors.incidentType && (
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                      <Typography
+                        variant="caption"
+                        color="error"
+                        sx={{ mt: 0.5 }}
+                      >
                         {errors.incidentType}
                       </Typography>
                     )}
@@ -360,7 +447,12 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                     multiline
                     rows={3}
                     value={formData.description || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
                     error={!!errors.description}
                     helperText={errors.description}
                     placeholder="Opíšte detailne čo sa stalo..."
@@ -372,10 +464,17 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                     fullWidth
                     label="Miesto udalosti"
                     value={formData.location || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        location: e.target.value,
+                      }))
+                    }
                     placeholder="Ulica, mesto, GPS súradnice..."
                     InputProps={{
-                      startAdornment: <LocationIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                      startAdornment: (
+                        <LocationIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                      ),
                     }}
                   />
                 </Grid>
@@ -386,11 +485,14 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
           {/* Financial Information */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 <EuroIcon sx={{ color: '#388e3c' }} />
                 Finančné údaje
               </Typography>
-              
+
               <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
                   <TextField
@@ -398,7 +500,12 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                     label="Odhad škody (€)"
                     type="number"
                     value={formData.estimatedDamage || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, estimatedDamage: parseFloat(e.target.value) || 0 }))}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        estimatedDamage: parseFloat(e.target.value) || 0,
+                      }))
+                    }
                     error={!!errors.estimatedDamage}
                     helperText={errors.estimatedDamage}
                     inputProps={{ min: 0, step: 0.01 }}
@@ -411,7 +518,12 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                     label="Spoluúčasť (€)"
                     type="number"
                     value={formData.deductible || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, deductible: parseFloat(e.target.value) || 0 }))}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        deductible: parseFloat(e.target.value) || 0,
+                      }))
+                    }
                     error={!!errors.deductible}
                     helperText={errors.deductible}
                     inputProps={{ min: 0, step: 0.01 }}
@@ -424,7 +536,12 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                     label="Výplata poisťovne (€)"
                     type="number"
                     value={formData.payoutAmount || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, payoutAmount: parseFloat(e.target.value) || 0 }))}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        payoutAmount: parseFloat(e.target.value) || 0,
+                      }))
+                    }
                     error={!!errors.payoutAmount}
                     helperText={errors.payoutAmount}
                     inputProps={{ min: 0, step: 0.01 }}
@@ -437,18 +554,26 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
           {/* Status and Additional Info */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 <DocumentIcon sx={{ color: '#f57c00' }} />
                 Stav a dodatočné informácie
               </Typography>
-              
+
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth>
                     <InputLabel>Stav</InputLabel>
                     <Select
                       value={formData.status || 'reported'}
-                      onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          status: e.target.value as any,
+                        }))
+                      }
                       label="Stav"
                     >
                       <MenuItem value="reported">Nahlásené</MenuItem>
@@ -465,7 +590,12 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                     fullWidth
                     label="Číslo škodovej udalosti"
                     value={formData.claimNumber || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, claimNumber: e.target.value }))}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        claimNumber: e.target.value,
+                      }))
+                    }
                     placeholder="Číslo z poisťovne..."
                   />
                 </Grid>
@@ -475,13 +605,25 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                     fullWidth
                     label="Číslo policajného protokolu"
                     value={formData.policeReportNumber || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, policeReportNumber: e.target.value }))}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        policeReportNumber: e.target.value,
+                      }))
+                    }
                     placeholder="Ak bol privolaný..."
                   />
                 </Grid>
 
                 <Grid item xs={12} md={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      mt: 1,
+                    }}
+                  >
                     <Typography variant="body2" color="text.secondary">
                       Aktuálny stav:
                     </Typography>
@@ -491,7 +633,7 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                       sx={{
                         backgroundColor: `${statusInfo.color}20`,
                         color: statusInfo.color,
-                        fontWeight: 600
+                        fontWeight: 600,
                       }}
                     />
                   </Box>
@@ -504,7 +646,12 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                     multiline
                     rows={2}
                     value={formData.otherPartyInfo || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, otherPartyInfo: e.target.value }))}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        otherPartyInfo: e.target.value,
+                      }))
+                    }
                     placeholder="Údaje o druhom účastníkovi nehody (meno, telefón, poistka...)..."
                   />
                 </Grid>
@@ -516,7 +663,9 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
                     multiline
                     rows={2}
                     value={formData.notes || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, notes: e.target.value }))
+                    }
                     placeholder="Ďalšie poznámky..."
                   />
                 </Grid>
@@ -527,18 +676,26 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
           {/* File Upload */}
           <Card>
             <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 <DocumentIcon sx={{ color: '#7b1fa2' }} />
                 Súbory a dokumenty
               </Typography>
-              
+
               <Box sx={{ mb: 2 }}>
                 <R2FileUpload
                   type="document"
                   entityId={formData.vehicleId || 'temp'}
                   onUploadSuccess={handleFileUploadSuccess}
-                  onUploadError={(error) => console.error('Upload error:', error)}
-                  acceptedTypes={['image/jpeg', 'image/png', 'image/webp', 'application/pdf']}
+                  onUploadError={error => console.error('Upload error:', error)}
+                  acceptedTypes={[
+                    'image/jpeg',
+                    'image/png',
+                    'image/webp',
+                    'application/pdf',
+                  ]}
                   maxSize={10}
                   multiple={true}
                   label="Nahrať súbory (fotky, dokumenty)"
@@ -547,7 +704,11 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
 
               {uploadedFiles.length > 0 && (
                 <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 1 }}
+                  >
                     Nahrané súbory ({uploadedFiles.length}):
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -573,14 +734,14 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
           <Button onClick={onCancel} color="inherit">
             Zrušiť
           </Button>
-          <Button 
-            type="submit" 
-            variant="contained" 
-            sx={{ 
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               '&:hover': {
                 background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-              }
+              },
             }}
           >
             {claim ? 'Uložiť zmeny' : 'Vytvoriť udalosť'}
@@ -589,4 +750,4 @@ export default function InsuranceClaimForm({ claim, onSave, onCancel }: Insuranc
       </form>
     </LocalizationProvider>
   );
-} 
+}

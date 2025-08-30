@@ -1,6 +1,6 @@
 /**
  * 🎨 IMAGE OPTIMIZATION UTILITIES
- * 
+ *
  * Utilities pre optimalizáciu a transformáciu obrázkov
  */
 
@@ -20,7 +20,7 @@ export const generateImageSizes = (
     width,
     height,
     quality,
-    descriptor: `${width}w`
+    descriptor: `${width}w`,
   }));
 };
 
@@ -31,7 +31,7 @@ export const createLowQualityUrl = (url: string, quality = 10): string => {
   const urlParts = url.split('.');
   const extension = urlParts.pop();
   const basePath = urlParts.join('.');
-  
+
   return `${basePath}_lq${quality}.${extension}`;
 };
 
@@ -39,12 +39,13 @@ export const createLowQualityUrl = (url: string, quality = 10): string => {
  * Detekuje či je obrázok webp podporovaný
  */
 export const supportsWebP = (): Promise<boolean> => {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const webP = new Image();
     webP.onload = webP.onerror = () => {
       resolve(webP.height === 2);
     };
-    webP.src = 'data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA';
+    webP.src =
+      'data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA';
   });
 };
 
@@ -61,30 +62,30 @@ export const optimizeImageUrl = async (
   } = {}
 ): Promise<string> => {
   const { width, height, quality = 80, format = 'auto' } = options;
-  
+
   // Ak je format auto, detekuj najlepší podporovaný formát
   let targetFormat = format;
   if (format === 'auto') {
     const webpSupported = await supportsWebP();
     targetFormat = webpSupported ? 'webp' : 'jpg';
   }
-  
+
   const urlParts = url.split('.');
   const extension = urlParts.pop();
   const basePath = urlParts.join('.');
-  
+
   let optimizedUrl = basePath;
-  
+
   if (width && height) {
     optimizedUrl += `_${width}x${height}`;
   }
-  
+
   if (quality !== 80) {
     optimizedUrl += `_q${quality}`;
   }
-  
+
   optimizedUrl += `.${targetFormat}`;
-  
+
   return optimizedUrl;
 };
 
@@ -97,7 +98,7 @@ export const createResponsiveSrcSet = (
     { width: 320, quality: 70 },
     { width: 768, quality: 80 },
     { width: 1024, quality: 85 },
-    { width: 1440, quality: 90 }
+    { width: 1440, quality: 90 },
   ]
 ): string => {
   return breakpoints
@@ -105,7 +106,7 @@ export const createResponsiveSrcSet = (
       const urlParts = baseUrl.split('.');
       const extension = urlParts.pop();
       const basePath = urlParts.join('.');
-      
+
       const optimizedUrl = `${basePath}_${width}_q${quality}.${extension}`;
       return `${optimizedUrl} ${width}w`;
     })
@@ -155,7 +156,7 @@ export class ImageLazyLoader {
       if (entry.isIntersecting) {
         const img = entry.target as HTMLImageElement;
         const src = img.dataset.src;
-        
+
         if (src && !this.loadedImages.has(src)) {
           this.loadedImages.add(src);
           await this.loadImage(img, src);
@@ -168,19 +169,19 @@ export class ImageLazyLoader {
   private loadImage(img: HTMLImageElement, src: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const tempImg = new Image();
-      
+
       tempImg.onload = () => {
         img.src = src;
         img.classList.remove('lazy-loading');
         img.classList.add('lazy-loaded');
         resolve();
       };
-      
+
       tempImg.onerror = () => {
         img.classList.add('lazy-error');
         reject(new Error(`Failed to load: ${src}`));
       };
-      
+
       tempImg.src = src;
     });
   }
@@ -214,7 +215,7 @@ export const VehicleImageUtils = {
       thumbnail: { width: 100, height: 75, quality: 70 },
       card: { width: 300, height: 200, quality: 80 },
       detail: { width: 600, height: 400, quality: 85 },
-      fullsize: { width: 1200, height: 800, quality: 90 }
+      fullsize: { width: 1200, height: 800, quality: 90 },
     };
 
     const config = sizeConfigs[size];
@@ -224,13 +225,10 @@ export const VehicleImageUtils = {
   /**
    * Generuje placeholder pre vehicle obrázok
    */
-  getVehiclePlaceholder: (
-    vehicleType?: string,
-    color?: string
-  ): string => {
+  getVehiclePlaceholder: (vehicleType?: string, color?: string): string => {
     const defaultColor = color || '#E0E0E0';
     const vehicleIcon = vehicleType === 'truck' ? '🚛' : '🚗';
-    
+
     // SVG placeholder
     const svg = `
       <svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
@@ -239,7 +237,7 @@ export const VehicleImageUtils = {
               font-size="48" fill="#999">${vehicleIcon}</text>
       </svg>
     `;
-    
+
     return `data:image/svg+xml;base64,${btoa(svg)}`;
   },
 
@@ -247,15 +245,12 @@ export const VehicleImageUtils = {
    * Vytvorí responsive srcset pre vehicle obrázok
    */
   createVehicleSrcSet: (vehicleId: string): string => {
-    return createResponsiveSrcSet(
-      `/api/vehicles/${vehicleId}/image`,
-      [
-        { width: 300, quality: 75 },
-        { width: 600, quality: 80 },
-        { width: 900, quality: 85 }
-      ]
-    );
-  }
+    return createResponsiveSrcSet(`/api/vehicles/${vehicleId}/image`, [
+      { width: 300, quality: 75 },
+      { width: 600, quality: 80 },
+      { width: 900, quality: 85 },
+    ]);
+  },
 };
 
 /**
@@ -279,13 +274,19 @@ export const ImagePerformanceMonitor = {
   getStats: () => {
     const totalTime = performance.now() - ImagePerformanceMonitor.startTime;
     return {
-      totalImages: ImagePerformanceMonitor.loadedImages + ImagePerformanceMonitor.failedImages,
+      totalImages:
+        ImagePerformanceMonitor.loadedImages +
+        ImagePerformanceMonitor.failedImages,
       loadedImages: ImagePerformanceMonitor.loadedImages,
       failedImages: ImagePerformanceMonitor.failedImages,
-      successRate: (ImagePerformanceMonitor.loadedImages / 
-        (ImagePerformanceMonitor.loadedImages + ImagePerformanceMonitor.failedImages) * 100
-      ).toFixed(2) + '%',
-      totalTime: totalTime.toFixed(2) + 'ms'
+      successRate:
+        (
+          (ImagePerformanceMonitor.loadedImages /
+            (ImagePerformanceMonitor.loadedImages +
+              ImagePerformanceMonitor.failedImages)) *
+          100
+        ).toFixed(2) + '%',
+      totalTime: totalTime.toFixed(2) + 'ms',
     };
-  }
+  },
 };

@@ -18,7 +18,7 @@ export async function compressVideo(
     maxSizeInMB: 10,
     quality: 0.8,
     maxWidth: 1920,
-    maxHeight: 1080
+    maxHeight: 1080,
   }
 ): Promise<VideoCompressionResult> {
   return new Promise((resolve, reject) => {
@@ -48,7 +48,7 @@ export async function compressVideo(
 
       // Konverzia na blob
       canvas.toBlob(
-        (blob) => {
+        blob => {
           if (!blob) {
             reject(new Error('Failed to compress video'));
             return;
@@ -56,7 +56,7 @@ export async function compressVideo(
 
           const compressedFile = new File([blob], file.name, {
             type: 'video/mp4',
-            lastModified: Date.now()
+            lastModified: Date.now(),
           });
 
           const originalSizeInMB = file.size / (1024 * 1024);
@@ -66,7 +66,7 @@ export async function compressVideo(
             compressedFile,
             originalSizeInMB,
             compressedSizeInMB,
-            compressionRatio: originalSizeInMB / compressedSizeInMB
+            compressionRatio: originalSizeInMB / compressedSizeInMB,
           });
         },
         'video/mp4',
@@ -104,7 +104,9 @@ function calculateDimensions(
   return { width, height };
 }
 
-export const getVideoMetadata = (file: File): Promise<{
+export const getVideoMetadata = (
+  file: File
+): Promise<{
   width: number;
   height: number;
   duration: number;
@@ -113,44 +115,47 @@ export const getVideoMetadata = (file: File): Promise<{
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     video.preload = 'metadata';
-    
+
     video.onloadedmetadata = () => {
       resolve({
         width: video.videoWidth,
         height: video.videoHeight,
         duration: video.duration,
-        size: file.size
+        size: file.size,
       });
     };
-    
+
     video.onerror = () => reject(new Error('Failed to load video metadata'));
     video.src = URL.createObjectURL(file);
   });
 };
 
-export const generateVideoThumbnail = (file: File, timePoint: number = 0): Promise<string> => {
+export const generateVideoThumbnail = (
+  file: File,
+  timePoint: number = 0
+): Promise<string> => {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    
+
     if (!ctx) {
       reject(new Error('Canvas context not available'));
       return;
     }
-    
+
     video.onloadedmetadata = () => {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       video.currentTime = timePoint;
     };
-    
+
     video.onseeked = () => {
       ctx.drawImage(video, 0, 0);
       const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
       resolve(thumbnailUrl);
     };
-    
+
     video.onerror = () => reject(new Error('Failed to load video'));
     video.src = URL.createObjectURL(file);
   });
@@ -162,11 +167,11 @@ export const compressMultipleVideos = async (
     maxSizeInMB: 10,
     quality: 0.8,
     maxWidth: 1920,
-    maxHeight: 1080
+    maxHeight: 1080,
   }
 ): Promise<VideoCompressionResult[]> => {
   const results: VideoCompressionResult[] = [];
-  
+
   for (const file of files) {
     try {
       const result = await compressVideo(file, options);
@@ -176,6 +181,6 @@ export const compressMultipleVideos = async (
       // Continue with next file
     }
   }
-  
+
   return results;
-}; 
+};

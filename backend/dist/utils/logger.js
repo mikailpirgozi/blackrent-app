@@ -1,13 +1,44 @@
 "use strict";
 /**
- * 🚀 CENTRÁLNY LOGGER SYSTÉM PRE BACKEND
+ * 🚀 STRUCTURED LOGGER SYSTÉM PRE BACKEND
  *
- * Umožňuje kontrolovať úroveň logovania podľa prostredia
- * - Development: Všetky logy
- * - Production: Len dôležité logy
+ * Poskytuje jednotné JSON logovanie s requestId a kontextom
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.logger = void 0;
+exports.log = log;
+/**
+ * Structured logger helper - všetky logy vo formáte JSON
+ * @param level - úroveň logovania (info, warn, error, debug)
+ * @param ctx - kontext objektu s requestId a ďalšími údajmi
+ * @param msg - hlavná správa
+ * @param extra - dodatočné údaje
+ */
+function log(level, ctx, msg, extra) {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+        ts: timestamp,
+        level,
+        requestId: ctx.requestId || 'no-request-id',
+        ...ctx,
+        msg,
+        ...(extra && { extra }),
+    };
+    // Výstup podľa úrovne
+    switch (level) {
+        case 'error':
+            console.error(JSON.stringify(logEntry));
+            break;
+        case 'warn':
+            console.warn(JSON.stringify(logEntry));
+            break;
+        case 'info':
+        default:
+            console.log(JSON.stringify(logEntry));
+            break;
+    }
+}
+// Backward compatibility - zachovaj pôvodný logger pre existujúci kód
 const isDevelopment = process.env.NODE_ENV === 'development';
 exports.logger = {
     // 🐛 Debug logy - len v development
@@ -20,7 +51,7 @@ exports.logger = {
     info: (...args) => {
         console.log(...args);
     },
-    // ⚠️ Warning logy - vždy  
+    // ⚠️ Warning logy - vždy
     warn: (...args) => {
         console.warn(...args);
     },
@@ -45,7 +76,7 @@ exports.logger = {
     // 🔄 Migration logy - vždy (dôležité pre deployment)
     migration: (...args) => {
         console.log(...args);
-    }
+    },
 };
 exports.default = exports.logger;
 //# sourceMappingURL=logger.js.map

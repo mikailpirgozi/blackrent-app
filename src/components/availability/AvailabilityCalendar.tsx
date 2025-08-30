@@ -1,4 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  CalendarToday,
+  CheckCircle,
+  Cancel,
+  Warning,
+  DirectionsCar,
+  Build,
+  Refresh,
+} from '@mui/icons-material';
 import {
   Box,
   Paper,
@@ -16,23 +26,23 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
 } from '@mui/material';
 import {
-  ChevronLeft,
-  ChevronRight,
-  CalendarToday,
-  CheckCircle,
-  Cancel,
-  Warning,
-  DirectionsCar,
-  Build,
-  Refresh
-} from '@mui/icons-material';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameDay,
+  addMonths,
+  subMonths,
+  isToday,
+} from 'date-fns';
 import { sk } from 'date-fns/locale';
-import { apiService } from '../../services/api';
+import React, { useState, useEffect } from 'react';
+
 import { useApp } from '../../context/AppContext';
+import { apiService } from '../../services/api';
 
 // 🚀 NOVÉ TYPY PRE KALENDÁRNE DÁTA
 interface CalendarVehicle {
@@ -80,7 +90,10 @@ interface AvailabilityCalendarProps {
 }
 
 // 🎨 HELPER: Získanie farby podľa stavu vozidla
-const getVehicleStatusColor = (status: string, unavailabilityType?: string): string => {
+const getVehicleStatusColor = (
+  status: string,
+  unavailabilityType?: string
+): string => {
   switch (status) {
     case 'available':
       return '#4caf50'; // Zelená - dostupné
@@ -112,7 +125,10 @@ const getVehicleStatusColor = (status: string, unavailabilityType?: string): str
 };
 
 // 🎨 HELPER: Získanie názvu stavu pre zobrazenie
-const getVehicleStatusLabel = (status: string, unavailabilityType?: string): string => {
+const getVehicleStatusLabel = (
+  status: string,
+  unavailabilityType?: string
+): string => {
   switch (status) {
     case 'available':
       return 'Dostupné';
@@ -153,7 +169,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   selectedCompany,
   categoryFilter,
   availableFromDate,
-  availableToDate
+  availableToDate,
 }) => {
   const { getFilteredVehicles } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -167,15 +183,22 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     try {
       setLoading(true);
       setError(null);
-      
+
       const monthStart = startOfMonth(month);
       const monthEnd = endOfMonth(month);
-      
-      console.log('📅 Loading calendar data for:', format(monthStart, 'yyyy-MM-dd'), 'to', format(monthEnd, 'yyyy-MM-dd'));
-      
+
+      console.log(
+        '📅 Loading calendar data for:',
+        format(monthStart, 'yyyy-MM-dd'),
+        'to',
+        format(monthEnd, 'yyyy-MM-dd')
+      );
+
       // Volanie API endpointu pre kalendárne dáta
-      const calendarData = await apiService.get<CalendarData>(`/availability/calendar?startDate=${format(monthStart, 'yyyy-MM-dd')}&endDate=${format(monthEnd, 'yyyy-MM-dd')}`);
-      
+      const calendarData = await apiService.get<CalendarData>(
+        `/availability/calendar?startDate=${format(monthStart, 'yyyy-MM-dd')}&endDate=${format(monthEnd, 'yyyy-MM-dd')}`
+      );
+
       if (calendarData) {
         setCalendarData(calendarData);
         console.log('✅ Calendar data loaded:', calendarData);
@@ -184,7 +207,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       }
     } catch (err) {
       console.error('❌ Error loading calendar data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load calendar data');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load calendar data'
+      );
     } finally {
       setLoading(false);
     }
@@ -216,7 +241,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   // 🚀 NOVÁ LOGIKA PRE ZÍSKANIE STATUSU DŇA
   const getDayData = (date: Date): CalendarDay | null => {
     if (!calendarData) return null;
-    
+
     const dateStr = format(date, 'yyyy-MM-dd');
     return calendarData.calendar.find(day => day.date === dateStr) || null;
   };
@@ -225,7 +250,16 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const getVehicleStatusCounts = (date: Date) => {
     const dayData = getDayData(date);
     if (!dayData) {
-      return { available: 0, rented: 0, maintenance: 0, flexible: 0, unavailable: 0, privateRental: 0, service: 0, total: 0 };
+      return {
+        available: 0,
+        rented: 0,
+        maintenance: 0,
+        flexible: 0,
+        unavailable: 0,
+        privateRental: 0,
+        service: 0,
+        total: 0,
+      };
     }
 
     const counts = {
@@ -236,7 +270,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       unavailable: 0,
       privateRental: 0,
       service: 0,
-      total: dayData.vehicles.length
+      total: dayData.vehicles.length,
     };
 
     dayData.vehicles.forEach(vehicle => {
@@ -281,10 +315,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filteredVehicles = filteredVehicles.filter(vehicle =>
-        vehicle.vehicleName.toLowerCase().includes(query) ||
-        vehicle.licensePlate.toLowerCase().includes(query) ||
-        (vehicle.customerName && vehicle.customerName.toLowerCase().includes(query))
+      filteredVehicles = filteredVehicles.filter(
+        vehicle =>
+          vehicle.vehicleName.toLowerCase().includes(query) ||
+          vehicle.licensePlate.toLowerCase().includes(query) ||
+          (vehicle.customerName &&
+            vehicle.customerName.toLowerCase().includes(query))
       );
     }
 
@@ -326,20 +362,26 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       }
 
       return (
-        <Grid item xs={12/7} key={day.toISOString()}>
-          <Tooltip title={`${format(day, 'dd.MM.yyyy', { locale: sk })} - ${primaryStatus}`}>
+        <Grid item xs={12 / 7} key={day.toISOString()}>
+          <Tooltip
+            title={`${format(day, 'dd.MM.yyyy', { locale: sk })} - ${primaryStatus}`}
+          >
             <Card
               sx={{
                 height: 80,
                 cursor: 'pointer',
                 backgroundColor: primaryColor,
-                border: isSelected ? '2px solid #1976d2' : isDayToday ? '2px solid #ff9800' : '1px solid #e0e0e0',
+                border: isSelected
+                  ? '2px solid #1976d2'
+                  : isDayToday
+                    ? '2px solid #ff9800'
+                    : '1px solid #e0e0e0',
                 borderRadius: 1,
                 '&:hover': {
                   boxShadow: 2,
-                  transform: 'translateY(-1px)'
+                  transform: 'translateY(-1px)',
                 },
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
               }}
               onClick={() => handleDateClick(day)}
             >
@@ -347,66 +389,74 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {format(day, 'd')}
                 </Typography>
-                
+
                 {counts.total > 0 && (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                  <Box
+                    sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}
+                  >
                     {counts.privateRental > 0 && (
-                      <Chip 
+                      <Chip
                         label={`${counts.privateRental} súkromných`}
                         size="small"
-                        sx={{ 
-                          height: 16, 
+                        sx={{
+                          height: 16,
                           fontSize: '0.65rem',
-                          backgroundColor: getVehicleStatusColor('unavailable', 'private_rental'),
-                          color: 'white'
+                          backgroundColor: getVehicleStatusColor(
+                            'unavailable',
+                            'private_rental'
+                          ),
+                          color: 'white',
                         }}
                       />
                     )}
                     {counts.rented > 0 && (
-                      <Chip 
+                      <Chip
                         label={`${counts.rented} prenajatých`}
                         size="small"
-                        sx={{ 
-                          height: 16, 
+                        sx={{
+                          height: 16,
                           fontSize: '0.65rem',
                           backgroundColor: getVehicleStatusColor('rented'),
-                          color: 'white'
+                          color: 'white',
                         }}
                       />
                     )}
                     {counts.available > 0 && (
-                      <Chip 
+                      <Chip
                         label={`${counts.available} voľných`}
                         size="small"
-                        sx={{ 
-                          height: 16, 
+                        sx={{
+                          height: 16,
                           fontSize: '0.65rem',
                           backgroundColor: getVehicleStatusColor('available'),
-                          color: 'white'
+                          color: 'white',
                         }}
                       />
                     )}
                     {counts.service > 0 && (
-                      <Chip 
+                      <Chip
                         label={`${counts.service} servis`}
                         size="small"
-                        sx={{ 
-                          height: 16, 
+                        sx={{
+                          height: 16,
                           fontSize: '0.65rem',
-                          backgroundColor: getVehicleStatusColor('unavailable', 'service'),
-                          color: 'white'
+                          backgroundColor: getVehicleStatusColor(
+                            'unavailable',
+                            'service'
+                          ),
+                          color: 'white',
                         }}
                       />
                     )}
                     {counts.maintenance > 0 && (
-                      <Chip 
+                      <Chip
                         label={`${counts.maintenance} údržba`}
                         size="small"
-                        sx={{ 
-                          height: 16, 
+                        sx={{
+                          height: 16,
                           fontSize: '0.65rem',
                           backgroundColor: getVehicleStatusColor('maintenance'),
-                          color: 'white'
+                          color: 'white',
                         }}
                       />
                     )}
@@ -423,16 +473,16 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   // 🚀 RENDER TÝŽDŇOVÝCH DNÍ
   const renderWeekDays = () => {
     const weekDays = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'];
-    
+
     return weekDays.map(day => (
-      <Grid item xs={12/7} key={day}>
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            textAlign: 'center', 
-            fontWeight: 600, 
+      <Grid item xs={12 / 7} key={day}>
+        <Typography
+          variant="body2"
+          sx={{
+            textAlign: 'center',
+            fontWeight: 600,
             color: '#666',
-            py: 1
+            py: 1,
           }}
         >
           {day}
@@ -452,7 +502,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     if (!todayData) {
       return (
         <Alert severity="info">
-          Žiadne dáta pre dnešný deň ({format(today, 'dd.MM.yyyy', { locale: sk })})
+          Žiadne dáta pre dnešný deň (
+          {format(today, 'dd.MM.yyyy', { locale: sk })})
         </Alert>
       );
     }
@@ -472,7 +523,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredVehicles.map((vehicle) => (
+            {filteredVehicles.map(vehicle => (
               <TableRow key={vehicle.vehicleId}>
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -484,28 +535,32 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 <TableCell>
                   <Chip
                     label={
-                      vehicle.status === 'available' ? 'Dostupné' :
-                      vehicle.status === 'rented' ? 'Prenajatý' :
-                      vehicle.status === 'flexible' ? 'Flexibilný' :
-                      vehicle.status === 'maintenance' ? 'Údržba' :
-                      'Nedostupné'
+                      vehicle.status === 'available'
+                        ? 'Dostupné'
+                        : vehicle.status === 'rented'
+                          ? 'Prenajatý'
+                          : vehicle.status === 'flexible'
+                            ? 'Flexibilný'
+                            : vehicle.status === 'maintenance'
+                              ? 'Údržba'
+                              : 'Nedostupné'
                     }
                     color={
-                      vehicle.status === 'available' ? 'success' :
-                      vehicle.status === 'rented' ? 'error' :
-                      vehicle.status === 'flexible' ? 'warning' :
-                      vehicle.status === 'maintenance' ? 'info' :
-                      'default'
+                      vehicle.status === 'available'
+                        ? 'success'
+                        : vehicle.status === 'rented'
+                          ? 'error'
+                          : vehicle.status === 'flexible'
+                            ? 'warning'
+                            : vehicle.status === 'maintenance'
+                              ? 'info'
+                              : 'default'
                     }
                     size="small"
                   />
                 </TableCell>
-                <TableCell>
-                  {vehicle.customerName || '-'}
-                </TableCell>
-                <TableCell>
-                  {vehicle.unavailabilityReason || '-'}
-                </TableCell>
+                <TableCell>{vehicle.customerName || '-'}</TableCell>
+                <TableCell>{vehicle.unavailabilityReason || '-'}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -516,7 +571,14 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
   if (loading || externalLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: 400,
+        }}
+      >
         <CircularProgress />
         <Typography sx={{ ml: 2 }}>Načítavam kalendárne dáta...</Typography>
       </Box>
@@ -539,7 +601,14 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   return (
     <Paper sx={{ p: 2 }}>
       {/* Header s navigáciou */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 3,
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <IconButton onClick={handlePreviousMonth}>
             <ChevronLeft />
@@ -551,10 +620,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
             <ChevronRight />
           </IconButton>
         </Box>
-        
+
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton 
-            onClick={() => setViewMode(viewMode === 'calendar' ? 'table' : 'calendar')}
+          <IconButton
+            onClick={() =>
+              setViewMode(viewMode === 'calendar' ? 'table' : 'calendar')
+            }
             color={viewMode === 'table' ? 'primary' : 'default'}
           >
             <CalendarToday />
@@ -570,7 +641,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         <Grid container spacing={1}>
           {/* Týždňové dni */}
           {renderWeekDays()}
-          
+
           {/* Kalendárne dni */}
           {renderCalendarDays()}
         </Grid>
@@ -579,41 +650,115 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       )}
 
       {/* Legenda */}
-      <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <Box
+        sx={{
+          mt: 3,
+          display: 'flex',
+          gap: 2,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('available'), borderRadius: 0.5 }} />
+          <Box
+            sx={{
+              width: 16,
+              height: 16,
+              backgroundColor: getVehicleStatusColor('available'),
+              borderRadius: 0.5,
+            }}
+          />
           <Typography variant="caption">Dostupné</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('rented'), borderRadius: 0.5 }} />
+          <Box
+            sx={{
+              width: 16,
+              height: 16,
+              backgroundColor: getVehicleStatusColor('rented'),
+              borderRadius: 0.5,
+            }}
+          />
           <Typography variant="caption">Prenajatý (platforma)</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable', 'private_rental'), borderRadius: 0.5 }} />
+          <Box
+            sx={{
+              width: 16,
+              height: 16,
+              backgroundColor: getVehicleStatusColor(
+                'unavailable',
+                'private_rental'
+              ),
+              borderRadius: 0.5,
+            }}
+          />
           <Typography variant="caption">Súkromný prenájom</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('maintenance'), borderRadius: 0.5 }} />
+          <Box
+            sx={{
+              width: 16,
+              height: 16,
+              backgroundColor: getVehicleStatusColor('maintenance'),
+              borderRadius: 0.5,
+            }}
+          />
           <Typography variant="caption">Údržba</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable', 'service'), borderRadius: 0.5 }} />
+          <Box
+            sx={{
+              width: 16,
+              height: 16,
+              backgroundColor: getVehicleStatusColor('unavailable', 'service'),
+              borderRadius: 0.5,
+            }}
+          />
           <Typography variant="caption">Servis</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable', 'repair'), borderRadius: 0.5 }} />
+          <Box
+            sx={{
+              width: 16,
+              height: 16,
+              backgroundColor: getVehicleStatusColor('unavailable', 'repair'),
+              borderRadius: 0.5,
+            }}
+          />
           <Typography variant="caption">Oprava</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable', 'cleaning'), borderRadius: 0.5 }} />
+          <Box
+            sx={{
+              width: 16,
+              height: 16,
+              backgroundColor: getVehicleStatusColor('unavailable', 'cleaning'),
+              borderRadius: 0.5,
+            }}
+          />
           <Typography variant="caption">Čistenie</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable', 'blocked'), borderRadius: 0.5 }} />
+          <Box
+            sx={{
+              width: 16,
+              height: 16,
+              backgroundColor: getVehicleStatusColor('unavailable', 'blocked'),
+              borderRadius: 0.5,
+            }}
+          />
           <Typography variant="caption">Blokované</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 16, height: 16, backgroundColor: getVehicleStatusColor('unavailable'), borderRadius: 0.5 }} />
+          <Box
+            sx={{
+              width: 16,
+              height: 16,
+              backgroundColor: getVehicleStatusColor('unavailable'),
+              borderRadius: 0.5,
+            }}
+          />
           <Typography variant="caption">Nedostupné</Typography>
         </Box>
       </Box>

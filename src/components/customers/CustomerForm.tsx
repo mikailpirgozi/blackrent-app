@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -7,8 +6,10 @@ import {
   Card,
   CardContent,
 } from '@mui/material';
-import { Customer } from '../../types';
+import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+
+import { Customer } from '../../types';
 
 interface CustomerFormProps {
   customer?: Customer | null;
@@ -16,7 +17,11 @@ interface CustomerFormProps {
   onCancel: () => void;
 }
 
-export default function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) {
+export default function CustomerForm({
+  customer,
+  onSave,
+  onCancel,
+}: CustomerFormProps) {
   const [formData, setFormData] = useState<Partial<Customer>>({
     name: '',
     email: '',
@@ -35,7 +40,7 @@ export default function CustomerForm({ customer, onSave, onCancel }: CustomerFor
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name?.trim()) {
       alert('Meno zákazníka je povinné');
       return;
@@ -48,7 +53,7 @@ export default function CustomerForm({ customer, onSave, onCancel }: CustomerFor
       phone: formData.phone?.trim() || '',
       createdAt: customer?.createdAt || new Date(),
     };
-    
+
     onSave(completeCustomer);
   };
 
@@ -59,33 +64,35 @@ export default function CustomerForm({ customer, onSave, onCancel }: CustomerFor
           <Typography variant="h6" gutterBottom>
             {customer ? 'Upraviť zákazníka' : 'Nový zákazník'}
           </Typography>
-          
+
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
               fullWidth
               label="Meno zákazníka"
               value={formData.name || ''}
-              onChange={(e) => handleInputChange('name', e.target.value)}
+              onChange={e => handleInputChange('name', e.target.value)}
               required
             />
-            
+
             <TextField
               fullWidth
               label="Email"
               type="email"
               value={formData.email || ''}
-              onChange={(e) => handleInputChange('email', e.target.value)}
+              onChange={e => handleInputChange('email', e.target.value)}
             />
-            
+
             <TextField
               fullWidth
               label="Telefón"
               value={formData.phone || ''}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
+              onChange={e => handleInputChange('phone', e.target.value)}
             />
           </Box>
-          
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
+
+          <Box
+            sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}
+          >
             <Button variant="outlined" onClick={onCancel}>
               Zrušiť
             </Button>
@@ -97,4 +104,4 @@ export default function CustomerForm({ customer, onSave, onCancel }: CustomerFor
       </Card>
     </Box>
   );
-} 
+}

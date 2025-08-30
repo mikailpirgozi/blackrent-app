@@ -110,12 +110,12 @@ export interface ScrollPreservationState {
 }
 
 // 📊 COMBINED VEHICLE LIST STATE
-export interface VehicleListState extends 
-  VehicleFiltersState,
-  VehicleActionsState,
-  InfiniteScrollState,
-  CompanyCreationState,
-  InvestorManagementState,
-  OwnershipHistoryState,
-  TabState,
-  ScrollPreservationState {}
+export interface VehicleListState
+  extends VehicleFiltersState,
+    VehicleActionsState,
+    InfiniteScrollState,
+    CompanyCreationState,
+    InvestorManagementState,
+    OwnershipHistoryState,
+    TabState,
+    ScrollPreservationState {}

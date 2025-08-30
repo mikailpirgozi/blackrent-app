@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { apiService } from '../services/api';
 import { Vehicle } from '../types';
 import { logger } from '../utils/smartLogger';
@@ -31,7 +32,9 @@ interface UseInfiniteVehiclesReturn {
 
 const ITEMS_PER_PAGE = 50;
 
-export function useInfiniteVehicles(initialFilters: VehicleFilters = {}): UseInfiniteVehiclesReturn {
+export function useInfiniteVehicles(
+  initialFilters: VehicleFilters = {}
+): UseInfiniteVehiclesReturn {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,76 +44,90 @@ export function useInfiniteVehicles(initialFilters: VehicleFilters = {}): UseInf
   const [filters, setFilters] = useState<VehicleFilters>(initialFilters);
   const [initialLoad, setInitialLoad] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Prevent duplicate requests
   const loadingRef = useRef(false);
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
 
-  const loadVehicles = useCallback(async (page: number, isNewSearch: boolean = false) => {
-    if (loadingRef.current) {
-      console.log('⏸️ Load already in progress, skipping...');
-      return;
-    }
-    
-    loadingRef.current = true;
-    setLoading(true);
-    setError(null);
-
-    try {
-      logger.info(`🔄 Loading vehicles - Page ${page}`, { filters: filtersRef.current });
-      
-      const result = await apiService.getVehiclesPaginated({
-        page,
-        limit: ITEMS_PER_PAGE,
-        search: searchTerm,
-        ...filtersRef.current
-      });
-
-      const newVehicles = result.vehicles;
-      
-      // Validate response
-      if (!result || !Array.isArray(newVehicles)) {
-        throw new Error('Invalid response format');
+  const loadVehicles = useCallback(
+    async (page: number, isNewSearch: boolean = false) => {
+      if (loadingRef.current) {
+        console.log('⏸️ Load already in progress, skipping...');
+        return;
       }
-      
-      setVehicles(prev => {
-        // If new search, replace all. Otherwise append.
-        const updatedVehicles = isNewSearch ? newVehicles : [...prev, ...newVehicles];
-        
-        // Remove duplicates based on vehicle ID
-        const uniqueVehicles = Array.from(
-          new Map(updatedVehicles.map(vehicle => [vehicle.id, vehicle])).values()
+
+      loadingRef.current = true;
+      setLoading(true);
+      setError(null);
+
+      try {
+        logger.info(`🔄 Loading vehicles - Page ${page}`, {
+          filters: filtersRef.current,
+        });
+
+        const result = await apiService.getVehiclesPaginated({
+          page,
+          limit: ITEMS_PER_PAGE,
+          search: searchTerm,
+          ...filtersRef.current,
+        });
+
+        const newVehicles = result.vehicles;
+
+        // Validate response
+        if (!result || !Array.isArray(newVehicles)) {
+          throw new Error('Invalid response format');
+        }
+
+        setVehicles(prev => {
+          // If new search, replace all. Otherwise append.
+          const updatedVehicles = isNewSearch
+            ? newVehicles
+            : [...prev, ...newVehicles];
+
+          // Remove duplicates based on vehicle ID
+          const uniqueVehicles = Array.from(
+            new Map(
+              updatedVehicles.map(vehicle => [vehicle.id, vehicle])
+            ).values()
+          );
+
+          return uniqueVehicles;
+        });
+
+        setTotalCount(result.pagination.totalItems);
+        setHasMore(result.pagination.hasMore);
+        setCurrentPage(result.pagination.currentPage);
+
+        logger.info(
+          `✅ Loaded ${newVehicles.length} vehicles (${result.pagination.totalItems} total)`
         );
-        
-        return uniqueVehicles;
-      });
-      
-      setTotalCount(result.pagination.totalItems);
-      setHasMore(result.pagination.hasMore);
-      setCurrentPage(result.pagination.currentPage);
-      
-      logger.info(`✅ Loaded ${newVehicles.length} vehicles (${result.pagination.totalItems} total)`);
-      
-    } catch (err: any) {
-      const errorMessage = err.message || 'Chyba pri načítavaní vozidiel';
-      setError(errorMessage);
-      logger.error('❌ Failed to load vehicles', err);
-    } finally {
-      setLoading(false);
-      loadingRef.current = false;
-      if (initialLoad) {
-        setInitialLoad(false);
+      } catch (err: any) {
+        const errorMessage = err.message || 'Chyba pri načítavaní vozidiel';
+        setError(errorMessage);
+        logger.error('❌ Failed to load vehicles', err);
+      } finally {
+        setLoading(false);
+        loadingRef.current = false;
+        if (initialLoad) {
+          setInitialLoad(false);
+        }
       }
-    }
-  }, [initialLoad, searchTerm]);
+    },
+    [initialLoad, searchTerm]
+  );
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore && !initialLoad) {
-      console.log(`📚 Load more triggered - Page ${currentPage + 1}, hasMore: ${hasMore}, loading: ${loading}`);
+      console.log(
+        `📚 Load more triggered - Page ${currentPage + 1}, hasMore: ${hasMore}, loading: ${loading}`
+      );
       loadVehicles(currentPage + 1, false);
     } else {
-      console.log(`⏸️ Load more skipped - loading: ${loading}, hasMore: ${hasMore}, initialLoad: ${initialLoad}`);
+      console.log(
+        `⏸️ Load more skipped - loading: ${loading}, hasMore: ${hasMore}, initialLoad: ${initialLoad}`
+      );
     }
   }, [loading, hasMore, currentPage, loadVehicles, initialLoad]);
 
@@ -174,7 +191,7 @@ export function useInfiniteVehicles(initialFilters: VehicleFilters = {}): UseInf
       currentPage,
       hasMore,
       loading,
-      error
+      error,
     });
   }, [vehicles.length, totalCount, currentPage, hasMore, loading, error]);
 
@@ -189,6 +206,6 @@ export function useInfiniteVehicles(initialFilters: VehicleFilters = {}): UseInf
     setSearchTerm,
     loadMore,
     refresh,
-    updateFilters
+    updateFilters,
   };
 }

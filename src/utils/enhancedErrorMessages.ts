@@ -1,6 +1,6 @@
 /**
  * 📝 ENHANCED ERROR MESSAGES
- * 
+ *
  * User-friendly error messages s kontextom a akčnými návrhmi
  */
 
@@ -24,25 +24,25 @@ export interface EnhancedErrorMessage {
  * 🎯 Generuje user-friendly error message na základe kontextu
  */
 export const getEnhancedErrorMessage = (
-  error: any, 
+  error: any,
   context: ErrorContext = {}
 ): EnhancedErrorMessage => {
   const { action, entity, location } = context;
-  
+
   // Network/Connection errors
   if (isNetworkError(error)) {
     return {
       title: '🌐 Problém s pripojením',
-      message: navigator.onLine 
+      message: navigator.onLine
         ? 'Server je momentálne nedostupný alebo preťažený.'
         : 'Skontrolujte svoje internetové pripojenie.',
-      suggestion: navigator.onLine 
+      suggestion: navigator.onLine
         ? 'Počkajte chvíľu a skúste znova. Ak problém pretrváva, kontaktujte podporu.'
         : 'Zapnite Wi-Fi alebo mobilné dáta a skúste znova.',
       actionLabel: 'Skúsiť znova',
       severity: 'warning',
       emoji: '🌐',
-      category: 'network'
+      category: 'network',
     };
   }
 
@@ -55,7 +55,7 @@ export const getEnhancedErrorMessage = (
       actionLabel: 'Prihlásiť sa',
       severity: 'error',
       emoji: '🔐',
-      category: 'auth'
+      category: 'auth',
     };
   }
 
@@ -68,7 +68,7 @@ export const getEnhancedErrorMessage = (
       actionLabel: 'Opraviť',
       severity: 'warning',
       emoji: '📝',
-      category: 'validation'
+      category: 'validation',
     };
   }
 
@@ -81,7 +81,7 @@ export const getEnhancedErrorMessage = (
       actionLabel: 'Skúsiť znova',
       severity: 'error',
       emoji: '⚙️',
-      category: 'server'
+      category: 'server',
     };
   }
 
@@ -90,11 +90,12 @@ export const getEnhancedErrorMessage = (
     return {
       title: '⛔ Nedostatočné oprávnenia',
       message: getPermissionErrorMessage(action, entity),
-      suggestion: 'Kontaktujte administrátora pre získanie potrebných oprávnení.',
+      suggestion:
+        'Kontaktujte administrátora pre získanie potrebných oprávnení.',
       actionLabel: 'Kontaktovať admin',
       severity: 'warning',
       emoji: '⛔',
-      category: 'auth'
+      category: 'auth',
     };
   }
 
@@ -107,7 +108,7 @@ export const getEnhancedErrorMessage = (
       actionLabel: 'Počkať',
       severity: 'warning',
       emoji: '⏸️',
-      category: 'server'
+      category: 'server',
     };
   }
 
@@ -120,7 +121,7 @@ export const getEnhancedErrorMessage = (
       actionLabel: 'Obnoviť',
       severity: 'info',
       emoji: '🔍',
-      category: 'server'
+      category: 'server',
     };
   }
 
@@ -132,17 +133,19 @@ export const getEnhancedErrorMessage = (
     actionLabel: 'Obnoviť stránku',
     severity: 'error',
     emoji: '❌',
-    category: 'unknown'
+    category: 'unknown',
   };
 };
 
 // Helper functions pre detekciu typov chýb
 const isNetworkError = (error: any): boolean => {
   const message = error?.message?.toLowerCase() || '';
-  return message.includes('failed to fetch') || 
-         message.includes('network error') ||
-         message.includes('connection refused') ||
-         !navigator.onLine;
+  return (
+    message.includes('failed to fetch') ||
+    message.includes('network error') ||
+    message.includes('connection refused') ||
+    !navigator.onLine
+  );
 };
 
 const isAuthError = (error: any): boolean => {
@@ -183,29 +186,36 @@ const getAuthErrorMessage = (error: any): string => {
 
 const getValidationErrorMessage = (error: any, entity?: string): string => {
   const entityName = getEntityName(entity);
-  
+
   if (error?.details) {
     return `Neplatné údaje pre ${entityName}: ${error.details}`;
   }
-  
+
   return `Skontrolujte údaje pre ${entityName}. Niektoré polia sú neplatné.`;
 };
 
-const getServerErrorMessage = (error: any, action?: string, entity?: string): string => {
+const getServerErrorMessage = (
+  error: any,
+  action?: string,
+  entity?: string
+): string => {
   const actionText = getActionText(action);
   const entityName = getEntityName(entity);
-  
+
   if (error?.status >= 500) {
     return `Nepodarilo sa ${actionText} ${entityName} kvôli problému so serverom.`;
   }
-  
+
   return `Problém so serverom pri ${actionText} ${entityName}.`;
 };
 
-const getPermissionErrorMessage = (action?: string, entity?: string): string => {
+const getPermissionErrorMessage = (
+  action?: string,
+  entity?: string
+): string => {
   const actionText = getActionText(action);
   const entityName = getEntityName(entity);
-  
+
   return `Nemáte oprávnenie ${actionText} ${entityName}.`;
 };
 
@@ -218,7 +228,7 @@ const getNotFoundMessage = (entity?: string): string => {
 const getEntityName = (entity?: string): string => {
   const entityNames: Record<string, string> = {
     vehicle: 'vozidlo',
-    rental: 'prenájom', 
+    rental: 'prenájom',
     customer: 'zákazníka',
     expense: 'náklad',
     insurance: 'poistenie',
@@ -226,7 +236,7 @@ const getEntityName = (entity?: string): string => {
     user: 'používateľa',
     company: 'firmu',
   };
-  
+
   return entityNames[entity || ''] || 'dáta';
 };
 
@@ -242,7 +252,7 @@ const getActionText = (action?: string): string => {
     export: 'exportovať',
     import: 'importovať',
   };
-  
+
   return actionTexts[action || ''] || 'spracovať';
 };
 
@@ -250,34 +260,34 @@ const getActionText = (action?: string): string => {
  * 🎨 Error recovery suggestions na základe kontextu
  */
 export const getRecoverySuggestions = (
-  error: any, 
+  error: any,
   context: ErrorContext = {}
 ): string[] => {
   const suggestions: string[] = [];
-  
+
   if (isNetworkError(error)) {
     suggestions.push('Skontrolujte internetové pripojenie');
     suggestions.push('Skúste obnoviť stránku');
     suggestions.push('Počkajte chvíľu a skúste znova');
   }
-  
+
   if (isAuthError(error)) {
     suggestions.push('Prihláste sa znova');
     suggestions.push('Skontrolujte prihlasovacie údaje');
     suggestions.push('Kontaktujte administrátora');
   }
-  
+
   if (isValidationError(error)) {
     suggestions.push('Skontrolujte povinné polia');
     suggestions.push('Overte formát zadaných údajov');
     suggestions.push('Skúste s inými údajmi');
   }
-  
+
   if (isServerError(error)) {
     suggestions.push('Počkajte chvíľu a skúste znova');
     suggestions.push('Kontaktujte technickú podporu');
     suggestions.push('Skúste inú akciu');
   }
-  
+
   return suggestions;
 };

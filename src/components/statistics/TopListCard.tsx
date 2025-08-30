@@ -1,4 +1,7 @@
-import React from 'react';
+import {
+  EmojiEvents as TrophyIcon,
+  KeyboardArrowDown as KeyboardArrowDownIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -7,10 +10,7 @@ import {
   Avatar,
   Button,
 } from '@mui/material';
-import { 
-  EmojiEvents as TrophyIcon,
-  KeyboardArrowDown as KeyboardArrowDownIcon 
-} from '@mui/icons-material';
+import React from 'react';
 
 interface TopListCardProps {
   title: string;
@@ -23,32 +23,36 @@ interface TopListCardProps {
   emptyMessage?: string;
 }
 
-const TopListCard: React.FC<TopListCardProps> = ({ 
-  title, 
-  icon, 
+const TopListCard: React.FC<TopListCardProps> = ({
+  title,
+  icon,
   gradient,
   data,
   showCount,
   onLoadMore,
   renderItem,
-  emptyMessage = "Žiadne dáta"
+  emptyMessage = 'Žiadne dáta',
 }) => (
-  <Card sx={{ 
-    height: 'fit-content',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-    }
-  }}>
+  <Card
+    sx={{
+      height: 'fit-content',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+      },
+    }}
+  >
     <CardContent>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-        <Avatar sx={{ 
-          bgcolor: 'transparent',
-          background: gradient,
-          width: 48,
-          height: 48
-        }}>
+        <Avatar
+          sx={{
+            bgcolor: 'transparent',
+            background: gradient,
+            width: 48,
+            height: 48,
+          }}
+        >
           {icon}
         </Avatar>
         <Box sx={{ flex: 1 }}>
@@ -61,7 +65,7 @@ const TopListCard: React.FC<TopListCardProps> = ({
         </Box>
         <TrophyIcon sx={{ color: '#ffd700', fontSize: 28 }} />
       </Box>
-      
+
       {data.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 4 }}>
           <Typography variant="body1" color="text.secondary">
@@ -71,9 +75,11 @@ const TopListCard: React.FC<TopListCardProps> = ({
       ) : (
         <>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {data.slice(0, showCount).map((item, index) => renderItem(item, index))}
+            {data
+              .slice(0, showCount)
+              .map((item, index) => renderItem(item, index))}
           </Box>
-          
+
           {showCount < data.length && (
             <Box sx={{ mt: 3, textAlign: 'center' }}>
               <Button
@@ -86,7 +92,7 @@ const TopListCard: React.FC<TopListCardProps> = ({
                   '&:hover': {
                     borderColor: '#5a6fd8',
                     backgroundColor: 'rgba(102, 126, 234, 0.04)',
-                  }
+                  },
                 }}
               >
                 Zobraziť ďalších {Math.min(10, data.length - showCount)}

@@ -1,16 +1,21 @@
-import React, { useState, useRef } from 'react';
-import { Typography, Box, CircularProgress, Alert } from '@mui/material';
 import { CloudUpload, Delete, Visibility } from '@mui/icons-material';
+import { Typography, Box, CircularProgress, Alert } from '@mui/material';
+import React, { useState, useRef } from 'react';
+
+import { getApiBaseUrl } from '../../utils/apiUrl';
 import { SecondaryButton, TextButton, ErrorButton } from '../ui';
 
 // Railway backend URL
-import { getApiBaseUrl } from '../../utils/apiUrl';
 
 interface R2FileUploadProps {
   type: 'vehicle' | 'protocol' | 'document' | 'company-document';
   entityId: string;
   mediaType?: string; // pre špecializované organizovanie súborov
-  onUploadSuccess?: (fileData: { url: string; key: string; filename: string } | { url: string; key: string; filename: string }[]) => void;
+  onUploadSuccess?: (
+    fileData:
+      | { url: string; key: string; filename: string }
+      | { url: string; key: string; filename: string }[]
+  ) => void;
   onUploadError?: (error: string) => void;
   acceptedTypes?: string[];
   maxSize?: number; // v MB
@@ -39,7 +44,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
   multiple = false,
   label = 'Nahrať súbor',
   disabled = false,
-  showUploadedFiles = true
+  showUploadedFiles = true,
 }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<FileData[]>([]);
@@ -48,68 +53,81 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
 
   // Funkcia pre kompresiu obrázkov
   const compressImage = async (file: File): Promise<File> => {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
-      
+
       img.onload = () => {
         // Výpočet nových rozmerov (max 1920px šírka)
         const maxWidth = 1920;
         const maxHeight = 1080;
         let { width, height } = img;
-        
+
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
           width = maxWidth;
         }
-        
+
         if (height > maxHeight) {
           width = (width * maxHeight) / height;
           height = maxHeight;
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         // Kreslenie obrázka s novými rozmermi
         ctx?.drawImage(img, 0, 0, width, height);
-        
+
         // Konverzia na blob s kompresiou
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now()
-            });
-            resolve(compressedFile);
-          } else {
-            resolve(file); // Fallback na originál
-          }
-        }, 'image/jpeg', 0.8); // 80% kvalita
+        canvas.toBlob(
+          blob => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file); // Fallback na originál
+            }
+          },
+          'image/jpeg',
+          0.8
+        ); // 80% kvalita
       };
-      
+
       img.onerror = () => {
         resolve(file); // Fallback na originál pri chybe
       };
-      
+
       img.src = URL.createObjectURL(file);
     });
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
     console.log('🔍 R2 FILE SELECT - Files selected:', files.length);
-    
+
     setError(null);
     setUploading(true);
 
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        console.log('🔍 R2 UPLOAD START - File:', file.name, 'Type:', file.type, 'Size:', file.size);
-        
+      const uploadPromises = Array.from(files).map(async file => {
+        console.log(
+          '🔍 R2 UPLOAD START - File:',
+          file.name,
+          'Type:',
+          file.type,
+          'Size:',
+          file.size
+        );
+
         // Validácia typu súboru
         if (!acceptedTypes.includes(file.type)) {
           throw new Error(`Nepodporovaný typ súboru: ${file.type}`);
@@ -137,21 +155,26 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
           formData.append('mediaType', mediaType);
         }
 
-        console.log('🔍 R2 UPLOAD - Sending to backend:', `${getApiBaseUrl()}/files/upload`);
+        console.log(
+          '🔍 R2 UPLOAD - Sending to backend:',
+          `${getApiBaseUrl()}/files/upload`
+        );
 
         // Get auth token
-        const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+        const token =
+          localStorage.getItem('blackrent_token') ||
+          sessionStorage.getItem('blackrent_token');
 
         const response = await fetch(`${getApiBaseUrl()}/files/upload`, {
           method: 'POST',
           headers: {
-            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: formData,
         });
 
         console.log('🔍 R2 UPLOAD - Response status:', response.status);
-        
+
         const data = await response.json();
         console.log('🔍 R2 UPLOAD - Response data:', data);
 
@@ -164,7 +187,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
 
       const results = await Promise.all(uploadPromises);
       console.log('🔍 R2 UPLOAD - All uploads completed:', results);
-      
+
       if (multiple) {
         setUploadedFiles(prev => [...prev, ...results]);
       } else {
@@ -175,15 +198,20 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
       if (onUploadSuccess) {
         if (multiple) {
           // Pre multiple súbory vráť array
-          console.log('🔍 R2 CALLBACK - Calling onUploadSuccess with multiple files:', results);
+          console.log(
+            '🔍 R2 CALLBACK - Calling onUploadSuccess with multiple files:',
+            results
+          );
           onUploadSuccess(results);
         } else {
           // Pre single súbor vráť jeden objekt
-          console.log('🔍 R2 CALLBACK - Calling onUploadSuccess with single file:', results[0]);
+          console.log(
+            '🔍 R2 CALLBACK - Calling onUploadSuccess with single file:',
+            results[0]
+          );
           onUploadSuccess(results[0]);
         }
       }
-
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Upload zlyhal';
       console.error('🔍 R2 UPLOAD ERROR:', errorMessage);
@@ -200,14 +228,19 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
 
   const handleDeleteFile = async (fileKey: string) => {
     try {
-      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      
-      const response = await fetch(`${getApiBaseUrl()}/files/${encodeURIComponent(fileKey)}`, {
-        method: 'DELETE',
-        headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
+      const token =
+        localStorage.getItem('blackrent_token') ||
+        sessionStorage.getItem('blackrent_token');
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/files/${encodeURIComponent(fileKey)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Chyba pri mazaní súboru');
@@ -247,18 +280,20 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
           disabled={disabled || uploading}
         />
         <SecondaryButton
-          startIcon={uploading ? <CircularProgress size={20} /> : <CloudUpload />}
+          startIcon={
+            uploading ? <CircularProgress size={20} /> : <CloudUpload />
+          }
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled || uploading}
           fullWidth
-          sx={{ 
-            py: 2, 
+          sx={{
+            py: 2,
             borderStyle: 'dashed',
             borderWidth: 2,
             '&:hover': {
               borderWidth: 2,
-              backgroundColor: 'rgba(25, 118, 210, 0.04)'
-            }
+              backgroundColor: 'rgba(25, 118, 210, 0.04)',
+            },
           }}
         >
           {uploading ? 'Nahrávam...' : label}
@@ -289,7 +324,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
                 mb: 1,
                 border: '1px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: 1,
-                backgroundColor: 'rgba(255, 255, 255, 0.05)'
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -298,12 +333,15 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
                   <Typography variant="body2" sx={{ color: 'white' }}>
                     {file.filename}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                  >
                     {formatFileSize(file.size)}
                   </Typography>
                 </Box>
               </Box>
-              
+
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextButton
                   size="small"
@@ -328,14 +366,23 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
 
       {/* File Type Info */}
       <Box sx={{ mt: 1 }}>
-        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-          Podporované typy: {acceptedTypes.map(type => {
-            if (type.startsWith('image/')) return 'Obrázky';
-            if (type === 'application/pdf') return 'PDF';
-            return type;
-          }).join(', ')}
+        <Typography
+          variant="caption"
+          sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+        >
+          Podporované typy:{' '}
+          {acceptedTypes
+            .map(type => {
+              if (type.startsWith('image/')) return 'Obrázky';
+              if (type === 'application/pdf') return 'PDF';
+              return type;
+            })
+            .join(', ')}
         </Typography>
-        <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255, 255, 255, 0.7)' }}>
+        <Typography
+          variant="caption"
+          sx={{ display: 'block', color: 'rgba(255, 255, 255, 0.7)' }}
+        >
           Max veľkosť: {maxSize}MB
         </Typography>
       </Box>
@@ -343,4 +390,4 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
   );
 };
 
-export default R2FileUpload; 
+export default R2FileUpload;

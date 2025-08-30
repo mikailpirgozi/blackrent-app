@@ -1,10 +1,18 @@
 /**
  * 📊 CACHE MONITORING
- * 
+ *
  * Admin dashboard pre sledovanie cache performance
  */
 
-import React, { useState, useEffect, memo } from 'react';
+import {
+  Refresh as RefreshIcon,
+  Clear as ClearIcon,
+  Memory as MemoryIcon,
+  Speed as SpeedIcon,
+  TrendingUp as TrendingUpIcon,
+  Storage as StorageIcon,
+  Timeline as TimelineIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Card,
@@ -25,17 +33,10 @@ import {
   Tooltip,
   Alert,
   Stack,
-  useTheme
+  useTheme,
 } from '@mui/material';
-import {
-  Refresh as RefreshIcon,
-  Clear as ClearIcon,
-  Memory as MemoryIcon,
-  Speed as SpeedIcon,
-  TrendingUp as TrendingUpIcon,
-  Storage as StorageIcon,
-  Timeline as TimelineIcon
-} from '@mui/icons-material';
+import React, { useState, useEffect, memo } from 'react';
+
 // 🔄 PHASE 4: Migrated to unified cache system
 import { unifiedCache } from '../../utils/unifiedCacheSystem';
 
@@ -64,7 +65,7 @@ const CacheMonitoring: React.FC = () => {
       // Frontend cache stats
       // 🔄 PHASE 4: Using unified cache stats
       const frontendStats = unifiedCache.getStats();
-      
+
       // Backend cache stats (if available)
       let backendStats = null;
       try {
@@ -87,7 +88,7 @@ const CacheMonitoring: React.FC = () => {
         oldestEntry: new Date().toISOString(),
         newestEntry: new Date().toISOString(),
         topHits: [],
-        memoryUsage: frontendStats.memoryUsage || '~calculating~'
+        memoryUsage: frontendStats.memoryUsage || '~calculating~',
       };
       setStats(displayStats);
       setLastRefresh(new Date());
@@ -105,7 +106,7 @@ const CacheMonitoring: React.FC = () => {
   // Auto-refresh every 30 seconds
   useEffect(() => {
     if (!autoRefresh) return;
-    
+
     const interval = setInterval(loadStats, 30000);
     return () => clearInterval(interval);
   }, [autoRefresh]);
@@ -125,7 +126,7 @@ const CacheMonitoring: React.FC = () => {
   const formatMemoryUsage = (usage: string) => {
     const match = usage.match(/(\d+(?:\.\d+)?)/);
     const value = match ? parseFloat(match[1]) : 0;
-    
+
     if (value > 1000) return 'warning';
     if (value > 2000) return 'error';
     return 'success';
@@ -143,12 +144,25 @@ const CacheMonitoring: React.FC = () => {
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 3 }}
+      >
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
           <MemoryIcon color="primary" />
           Cache Monitoring
         </Typography>
-        
+
         <Stack direction="row" spacing={1}>
           <Button
             variant={autoRefresh ? 'contained' : 'outlined'}
@@ -157,13 +171,13 @@ const CacheMonitoring: React.FC = () => {
           >
             Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
           </Button>
-          
+
           <Tooltip title="Obnoviť štatistiky">
             <IconButton onClick={loadStats} disabled={loading}>
               <RefreshIcon />
             </IconButton>
           </Tooltip>
-          
+
           <Tooltip title="Vymazať cache">
             <IconButton onClick={handleClearCache} color="error">
               <ClearIcon />
@@ -213,10 +227,16 @@ const CacheMonitoring: React.FC = () => {
                     <Typography variant="h4" sx={{ fontWeight: 600 }}>
                       {stats.hitRate.toFixed(1)}%
                     </Typography>
-                    <Chip 
-                      size="small" 
-                      color={formatHitRate(stats.hitRate)} 
-                      label={stats.hitRate >= 80 ? 'Excellent' : stats.hitRate >= 60 ? 'Good' : 'Poor'} 
+                    <Chip
+                      size="small"
+                      color={formatHitRate(stats.hitRate)}
+                      label={
+                        stats.hitRate >= 80
+                          ? 'Excellent'
+                          : stats.hitRate >= 60
+                            ? 'Good'
+                            : 'Poor'
+                      }
                     />
                   </Stack>
                 </Box>
@@ -259,9 +279,9 @@ const CacheMonitoring: React.FC = () => {
                     <Typography variant="h4" sx={{ fontWeight: 600 }}>
                       {stats.memoryUsage}
                     </Typography>
-                    <Chip 
-                      size="small" 
-                      color={formatMemoryUsage(stats.memoryUsage)} 
+                    <Chip
+                      size="small"
+                      color={formatMemoryUsage(stats.memoryUsage)}
                     />
                   </Stack>
                 </Box>
@@ -274,19 +294,28 @@ const CacheMonitoring: React.FC = () => {
       {/* Hit Rate Progress */}
       <Card sx={{ mb: 4 }}>
         <CardContent>
-          <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+          >
             <TimelineIcon />
             Cache Performance
           </Typography>
-          
+
           <Box sx={{ mb: 2 }}>
-            <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              sx={{ mb: 1 }}
+            >
               <Typography variant="body2">Hit Rate</Typography>
-              <Typography variant="body2">{stats.hitRate.toFixed(1)}%</Typography>
+              <Typography variant="body2">
+                {stats.hitRate.toFixed(1)}%
+              </Typography>
             </Stack>
-            <LinearProgress 
-              variant="determinate" 
-              value={stats.hitRate} 
+            <LinearProgress
+              variant="determinate"
+              value={stats.hitRate}
               color={formatHitRate(stats.hitRate)}
               sx={{ height: 8, borderRadius: 4 }}
             />
@@ -319,7 +348,7 @@ const CacheMonitoring: React.FC = () => {
           <Typography variant="h6" sx={{ mb: 2 }}>
             Most Accessed Cache Entries
           </Typography>
-          
+
           {stats.topHits && stats.topHits.length > 0 ? (
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
@@ -334,17 +363,30 @@ const CacheMonitoring: React.FC = () => {
                   {stats.topHits.map((item, index) => (
                     <TableRow key={index}>
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {item.key.length > 50 ? `${item.key.substring(0, 50)}...` : item.key}
+                        <Typography
+                          variant="body2"
+                          sx={{ fontFamily: 'monospace' }}
+                        >
+                          {item.key.length > 50
+                            ? `${item.key.substring(0, 50)}...`
+                            : item.key}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Chip size="small" label={item.hits} color="primary" variant="outlined" />
+                        <Chip
+                          size="small"
+                          label={item.hits}
+                          color="primary"
+                          variant="outlined"
+                        />
                       </TableCell>
                       <TableCell align="right">
                         {stats.totalRequests > 0 ? (
                           <Typography variant="body2">
-                            {((item.hits / stats.totalRequests) * 100).toFixed(1)}%
+                            {((item.hits / stats.totalRequests) * 100).toFixed(
+                              1
+                            )}
+                            %
                           </Typography>
                         ) : (
                           <Typography variant="body2" color="textSecondary">
@@ -359,7 +401,8 @@ const CacheMonitoring: React.FC = () => {
             </TableContainer>
           ) : (
             <Alert severity="info">
-              Žiadne cache entries nenájdené. Cache je prázdny alebo ešte nebol použitý.
+              Žiadne cache entries nenájdené. Cache je prázdny alebo ešte nebol
+              použitý.
             </Alert>
           )}
         </CardContent>
@@ -377,17 +420,13 @@ const CacheMonitoring: React.FC = () => {
                 <Typography variant="body2" color="textSecondary">
                   Oldest Entry
                 </Typography>
-                <Typography variant="body1">
-                  {stats.oldestEntry}
-                </Typography>
+                <Typography variant="body1">{stats.oldestEntry}</Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="textSecondary">
                   Newest Entry
                 </Typography>
-                <Typography variant="body1">
-                  {stats.newestEntry}
-                </Typography>
+                <Typography variant="body1">{stats.newestEntry}</Typography>
               </Grid>
             </Grid>
           </CardContent>

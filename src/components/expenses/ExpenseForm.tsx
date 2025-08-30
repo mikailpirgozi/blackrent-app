@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -8,9 +7,11 @@ import {
   Select,
   TextField,
 } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+
 import { useApp } from '../../context/AppContext';
 import { Expense, ExpenseCategory } from '../../types';
-import { v4 as uuidv4 } from 'uuid';
 
 interface ExpenseFormProps {
   expense?: Expense | null;
@@ -19,7 +20,12 @@ interface ExpenseFormProps {
   categories?: ExpenseCategory[];
 }
 
-export default function ExpenseForm({ expense, onSave, onCancel, categories = [] }: ExpenseFormProps) {
+export default function ExpenseForm({
+  expense,
+  onSave,
+  onCancel,
+  categories = [],
+}: ExpenseFormProps) {
   const { state, dispatch, createCompany } = useApp();
   const [addingCompany, setAddingCompany] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
@@ -60,12 +66,18 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 3,
+        }}
+      >
         <TextField
           fullWidth
           label="Popis"
           value={formData.description}
-          onChange={(e) => handleInputChange('description', e.target.value)}
+          onChange={e => handleInputChange('description', e.target.value)}
           required
         />
 
@@ -74,7 +86,12 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
           label="Suma (€) - voliteľné"
           type="number"
           value={formData.amount || ''}
-          onChange={(e) => handleInputChange('amount', e.target.value ? parseFloat(e.target.value) : 0)}
+          onChange={e =>
+            handleInputChange(
+              'amount',
+              e.target.value ? parseFloat(e.target.value) : 0
+            )
+          }
           placeholder="Zadajte sumu alebo nechajte prázdne"
         />
 
@@ -82,8 +99,12 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
           fullWidth
           label="Dátum"
           type="date"
-          value={formData.date ? new Date(formData.date).toISOString().split('T')[0] : ''}
-          onChange={(e) => handleInputChange('date', new Date(e.target.value))}
+          value={
+            formData.date
+              ? new Date(formData.date).toISOString().split('T')[0]
+              : ''
+          }
+          onChange={e => handleInputChange('date', new Date(e.target.value))}
           InputLabelProps={{ shrink: true }}
           required
         />
@@ -92,7 +113,7 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
           <InputLabel>Kategória</InputLabel>
           <Select
             value={formData.category}
-            onChange={(e) => handleInputChange('category', e.target.value)}
+            onChange={e => handleInputChange('category', e.target.value)}
             label="Kategória"
             required
           >
@@ -120,19 +141,27 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
           <Select
             value={formData.company || ''}
             label="Firma"
-            onChange={(e) => handleInputChange('company', e.target.value)}
-            renderValue={(selected) => selected || 'Vyberte firmu'}
+            onChange={e => handleInputChange('company', e.target.value)}
+            renderValue={selected => selected || 'Vyberte firmu'}
           >
-            {Array.from(new Set([
-              ...state.companies.map(c => c.name),
-              ...state.vehicles.map(v => v.company),
-              ...state.expenses.map(e => e.company)
-            ])).filter(Boolean).sort((a, b) => a!.localeCompare(b!)).map((company) => (
-              <MenuItem key={company} value={company}>
-                {company}
-              </MenuItem>
-            ))}
-            <MenuItem value="__add_new__" onClick={() => setAddingCompany(true)}>
+            {Array.from(
+              new Set([
+                ...state.companies.map(c => c.name),
+                ...state.vehicles.map(v => v.company),
+                ...state.expenses.map(e => e.company),
+              ])
+            )
+              .filter(Boolean)
+              .sort((a, b) => a!.localeCompare(b!))
+              .map(company => (
+                <MenuItem key={company} value={company}>
+                  {company}
+                </MenuItem>
+              ))}
+            <MenuItem
+              value="__add_new__"
+              onClick={() => setAddingCompany(true)}
+            >
               <em>+ Pridať novú firmu</em>
             </MenuItem>
           </Select>
@@ -143,7 +172,7 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
                 size="small"
                 label="Nová firma"
                 value={newCompanyName}
-                onChange={(e) => setNewCompanyName(e.target.value)}
+                onChange={e => setNewCompanyName(e.target.value)}
               />
               <Button
                 variant="contained"
@@ -152,14 +181,17 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
                 onClick={async () => {
                   try {
                     const id = uuidv4();
-                    await createCompany({ 
-                      id, 
+                    await createCompany({
+                      id,
                       name: newCompanyName.trim(),
-                      commissionRate: 20.00,
+                      commissionRate: 20.0,
                       isActive: true,
-                      createdAt: new Date()
+                      createdAt: new Date(),
                     });
-                    setFormData((prev) => ({ ...prev, company: newCompanyName.trim() }));
+                    setFormData(prev => ({
+                      ...prev,
+                      company: newCompanyName.trim(),
+                    }));
                     setNewCompanyName('');
                     setAddingCompany(false);
                   } catch (error) {
@@ -167,7 +199,9 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
                     alert('Chyba pri vytváraní firmy');
                   }
                 }}
-              >Pridať</Button>
+              >
+                Pridať
+              </Button>
               <Button
                 variant="outlined"
                 size="small"
@@ -175,7 +209,9 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
                   setAddingCompany(false);
                   setNewCompanyName('');
                 }}
-              >Zrušiť</Button>
+              >
+                Zrušiť
+              </Button>
             </Box>
           )}
         </FormControl>
@@ -184,11 +220,13 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
           <InputLabel>Vozidlo (voliteľné)</InputLabel>
           <Select
             value={formData.vehicleId || ''}
-            onChange={(e) => handleInputChange('vehicleId', e.target.value || undefined)}
+            onChange={e =>
+              handleInputChange('vehicleId', e.target.value || undefined)
+            }
             label="Vozidlo (voliteľné)"
           >
             <MenuItem value="">Všetky vozidlá</MenuItem>
-            {state.vehicles.map((vehicle) => (
+            {state.vehicles.map(vehicle => (
               <MenuItem key={vehicle.id} value={vehicle.id}>
                 {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
               </MenuItem>
@@ -200,14 +238,22 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
           fullWidth
           label="Poznámka (voliteľné)"
           value={formData.note || ''}
-          onChange={(e) => handleInputChange('note', e.target.value)}
+          onChange={e => handleInputChange('note', e.target.value)}
           multiline
           rows={3}
           placeholder="Zadajte dodatočné informácie k nákladu..."
         />
       </Box>
 
-      <Box sx={{ gridColumn: '1 / -1', display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
+      <Box
+        sx={{
+          gridColumn: '1 / -1',
+          display: 'flex',
+          gap: 2,
+          justifyContent: 'flex-end',
+          mt: 3,
+        }}
+      >
         <Button variant="outlined" onClick={onCancel}>
           Zrušiť
         </Button>
@@ -217,4 +263,4 @@ export default function ExpenseForm({ expense, onSave, onCancel, categories = []
       </Box>
     </Box>
   );
-} 
+}

@@ -10,28 +10,36 @@ export const getApiBaseUrl = (): string => {
     console.log('🌐 Používam API URL z .env (PRIORITY):', env.API_URL);
     return env.API_URL;
   }
-  
+
   // PRIORITA 2: Pre Vercel deployment používaj Railway API (len ak nie je .env)
-  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
-    const railwayUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname.includes('vercel.app')
+  ) {
+    const railwayUrl =
+      'https://blackrent-app-production-4d6f.up.railway.app/api';
     console.log('🌐 Vercel detekované, používam Railway API:', railwayUrl);
     return railwayUrl;
   }
-  
+
   // Pre Railway deployment (celá aplikácia na Railway)
-  if (typeof window !== 'undefined' && window.location.hostname.includes('railway.app')) {
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname.includes('railway.app')
+  ) {
     const apiUrl = `${window.location.origin}/api`;
     console.log('🌐 Railway detekované, používam relatívnu API URL:', apiUrl);
     return apiUrl;
   }
-  
+
   // V produkcii používame Railway URL
   if (process.env.NODE_ENV === 'production') {
-    const railwayUrl = 'https://blackrent-app-production-4d6f.up.railway.app/api';
+    const railwayUrl =
+      'https://blackrent-app-production-4d6f.up.railway.app/api';
     console.log('🌐 Production mode, používam Railway API:', railwayUrl);
     return railwayUrl;
   }
-  
+
   // Pre lokálny development - používaj relatívne /api (Vite proxy)
   console.log('🌐 Development mode, používam Vite proxy');
   return '/api';
@@ -56,6 +64,6 @@ if (typeof window !== 'undefined') {
   console.log('🌍 Environment:', {
     NODE_ENV: process.env.NODE_ENV,
     hostname: window.location.hostname,
-    origin: window.location.origin
+    origin: window.location.origin,
   });
 }

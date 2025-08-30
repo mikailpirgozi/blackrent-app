@@ -1,4 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Category as CategoryIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon,
+  DragIndicator as DragIcon,
+  Palette as PaletteIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -23,20 +32,12 @@ import {
   Alert,
   CircularProgress,
   Grid,
-  Divider
+  Divider,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Category as CategoryIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-  DragIndicator as DragIcon,
-  Palette as PaletteIcon
-} from '@mui/icons-material';
-import { ExpenseCategory } from '../../types';
+import React, { useState, useEffect } from 'react';
+
 import { apiService } from '../../services/api';
+import { ExpenseCategory } from '../../types';
 
 interface ExpenseCategoryManagerProps {
   open: boolean;
@@ -64,7 +65,7 @@ const AVAILABLE_ICONS = [
   { value: 'hotel', label: 'Hotel', icon: '🏨' },
   { value: 'local_taxi', label: 'Taxi', icon: '🚕' },
   { value: 'train', label: 'Vlak', icon: '🚆' },
-  { value: 'directions_bus', label: 'Autobus', icon: '🚌' }
+  { value: 'directions_bus', label: 'Autobus', icon: '🚌' },
 ];
 
 const AVAILABLE_COLORS = [
@@ -73,18 +74,19 @@ const AVAILABLE_COLORS = [
   { value: 'success', label: 'Zelená', color: '#2e7d32' },
   { value: 'error', label: 'Červená', color: '#d32f2f' },
   { value: 'warning', label: 'Oranžová', color: '#ed6c02' },
-  { value: 'info', label: 'Svetlomodrá', color: '#0288d1' }
+  { value: 'info', label: 'Svetlomodrá', color: '#0288d1' },
 ];
 
 const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
   open,
   onClose,
-  onCategoriesChanged
+  onCategoriesChanged,
 }) => {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ExpenseCategory | null>(null);
+  const [editingCategory, setEditingCategory] =
+    useState<ExpenseCategory | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -94,8 +96,14 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
     displayName: '',
     description: '',
     icon: 'receipt',
-    color: 'primary' as 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info',
-    sortOrder: 0
+    color: 'primary' as
+      | 'primary'
+      | 'secondary'
+      | 'success'
+      | 'error'
+      | 'warning'
+      | 'info',
+    sortOrder: 0,
   });
 
   // Načítanie kategórií
@@ -125,8 +133,14 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
       displayName: '',
       description: '',
       icon: 'receipt',
-      color: 'primary' as 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info',
-      sortOrder: categories.length
+      color: 'primary' as
+        | 'primary'
+        | 'secondary'
+        | 'success'
+        | 'error'
+        | 'warning'
+        | 'info',
+      sortOrder: categories.length,
     });
     setEditingCategory(null);
   };
@@ -144,7 +158,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
       description: category.description || '',
       icon: category.icon,
       color: category.color,
-      sortOrder: category.sortOrder
+      sortOrder: category.sortOrder,
     });
     setEditingCategory(category);
     setFormOpen(true);
@@ -156,7 +170,11 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
       return;
     }
 
-    if (window.confirm(`Naozaj chcete zmazať kategóriu "${category.displayName}"?`)) {
+    if (
+      window.confirm(
+        `Naozaj chcete zmazať kategóriu "${category.displayName}"?`
+      )
+    ) {
       setLoading(true);
       setError(null);
       try {
@@ -189,23 +207,25 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
           description: formData.description.trim() || undefined,
           icon: formData.icon,
           color: formData.color,
-          sortOrder: formData.sortOrder
+          sortOrder: formData.sortOrder,
         };
         await apiService.updateExpenseCategory(updatedCategory);
         setSuccess('Kategória úspešne aktualizovaná');
       } else {
         // Vytvorenie
         await apiService.createExpenseCategory({
-          name: formData.name || formData.displayName.toLowerCase().replace(/\s+/g, '_'),
+          name:
+            formData.name ||
+            formData.displayName.toLowerCase().replace(/\s+/g, '_'),
           displayName: formData.displayName.trim(),
           description: formData.description.trim() || undefined,
           icon: formData.icon,
           color: formData.color,
-          sortOrder: formData.sortOrder
+          sortOrder: formData.sortOrder,
         });
         setSuccess('Kategória úspešne vytvorená');
       }
-      
+
       setFormOpen(false);
       await loadCategories();
       onCategoriesChanged?.();
@@ -223,19 +243,16 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: 1,
-        backgroundColor: '#f5f5f5',
-        borderBottom: '1px solid #e0e0e0'
-      }}>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          backgroundColor: '#f5f5f5',
+          borderBottom: '1px solid #e0e0e0',
+        }}
+      >
         <CategoryIcon sx={{ color: '#1976d2' }} />
         Správa kategórií nákladov
       </DialogTitle>
@@ -248,13 +265,24 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
           </Alert>
         )}
         {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+          <Alert
+            severity="success"
+            sx={{ mb: 2 }}
+            onClose={() => setSuccess(null)}
+          >
             {success}
           </Alert>
         )}
 
         {/* Header s tlačidlom pridať */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 3,
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Existujúce kategórie ({categories.length})
           </Typography>
@@ -280,25 +308,41 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
           <List>
             {categories.map((category, index) => (
               <React.Fragment key={category.id}>
-                <ListItem sx={{ 
-                  py: 2,
-                  '&:hover': { backgroundColor: '#f5f5f5' }
-                }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 2 }}>
-                    <DragIcon sx={{ color: 'text.secondary', cursor: 'grab' }} />
-                    <Typography variant="body2" sx={{ 
-                      minWidth: 30, 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: 'text.secondary'
-                    }}>
+                <ListItem
+                  sx={{
+                    py: 2,
+                    '&:hover': { backgroundColor: '#f5f5f5' },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      mr: 2,
+                    }}
+                  >
+                    <DragIcon
+                      sx={{ color: 'text.secondary', cursor: 'grab' }}
+                    />
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        minWidth: 30,
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        color: 'text.secondary',
+                      }}
+                    >
                       {category.sortOrder}
                     </Typography>
                   </Box>
-                  
+
                   <ListItemText
                     primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <Chip
                           label={category.displayName}
                           color={category.color}
@@ -321,36 +365,40 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                           ID: {category.name} | Ikona: {category.icon}
                         </Typography>
                         {category.description && (
-                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mt: 0.5 }}
+                          >
                             {category.description}
                           </Typography>
                         )}
                       </Box>
                     }
                   />
-                  
+
                   <ListItemSecondaryAction>
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <IconButton 
+                      <IconButton
                         size="small"
                         onClick={() => handleEditCategory(category)}
                         disabled={loading}
-                        sx={{ 
+                        sx={{
                           backgroundColor: '#f5f5f5',
-                          '&:hover': { backgroundColor: '#e0e0e0' }
+                          '&:hover': { backgroundColor: '#e0e0e0' },
                         }}
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
                       {!category.isDefault && (
-                        <IconButton 
+                        <IconButton
                           size="small"
                           onClick={() => handleDeleteCategory(category)}
                           disabled={loading}
-                          sx={{ 
+                          sx={{
                             backgroundColor: '#ffebee',
                             color: '#d32f2f',
-                            '&:hover': { backgroundColor: '#ffcdd2' }
+                            '&:hover': { backgroundColor: '#ffcdd2' },
                           }}
                         >
                           <DeleteIcon fontSize="small" />
@@ -362,12 +410,16 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                 {index < categories.length - 1 && <Divider />}
               </React.Fragment>
             ))}
-            
+
             {categories.length === 0 && !loading && (
               <ListItem>
                 <ListItemText
                   primary={
-                    <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography
+                      variant="body1"
+                      color="text.secondary"
+                      sx={{ textAlign: 'center', py: 2 }}
+                    >
                       Žiadne kategórie nenájdené
                     </Typography>
                   }
@@ -385,17 +437,19 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
       </DialogActions>
 
       {/* Form Dialog */}
-      <Dialog 
-        open={formOpen} 
+      <Dialog
+        open={formOpen}
         onClose={handleFormCancel}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1 
-        }}>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
           <CategoryIcon />
           {editingCategory ? 'Upraviť kategóriu' : 'Pridať kategóriu'}
         </DialogTitle>
@@ -407,11 +461,13 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                 fullWidth
                 label="Zobrazovaný názov *"
                 value={formData.displayName}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  displayName: e.target.value,
-                  name: e.target.value.toLowerCase().replace(/\s+/g, '_')
-                }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    displayName: e.target.value,
+                    name: e.target.value.toLowerCase().replace(/\s+/g, '_'),
+                  }))
+                }
                 required
                 helperText="Názov ktorý sa zobrazí v aplikácii"
               />
@@ -422,7 +478,9 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                 fullWidth
                 label="Systémový názov"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, name: e.target.value }))
+                }
                 helperText="Automaticky generovaný z zobrazovaného názvu"
                 disabled={!!editingCategory} // Nemožno meniť pri úprave
               />
@@ -433,7 +491,12 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                 fullWidth
                 label="Popis"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 multiline
                 rows={2}
                 helperText="Voliteľný popis kategórie"
@@ -445,12 +508,16 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                 <InputLabel>Ikona</InputLabel>
                 <Select
                   value={formData.icon}
-                  onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, icon: e.target.value }))
+                  }
                   label="Ikona"
                 >
                   {AVAILABLE_ICONS.map(icon => (
                     <MenuItem key={icon.value} value={icon.value}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <span>{icon.icon}</span>
                         {icon.label}
                       </Box>
@@ -465,18 +532,25 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                 <InputLabel>Farba</InputLabel>
                 <Select
                   value={formData.color}
-                  onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value as any }))}
+                  onChange={e =>
+                    setFormData(prev => ({
+                      ...prev,
+                      color: e.target.value as any,
+                    }))
+                  }
                   label="Farba"
                 >
                   {AVAILABLE_COLORS.map(color => (
                     <MenuItem key={color.value} value={color.value}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <Box
                           sx={{
                             width: 16,
                             height: 16,
                             borderRadius: '50%',
-                            backgroundColor: color.color
+                            backgroundColor: color.color,
                           }}
                         />
                         {color.label}
@@ -493,19 +567,26 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                 label="Poradie"
                 type="number"
                 value={formData.sortOrder}
-                onChange={(e) => setFormData(prev => ({ ...prev, sortOrder: parseInt(e.target.value) || 0 }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    sortOrder: parseInt(e.target.value) || 0,
+                  }))
+                }
                 helperText="Poradie zobrazovania v zoznamoch"
               />
             </Grid>
 
             {/* Náhľad */}
             <Grid item xs={12}>
-              <Box sx={{ 
-                p: 2, 
-                backgroundColor: '#f5f5f5', 
-                borderRadius: 1,
-                border: '1px solid #e0e0e0'
-              }}>
+              <Box
+                sx={{
+                  p: 2,
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: 1,
+                  border: '1px solid #e0e0e0',
+                }}
+              >
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                   Náhľad:
                 </Typography>
@@ -521,14 +602,14 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
         </DialogContent>
 
         <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button 
+          <Button
             onClick={handleFormCancel}
             variant="outlined"
             startIcon={<CancelIcon />}
           >
             Zrušiť
           </Button>
-          <Button 
+          <Button
             onClick={handleFormSubmit}
             variant="contained"
             startIcon={<SaveIcon />}

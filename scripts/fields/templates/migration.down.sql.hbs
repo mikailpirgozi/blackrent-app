@@ -1,0 +1,40 @@
+-- 🔄 BlackRent Database Migration ROLLBACK: REMOVE {{fieldLabel}} FIELD
+-- Autor: Field Scaffolder  
+-- Dátum: {{currentDate}}
+-- Cieľ: Odstrániť pole {{fieldName}} z tabuľky {{table}}
+
+BEGIN;
+
+-- Backup dát pred odstránením (pre prípad potreby)
+CREATE TABLE IF NOT EXISTS migration_backup_{{timestamp}} AS
+SELECT id, {{fieldName}}
+FROM {{table}}
+WHERE {{fieldName}} IS NOT NULL;
+
+-- Odstráň index
+{{#if (eq type 'string')}}
+DROP INDEX IF EXISTS idx_{{table}}_{{fieldName}};
+{{/if}}
+
+-- Odstráň stĺpec
+ALTER TABLE {{table}} DROP COLUMN IF EXISTS {{fieldName}};
+
+{{#if (eq type 'enum')}}
+-- Odstráň enum typ
+DROP TYPE IF EXISTS {{fieldName}}_enum CASCADE;
+{{/if}}
+
+-- Validácia rollback
+SELECT 
+    '✅ Rollback validation' as status,
+    COUNT(*) as total_rows
+FROM {{table}};
+
+-- Informácia o backup
+SELECT 
+    'ℹ️ Backup info' as status,
+    'Data backed up in migration_backup_{{timestamp}}' as message;
+
+COMMIT;
+
+-- ✅ Rollback {{fieldName}} úspešne dokončený!

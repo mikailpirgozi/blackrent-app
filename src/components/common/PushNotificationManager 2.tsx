@@ -1,7 +1,19 @@
 // 🔔 Push Notification Manager Component
 // Complete UI for managing push notifications
 
-import React, { useState, useEffect } from 'react';
+import {
+  NotificationsActive,
+  NotificationsOff,
+  Settings as SettingsIcon,
+  Science as TestIcon,
+  Analytics as AnalyticsIcon,
+  Schedule as ScheduleIcon,
+  VolumeOff as QuietIcon,
+  CheckCircle as SuccessIcon,
+  Error as ErrorIcon,
+  Warning as WarningIcon,
+  Info as InfoIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Card,
@@ -23,32 +35,19 @@ import {
   DialogActions,
   TextField,
   FormGroup,
-
   useTheme,
   alpha,
   Skeleton,
 } from '@mui/material';
-import {
-  NotificationsActive,
-  NotificationsOff,
-  Settings as SettingsIcon,
-  Science as TestIcon,
-  Analytics as AnalyticsIcon,
-  Schedule as ScheduleIcon,
-  VolumeOff as QuietIcon,
-  CheckCircle as SuccessIcon,
-  Error as ErrorIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
-} from '@mui/icons-material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs from 'dayjs';
+import React, { useState, useEffect } from 'react';
 
-import { 
-  pushNotificationService, 
+import {
+  pushNotificationService,
   type PushNotificationPreferences,
-  type NotificationPayload 
+  type NotificationPayload,
 } from '../../services/pushNotifications';
 
 interface PushNotificationManagerProps {
@@ -58,22 +57,26 @@ interface PushNotificationManagerProps {
 
 const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
   showAdvanced = false,
-  compact = false
+  compact = false,
 }) => {
   const theme = useTheme();
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [preferences, setPreferences] = useState<PushNotificationPreferences | null>(null);
+  const [permission, setPermission] =
+    useState<NotificationPermission>('default');
+  const [preferences, setPreferences] =
+    useState<PushNotificationPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
-  const [testNotification, setTestNotification] = useState<NotificationPayload>({
-    title: 'BlackRent Test',
-    body: 'Toto je testovacia notifikácia',
-    icon: '/logo192.png'
-  });
+  const [testNotification, setTestNotification] = useState<NotificationPayload>(
+    {
+      title: 'BlackRent Test',
+      body: 'Toto je testovacia notifikácia',
+      icon: '/logo192.png',
+    }
+  );
 
   // Initialize component
   useEffect(() => {
@@ -82,11 +85,11 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
 
   const initializeNotifications = async () => {
     setLoading(true);
-    
+
     try {
       // Initialize service
       const initialized = await pushNotificationService.initialize();
-      
+
       // Get status
       const status = await pushNotificationService.getSubscriptionStatus();
       setIsSupported(status.isSupported);
@@ -95,10 +98,10 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
 
       // Get preferences if subscribed
       if (status.isSubscribed) {
-        const prefs = await pushNotificationService.getNotificationPreferences();
+        const prefs =
+          await pushNotificationService.getNotificationPreferences();
         setPreferences(prefs);
       }
-
     } catch (error) {
       console.error('Failed to initialize notifications:', error);
     } finally {
@@ -109,19 +112,19 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
   // Subscribe to notifications
   const handleSubscribe = async () => {
     setUpdating(true);
-    
+
     try {
       const success = await pushNotificationService.subscribe();
-      
+
       if (success) {
         setIsSubscribed(true);
         setPermission('granted');
-        
+
         // Load preferences
-        const prefs = await pushNotificationService.getNotificationPreferences();
+        const prefs =
+          await pushNotificationService.getNotificationPreferences();
         setPreferences(prefs);
       }
-
     } catch (error) {
       console.error('Failed to subscribe:', error);
     } finally {
@@ -132,15 +135,14 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
   // Unsubscribe from notifications
   const handleUnsubscribe = async () => {
     setUpdating(true);
-    
+
     try {
       const success = await pushNotificationService.unsubscribe();
-      
+
       if (success) {
         setIsSubscribed(false);
         setPreferences(null);
       }
-
     } catch (error) {
       console.error('Failed to unsubscribe:', error);
     } finally {
@@ -149,19 +151,22 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
   };
 
   // Update preferences
-  const handlePreferenceChange = async (key: keyof PushNotificationPreferences, value: boolean | string) => {
+  const handlePreferenceChange = async (
+    key: keyof PushNotificationPreferences,
+    value: boolean | string
+  ) => {
     if (!preferences) return;
 
     const updatedPreferences = {
       ...preferences,
-      [key]: value
+      [key]: value,
     };
 
     setPreferences(updatedPreferences);
 
     try {
       await pushNotificationService.updateNotificationPreferences({
-        [key]: value
+        [key]: value,
       });
     } catch (error) {
       console.error('Failed to update preferences:', error);
@@ -173,12 +178,12 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
   // Send test notification
   const handleSendTest = async () => {
     try {
-      const success = await pushNotificationService.sendTestNotification(testNotification);
-      
+      const success =
+        await pushNotificationService.sendTestNotification(testNotification);
+
       if (success) {
         setTestDialogOpen(false);
       }
-
     } catch (error) {
       console.error('Failed to send test notification:', error);
     }
@@ -229,7 +234,7 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
           color={isSubscribed ? 'success' : 'default'}
           variant={isSubscribed ? 'filled' : 'outlined'}
         />
-        
+
         {isSupported && (
           <Switch
             checked={isSubscribed}
@@ -253,9 +258,7 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
         <CardContent>
           {/* Header */}
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <Box sx={{ mr: 2 }}>
-              {getStatusIcon()}
-            </Box>
+            <Box sx={{ mr: 2 }}>{getStatusIcon()}</Box>
             <Box sx={{ flex: 1 }}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Push Notifikácie
@@ -269,7 +272,7 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
               sx={{
                 backgroundColor: alpha(getStatusColor(), 0.1),
                 color: getStatusColor(),
-                fontWeight: 600
+                fontWeight: 600,
               }}
             />
           </Box>
@@ -295,11 +298,15 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
                 control={
                   <Switch
                     checked={isSubscribed}
-                    onChange={isSubscribed ? handleUnsubscribe : handleSubscribe}
+                    onChange={
+                      isSubscribed ? handleUnsubscribe : handleSubscribe
+                    }
                     disabled={updating || permission === 'denied'}
                   />
                 }
-                label={isSubscribed ? 'Notifikácie zapnuté' : 'Zapnúť notifikácie'}
+                label={
+                  isSubscribed ? 'Notifikácie zapnuté' : 'Zapnúť notifikácie'
+                }
                 sx={{ mb: 2 }}
               />
 
@@ -314,7 +321,7 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
                     >
                       Nastavenia
                     </Button>
-                    
+
                     {showAdvanced && (
                       <Button
                         variant="outlined"
@@ -375,65 +382,98 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
         <DialogContent>
           {preferences && (
             <FormGroup>
-              <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ mt: 2, mb: 1, fontWeight: 600 }}
+              >
                 Typy notifikácií:
               </Typography>
-              
+
               <FormControlLabel
                 control={
                   <Switch
                     checked={preferences.rental_requests}
-                    onChange={(e) => handlePreferenceChange('rental_requests', e.target.checked)}
+                    onChange={e =>
+                      handlePreferenceChange(
+                        'rental_requests',
+                        e.target.checked
+                      )
+                    }
                   />
                 }
                 label="Žiadosti o prenájom"
               />
-              
+
               <FormControlLabel
                 control={
                   <Switch
                     checked={preferences.rental_approvals}
-                    onChange={(e) => handlePreferenceChange('rental_approvals', e.target.checked)}
+                    onChange={e =>
+                      handlePreferenceChange(
+                        'rental_approvals',
+                        e.target.checked
+                      )
+                    }
                   />
                 }
                 label="Schválenia prenájmov"
               />
-              
+
               <FormControlLabel
                 control={
                   <Switch
                     checked={preferences.rental_reminders}
-                    onChange={(e) => handlePreferenceChange('rental_reminders', e.target.checked)}
+                    onChange={e =>
+                      handlePreferenceChange(
+                        'rental_reminders',
+                        e.target.checked
+                      )
+                    }
                   />
                 }
                 label="Pripomienky prenájmov"
               />
-              
+
               <FormControlLabel
                 control={
                   <Switch
                     checked={preferences.maintenance_alerts}
-                    onChange={(e) => handlePreferenceChange('maintenance_alerts', e.target.checked)}
+                    onChange={e =>
+                      handlePreferenceChange(
+                        'maintenance_alerts',
+                        e.target.checked
+                      )
+                    }
                   />
                 }
                 label="Servis vozidiel"
               />
-              
+
               <FormControlLabel
                 control={
                   <Switch
                     checked={preferences.payment_reminders}
-                    onChange={(e) => handlePreferenceChange('payment_reminders', e.target.checked)}
+                    onChange={e =>
+                      handlePreferenceChange(
+                        'payment_reminders',
+                        e.target.checked
+                      )
+                    }
                   />
                 }
                 label="Pripomienky platieb"
               />
-              
+
               <FormControlLabel
                 control={
                   <Switch
                     checked={preferences.marketing_notifications}
-                    onChange={(e) => handlePreferenceChange('marketing_notifications', e.target.checked)}
+                    onChange={e =>
+                      handlePreferenceChange(
+                        'marketing_notifications',
+                        e.target.checked
+                      )
+                    }
                   />
                 }
                 label="Marketingové oznamy"
@@ -449,25 +489,31 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
                 control={
                   <Switch
                     checked={preferences.email_notifications}
-                    onChange={(e) => handlePreferenceChange('email_notifications', e.target.checked)}
+                    onChange={e =>
+                      handlePreferenceChange(
+                        'email_notifications',
+                        e.target.checked
+                      )
+                    }
                   />
                 }
                 label="Email notifikácie"
               />
 
-              <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box
+                sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 <QuietIcon fontSize="small" />
                 <Typography variant="body2">
-                  Tichý režim: {preferences.quiet_hours_start} - {preferences.quiet_hours_end}
+                  Tichý režim: {preferences.quiet_hours_start} -{' '}
+                  {preferences.quiet_hours_end}
                 </Typography>
               </Box>
             </FormGroup>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSettingsDialogOpen(false)}>
-            Zavrieť
-          </Button>
+          <Button onClick={() => setSettingsDialogOpen(false)}>Zavrieť</Button>
         </DialogActions>
       </Dialog>
 
@@ -489,31 +535,35 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
             fullWidth
             label="Nadpis"
             value={testNotification.title}
-            onChange={(e) => setTestNotification(prev => ({ ...prev, title: e.target.value }))}
+            onChange={e =>
+              setTestNotification(prev => ({ ...prev, title: e.target.value }))
+            }
             sx={{ mb: 2, mt: 1 }}
           />
-          
+
           <TextField
             fullWidth
             label="Text"
             multiline
             rows={3}
             value={testNotification.body}
-            onChange={(e) => setTestNotification(prev => ({ ...prev, body: e.target.value }))}
+            onChange={e =>
+              setTestNotification(prev => ({ ...prev, body: e.target.value }))
+            }
             sx={{ mb: 2 }}
           />
-          
+
           <TextField
             fullWidth
             label="Ikona (URL)"
             value={testNotification.icon}
-            onChange={(e) => setTestNotification(prev => ({ ...prev, icon: e.target.value }))}
+            onChange={e =>
+              setTestNotification(prev => ({ ...prev, icon: e.target.value }))
+            }
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setTestDialogOpen(false)}>
-            Zrušiť
-          </Button>
+          <Button onClick={() => setTestDialogOpen(false)}>Zrušiť</Button>
           <Button
             variant="contained"
             onClick={handleSendTest}

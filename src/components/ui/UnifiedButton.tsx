@@ -1,13 +1,13 @@
 /**
  * 🎨 UNIFIED BUTTON COMPONENT
- * 
+ *
  * Konzistentný button komponent pre celú BlackRent aplikáciu
  * Nahradí všetky rôzne button štýly jednotným dizajnom
  */
 
-import React from 'react';
 import { Button, ButtonProps, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import React from 'react';
 
 // 🎨 Definované farby a štýly pre BlackRent
 const BLACKRENT_COLORS = {
@@ -20,14 +20,17 @@ const BLACKRENT_COLORS = {
 } as const;
 
 // 🎨 Styled Button s BlackRent dizajnom
-const StyledButton = styled(Button)<{ 
+const StyledButton = styled(Button)<{
   variant?: 'contained' | 'outlined' | 'text';
   size?: 'small' | 'medium' | 'large';
   color?: keyof typeof BLACKRENT_COLORS | 'inherit';
 }>(({ theme, variant = 'contained', size = 'medium', color = 'primary' }) => {
-  
-  const baseColor = color === 'inherit' ? theme.palette.primary.main : BLACKRENT_COLORS[color as keyof typeof BLACKRENT_COLORS] || BLACKRENT_COLORS.primary;
-  
+  const baseColor =
+    color === 'inherit'
+      ? theme.palette.primary.main
+      : BLACKRENT_COLORS[color as keyof typeof BLACKRENT_COLORS] ||
+        BLACKRENT_COLORS.primary;
+
   // 📏 Veľkosti
   const sizeStyles = {
     small: {
@@ -54,9 +57,8 @@ const StyledButton = styled(Button)<{
       color: '#ffffff',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       '&:hover': {
-        backgroundColor: theme.palette.mode === 'dark' 
-          ? `${baseColor}dd` 
-          : `${baseColor}cc`,
+        backgroundColor:
+          theme.palette.mode === 'dark' ? `${baseColor}dd` : `${baseColor}cc`,
         boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
         transform: 'translateY(-1px)',
       },
@@ -139,39 +141,41 @@ export const UnifiedButton: React.FC<UnifiedButtonProps> = ({
       size={size}
       color={color}
       disabled={disabled || loading}
-      startIcon={loading ? <CircularProgress size={16} color="inherit" /> : startIcon}
+      startIcon={
+        loading ? <CircularProgress size={16} color="inherit" /> : startIcon
+      }
       endIcon={!loading ? endIcon : undefined}
       fullWidth={fullWidth}
       {...props}
     >
-      {loading ? (loadingText || 'Načítavam...') : children}
+      {loading ? loadingText || 'Načítavam...' : children}
     </StyledButton>
   );
 };
 
 // 🎨 Predefined button variants pre rýchle použitie
-export const PrimaryButton: React.FC<Omit<UnifiedButtonProps, 'color' | 'variant'>> = (props) => (
-  <UnifiedButton color="primary" variant="contained" {...props} />
-);
+export const PrimaryButton: React.FC<
+  Omit<UnifiedButtonProps, 'color' | 'variant'>
+> = props => <UnifiedButton color="primary" variant="contained" {...props} />;
 
-export const SecondaryButton: React.FC<Omit<UnifiedButtonProps, 'color' | 'variant'>> = (props) => (
-  <UnifiedButton color="secondary" variant="outlined" {...props} />
-);
+export const SecondaryButton: React.FC<
+  Omit<UnifiedButtonProps, 'color' | 'variant'>
+> = props => <UnifiedButton color="secondary" variant="outlined" {...props} />;
 
-export const SuccessButton: React.FC<Omit<UnifiedButtonProps, 'color' | 'variant'>> = (props) => (
-  <UnifiedButton color="success" variant="contained" {...props} />
-);
+export const SuccessButton: React.FC<
+  Omit<UnifiedButtonProps, 'color' | 'variant'>
+> = props => <UnifiedButton color="success" variant="contained" {...props} />;
 
-export const WarningButton: React.FC<Omit<UnifiedButtonProps, 'color' | 'variant'>> = (props) => (
-  <UnifiedButton color="warning" variant="contained" {...props} />
-);
+export const WarningButton: React.FC<
+  Omit<UnifiedButtonProps, 'color' | 'variant'>
+> = props => <UnifiedButton color="warning" variant="contained" {...props} />;
 
-export const ErrorButton: React.FC<Omit<UnifiedButtonProps, 'color' | 'variant'>> = (props) => (
-  <UnifiedButton color="error" variant="contained" {...props} />
-);
+export const ErrorButton: React.FC<
+  Omit<UnifiedButtonProps, 'color' | 'variant'>
+> = props => <UnifiedButton color="error" variant="contained" {...props} />;
 
-export const TextButton: React.FC<Omit<UnifiedButtonProps, 'variant'>> = (props) => (
-  <UnifiedButton variant="text" {...props} />
-);
+export const TextButton: React.FC<
+  Omit<UnifiedButtonProps, 'variant'>
+> = props => <UnifiedButton variant="text" {...props} />;
 
 export default UnifiedButton;

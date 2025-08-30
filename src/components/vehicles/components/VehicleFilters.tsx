@@ -1,4 +1,7 @@
-import React from 'react';
+import {
+  Search as SearchIcon,
+  FilterList as FilterListIcon,
+} from '@mui/icons-material';
 import {
   Box,
   TextField,
@@ -15,23 +18,21 @@ import {
   Grid,
   Divider,
   FormGroup,
-  Typography
+  Typography,
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  FilterList as FilterListIcon
-} from '@mui/icons-material';
+import React from 'react';
+
 import { VehicleCategory } from '../../../types';
 
 interface VehicleFiltersProps {
   // Search state
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  
+
   // Filter toggle
   filtersOpen: boolean;
   setFiltersOpen: (open: boolean) => void;
-  
+
   // Filter states
   filterBrand: string;
   setFilterBrand: (brand: string) => void;
@@ -43,7 +44,7 @@ interface VehicleFiltersProps {
   setFilterStatus: (status: string) => void;
   filterCategory: VehicleCategory | 'all';
   setFilterCategory: (category: VehicleCategory | 'all') => void;
-  
+
   // Status checkboxes
   showAvailable: boolean;
   setShowAvailable: (show: boolean) => void;
@@ -59,7 +60,7 @@ interface VehicleFiltersProps {
   setShowRemoved: (show: boolean) => void;
   showTempRemoved: boolean;
   setShowTempRemoved: (show: boolean) => void;
-  
+
   // Data for dropdowns
   uniqueBrands: string[];
   uniqueModels: string[];
@@ -97,7 +98,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   setShowTempRemoved,
   uniqueBrands,
   uniqueModels,
-  uniqueCompanies
+  uniqueCompanies,
 }) => {
   return (
     <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
@@ -108,7 +109,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
             fullWidth
             placeholder="Hľadať vozidlá..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             InputProps={{
               startAdornment: <SearchIcon sx={{ color: '#666', mr: 1 }} />,
             }}
@@ -116,12 +117,12 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           />
           <IconButton
             onClick={() => setFiltersOpen(!filtersOpen)}
-            sx={{ 
+            sx={{
               bgcolor: filtersOpen ? '#1976d2' : '#f5f5f5',
               color: filtersOpen ? 'white' : '#666',
-              '&:hover': { 
-                bgcolor: filtersOpen ? '#1565c0' : '#e0e0e0' 
-              }
+              '&:hover': {
+                bgcolor: filtersOpen ? '#1565c0' : '#e0e0e0',
+              },
             }}
           >
             <FilterListIcon />
@@ -138,11 +139,13 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                 <Select
                   value={filterBrand}
                   label="Značka"
-                  onChange={(e) => setFilterBrand(e.target.value)}
+                  onChange={e => setFilterBrand(e.target.value)}
                 >
                   <MenuItem value="">Všetky značky</MenuItem>
                   {uniqueBrands.map(brand => (
-                    <MenuItem key={brand} value={brand}>{brand}</MenuItem>
+                    <MenuItem key={brand} value={brand}>
+                      {brand}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -153,11 +156,13 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                 <Select
                   value={filterModel}
                   label="Model"
-                  onChange={(e) => setFilterModel(e.target.value)}
+                  onChange={e => setFilterModel(e.target.value)}
                 >
                   <MenuItem value="">Všetky modely</MenuItem>
                   {uniqueModels.map(model => (
-                    <MenuItem key={model} value={model}>{model}</MenuItem>
+                    <MenuItem key={model} value={model}>
+                      {model}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -168,11 +173,13 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                 <Select
                   value={filterCompany}
                   label="Firma"
-                  onChange={(e) => setFilterCompany(e.target.value)}
+                  onChange={e => setFilterCompany(e.target.value)}
                 >
                   <MenuItem value="">Všetky firmy</MenuItem>
                   {uniqueCompanies.map(company => (
-                    <MenuItem key={company} value={company}>{company}</MenuItem>
+                    <MenuItem key={company} value={company}>
+                      {company}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -183,13 +190,15 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                 <Select
                   value={filterStatus}
                   label="Status"
-                  onChange={(e) => setFilterStatus(e.target.value)}
+                  onChange={e => setFilterStatus(e.target.value)}
                 >
                   <MenuItem value="">Všetky statusy</MenuItem>
                   <MenuItem value="available">Dostupné</MenuItem>
                   <MenuItem value="rented">Prenajaté</MenuItem>
                   <MenuItem value="maintenance">Údržba</MenuItem>
-                  <MenuItem value="temporarily_removed">Dočasne vyradené</MenuItem>
+                  <MenuItem value="temporarily_removed">
+                    Dočasne vyradené
+                  </MenuItem>
                   <MenuItem value="removed">Vyradené</MenuItem>
                   <MenuItem value="transferred">Prepisané</MenuItem>
                 </Select>
@@ -201,7 +210,9 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                 <Select
                   value={filterCategory}
                   label="Kategória"
-                  onChange={(e) => setFilterCategory(e.target.value as VehicleCategory | 'all')}
+                  onChange={e =>
+                    setFilterCategory(e.target.value as VehicleCategory | 'all')
+                  }
                 >
                   <MenuItem value="all">Všetky kategórie</MenuItem>
                   <MenuItem value="nizka-trieda">🚗 Nízka trieda</MenuItem>
@@ -224,31 +235,66 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
             </Typography>
             <FormGroup row>
               <FormControlLabel
-                control={<Checkbox checked={showAvailable} onChange={(e) => setShowAvailable(e.target.checked)} />}
+                control={
+                  <Checkbox
+                    checked={showAvailable}
+                    onChange={e => setShowAvailable(e.target.checked)}
+                  />
+                }
                 label="Dostupné"
               />
               <FormControlLabel
-                control={<Checkbox checked={showRented} onChange={(e) => setShowRented(e.target.checked)} />}
+                control={
+                  <Checkbox
+                    checked={showRented}
+                    onChange={e => setShowRented(e.target.checked)}
+                  />
+                }
                 label="Prenajaté"
               />
               <FormControlLabel
-                control={<Checkbox checked={showMaintenance} onChange={(e) => setShowMaintenance(e.target.checked)} />}
+                control={
+                  <Checkbox
+                    checked={showMaintenance}
+                    onChange={e => setShowMaintenance(e.target.checked)}
+                  />
+                }
                 label="Údržba"
               />
               <FormControlLabel
-                control={<Checkbox checked={showOther} onChange={(e) => setShowOther(e.target.checked)} />}
+                control={
+                  <Checkbox
+                    checked={showOther}
+                    onChange={e => setShowOther(e.target.checked)}
+                  />
+                }
                 label="Ostatné"
               />
               <FormControlLabel
-                control={<Checkbox checked={showPrivate} onChange={(e) => setShowPrivate(e.target.checked)} />}
+                control={
+                  <Checkbox
+                    checked={showPrivate}
+                    onChange={e => setShowPrivate(e.target.checked)}
+                  />
+                }
                 label="🏠 Súkromné"
               />
               <FormControlLabel
-                control={<Checkbox checked={showRemoved} onChange={(e) => setShowRemoved(e.target.checked)} />}
+                control={
+                  <Checkbox
+                    checked={showRemoved}
+                    onChange={e => setShowRemoved(e.target.checked)}
+                  />
+                }
                 label="🗑️ Vyradené"
               />
               <FormControlLabel
-                control={<Checkbox checked={showTempRemoved} onChange={(e) => setShowTempRemoved(e.target.checked)} />}
+                control={
+                  <Checkbox
+                    checked={showTempRemoved}
+                    onChange={e => setShowTempRemoved(e.target.checked)}
+                  />
+                }
                 label="⏸️ Dočasne vyradené"
               />
             </FormGroup>

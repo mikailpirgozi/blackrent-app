@@ -1,12 +1,25 @@
 // 🔄 Enhanced Lazy Loading Utilities
 // Advanced code splitting with error boundaries, preloading, and retry logic
 
-import React, { Suspense, ComponentType, LazyExoticComponent, ReactNode } from 'react';
-import { LoadingState, PageLoader, ComponentLoader } from '../components/common/LoadingStates';
+import React, {
+  Suspense,
+  ComponentType,
+  LazyExoticComponent,
+  ReactNode,
+} from 'react';
+
 import ErrorBoundary from '../components/common/ErrorBoundary';
+import {
+  LoadingState,
+  PageLoader,
+  ComponentLoader,
+} from '../components/common/LoadingStates';
 
 // Preload cache to avoid duplicate dynamic imports
-const preloadCache = new Map<string, Promise<{ default: ComponentType<any> }>>();
+const preloadCache = new Map<
+  string,
+  Promise<{ default: ComponentType<any> }>
+>();
 
 interface LazyComponentOptions {
   loading?: ReactNode;
@@ -18,7 +31,8 @@ interface LazyComponentOptions {
   preload?: boolean;
 }
 
-interface RetryableLazyComponent<T = {}> extends LazyExoticComponent<ComponentType<T>> {
+interface RetryableLazyComponent<T = {}>
+  extends LazyExoticComponent<ComponentType<T>> {
   preload: () => Promise<{ default: ComponentType<T> }>;
   retry: () => void;
 }
@@ -46,34 +60,43 @@ export function createLazyComponent<T = {}>(
     }
 
     // Create timeout promise
-    const timeoutPromise = timeout > 0 
-      ? new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error(`Component load timeout (${timeout}ms)`)), timeout);
-        })
-      : null;
+    const timeoutPromise =
+      timeout > 0
+        ? new Promise<never>((_, reject) => {
+            setTimeout(
+              () => reject(new Error(`Component load timeout (${timeout}ms)`)),
+              timeout
+            );
+          })
+        : null;
 
     // Create delay promise
-    const delayPromise = delay > 0 
-      ? new Promise(resolve => setTimeout(resolve, delay))
-      : Promise.resolve();
+    const delayPromise =
+      delay > 0
+        ? new Promise(resolve => setTimeout(resolve, delay))
+        : Promise.resolve();
 
     // Load component with timeout and delay
     importPromise = Promise.race([
       delayPromise.then(() => importFunc()),
       ...(timeoutPromise ? [timeoutPromise] : []),
-    ]).catch((error) => {
+    ]).catch(error => {
       importPromise = null; // Reset for retry
-      
+
       if (retry && retryCounter < retryCount) {
         retryCounter++;
-        console.warn(`Component load failed, retrying (${retryCounter}/${retryCount}):`, error);
-        
+        console.warn(
+          `Component load failed, retrying (${retryCounter}/${retryCount}):`,
+          error
+        );
+
         // Exponential backoff
         const backoffDelay = Math.pow(2, retryCounter) * 1000;
-        return new Promise(resolve => setTimeout(resolve, backoffDelay))
-          .then(() => loadComponent());
+        return new Promise(resolve => setTimeout(resolve, backoffDelay)).then(
+          () => loadComponent()
+        );
       }
-      
+
       throw error;
     });
 
@@ -122,9 +145,7 @@ export const LazyWrapper: React.FC<LazyWrapperProps> = ({
   children,
 }) => (
   <ErrorBoundary level={level} fallback={error}>
-    <Suspense fallback={loading}>
-      {children}
-    </Suspense>
+    <Suspense fallback={loading}>{children}</Suspense>
   </ErrorBoundary>
 );
 
@@ -146,7 +167,7 @@ export function createLazyComponentWithLoader<T extends {} = {}>(
   options: LazyComponentOptions = {}
 ): React.FC<T> {
   const LazyComponent = createLazyComponent(importFunc, options);
-  
+
   return (props: T) => (
     <LazyWrapper loading={loadingComponent}>
       <LazyComponent {...(props as any)} />
@@ -168,9 +189,11 @@ export const preloadComponents = (
 ): Promise<void> => {
   const preloadPromises = components
     .filter(component => 'preload' in component)
-    .map(component => component.preload().catch(error => {
-      console.warn('Component preload failed:', error);
-    }));
+    .map(component =>
+      component.preload().catch(error => {
+        console.warn('Component preload failed:', error);
+      })
+    );
 
   return Promise.all(preloadPromises).then(() => {});
 };
@@ -197,14 +220,14 @@ export const createIntersectionLazyComponent = <T extends {} = {}>(
   } = {}
 ): React.FC<T> => {
   const { rootMargin = '50px', threshold = 0.1, ...lazyOptions } = options;
-  
+
   return (props: T) => {
     const [shouldLoad, setShouldLoad] = React.useState(false);
     const elementRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
       const observer = new IntersectionObserver(
-        (entries) => {
+        entries => {
           const [entry] = entries;
           if (entry.isIntersecting) {
             setShouldLoad(true);
@@ -230,7 +253,7 @@ export const createIntersectionLazyComponent = <T extends {} = {}>(
     }
 
     const LazyComponent = createLazyComponent(importFunc, lazyOptions);
-    
+
     return (
       <LazyWrapper>
         <LazyComponent {...(props as any)} />
@@ -247,14 +270,16 @@ export const withPerformanceTracking = <T extends ComponentType<any>>(
   const WrappedComponent = (props: any) => {
     React.useEffect(() => {
       const startTime = performance.now();
-      
+
       return () => {
         const endTime = performance.now();
         const loadTime = endTime - startTime;
-        
+
         if (process.env.NODE_ENV === 'development') {
-          console.log(`📊 Component ${componentName} load time: ${loadTime.toFixed(2)}ms`);
-          
+          console.log(
+            `📊 Component ${componentName} load time: ${loadTime.toFixed(2)}ms`
+          );
+
           if (loadTime > 100) {
             console.warn(`⚠️ Slow component load: ${componentName}`);
           }
@@ -271,7 +296,7 @@ export const withPerformanceTracking = <T extends ComponentType<any>>(
 
 // Bundle splitting utilities
 export const createChunkedImport = (chunkName: string) => {
-  return <T = {}>(
+  return <T = {},>(
     importFunc: () => Promise<{ default: ComponentType<T> }>
   ): (() => Promise<{ default: ComponentType<T> }>) => {
     // Add webpack magic comment for chunk naming

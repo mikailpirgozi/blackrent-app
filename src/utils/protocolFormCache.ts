@@ -22,7 +22,7 @@ const CACHE_VERSION = 1;
 export const cacheFormDefaults = (formData: Partial<FormDefaults>): void => {
   try {
     const existingCache = getFormDefaults();
-    
+
     const newCache: CachedFormData = {
       data: {
         ...existingCache,
@@ -31,7 +31,7 @@ export const cacheFormDefaults = (formData: Partial<FormDefaults>): void => {
       timestamp: Date.now(),
       version: CACHE_VERSION,
     };
-    
+
     localStorage.setItem(CACHE_KEY, JSON.stringify(newCache));
     console.log('🔄 Form defaults cached:', newCache.data);
   } catch (error) {
@@ -46,9 +46,9 @@ export const getFormDefaults = (): FormDefaults => {
     if (!cached) {
       return getDefaultFormDefaults();
     }
-    
+
     const cachedData: CachedFormData = JSON.parse(cached);
-    
+
     // Kontrola verzie a TTL
     if (
       cachedData.version !== CACHE_VERSION ||
@@ -58,7 +58,7 @@ export const getFormDefaults = (): FormDefaults => {
       clearFormCache();
       return getDefaultFormDefaults();
     }
-    
+
     console.log('🔄 Using cached form defaults:', cachedData.data);
     return cachedData.data;
   } catch (error) {
@@ -88,7 +88,7 @@ const getDefaultFormDefaults = (): FormDefaults => ({
 // 🔄 Smart pre-filling na základe histórie
 export const getSmartDefaults = (companyName?: string): FormDefaults => {
   const cached = getFormDefaults();
-  
+
   // Ak máme company-specific cache, použijeme ho
   if (companyName) {
     try {
@@ -96,7 +96,10 @@ export const getSmartDefaults = (companyName?: string): FormDefaults => {
       if (companyCache) {
         const companyData: CachedFormData = JSON.parse(companyCache);
         if (Date.now() - companyData.timestamp < CACHE_TTL) {
-          console.log(`🔄 Using company-specific defaults for ${companyName}:`, companyData.data);
+          console.log(
+            `🔄 Using company-specific defaults for ${companyName}:`,
+            companyData.data
+          );
           return companyData.data;
         }
       }
@@ -104,16 +107,19 @@ export const getSmartDefaults = (companyName?: string): FormDefaults => {
       console.warn('Failed to load company-specific defaults:', error);
     }
   }
-  
+
   return cached;
 };
 
 // 🔄 Uloženie company-specific defaults
-export const cacheCompanyDefaults = (companyName: string, formData: Partial<FormDefaults>): void => {
+export const cacheCompanyDefaults = (
+  companyName: string,
+  formData: Partial<FormDefaults>
+): void => {
   try {
     const companyKey = `${CACHE_KEY}_${companyName}`;
     const existingCompanyCache = getSmartDefaults(companyName);
-    
+
     const companyCache: CachedFormData = {
       data: {
         ...existingCompanyCache,
@@ -122,9 +128,12 @@ export const cacheCompanyDefaults = (companyName: string, formData: Partial<Form
       timestamp: Date.now(),
       version: CACHE_VERSION,
     };
-    
+
     localStorage.setItem(companyKey, JSON.stringify(companyCache));
-    console.log(`🔄 Company defaults cached for ${companyName}:`, companyCache.data);
+    console.log(
+      `🔄 Company defaults cached for ${companyName}:`,
+      companyCache.data
+    );
   } catch (error) {
     console.warn('Failed to cache company defaults:', error);
   }
@@ -135,11 +144,11 @@ export const getFormCacheInfo = () => {
   try {
     const cached = localStorage.getItem(CACHE_KEY);
     if (!cached) return null;
-    
+
     const cachedData: CachedFormData = JSON.parse(cached);
     const age = Date.now() - cachedData.timestamp;
     const remainingTTL = CACHE_TTL - age;
-    
+
     return {
       data: cachedData.data,
       ageMs: age,

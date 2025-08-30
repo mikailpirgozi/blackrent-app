@@ -1,0 +1,41 @@
+// 🔧 Generated DTO for {{fieldLabel}} field
+// Table: {{table}}, Field: {{fieldName}}
+
+import { z } from 'zod';
+
+// Input DTO - pre POST/PUT requests
+export const {{fieldNamePascal}}InputSchema = z.object({
+  {{fieldName}}: {{zodSchema}}{{#if description}}, // {{description}}{{/if}}
+});
+
+export type {{fieldNamePascal}}Input = z.infer<typeof {{fieldNamePascal}}InputSchema>;
+
+// Output DTO - pre GET responses  
+export const {{fieldNamePascal}}OutputSchema = z.object({
+  id: z.string().uuid(),
+  {{fieldName}}: {{zodSchema}}{{#if description}}, // {{description}}{{/if}}
+  createdAt: z.date(),
+  updatedAt: z.date().optional(),
+});
+
+export type {{fieldNamePascal}}Output = z.infer<typeof {{fieldNamePascal}}OutputSchema>;
+
+// Update DTO - pre PUT requests (partial update)
+export const {{fieldNamePascal}}UpdateSchema = z.object({
+  {{fieldName}}: {{zodSchema}}.optional(){{#if description}}, // {{description}}{{/if}}
+});
+
+export type {{fieldNamePascal}}Update = z.infer<typeof {{fieldNamePascal}}UpdateSchema>;
+
+// Validation helpers
+export function validate{{fieldNamePascal}}Input(data: unknown): {{fieldNamePascal}}Input {
+  return {{fieldNamePascal}}InputSchema.parse(data);
+}
+
+export function validate{{fieldNamePascal}}Output(data: unknown): {{fieldNamePascal}}Output {
+  return {{fieldNamePascal}}OutputSchema.parse(data);
+}
+
+export function validate{{fieldNamePascal}}Update(data: unknown): {{fieldNamePascal}}Update {
+  return {{fieldNamePascal}}UpdateSchema.parse(data);
+}

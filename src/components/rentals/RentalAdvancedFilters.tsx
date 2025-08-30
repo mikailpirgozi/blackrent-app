@@ -1,4 +1,16 @@
-import React from 'react';
+import {
+  ExpandMore as ExpandMoreIcon,
+  FilterList as FilterListIcon,
+  CalendarToday as CalendarIcon,
+  Euro as EuroIcon,
+  Business as BusinessIcon,
+  Person as PersonIcon,
+  DirectionsCar as CarIcon,
+  Payment as PaymentIcon,
+  Assignment as ProtocolIcon,
+  Clear as ClearIcon,
+  Save as SaveIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -20,21 +32,9 @@ import {
   useMediaQuery,
   useTheme,
   IconButton,
-  Tooltip
+  Tooltip,
 } from '@mui/material';
-import {
-  ExpandMore as ExpandMoreIcon,
-  FilterList as FilterListIcon,
-  CalendarToday as CalendarIcon,
-  Euro as EuroIcon,
-  Business as BusinessIcon,
-  Person as PersonIcon,
-  DirectionsCar as CarIcon,
-  Payment as PaymentIcon,
-  Assignment as ProtocolIcon,
-  Clear as ClearIcon,
-  Save as SaveIcon
-} from '@mui/icons-material';
+import React from 'react';
 
 export interface FilterState {
   // Základné filtre
@@ -46,7 +46,7 @@ export interface FilterState {
   priceMin: string;
   priceMax: string;
   protocolStatus: string;
-  
+
   // Rozšírené filtre
   customerName: string;
   vehicleBrand: string;
@@ -57,16 +57,16 @@ export interface FilterState {
   customerCompany: string;
   insuranceCompany: string;
   insuranceType: string;
-  
+
   // Časové filtre
   timeFilter: string; // 'all', 'today', 'week', 'month', 'quarter', 'year', 'custom'
-  
+
   // Cenové filtre
   priceRange: string; // 'all', 'low', 'medium', 'high', 'custom'
-  
+
   // Stav platby
   paymentStatus: string; // 'all', 'paid', 'unpaid', 'partial'
-  
+
   // Zobrazenie
   showOnlyActive: boolean;
   showOnlyOverdue: boolean;
@@ -100,7 +100,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
   availableInsuranceCompanies = [],
   availableInsuranceTypes = [],
   searchQuery = '',
-  onSearchChange = () => {}
+  onSearchChange = () => {},
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -108,7 +108,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
   const handleFilterChange = (key: keyof FilterState, value: any) => {
     onFiltersChange({
       ...filters,
-      [key]: value
+      [key]: value,
     });
   };
 
@@ -153,37 +153,46 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
   };
 
   return (
-    <Box sx={{ 
-      bgcolor: 'background.paper', 
-      borderRadius: 2, 
-      p: { xs: 2, md: 3 }, 
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-      border: '1px solid',
-      borderColor: 'divider'
-    }}>
+    <Box
+      sx={{
+        bgcolor: 'background.paper',
+        borderRadius: 2,
+        p: { xs: 2, md: 3 },
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        border: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
       {/* Header */}
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: { xs: 'column', sm: 'row' },
-        alignItems: { xs: 'stretch', sm: 'center' }, 
-        justifyContent: 'space-between', 
-        mb: 3,
-        gap: { xs: 2, sm: 0 }
-      }}>
-        <Typography variant="h6" sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1,
-          fontSize: { xs: '1.1rem', md: '1.25rem' }
-        }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
+          justifyContent: 'space-between',
+          mb: 3,
+          gap: { xs: 2, sm: 0 },
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            fontSize: { xs: '1.1rem', md: '1.25rem' },
+          }}
+        >
           <FilterListIcon color="primary" />
           Rozšírené filtre
         </Typography>
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 1,
-          justifyContent: { xs: 'center', sm: 'flex-end' }
-        }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            justifyContent: { xs: 'center', sm: 'flex-end' },
+          }}
+        >
           <Tooltip title="Uložiť preset">
             <IconButton size="small" onClick={onSavePreset} color="primary">
               <SaveIcon />
@@ -199,19 +208,24 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
 
       {/* Rýchle filtre */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle2" sx={{ 
-          mb: 2, 
-          fontWeight: 600,
-          fontSize: { xs: '0.875rem', md: '1rem' }
-        }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            mb: 2,
+            fontWeight: 600,
+            fontSize: { xs: '0.875rem', md: '1rem' },
+          }}
+        >
           Rýchle filtre
         </Typography>
-        <Box sx={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: { xs: 0.5, md: 1 },
-          justifyContent: { xs: 'center', md: 'flex-start' }
-        }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: { xs: 0.5, md: 1 },
+            justifyContent: { xs: 'center', md: 'flex-start' },
+          }}
+        >
           <Chip
             label="Dnes"
             onClick={() => handleQuickFilter('today', 'today')}
@@ -261,11 +275,13 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
 
       {/* Rozšírené filtre v accordionoch */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        
         {/* Základné informácie */}
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <PersonIcon fontSize="small" />
               Základné informácie
             </Typography>
@@ -277,12 +293,14 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <InputLabel>Stav prenájmu</InputLabel>
                   <Select
                     value={filters.status}
-                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    onChange={e => handleFilterChange('status', e.target.value)}
                     label="Stav prenájmu"
                   >
                     <MenuItem value="all">Všetky stavy</MenuItem>
                     {availableStatuses.map(status => (
-                      <MenuItem key={status} value={status}>{status}</MenuItem>
+                      <MenuItem key={status} value={status}>
+                        {status}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -292,12 +310,16 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <InputLabel>Spôsob platby</InputLabel>
                   <Select
                     value={filters.paymentMethod}
-                    onChange={(e) => handleFilterChange('paymentMethod', e.target.value)}
+                    onChange={e =>
+                      handleFilterChange('paymentMethod', e.target.value)
+                    }
                     label="Spôsob platby"
                   >
                     <MenuItem value="all">Všetky spôsoby</MenuItem>
                     {availablePaymentMethods.map(method => (
-                      <MenuItem key={method} value={method}>{method}</MenuItem>
+                      <MenuItem key={method} value={method}>
+                        {method}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -307,12 +329,16 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <InputLabel>Firma/požičovňa</InputLabel>
                   <Select
                     value={filters.company}
-                    onChange={(e) => handleFilterChange('company', e.target.value)}
+                    onChange={e =>
+                      handleFilterChange('company', e.target.value)
+                    }
                     label="Firma/požičovňa"
                   >
                     <MenuItem value="all">Všetky firmy</MenuItem>
                     {availableCompanies.map(company => (
-                      <MenuItem key={company} value={company}>{company}</MenuItem>
+                      <MenuItem key={company} value={company}>
+                        {company}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -322,7 +348,9 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <InputLabel>Stav protokolov</InputLabel>
                   <Select
                     value={filters.protocolStatus}
-                    onChange={(e) => handleFilterChange('protocolStatus', e.target.value)}
+                    onChange={e =>
+                      handleFilterChange('protocolStatus', e.target.value)
+                    }
                     label="Stav protokolov"
                   >
                     <MenuItem value="all">Všetky</MenuItem>
@@ -340,7 +368,10 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
         {/* Časové filtre */}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <CalendarIcon fontSize="small" />
               Časové filtre
             </Typography>
@@ -354,7 +385,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   type="date"
                   label="Od dátumu"
                   value={filters.dateFrom}
-                  onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                  onChange={e => handleFilterChange('dateFrom', e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
@@ -365,7 +396,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   type="date"
                   label="Do dátumu"
                   value={filters.dateTo}
-                  onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                  onChange={e => handleFilterChange('dateTo', e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
@@ -376,7 +407,10 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
         {/* Cenové filtre */}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <EuroIcon fontSize="small" />
               Cenové filtre
             </Typography>
@@ -390,9 +424,14 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   type="number"
                   label="Minimálna cena (€)"
                   value={filters.priceMin}
-                  onChange={(e) => handleFilterChange('priceMin', e.target.value)}
+                  onChange={e => handleFilterChange('priceMin', e.target.value)}
                   InputProps={{
-                    startAdornment: <EuroIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                    startAdornment: (
+                      <EuroIcon
+                        fontSize="small"
+                        sx={{ mr: 1, color: 'text.secondary' }}
+                      />
+                    ),
                   }}
                 />
               </Grid>
@@ -403,9 +442,14 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   type="number"
                   label="Maximálna cena (€)"
                   value={filters.priceMax}
-                  onChange={(e) => handleFilterChange('priceMax', e.target.value)}
+                  onChange={e => handleFilterChange('priceMax', e.target.value)}
                   InputProps={{
-                    startAdornment: <EuroIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                    startAdornment: (
+                      <EuroIcon
+                        fontSize="small"
+                        sx={{ mr: 1, color: 'text.secondary' }}
+                      />
+                    ),
                   }}
                 />
               </Grid>
@@ -414,7 +458,9 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <InputLabel>Cenový rozsah</InputLabel>
                   <Select
                     value={filters.priceRange}
-                    onChange={(e) => handleFilterChange('priceRange', e.target.value)}
+                    onChange={e =>
+                      handleFilterChange('priceRange', e.target.value)
+                    }
                     label="Cenový rozsah"
                   >
                     <MenuItem value="all">Všetky ceny</MenuItem>
@@ -432,7 +478,10 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
         {/* Informácie o zákazníkovi */}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <PersonIcon fontSize="small" />
               Zákazník
             </Typography>
@@ -445,7 +494,9 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   size="small"
                   label="Meno zákazníka"
                   value={filters.customerName}
-                  onChange={(e) => handleFilterChange('customerName', e.target.value)}
+                  onChange={e =>
+                    handleFilterChange('customerName', e.target.value)
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -454,7 +505,9 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   size="small"
                   label="Email zákazníka"
                   value={filters.customerEmail}
-                  onChange={(e) => handleFilterChange('customerEmail', e.target.value)}
+                  onChange={e =>
+                    handleFilterChange('customerEmail', e.target.value)
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -463,7 +516,9 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   size="small"
                   label="Telefón zákazníka"
                   value={filters.customerPhone}
-                  onChange={(e) => handleFilterChange('customerPhone', e.target.value)}
+                  onChange={e =>
+                    handleFilterChange('customerPhone', e.target.value)
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -472,7 +527,9 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   size="small"
                   label="Firma zákazníka"
                   value={filters.customerCompany}
-                  onChange={(e) => handleFilterChange('customerCompany', e.target.value)}
+                  onChange={e =>
+                    handleFilterChange('customerCompany', e.target.value)
+                  }
                 />
               </Grid>
             </Grid>
@@ -482,7 +539,10 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
         {/* Informácie o vozidle */}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <CarIcon fontSize="small" />
               Vozidlo
             </Typography>
@@ -494,12 +554,16 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <InputLabel>Značka vozidla</InputLabel>
                   <Select
                     value={filters.vehicleBrand}
-                    onChange={(e) => handleFilterChange('vehicleBrand', e.target.value)}
+                    onChange={e =>
+                      handleFilterChange('vehicleBrand', e.target.value)
+                    }
                     label="Značka vozidla"
                   >
                     <MenuItem value="all">Všetky značky</MenuItem>
                     {availableVehicleBrands.map(brand => (
-                      <MenuItem key={brand} value={brand}>{brand}</MenuItem>
+                      <MenuItem key={brand} value={brand}>
+                        {brand}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -510,7 +574,9 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   size="small"
                   label="Model vozidla"
                   value={filters.vehicleModel}
-                  onChange={(e) => handleFilterChange('vehicleModel', e.target.value)}
+                  onChange={e =>
+                    handleFilterChange('vehicleModel', e.target.value)
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -519,7 +585,9 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   size="small"
                   label="ŠPZ"
                   value={filters.licensePlate}
-                  onChange={(e) => handleFilterChange('licensePlate', e.target.value)}
+                  onChange={e =>
+                    handleFilterChange('licensePlate', e.target.value)
+                  }
                 />
               </Grid>
             </Grid>
@@ -529,7 +597,10 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
         {/* Poistka */}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <ProtocolIcon fontSize="small" />
               Poistka
             </Typography>
@@ -541,12 +612,16 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <InputLabel>Poisťovňa</InputLabel>
                   <Select
                     value={filters.insuranceCompany}
-                    onChange={(e) => handleFilterChange('insuranceCompany', e.target.value)}
+                    onChange={e =>
+                      handleFilterChange('insuranceCompany', e.target.value)
+                    }
                     label="Poisťovňa"
                   >
                     <MenuItem value="all">Všetky poisťovne</MenuItem>
                     {availableInsuranceCompanies.map(company => (
-                      <MenuItem key={company} value={company}>{company}</MenuItem>
+                      <MenuItem key={company} value={company}>
+                        {company}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -556,12 +631,16 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <InputLabel>Typ poistky</InputLabel>
                   <Select
                     value={filters.insuranceType}
-                    onChange={(e) => handleFilterChange('insuranceType', e.target.value)}
+                    onChange={e =>
+                      handleFilterChange('insuranceType', e.target.value)
+                    }
                     label="Typ poistky"
                   >
                     <MenuItem value="all">Všetky typy</MenuItem>
                     {availableInsuranceTypes.map(type => (
-                      <MenuItem key={type} value={type}>{type}</MenuItem>
+                      <MenuItem key={type} value={type}>
+                        {type}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -573,7 +652,10 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
         {/* Stav platby */}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <PaymentIcon fontSize="small" />
               Stav platby
             </Typography>
@@ -585,7 +667,9 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <InputLabel>Stav platby</InputLabel>
                   <Select
                     value={filters.paymentStatus}
-                    onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
+                    onChange={e =>
+                      handleFilterChange('paymentStatus', e.target.value)
+                    }
                     label="Stav platby"
                   >
                     <MenuItem value="all">Všetky stavy</MenuItem>
@@ -603,4 +687,4 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
   );
 };
 
-export default RentalAdvancedFilters; 
+export default RentalAdvancedFilters;

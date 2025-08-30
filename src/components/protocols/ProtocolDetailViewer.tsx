@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import {
+  Visibility as VisibilityIcon,
+  Download as DownloadIcon,
+  Image as ImageIcon,
+  Description as DescriptionIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -11,14 +16,10 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Divider
+  Divider,
 } from '@mui/material';
-import {
-  Visibility as VisibilityIcon,
-  Download as DownloadIcon,
-  Image as ImageIcon,
-  Description as DescriptionIcon
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
+
 import { ProtocolImage } from '../../types';
 
 interface ProtocolDetailViewerProps {
@@ -43,11 +44,16 @@ interface ProtocolData {
   pdfUrl?: string;
 }
 
-export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailViewerProps) {
+export function ProtocolDetailViewer({
+  protocolId,
+  onClose,
+}: ProtocolDetailViewerProps) {
   const [protocol, setProtocol] = useState<ProtocolData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<ProtocolImage | null>(null);
+  const [selectedImage, setSelectedImage] = useState<ProtocolImage | null>(
+    null
+  );
 
   useEffect(() => {
     loadProtocol();
@@ -57,12 +63,12 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(`/api/protocols/${protocolId}`);
       if (!response.ok) {
         throw new Error('Protokol sa nenašiel');
       }
-      
+
       const data = await response.json();
       setProtocol(data);
     } catch (error) {
@@ -81,7 +87,7 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
         if (!response.ok) {
           throw new Error('Nepodarilo sa vygenerovať PDF');
         }
-        
+
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -120,7 +126,12 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="400px"
+      >
         <CircularProgress />
       </Box>
     );
@@ -145,12 +156,19 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
   return (
     <Box sx={{ p: 2 }}>
       {/* Záhlavie */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box
+        sx={{
+          mb: 3,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <Typography variant="h4" component="h1" color="primary">
           {protocol.type === 'handover' ? 'Preberací' : 'Vratný'} Protokol
         </Typography>
         <Box>
-          <IconButton 
+          <IconButton
             onClick={handleDownloadPDF}
             color="primary"
             title="Stiahnuť PDF"
@@ -176,7 +194,8 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
               <strong>ID Protokolu:</strong> {protocol.id}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              <strong>Dátum:</strong> {new Date(protocol.createdAt).toLocaleDateString('sk-SK')}
+              <strong>Dátum:</strong>{' '}
+              {new Date(protocol.createdAt).toLocaleDateString('sk-SK')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               <strong>Miesto:</strong> {protocol.location || 'N/A'}
@@ -184,7 +203,8 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
           </Grid>
           <Grid item xs={12} md={6}>
             <Typography variant="body2" color="text.secondary">
-              <strong>Vozidlo:</strong> {protocol.rental?.vehicle?.brand} {protocol.rental?.vehicle?.model}
+              <strong>Vozidlo:</strong> {protocol.rental?.vehicle?.brand}{' '}
+              {protocol.rental?.vehicle?.model}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               <strong>ŠPZ:</strong> {protocol.rental?.vehicle?.licensePlate}
@@ -203,7 +223,7 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} md={3}>
-            <Chip 
+            <Chip
               label={`${protocol.vehicleCondition?.odometer || 0} km`}
               icon={<DescriptionIcon />}
               color="primary"
@@ -211,7 +231,7 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
             />
           </Grid>
           <Grid item xs={12} md={3}>
-            <Chip 
+            <Chip
               label={`${protocol.vehicleCondition?.fuelLevel || 100}%`}
               icon={<ImageIcon />}
               color="secondary"
@@ -219,14 +239,14 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
             />
           </Grid>
           <Grid item xs={12} md={3}>
-            <Chip 
+            <Chip
               label={protocol.vehicleCondition?.fuelType || 'N/A'}
               color="info"
               variant="outlined"
             />
           </Grid>
           <Grid item xs={12} md={3}>
-            <Chip 
+            <Chip
               label={protocol.vehicleCondition?.condition || 'Výborný'}
               color="success"
               variant="outlined"
@@ -255,10 +275,17 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
                   />
                   <CardContent sx={{ py: 1 }}>
                     <Typography variant="caption" color="text.secondary">
-                      {image.type} - {new Date(image.timestamp).toLocaleString('sk-SK')}
+                      {image.type} -{' '}
+                      {new Date(image.timestamp).toLocaleString('sk-SK')}
                     </Typography>
-                    <Typography variant="caption" display="block" color="text.secondary">
-                      {image.originalSize ? formatFileSize(image.originalSize) : 'N/A'}
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      color="text.secondary"
+                    >
+                      {image.originalSize
+                        ? formatFileSize(image.originalSize)
+                        : 'N/A'}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -288,10 +315,17 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
                   />
                   <CardContent sx={{ py: 1 }}>
                     <Typography variant="caption" color="text.secondary">
-                      {image.type} - {new Date(image.timestamp).toLocaleString('sk-SK')}
+                      {image.type} -{' '}
+                      {new Date(image.timestamp).toLocaleString('sk-SK')}
                     </Typography>
-                    <Typography variant="caption" display="block" color="text.secondary">
-                      {image.originalSize ? formatFileSize(image.originalSize) : 'N/A'}
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      color="text.secondary"
+                    >
+                      {image.originalSize
+                        ? formatFileSize(image.originalSize)
+                        : 'N/A'}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -308,7 +342,10 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
             Škody a poškodenia ({protocol.damages.length})
           </Typography>
           {protocol.damages.map((damage, index) => (
-            <Box key={index} sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+            <Box
+              key={index}
+              sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}
+            >
               <Typography variant="subtitle2" color="primary">
                 Škoda {index + 1}
               </Typography>
@@ -331,9 +368,7 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
           <Typography variant="h6" gutterBottom>
             Poznámky
           </Typography>
-          <Typography variant="body2">
-            {protocol.notes}
-          </Typography>
+          <Typography variant="body2">{protocol.notes}</Typography>
         </Paper>
       )}
 
@@ -358,7 +393,11 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
                       {signature.signerName || `Podpis ${index + 1}`}
                     </Typography>
                     {signature.signerRole && (
-                      <Typography variant="caption" display="block" color="text.secondary">
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        color="text.secondary"
+                      >
                         {signature.signerRole}
                       </Typography>
                     )}
@@ -373,4 +412,4 @@ export function ProtocolDetailViewer({ protocolId, onClose }: ProtocolDetailView
   );
 }
 
-export default ProtocolDetailViewer; 
+export default ProtocolDetailViewer;

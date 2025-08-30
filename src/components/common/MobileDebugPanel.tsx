@@ -1,4 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import {
+  BugReport as BugIcon,
+  Download as DownloadIcon,
+  Clear as ClearIcon,
+  Refresh as RefreshIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Close as CloseIcon,
+  Memory as MemoryIcon,
+  Speed as SpeedIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -12,19 +22,9 @@ import {
   IconButton,
   Collapse,
   Alert,
-  Stack
+  Stack,
 } from '@mui/material';
-import {
-  BugReport as BugIcon,
-  Download as DownloadIcon,
-  Clear as ClearIcon,
-  Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Close as CloseIcon,
-  Memory as MemoryIcon,
-  Speed as SpeedIcon
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
 // 🔄 MOBILE CLEANUP: mobileLogger removed
 // import { getMobileLogger, LogEntry } from '../../utils/mobileLogger';
 
@@ -84,23 +84,35 @@ const MobileDebugPanel: React.FC = () => {
 
   const getLevelColor = (level: LogEntry['level']) => {
     switch (level) {
-      case 'DEBUG': return 'default';
-      case 'INFO': return 'info';
-      case 'WARN': return 'warning';
-      case 'ERROR': return 'error';
-      case 'CRITICAL': return 'error';
-      default: return 'default';
+      case 'DEBUG':
+        return 'default';
+      case 'INFO':
+        return 'info';
+      case 'WARN':
+        return 'warning';
+      case 'ERROR':
+        return 'error';
+      case 'CRITICAL':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
   const getLevelEmoji = (level: LogEntry['level']) => {
     switch (level) {
-      case 'DEBUG': return '🔍';
-      case 'INFO': return 'ℹ️';
-      case 'WARN': return '⚠️';
-      case 'ERROR': return '❌';
-      case 'CRITICAL': return '🚨';
-      default: return '📝';
+      case 'DEBUG':
+        return '🔍';
+      case 'INFO':
+        return 'ℹ️';
+      case 'WARN':
+        return '⚠️';
+      case 'ERROR':
+        return '❌';
+      case 'CRITICAL':
+        return '🚨';
+      default:
+        return '📝';
     }
   };
 
@@ -109,7 +121,7 @@ const MobileDebugPanel: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      fractionalSecondDigits: 3
+      fractionalSecondDigits: 3,
     });
   };
 
@@ -123,7 +135,7 @@ const MobileDebugPanel: React.FC = () => {
           right: 20,
           zIndex: 9999,
           opacity: 0.8,
-          '&:hover': { opacity: 1 }
+          '&:hover': { opacity: 1 },
         }}
       >
         <Button
@@ -140,7 +152,7 @@ const MobileDebugPanel: React.FC = () => {
             boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
             '&:hover': {
               background: 'linear-gradient(45deg, #FF5252, #26C6DA)',
-            }
+            },
           }}
         >
           Debug
@@ -158,17 +170,19 @@ const MobileDebugPanel: React.FC = () => {
           '& .MuiDialog-paper': {
             backgroundColor: '#1a1a1a',
             color: '#ffffff',
-            height: isMobile ? '100vh' : '80vh'
-          }
+            height: isMobile ? '100vh' : '80vh',
+          },
         }}
       >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          backgroundColor: '#2d2d2d',
-          borderBottom: '1px solid #444'
-        }}>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: '#2d2d2d',
+            borderBottom: '1px solid #444',
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <BugIcon />
             <Typography variant="h6">📱 Mobile Debug Panel</Typography>
@@ -182,32 +196,35 @@ const MobileDebugPanel: React.FC = () => {
           {/* Stats Section */}
           {stats && (
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 <SpeedIcon /> Štatistiky
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                <Chip 
-                  label={`📝 Celkom: ${stats.totalLogs}`} 
-                  size="small" 
-                  variant="outlined" 
+                <Chip
+                  label={`📝 Celkom: ${stats.totalLogs}`}
+                  size="small"
+                  variant="outlined"
                   sx={{ color: 'white', borderColor: '#666' }}
                 />
-                <Chip 
-                  label={`⚠️ Warnings: ${stats.warningCount}`} 
-                  size="small" 
-                  variant="outlined" 
+                <Chip
+                  label={`⚠️ Warnings: ${stats.warningCount}`}
+                  size="small"
+                  variant="outlined"
                   color="warning"
                 />
-                <Chip 
-                  label={`❌ Errors: ${stats.errorCount}`} 
-                  size="small" 
-                  variant="outlined" 
+                <Chip
+                  label={`❌ Errors: ${stats.errorCount}`}
+                  size="small"
+                  variant="outlined"
                   color="error"
                 />
-                <Chip 
-                  label={`🕐 Recent: ${stats.recentLogs}`} 
-                  size="small" 
-                  variant="outlined" 
+                <Chip
+                  label={`🕐 Recent: ${stats.recentLogs}`}
+                  size="small"
+                  variant="outlined"
                   color="info"
                 />
               </Stack>
@@ -216,18 +233,34 @@ const MobileDebugPanel: React.FC = () => {
 
           {/* Memory Info */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="h6"
+              sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <MemoryIcon /> Pamäť
             </Typography>
             {(performance as any).memory ? (
-              <Alert severity="info" sx={{ backgroundColor: '#1e3a5f', color: 'white' }}>
+              <Alert
+                severity="info"
+                sx={{ backgroundColor: '#1e3a5f', color: 'white' }}
+              >
                 <Typography variant="body2">
-                  Použitá: {Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024)} MB / 
-                  Limit: {Math.round((performance as any).memory.jsHeapSizeLimit / 1024 / 1024)} MB
+                  Použitá:{' '}
+                  {Math.round(
+                    (performance as any).memory.usedJSHeapSize / 1024 / 1024
+                  )}{' '}
+                  MB / Limit:{' '}
+                  {Math.round(
+                    (performance as any).memory.jsHeapSizeLimit / 1024 / 1024
+                  )}{' '}
+                  MB
                 </Typography>
               </Alert>
             ) : (
-              <Alert severity="warning" sx={{ backgroundColor: '#5f4e1e', color: 'white' }}>
+              <Alert
+                severity="warning"
+                sx={{ backgroundColor: '#5f4e1e', color: 'white' }}
+              >
                 Memory API nie je dostupné
               </Alert>
             )}
@@ -241,7 +274,10 @@ const MobileDebugPanel: React.FC = () => {
           </Typography>
 
           {logs.length === 0 ? (
-            <Alert severity="info" sx={{ backgroundColor: '#1e3a5f', color: 'white' }}>
+            <Alert
+              severity="info"
+              sx={{ backgroundColor: '#1e3a5f', color: 'white' }}
+            >
               Žiadne logy k dispozícii
             </Alert>
           ) : (
@@ -253,12 +289,24 @@ const MobileDebugPanel: React.FC = () => {
                       p: 1,
                       backgroundColor: '#2d2d2d',
                       borderRadius: 1,
-                      border: log.level === 'ERROR' || log.level === 'CRITICAL' ? '1px solid #f44336' : '1px solid #444',
-                      cursor: 'pointer'
+                      border:
+                        log.level === 'ERROR' || log.level === 'CRITICAL'
+                          ? '1px solid #f44336'
+                          : '1px solid #444',
+                      cursor: 'pointer',
                     }}
-                    onClick={() => setExpandedLog(expandedLog === index ? null : index)}
+                    onClick={() =>
+                      setExpandedLog(expandedLog === index ? null : index)
+                    }
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mb: 0.5,
+                      }}
+                    >
                       <Typography variant="caption" sx={{ color: '#888' }}>
                         {formatTime(log.timestamp)}
                       </Typography>
@@ -274,18 +322,32 @@ const MobileDebugPanel: React.FC = () => {
                         variant="outlined"
                         sx={{ color: '#ccc', borderColor: '#666' }}
                       />
-                      {expandedLog === index ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      {expandedLog === index ? (
+                        <ExpandLessIcon />
+                      ) : (
+                        <ExpandMoreIcon />
+                      )}
                     </Box>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
                       {log.message}
                     </Typography>
                   </Box>
-                  
+
                   <Collapse in={expandedLog === index}>
-                    <Box sx={{ mt: 1, p: 2, backgroundColor: '#1a1a1a', borderRadius: 1 }}>
+                    <Box
+                      sx={{
+                        mt: 1,
+                        p: 2,
+                        backgroundColor: '#1a1a1a',
+                        borderRadius: 1,
+                      }}
+                    >
                       {log.data && (
                         <Box sx={{ mb: 2 }}>
-                          <Typography variant="caption" sx={{ color: '#888', fontWeight: 'bold' }}>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: '#888', fontWeight: 'bold' }}
+                          >
                             Data:
                           </Typography>
                           <Box
@@ -297,17 +359,20 @@ const MobileDebugPanel: React.FC = () => {
                               p: 1,
                               borderRadius: 1,
                               overflow: 'auto',
-                              maxHeight: '200px'
+                              maxHeight: '200px',
                             }}
                           >
                             {JSON.stringify(log.data, null, 2)}
                           </Box>
                         </Box>
                       )}
-                      
+
                       {log.stackTrace && (
                         <Box>
-                          <Typography variant="caption" sx={{ color: '#888', fontWeight: 'bold' }}>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: '#888', fontWeight: 'bold' }}
+                          >
                             Stack Trace:
                           </Typography>
                           <Box
@@ -319,7 +384,7 @@ const MobileDebugPanel: React.FC = () => {
                               p: 1,
                               borderRadius: 1,
                               overflow: 'auto',
-                              maxHeight: '150px'
+                              maxHeight: '150px',
                             }}
                           >
                             {log.stackTrace}
@@ -334,11 +399,13 @@ const MobileDebugPanel: React.FC = () => {
           )}
         </DialogContent>
 
-        <DialogActions sx={{ 
-          backgroundColor: '#2d2d2d', 
-          borderTop: '1px solid #444',
-          gap: 1
-        }}>
+        <DialogActions
+          sx={{
+            backgroundColor: '#2d2d2d',
+            borderTop: '1px solid #444',
+            gap: 1,
+          }}
+        >
           <Button
             startIcon={<RefreshIcon />}
             onClick={refreshLogs}

@@ -4,13 +4,16 @@
  */
 
 import { useState, useCallback } from 'react';
+
 import { apiService } from '../../../services/api';
 import { Rental } from '../../../types';
 
 export const usePendingRentals = () => {
   const [pendingRentals, setPendingRentals] = useState<Rental[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
-  const [expandedRentals, setExpandedRentals] = useState<Set<string>>(new Set());
+  const [expandedRentals, setExpandedRentals] = useState<Set<string>>(
+    new Set()
+  );
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -33,39 +36,45 @@ export const usePendingRentals = () => {
     }
   }, []);
 
-  const handleApproveRental = useCallback(async (rentalId: string): Promise<boolean> => {
-    try {
-      setActionLoading(rentalId);
-      await apiService.approveAutomaticRental(rentalId);
-      // Remove from pending list
-      setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
-      setSuccess('Prenájom bol úspešne schválený');
-      return true;
-    } catch (err: any) {
-      console.error('Error approving rental:', err);
-      setError('Nepodarilo sa schváliť prenájom');
-      return false;
-    } finally {
-      setActionLoading(null);
-    }
-  }, []);
+  const handleApproveRental = useCallback(
+    async (rentalId: string): Promise<boolean> => {
+      try {
+        setActionLoading(rentalId);
+        await apiService.approveAutomaticRental(rentalId);
+        // Remove from pending list
+        setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
+        setSuccess('Prenájom bol úspešne schválený');
+        return true;
+      } catch (err: any) {
+        console.error('Error approving rental:', err);
+        setError('Nepodarilo sa schváliť prenájom');
+        return false;
+      } finally {
+        setActionLoading(null);
+      }
+    },
+    []
+  );
 
-  const handleRejectRental = useCallback(async (rentalId: string, reason: string): Promise<boolean> => {
-    try {
-      setActionLoading(rentalId);
-      await apiService.rejectAutomaticRental(rentalId, reason);
-      // Remove from pending list
-      setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
-      setSuccess('Prenájom bol zamietnutý');
-      return true;
-    } catch (err: any) {
-      console.error('Error rejecting rental:', err);
-      setError('Nepodarilo sa zamietnuť prenájom');
-      return false;
-    } finally {
-      setActionLoading(null);
-    }
-  }, []);
+  const handleRejectRental = useCallback(
+    async (rentalId: string, reason: string): Promise<boolean> => {
+      try {
+        setActionLoading(rentalId);
+        await apiService.rejectAutomaticRental(rentalId, reason);
+        // Remove from pending list
+        setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
+        setSuccess('Prenájom bol zamietnutý');
+        return true;
+      } catch (err: any) {
+        console.error('Error rejecting rental:', err);
+        setError('Nepodarilo sa zamietnuť prenájom');
+        return false;
+      } finally {
+        setActionLoading(null);
+      }
+    },
+    []
+  );
 
   const toggleRentalExpansion = useCallback((rentalId: string) => {
     setExpandedRentals(prev => {
@@ -89,7 +98,7 @@ export const usePendingRentals = () => {
     success,
     setError,
     setSuccess,
-    
+
     // Operations
     fetchPendingRentals,
     handleApproveRental,

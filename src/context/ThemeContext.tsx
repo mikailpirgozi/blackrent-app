@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Theme } from '@mui/material/styles';
-import { theme as lightTheme } from '../theme/theme';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+
 import { darkTheme } from '../theme/darkTheme';
+import { theme as lightTheme } from '../theme/theme';
 
 interface ThemeContextType {
   isDarkMode: boolean;
@@ -31,7 +32,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     if (saved !== null) {
       return JSON.parse(saved);
     }
-    
+
     // Then check system preference
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   };
@@ -52,7 +53,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Update theme when isDarkMode changes
   useEffect(() => {
     setCurrentTheme(isDarkMode ? darkTheme : lightTheme);
-    
+
     // Update document class for CSS-in-JS components
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -68,7 +69,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Listen for system theme changes
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+
     const handleChange = (e: MediaQueryListEvent) => {
       // Only update if user hasn't manually set preference
       const saved = localStorage.getItem('blackrent-dark-mode');
@@ -88,8 +89,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   };
 
   return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
-}; 
+};

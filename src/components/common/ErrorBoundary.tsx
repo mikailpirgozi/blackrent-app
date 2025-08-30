@@ -1,15 +1,3 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Button, 
-  Paper, 
-  Alert,
-  AlertTitle,
-  Collapse,
-  IconButton,
-  Stack,
-} from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
@@ -17,6 +5,18 @@ import {
   Home as HomeIcon,
   BugReport as BugReportIcon,
 } from '@mui/icons-material';
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  Alert,
+  AlertTitle,
+  Collapse,
+  IconButton,
+  Stack,
+} from '@mui/material';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 // 🔄 MOBILE CLEANUP: mobileLogger removed
 // import { getMobileLogger } from '../../utils/mobileLogger';
 
@@ -52,32 +52,38 @@ class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
-    
+
     console.group('🚨 ErrorBoundary caught an error');
     console.error('Error:', error);
     console.error('Component Stack:', errorInfo.componentStack);
     console.groupEnd();
-    
+
     // Report to MobileLogger with enhanced context
     // 🔄 MOBILE CLEANUP: mobileLogger disabled
     const mobileLogger = null; // getMobileLogger();
     if (mobileLogger) {
       // mobileLogger.log('CRITICAL', 'ErrorBoundary', 'React Error Boundary caught error', {
-        // error: error.message,
-        // stack: error.stack,
-        // componentStack: errorInfo.componentStack,
-        // errorBoundary: true,
-        // retryCount: this.state.retryCount,
-        // level: this.props.level || 'component',
+      // error: error.message,
+      // stack: error.stack,
+      // componentStack: errorInfo.componentStack,
+      // errorBoundary: true,
+      // retryCount: this.state.retryCount,
+      // level: this.props.level || 'component',
       // });
     }
 
     // Auto-retry for certain recoverable errors
-    if (this.shouldAutoRetry(error) && this.state.retryCount < (this.props.maxRetries || 2)) {
-      const timeout = setTimeout(() => {
-        this.handleRetry();
-      }, 1000 * (this.state.retryCount + 1));
-      
+    if (
+      this.shouldAutoRetry(error) &&
+      this.state.retryCount < (this.props.maxRetries || 2)
+    ) {
+      const timeout = setTimeout(
+        () => {
+          this.handleRetry();
+        },
+        1000 * (this.state.retryCount + 1)
+      );
+
       this.retryTimeouts.push(timeout);
     }
   }
@@ -93,16 +99,16 @@ class ErrorBoundary extends Component<Props, State> {
       'Network Error',
       'Failed to fetch',
     ];
-    
-    return recoverableErrors.some(pattern => 
-      error.message.includes(pattern) || error.name.includes(pattern)
+
+    return recoverableErrors.some(
+      pattern => error.message.includes(pattern) || error.name.includes(pattern)
     );
   };
 
   private handleRetry = () => {
-    this.setState(prevState => ({ 
-      hasError: false, 
-      error: null, 
+    this.setState(prevState => ({
+      hasError: false,
+      error: null,
       errorInfo: undefined,
       retryCount: prevState.retryCount + 1,
       showDetails: false,
@@ -118,21 +124,28 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   private toggleDetails = () => {
-    this.setState(prevState => ({ 
-      showDetails: !prevState.showDetails 
+    this.setState(prevState => ({
+      showDetails: !prevState.showDetails,
     }));
   };
 
   private getErrorMessage = (): string => {
     const { error } = this.state;
-    
+
     if (!error) return 'Neznáma chyba';
 
-    if (error.message.includes('ChunkLoadError') || error.message.includes('Loading chunk')) {
+    if (
+      error.message.includes('ChunkLoadError') ||
+      error.message.includes('Loading chunk')
+    ) {
       // 🔍 IMPROVED: Lepšie logovanie pre mobile chunk errors
-      const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
-      const hasAutoReloaded = sessionStorage.getItem('autoReloadedAfterChunkError') === '1';
-      
+      const isMobile =
+        typeof window !== 'undefined' &&
+        window.matchMedia &&
+        window.matchMedia('(max-width: 900px)').matches;
+      const hasAutoReloaded =
+        sessionStorage.getItem('autoReloadedAfterChunkError') === '1';
+
       console.group('🚨 ChunkLoadError detected');
       console.log('Is Mobile:', isMobile);
       console.log('Has Auto Reloaded:', hasAutoReloaded);
@@ -140,17 +153,19 @@ class ErrorBoundary extends Component<Props, State> {
       console.log('User Agent:', navigator.userAgent);
       console.log('Connection:', (navigator as any).connection);
       console.groupEnd();
-      
+
       // 🔍 CHANGE: Pridáme delay a user confirmation na mobile
       if (isMobile && !hasAutoReloaded) {
         sessionStorage.setItem('autoReloadedAfterChunkError', '1');
-        
+
         // 🚫 TEMPORARILY DISABLED: Automatic reload on ChunkLoadError
         // This might be causing the mobile refresh issues
-        
-        console.log('🚨 ChunkLoadError detected but auto-reload is DISABLED for debugging');
+
+        console.log(
+          '🚨 ChunkLoadError detected but auto-reload is DISABLED for debugging'
+        );
         console.log('📱 Mobile users should manually refresh if needed');
-        
+
         // PÔVODNÝ KÓD (ZAKÁZANÝ):
         // if (process.env.NODE_ENV === 'development') {
         //   const shouldReload = window.confirm('🚨 ChunkLoadError na mobile!\n\nChcete automaticky obnoviť stránku?\n(Cancel = ponechať pre debugging)');
@@ -163,8 +178,11 @@ class ErrorBoundary extends Component<Props, State> {
       }
       return 'Načítavanie stránky bolo prerušené. Skúste obnoviť stránku.';
     }
-    
-    if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+
+    if (
+      error.message.includes('Network Error') ||
+      error.message.includes('Failed to fetch')
+    ) {
       return 'Problém s pripojením. Skontrolujte internetové pripojenie.';
     }
 
@@ -198,7 +216,9 @@ class ErrorBoundary extends Component<Props, State> {
           >
             <Paper elevation={3} sx={{ p: 4, maxWidth: 700 }}>
               <Alert severity="error" sx={{ mb: 3 }}>
-                <AlertTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AlertTitle
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                >
                   <BugReportIcon />
                   Stránka sa nenačítala správne
                 </AlertTitle>
@@ -207,7 +227,11 @@ class ErrorBoundary extends Component<Props, State> {
                 </Typography>
               </Alert>
 
-              <Stack direction="row" spacing={2} sx={{ mb: 2, justifyContent: 'center' }}>
+              <Stack
+                direction="row"
+                spacing={2}
+                sx={{ mb: 2, justifyContent: 'center' }}
+              >
                 {canRetry && (
                   <Button
                     variant="contained"
@@ -217,7 +241,7 @@ class ErrorBoundary extends Component<Props, State> {
                     Skúsiť znovu ({retryCount}/{maxRetries})
                   </Button>
                 )}
-                
+
                 <Button
                   variant="outlined"
                   startIcon={<RefreshIcon />}
@@ -225,7 +249,7 @@ class ErrorBoundary extends Component<Props, State> {
                 >
                   Obnoviť stránku
                 </Button>
-                
+
                 <Button
                   variant="text"
                   startIcon={<HomeIcon />}
@@ -240,40 +264,52 @@ class ErrorBoundary extends Component<Props, State> {
                 <Button
                   size="small"
                   onClick={this.toggleDetails}
-                  startIcon={showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  startIcon={
+                    showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />
+                  }
                   sx={{ mb: 1 }}
                 >
                   Technické detaily
                 </Button>
-                
+
                 <Collapse in={showDetails}>
                   <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
                     {process.env.NODE_ENV === 'development' && error && (
                       <>
-                        <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}
+                        >
                           Chybová správa:
                         </Typography>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 2 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontFamily: 'monospace', mb: 2 }}
+                        >
                           {error.toString()}
                         </Typography>
 
                         {error.stack && (
-                          <Box component="pre" sx={{ 
-                            fontSize: '0.75rem',
-                            overflow: 'auto',
-                            maxHeight: 200,
-                            bgcolor: 'grey.100',
-                            p: 1,
-                            borderRadius: 1,
-                          }}>
+                          <Box
+                            component="pre"
+                            sx={{
+                              fontSize: '0.75rem',
+                              overflow: 'auto',
+                              maxHeight: 200,
+                              bgcolor: 'grey.100',
+                              p: 1,
+                              borderRadius: 1,
+                            }}
+                          >
                             {error.stack}
                           </Box>
                         )}
                       </>
                     )}
-                    
+
                     <Typography variant="caption" color="text.secondary">
-                      Chyba bola automaticky nahlásená a bude opravená čo najskôr.
+                      Chyba bola automaticky nahlásená a bude opravená čo
+                      najskôr.
                     </Typography>
                   </Paper>
                 </Collapse>
@@ -285,8 +321,8 @@ class ErrorBoundary extends Component<Props, State> {
 
       // Component-level error (smaller, inline)
       return (
-        <Alert 
-          severity="error" 
+        <Alert
+          severity="error"
           sx={{ m: 2 }}
           action={
             <Stack direction="row" spacing={1}>
@@ -307,15 +343,20 @@ class ErrorBoundary extends Component<Props, State> {
           <Typography variant="body2" sx={{ mb: 1 }}>
             {this.getErrorMessage()}
           </Typography>
-          
+
           {retryCount > 0 && (
-            <Typography variant="caption" sx={{ display: 'block', opacity: 0.7 }}>
+            <Typography
+              variant="caption"
+              sx={{ display: 'block', opacity: 0.7 }}
+            >
               Počet pokusov: {retryCount}/{maxRetries}
             </Typography>
           )}
 
           <Collapse in={showDetails}>
-            <Box sx={{ mt: 2, p: 1, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 1 }}>
+            <Box
+              sx={{ mt: 2, p: 1, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 1 }}
+            >
               <Typography variant="caption">
                 {process.env.NODE_ENV === 'development' && error?.message}
               </Typography>
@@ -329,4 +370,4 @@ class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-export default ErrorBoundary; 
+export default ErrorBoundary;

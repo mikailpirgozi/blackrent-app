@@ -1,4 +1,7 @@
-import React from 'react';
+import {
+  PictureAsPdf as PDFIcon,
+  PhotoLibrary as GalleryIcon,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -6,20 +9,20 @@ import {
   Box,
   CircularProgress,
   Typography,
-  Button
+  Button,
 } from '@mui/material';
-import {
-  PictureAsPdf as PDFIcon,
-  PhotoLibrary as GalleryIcon
-} from '@mui/icons-material';
+import React from 'react';
+
 import { Rental, ProtocolImage, ProtocolVideo } from '../../../types';
-import RentalForm from '../RentalForm';
 import PDFViewer from '../../common/PDFViewer';
 import ProtocolGallery from '../../common/ProtocolGallery';
 import ReturnProtocolForm from '../../protocols/ReturnProtocolForm';
+import RentalForm from '../RentalForm';
 
 // 🚀 LAZY LOADING: Protocols loaded only when needed
-const HandoverProtocolForm = React.lazy(() => import('../../protocols/HandoverProtocolForm'));
+const HandoverProtocolForm = React.lazy(
+  () => import('../../protocols/HandoverProtocolForm')
+);
 
 interface RentalDialogsProps {
   // Dialog states
@@ -29,20 +32,27 @@ interface RentalDialogsProps {
   openProtocolMenu: boolean;
   pdfViewerOpen: boolean;
   galleryOpen: boolean;
-  
+
   // Selected data
   editingRental: Rental | null;
   selectedRentalForProtocol: Rental | null;
   selectedProtocolType: 'handover' | 'return' | null;
-  selectedPdf: { url: string; type: 'handover' | 'return'; title: string } | null;
+  selectedPdf: {
+    url: string;
+    type: 'handover' | 'return';
+    title: string;
+  } | null;
   galleryImages: ProtocolImage[];
   galleryVideos: ProtocolVideo[];
   galleryTitle: string;
-  
+
   // Protocols data
   protocols: Record<string, { handover?: any; return?: any }>;
-  protocolStatusMap: Record<string, { hasHandoverProtocol: boolean; hasReturnProtocol: boolean }>;
-  
+  protocolStatusMap: Record<
+    string,
+    { hasHandoverProtocol: boolean; hasReturnProtocol: boolean }
+  >;
+
   // Event handlers
   setOpenDialog: (open: boolean) => void;
   setOpenHandoverDialog: (open: boolean) => void;
@@ -66,7 +76,7 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
   openProtocolMenu,
   pdfViewerOpen,
   galleryOpen,
-  
+
   // Selected data
   editingRental,
   selectedRentalForProtocol,
@@ -75,11 +85,11 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
   galleryImages,
   galleryVideos,
   galleryTitle,
-  
+
   // Protocols data
   protocols,
   protocolStatusMap,
-  
+
   // Event handlers
   setOpenDialog,
   setOpenHandoverDialog,
@@ -97,8 +107,8 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
   return (
     <>
       {/* Rental Form Dialog */}
-      <Dialog 
-        open={openDialog} 
+      <Dialog
+        open={openDialog}
         onClose={() => setOpenDialog(false)}
         maxWidth="md"
         fullWidth
@@ -120,9 +130,11 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
         open={openHandoverDialog}
         onClose={() => {
           console.log('🚨 MOBILE DEBUG: Dialog onClose triggered!');
-          console.log('🚨 MOBILE DEBUG: Modal closing via backdrop click or ESC');
+          console.log(
+            '🚨 MOBILE DEBUG: Modal closing via backdrop click or ESC'
+          );
           console.log('🚨 MOBILE DEBUG: timestamp:', new Date().toISOString());
-          
+
           // logMobile('WARN', 'RentalList', 'Handover modal closing via Dialog onClose', {
           //   timestamp: Date.now(),
           //   selectedRentalId: selectedRentalForProtocol?.id,
@@ -136,29 +148,38 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
         <DialogTitle>Odovzdávací protokol</DialogTitle>
         <DialogContent>
           {selectedRentalForProtocol && (
-            <React.Suspense fallback={
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-                <CircularProgress />
-                <Typography sx={{ ml: 2 }}>Načítavam protokol...</Typography>
-              </Box>
-            }>
+            <React.Suspense
+              fallback={
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                  <CircularProgress />
+                  <Typography sx={{ ml: 2 }}>Načítavam protokol...</Typography>
+                </Box>
+              }
+            >
               <HandoverProtocolForm
                 open={openHandoverDialog}
                 rental={selectedRentalForProtocol}
                 onSave={handleSaveHandover}
                 onClose={() => {
-                console.log('🚨 MOBILE DEBUG: HandoverProtocolForm onClose triggered!');
-                console.log('🚨 MOBILE DEBUG: Modal closing via form close button');
-                console.log('🚨 MOBILE DEBUG: timestamp:', new Date().toISOString());
-                
-                // logMobile('WARN', 'RentalList', 'Handover modal closing via HandoverProtocolForm onClose', {
-                //   timestamp: Date.now(),
-                //   selectedRentalId: selectedRentalForProtocol?.id,
-                //   reason: 'form_onClose'
-                // });
-                setOpenHandoverDialog(false);
-              }}
-            />
+                  console.log(
+                    '🚨 MOBILE DEBUG: HandoverProtocolForm onClose triggered!'
+                  );
+                  console.log(
+                    '🚨 MOBILE DEBUG: Modal closing via form close button'
+                  );
+                  console.log(
+                    '🚨 MOBILE DEBUG: timestamp:',
+                    new Date().toISOString()
+                  );
+
+                  // logMobile('WARN', 'RentalList', 'Handover modal closing via HandoverProtocolForm onClose', {
+                  //   timestamp: Date.now(),
+                  //   selectedRentalId: selectedRentalForProtocol?.id,
+                  //   reason: 'form_onClose'
+                  // });
+                  setOpenHandoverDialog(false);
+                }}
+              />
             </React.Suspense>
           )}
         </DialogContent>
@@ -178,22 +199,36 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
               {/* ✅ LOADING STATE: Zobraz loading kým sa načítajú protokoly */}
               {(() => {
                 // ✅ POUŽIŤ PROTOCOL STATUS MAP: Rýchlejšia kontrola existencie protokolu
-                const backgroundStatus = protocolStatusMap[selectedRentalForProtocol.id];
-                const fallbackProtocols = protocols[selectedRentalForProtocol.id];
-                
-                const hasHandover = backgroundStatus 
-                  ? backgroundStatus.hasHandoverProtocol 
+                const backgroundStatus =
+                  protocolStatusMap[selectedRentalForProtocol.id];
+                const fallbackProtocols =
+                  protocols[selectedRentalForProtocol.id];
+
+                const hasHandover = backgroundStatus
+                  ? backgroundStatus.hasHandoverProtocol
                   : !!fallbackProtocols?.handover;
-                
+
                 return !hasHandover;
               })() ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 4 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    p: 4,
+                  }}
+                >
                   <CircularProgress sx={{ mb: 2 }} />
                   <Typography variant="body1" color="text.secondary">
                     Načítavam odovzdávací protokol...
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Pre vytvorenie preberacieho protokolu je potrebný odovzdávací protokol.
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 1 }}
+                  >
+                    Pre vytvorenie preberacieho protokolu je potrebný
+                    odovzdávací protokol.
                   </Typography>
                 </Box>
               ) : (
@@ -201,7 +236,9 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
                   open={openReturnDialog}
                   onClose={() => setOpenReturnDialog(false)}
                   rental={selectedRentalForProtocol}
-                  handoverProtocol={protocols[selectedRentalForProtocol.id]?.handover}
+                  handoverProtocol={
+                    protocols[selectedRentalForProtocol.id]?.handover
+                  }
                   onSave={handleSaveReturn}
                 />
               )}
@@ -237,24 +274,34 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle sx={{ 
-          bgcolor: 'primary.main', 
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1
-        }}>
+        <DialogTitle
+          sx={{
+            bgcolor: 'primary.main',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
           {selectedProtocolType === 'handover' ? '🚗→' : '←🚗'}
-          {selectedProtocolType === 'handover' ? 'Odovzdávací protokol' : 'Preberací protokol'}
+          {selectedProtocolType === 'handover'
+            ? 'Odovzdávací protokol'
+            : 'Preberací protokol'}
         </DialogTitle>
         <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: { xs: 1.5, sm: 2 },
+            }}
+          >
             <Button
               fullWidth
               variant="contained"
               startIcon={<PDFIcon />}
               onClick={handleDownloadPDF}
-              sx={{ 
+              sx={{
                 bgcolor: '#f44336',
                 py: { xs: 2, sm: 1.5 },
                 fontSize: { xs: '1rem', sm: '0.875rem' },
@@ -264,20 +311,20 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
                 '&:hover': {
                   bgcolor: '#d32f2f',
                   transform: 'translateY(-2px)',
-                  boxShadow: '0 6px 16px rgba(244,67,54,0.4)'
+                  boxShadow: '0 6px 16px rgba(244,67,54,0.4)',
                 },
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
               }}
             >
               📄 Stiahnuť PDF protokol
             </Button>
-            
+
             <Button
               fullWidth
               variant="contained"
               startIcon={<GalleryIcon />}
               onClick={handleViewGallery}
-              sx={{ 
+              sx={{
                 bgcolor: '#2196f3',
                 py: { xs: 2, sm: 1.5 },
                 fontSize: { xs: '1rem', sm: '0.875rem' },
@@ -287,19 +334,19 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
                 '&:hover': {
                   bgcolor: '#1976d2',
                   transform: 'translateY(-2px)',
-                  boxShadow: '0 6px 16px rgba(33,150,243,0.4)'
+                  boxShadow: '0 6px 16px rgba(33,150,243,0.4)',
                 },
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
               }}
             >
               🖼️ Zobraziť fotky
             </Button>
-            
+
             <Button
               fullWidth
               variant="outlined"
               onClick={handleCloseProtocolMenu}
-              sx={{ 
+              sx={{
                 py: { xs: 2, sm: 1.5 },
                 fontSize: { xs: '1rem', sm: '0.875rem' },
                 fontWeight: 500,
@@ -307,8 +354,8 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
                 borderWidth: 2,
                 '&:hover': {
                   borderWidth: 2,
-                  bgcolor: 'rgba(0,0,0,0.04)'
-                }
+                  bgcolor: 'rgba(0,0,0,0.04)',
+                },
               }}
             >
               Zavrieť

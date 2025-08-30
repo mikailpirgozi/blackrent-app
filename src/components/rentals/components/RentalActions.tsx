@@ -1,12 +1,6 @@
+import { Add as AddIcon } from '@mui/icons-material';
+import { Box, Button } from '@mui/material';
 import React from 'react';
-import {
-  Box,
-  Button
-} from '@mui/material';
-import {
-  Add as AddIcon
-} from '@mui/icons-material';
-
 
 interface RentalActionsProps {
   isMobile: boolean;
@@ -15,18 +9,19 @@ interface RentalActionsProps {
 
 export const RentalActions: React.FC<RentalActionsProps> = ({
   isMobile,
-  handleAdd
+  handleAdd,
 }) => {
-
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      gap: { xs: 1, md: 2 }, 
-      mb: 3,
-      mx: { xs: 1, md: 0 }, // Menší symetrický margin na mobile
-      flexWrap: 'wrap',
-      alignItems: 'center'
-    }}>
+    <Box
+      sx={{
+        display: 'flex',
+        gap: { xs: 1, md: 2 },
+        mb: 3,
+        mx: { xs: 1, md: 0 }, // Menší symetrický margin na mobile
+        flexWrap: 'wrap',
+        alignItems: 'center',
+      }}
+    >
       {/* Pridať prenájom */}
       <Button
         variant="contained"
@@ -40,7 +35,7 @@ export const RentalActions: React.FC<RentalActionsProps> = ({
           borderRadius: 2,
           textTransform: 'none',
           fontWeight: 600,
-          boxShadow: '0 4px 12px rgba(25,118,210,0.3)'
+          boxShadow: '0 4px 12px rgba(25,118,210,0.3)',
         }}
       >
         {isMobile ? 'Pridať' : 'Nový prenájom'}

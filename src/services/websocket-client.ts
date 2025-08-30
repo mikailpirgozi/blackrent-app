@@ -2,96 +2,101 @@
 // Real-time komunikácia s backend WebSocket serverom
 
 import { io, Socket } from 'socket.io-client';
+
 import { Rental, Vehicle, Customer } from '../types';
 import { getBaseUrl } from '../utils/apiUrl';
 
 // Event typy pre TypeScript
 export interface WebSocketEvents {
   // Rental events
-  'rental:created': (data: { 
-    rental: Rental; 
-    createdBy: string; 
-    timestamp: string; 
+  'rental:created': (data: {
+    rental: Rental;
+    createdBy: string;
+    timestamp: string;
     message: string;
   }) => void;
 
-  'rental:updated': (data: { 
-    rental: Rental; 
-    updatedBy: string; 
+  'rental:updated': (data: {
+    rental: Rental;
+    updatedBy: string;
     changes?: string[];
-    timestamp: string; 
+    timestamp: string;
     message: string;
   }) => void;
 
-  'rental:deleted': (data: { 
-    rentalId: string; 
+  'rental:deleted': (data: {
+    rentalId: string;
     customerName: string;
-    deletedBy: string; 
-    timestamp: string; 
+    deletedBy: string;
+    timestamp: string;
     message: string;
   }) => void;
 
   // Vehicle events
-  'vehicle:updated': (data: { 
-    vehicle: Vehicle; 
-    updatedBy: string; 
+  'vehicle:updated': (data: {
+    vehicle: Vehicle;
+    updatedBy: string;
     changes?: string[];
-    timestamp: string; 
+    timestamp: string;
     message: string;
   }) => void;
 
   // Customer events
-  'customer:created': (data: { 
-    customer: Customer; 
-    createdBy: string; 
-    timestamp: string; 
+  'customer:created': (data: {
+    customer: Customer;
+    createdBy: string;
+    timestamp: string;
     message: string;
   }) => void;
 
   // Protocol events
-  'protocol:created': (data: { 
-    rentalId: string; 
-    protocolType: 'handover' | 'return'; 
-    protocolId: string; 
-    createdBy: string; 
-    timestamp: string; 
+  'protocol:created': (data: {
+    rentalId: string;
+    protocolType: 'handover' | 'return';
+    protocolId: string;
+    createdBy: string;
+    timestamp: string;
     message: string;
   }) => void;
 
-  'protocol:updated': (data: { 
-    rentalId: string; 
-    protocolType: 'handover' | 'return'; 
-    protocolId: string; 
-    updatedBy: string; 
+  'protocol:updated': (data: {
+    rentalId: string;
+    protocolType: 'handover' | 'return';
+    protocolId: string;
+    updatedBy: string;
     changes?: string[];
-    timestamp: string; 
+    timestamp: string;
     message: string;
   }) => void;
 
   // System events
-  'system:notification': (data: { 
-    type: 'info' | 'warning' | 'error'; 
-    message: string; 
+  'system:notification': (data: {
+    type: 'info' | 'warning' | 'error';
+    message: string;
     details?: any;
     timestamp: string;
   }) => void;
 
-  'system:migration': (data: { 
-    migrationName: string; 
-    success: boolean; 
+  'system:migration': (data: {
+    migrationName: string;
+    success: boolean;
     details?: string;
     timestamp: string;
     message: string;
   }) => void;
 
   // Connection events
-  'connected-users': (data: { 
-    count: number; 
+  'connected-users': (data: {
+    count: number;
     users: Array<{ userName?: string; socketId: string }>;
   }) => void;
 
-  'pong': (data: { timestamp: number }) => void;
-  'test': (data: { message: string; timestamp: string; connectedClients: number }) => void;
+  pong: (data: { timestamp: number }) => void;
+  test: (data: {
+    message: string;
+    timestamp: string;
+    connectedClients: number;
+  }) => void;
 }
 
 export class WebSocketClient {
@@ -107,12 +112,12 @@ export class WebSocketClient {
   private connect() {
     // WebSocket server beží na root, nie na /api ako REST API
     const baseUrl = getBaseUrl();
-    
+
     // Optimalized logging - reduced verbosity
     if (process.env.NODE_ENV === 'development') {
       console.log('🔴 Connecting to WebSocket:', baseUrl);
     }
-    
+
     this.socket = io(baseUrl, {
       transports: ['websocket', 'polling'],
       reconnectionDelay: 2000,
@@ -132,7 +137,7 @@ export class WebSocketClient {
       // Optimalized: Single consolidated log for connection
       console.log('✅ WebSocket connected:', this.socket?.id);
       this.reconnectAttempts = 0;
-      
+
       // Registruj užívateľa ak je prihlásený
       const userData = this.getUserData();
       if (userData) {
@@ -140,20 +145,22 @@ export class WebSocketClient {
       }
     });
 
-    this.socket.on('disconnect', (reason) => {
+    this.socket.on('disconnect', reason => {
       console.log('❌ WebSocket disconnected:', reason);
     });
 
-    this.socket.on('connect_error', (error) => {
+    this.socket.on('connect_error', error => {
       console.error('🚫 WebSocket connection error:', error);
       this.reconnectAttempts++;
-      
+
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.error('💀 Max reconnection attempts reached. WebSocket disabled.');
+        console.error(
+          '💀 Max reconnection attempts reached. WebSocket disabled.'
+        );
       }
     });
 
-    this.socket.on('reconnect', (attemptNumber) => {
+    this.socket.on('reconnect', attemptNumber => {
       console.log(`🔄 WebSocket reconnected after ${attemptNumber} attempts`);
       this.reconnectAttempts = 0;
     });
@@ -166,7 +173,7 @@ export class WebSocketClient {
         const user = JSON.parse(userStr);
         return {
           userId: user.id,
-          userName: user.username || user.name || 'Neznámy užívateľ'
+          userName: user.username || user.name || 'Neznámy užívateľ',
         };
       }
     } catch (error) {
@@ -207,12 +214,14 @@ export class WebSocketClient {
    */
   on<K extends keyof WebSocketEvents>(event: K, callback: WebSocketEvents[K]) {
     if (!this.socket) {
-      console.warn(`🚫 Cannot add listener for ${event} - WebSocket not initialized`);
+      console.warn(
+        `🚫 Cannot add listener for ${event} - WebSocket not initialized`
+      );
       return;
     }
 
     this.socket.on(event, callback as any);
-    
+
     // Uchováme callback pre cleanup
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, []);
@@ -223,12 +232,15 @@ export class WebSocketClient {
   /**
    * Odstráň event listener
    */
-  off<K extends keyof WebSocketEvents>(event: K, callback?: WebSocketEvents[K]) {
+  off<K extends keyof WebSocketEvents>(
+    event: K,
+    callback?: WebSocketEvents[K]
+  ) {
     if (!this.socket) return;
 
     if (callback) {
       this.socket.off(event, callback as any);
-      
+
       // Odstráň z našej mapy
       const listeners = this.eventListeners.get(event);
       if (listeners) {
@@ -250,13 +262,13 @@ export class WebSocketClient {
   disconnect() {
     if (this.socket) {
       console.log('🔌 Disconnecting WebSocket...');
-      
+
       // Vyčisti všetky event listeners
       this.eventListeners.forEach((listeners, event) => {
         this.socket?.off(event);
       });
       this.eventListeners.clear();
-      
+
       this.socket.disconnect();
       this.socket = null;
     }

@@ -1,4 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import {
+  Search as SearchIcon,
+  FilterList as FilterListIcon,
+  CalendarToday as CalendarIcon,
+  DirectionsCar as CarIcon,
+  Clear as ClearIcon,
+  Today as TodayIcon,
+  Refresh as RefreshIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -18,21 +26,14 @@ import {
   useTheme,
   Chip,
   Checkbox,
-  ListItemText
+  ListItemText,
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
-  Clear as ClearIcon,
-  Today as TodayIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material';
+import React, { useState, useMemo } from 'react';
+
+import AddUnavailabilityModal from '../components/availability/AddUnavailabilityModal';
+import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
 import { useApp } from '../context/AppContext';
 import { VehicleCategory, Vehicle } from '../types';
-import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
-import AddUnavailabilityModal from '../components/availability/AddUnavailabilityModal';
 // 🔄 PHASE 4: Migrated to unified cache system
 import { unifiedCache } from '../utils/unifiedCacheSystem';
 
@@ -40,7 +41,7 @@ const AvailabilityPageNew: React.FC = () => {
   const { state, getFilteredVehicles } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
-  
+
   // States
   const [searchQuery, setSearchQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -48,19 +49,27 @@ const AvailabilityPageNew: React.FC = () => {
   const [availableFromDate, setAvailableFromDate] = useState('');
   const [availableToDate, setAvailableToDate] = useState('');
   // 🚗 MULTI-SELECT CATEGORY FILTER: Array of selected categories
-  const [selectedCategories, setSelectedCategories] = useState<VehicleCategory[]>([]);
-  
+  const [selectedCategories, setSelectedCategories] = useState<
+    VehicleCategory[]
+  >([]);
+
   // 🚫 UNAVAILABILITY MODAL STATE
   const [unavailabilityModalOpen, setUnavailabilityModalOpen] = useState(false);
 
   // Get filtered vehicles based on user permissions
   const filteredVehicles = getFilteredVehicles();
-  
+
   // Get unique companies for filter
-  const uniqueCompanies = [...new Set(filteredVehicles.map(v => v.company))].sort();
+  const uniqueCompanies = [
+    ...new Set(filteredVehicles.map(v => v.company)),
+  ].sort();
 
   // 🚗 VEHICLE CATEGORIES with emoji icons
-  const vehicleCategories: { value: VehicleCategory; label: string; emoji: string }[] = [
+  const vehicleCategories: {
+    value: VehicleCategory;
+    label: string;
+    emoji: string;
+  }[] = [
     { value: 'nizka-trieda', label: 'Nízka trieda', emoji: '🚗' },
     { value: 'stredna-trieda', label: 'Stredná trieda', emoji: '🚙' },
     { value: 'vyssia-stredna', label: 'Vyššia stredná trieda', emoji: '🚘' },
@@ -68,7 +77,7 @@ const AvailabilityPageNew: React.FC = () => {
     { value: 'sportove', label: 'Športové vozidlá', emoji: '🏎️' },
     { value: 'suv', label: 'SUV', emoji: '🚜' },
     { value: 'viacmiestne', label: 'Viacmiestne vozidlá', emoji: '👨‍👩‍👧‍👦' },
-    { value: 'dodavky', label: 'Dodávky', emoji: '📦' }
+    { value: 'dodavky', label: 'Dodávky', emoji: '📦' },
   ];
 
   // Handle category selection
@@ -92,7 +101,7 @@ const AvailabilityPageNew: React.FC = () => {
     // 🔄 PHASE 4: Using unified cache invalidation
     unifiedCache.invalidateEntity('calendar');
     unifiedCache.invalidateEntity('vehicle');
-    
+
     // Force calendar refresh by triggering a re-render
     // Use a small delay to ensure cache invalidation is processed
     setTimeout(() => {
@@ -111,21 +120,26 @@ const AvailabilityPageNew: React.FC = () => {
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header */}
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        mb: 3,
-        flexDirection: { xs: 'column', sm: 'row' },
-        gap: { xs: 2, sm: 0 }
-      }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 3,
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 },
+        }}
+      >
         <Box>
-          <Typography variant="h4" sx={{ 
-            fontWeight: 700, 
-            color: '#1976d2',
-            fontSize: { xs: '1.5rem', sm: '2rem' },
-            mb: 0.5
-          }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+              color: '#1976d2',
+              fontSize: { xs: '1.5rem', sm: '2rem' },
+              mb: 0.5,
+            }}
+          >
             📅 Dostupnosť vozidiel
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -170,7 +184,7 @@ const AvailabilityPageNew: React.FC = () => {
               fullWidth
               placeholder="Hľadať vozidlá..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: '#666', mr: 1 }} />,
               }}
@@ -178,12 +192,12 @@ const AvailabilityPageNew: React.FC = () => {
             />
             <IconButton
               onClick={() => setFiltersOpen(!filtersOpen)}
-              sx={{ 
+              sx={{
                 bgcolor: filtersOpen ? '#1976d2' : '#f5f5f5',
                 color: filtersOpen ? 'white' : '#666',
-                '&:hover': { 
-                  bgcolor: filtersOpen ? '#1565c0' : '#e0e0e0' 
-                }
+                '&:hover': {
+                  bgcolor: filtersOpen ? '#1565c0' : '#e0e0e0',
+                },
               }}
             >
               <FilterListIcon />
@@ -200,11 +214,13 @@ const AvailabilityPageNew: React.FC = () => {
                   <Select
                     value={selectedCompany}
                     label="Firma"
-                    onChange={(e) => setSelectedCompany(e.target.value)}
+                    onChange={e => setSelectedCompany(e.target.value)}
                   >
                     <MenuItem value="">Všetky firmy</MenuItem>
                     {uniqueCompanies.map(company => (
-                      <MenuItem key={company} value={company}>{company}</MenuItem>
+                      <MenuItem key={company} value={company}>
+                        {company}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -217,10 +233,12 @@ const AvailabilityPageNew: React.FC = () => {
                     label="Kategória vozidla"
                     onChange={handleCategoryChange}
                     multiple
-                    renderValue={(selected) => (
+                    renderValue={selected => (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {selected.map((value) => {
-                          const category = vehicleCategories.find(cat => cat.value === value);
+                        {selected.map(value => {
+                          const category = vehicleCategories.find(
+                            cat => cat.value === value
+                          );
                           return (
                             <Chip
                               key={value}
@@ -233,9 +251,13 @@ const AvailabilityPageNew: React.FC = () => {
                       </Box>
                     )}
                   >
-                    {vehicleCategories.map((category) => (
+                    {vehicleCategories.map(category => (
                       <MenuItem key={category.value} value={category.value}>
-                        <Checkbox checked={selectedCategories.indexOf(category.value) > -1} />
+                        <Checkbox
+                          checked={
+                            selectedCategories.indexOf(category.value) > -1
+                          }
+                        />
                         <ListItemText primary={category.label} />
                       </MenuItem>
                     ))}
@@ -252,11 +274,14 @@ const AvailabilityPageNew: React.FC = () => {
                   )}
                 </FormControl>
               </Grid>
-              
+
               {/* Date Range Filtre */}
               <Grid item xs={12}>
                 <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#1976d2' }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ mb: 2, fontWeight: 600, color: '#1976d2' }}
+                >
                   📅 Filtrovanie podľa dátumu dostupnosti
                 </Typography>
               </Grid>
@@ -267,7 +292,7 @@ const AvailabilityPageNew: React.FC = () => {
                   type="date"
                   size="small"
                   value={availableFromDate}
-                  onChange={(e) => setAvailableFromDate(e.target.value)}
+                  onChange={e => setAvailableFromDate(e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
@@ -278,27 +303,34 @@ const AvailabilityPageNew: React.FC = () => {
                   type="date"
                   size="small"
                   value={availableToDate}
-                  onChange={(e) => setAvailableToDate(e.target.value)}
+                  onChange={e => setAvailableToDate(e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
               {availableFromDate && availableToDate && (
                 <Grid item xs={12}>
-                  <Box sx={{ 
-                    p: 1.5, 
-                    backgroundColor: '#e3f2fd', 
-                    borderRadius: 1, 
-                    border: '1px solid #2196f3',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start'
-                  }}>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      backgroundColor: '#e3f2fd',
+                      borderRadius: 1,
+                      border: '1px solid #2196f3',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                    }}
+                  >
                     <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ color: '#1976d2', fontWeight: 500 }}>
-                        ℹ️ Zobrazujú sa len vozidlá dostupné v období {availableFromDate} - {availableToDate}
+                      <Typography
+                        variant="body2"
+                        sx={{ color: '#1976d2', fontWeight: 500 }}
+                      >
+                        ℹ️ Zobrazujú sa len vozidlá dostupné v období{' '}
+                        {availableFromDate} - {availableToDate}
                         <br />
                         <span style={{ fontSize: '0.85em' }}>
-                          Zahŕňa: dostupné vozidlá + flexibilné prenájmy (ktoré možno prepísať)
+                          Zahŕňa: dostupné vozidlá + flexibilné prenájmy (ktoré
+                          možno prepísať)
                         </span>
                       </Typography>
                     </Box>
@@ -323,11 +355,13 @@ const AvailabilityPageNew: React.FC = () => {
       {/* Statistics Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ 
-            background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(76,175,80,0.3)'
-          }}>
+          <Card
+            sx={{
+              background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(76,175,80,0.3)',
+            }}
+          >
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                 {filteredVehicles.filter(v => v.status === 'available').length}
@@ -339,11 +373,13 @@ const AvailabilityPageNew: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ 
-            background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(255,152,0,0.3)'
-          }}>
+          <Card
+            sx={{
+              background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(255,152,0,0.3)',
+            }}
+          >
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                 {filteredVehicles.filter(v => v.status === 'rented').length}
@@ -355,14 +391,19 @@ const AvailabilityPageNew: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ 
-            background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(244,67,54,0.3)'
-          }}>
+          <Card
+            sx={{
+              background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(244,67,54,0.3)',
+            }}
+          >
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {filteredVehicles.filter(v => v.status === 'maintenance').length}
+                {
+                  filteredVehicles.filter(v => v.status === 'maintenance')
+                    .length
+                }
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Údržba
@@ -371,11 +412,13 @@ const AvailabilityPageNew: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ 
-            background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(33,150,243,0.3)'
-          }}>
+          <Card
+            sx={{
+              background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(33,150,243,0.3)',
+            }}
+          >
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                 {filteredVehicles.length}
@@ -389,7 +432,13 @@ const AvailabilityPageNew: React.FC = () => {
       </Grid>
 
       {/* Calendar */}
-      <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
+      <Card
+        sx={{
+          overflow: 'hidden',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
+          borderRadius: 3,
+        }}
+      >
         <CardContent sx={{ p: 0 }}>
           <AvailabilityCalendar
             searchQuery={searchQuery}
@@ -412,4 +461,4 @@ const AvailabilityPageNew: React.FC = () => {
   );
 };
 
-export default AvailabilityPageNew; 
+export default AvailabilityPageNew;

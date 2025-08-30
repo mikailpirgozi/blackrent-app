@@ -1,8 +1,9 @@
-import React from 'react';
 import { saveAs } from 'file-saver';
-import { SecondaryButton } from '../../ui';
 import Papa from 'papaparse';
+import React from 'react';
+
 import { apiService } from '../../../services/api';
+import { SecondaryButton } from '../../ui';
 
 interface VehicleImportExportProps {
   loading: boolean;
@@ -10,15 +11,18 @@ interface VehicleImportExportProps {
   isMobile: boolean;
 }
 
-const VehicleImportExport: React.FC<VehicleImportExportProps> = ({ loading, setLoading, isMobile }) => {
-  
+const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
+  loading,
+  setLoading,
+  isMobile,
+}) => {
   // CSV Export funkcionalita
   const handleExportCSV = async () => {
     try {
       const blob = await apiService.exportVehiclesCSV();
       const filename = `vozidla-${new Date().toISOString().split('T')[0]}.csv`;
       saveAs(blob, filename);
-      
+
       alert('CSV export úspešný');
     } catch (error) {
       console.error('CSV export error:', error);
@@ -40,26 +44,26 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({ loading, setL
           // Zobraz počet riadkov na spracovanie
           const totalRows = results.data.length - 1; // -1 pre header
           console.log(`📊 Spracovávam ${totalRows} vozidiel z CSV...`);
-          
+
           // Zobraz progress dialog
           const progressDialog = window.confirm(
             `📥 Začínam import ${totalRows} vozidiel z CSV súboru...\n\n` +
-            'Tento proces môže trvať niekoľko sekúnd.\n' +
-            'Chcete pokračovať?'
+              'Tento proces môže trvať niekoľko sekúnd.\n' +
+              'Chcete pokračovať?'
           );
-          
+
           if (!progressDialog) {
             setLoading(false);
             return;
           }
-          
+
           // 📦 BATCH PROCESSING: Priprav vozidlá pre batch import
           const batchVehicles = [];
-          
+
           // Spracuj CSV dáta a vytvor vozidlá pre batch import
           const header = results.data[0];
           const dataRows = results.data.slice(1);
-          
+
           for (const row of dataRows) {
             const fieldMap: { [key: string]: string } = {};
             header.forEach((headerName: string, index: number) => {
@@ -76,7 +80,11 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({ loading, setL
             const stk = fieldMap['stk'] || fieldMap['STK'];
 
             if (!brand || !model || !company) {
-              console.warn('⚠️ Preskakujem riadok - chýbajú povinné polia:', { brand, model, company });
+              console.warn('⚠️ Preskakujem riadok - chýbajú povinné polia:', {
+                brand,
+                model,
+                company,
+              });
               continue;
             }
 
@@ -87,15 +95,31 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({ loading, setL
               maxDays: number;
               pricePerDay: number;
             }> = [];
-            
+
             const priceColumns = [
               { columns: ['cena_0_1', 'Cena_0-1_dni'], minDays: 0, maxDays: 1 },
               { columns: ['cena_2_3', 'Cena_2-3_dni'], minDays: 2, maxDays: 3 },
               { columns: ['cena_4_7', 'Cena_4-7_dni'], minDays: 4, maxDays: 7 },
-              { columns: ['cena_8_14', 'Cena_8-14_dni'], minDays: 8, maxDays: 14 },
-              { columns: ['cena_15_22', 'Cena_15-22_dni'], minDays: 15, maxDays: 22 },
-              { columns: ['cena_23_30', 'Cena_23-30_dni'], minDays: 23, maxDays: 30 },
-              { columns: ['cena_31_9999', 'Cena_31+_dni'], minDays: 31, maxDays: 365 }
+              {
+                columns: ['cena_8_14', 'Cena_8-14_dni'],
+                minDays: 8,
+                maxDays: 14,
+              },
+              {
+                columns: ['cena_15_22', 'Cena_15-22_dni'],
+                minDays: 15,
+                maxDays: 22,
+              },
+              {
+                columns: ['cena_23_30', 'Cena_23-30_dni'],
+                minDays: 23,
+                maxDays: 30,
+              },
+              {
+                columns: ['cena_31_9999', 'Cena_31+_dni'],
+                minDays: 31,
+                maxDays: 365,
+              },
             ];
 
             priceColumns.forEach((priceCol, index) => {
@@ -106,27 +130,28 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({ loading, setL
                   break;
                 }
               }
-              
+
               if (priceValue && !isNaN(parseFloat(priceValue))) {
                 pricing.push({
                   id: (index + 1).toString(),
                   minDays: priceCol.minDays,
                   maxDays: priceCol.maxDays,
-                  pricePerDay: parseFloat(priceValue)
+                  pricePerDay: parseFloat(priceValue),
                 });
               }
             });
 
             // Parsovanie provízie
-            const commissionType = (
-              fieldMap['commissionType'] || 
-              fieldMap['Provizia_typ'] || 
-              'percentage'
-            ) as 'percentage' | 'fixed';
-            
-            const commissionValue = fieldMap['commissionValue'] || fieldMap['Provizia_hodnota'] 
-              ? parseFloat(fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']) 
-              : 20;
+            const commissionType = (fieldMap['commissionType'] ||
+              fieldMap['Provizia_typ'] ||
+              'percentage') as 'percentage' | 'fixed';
+
+            const commissionValue =
+              fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']
+                ? parseFloat(
+                    fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']
+                  )
+                : 20;
 
             // Vytvor vehicle data
             const vehicleData = {
@@ -135,41 +160,61 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({ loading, setL
               model: model.trim(),
               licensePlate: licensePlate?.trim() || '',
               company: company.trim(),
-              year: year && year.trim() && !isNaN(parseInt(year)) ? parseInt(year) : 2024,
+              year:
+                year && year.trim() && !isNaN(parseInt(year))
+                  ? parseInt(year)
+                  : 2024,
               status: (status?.trim() || 'available') as any,
               stk: stk && stk.trim() ? new Date(stk.trim()) : undefined,
               pricing: pricing,
-              commission: { 
-                type: commissionType, 
-                value: commissionValue 
-              }
+              commission: {
+                type: commissionType,
+                value: commissionValue,
+              },
             };
 
             batchVehicles.push(vehicleData);
           }
 
-          console.log(`📦 Pripravených ${batchVehicles.length} vozidiel pre batch import`);
-          
+          console.log(
+            `📦 Pripravených ${batchVehicles.length} vozidiel pre batch import`
+          );
+
           // Použij batch import namiesto CSV importu
           const result = await apiService.batchImportVehicles(batchVehicles);
-          
+
           console.log('📥 CSV Import result:', result);
-          
+
           // Result už obsahuje priamo dáta, nie je wrapped v success/data
-          const { created, updated, errorsCount, successRate, processed, total } = result;
-          
+          const {
+            created,
+            updated,
+            errorsCount,
+            successRate,
+            processed,
+            total,
+          } = result;
+
           if (created > 0 || updated > 0) {
-            alert(`🚀 BATCH IMPORT ÚSPEŠNÝ!\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Spracovaných: ${processed}/${total}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nStránka sa obnoví za 3 sekundy...`);
+            alert(
+              `🚀 BATCH IMPORT ÚSPEŠNÝ!\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Spracovaných: ${processed}/${total}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nStránka sa obnoví za 3 sekundy...`
+            );
             setTimeout(() => window.location.reload(), 3000);
           } else if (errorsCount > 0) {
-            alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nSkontrolujte formát CSV súboru.`);
+            alert(
+              `⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nSkontrolujte formát CSV súboru.`
+            );
           } else {
-            alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\nSkontrolujte formát CSV súboru.`);
+            alert(
+              `⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\nSkontrolujte formát CSV súboru.`
+            );
           }
         } catch (error) {
           console.error('❌ CSV import error:', error);
           // ✅ ZLEPŠENÉ ERROR HANDLING - menej dramatické
-          alert(`⚠️ Import dokončený s upozornením: ${error instanceof Error ? error.message : 'Sieťová chyba'}\n\nSkontrolujte výsledok po obnovení stránky.`);
+          alert(
+            `⚠️ Import dokončený s upozornením: ${error instanceof Error ? error.message : 'Sieťová chyba'}\n\nSkontrolujte výsledok po obnovení stránky.`
+          );
           // Aj tak skús refresh - možno sa import dokončil
           setTimeout(() => window.location.reload(), 2000);
         } finally {
@@ -182,9 +227,9 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({ loading, setL
         console.error('❌ Papa Parse error:', error);
         alert(`❌ Chyba pri čítaní CSV súboru: ${error.message}`);
         setLoading(false);
-      }
+      },
     });
-    
+
     // Reset input
     event.target.value = '';
   };
@@ -196,12 +241,8 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({ loading, setL
 
   return (
     <>
-      <SecondaryButton
-        onClick={handleExportCSV}
-      >
-        📊 Export CSV
-      </SecondaryButton>
-      
+      <SecondaryButton onClick={handleExportCSV}>📊 Export CSV</SecondaryButton>
+
       <SecondaryButton
         component="label"
         disabled={loading}
@@ -210,8 +251,8 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({ loading, setL
           borderColor: '#388e3c',
           '&:hover': {
             borderColor: '#2e7d32',
-            backgroundColor: 'rgba(56, 142, 60, 0.04)'
-          }
+            backgroundColor: 'rgba(56, 142, 60, 0.04)',
+          },
         }}
       >
         📥 Import CSV

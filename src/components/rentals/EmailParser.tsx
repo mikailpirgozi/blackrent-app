@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import CloseIcon from '@mui/icons-material/Close';
+import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import {
   Box,
   Button,
@@ -10,14 +12,16 @@ import {
   Collapse,
   IconButton,
 } from '@mui/material';
-import ContentPasteIcon from '@mui/icons-material/ContentPaste';
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
-import CloseIcon from '@mui/icons-material/Close';
-import { Rental, Customer, Vehicle } from '../../types';
+import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+import { Rental, Customer, Vehicle } from '../../types';
+
 interface EmailParserProps {
-  onParseSuccess: (rentalData: Partial<Rental>, customerData?: Customer) => void;
+  onParseSuccess: (
+    rentalData: Partial<Rental>,
+    customerData?: Customer
+  ) => void;
   vehicles: Vehicle[];
   customers: Customer[];
 }
@@ -50,7 +54,11 @@ interface ParsedData {
   additionalServices?: string[];
 }
 
-export default function EmailParser({ onParseSuccess, vehicles, customers }: EmailParserProps) {
+export default function EmailParser({
+  onParseSuccess,
+  vehicles,
+  customers,
+}: EmailParserProps) {
   const [emailText, setEmailText] = useState('');
   const [parsedData, setParsedData] = useState<ParsedData | null>(null);
   const [error, setError] = useState<string>('');
@@ -59,7 +67,7 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
 
   const parseEmailText = (text: string): ParsedData => {
     const data: ParsedData = {};
-    
+
     // Parsovanie čísla objednávky
     const orderNumberMatch = text.match(/Číslo objednávky\s+([A-Z]+\d+)/i);
     if (orderNumberMatch) {
@@ -67,7 +75,9 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
     }
 
     // Parsovanie dátumu objednávky
-    const orderDateMatch = text.match(/Objednávka prijatá\s+(\d{2}\.\d{2}\.\d{4})/);
+    const orderDateMatch = text.match(
+      /Objednávka prijatá\s+(\d{2}\.\d{2}\.\d{4})/
+    );
     if (orderDateMatch) {
       data.orderDate = orderDateMatch[1];
     }
@@ -135,37 +145,51 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
     }
 
     // Parsovanie vozidla z položiek objednávky
-    const vehicleMatch = text.match(/Položky objednávky\s*\n\s*Názov\s+Kód\s+Cena\s+Spolu\s*\n([^\n]+)/);
+    const vehicleMatch = text.match(
+      /Položky objednávky\s*\n\s*Názov\s+Kód\s+Cena\s+Spolu\s*\n([^\n]+)/
+    );
     if (!vehicleMatch) {
       // Skús alternatívny pattern bez diakritiky
-      const vehicleMatchAlt = text.match(/Položky objednávky\s*\n\s*Názov\s+Kód\s+Cena\s+Spolu\s*\n([^\n]+)/);
+      const vehicleMatchAlt = text.match(
+        /Položky objednávky\s*\n\s*Názov\s+Kód\s+Cena\s+Spolu\s*\n([^\n]+)/
+      );
       if (vehicleMatchAlt) {
         const vehicleLine = vehicleMatchAlt[1].trim();
         console.log('🔍 Parsing vehicle line:', vehicleLine);
-        
+
         // Rozdeliť riadok podľa tabuliek alebo viacerých medzier
         const parts = vehicleLine.split(/\s+/).filter(part => part.trim());
         console.log('🔍 Vehicle parts:', parts);
-        
+
         // Nájdi ŠPZ (6-7 znakov, len písmená a čísla)
-        const spzIndex = parts.findIndex(part => /^[A-Z0-9]{6,7}$/.test(part.trim()));
-        console.log('🔍 SPZ index:', spzIndex, 'SPZ:', spzIndex >= 0 ? parts[spzIndex] : 'not found');
-        
+        const spzIndex = parts.findIndex(part =>
+          /^[A-Z0-9]{6,7}$/.test(part.trim())
+        );
+        console.log(
+          '🔍 SPZ index:',
+          spzIndex,
+          'SPZ:',
+          spzIndex >= 0 ? parts[spzIndex] : 'not found'
+        );
+
         if (spzIndex > 0) {
           // Názov auta je všetko pred ŠPZ
           data.vehicleName = parts.slice(0, spzIndex).join(' ');
           data.vehicleCode = parts[spzIndex];
-          
+
           // Cena a suma sú za ŠPZ
           if (parts.length > spzIndex + 2) {
-            const priceStr = parts[spzIndex + 1].replace(',', '.').replace('€', '').trim();
+            const priceStr = parts[spzIndex + 1]
+              .replace(',', '.')
+              .replace('€', '')
+              .trim();
             data.vehiclePrice = parseFloat(priceStr);
           }
-          
+
           console.log('✅ Parsed vehicle:', {
             name: data.vehicleName,
             code: data.vehicleCode,
-            price: data.vehiclePrice
+            price: data.vehiclePrice,
           });
         } else {
           console.log('❌ Could not find SPZ in vehicle line');
@@ -174,30 +198,40 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
     } else {
       const vehicleLine = vehicleMatch[1].trim();
       console.log('🔍 Parsing vehicle line:', vehicleLine);
-      
+
       // Rozdeliť riadok podľa tabuliek alebo viacerých medzier
       const parts = vehicleLine.split(/\s+/).filter(part => part.trim());
       console.log('🔍 Vehicle parts:', parts);
-      
+
       // Nájdi ŠPZ (6-7 znakov, len písmená a čísla)
-      const spzIndex = parts.findIndex(part => /^[A-Z0-9]{6,7}$/.test(part.trim()));
-      console.log('🔍 SPZ index:', spzIndex, 'SPZ:', spzIndex >= 0 ? parts[spzIndex] : 'not found');
-      
+      const spzIndex = parts.findIndex(part =>
+        /^[A-Z0-9]{6,7}$/.test(part.trim())
+      );
+      console.log(
+        '🔍 SPZ index:',
+        spzIndex,
+        'SPZ:',
+        spzIndex >= 0 ? parts[spzIndex] : 'not found'
+      );
+
       if (spzIndex > 0) {
         // Názov auta je všetko pred ŠPZ
         data.vehicleName = parts.slice(0, spzIndex).join(' ');
         data.vehicleCode = parts[spzIndex];
-        
+
         // Cena a suma sú za ŠPZ
         if (parts.length > spzIndex + 2) {
-          const priceStr = parts[spzIndex + 1].replace(',', '.').replace('€', '').trim();
+          const priceStr = parts[spzIndex + 1]
+            .replace(',', '.')
+            .replace('€', '')
+            .trim();
           data.vehiclePrice = parseFloat(priceStr);
         }
-        
+
         console.log('✅ Parsed vehicle:', {
           name: data.vehicleName,
           code: data.vehicleCode,
-          price: data.vehiclePrice
+          price: data.vehiclePrice,
         });
       } else {
         console.log('❌ Could not find SPZ in vehicle line');
@@ -206,40 +240,59 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
 
     // Parsovanie kilometrov - VŠETKY sa považujú za denné km
     console.log('🔍 DEBUG: Searching for kilometers in text...');
-    console.log('🔍 Text sample around km:', text.substring(text.indexOf('Počet povolených km') - 20, text.indexOf('Počet povolených km') + 50));
-    
+    console.log(
+      '🔍 Text sample around km:',
+      text.substring(
+        text.indexOf('Počet povolených km') - 20,
+        text.indexOf('Počet povolených km') + 50
+      )
+    );
+
     // NAJVYŠŠIA PRIORITA: Špecifické patterny pre "Počet povolených km"
     const specificKmMatch = text.match(/Počet povolených km\s+(\d+)\s*km/i);
     console.log('🔍 DEBUG: specificKmMatch result:', specificKmMatch);
-    
+
     if (specificKmMatch) {
       data.dailyKilometers = parseInt(specificKmMatch[1]);
-      console.log(`🚗 Parsed "Počet povolených km": ${data.dailyKilometers} km/day (interpreted as daily)`);
+      console.log(
+        `🚗 Parsed "Počet povolených km": ${data.dailyKilometers} km/day (interpreted as daily)`
+      );
     } else {
       console.log('🔍 DEBUG: specificKmMatch failed, trying other patterns...');
       // Prioritne hľadáme explicitne denné km patterny
-      const explicitDailyKmMatch = text.match(/(\d+)\s*km\s*\/\s*de[ňn]/i) ||
-                                  text.match(/(\d+)\s*km\s*na\s*de[ňn]/i) ||
-                                  text.match(/denný\s*limit[:\s]*(\d+)\s*km/i) ||
-                                  text.match(/denne[:\s]*(\d+)\s*km/i) ||
-                                  text.match(/(\d+)\s*km\s*daily/i);
-      console.log('🔍 DEBUG: explicitDailyKmMatch result:', explicitDailyKmMatch);
-      
+      const explicitDailyKmMatch =
+        text.match(/(\d+)\s*km\s*\/\s*de[ňn]/i) ||
+        text.match(/(\d+)\s*km\s*na\s*de[ňn]/i) ||
+        text.match(/denný\s*limit[:\s]*(\d+)\s*km/i) ||
+        text.match(/denne[:\s]*(\d+)\s*km/i) ||
+        text.match(/(\d+)\s*km\s*daily/i);
+      console.log(
+        '🔍 DEBUG: explicitDailyKmMatch result:',
+        explicitDailyKmMatch
+      );
+
       if (explicitDailyKmMatch) {
         data.dailyKilometers = parseInt(explicitDailyKmMatch[1]);
-        console.log(`🚗 Parsed explicit daily km: ${data.dailyKilometers} km/day`);
+        console.log(
+          `🚗 Parsed explicit daily km: ${data.dailyKilometers} km/day`
+        );
       } else {
-        console.log('🔍 DEBUG: explicitDailyKmMatch failed, trying general patterns...');
+        console.log(
+          '🔍 DEBUG: explicitDailyKmMatch failed, trying general patterns...'
+        );
         // Ak nie sú explicitne denné, hľadáme ostatné všeobecné km patterny a považujeme ich za denné
-        const generalKmMatch = text.match(/Povolené\s+km[:\s]+(\d+)/i) || 
-                              text.match(/Kilometrov[:\s]+(\d+)/i) ||
-                              text.match(/Limit\s+km[:\s]+(\d+)/i) ||
-                              text.match(/(\d+)\s*km/i); // Všeobecný pattern pre číslo + km (najnižšia priorita)
+        const generalKmMatch =
+          text.match(/Povolené\s+km[:\s]+(\d+)/i) ||
+          text.match(/Kilometrov[:\s]+(\d+)/i) ||
+          text.match(/Limit\s+km[:\s]+(\d+)/i) ||
+          text.match(/(\d+)\s*km/i); // Všeobecný pattern pre číslo + km (najnižšia priorita)
         console.log('🔍 DEBUG: generalKmMatch result:', generalKmMatch);
-        
+
         if (generalKmMatch) {
           data.dailyKilometers = parseInt(generalKmMatch[1]);
-          console.log(`🚗 Parsed general km as daily: ${data.dailyKilometers} km/day (interpreted as daily)`);
+          console.log(
+            `🚗 Parsed general km as daily: ${data.dailyKilometers} km/day (interpreted as daily)`
+          );
         } else {
           console.log('🔍 DEBUG: No kilometer patterns matched!');
         }
@@ -247,49 +300,55 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
     }
 
     // Parsovanie ceny za extra km
-    const extraKmMatch = text.match(/Cena\s+za\s+km[:\s]+([\d,]+)\s*€/i) ||
-                        text.match(/Extra\s+km[:\s]+([\d,]+)\s*€/i) ||
-                        text.match(/Nadlimitn[ý]\s+km[:\s]+([\d,]+)\s*€/i);
+    const extraKmMatch =
+      text.match(/Cena\s+za\s+km[:\s]+([\d,]+)\s*€/i) ||
+      text.match(/Extra\s+km[:\s]+([\d,]+)\s*€/i) ||
+      text.match(/Nadlimitn[ý]\s+km[:\s]+([\d,]+)\s*€/i);
     if (extraKmMatch) {
       const extraKmStr = extraKmMatch[1].replace(',', '.');
       data.extraKilometerRate = parseFloat(extraKmStr);
     }
 
     // Parsovanie úrovne paliva
-    const fuelMatch = text.match(/Palivo[:\s]+(\d+)%/i) ||
-                     text.match(/Fuel[:\s]+(\d+)%/i) ||
-                     text.match(/Nádrž[:\s]+(\d+)%/i);
+    const fuelMatch =
+      text.match(/Palivo[:\s]+(\d+)%/i) ||
+      text.match(/Fuel[:\s]+(\d+)%/i) ||
+      text.match(/Nádrž[:\s]+(\d+)%/i);
     if (fuelMatch) {
       data.fuelLevel = parseInt(fuelMatch[1]);
     }
 
     // Parsovanie stavu tachometra
-    const odometerMatch = text.match(/Tachometer[:\s]+([\d\s]+)\s*km/i) ||
-                         text.match(/Kilometrov[:\s]+([\d\s]+)\s*km/i) ||
-                         text.match(/Stav[:\s]+([\d\s]+)\s*km/i);
+    const odometerMatch =
+      text.match(/Tachometer[:\s]+([\d\s]+)\s*km/i) ||
+      text.match(/Kilometrov[:\s]+([\d\s]+)\s*km/i) ||
+      text.match(/Stav[:\s]+([\d\s]+)\s*km/i);
     if (odometerMatch) {
       const odometerStr = odometerMatch[1].replace(/\s/g, '');
       data.startOdometer = parseInt(odometerStr);
     }
 
     // Parsovanie podmienok vrátenia
-    const conditionsMatch = text.match(/Podmienky\s+vrátenia[:\s]+([^.]+)/i) ||
-                           text.match(/Return\s+conditions[:\s]+([^.]+)/i);
+    const conditionsMatch =
+      text.match(/Podmienky\s+vrátenia[:\s]+([^.]+)/i) ||
+      text.match(/Return\s+conditions[:\s]+([^.]+)/i);
     if (conditionsMatch) {
       data.returnConditions = conditionsMatch[1].trim();
     }
 
     // Parsovanie poznámok
-    const notesMatch = text.match(/Poznámky[:\s]+([^.]+)/i) ||
-                      text.match(/Notes[:\s]+([^.]+)/i) ||
-                      text.match(/Dodatočné\s+informácie[:\s]+([^.]+)/i);
+    const notesMatch =
+      text.match(/Poznámky[:\s]+([^.]+)/i) ||
+      text.match(/Notes[:\s]+([^.]+)/i) ||
+      text.match(/Dodatočné\s+informácie[:\s]+([^.]+)/i);
     if (notesMatch) {
       data.notes = notesMatch[1].trim();
     }
 
     // Parsovanie informácií o poistení
-    const insuranceMatch = text.match(/Poistenie[:\s]+([^.]+)/i) ||
-                          text.match(/Insurance[:\s]+([^.]+)/i);
+    const insuranceMatch =
+      text.match(/Poistenie[:\s]+([^.]+)/i) ||
+      text.match(/Insurance[:\s]+([^.]+)/i);
     if (insuranceMatch) {
       data.insuranceInfo = insuranceMatch[1].trim();
     }
@@ -307,7 +366,7 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
     try {
       const parsed = parseEmailText(emailText);
       setParsedData(parsed);
-      
+
       // Kontrola, či sa našlo vozidlo
       if (parsed.vehicleCode) {
         const found = vehicles.some(v => v.licensePlate === parsed.vehicleCode);
@@ -315,7 +374,7 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       } else {
         setVehicleFound(false);
       }
-      
+
       setError('');
       setShowAlert(false);
     } catch (err) {
@@ -330,9 +389,11 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
     // Vytvorenie alebo nájdenie zákazníka
     let customer: Customer | undefined;
     if (parsedData.customerName) {
-      customer = customers.find(c => 
-        (c.name && c.name.toLowerCase() === parsedData.customerName!.toLowerCase()) ||
-        c.email === parsedData.customerEmail
+      customer = customers.find(
+        c =>
+          (c.name &&
+            c.name.toLowerCase() === parsedData.customerName!.toLowerCase()) ||
+          c.email === parsedData.customerEmail
       );
 
       if (!customer && parsedData.customerName) {
@@ -355,72 +416,95 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
     let vehicleFound = false;
     if (parsedData.vehicleCode) {
       const normalizedCode = normalizeSpz(parsedData.vehicleCode);
-      vehicleFound = vehicles.some(v => normalizeSpz(v.licensePlate || '') === normalizedCode);
+      vehicleFound = vehicles.some(
+        v => normalizeSpz(v.licensePlate || '') === normalizedCode
+      );
     }
 
     // Nájdenie vozidla - primárne podľa ŠPZ, potom podľa názvu
     let selectedVehicle: Vehicle | undefined;
-    
+
     console.log('🚗 Vehicle search START:', {
       hasVehicleCode: !!parsedData.vehicleCode,
       vehicleCode: parsedData.vehicleCode,
       vehiclesAvailable: vehicles.length,
-      vehiclesList: vehicles.map(v => ({ 
-        id: v.id.substring(0, 8), 
-        plate: v.licensePlate, 
+      vehiclesList: vehicles.map(v => ({
+        id: v.id.substring(0, 8),
+        plate: v.licensePlate,
         normalized: normalizeSpz(v.licensePlate || ''),
-        brand: v.brand, 
-        model: v.model 
-      }))
+        brand: v.brand,
+        model: v.model,
+      })),
     });
-    
+
     if (parsedData.vehicleCode) {
       // Najprv hľadám podľa ŠPZ (kódu) s normalizáciou
       const normalizedCode = normalizeSpz(parsedData.vehicleCode);
-      selectedVehicle = vehicles.find(v => normalizeSpz(v.licensePlate || '') === normalizedCode);
-      
+      selectedVehicle = vehicles.find(
+        v => normalizeSpz(v.licensePlate || '') === normalizedCode
+      );
+
       // Debug: Nájdi vozidlá Lotus Emira alebo s podobnou ŠPZ
       const lotusVehicles = vehicles
-        .filter(v => (v.brand === 'Lotus' && v.model === 'Emira') || 
-                     (v.licensePlate && v.licensePlate.toLowerCase().includes('677')))
-        .map(v => ({ 
-          plate: `"${v.licensePlate}"`, 
-          normalized: `"${normalizeSpz(v.licensePlate || '')}"`, 
-          brand: v.brand, 
+        .filter(
+          v =>
+            (v.brand === 'Lotus' && v.model === 'Emira') ||
+            (v.licensePlate && v.licensePlate.toLowerCase().includes('677'))
+        )
+        .map(v => ({
+          plate: `"${v.licensePlate}"`,
+          normalized: `"${normalizeSpz(v.licensePlate || '')}"`,
+          brand: v.brand,
           model: v.model,
           plateLength: v.licensePlate?.length || 0,
-          plateChars: v.licensePlate ? Array.from(v.licensePlate).map(c => c.charCodeAt(0)) : []
+          plateChars: v.licensePlate
+            ? Array.from(v.licensePlate).map(c => c.charCodeAt(0))
+            : [],
         }));
-        
+
       console.log('🔍 Vehicle search details:', {
         searchingFor: parsedData.vehicleCode,
         normalized: normalizedCode,
         found: !!selectedVehicle,
-        foundVehicle: selectedVehicle ? { id: selectedVehicle.id, plate: selectedVehicle.licensePlate, brand: selectedVehicle.brand, model: selectedVehicle.model } : null,
+        foundVehicle: selectedVehicle
+          ? {
+              id: selectedVehicle.id,
+              plate: selectedVehicle.licensePlate,
+              brand: selectedVehicle.brand,
+              model: selectedVehicle.model,
+            }
+          : null,
         vehicleCount: vehicles.length,
-        lotusVehicles: lotusVehicles
+        lotusVehicles: lotusVehicles,
       });
     }
-    
+
     // Ak sa nenájde podľa ŠPZ, skúsim podľa názvu
     if (!selectedVehicle && parsedData.vehicleName) {
       console.log('🔍 Searching by name fallback:', {
         vehicleName: parsedData.vehicleName,
-        searchTerm: parsedData.vehicleName.toLowerCase()
+        searchTerm: parsedData.vehicleName.toLowerCase(),
       });
-      
-      selectedVehicle = vehicles.find(v => 
-        v.brand && v.model && `${v.brand} ${v.model}`.toLowerCase().includes(parsedData.vehicleName!.toLowerCase())
+
+      selectedVehicle = vehicles.find(
+        v =>
+          v.brand &&
+          v.model &&
+          `${v.brand} ${v.model}`
+            .toLowerCase()
+            .includes(parsedData.vehicleName!.toLowerCase())
       );
-      
+
       console.log('🔍 Name search result:', {
         found: !!selectedVehicle,
-        foundVehicle: selectedVehicle ? { 
-          id: selectedVehicle.id.substring(0, 8), 
-          plate: selectedVehicle.licensePlate, 
-          brand: selectedVehicle.brand, 
-          model: selectedVehicle.model 
-        } : null
+        foundVehicle: selectedVehicle
+          ? {
+              id: selectedVehicle.id.substring(0, 8),
+              plate: selectedVehicle.licensePlate,
+              brand: selectedVehicle.brand,
+              model: selectedVehicle.model,
+            }
+          : null,
       });
     }
 
@@ -428,7 +512,9 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
     let startDate = new Date();
     let endDate = new Date();
     if (parsedData.reservationTime) {
-      const timeMatch = parsedData.reservationTime.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) - (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
+      const timeMatch = parsedData.reservationTime.match(
+        /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) - (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/
+      );
       if (timeMatch) {
         startDate = new Date(timeMatch[1]);
         endDate = new Date(timeMatch[2]);
@@ -436,12 +522,16 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
     }
 
     // Určenie spôsobu platby
-    let paymentMethod: 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner' = 'cash';
+    let paymentMethod: 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner' =
+      'cash';
     if (parsedData.paymentMethod) {
       const paymentLower = parsedData.paymentMethod.toLowerCase();
       if (paymentLower.includes('hotovosť') || paymentLower.includes('cash')) {
         paymentMethod = 'cash';
-      } else if (paymentLower.includes('bank') || paymentLower.includes('prevod')) {
+      } else if (
+        paymentLower.includes('bank') ||
+        paymentLower.includes('prevod')
+      ) {
         paymentMethod = 'bank_transfer';
       } else if (paymentLower.includes('vrp')) {
         paymentMethod = 'vrp';
@@ -480,20 +570,24 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
     console.log('📤 Sending rental data to form:', {
       vehicleId: rentalData.vehicleId,
       hasVehicleId: !!rentalData.vehicleId,
-      selectedVehicle: selectedVehicle ? { id: selectedVehicle.id, plate: selectedVehicle.licensePlate } : null,
+      selectedVehicle: selectedVehicle
+        ? { id: selectedVehicle.id, plate: selectedVehicle.licensePlate }
+        : null,
       vehicleCode: rentalData.vehicleCode,
       vehicleName: rentalData.vehicleName,
       dailyKilometers: rentalData.dailyKilometers,
-      allowedKilometers: rentalData.allowedKilometers
+      allowedKilometers: rentalData.allowedKilometers,
     });
 
     onParseSuccess(rentalData, customer);
-    
+
     // Upozornenie ak sa nenašlo vozidlo (ani podľa ŠPZ ani podľa názvu)
     if (parsedData.vehicleCode && !selectedVehicle) {
-      alert(`Upozornenie: Vozidlo so ŠPZ "${parsedData.vehicleCode}" sa nenašlo v databáze. Prosím vyberte vozidlo manuálne.`);
+      alert(
+        `Upozornenie: Vozidlo so ŠPZ "${parsedData.vehicleCode}" sa nenašlo v databáze. Prosím vyberte vozidlo manuálne.`
+      );
     }
-    
+
     // Vyčistenie formulára
     setEmailText('');
     setParsedData(null);
@@ -514,14 +608,18 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+        >
           <AutoFixHighIcon />
           Automatické parsovanie z emailu
         </Typography>
-        
+
         <Collapse in={showAlert}>
-          <Alert 
-            severity={error ? 'error' : 'success'} 
+          <Alert
+            severity={error ? 'error' : 'success'}
             action={
               <IconButton
                 aria-label="close"
@@ -546,7 +644,7 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
             variant="outlined"
             label="Vložte text z emailu"
             value={emailText}
-            onChange={(e) => setEmailText(e.target.value)}
+            onChange={e => setEmailText(e.target.value)}
             placeholder="Vložte sem text z emailu s detailmi objednávky..."
           />
         </Box>
@@ -575,64 +673,114 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
               <Typography variant="subtitle1" gutterBottom>
                 <strong>Nájdené dáta:</strong>
               </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, fontSize: '0.9rem' }}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 1,
+                  fontSize: '0.9rem',
+                }}
+              >
                 {parsedData.orderNumber && (
-                  <div><strong>Číslo objednávky:</strong> {parsedData.orderNumber}</div>
+                  <div>
+                    <strong>Číslo objednávky:</strong> {parsedData.orderNumber}
+                  </div>
                 )}
                 {parsedData.customerName && (
-                  <div><strong>Zákazník:</strong> {parsedData.customerName}</div>
+                  <div>
+                    <strong>Zákazník:</strong> {parsedData.customerName}
+                  </div>
                 )}
                 {parsedData.customerEmail && (
-                  <div><strong>Email:</strong> {parsedData.customerEmail}</div>
+                  <div>
+                    <strong>Email:</strong> {parsedData.customerEmail}
+                  </div>
                 )}
                 {parsedData.customerPhone && (
-                  <div><strong>Telefón:</strong> {parsedData.customerPhone}</div>
+                  <div>
+                    <strong>Telefón:</strong> {parsedData.customerPhone}
+                  </div>
                 )}
                 {parsedData.vehicleCode && (
                   <div>
                     <strong>ŠPZ vozidla:</strong> {parsedData.vehicleCode}
                     {vehicleFound ? (
-                      <span style={{ color: 'green', marginLeft: '8px' }}>✓ Nájdené</span>
+                      <span style={{ color: 'green', marginLeft: '8px' }}>
+                        ✓ Nájdené
+                      </span>
                     ) : (
-                      <span style={{ color: 'red', marginLeft: '8px' }}>✗ Nenájdené</span>
+                      <span style={{ color: 'red', marginLeft: '8px' }}>
+                        ✗ Nenájdené
+                      </span>
                     )}
                   </div>
                 )}
                 {parsedData.vehicleName && (
-                  <div><strong>Názov vozidla:</strong> {parsedData.vehicleName}</div>
+                  <div>
+                    <strong>Názov vozidla:</strong> {parsedData.vehicleName}
+                  </div>
                 )}
                 {parsedData.totalAmount && (
-                  <div><strong>Suma:</strong> {parsedData.totalAmount} €</div>
+                  <div>
+                    <strong>Suma:</strong> {parsedData.totalAmount} €
+                  </div>
                 )}
                 {parsedData.pickupPlace && (
-                  <div><strong>Miesto vyzdvihnutia:</strong> {parsedData.pickupPlace}</div>
+                  <div>
+                    <strong>Miesto vyzdvihnutia:</strong>{' '}
+                    {parsedData.pickupPlace}
+                  </div>
                 )}
                 {parsedData.reservationTime && (
-                  <div><strong>Čas rezervácie:</strong> {parsedData.reservationTime}</div>
+                  <div>
+                    <strong>Čas rezervácie:</strong>{' '}
+                    {parsedData.reservationTime}
+                  </div>
                 )}
                 {parsedData.deposit && (
-                  <div><strong>Depozit:</strong> {parsedData.deposit} €</div>
+                  <div>
+                    <strong>Depozit:</strong> {parsedData.deposit} €
+                  </div>
                 )}
                 {parsedData.dailyKilometers && (
-                  <div><strong>Denné km:</strong> {parsedData.dailyKilometers} km/deň</div>
+                  <div>
+                    <strong>Denné km:</strong> {parsedData.dailyKilometers}{' '}
+                    km/deň
+                  </div>
                 )}
                 {parsedData.allowedKilometers && (
-                  <div><strong>Povolené km:</strong> {parsedData.allowedKilometers} km</div>
+                  <div>
+                    <strong>Povolené km:</strong> {parsedData.allowedKilometers}{' '}
+                    km
+                  </div>
                 )}
                 {parsedData.extraKilometerRate && (
-                  <div><strong>Cena za extra km:</strong> {parsedData.extraKilometerRate} €/km</div>
+                  <div>
+                    <strong>Cena za extra km:</strong>{' '}
+                    {parsedData.extraKilometerRate} €/km
+                  </div>
                 )}
                 {parsedData.fuelLevel && (
-                  <div><strong>Úroveň paliva:</strong> {parsedData.fuelLevel}%</div>
+                  <div>
+                    <strong>Úroveň paliva:</strong> {parsedData.fuelLevel}%
+                  </div>
                 )}
                 {parsedData.startOdometer && (
-                  <div><strong>Stav tachometra:</strong> {parsedData.startOdometer} km</div>
+                  <div>
+                    <strong>Stav tachometra:</strong> {parsedData.startOdometer}{' '}
+                    km
+                  </div>
                 )}
                 {parsedData.returnConditions && (
-                  <div><strong>Podmienky vrátenia:</strong> {parsedData.returnConditions}</div>
+                  <div>
+                    <strong>Podmienky vrátenia:</strong>{' '}
+                    {parsedData.returnConditions}
+                  </div>
                 )}
                 {parsedData.notes && (
-                  <div><strong>Poznámky:</strong> {parsedData.notes}</div>
+                  <div>
+                    <strong>Poznámky:</strong> {parsedData.notes}
+                  </div>
                 )}
               </Box>
               <Button
@@ -650,4 +798,4 @@ export default function EmailParser({ onParseSuccess, vehicles, customers }: Ema
       </CardContent>
     </Card>
   );
-} 
+}

@@ -18,28 +18,31 @@ class SmartLogger {
     this.config = {
       level: process.env.NODE_ENV === 'development' ? 'debug' : 'error',
       enabledInProduction: false,
-      enabledCategories: process.env.NODE_ENV === 'development' 
-        ? ['error', 'warn', 'performance'] 
-        : ['error']
+      enabledCategories:
+        process.env.NODE_ENV === 'development'
+          ? ['error', 'warn', 'performance']
+          : ['error'],
     };
   }
 
   private shouldLog(level: LogLevel, category?: string): boolean {
     // Always log errors
     if (level === 'error') return true;
-    
+
     // In production, only log enabled categories
     if (process.env.NODE_ENV === 'production') {
-      return this.config.enabledInProduction && 
-             Boolean(category) && 
-             this.config.enabledCategories.includes(category || '');
+      return (
+        this.config.enabledInProduction &&
+        Boolean(category) &&
+        this.config.enabledCategories.includes(category || '')
+      );
     }
-    
+
     // In development, respect log level
     const levels: LogLevel[] = ['debug', 'info', 'warn', 'error'];
     const currentLevelIndex = levels.indexOf(this.config.level);
     const messageLevelIndex = levels.indexOf(level);
-    
+
     return messageLevelIndex >= currentLevelIndex;
   }
 
@@ -100,10 +103,15 @@ class SmartLogger {
 export const logger = new SmartLogger();
 
 // Backward compatibility helpers
-export const logDebug = (message: string, data?: any) => logger.debug(message, data);
-export const logInfo = (message: string, data?: any) => logger.info(message, data);
-export const logWarn = (message: string, data?: any) => logger.warn(message, data);
-export const logError = (message: string, error?: any) => logger.error(message, error);
-export const logPerformance = (message: string, data?: any) => logger.performance(message, data);
+export const logDebug = (message: string, data?: any) =>
+  logger.debug(message, data);
+export const logInfo = (message: string, data?: any) =>
+  logger.info(message, data);
+export const logWarn = (message: string, data?: any) =>
+  logger.warn(message, data);
+export const logError = (message: string, error?: any) =>
+  logger.error(message, error);
+export const logPerformance = (message: string, data?: any) =>
+  logger.performance(message, data);
 
 export default logger;

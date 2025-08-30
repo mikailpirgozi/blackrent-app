@@ -3,7 +3,13 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
-import React, { useState, useEffect } from 'react';
+import {
+  CheckCircle as ApproveIcon,
+  Cancel as RejectIcon,
+  Archive as ArchiveIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+} from '@mui/icons-material';
 import {
   Card,
   CardContent,
@@ -27,20 +33,16 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import {
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  Archive as ArchiveIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material';
-import { EmailEntry, EmailDetail } from '../types/email-types';
+import React, { useState, useEffect } from 'react';
+
 import { useEmailApi } from '../hooks/useEmailApi';
-import { StatusChip } from './StatusChip';
-import { EmailDetailDialog } from './dialogs/EmailDetailDialog';
-import { RejectDialog } from './dialogs/RejectDialog';
+import { EmailEntry, EmailDetail } from '../types/email-types';
 import { PAGE_SIZE } from '../utils/email-constants';
 import { truncateText } from '../utils/email-formatters';
+
+import { EmailDetailDialog } from './dialogs/EmailDetailDialog';
+import { RejectDialog } from './dialogs/RejectDialog';
+import { StatusChip } from './StatusChip';
 
 interface EmailHistoryTabProps {
   statusFilter: string;
@@ -61,15 +63,21 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEmails, setTotalEmails] = useState(0);
-  
+
   // Dialogs
-  const [viewDialog, setViewDialog] = useState<{ open: boolean; email: EmailDetail | null }>({
+  const [viewDialog, setViewDialog] = useState<{
+    open: boolean;
+    email: EmailDetail | null;
+  }>({
     open: false,
-    email: null
+    email: null,
   });
-  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; emailId: string | null }>({
+  const [rejectDialog, setRejectDialog] = useState<{
+    open: boolean;
+    emailId: string | null;
+  }>({
     open: false,
-    emailId: null
+    emailId: null,
   });
   const [rejectReason, setRejectReason] = useState('');
 
@@ -93,10 +101,10 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
   useEffect(() => {
     console.log('🚀 EMAIL HISTORY TAB useEffect triggered', {
       currentPage,
-      statusFilter, 
-      senderFilter
+      statusFilter,
+      senderFilter,
     });
-    
+
     loadEmails();
   }, [currentPage, statusFilter, senderFilter]);
 
@@ -169,25 +177,34 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
           <Typography variant="h6" gutterBottom>
             📋 Emaily ({totalEmails} celkom)
           </Typography>
-          
+
           {/* Mobile View - Card List */}
           {isMobile ? (
             <Stack spacing={2}>
-              {emails.map((email) => (
-                <Card key={email.id} variant="outlined" sx={{ 
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    boxShadow: 1
-                  }
-                }}>
+              {emails.map(email => (
+                <Card
+                  key={email.id}
+                  variant="outlined"
+                  sx={{
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      boxShadow: 1,
+                    },
+                  }}
+                >
                   <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                     {/* Header - Subject and Status */}
-                    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                      <Typography 
-                        variant="subtitle2" 
-                        sx={{ 
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="flex-start"
+                      mb={1}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
                           fontWeight: 600,
                           flex: 1,
                           mr: 1,
@@ -200,16 +217,35 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
                       >
                         {email.subject}
                       </Typography>
-                      <StatusChip status={email.status} actionTaken={email.action_taken} />
+                      <StatusChip
+                        status={email.status}
+                        actionTaken={email.action_taken}
+                      />
                     </Box>
 
                     {/* Sender and Date */}
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      mb={2}
+                    >
                       <Box display="flex" alignItems="center" gap={1}>
-                        <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: 'primary.main' }}>
+                        <Avatar
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            fontSize: '0.75rem',
+                            bgcolor: 'primary.main',
+                          }}
+                        >
                           {email.sender.charAt(0).toUpperCase()}
                         </Avatar>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontSize: '0.875rem' }}
+                        >
                           {truncateText(email.sender, 25)}
                         </Typography>
                       </Box>
@@ -241,12 +277,18 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
                       >
                         Detail
                       </Button>
-                      
+
                       {email.status === 'new' && (
                         <>
                           <Button
                             size="small"
-                            startIcon={actionLoading === email.id ? <CircularProgress size={16} /> : <ApproveIcon />}
+                            startIcon={
+                              actionLoading === email.id ? (
+                                <CircularProgress size={16} />
+                              ) : (
+                                <ApproveIcon />
+                              )
+                            }
                             onClick={() => handleApproveEmail(email.id)}
                             disabled={actionLoading === email.id}
                             color="success"
@@ -258,7 +300,9 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
                           <Button
                             size="small"
                             startIcon={<RejectIcon />}
-                            onClick={() => setRejectDialog({ open: true, emailId: email.id })}
+                            onClick={() =>
+                              setRejectDialog({ open: true, emailId: email.id })
+                            }
                             color="error"
                             variant="outlined"
                             sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
@@ -270,7 +314,13 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
 
                       <Button
                         size="small"
-                        startIcon={actionLoading === email.id ? <CircularProgress size={16} /> : <ArchiveIcon />}
+                        startIcon={
+                          actionLoading === email.id ? (
+                            <CircularProgress size={16} />
+                          ) : (
+                            <ArchiveIcon />
+                          )
+                        }
                         onClick={() => handleArchiveEmail(email.id)}
                         disabled={actionLoading === email.id}
                         variant="outlined"
@@ -285,7 +335,11 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
             </Stack>
           ) : (
             /* Desktop View - Table */
-            <TableContainer component={Paper} elevation={0} sx={{ overflowX: 'auto' }}>
+            <TableContainer
+              component={Paper}
+              elevation={0}
+              sx={{ overflowX: 'auto' }}
+            >
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
@@ -298,22 +352,29 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {emails.map((email) => (
+                  {emails.map(email => (
                     <TableRow key={email.id} hover>
                       <TableCell>
-                        <Typography variant="body2" sx={{ 
-                          maxWidth: 250,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                        }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            maxWidth: 250,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                          }}
+                        >
                           {email.subject}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ maxWidth: 150 }} noWrap>
+                        <Typography
+                          variant="body2"
+                          sx={{ maxWidth: 150 }}
+                          noWrap
+                        >
                           {email.sender}
                         </Typography>
                       </TableCell>
@@ -323,7 +384,10 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <StatusChip status={email.status} actionTaken={email.action_taken} />
+                        <StatusChip
+                          status={email.status}
+                          actionTaken={email.action_taken}
+                        />
                       </TableCell>
                       <TableCell>
                         {email.order_number ? (
@@ -348,7 +412,7 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
                               <ViewIcon />
                             </IconButton>
                           </Tooltip>
-                          
+
                           {email.status === 'new' && (
                             <Tooltip title="Schváliť">
                               <span>
@@ -372,7 +436,12 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
                             <Tooltip title="Zamietnuť">
                               <IconButton
                                 size="small"
-                                onClick={() => setRejectDialog({ open: true, emailId: email.id })}
+                                onClick={() =>
+                                  setRejectDialog({
+                                    open: true,
+                                    emailId: email.id,
+                                  })
+                                }
                                 color="error"
                               >
                                 <RejectIcon />

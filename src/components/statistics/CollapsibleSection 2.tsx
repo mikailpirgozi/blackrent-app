@@ -1,10 +1,13 @@
 /**
  * 📂 COLLAPSIBLE SECTION
- * 
+ *
  * Expandable section pre mobile statistics s smooth animations
  */
 
-import React, { useState, memo } from 'react';
+import {
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -13,12 +16,9 @@ import {
   Paper,
   useTheme,
   Badge,
-  Chip
+  Chip,
 } from '@mui/material';
-import {
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon
-} from '@mui/icons-material';
+import React, { useState, memo } from 'react';
 
 interface CollapsibleSectionProps {
   title: string;
@@ -41,7 +41,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   children,
   color = 'primary',
   compact = false,
-  disabled = false
+  disabled = false,
 }) => {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -73,18 +73,20 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         borderRadius: compact ? 2 : 3,
         overflow: 'hidden',
         border: `1px solid ${sectionColor}20`,
-        backgroundColor: expanded 
+        backgroundColor: expanded
           ? `${sectionColor}05`
           : theme.palette.background.paper,
         transition: 'all 0.3s ease-in-out',
-        '&:hover': !disabled ? {
-          borderColor: `${sectionColor}40`,
-          backgroundColor: `${sectionColor}08`
-        } : {},
+        '&:hover': !disabled
+          ? {
+              borderColor: `${sectionColor}40`,
+              backgroundColor: `${sectionColor}08`,
+            }
+          : {},
         ...(disabled && {
           opacity: 0.6,
-          cursor: 'not-allowed'
-        })
+          cursor: 'not-allowed',
+        }),
       }}
     >
       {/* Header */}
@@ -96,10 +98,12 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
           p: compact ? 2 : 2.5,
           cursor: disabled ? 'not-allowed' : 'pointer',
           transition: 'background-color 0.2s ease-in-out',
-          '&:hover': !disabled ? {
-            backgroundColor: `${sectionColor}08`
-          } : {},
-          borderBottom: expanded ? `1px solid ${sectionColor}15` : 'none'
+          '&:hover': !disabled
+            ? {
+                backgroundColor: `${sectionColor}08`,
+              }
+            : {},
+          borderBottom: expanded ? `1px solid ${sectionColor}15` : 'none',
         }}
       >
         {/* Icon */}
@@ -110,7 +114,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
               alignItems: 'center',
               mr: 1.5,
               color: sectionColor,
-              opacity: disabled ? 0.5 : 1
+              opacity: disabled ? 0.5 : 1,
             }}
           >
             {icon}
@@ -120,17 +124,17 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         {/* Title and Subtitle */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography 
-              variant={compact ? "subtitle2" : "h6"}
-              sx={{ 
+            <Typography
+              variant={compact ? 'subtitle2' : 'h6'}
+              sx={{
                 fontWeight: 600,
                 color: expanded ? sectionColor : 'text.primary',
-                transition: 'color 0.2s ease-in-out'
+                transition: 'color 0.2s ease-in-out',
               }}
             >
               {title}
             </Typography>
-            
+
             {/* Badge */}
             {badge !== undefined && (
               <Chip
@@ -141,19 +145,19 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
                   color: sectionColor,
                   fontSize: '0.7rem',
                   height: 20,
-                  minWidth: 20
+                  minWidth: 20,
                 }}
               />
             )}
           </Box>
-          
+
           {subtitle && (
-            <Typography 
-              variant="caption" 
-              sx={{ 
+            <Typography
+              variant="caption"
+              sx={{
                 color: 'text.secondary',
                 display: 'block',
-                mt: 0.5
+                mt: 0.5,
               }}
             >
               {subtitle}
@@ -169,9 +173,11 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
             color: expanded ? sectionColor : 'text.secondary',
             transition: 'all 0.3s ease-in-out',
             transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            '&:hover': !disabled ? {
-              backgroundColor: `${sectionColor}15`
-            } : {}
+            '&:hover': !disabled
+              ? {
+                  backgroundColor: `${sectionColor}15`,
+                }
+              : {},
           }}
         >
           <ExpandMoreIcon />
@@ -179,11 +185,11 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
       </Box>
 
       {/* Content */}
-      <Collapse 
-        in={expanded} 
+      <Collapse
+        in={expanded}
         timeout={{
           enter: 300,
-          exit: 200
+          exit: 200,
         }}
         unmountOnExit
       >
@@ -192,7 +198,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
             p: compact ? 2 : 2.5,
             pt: compact ? 1.5 : 2,
             backgroundColor: expanded ? `${sectionColor}02` : 'transparent',
-            transition: 'background-color 0.2s ease-in-out'
+            transition: 'background-color 0.2s ease-in-out',
           }}
         >
           {children}

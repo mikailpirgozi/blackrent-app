@@ -1,4 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import {
+  CheckCircle as ApproveIcon,
+  Cancel as RejectIcon,
+  Email as EmailIcon,
+  Schedule as PendingIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  DirectionsCar as CarIcon,
+  Person as PersonIcon,
+  Euro as EuroIcon,
+  CalendarToday as CalendarIcon,
+  LocationOn as LocationIcon,
+  CheckCircle,
+  Edit as EditIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Card,
@@ -21,25 +35,13 @@ import {
   Badge,
   Tooltip,
 } from '@mui/material';
-import {
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  Email as EmailIcon,
-  Schedule as PendingIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  DirectionsCar as CarIcon,
-  Person as PersonIcon,
-  Euro as EuroIcon,
-  CalendarToday as CalendarIcon,
-  LocationOn as LocationIcon,
-  CheckCircle,
-  Edit as EditIcon,
-} from '@mui/icons-material';
-import { Rental, Vehicle, Customer } from '../../types';
-import { apiService } from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { apiService } from '../../services/api';
+import { Rental, Vehicle, Customer } from '../../types';
+
 import EditRentalDialog from './EditRentalDialog';
 
 interface PendingRentalsManagerProps {
@@ -54,7 +56,12 @@ interface RentalCardProps {
   onEdit: (rental: Rental) => void;
 }
 
-const RentalCard: React.FC<RentalCardProps> = ({ rental, onApprove, onReject, onEdit }) => {
+const RentalCard: React.FC<RentalCardProps> = ({
+  rental,
+  onApprove,
+  onReject,
+  onEdit,
+}) => {
   const [expanded, setExpanded] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -106,18 +113,26 @@ const RentalCard: React.FC<RentalCardProps> = ({ rental, onApprove, onReject, on
       <Card sx={{ mb: 2, border: '1px solid #e0e0e0' }}>
         <CardContent>
           {/* Header */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+          >
             <Box display="flex" alignItems="center" gap={1}>
-              <Badge badgeContent={<EmailIcon sx={{ fontSize: 12 }} />} color="primary">
+              <Badge
+                badgeContent={<EmailIcon sx={{ fontSize: 12 }} />}
+                color="primary"
+              >
                 <PendingIcon color="warning" />
               </Badge>
               <Typography variant="h6" component="div">
                 {rental.orderNumber || 'N/A'}
               </Typography>
-              <Chip 
-                label="Email Auto" 
-                size="small" 
-                color="info" 
+              <Chip
+                label="Email Auto"
+                size="small"
+                color="info"
                 icon={<EmailIcon />}
               />
             </Box>
@@ -201,10 +216,7 @@ const RentalCard: React.FC<RentalCardProps> = ({ rental, onApprove, onReject, on
 
           {/* Expand/Collapse */}
           <Box display="flex" justifyContent="center">
-            <IconButton 
-              onClick={() => setExpanded(!expanded)}
-              size="small"
-            >
+            <IconButton onClick={() => setExpanded(!expanded)} size="small">
               {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
               <Typography variant="caption" sx={{ ml: 1 }}>
                 {expanded ? 'Skryť detaily' : 'Zobraziť detaily'}
@@ -234,22 +246,23 @@ const RentalCard: React.FC<RentalCardProps> = ({ rental, onApprove, onReject, on
                   </Typography>
                 )}
                 <Typography variant="body2" color="textSecondary">
-                  Vytvorené: {formatDate(rental.autoProcessedAt || rental.createdAt)}
+                  Vytvorené:{' '}
+                  {formatDate(rental.autoProcessedAt || rental.createdAt)}
                 </Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="primary" gutterBottom>
                   Obsah emailu
                 </Typography>
-                <Paper 
-                  sx={{ 
-                    p: 2, 
-                    backgroundColor: '#f5f5f5', 
-                    maxHeight: 200, 
+                <Paper
+                  sx={{
+                    p: 2,
+                    backgroundColor: '#f5f5f5',
+                    maxHeight: 200,
                     overflow: 'auto',
                     fontFamily: 'monospace',
                     fontSize: '0.8em',
-                    whiteSpace: 'pre-wrap'
+                    whiteSpace: 'pre-wrap',
                   }}
                 >
                   {rental.emailContent || 'Email obsah nedostupný'}
@@ -261,8 +274,8 @@ const RentalCard: React.FC<RentalCardProps> = ({ rental, onApprove, onReject, on
       </Card>
 
       {/* Reject Dialog */}
-      <Dialog 
-        open={showRejectDialog} 
+      <Dialog
+        open={showRejectDialog}
         onClose={() => setShowRejectDialog(false)}
         maxWidth="sm"
         fullWidth
@@ -270,7 +283,8 @@ const RentalCard: React.FC<RentalCardProps> = ({ rental, onApprove, onReject, on
         <DialogTitle>Zamietnuť automatický prenájom</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            Prečo zamietate tento prenájom? Dôvod bude uložený pre budúcu referenciu.
+            Prečo zamietate tento prenájom? Dôvod bude uložený pre budúcu
+            referenciu.
           </DialogContentText>
           <TextField
             autoFocus
@@ -279,17 +293,15 @@ const RentalCard: React.FC<RentalCardProps> = ({ rental, onApprove, onReject, on
             rows={3}
             label="Dôvod zamietnutia"
             value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
+            onChange={e => setRejectReason(e.target.value)}
             placeholder="Napr.: Neplatné dátumy, chýbajúce informácie, duplicitná objednávka..."
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowRejectDialog(false)}>
-            Zrušiť
-          </Button>
-          <Button 
-            onClick={handleReject} 
-            color="error" 
+          <Button onClick={() => setShowRejectDialog(false)}>Zrušiť</Button>
+          <Button
+            onClick={handleReject}
+            color="error"
             variant="contained"
             disabled={!rejectReason.trim() || processing}
           >
@@ -360,16 +372,14 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
 
   const handleSaveEditedRental = (updatedData: Partial<Rental>) => {
     if (!editingRental) return;
-    
+
     // Update rental in the list
-    setPendingRentals(prev => 
-      prev.map(rental => 
-        rental.id === editingRental.id 
-          ? { ...rental, ...updatedData }
-          : rental
+    setPendingRentals(prev =>
+      prev.map(rental =>
+        rental.id === editingRental.id ? { ...rental, ...updatedData } : rental
       )
     );
-    
+
     setEditDialogOpen(false);
     setEditingRental(null);
   };
@@ -391,7 +401,12 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
   return (
     <Box>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
         <Typography variant="h4" component="h1">
           Čakajúce automatické prenájmy
         </Typography>
@@ -399,8 +414,8 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
           <Badge badgeContent={pendingRentals?.length || 0} color="warning">
             <PendingIcon />
           </Badge>
-          <Button 
-            variant="outlined" 
+          <Button
+            variant="outlined"
             onClick={fetchPendingRentals}
             disabled={loading}
           >
@@ -417,7 +432,7 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
       )}
 
       {/* Empty State */}
-      {(pendingRentals?.length === 0) && !loading && (
+      {pendingRentals?.length === 0 && !loading && (
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
             <CheckCircle fontSize="large" color="success" sx={{ mb: 2 }} />
@@ -425,7 +440,8 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
               Žiadne čakajúce prenájmy
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              Všetky automatické prenájmy boli spracované alebo žiadne ešte nepriišli.
+              Všetky automatické prenájmy boli spracované alebo žiadne ešte
+              nepriišli.
             </Typography>
           </CardContent>
         </Card>

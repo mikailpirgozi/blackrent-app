@@ -1,8 +1,8 @@
 /**
  * 🎯 SMART AVAILABILITY DASHBOARD
- * 
+ *
  * Optimalizovaný pre najčastejší use case: "Aké autá máme dostupné od dnes na X dní?"
- * 
+ *
  * Features:
  * - Table view optimalizovaný pre mobile
  * - Smart filtering (kategória, značka, lokácia, firma)
@@ -12,7 +12,19 @@
  * - Real-time updates
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  CalendarToday as CalendarIcon,
+  DirectionsCar as CarIcon,
+  CheckCircle as AvailableIcon,
+  Cancel as UnavailableIcon,
+  Build as MaintenanceIcon,
+  Refresh as RefreshIcon,
+  FilterList as FilterIcon,
+  Visibility as ViewIcon,
+  Add as AddIcon,
+  ArrowBack as ArrowBackIcon,
+  ArrowForward as ArrowForwardIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -42,32 +54,27 @@ import {
   DialogContent,
   DialogActions,
   Switch,
-  FormControlLabel
+  FormControlLabel,
 } from '@mui/material';
-import { PrimaryButton, SecondaryButton, WarningButton, DefaultCard, StatusChip } from '../ui';
-import {
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
-  CheckCircle as AvailableIcon,
-  Cancel as UnavailableIcon,
-  Build as MaintenanceIcon,
-  Refresh as RefreshIcon,
-  FilterList as FilterIcon,
-  Visibility as ViewIcon,
-  Add as AddIcon,
-  ArrowBack as ArrowBackIcon,
-  ArrowForward as ArrowForwardIcon
-} from '@mui/icons-material';
 import { format, addDays, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { logger } from '../../utils/smartLogger';
 // 🔄 PHASE 4: Migrated to unified cache system
-import { unifiedCache } from '../../utils/unifiedCacheSystem';
-import { VehicleCategory, Vehicle } from '../../types';
 import { apiService } from '../../services/api';
+import { VehicleCategory, Vehicle } from '../../types';
+import { logger } from '../../utils/smartLogger';
+import { unifiedCache } from '../../utils/unifiedCacheSystem';
+import {
+  PrimaryButton,
+  SecondaryButton,
+  WarningButton,
+  DefaultCard,
+  StatusChip,
+} from '../ui';
+
 import AddUnavailabilityModal from './AddUnavailabilityModal';
 
 interface AvailabilityData {
@@ -117,25 +124,34 @@ interface SmartAvailabilityDashboardProps {
 }
 
 const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
-  isMobile: propIsMobile
+  isMobile: propIsMobile,
 }) => {
   const { state } = useApp();
   const { state: authState } = useAuth();
   const theme = useTheme();
-  const fallbackIsMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
+  const fallbackIsMobile = useMediaQuery(theme.breakpoints.down('md'), {
+    noSsr: true,
+  });
   const isMobile = propIsMobile !== undefined ? propIsMobile : fallbackIsMobile;
 
   // State
   const [loading, setLoading] = useState(false);
-  const [availabilityData, setAvailabilityData] = useState<AvailabilityData[]>([]);
+  const [availabilityData, setAvailabilityData] = useState<AvailabilityData[]>(
+    []
+  );
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
-  
+
   // 🚫 UNAVAILABILITY MODAL STATE
   const [unavailabilityModalOpen, setUnavailabilityModalOpen] = useState(false);
-  const [selectedVehicleForUnavailability, setSelectedVehicleForUnavailability] = useState<Vehicle | undefined>();
-  const [selectedDateForUnavailability, setSelectedDateForUnavailability] = useState<Date | undefined>();
-  const [editingUnavailability, setEditingUnavailability] = useState<any>(undefined);
-  
+  const [
+    selectedVehicleForUnavailability,
+    setSelectedVehicleForUnavailability,
+  ] = useState<Vehicle | undefined>();
+  const [selectedDateForUnavailability, setSelectedDateForUnavailability] =
+    useState<Date | undefined>();
+  const [editingUnavailability, setEditingUnavailability] =
+    useState<any>(undefined);
+
   // ⚡ PROGRESSIVE LOADING STATE
   const [loadMoreState, setLoadMoreState] = useState<LoadMoreState>({
     canLoadMore: true,
@@ -145,9 +161,9 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     canLoadPast: true,
     isLoadingPast: false,
     currentPastDays: 0, // Start with 0 past days
-    maxPastDays: 30 // Max 30 days in the past
+    maxPastDays: 30, // Max 30 days in the past
   });
-  
+
   // Smart defaults for filters
   const [filters, setFilters] = useState<FilterOptions>({
     dateFrom: format(new Date(), 'yyyy-MM-dd'), // Today
@@ -157,187 +173,222 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     companies: [],
     locations: [],
     availableOnly: false,
-    minAvailabilityPercent: 0
+    minAvailabilityPercent: 0,
   });
 
   // Derived data - filter out removed vehicles for availability view
-  const availableVehicles = useMemo(() => 
-    (state.vehicles || [])
-      .filter(vehicle => 
-        vehicle.status !== 'removed' && 
-        vehicle.status !== 'temporarily_removed'
-      )
-      .sort((a, b) => {
-        // Sort alphabetically by brand, then model, then license plate
-        const brandCompare = a.brand.localeCompare(b.brand, 'sk');
-        if (brandCompare !== 0) return brandCompare;
-        
-        const modelCompare = a.model.localeCompare(b.model, 'sk');
-        if (modelCompare !== 0) return modelCompare;
-        
-        return a.licensePlate.localeCompare(b.licensePlate, 'sk');
-      }), 
+  const availableVehicles = useMemo(
+    () =>
+      (state.vehicles || [])
+        .filter(
+          vehicle =>
+            vehicle.status !== 'removed' &&
+            vehicle.status !== 'temporarily_removed'
+        )
+        .sort((a, b) => {
+          // Sort alphabetically by brand, then model, then license plate
+          const brandCompare = a.brand.localeCompare(b.brand, 'sk');
+          if (brandCompare !== 0) return brandCompare;
+
+          const modelCompare = a.model.localeCompare(b.model, 'sk');
+          if (modelCompare !== 0) return modelCompare;
+
+          return a.licensePlate.localeCompare(b.licensePlate, 'sk');
+        }),
     [state.vehicles]
   );
-  const availableBrands = useMemo(() => 
-    [...new Set(availableVehicles.map(v => v.brand).filter(Boolean))].sort() as string[],
+  const availableBrands = useMemo(
+    () =>
+      [
+        ...new Set(availableVehicles.map(v => v.brand).filter(Boolean)),
+      ].sort() as string[],
     [availableVehicles]
   );
-  const availableCategories = useMemo(() => 
-    [...new Set(availableVehicles.map(v => v.category).filter(Boolean))].sort(),
+  const availableCategories = useMemo(
+    () =>
+      [
+        ...new Set(availableVehicles.map(v => v.category).filter(Boolean)),
+      ].sort(),
     [availableVehicles]
   );
-  const availableCompanies = useMemo(() => 
-    [...new Set(availableVehicles.map(v => v.company).filter(Boolean))].sort() as string[],
+  const availableCompanies = useMemo(
+    () =>
+      [
+        ...new Set(availableVehicles.map(v => v.company).filter(Boolean)),
+      ].sort() as string[],
     [availableVehicles]
   );
-
-
 
   /**
    * ⚡ REAL API: Smart availability calculation with real data
    */
-  const calculateAvailability = useCallback(async (filters: FilterOptions, forceRefresh: boolean = false): Promise<AvailabilityData[]> => {
-    const { dateFrom, dateTo } = filters;
-    const startDate = parseISO(dateFrom);
-    const endDate = parseISO(dateTo);
-    
-    // Generate date range
-    const dateRange: string[] = [];
-    let currentDate = startDate;
-    while (currentDate <= endDate) {
-      dateRange.push(format(currentDate, 'yyyy-MM-dd'));
-      currentDate = addDays(currentDate, 1);
-    }
+  const calculateAvailability = useCallback(
+    async (
+      filters: FilterOptions,
+      forceRefresh: boolean = false
+    ): Promise<AvailabilityData[]> => {
+      const { dateFrom, dateTo } = filters;
+      const startDate = parseISO(dateFrom);
+      const endDate = parseISO(dateTo);
 
-    logger.performance('Calculating availability', { 
-      dateFrom, 
-      dateTo, 
-      daysCount: dateRange.length,
-      vehiclesCount: availableVehicles.length,
-      forceRefresh
-    });
+      // Generate date range
+      const dateRange: string[] = [];
+      let currentDate = startDate;
+      while (currentDate <= endDate) {
+        dateRange.push(format(currentDate, 'yyyy-MM-dd'));
+        currentDate = addDays(currentDate, 1);
+      }
 
-    // 🗄️ UNIFIED CACHE: Try to get cached availability data (skip if forceRefresh)
-    const cacheKey = `availability-${dateFrom}-${dateTo}`;
-    // 🔄 PHASE 4: Using unified cache system
-    const cachedData = null; // Will be handled by unified cache in API calls
+      logger.performance('Calculating availability', {
+        dateFrom,
+        dateTo,
+        daysCount: dateRange.length,
+        vehiclesCount: availableVehicles.length,
+        forceRefresh,
+      });
 
-    let calendarData: any[] = [];
-    if (cachedData && !forceRefresh) {
-      logger.cache('Using cached availability data for calculation');
-      // 🔄 PHASE 4: Cache handled by unified system
-      calendarData = [];
-    } else {
-      // 🚀 REAL API: Load calendar data with unavailabilities
-      try {
-        logger.api('Loading calendar data from API with unavailabilities', { dateFrom, dateTo, vehiclesCount: availableVehicles.length, forceRefresh });
-        
-        const response = await apiService.get<{calendar: any[]}>(`/availability/calendar?startDate=${dateFrom}&endDate=${dateTo}`);
-        
-        if (response.calendar) {
-          calendarData = response.calendar;
-          logger.performance('Calendar data loaded from API', {
+      // 🗄️ UNIFIED CACHE: Try to get cached availability data (skip if forceRefresh)
+      const cacheKey = `availability-${dateFrom}-${dateTo}`;
+      // 🔄 PHASE 4: Using unified cache system
+      const cachedData = null; // Will be handled by unified cache in API calls
+
+      let calendarData: any[] = [];
+      if (cachedData && !forceRefresh) {
+        logger.cache('Using cached availability data for calculation');
+        // 🔄 PHASE 4: Cache handled by unified system
+        calendarData = [];
+      } else {
+        // 🚀 REAL API: Load calendar data with unavailabilities
+        try {
+          logger.api('Loading calendar data from API with unavailabilities', {
+            dateFrom,
+            dateTo,
+            vehiclesCount: availableVehicles.length,
+            forceRefresh,
+          });
+
+          const response = await apiService.get<{ calendar: any[] }>(
+            `/availability/calendar?startDate=${dateFrom}&endDate=${dateTo}`
+          );
+
+          if (response.calendar) {
+            calendarData = response.calendar;
+            logger.performance('Calendar data loaded from API', {
+              calendarDays: calendarData.length,
+              vehicles: availableVehicles.length,
+              cacheKey,
+            });
+
+            // Cache the API data
+            // 🔄 PHASE 4: Cache handled by unified system in API calls
+          } else {
+            throw new Error('No calendar data received from API');
+          }
+        } catch (error) {
+          logger.error(
+            'Failed to load calendar data from API, using fallback',
+            error
+          );
+
+          // ⚡ FALLBACK: Use existing vehicle/rental data to calculate availability
+          calendarData = dateRange.map(date => {
+            const dayRentals =
+              state.rentals?.filter(rental => {
+                const startDate = new Date(rental.startDate);
+                const endDate = new Date(rental.endDate);
+                const currentDate = new Date(date);
+                return currentDate >= startDate && currentDate <= endDate;
+              }) || [];
+
+            return {
+              date,
+              vehicles: availableVehicles.map(vehicle => {
+                const vehicleRental = dayRentals.find(
+                  rental => rental.vehicleId === vehicle.id
+                );
+
+                return {
+                  vehicleId: vehicle.id,
+                  status: vehicleRental ? 'rented' : 'available',
+                  customer_name: vehicleRental?.customerName,
+                  rental_id: vehicleRental?.id,
+                  reason: vehicleRental ? 'Prenájom' : undefined,
+                };
+              }),
+            };
+          });
+
+          logger.performance('Availability calculated from fallback data', {
             calendarDays: calendarData.length,
             vehicles: availableVehicles.length,
-            cacheKey
+            rentals: state.rentals?.length || 0,
+            cacheKey,
           });
-          
-          // Cache the API data
-          // 🔄 PHASE 4: Cache handled by unified system in API calls
-        } else {
-          throw new Error('No calendar data received from API');
-        }
-      } catch (error) {
-        logger.error('Failed to load calendar data from API, using fallback', error);
-        
-        // ⚡ FALLBACK: Use existing vehicle/rental data to calculate availability
-        calendarData = dateRange.map(date => {
-          const dayRentals = state.rentals?.filter(rental => {
-            const startDate = new Date(rental.startDate);
-            const endDate = new Date(rental.endDate);
-            const currentDate = new Date(date);
-            return currentDate >= startDate && currentDate <= endDate;
-          }) || [];
-          
-          return {
-            date,
-            vehicles: availableVehicles.map(vehicle => {
-              const vehicleRental = dayRentals.find(rental => rental.vehicleId === vehicle.id);
-              
-              return {
-                vehicleId: vehicle.id,
-                status: vehicleRental ? 'rented' : 'available',
-                customer_name: vehicleRental?.customerName,
-                rental_id: vehicleRental?.id,
-                reason: vehicleRental ? 'Prenájom' : undefined
-              };
-            })
-          };
-        });
-        
-        logger.performance('Availability calculated from fallback data', {
-          calendarDays: calendarData.length,
-          vehicles: availableVehicles.length,
-          rentals: state.rentals?.length || 0,
-          cacheKey
-        });
-        
-        // ⚠️ Store fallback data in cache
-        // 🔄 PHASE 4: Cache handled by unified system in API calls
-      }
-    }
 
-    // Process each vehicle
-    const result: AvailabilityData[] = availableVehicles.map(vehicle => {
-      const dailyStatus = dateRange.map(date => {
-        // Find calendar data for this vehicle and date
-        const dayData = calendarData.find(cal => 
-          format(parseISO(cal.date), 'yyyy-MM-dd') === date
-        );
-        
-        const vehicleStatus = dayData?.vehicles?.find((v: any) => v.vehicleId === parseInt(vehicle.id));
-        
-        if (!vehicleStatus) {
+          // ⚠️ Store fallback data in cache
+          // 🔄 PHASE 4: Cache handled by unified system in API calls
+        }
+      }
+
+      // Process each vehicle
+      const result: AvailabilityData[] = availableVehicles.map(vehicle => {
+        const dailyStatus = dateRange.map(date => {
+          // Find calendar data for this vehicle and date
+          const dayData = calendarData.find(
+            cal => format(parseISO(cal.date), 'yyyy-MM-dd') === date
+          );
+
+          const vehicleStatus = dayData?.vehicles?.find(
+            (v: any) => v.vehicleId === parseInt(vehicle.id)
+          );
+
+          if (!vehicleStatus) {
+            return {
+              date,
+              status: 'available' as const,
+              reason: undefined,
+              customerName: undefined,
+              rentalId: undefined,
+            };
+          }
+
           return {
             date,
-            status: 'available' as const,
-            reason: undefined,
-            customerName: undefined,
-            rentalId: undefined
+            status: vehicleStatus.status || 'available',
+            reason:
+              vehicleStatus.unavailabilityReason ||
+              (vehicleStatus.status === 'rented' ? 'Prenájom' : undefined),
+            customerName: vehicleStatus.customerName,
+            rentalId: vehicleStatus.rentalId,
           };
-        }
+        });
+
+        const availableDays = dailyStatus.filter(
+          day => day.status === 'available'
+        ).length;
+        const totalDays = dailyStatus.length;
+        const availabilityPercent =
+          totalDays > 0 ? Math.round((availableDays / totalDays) * 100) : 0;
 
         return {
-          date,
-          status: vehicleStatus.status || 'available',
-          reason: vehicleStatus.unavailabilityReason || (vehicleStatus.status === 'rented' ? 'Prenájom' : undefined),
-          customerName: vehicleStatus.customerName,
-          rentalId: vehicleStatus.rentalId
+          vehicleId: vehicle.id,
+          vehicleName: `${vehicle.brand} ${vehicle.model}`,
+          licensePlate: vehicle.licensePlate,
+          brand: vehicle.brand,
+          category: vehicle.category || 'other',
+          company: vehicle.company || '',
+          location: (vehicle as any).location || '',
+          dailyStatus,
+          availableDays,
+          totalDays,
+          availabilityPercent,
         };
       });
 
-      const availableDays = dailyStatus.filter(day => day.status === 'available').length;
-      const totalDays = dailyStatus.length;
-      const availabilityPercent = totalDays > 0 ? Math.round((availableDays / totalDays) * 100) : 0;
-
-      return {
-        vehicleId: vehicle.id,
-        vehicleName: `${vehicle.brand} ${vehicle.model}`,
-        licensePlate: vehicle.licensePlate,
-        brand: vehicle.brand,
-        category: vehicle.category || 'other',
-        company: vehicle.company || '',
-        location: (vehicle as any).location || '',
-        dailyStatus,
-        availableDays,
-        totalDays,
-        availabilityPercent
-      };
-    });
-
-    return result;
-  }, [availableVehicles]);
+      return result;
+    },
+    [availableVehicles]
+  );
 
   /**
    * Apply filters to availability data
@@ -345,17 +396,26 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   const filteredData = useMemo(() => {
     return availabilityData.filter(vehicle => {
       // Category filter - handle 'other' category
-      if (filters.categories.length > 0 && !filters.categories.includes(vehicle.category as VehicleCategory)) {
+      if (
+        filters.categories.length > 0 &&
+        !filters.categories.includes(vehicle.category as VehicleCategory)
+      ) {
         return false;
       }
 
       // Brand filter
-      if (filters.brands.length > 0 && !filters.brands.includes(vehicle.brand)) {
+      if (
+        filters.brands.length > 0 &&
+        !filters.brands.includes(vehicle.brand)
+      ) {
         return false;
       }
 
       // Company filter
-      if (filters.companies.length > 0 && !filters.companies.includes(vehicle.company)) {
+      if (
+        filters.companies.length > 0 &&
+        !filters.companies.includes(vehicle.company)
+      ) {
         return false;
       }
 
@@ -376,26 +436,30 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   /**
    * Load availability data
    */
-  const loadAvailabilityData = useCallback(async (forceRefresh: boolean = false) => {
-    setLoading(true);
-    try {
-      const data = await calculateAvailability(filters, forceRefresh);
-      setAvailabilityData(data);
-      
-      logger.performance('Availability data calculated', {
-        vehiclesProcessed: data.length,
-        dateRange: `${filters.dateFrom} to ${filters.dateTo}`,
-        averageAvailability: Math.round(
-          data.reduce((sum, v) => sum + v.availabilityPercent, 0) / data.length
-        ),
-        forceRefresh
-      });
-    } catch (error) {
-      logger.error('Failed to load availability data', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [calculateAvailability, filters]);
+  const loadAvailabilityData = useCallback(
+    async (forceRefresh: boolean = false) => {
+      setLoading(true);
+      try {
+        const data = await calculateAvailability(filters, forceRefresh);
+        setAvailabilityData(data);
+
+        logger.performance('Availability data calculated', {
+          vehiclesProcessed: data.length,
+          dateRange: `${filters.dateFrom} to ${filters.dateTo}`,
+          averageAvailability: Math.round(
+            data.reduce((sum, v) => sum + v.availabilityPercent, 0) /
+              data.length
+          ),
+          forceRefresh,
+        });
+      } catch (error) {
+        logger.error('Failed to load availability data', error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [calculateAvailability, filters]
+  );
 
   // 🚫 UNAVAILABILITY SUCCESS HANDLER
   const handleUnavailabilitySuccess = useCallback(() => {
@@ -403,15 +467,15 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     // 🔄 PHASE 4: Using unified cache invalidation
     unifiedCache.invalidateEntity('calendar');
     unifiedCache.invalidateEntity('vehicle');
-    
+
     // Also clear specific cache keys that might be used
     const { dateFrom, dateTo } = filters;
     const cacheKey = `availability-${dateFrom}-${dateTo}`;
     logger.cache(`Manually clearing cache key: ${cacheKey}`);
-    
+
     // Refresh availability data with force refresh to bypass cache
     loadAvailabilityData(true);
-    
+
     // Clear selected data
     setSelectedVehicleForUnavailability(undefined);
     setSelectedDateForUnavailability(undefined);
@@ -419,40 +483,70 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   }, [loadAvailabilityData, filters]);
 
   // 🔍 LOAD UNAVAILABILITY FOR EDIT
-  const loadUnavailabilityForEdit = useCallback(async (vehicleId: string, clickedDate: string, status: string, reason: string) => {
-    try {
-      setLoading(true);
-      
-      // Get all unavailabilities for this vehicle
-      const response = await apiService.get<any[]>(`/vehicle-unavailability?vehicleId=${parseInt(vehicleId)}`);
-      
-      // Find the unavailability that includes the clicked date
-      const clickedDateObj = parseISO(clickedDate);
-      const unavailability = response.find((u: any) => {
-        const startDate = new Date(u.startDate);
-        const endDate = new Date(u.endDate);
-        return clickedDateObj >= startDate && clickedDateObj <= endDate && u.type === status;
-      });
-      
-      if (unavailability) {
-        setEditingUnavailability({
-          id: unavailability.id,
-          vehicleId: vehicleId,
-          startDate: new Date(unavailability.startDate),
-          endDate: new Date(unavailability.endDate),
-          type: unavailability.type,
-          reason: unavailability.reason,
-          notes: unavailability.notes || '',
-          priority: unavailability.priority || 2,
-          recurring: unavailability.recurring || false
+  const loadUnavailabilityForEdit = useCallback(
+    async (
+      vehicleId: string,
+      clickedDate: string,
+      status: string,
+      reason: string
+    ) => {
+      try {
+        setLoading(true);
+
+        // Get all unavailabilities for this vehicle
+        const response = await apiService.get<any[]>(
+          `/vehicle-unavailability?vehicleId=${parseInt(vehicleId)}`
+        );
+
+        // Find the unavailability that includes the clicked date
+        const clickedDateObj = parseISO(clickedDate);
+        const unavailability = response.find((u: any) => {
+          const startDate = new Date(u.startDate);
+          const endDate = new Date(u.endDate);
+          return (
+            clickedDateObj >= startDate &&
+            clickedDateObj <= endDate &&
+            u.type === status
+          );
         });
-        setSelectedVehicleForUnavailability(undefined);
-        setSelectedDateForUnavailability(undefined);
-        setUnavailabilityModalOpen(true);
-      } else {
+
+        if (unavailability) {
+          setEditingUnavailability({
+            id: unavailability.id,
+            vehicleId: vehicleId,
+            startDate: new Date(unavailability.startDate),
+            endDate: new Date(unavailability.endDate),
+            type: unavailability.type,
+            reason: unavailability.reason,
+            notes: unavailability.notes || '',
+            priority: unavailability.priority || 2,
+            recurring: unavailability.recurring || false,
+          });
+          setSelectedVehicleForUnavailability(undefined);
+          setSelectedDateForUnavailability(undefined);
+          setUnavailabilityModalOpen(true);
+        } else {
+          // Fallback - create basic editing object
+          setEditingUnavailability({
+            id: `fallback-${vehicleId}-${clickedDate}`,
+            vehicleId: vehicleId,
+            startDate: parseISO(clickedDate),
+            endDate: parseISO(clickedDate),
+            type: status,
+            reason: reason,
+            notes: '',
+            priority: 2,
+            recurring: false,
+          });
+          setSelectedVehicleForUnavailability(undefined);
+          setSelectedDateForUnavailability(undefined);
+          setUnavailabilityModalOpen(true);
+        }
+      } catch (error) {
+        console.error('Error loading unavailability for edit:', error);
         // Fallback - create basic editing object
         setEditingUnavailability({
-          id: `fallback-${vehicleId}-${clickedDate}`,
+          id: `error-${vehicleId}-${clickedDate}`,
           vehicleId: vehicleId,
           startDate: parseISO(clickedDate),
           endDate: parseISO(clickedDate),
@@ -460,81 +554,67 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           reason: reason,
           notes: '',
           priority: 2,
-          recurring: false
+          recurring: false,
         });
         setSelectedVehicleForUnavailability(undefined);
         setSelectedDateForUnavailability(undefined);
         setUnavailabilityModalOpen(true);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading unavailability for edit:', error);
-      // Fallback - create basic editing object
-      setEditingUnavailability({
-        id: `error-${vehicleId}-${clickedDate}`,
-        vehicleId: vehicleId,
-        startDate: parseISO(clickedDate),
-        endDate: parseISO(clickedDate),
-        type: status,
-        reason: reason,
-        notes: '',
-        priority: 2,
-        recurring: false
-      });
-      setSelectedVehicleForUnavailability(undefined);
-      setSelectedDateForUnavailability(undefined);
-      setUnavailabilityModalOpen(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   /**
    * ⚡ PROGRESSIVE LOADING: Load more days
    */
   const loadMoreDays = useCallback(async () => {
     if (loadMoreState.isLoadingMore || !loadMoreState.canLoadMore) return;
-    
+
     const additionalDays = 14; // Load 14 more days each time
     const newTotalDays = loadMoreState.currentDays + additionalDays;
-    
+
     if (newTotalDays > loadMoreState.maxDays) {
       // Reached maximum, load remaining days only
       const remainingDays = loadMoreState.maxDays - loadMoreState.currentDays;
       if (remainingDays <= 0) return;
-      
+
       setLoadMoreState(prev => ({ ...prev, canLoadMore: false }));
     }
-    
+
     setLoadMoreState(prev => ({ ...prev, isLoadingMore: true }));
-    
+
     try {
       const today = new Date();
-      const newEndDate = addDays(today, Math.min(newTotalDays, loadMoreState.maxDays));
-      
+      const newEndDate = addDays(
+        today,
+        Math.min(newTotalDays, loadMoreState.maxDays)
+      );
+
       // Update filters to include more days
       const newFilters = {
         ...filters,
-        dateTo: format(newEndDate, 'yyyy-MM-dd')
+        dateTo: format(newEndDate, 'yyyy-MM-dd'),
       };
-      
-      logger.performance('Loading more days', { 
-        currentDays: loadMoreState.currentDays, 
-        additionalDays, 
-        newTotalDays: Math.min(newTotalDays, loadMoreState.maxDays) 
+
+      logger.performance('Loading more days', {
+        currentDays: loadMoreState.currentDays,
+        additionalDays,
+        newTotalDays: Math.min(newTotalDays, loadMoreState.maxDays),
       });
-      
+
       // ⚡ IMPORTANT: Always fetch fresh API data for extended range
       const newData = await calculateAvailability(newFilters);
       setAvailabilityData(newData);
       setFilters(newFilters);
-      
+
       setLoadMoreState(prev => ({
         ...prev,
         currentDays: Math.min(newTotalDays, prev.maxDays),
         canLoadMore: newTotalDays < prev.maxDays,
-        isLoadingMore: false
+        isLoadingMore: false,
       }));
-      
     } catch (error) {
       logger.error('Failed to load more days', error);
       setLoadMoreState(prev => ({ ...prev, isLoadingMore: false }));
@@ -546,45 +626,47 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
    */
   const loadPastDays = useCallback(async () => {
     if (loadMoreState.isLoadingPast || !loadMoreState.canLoadPast) return;
-    
+
     const additionalPastDays = 7; // Load 7 past days each time
     const newTotalPastDays = loadMoreState.currentPastDays + additionalPastDays;
-    
+
     if (newTotalPastDays > loadMoreState.maxPastDays) {
       setLoadMoreState(prev => ({ ...prev, canLoadPast: false }));
       return;
     }
-    
+
     setLoadMoreState(prev => ({ ...prev, isLoadingPast: true }));
-    
+
     try {
       const today = new Date();
-      const newStartDate = addDays(today, -Math.min(newTotalPastDays, loadMoreState.maxPastDays));
-      
+      const newStartDate = addDays(
+        today,
+        -Math.min(newTotalPastDays, loadMoreState.maxPastDays)
+      );
+
       // Update filters to include past days
       const newFilters = {
         ...filters,
-        dateFrom: format(newStartDate, 'yyyy-MM-dd')
+        dateFrom: format(newStartDate, 'yyyy-MM-dd'),
       };
-      
-      logger.performance('Loading past days', { 
-        currentPastDays: loadMoreState.currentPastDays, 
-        additionalPastDays, 
-        newTotalPastDays: Math.min(newTotalPastDays, loadMoreState.maxPastDays) 
+
+      logger.performance('Loading past days', {
+        currentPastDays: loadMoreState.currentPastDays,
+        additionalPastDays,
+        newTotalPastDays: Math.min(newTotalPastDays, loadMoreState.maxPastDays),
       });
-      
+
       // ⚡ IMPORTANT: Always fetch fresh API data for extended past range
       const newData = await calculateAvailability(newFilters);
       setAvailabilityData(newData);
       setFilters(newFilters);
-      
+
       setLoadMoreState(prev => ({
         ...prev,
         currentPastDays: Math.min(newTotalPastDays, prev.maxPastDays),
         canLoadPast: newTotalPastDays < prev.maxPastDays,
-        isLoadingPast: false
+        isLoadingPast: false,
       }));
-      
     } catch (error) {
       logger.error('Failed to load past days', error);
       setLoadMoreState(prev => ({ ...prev, isLoadingPast: false }));
@@ -594,50 +676,68 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   /**
    * Quick filter presets
    */
-  const applyQuickFilter = useCallback((preset: 'today' | 'week' | 'month' | 'available-only') => {
-    const today = new Date();
-    
-    switch (preset) {
-      case 'today':
-        const newFilters1 = {
-          ...filters,
-          dateFrom: format(today, 'yyyy-MM-dd'),
-          dateTo: format(today, 'yyyy-MM-dd')
-        };
-        setFilters(newFilters1);
-        setLoadMoreState(prev => ({ ...prev, currentDays: 1, canLoadMore: true }));
-        break;
-      case 'week':
-        const newFilters7 = {
-          ...filters,
-          dateFrom: format(today, 'yyyy-MM-dd'),
-          dateTo: format(addDays(today, 7), 'yyyy-MM-dd')
-        };
-        setFilters(newFilters7);
-        setLoadMoreState(prev => ({ ...prev, currentDays: 7, canLoadMore: true }));
-        break;
-      case 'month':
-        const newFilters30 = {
-          ...filters,
-          dateFrom: format(today, 'yyyy-MM-dd'),
-          dateTo: format(addDays(today, 30), 'yyyy-MM-dd')
-        };
-        setFilters(newFilters30);
-        setLoadMoreState(prev => ({ ...prev, currentDays: 30, canLoadMore: true }));
-        break;
-      case 'available-only':
-        setFilters(prev => ({
-          ...prev,
-          availableOnly: !prev.availableOnly
-        }));
-        break;
-    }
-  }, [filters]);
+  const applyQuickFilter = useCallback(
+    (preset: 'today' | 'week' | 'month' | 'available-only') => {
+      const today = new Date();
+
+      switch (preset) {
+        case 'today':
+          const newFilters1 = {
+            ...filters,
+            dateFrom: format(today, 'yyyy-MM-dd'),
+            dateTo: format(today, 'yyyy-MM-dd'),
+          };
+          setFilters(newFilters1);
+          setLoadMoreState(prev => ({
+            ...prev,
+            currentDays: 1,
+            canLoadMore: true,
+          }));
+          break;
+        case 'week':
+          const newFilters7 = {
+            ...filters,
+            dateFrom: format(today, 'yyyy-MM-dd'),
+            dateTo: format(addDays(today, 7), 'yyyy-MM-dd'),
+          };
+          setFilters(newFilters7);
+          setLoadMoreState(prev => ({
+            ...prev,
+            currentDays: 7,
+            canLoadMore: true,
+          }));
+          break;
+        case 'month':
+          const newFilters30 = {
+            ...filters,
+            dateFrom: format(today, 'yyyy-MM-dd'),
+            dateTo: format(addDays(today, 30), 'yyyy-MM-dd'),
+          };
+          setFilters(newFilters30);
+          setLoadMoreState(prev => ({
+            ...prev,
+            currentDays: 30,
+            canLoadMore: true,
+          }));
+          break;
+        case 'available-only':
+          setFilters(prev => ({
+            ...prev,
+            availableOnly: !prev.availableOnly,
+          }));
+          break;
+      }
+    },
+    [filters]
+  );
 
   /**
    * Get vehicle status color (same as AvailabilityCalendar)
    */
-  const getVehicleStatusColor = (status: string, unavailabilityType?: string): string => {
+  const getVehicleStatusColor = (
+    status: string,
+    unavailabilityType?: string
+  ): string => {
     switch (status) {
       case 'available':
         return '#4caf50'; // Zelená - dostupné
@@ -674,34 +774,86 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   const getStatusDisplay = (status: string, unavailabilityType?: string) => {
     switch (status) {
       case 'available':
-        return { color: 'success', icon: <AvailableIcon fontSize="small" />, label: 'Dostupné' };
+        return {
+          color: 'success',
+          icon: <AvailableIcon fontSize="small" />,
+          label: 'Dostupné',
+        };
       case 'rented':
-        return { color: 'error', icon: <UnavailableIcon fontSize="small" />, label: 'Prenajatý (platforma)' };
+        return {
+          color: 'error',
+          icon: <UnavailableIcon fontSize="small" />,
+          label: 'Prenajatý (platforma)',
+        };
       case 'maintenance':
-        return { color: 'warning', icon: <MaintenanceIcon fontSize="small" />, label: 'Údržba' };
+        return {
+          color: 'warning',
+          icon: <MaintenanceIcon fontSize="small" />,
+          label: 'Údržba',
+        };
       case 'service':
-        return { color: 'info', icon: <MaintenanceIcon fontSize="small" />, label: 'Servis' };
+        return {
+          color: 'info',
+          icon: <MaintenanceIcon fontSize="small" />,
+          label: 'Servis',
+        };
       case 'unavailable':
         switch (unavailabilityType) {
           case 'private_rental':
-            return { color: 'secondary', icon: <UnavailableIcon fontSize="small" />, label: 'Súkromný prenájom' };
+            return {
+              color: 'secondary',
+              icon: <UnavailableIcon fontSize="small" />,
+              label: 'Súkromný prenájom',
+            };
           case 'service':
-            return { color: 'info', icon: <MaintenanceIcon fontSize="small" />, label: 'Servis' };
+            return {
+              color: 'info',
+              icon: <MaintenanceIcon fontSize="small" />,
+              label: 'Servis',
+            };
           case 'repair':
-            return { color: 'warning', icon: <MaintenanceIcon fontSize="small" />, label: 'Oprava' };
+            return {
+              color: 'warning',
+              icon: <MaintenanceIcon fontSize="small" />,
+              label: 'Oprava',
+            };
           case 'blocked':
-            return { color: 'secondary', icon: <UnavailableIcon fontSize="small" />, label: 'Blokované' };
+            return {
+              color: 'secondary',
+              icon: <UnavailableIcon fontSize="small" />,
+              label: 'Blokované',
+            };
           case 'cleaning':
-            return { color: 'info', icon: <MaintenanceIcon fontSize="small" />, label: 'Čistenie' };
+            return {
+              color: 'info',
+              icon: <MaintenanceIcon fontSize="small" />,
+              label: 'Čistenie',
+            };
           case 'inspection':
-            return { color: 'warning', icon: <MaintenanceIcon fontSize="small" />, label: 'Kontrola' };
+            return {
+              color: 'warning',
+              icon: <MaintenanceIcon fontSize="small" />,
+              label: 'Kontrola',
+            };
           default:
-            return { color: 'secondary', icon: <UnavailableIcon fontSize="small" />, label: 'Nedostupné' };
+            return {
+              color: 'secondary',
+              icon: <UnavailableIcon fontSize="small" />,
+              label: 'Nedostupné',
+            };
         }
       case 'blocked':
-        return { color: 'secondary', icon: <UnavailableIcon fontSize="small" />, label: 'Blokované' };
+        return {
+          color: 'secondary',
+          icon: <UnavailableIcon fontSize="small" />,
+          label: 'Blokované',
+        };
       default:
-        return { color: 'default', icon: <CarIcon fontSize="small" />, label: status };
+        return {
+          color: 'default',
+          icon: <CarIcon fontSize="small" />,
+          label: status,
+        };
     }
   };
 
@@ -711,13 +863,13 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   const renderMobileTimeline = (vehicle: AvailabilityData) => {
     const maxDaysToShow = 7; // Show max 7 days on mobile
     const visibleDays = vehicle.dailyStatus.slice(0, maxDaysToShow);
-    
+
     return (
       <Stack direction="row" spacing={0.5} sx={{ mt: 1 }}>
         {visibleDays.map((day, index) => {
           const statusDisplay = getStatusDisplay(day.status);
           return (
-            <Tooltip 
+            <Tooltip
               key={index}
               title={`${format(parseISO(day.date), 'dd.MM', { locale: sk })}: ${statusDisplay.label}${day.reason ? ` (${day.reason})` : ''}`}
             >
@@ -732,7 +884,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                   justifyContent: 'center',
                   fontSize: '10px',
                   color: 'white',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
                 }}
               >
                 {format(parseISO(day.date), 'd')}
@@ -756,12 +908,21 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     if (state?.dataLoaded?.vehicles && authState?.isAuthenticated) {
       loadAvailabilityData();
     }
-  }, [loadAvailabilityData, state?.dataLoaded?.vehicles, authState?.isAuthenticated]);
+  }, [
+    loadAvailabilityData,
+    state?.dataLoaded?.vehicles,
+    authState?.isAuthenticated,
+  ]);
 
   // Loading state
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight={200}
+      >
         <RefreshIcon sx={{ animation: 'spin 1s linear infinite', mr: 2 }} />
         <Typography>Načítavam dostupnosť vozidiel...</Typography>
       </Box>
@@ -772,14 +933,14 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     <Box sx={{ p: isMobile ? 1 : 2 }}>
       {/* Header with quick filters */}
       <Box sx={{ mb: 2 }}>
-        <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
+        <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
           🚗 Smart Dostupnosť Vozidiel
         </Typography>
-        
+
         {/* Quick Filter Buttons */}
-        <Stack 
-          direction={isMobile ? "column" : "row"} 
-          spacing={1} 
+        <Stack
+          direction={isMobile ? 'column' : 'row'}
+          spacing={1}
           sx={{ mb: 2 }}
           flexWrap="wrap"
         >
@@ -796,49 +957,69 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           >
             Pridať nedostupnosť
           </WarningButton>
-          
-          <SecondaryButton 
-            size="small" 
+
+          <SecondaryButton
+            size="small"
             onClick={() => applyQuickFilter('today')}
-            sx={{ 
-              backgroundColor: filters.dateTo === format(new Date(), 'yyyy-MM-dd') ? '#1976d2' : 'transparent',
-              color: filters.dateTo === format(new Date(), 'yyyy-MM-dd') ? 'white' : '#1976d2'
+            sx={{
+              backgroundColor:
+                filters.dateTo === format(new Date(), 'yyyy-MM-dd')
+                  ? '#1976d2'
+                  : 'transparent',
+              color:
+                filters.dateTo === format(new Date(), 'yyyy-MM-dd')
+                  ? 'white'
+                  : '#1976d2',
             }}
           >
             Dnes
           </SecondaryButton>
-          <SecondaryButton 
-            size="small" 
+          <SecondaryButton
+            size="small"
             onClick={() => applyQuickFilter('week')}
-            sx={{ 
-              backgroundColor: filters.dateTo === format(addDays(new Date(), 7), 'yyyy-MM-dd') ? '#1976d2' : 'transparent',
-              color: filters.dateTo === format(addDays(new Date(), 7), 'yyyy-MM-dd') ? 'white' : '#1976d2'
+            sx={{
+              backgroundColor:
+                filters.dateTo === format(addDays(new Date(), 7), 'yyyy-MM-dd')
+                  ? '#1976d2'
+                  : 'transparent',
+              color:
+                filters.dateTo === format(addDays(new Date(), 7), 'yyyy-MM-dd')
+                  ? 'white'
+                  : '#1976d2',
             }}
           >
             7 dní
           </SecondaryButton>
-          <SecondaryButton 
-            size="small" 
+          <SecondaryButton
+            size="small"
             onClick={() => applyQuickFilter('month')}
-            sx={{ 
-              backgroundColor: filters.dateTo === format(addDays(new Date(), 30), 'yyyy-MM-dd') ? '#1976d2' : 'transparent',
-              color: filters.dateTo === format(addDays(new Date(), 30), 'yyyy-MM-dd') ? 'white' : '#1976d2'
+            sx={{
+              backgroundColor:
+                filters.dateTo === format(addDays(new Date(), 30), 'yyyy-MM-dd')
+                  ? '#1976d2'
+                  : 'transparent',
+              color:
+                filters.dateTo === format(addDays(new Date(), 30), 'yyyy-MM-dd')
+                  ? 'white'
+                  : '#1976d2',
             }}
           >
             30 dní
           </SecondaryButton>
-          <SecondaryButton 
-            size="small" 
+          <SecondaryButton
+            size="small"
             onClick={() => applyQuickFilter('available-only')}
-            sx={{ 
-              backgroundColor: filters.availableOnly ? '#2e7d32' : 'transparent',
-              color: filters.availableOnly ? 'white' : '#2e7d32'
+            sx={{
+              backgroundColor: filters.availableOnly
+                ? '#2e7d32'
+                : 'transparent',
+              color: filters.availableOnly ? 'white' : '#2e7d32',
             }}
           >
-            {filters.availableOnly ? "✓ Len dostupné" : "Len dostupné"}
+            {filters.availableOnly ? '✓ Len dostupné' : 'Len dostupné'}
           </SecondaryButton>
-          <SecondaryButton 
-            size="small" 
+          <SecondaryButton
+            size="small"
             startIcon={<FilterIcon />}
             onClick={() => setFilterDialogOpen(true)}
           >
@@ -848,20 +1029,30 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
 
         {/* Summary */}
         <Typography variant="body2" color="text.secondary">
-          Zobrazujem {filteredData.length} vozidiel z {availabilityData.length} • 
-          Obdobie: {format(parseISO(filters.dateFrom), 'dd.MM.yyyy')} - {format(parseISO(filters.dateTo), 'dd.MM.yyyy')} •
-          Priemer dostupnosti: {Math.round(
-            filteredData.reduce((sum, v) => sum + v.availabilityPercent, 0) / Math.max(filteredData.length, 1)
-          )}%
+          Zobrazujem {filteredData.length} vozidiel z {availabilityData.length}{' '}
+          • Obdobie: {format(parseISO(filters.dateFrom), 'dd.MM.yyyy')} -{' '}
+          {format(parseISO(filters.dateTo), 'dd.MM.yyyy')} • Priemer
+          dostupnosti:{' '}
+          {Math.round(
+            filteredData.reduce((sum, v) => sum + v.availabilityPercent, 0) /
+              Math.max(filteredData.length, 1)
+          )}
+          %
         </Typography>
       </Box>
 
       {/* Mobile Card View */}
       {isMobile ? (
         <Stack spacing={1}>
-          {filteredData.map((vehicle) => (
+          {filteredData.map(vehicle => (
             <Card key={vehicle.vehicleId} variant="outlined" sx={{ p: 1 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                }}
+              >
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="subtitle2" fontWeight="bold">
                     {vehicle.vehicleName}
@@ -870,19 +1061,30 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                     {vehicle.licensePlate} • {vehicle.company}
                   </Typography>
                   <Box sx={{ mt: 0.5 }}>
-                    <Chip 
-                      size="small" 
+                    <Chip
+                      size="small"
                       label={`${vehicle.availableDays}/${vehicle.totalDays} dní`}
-                      color={vehicle.availabilityPercent >= 80 ? 'success' : 
-                             vehicle.availabilityPercent >= 50 ? 'warning' : 'error'}
+                      color={
+                        vehicle.availabilityPercent >= 80
+                          ? 'success'
+                          : vehicle.availabilityPercent >= 50
+                            ? 'warning'
+                            : 'error'
+                      }
                       sx={{ fontSize: '0.7rem' }}
                     />
                   </Box>
                 </Box>
-                <Typography variant="h6" color={
-                  vehicle.availabilityPercent >= 80 ? 'success.main' : 
-                  vehicle.availabilityPercent >= 50 ? 'warning.main' : 'error.main'
-                }>
+                <Typography
+                  variant="h6"
+                  color={
+                    vehicle.availabilityPercent >= 80
+                      ? 'success.main'
+                      : vehicle.availabilityPercent >= 50
+                        ? 'warning.main'
+                        : 'error.main'
+                  }
+                >
                   {vehicle.availabilityPercent}%
                 </Typography>
               </Box>
@@ -906,7 +1108,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredData.map((vehicle) => (
+              {filteredData.map(vehicle => (
                 <TableRow key={vehicle.vehicleId} hover>
                   <TableCell>
                     <Typography variant="body2" fontWeight="medium">
@@ -915,17 +1117,31 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                   </TableCell>
                   <TableCell>{vehicle.licensePlate}</TableCell>
                   <TableCell>
-                    <Chip size="small" label={vehicle.category} variant="outlined" />
+                    <Chip
+                      size="small"
+                      label={vehicle.category}
+                      variant="outlined"
+                    />
                   </TableCell>
                   <TableCell>{vehicle.company}</TableCell>
                   <TableCell align="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                      <Typography 
-                        variant="body2" 
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
                         fontWeight="bold"
                         color={
-                          vehicle.availabilityPercent >= 80 ? 'success.main' : 
-                          vehicle.availabilityPercent >= 50 ? 'warning.main' : 'error.main'
+                          vehicle.availabilityPercent >= 80
+                            ? 'success.main'
+                            : vehicle.availabilityPercent >= 50
+                              ? 'warning.main'
+                              : 'error.main'
                         }
                       >
                         {vehicle.availabilityPercent}%
@@ -936,13 +1152,19 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                     </Box>
                   </TableCell>
                   <TableCell align="center">
-                    <Stack direction="row" spacing={0.5} justifyContent="center">
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      justifyContent="center"
+                    >
                       {vehicle.dailyStatus.slice(0, 14).map((day, index) => {
                         const statusDisplay = getStatusDisplay(day.status);
-                        const vehicleData = availableVehicles.find(v => v.id === vehicle.vehicleId);
-                        
+                        const vehicleData = availableVehicles.find(
+                          v => v.id === vehicle.vehicleId
+                        );
+
                         return (
-                          <Tooltip 
+                          <Tooltip
                             key={index}
                             title={`${format(parseISO(day.date), 'dd.MM', { locale: sk })}: ${statusDisplay.label}${day.reason ? ` (${day.reason})` : ''} - ${day.status === 'available' ? 'Kliknite pre pridanie nedostupnosti' : day.status === 'rented' ? 'Prenájom (nie je možné upraviť)' : 'Kliknite pre úpravu nedostupnosti'}`}
                           >
@@ -952,29 +1174,41 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                                 height: 16,
                                 borderRadius: 0.5,
                                 bgcolor: getVehicleStatusColor(day.status),
-                                border: day.status === 'available' ? '1px solid' : 'none',
+                                border:
+                                  day.status === 'available'
+                                    ? '1px solid'
+                                    : 'none',
                                 borderColor: 'success.main',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s ease',
                                 '&:hover': {
                                   transform: 'scale(1.2)',
                                   boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                                  zIndex: 1
-                                }
+                                  zIndex: 1,
+                                },
                               }}
-                              onClick={(e) => {
+                              onClick={e => {
                                 e.stopPropagation();
                                 if (vehicleData) {
                                   if (day.status === 'available') {
                                     // Create new unavailability
-                                    setSelectedVehicleForUnavailability(vehicleData);
-                                    setSelectedDateForUnavailability(parseISO(day.date));
+                                    setSelectedVehicleForUnavailability(
+                                      vehicleData
+                                    );
+                                    setSelectedDateForUnavailability(
+                                      parseISO(day.date)
+                                    );
                                     setEditingUnavailability(undefined);
                                     setUnavailabilityModalOpen(true);
                                   } else if (day.status !== 'rented') {
                                     // Edit existing unavailability (not rental)
                                     // Load full unavailability data from API
-                                    loadUnavailabilityForEdit(vehicleData.id, day.date, day.status, day.reason || '');
+                                    loadUnavailabilityForEdit(
+                                      vehicleData.id,
+                                      day.date,
+                                      day.status,
+                                      day.reason || ''
+                                    );
                                   }
                                 }
                               }}
@@ -1005,45 +1239,57 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
             color="secondary"
             onClick={loadPastDays}
             disabled={loadMoreState.isLoadingPast}
-            startIcon={loadMoreState.isLoadingPast ? <RefreshIcon sx={{ animation: 'spin 1s linear infinite' }} /> : <ArrowBackIcon />}
+            startIcon={
+              loadMoreState.isLoadingPast ? (
+                <RefreshIcon sx={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <ArrowBackIcon />
+              )
+            }
             size="large"
           >
-            {loadMoreState.isLoadingPast 
-              ? 'Načítavam minulosť...' 
-              : `Načítať 7 dní do minulosti (${loadMoreState.currentPastDays}/${loadMoreState.maxPastDays})`
-            }
+            {loadMoreState.isLoadingPast
+              ? 'Načítavam minulosť...'
+              : `Načítať 7 dní do minulosti (${loadMoreState.currentPastDays}/${loadMoreState.maxPastDays})`}
           </Button>
         )}
-        
+
         {/* Load Future Days Button */}
         {loadMoreState.canLoadMore && (
           <Button
             variant="outlined"
             onClick={loadMoreDays}
             disabled={loadMoreState.isLoadingMore}
-            startIcon={loadMoreState.isLoadingMore ? <RefreshIcon sx={{ animation: 'spin 1s linear infinite' }} /> : <ArrowForwardIcon />}
+            startIcon={
+              loadMoreState.isLoadingMore ? (
+                <RefreshIcon sx={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <ArrowForwardIcon />
+              )
+            }
             size="large"
           >
-            {loadMoreState.isLoadingMore 
-              ? 'Načítavam budúcnosť...' 
-              : `Načítať 14 dní do budúcnosti (${loadMoreState.currentDays}/${loadMoreState.maxDays})`
-            }
+            {loadMoreState.isLoadingMore
+              ? 'Načítavam budúcnosť...'
+              : `Načítať 14 dní do budúcnosti (${loadMoreState.currentDays}/${loadMoreState.maxDays})`}
           </Button>
         )}
       </Box>
 
       {/* Max days reached info */}
-      {!loadMoreState.canLoadMore && loadMoreState.currentDays >= loadMoreState.maxDays && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            📅 Dosiahli ste maximálny rozsah {loadMoreState.maxDays} dní (6 mesiacov)
-          </Typography>
-        </Box>
-      )}
+      {!loadMoreState.canLoadMore &&
+        loadMoreState.currentDays >= loadMoreState.maxDays && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              📅 Dosiahli ste maximálny rozsah {loadMoreState.maxDays} dní (6
+              mesiacov)
+            </Typography>
+          </Box>
+        )}
 
       {/* Filter Dialog */}
-      <Dialog 
-        open={filterDialogOpen} 
+      <Dialog
+        open={filterDialogOpen}
         onClose={() => setFilterDialogOpen(false)}
         maxWidth="sm"
         fullWidth
@@ -1060,7 +1306,9 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                   label="Od dátumu"
                   type="date"
                   value={filters.dateFrom}
-                  onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                  onChange={e =>
+                    setFilters(prev => ({ ...prev, dateFrom: e.target.value }))
+                  }
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
@@ -1070,7 +1318,9 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                   label="Do dátumu"
                   type="date"
                   value={filters.dateTo}
-                  onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                  onChange={e =>
+                    setFilters(prev => ({ ...prev, dateTo: e.target.value }))
+                  }
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
@@ -1082,13 +1332,15 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
               <Select
                 multiple
                 value={filters.categories}
-                onChange={(e) => setFilters(prev => ({ 
-                  ...prev, 
-                  categories: e.target.value as VehicleCategory[] 
-                }))}
-                renderValue={(selected) => selected.join(', ')}
+                onChange={e =>
+                  setFilters(prev => ({
+                    ...prev,
+                    categories: e.target.value as VehicleCategory[],
+                  }))
+                }
+                renderValue={selected => selected.join(', ')}
               >
-                {availableCategories.map((category) => (
+                {availableCategories.map(category => (
                   <MenuItem key={category} value={category}>
                     {category}
                   </MenuItem>
@@ -1102,13 +1354,15 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
               <Select
                 multiple
                 value={filters.brands}
-                onChange={(e) => setFilters(prev => ({ 
-                  ...prev, 
-                  brands: e.target.value as string[] 
-                }))}
-                renderValue={(selected) => selected.join(', ')}
+                onChange={e =>
+                  setFilters(prev => ({
+                    ...prev,
+                    brands: e.target.value as string[],
+                  }))
+                }
+                renderValue={selected => selected.join(', ')}
               >
-                {availableBrands.map((brand) => (
+                {availableBrands.map(brand => (
                   <MenuItem key={brand} value={brand}>
                     {brand}
                   </MenuItem>
@@ -1122,13 +1376,15 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
               <Select
                 multiple
                 value={filters.companies}
-                onChange={(e) => setFilters(prev => ({ 
-                  ...prev, 
-                  companies: e.target.value as string[] 
-                }))}
-                renderValue={(selected) => selected.join(', ')}
+                onChange={e =>
+                  setFilters(prev => ({
+                    ...prev,
+                    companies: e.target.value as string[],
+                  }))
+                }
+                renderValue={selected => selected.join(', ')}
               >
-                {availableCompanies.map((company) => (
+                {availableCompanies.map(company => (
                   <MenuItem key={company} value={company}>
                     {company}
                   </MenuItem>
@@ -1141,10 +1397,12 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
               control={
                 <Switch
                   checked={filters.availableOnly}
-                  onChange={(e) => setFilters(prev => ({ 
-                    ...prev, 
-                    availableOnly: e.target.checked 
-                  }))}
+                  onChange={e =>
+                    setFilters(prev => ({
+                      ...prev,
+                      availableOnly: e.target.checked,
+                    }))
+                  }
                 />
               }
               label="Zobraziť len dostupné vozidlá"
@@ -1156,10 +1414,12 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
               label="Minimálna dostupnosť (%)"
               type="number"
               value={filters.minAvailabilityPercent}
-              onChange={(e) => setFilters(prev => ({ 
-                ...prev, 
-                minAvailabilityPercent: parseInt(e.target.value) || 0 
-              }))}
+              onChange={e =>
+                setFilters(prev => ({
+                  ...prev,
+                  minAvailabilityPercent: parseInt(e.target.value) || 0,
+                }))
+              }
               InputProps={{ inputProps: { min: 0, max: 100 } }}
             />
           </Stack>
@@ -1168,7 +1428,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           <SecondaryButton onClick={() => setFilterDialogOpen(false)}>
             Zrušiť
           </SecondaryButton>
-          <PrimaryButton 
+          <PrimaryButton
             onClick={() => {
               setFilterDialogOpen(false);
               loadAvailabilityData();
@@ -1181,11 +1441,11 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
 
       {/* Empty State */}
       {filteredData.length === 0 && !loading && (
-        <Box 
-          sx={{ 
-            textAlign: 'center', 
+        <Box
+          sx={{
+            textAlign: 'center',
             py: 4,
-            color: 'text.secondary' 
+            color: 'text.secondary',
           }}
         >
           <CarIcon sx={{ fontSize: 48, mb: 2 }} />

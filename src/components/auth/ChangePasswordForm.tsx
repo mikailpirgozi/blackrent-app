@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -10,6 +9,8 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
+import React, { useState } from 'react';
+
 import { useAuth } from '../../context/AuthContext';
 import { getAPI_BASE_URL } from '../../services/api';
 
@@ -18,7 +19,10 @@ interface ChangePasswordFormProps {
   onClose: () => void;
 }
 
-export default function ChangePasswordForm({ open, onClose }: ChangePasswordFormProps) {
+export default function ChangePasswordForm({
+  open,
+  onClose,
+}: ChangePasswordFormProps) {
   const { state } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -49,17 +53,20 @@ export default function ChangePasswordForm({ open, onClose }: ChangePasswordForm
 
     setLoading(true);
     try {
-      const response = await fetch(`${getAPI_BASE_URL()}/auth/change-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${state.token}`,
-        },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-        }),
-      });
+      const response = await fetch(
+        `${getAPI_BASE_URL()}/auth/change-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${state.token}`,
+          },
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -93,40 +100,38 @@ export default function ChangePasswordForm({ open, onClose }: ChangePasswordForm
       <form onSubmit={handleSubmit}>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {error && (
-              <Alert severity="error">{error}</Alert>
-            )}
+            {error && <Alert severity="error">{error}</Alert>}
             {success && (
               <Alert severity="success">Heslo bolo úspešne zmenené</Alert>
             )}
-            
+
             <TextField
               label="Aktuálne heslo"
               type="password"
               fullWidth
               value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
+              onChange={e => setCurrentPassword(e.target.value)}
               disabled={loading}
               required
             />
-            
+
             <TextField
               label="Nové heslo"
               type="password"
               fullWidth
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={e => setNewPassword(e.target.value)}
               disabled={loading}
               required
               helperText="Minimálne 6 znakov"
             />
-            
+
             <TextField
               label="Potvrdiť nové heslo"
               type="password"
               fullWidth
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={e => setConfirmPassword(e.target.value)}
               disabled={loading}
               required
             />
@@ -148,4 +153,4 @@ export default function ChangePasswordForm({ open, onClose }: ChangePasswordForm
       </form>
     </Dialog>
   );
-} 
+}

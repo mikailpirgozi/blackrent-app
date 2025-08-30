@@ -1,4 +1,8 @@
-import React from 'react';
+import {
+  Search as SearchIcon,
+  FilterList as FilterListIcon,
+  Refresh as RefreshIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -16,11 +20,7 @@ import {
   Grid,
   Divider,
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material';
+import React from 'react';
 
 // Types - PRESNE TIE ISTÉ ako v RentalListNew.tsx
 interface FilterState {
@@ -33,7 +33,7 @@ interface FilterState {
   priceMin: string;
   priceMax: string;
   protocolStatus: string[];
-  
+
   // Rozšírené filtre
   customerName: string;
   vehicleBrand: string;
@@ -44,16 +44,16 @@ interface FilterState {
   customerCompany: string;
   insuranceCompany: string;
   insuranceType: string;
-  
+
   // Časové filtre
   timeFilter: string;
-  
+
   // Cenové filtre
   priceRange: string;
-  
+
   // Stav platby
   paymentStatus: string;
-  
+
   // Zobrazenie
   showOnlyActive: boolean;
   showOnlyOverdue: boolean;
@@ -64,20 +64,23 @@ interface RentalFiltersProps {
   // Search state
   searchQuery: string;
   setSearchQuery: (value: string) => void;
-  
+
   // Filter visibility
   showFilters: boolean;
   setShowFilters: (value: boolean) => void;
-  
+
   // Advanced filters
   advancedFilters: FilterState;
   handleAdvancedFiltersChange: (filters: FilterState) => void;
-  
+
   // Helper functions
   toggleFilterValue: (filterKey: keyof FilterState, value: string) => void;
-  isFilterValueSelected: (filterKey: keyof FilterState, value: string) => boolean;
+  isFilterValueSelected: (
+    filterKey: keyof FilterState,
+    value: string
+  ) => boolean;
   resetAllFilters: () => void;
-  
+
   // Unique values for dropdowns
   uniquePaymentMethods: string[];
   uniqueCompanies: string[];
@@ -85,11 +88,11 @@ interface RentalFiltersProps {
   uniqueVehicleBrands: string[];
   uniqueInsuranceCompanies: string[];
   uniqueInsuranceTypes: string[];
-  
+
   // Filtered rentals count
   filteredRentalsCount: number;
   totalRentalsCount: number;
-  
+
   // Mobile filters
   showFiltersMobile: boolean;
   setShowFiltersMobile: () => void;
@@ -113,18 +116,35 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
   totalRentalsCount,
 }) => {
   return (
-    <Card sx={{ 
-      mb: 3, 
-      mx: { xs: 1, md: 0 }, // Menší symetrický margin na mobile
-      backgroundColor: 'background.paper',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-      border: '1px solid rgba(0,0,0,0.06)'
-    }}>
+    <Card
+      sx={{
+        mb: 3,
+        mx: { xs: 1, md: 0 }, // Menší symetrický margin na mobile
+        backgroundColor: 'background.paper',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+        border: '1px solid rgba(0,0,0,0.06)',
+      }}
+    >
       <CardContent sx={{ p: { xs: 2, md: 3 } }}>
         {/* Hlavný riadok s vyhľadávaním a tlačidlami */}
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, alignItems: { xs: 'stretch', md: 'center' }, mb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 2,
+            alignItems: { xs: 'stretch', md: 'center' },
+            mb: 2,
+          }}
+        >
           {/* Search Input */}
-          <Box sx={{ display: 'flex', alignItems: 'center', flex: { xs: 'none', md: 1 }, minWidth: { xs: '100%', md: 250 } }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              flex: { xs: 'none', md: 1 },
+              minWidth: { xs: '100%', md: 250 },
+            }}
+          >
             <TextField
               placeholder="Hľadať prenájmy..."
               variant="outlined"
@@ -140,34 +160,35 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                   '&:hover': {
                     backgroundColor: 'action.hover',
                     transform: 'translateY(-1px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                   },
                   '&.Mui-focused': {
                     backgroundColor: 'background.paper',
                     transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.15)'
-                  }
-                }
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+                  },
+                },
               }}
               InputProps={{
                 startAdornment: (
                   <Box sx={{ mr: 1, color: 'text.secondary' }}>
                     <SearchIcon fontSize="small" />
                   </Box>
-                )
+                ),
               }}
             />
           </Box>
 
           {/* Tlačidlá v riadku na mobile, vedľa seba na desktop */}
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: { xs: 'row', md: 'row' }, 
-            gap: 1, 
-            flexWrap: 'wrap',
-            justifyContent: { xs: 'space-between', md: 'flex-start' }
-          }}>
-
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'row', md: 'row' },
+              gap: 1,
+              flexWrap: 'wrap',
+              justifyContent: { xs: 'space-between', md: 'flex-start' },
+            }}
+          >
             {/* 🚀 KOMPAKTNÉ FILTRE - len ikonka */}
             <IconButton
               onClick={() => setShowFilters(!showFilters)}
@@ -182,8 +203,8 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 '&:hover': {
                   bgcolor: showFilters ? 'primary.dark' : 'rgba(0,0,0,0.04)',
                   transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                },
               }}
             >
               <FilterListIcon fontSize="small" />
@@ -207,8 +228,8 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                   color: 'white',
                   borderColor: 'error.main',
                   transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                },
               }}
             >
               Reset
@@ -217,72 +238,101 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
         </Box>
 
         {/* Search results info */}
-        {(searchQuery || 
-          (Array.isArray(advancedFilters.status) && advancedFilters.status.length > 0) || 
-          (Array.isArray(advancedFilters.paymentMethod) && advancedFilters.paymentMethod.length > 0) || 
-          (Array.isArray(advancedFilters.company) && advancedFilters.company.length > 0) || 
-          advancedFilters.dateFrom || advancedFilters.dateTo || advancedFilters.priceMin || advancedFilters.priceMax || 
-          (Array.isArray(advancedFilters.protocolStatus) && advancedFilters.protocolStatus.length > 0)) && (
+        {(searchQuery ||
+          (Array.isArray(advancedFilters.status) &&
+            advancedFilters.status.length > 0) ||
+          (Array.isArray(advancedFilters.paymentMethod) &&
+            advancedFilters.paymentMethod.length > 0) ||
+          (Array.isArray(advancedFilters.company) &&
+            advancedFilters.company.length > 0) ||
+          advancedFilters.dateFrom ||
+          advancedFilters.dateTo ||
+          advancedFilters.priceMin ||
+          advancedFilters.priceMax ||
+          (Array.isArray(advancedFilters.protocolStatus) &&
+            advancedFilters.protocolStatus.length > 0)) && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Zobrazených: {filteredRentalsCount} z {totalRentalsCount} prenájmov
           </Typography>
         )}
 
         {/* 🚀 RÝCHLE FILTRE - len tie najdôležitejšie */}
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 1, 
-          flexWrap: 'wrap', 
-          mb: 2,
-          alignItems: 'center'
-        }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            flexWrap: 'wrap',
+            mb: 2,
+            alignItems: 'center',
+          }}
+        >
           <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
             Rýchle filtre:
             {/* Počet označených filtrov */}
             {(() => {
-              const totalSelected = 
-                (Array.isArray(advancedFilters.paymentMethod) ? advancedFilters.paymentMethod.length : 0) +
-                (Array.isArray(advancedFilters.status) ? advancedFilters.status.length : 0) +
-                (Array.isArray(advancedFilters.protocolStatus) ? advancedFilters.protocolStatus.length : 0);
+              const totalSelected =
+                (Array.isArray(advancedFilters.paymentMethod)
+                  ? advancedFilters.paymentMethod.length
+                  : 0) +
+                (Array.isArray(advancedFilters.status)
+                  ? advancedFilters.status.length
+                  : 0) +
+                (Array.isArray(advancedFilters.protocolStatus)
+                  ? advancedFilters.protocolStatus.length
+                  : 0);
               return totalSelected > 0 ? (
-                <Chip 
-                  label={totalSelected} 
-                  size="small" 
-                  color="primary" 
+                <Chip
+                  label={totalSelected}
+                  size="small"
+                  color="primary"
                   variant="filled"
-                  sx={{ 
-                    ml: 1, 
-                    height: 20, 
+                  sx={{
+                    ml: 1,
+                    height: 20,
                     fontSize: '0.7rem',
-                    fontWeight: 'bold'
-                  }} 
+                    fontWeight: 'bold',
+                  }}
                 />
               ) : null;
             })()}
           </Typography>
-          
+
           {/* Spôsob platby */}
           {uniquePaymentMethods.slice(0, 3).map(method => {
             const getPaymentMethodLabel = (method: string) => {
-              switch(method) {
-                case 'cash': return 'Hotovosť';
-                case 'bank_transfer': return 'Bankový prevod';
-                case 'direct_to_owner': return 'Priamo majiteľovi';
-                case 'card': return 'Kartou';
-                case 'crypto': return 'Kryptomeny';
-                default: return method;
+              switch (method) {
+                case 'cash':
+                  return 'Hotovosť';
+                case 'bank_transfer':
+                  return 'Bankový prevod';
+                case 'direct_to_owner':
+                  return 'Priamo majiteľovi';
+                case 'card':
+                  return 'Kartou';
+                case 'crypto':
+                  return 'Kryptomeny';
+                default:
+                  return method;
               }
             };
-            
+
             return (
               <Chip
                 key={method}
                 label={getPaymentMethodLabel(method)}
                 size="small"
-                variant={isFilterValueSelected('paymentMethod', method) ? 'filled' : 'outlined'}
-                color={isFilterValueSelected('paymentMethod', method) ? 'primary' : 'default'}
+                variant={
+                  isFilterValueSelected('paymentMethod', method)
+                    ? 'filled'
+                    : 'outlined'
+                }
+                color={
+                  isFilterValueSelected('paymentMethod', method)
+                    ? 'primary'
+                    : 'default'
+                }
                 onClick={() => toggleFilterValue('paymentMethod', method)}
-                sx={{ 
+                sx={{
                   borderRadius: 2,
                   '&:hover': { transform: 'translateY(-1px)' },
                   transition: 'all 0.2s ease',
@@ -291,8 +341,8 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                     fontWeight: 'bold',
                     boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
                     border: '2px solid',
-                    borderColor: 'primary.main'
-                  })
+                    borderColor: 'primary.main',
+                  }),
                 }}
               />
             );
@@ -304,10 +354,14 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
           <Chip
             label="Aktívne"
             size="small"
-            variant={isFilterValueSelected('status', 'active') ? 'filled' : 'outlined'}
-            color={isFilterValueSelected('status', 'active') ? 'success' : 'default'}
+            variant={
+              isFilterValueSelected('status', 'active') ? 'filled' : 'outlined'
+            }
+            color={
+              isFilterValueSelected('status', 'active') ? 'success' : 'default'
+            }
             onClick={() => toggleFilterValue('status', 'active')}
-            sx={{ 
+            sx={{
               borderRadius: 2,
               '&:hover': { transform: 'translateY(-1px)' },
               transition: 'all 0.2s ease',
@@ -316,17 +370,21 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 fontWeight: 'bold',
                 boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)',
                 border: '2px solid',
-                borderColor: 'success.main'
-              })
+                borderColor: 'success.main',
+              }),
             }}
           />
           <Chip
             label="Čakajúci"
             size="small"
-            variant={isFilterValueSelected('status', 'pending') ? 'filled' : 'outlined'}
-            color={isFilterValueSelected('status', 'pending') ? 'warning' : 'default'}
+            variant={
+              isFilterValueSelected('status', 'pending') ? 'filled' : 'outlined'
+            }
+            color={
+              isFilterValueSelected('status', 'pending') ? 'warning' : 'default'
+            }
             onClick={() => toggleFilterValue('status', 'pending')}
-            sx={{ 
+            sx={{
               borderRadius: 2,
               '&:hover': { transform: 'translateY(-1px)' },
               transition: 'all 0.2s ease',
@@ -335,17 +393,23 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 fontWeight: 'bold',
                 boxShadow: '0 2px 8px rgba(237, 108, 2, 0.3)',
                 border: '2px solid',
-                borderColor: 'warning.main'
-              })
+                borderColor: 'warning.main',
+              }),
             }}
           />
           <Chip
             label="Ukončené"
             size="small"
-            variant={isFilterValueSelected('status', 'completed') ? 'filled' : 'outlined'}
-            color={isFilterValueSelected('status', 'completed') ? 'info' : 'default'}
+            variant={
+              isFilterValueSelected('status', 'completed')
+                ? 'filled'
+                : 'outlined'
+            }
+            color={
+              isFilterValueSelected('status', 'completed') ? 'info' : 'default'
+            }
             onClick={() => toggleFilterValue('status', 'completed')}
-            sx={{ 
+            sx={{
               borderRadius: 2,
               '&:hover': { transform: 'translateY(-1px)' },
               transition: 'all 0.2s ease',
@@ -354,8 +418,8 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 fontWeight: 'bold',
                 boxShadow: '0 2px 8px rgba(2, 136, 209, 0.3)',
                 border: '2px solid',
-                borderColor: 'info.main'
-              })
+                borderColor: 'info.main',
+              }),
             }}
           />
 
@@ -365,10 +429,18 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
           <Chip
             label="Zaplatené"
             size="small"
-            variant={isFilterValueSelected('paymentStatus', 'paid') ? 'filled' : 'outlined'}
-            color={isFilterValueSelected('paymentStatus', 'paid') ? 'success' : 'default'}
+            variant={
+              isFilterValueSelected('paymentStatus', 'paid')
+                ? 'filled'
+                : 'outlined'
+            }
+            color={
+              isFilterValueSelected('paymentStatus', 'paid')
+                ? 'success'
+                : 'default'
+            }
             onClick={() => toggleFilterValue('paymentStatus', 'paid')}
-            sx={{ 
+            sx={{
               borderRadius: 2,
               '&:hover': { transform: 'translateY(-1px)' },
               transition: 'all 0.2s ease',
@@ -376,17 +448,25 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 fontWeight: 'bold',
                 boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)',
                 border: '2px solid',
-                borderColor: 'success.main'
-              })
+                borderColor: 'success.main',
+              }),
             }}
           />
           <Chip
             label="Nezaplatené"
             size="small"
-            variant={isFilterValueSelected('paymentStatus', 'unpaid') ? 'filled' : 'outlined'}
-            color={isFilterValueSelected('paymentStatus', 'unpaid') ? 'error' : 'default'}
+            variant={
+              isFilterValueSelected('paymentStatus', 'unpaid')
+                ? 'filled'
+                : 'outlined'
+            }
+            color={
+              isFilterValueSelected('paymentStatus', 'unpaid')
+                ? 'error'
+                : 'default'
+            }
             onClick={() => toggleFilterValue('paymentStatus', 'unpaid')}
-            sx={{ 
+            sx={{
               borderRadius: 2,
               '&:hover': { transform: 'translateY(-1px)' },
               transition: 'all 0.2s ease',
@@ -394,8 +474,8 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 fontWeight: 'bold',
                 boxShadow: '0 2px 8px rgba(211, 47, 47, 0.3)',
                 border: '2px solid',
-                borderColor: 'error.main'
-              })
+                borderColor: 'error.main',
+              }),
             }}
           />
 
@@ -405,10 +485,18 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
           <Chip
             label="Bez protokolu"
             size="small"
-            variant={isFilterValueSelected('protocolStatus', 'none') ? 'filled' : 'outlined'}
-            color={isFilterValueSelected('protocolStatus', 'none') ? 'warning' : 'default'}
+            variant={
+              isFilterValueSelected('protocolStatus', 'none')
+                ? 'filled'
+                : 'outlined'
+            }
+            color={
+              isFilterValueSelected('protocolStatus', 'none')
+                ? 'warning'
+                : 'default'
+            }
             onClick={() => toggleFilterValue('protocolStatus', 'none')}
-            sx={{ 
+            sx={{
               borderRadius: 2,
               '&:hover': { transform: 'translateY(-1px)' },
               transition: 'all 0.2s ease',
@@ -416,17 +504,25 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 fontWeight: 'bold',
                 boxShadow: '0 2px 8px rgba(237, 108, 2, 0.3)',
                 border: '2px solid',
-                borderColor: 'warning.main'
-              })
+                borderColor: 'warning.main',
+              }),
             }}
           />
           <Chip
             label="S protokolom"
             size="small"
-            variant={isFilterValueSelected('protocolStatus', 'with_handover') ? 'filled' : 'outlined'}
-            color={isFilterValueSelected('protocolStatus', 'with_handover') ? 'success' : 'default'}
+            variant={
+              isFilterValueSelected('protocolStatus', 'with_handover')
+                ? 'filled'
+                : 'outlined'
+            }
+            color={
+              isFilterValueSelected('protocolStatus', 'with_handover')
+                ? 'success'
+                : 'default'
+            }
             onClick={() => toggleFilterValue('protocolStatus', 'with_handover')}
-            sx={{ 
+            sx={{
               borderRadius: 2,
               '&:hover': { transform: 'translateY(-1px)' },
               transition: 'all 0.2s ease',
@@ -434,8 +530,8 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 fontWeight: 'bold',
                 boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)',
                 border: '2px solid',
-                borderColor: 'success.main'
-              })
+                borderColor: 'success.main',
+              }),
             }}
           />
         </Box>
@@ -444,11 +540,14 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
         <Collapse in={showFilters}>
           <Divider sx={{ my: 2 }} />
           <Box sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="h6"
+              sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <FilterListIcon fontSize="small" />
               Filtre
             </Typography>
-            
+
             <Grid container spacing={3}>
               {/* Spôsob platby */}
               <Grid item xs={12} sm={6} md={4}>
@@ -456,27 +555,45 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                   <InputLabel>Spôsob platby</InputLabel>
                   <Select
                     multiple
-                    value={Array.isArray(advancedFilters.paymentMethod) ? advancedFilters.paymentMethod : []}
-                    onChange={(e) => handleAdvancedFiltersChange({ 
-                      ...advancedFilters, 
-                      paymentMethod: Array.isArray(e.target.value) ? e.target.value : [e.target.value]
-                    })}
+                    value={
+                      Array.isArray(advancedFilters.paymentMethod)
+                        ? advancedFilters.paymentMethod
+                        : []
+                    }
+                    onChange={e =>
+                      handleAdvancedFiltersChange({
+                        ...advancedFilters,
+                        paymentMethod: Array.isArray(e.target.value)
+                          ? e.target.value
+                          : [e.target.value],
+                      })
+                    }
                     label="Spôsob platby"
-                    renderValue={(selected) => (
+                    renderValue={selected => (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {(selected as string[]).map((value) => {
+                        {(selected as string[]).map(value => {
                           const getPaymentMethodLabel = (method: string) => {
-                            switch(method) {
-                              case 'cash': return 'Hotovosť';
-                              case 'bank_transfer': return 'Bankový prevod';
-                              case 'direct_to_owner': return 'Priamo majiteľovi';
-                              case 'card': return 'Kartou';
-                              case 'crypto': return 'Kryptomeny';
-                              default: return method;
+                            switch (method) {
+                              case 'cash':
+                                return 'Hotovosť';
+                              case 'bank_transfer':
+                                return 'Bankový prevod';
+                              case 'direct_to_owner':
+                                return 'Priamo majiteľovi';
+                              case 'card':
+                                return 'Kartou';
+                              case 'crypto':
+                                return 'Kryptomeny';
+                              default:
+                                return method;
                             }
                           };
                           return (
-                            <Chip key={value} label={getPaymentMethodLabel(value)} size="small" />
+                            <Chip
+                              key={value}
+                              label={getPaymentMethodLabel(value)}
+                              size="small"
+                            />
                           );
                         })}
                       </Box>
@@ -484,13 +601,19 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                   >
                     {uniquePaymentMethods.map(method => {
                       const getPaymentMethodLabel = (method: string) => {
-                        switch(method) {
-                          case 'cash': return 'Hotovosť';
-                          case 'bank_transfer': return 'Bankový prevod';
-                          case 'direct_to_owner': return 'Priamo majiteľovi';
-                          case 'card': return 'Kartou';
-                          case 'crypto': return 'Kryptomeny';
-                          default: return method;
+                        switch (method) {
+                          case 'cash':
+                            return 'Hotovosť';
+                          case 'bank_transfer':
+                            return 'Bankový prevod';
+                          case 'direct_to_owner':
+                            return 'Priamo majiteľovi';
+                          case 'card':
+                            return 'Kartou';
+                          case 'crypto':
+                            return 'Kryptomeny';
+                          default:
+                            return method;
                         }
                       };
                       return (
@@ -509,15 +632,23 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                   <InputLabel>Firma</InputLabel>
                   <Select
                     multiple
-                    value={Array.isArray(advancedFilters.company) ? advancedFilters.company : []}
-                    onChange={(e) => handleAdvancedFiltersChange({ 
-                      ...advancedFilters, 
-                      company: Array.isArray(e.target.value) ? e.target.value : [e.target.value]
-                    })}
+                    value={
+                      Array.isArray(advancedFilters.company)
+                        ? advancedFilters.company
+                        : []
+                    }
+                    onChange={e =>
+                      handleAdvancedFiltersChange({
+                        ...advancedFilters,
+                        company: Array.isArray(e.target.value)
+                          ? e.target.value
+                          : [e.target.value],
+                      })
+                    }
                     label="Firma"
-                    renderValue={(selected) => (
+                    renderValue={selected => (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {(selected as string[]).map((value) => (
+                        {(selected as string[]).map(value => (
                           <Chip key={value} label={value} size="small" />
                         ))}
                       </Box>
@@ -538,15 +669,23 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                   <InputLabel>Stav prenájmu</InputLabel>
                   <Select
                     multiple
-                    value={Array.isArray(advancedFilters.status) ? advancedFilters.status : []}
-                    onChange={(e) => handleAdvancedFiltersChange({ 
-                      ...advancedFilters, 
-                      status: Array.isArray(e.target.value) ? e.target.value : [e.target.value]
-                    })}
+                    value={
+                      Array.isArray(advancedFilters.status)
+                        ? advancedFilters.status
+                        : []
+                    }
+                    onChange={e =>
+                      handleAdvancedFiltersChange({
+                        ...advancedFilters,
+                        status: Array.isArray(e.target.value)
+                          ? e.target.value
+                          : [e.target.value],
+                      })
+                    }
                     label="Stav prenájmu"
-                    renderValue={(selected) => (
+                    renderValue={selected => (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {(selected as string[]).map((value) => (
+                        {(selected as string[]).map(value => (
                           <Chip key={value} label={value} size="small" />
                         ))}
                       </Box>
@@ -569,7 +708,12 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                   label="Dátum od"
                   type="date"
                   value={advancedFilters.dateFrom || ''}
-                  onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, dateFrom: e.target.value })}
+                  onChange={e =>
+                    handleAdvancedFiltersChange({
+                      ...advancedFilters,
+                      dateFrom: e.target.value,
+                    })
+                  }
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
@@ -582,7 +726,12 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                   label="Dátum do"
                   type="date"
                   value={advancedFilters.dateTo || ''}
-                  onChange={(e) => handleAdvancedFiltersChange({ ...advancedFilters, dateTo: e.target.value })}
+                  onChange={e =>
+                    handleAdvancedFiltersChange({
+                      ...advancedFilters,
+                      dateTo: e.target.value,
+                    })
+                  }
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>

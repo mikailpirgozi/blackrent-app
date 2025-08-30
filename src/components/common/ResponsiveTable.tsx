@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Box,
   Card,
@@ -20,15 +19,19 @@ import {
   Button,
   Stack,
   Divider,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
+import React from 'react';
 
 export interface ResponsiveTableColumn {
   id: string;
   label: string;
   hideOnMobile?: boolean;
   hideOnTablet?: boolean;
-  width?: string | number | { xs?: string; sm?: string; md?: string; lg?: string; xl?: string; };
+  width?:
+    | string
+    | number
+    | { xs?: string; sm?: string; md?: string; lg?: string; xl?: string };
   render?: (value: any, row: any) => React.ReactNode;
   format?: (value: any) => string;
 }
@@ -45,7 +48,6 @@ export interface ResponsiveTableProps {
   mobileCardRenderer?: (row: any, index: number) => React.ReactNode;
   emptyMessage?: string;
   loading?: boolean;
-
 }
 
 export default function ResponsiveTable({
@@ -55,11 +57,11 @@ export default function ResponsiveTable({
   selected = [],
   onSelectionChange,
   onRowClick,
-  getRowId = (row) => row.id,
+  getRowId = row => row.id,
   getRowColor,
   mobileCardRenderer,
   emptyMessage = 'Žiadne dáta',
-  loading = false
+  loading = false,
 }: ResponsiveTableProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -94,17 +96,15 @@ export default function ResponsiveTable({
   if (isMobile) {
     if (mobileCardRenderer) {
       return (
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: 2
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
           }}
         >
           {data.map((row, index) => (
-            <Box key={getRowId(row)}>
-              {mobileCardRenderer(row, index)}
-            </Box>
+            <Box key={getRowId(row)}>{mobileCardRenderer(row, index)}</Box>
           ))}
           {data.length === 0 && (
             <Card>
@@ -113,33 +113,34 @@ export default function ResponsiveTable({
               </CardContent>
             </Card>
           )}
-
         </Box>
       );
     }
 
     // Default Mobile Card Layout
     return (
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: 2
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
         }}
       >
-        {data.map((row) => {
+        {data.map(row => {
           const rowId = getRowId(row);
           const backgroundColor = getRowColor ? getRowColor(row) : undefined;
-          
+
           return (
-            <Card 
+            <Card
               key={rowId}
-              sx={{ 
+              sx={{
                 backgroundColor,
                 cursor: onRowClick ? 'pointer' : 'default',
-                '&:hover': onRowClick ? { 
-                  backgroundColor: theme.palette.action.hover 
-                } : {}
+                '&:hover': onRowClick
+                  ? {
+                      backgroundColor: theme.palette.action.hover,
+                    }
+                  : {},
               }}
               onClick={() => onRowClick && onRowClick(row)}
             >
@@ -148,27 +149,40 @@ export default function ResponsiveTable({
                   <Box sx={{ mb: 1 }}>
                     <Checkbox
                       checked={selected.includes(rowId)}
-                      onChange={(e) => handleSelectOne(rowId, e.target.checked)}
-                      onClick={(e) => e.stopPropagation()}
+                      onChange={e => handleSelectOne(rowId, e.target.checked)}
+                      onClick={e => e.stopPropagation()}
                     />
                   </Box>
                 )}
-                
+
                 <Stack spacing={1}>
-                  {visibleColumns.map((col) => {
+                  {visibleColumns.map(col => {
                     const value = row[col.id];
-                    const displayValue = col.render 
+                    const displayValue = col.render
                       ? col.render(value, row)
-                      : col.format 
-                        ? col.format(value) 
+                      : col.format
+                        ? col.format(value)
                         : value;
-                    
+
                     return (
-                      <Box key={col.id} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ minWidth: '80px' }}>
+                      <Box
+                        key={col.id}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ minWidth: '80px' }}
+                        >
                           {col.label}:
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 500, textAlign: 'right' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 500, textAlign: 'right' }}
+                        >
                           {displayValue}
                         </Typography>
                       </Box>
@@ -179,7 +193,7 @@ export default function ResponsiveTable({
             </Card>
           );
         })}
-        
+
         {data.length === 0 && (
           <Card>
             <CardContent sx={{ textAlign: 'center', py: 4 }}>
@@ -187,7 +201,6 @@ export default function ResponsiveTable({
             </CardContent>
           </Card>
         )}
-
       </Box>
     );
   }
@@ -195,10 +208,10 @@ export default function ResponsiveTable({
   // Desktop Table View
   return (
     <Card>
-      <TableContainer 
-        component={Paper} 
-        sx={{ 
-          backgroundColor: 'transparent'
+      <TableContainer
+        component={Paper}
+        sx={{
+          backgroundColor: 'transparent',
         }}
       >
         <Table>
@@ -208,36 +221,39 @@ export default function ResponsiveTable({
                 <TableCell padding="checkbox">
                   <Checkbox
                     checked={selected.length === data.length && data.length > 0}
-                    indeterminate={selected.length > 0 && selected.length < data.length}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    indeterminate={
+                      selected.length > 0 && selected.length < data.length
+                    }
+                    onChange={e => handleSelectAll(e.target.checked)}
                   />
                 </TableCell>
               )}
-              {visibleColumns.map((col) => (
-                <TableCell 
-                  key={col.id}
-                  sx={{ width: col.width }}
-                >
+              {visibleColumns.map(col => (
+                <TableCell key={col.id} sx={{ width: col.width }}>
                   {col.label}
                 </TableCell>
               ))}
             </TableRow>
           </TableHead>
           <TableBody>
-            {data.map((row) => {
+            {data.map(row => {
               const rowId = getRowId(row);
-              const backgroundColor = getRowColor ? getRowColor(row) : undefined;
-              
+              const backgroundColor = getRowColor
+                ? getRowColor(row)
+                : undefined;
+
               return (
                 <TableRow
                   key={rowId}
                   selected={selected.includes(rowId)}
-                  sx={{ 
+                  sx={{
                     backgroundColor,
                     cursor: onRowClick ? 'pointer' : 'default',
-                    '&:hover': onRowClick ? { 
-                      backgroundColor: theme.palette.action.hover 
-                    } : {}
+                    '&:hover': onRowClick
+                      ? {
+                          backgroundColor: theme.palette.action.hover,
+                        }
+                      : {},
                   }}
                   onClick={() => onRowClick && onRowClick(row)}
                 >
@@ -245,32 +261,28 @@ export default function ResponsiveTable({
                     <TableCell padding="checkbox">
                       <Checkbox
                         checked={selected.includes(rowId)}
-                        onChange={(e) => handleSelectOne(rowId, e.target.checked)}
-                        onClick={(e) => e.stopPropagation()}
+                        onChange={e => handleSelectOne(rowId, e.target.checked)}
+                        onClick={e => e.stopPropagation()}
                       />
                     </TableCell>
                   )}
-                  {visibleColumns.map((col) => {
+                  {visibleColumns.map(col => {
                     const value = row[col.id];
-                    const displayValue = col.render 
+                    const displayValue = col.render
                       ? col.render(value, row)
-                      : col.format 
-                        ? col.format(value) 
+                      : col.format
+                        ? col.format(value)
                         : value;
-                    
-                    return (
-                      <TableCell key={col.id}>
-                        {displayValue}
-                      </TableCell>
-                    );
+
+                    return <TableCell key={col.id}>{displayValue}</TableCell>;
                   })}
                 </TableRow>
               );
             })}
-            
+
             {data.length === 0 && (
               <TableRow>
-                <TableCell 
+                <TableCell
                   colSpan={visibleColumns.length + (selectable ? 1 : 0)}
                   sx={{ textAlign: 'center', py: 4 }}
                 >
@@ -278,7 +290,6 @@ export default function ResponsiveTable({
                 </TableCell>
               </TableRow>
             )}
-
           </TableBody>
         </Table>
       </TableContainer>
@@ -287,11 +298,11 @@ export default function ResponsiveTable({
 }
 
 // Helper component for mobile action buttons
-export function MobileActionCard({ 
-  children, 
-  title, 
-  subtitle 
-}: { 
+export function MobileActionCard({
+  children,
+  title,
+  subtitle,
+}: {
   children: React.ReactNode;
   title?: string;
   subtitle?: string;
@@ -313,4 +324,4 @@ export function MobileActionCard({
       </CardContent>
     </Card>
   );
-} 
+}

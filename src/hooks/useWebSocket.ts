@@ -2,13 +2,24 @@
 // Custom React hook pre jednoduché použitie WebSocket real-time updates
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { getWebSocketClient, WebSocketEvents, WebSocketClient } from '../services/websocket-client';
+
+import {
+  getWebSocketClient,
+  WebSocketEvents,
+  WebSocketClient,
+} from '../services/websocket-client';
 import { Rental, Vehicle, Customer } from '../types';
 
 // Notification typy
 export interface NotificationData {
   id: string;
-  type: 'rental_created' | 'rental_updated' | 'rental_deleted' | 'vehicle_updated' | 'customer_created' | 'system';
+  type:
+    | 'rental_created'
+    | 'rental_updated'
+    | 'rental_deleted'
+    | 'vehicle_updated'
+    | 'customer_created'
+    | 'system';
   title: string;
   message: string;
   timestamp: string;
@@ -21,7 +32,10 @@ export interface NotificationData {
  */
 export function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
-  const [connectedUsers, setConnectedUsers] = useState<{ count: number; users: any[] }>({ count: 0, users: [] });
+  const [connectedUsers, setConnectedUsers] = useState<{
+    count: number;
+    users: any[];
+  }>({ count: 0, users: [] });
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const clientRef = useRef<WebSocketClient | null>(null);
 
@@ -49,7 +63,7 @@ export function useWebSocket() {
     if (socket) {
       socket.on('connect', handleConnect);
       socket.on('disconnect', handleDisconnect);
-      
+
       // Check initial connection state
       setIsConnected(socket.connected);
     }
@@ -66,21 +80,22 @@ export function useWebSocket() {
     };
   }, []);
 
-  const addNotification = useCallback((notification: Omit<NotificationData, 'id'>) => {
-    const newNotification: NotificationData = {
-      ...notification,
-      id: Date.now().toString(),
-      read: false
-    };
-    
-    setNotifications(prev => [newNotification, ...prev.slice(0, 49)]); // Keep last 50 notifications
-  }, []);
+  const addNotification = useCallback(
+    (notification: Omit<NotificationData, 'id'>) => {
+      const newNotification: NotificationData = {
+        ...notification,
+        id: Date.now().toString(),
+        read: false,
+      };
+
+      setNotifications(prev => [newNotification, ...prev.slice(0, 49)]); // Keep last 50 notifications
+    },
+    []
+  );
 
   const markNotificationRead = useCallback((id: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, read: true } : notif
-      )
+    setNotifications(prev =>
+      prev.map(notif => (notif.id === id ? { ...notif, read: true } : notif))
     );
   }, []);
 
@@ -103,7 +118,9 @@ export function useWebSocket() {
 /**
  * Hook pre real-time rental updates
  */
-export function useRentalUpdates(onRentalChange?: (type: string, rental?: Rental, rentalId?: string) => void) {
+export function useRentalUpdates(
+  onRentalChange?: (type: string, rental?: Rental, rentalId?: string) => void
+) {
   const { client, addNotification } = useWebSocket();
 
   useEffect(() => {
@@ -144,7 +161,9 @@ export function useRentalUpdates(onRentalChange?: (type: string, rental?: Rental
 /**
  * Hook pre real-time vehicle updates
  */
-export function useVehicleUpdates(onVehicleChange?: (vehicle: Vehicle) => void) {
+export function useVehicleUpdates(
+  onVehicleChange?: (vehicle: Vehicle) => void
+) {
   const { client, addNotification } = useWebSocket();
 
   useEffect(() => {
@@ -167,7 +186,9 @@ export function useVehicleUpdates(onVehicleChange?: (vehicle: Vehicle) => void) 
 /**
  * Hook pre real-time protocol updates
  */
-export function useProtocolUpdates(onProtocolChange?: (type: string, data: any) => void) {
+export function useProtocolUpdates(
+  onProtocolChange?: (type: string, data: any) => void
+) {
   const { client, addNotification } = useWebSocket();
 
   useEffect(() => {
@@ -177,18 +198,22 @@ export function useProtocolUpdates(onProtocolChange?: (type: string, data: any) 
       console.log('📢 Protocol created:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
       onProtocolChange?.('created', data);
-      
+
       // Trigger rental list refresh
-      window.dispatchEvent(new CustomEvent('rental-list-refresh', { detail: data }));
+      window.dispatchEvent(
+        new CustomEvent('rental-list-refresh', { detail: data })
+      );
     };
 
     const handleProtocolUpdated = (data: any) => {
       console.log('📢 Protocol updated:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
       onProtocolChange?.('updated', data);
-      
+
       // Trigger rental list refresh
-      window.dispatchEvent(new CustomEvent('rental-list-refresh', { detail: data }));
+      window.dispatchEvent(
+        new CustomEvent('rental-list-refresh', { detail: data })
+      );
     };
 
     // Register event listeners
@@ -219,7 +244,7 @@ export function useSystemNotifications() {
         title: `${data.type === 'error' ? '❌' : data.type === 'warning' ? '⚠️' : 'ℹ️'} Systém`,
         message: data.message,
         timestamp: data.timestamp,
-        data: data.details
+        data: data.details,
       });
     };
 
@@ -230,7 +255,7 @@ export function useSystemNotifications() {
         title: data.success ? '✅ Migrácia' : '❌ Migrácia',
         message: data.message,
         timestamp: data.timestamp,
-        data: data
+        data: data,
       });
     };
 

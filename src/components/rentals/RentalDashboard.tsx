@@ -1,4 +1,13 @@
-import React, { useMemo } from 'react';
+import {
+  TrendingUp as TrendingUpIcon,
+  Schedule as ScheduleIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  Pending as PendingIcon,
+  Euro as EuroIcon,
+  Assignment as HandoverIcon,
+  AssignmentReturn as ReturnIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -9,20 +18,19 @@ import {
   useTheme,
   useMediaQuery,
   Divider,
-  Stack
+  Stack,
 } from '@mui/material';
 import {
-  TrendingUp as TrendingUpIcon,
-  Schedule as ScheduleIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Pending as PendingIcon,
-  Euro as EuroIcon,
-  Assignment as HandoverIcon,
-  AssignmentReturn as ReturnIcon
-} from '@mui/icons-material';
-import { format, isToday, isTomorrow, isAfter, isBefore, startOfDay } from 'date-fns';
+  format,
+  isToday,
+  isTomorrow,
+  isAfter,
+  isBefore,
+  startOfDay,
+} from 'date-fns';
 import { sk } from 'date-fns/locale';
+import React, { useMemo } from 'react';
+
 import { Rental } from '../../types';
 
 interface RentalDashboardProps {
@@ -52,7 +60,7 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
   rentals,
   protocols = {},
   isLoading = false,
-  onQuickFilter
+  onQuickFilter,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -67,8 +75,10 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       const startDate = new Date(rental.startDate);
       const endDate = new Date(rental.endDate);
       // Prenájom je aktívny len ak: začal a ešte neskončil
-      return (isAfter(today, startDate) || isToday(startDate)) && 
-             (isBefore(today, endDate) || isToday(endDate));
+      return (
+        (isAfter(today, startDate) || isToday(startDate)) &&
+        (isBefore(today, endDate) || isToday(endDate))
+      );
     });
 
     // Dnes aktivita - prenájmy ktoré sa dnes začínajú ALEBO končia
@@ -90,10 +100,12 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       const endOfWeek = new Date(today);
       endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
       endOfWeek.setHours(23, 59, 59, 999);
-      
-      const startsThisWeek = isAfter(startDate, today) && isBefore(startDate, endOfWeek);
-      const endsThisWeek = isAfter(endDate, today) && isBefore(endDate, endOfWeek);
-      
+
+      const startsThisWeek =
+        isAfter(startDate, today) && isBefore(startDate, endOfWeek);
+      const endsThisWeek =
+        isAfter(endDate, today) && isBefore(endDate, endOfWeek);
+
       return startsThisWeek || endsThisWeek;
     });
 
@@ -117,15 +129,21 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
     });
 
     const unpaid = rentals.filter(rental => !rental.paid);
-    const pending = rentals.filter(rental => rental.status === 'pending' || !rental.confirmed);
-    
-    const withHandover = rentals.filter(rental => protocols[rental.id]?.handover);
+    const pending = rentals.filter(
+      rental => rental.status === 'pending' || !rental.confirmed
+    );
+
+    const withHandover = rentals.filter(
+      rental => protocols[rental.id]?.handover
+    );
     const withReturn = rentals.filter(rental => protocols[rental.id]?.return);
 
-    const totalRevenue = rentals.reduce((sum, rental) => sum + (rental.totalPrice || 0), 0);
-    const avgDailyRevenue = rentals.length > 0 ? totalRevenue / Math.max(rentals.length, 1) : 0;
-    
-
+    const totalRevenue = rentals.reduce(
+      (sum, rental) => sum + (rental.totalPrice || 0),
+      0
+    );
+    const avgDailyRevenue =
+      rentals.length > 0 ? totalRevenue / Math.max(rentals.length, 1) : 0;
 
     return {
       total: rentals.length,
@@ -140,7 +158,7 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       withHandover: withHandover.length,
       withReturn: withReturn.length,
       totalRevenue,
-      avgDailyRevenue
+      avgDailyRevenue,
     };
   }, [rentals, protocols]);
 
@@ -152,7 +170,7 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       color: stats.overdue > 0 ? 'error' : 'success',
       urgent: stats.overdue > 0,
       filterType: 'overdue',
-      clickable: stats.overdue > 0
+      clickable: stats.overdue > 0,
     },
     {
       label: 'Dnes odovzdanie/vrátenie',
@@ -160,7 +178,7 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       color: stats.todayActivity > 0 ? 'warning' : 'success',
       urgent: stats.todayActivity > 0,
       filterType: 'todayActivity',
-      clickable: stats.todayActivity > 0
+      clickable: stats.todayActivity > 0,
     },
     {
       label: 'Zajtra vrátenie',
@@ -168,7 +186,7 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       color: stats.tomorrowReturns > 0 ? 'warning' : 'success',
       urgent: stats.tomorrowReturns > 0,
       filterType: 'tomorrowReturns',
-      clickable: stats.tomorrowReturns > 0
+      clickable: stats.tomorrowReturns > 0,
     },
     {
       label: 'Tento týždeň odovzdanie/vrátenie',
@@ -176,7 +194,7 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       color: 'info',
       urgent: false,
       filterType: 'weekActivity',
-      clickable: stats.weekActivity > 0
+      clickable: stats.weekActivity > 0,
     },
     {
       label: 'Nové dnes',
@@ -184,7 +202,7 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       color: 'success',
       urgent: false,
       filterType: 'newToday',
-      clickable: stats.newToday > 0
+      clickable: stats.newToday > 0,
     },
     {
       label: 'Aktívne prenájmy',
@@ -192,7 +210,7 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       color: 'info',
       urgent: false,
       filterType: 'active',
-      clickable: stats.active > 0
+      clickable: stats.active > 0,
     },
     {
       label: 'Nezaplatené',
@@ -200,7 +218,7 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       color: stats.unpaid > 0 ? 'warning' : 'success',
       urgent: stats.unpaid > 0,
       filterType: 'unpaid',
-      clickable: stats.unpaid > 0
+      clickable: stats.unpaid > 0,
     },
     {
       label: 'Čakajúce',
@@ -208,11 +226,9 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       color: stats.pending > 0 ? 'warning' : 'success',
       urgent: stats.pending > 0,
       filterType: 'pending',
-      clickable: stats.pending > 0
-    }
+      clickable: stats.pending > 0,
+    },
   ];
-
-
 
   // 🖱️ Handler pre klik na metriku
   const handleMetricClick = (filterType: string, value: number) => {
@@ -220,8 +236,6 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       onQuickFilter(filterType);
     }
   };
-
-
 
   if (isLoading) {
     return (
@@ -234,30 +248,38 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
   }
 
   return (
-    <Card sx={{ 
-      mb: 3, 
-      backgroundColor: 'background.paper',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-      border: '1px solid rgba(0,0,0,0.06)',
-      borderRadius: 3
-    }}>
+    <Card
+      sx={{
+        mb: 3,
+        backgroundColor: 'background.paper',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+        border: '1px solid rgba(0,0,0,0.06)',
+        borderRadius: 3,
+      }}
+    >
       <CardContent sx={{ p: { xs: 2, md: 3 } }}>
         {/* Header */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          mb: 3
-        }}>
-          <Typography variant="h5" fontWeight="600" sx={{ 
-            color: 'primary.main',
+        <Box
+          sx={{
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: 1
-          }}>
+            mb: 3,
+          }}
+        >
+          <Typography
+            variant="h5"
+            fontWeight="600"
+            sx={{
+              color: 'primary.main',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
             📊 Dashboard prenájmov
           </Typography>
-          
+
           <Typography variant="body2" color="text.secondary">
             Celkom: <strong>{stats.total}</strong> prenájmov
           </Typography>
@@ -267,10 +289,12 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
         <Grid container spacing={0.25}>
           {allMetrics.map((metric, index) => (
             <Grid item xs={4} sm={3} md={2} lg={1.33} xl={1.2} key={index}>
-              <Card 
-                onClick={() => handleMetricClick(metric.filterType, metric.value)}
-                sx={{ 
-                  background: metric.urgent 
+              <Card
+                onClick={() =>
+                  handleMetricClick(metric.filterType, metric.value)
+                }
+                sx={{
+                  background: metric.urgent
                     ? `linear-gradient(135deg, ${(theme.palette as any)[metric.color].main}15 0%, ${(theme.palette as any)[metric.color].main}25 100%)`
                     : `linear-gradient(135deg, ${(theme.palette as any)[metric.color].main}10 0%, ${(theme.palette as any)[metric.color].main}20 100%)`,
                   border: `1px solid ${(theme.palette as any)[metric.color].main}30`,
@@ -278,50 +302,54 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
                   transition: 'all 0.2s ease',
                   cursor: metric.clickable ? 'pointer' : 'default',
                   minHeight: 60,
-                  '&:hover': metric.clickable ? {
-                    transform: 'translateY(-1px)',
-                    boxShadow: `0 4px 15px ${(theme.palette as any)[metric.color].main}30`
-                  } : {}
+                  '&:hover': metric.clickable
+                    ? {
+                        transform: 'translateY(-1px)',
+                        boxShadow: `0 4px 15px ${(theme.palette as any)[metric.color].main}30`,
+                      }
+                    : {},
                 }}
               >
-                <CardContent sx={{ 
-                  textAlign: 'center', 
-                  py: 0.25, 
-                  px: 0.25,
-                  '&:last-child': { pb: 0.25 }
-                }}>
-                  <Typography 
-                    variant="h6" 
-                    fontWeight="700" 
-                    sx={{ 
+                <CardContent
+                  sx={{
+                    textAlign: 'center',
+                    py: 0.25,
+                    px: 0.25,
+                    '&:last-child': { pb: 0.25 },
+                  }}
+                >
+                  <Typography
+                    variant="h6"
+                    fontWeight="700"
+                    sx={{
                       color: `${metric.color}.main`,
                       fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
-                      lineHeight: 1.1
+                      lineHeight: 1.1,
                     }}
                   >
                     {metric.value}
                   </Typography>
-                  
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
+
+                  <Typography
+                    variant="caption"
+                    sx={{
                       color: 'text.secondary',
                       fontSize: { xs: '0.55rem', sm: '0.6rem', md: '0.65rem' },
                       display: 'block',
                       lineHeight: 1,
-                      mt: 0.1
+                      mt: 0.1,
                     }}
                   >
                     {metric.label}
                   </Typography>
-                  
+
                   {metric.clickable && (
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
+                    <Typography
+                      variant="caption"
+                      sx={{
                         color: `${metric.color}.main`,
                         fontSize: { xs: '0.5rem', sm: '0.55rem' },
-                        mt: 0.1
+                        mt: 0.1,
                       }}
                     >
                       👆
@@ -333,19 +361,23 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
           ))}
         </Grid>
 
-
-
         {/* 💰 FINANČNÝ PREHĽAD - len reálne dáta */}
         {!isMobile && stats.totalRevenue > 0 && (
           <>
             <Divider sx={{ my: 2 }} />
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'center',
-              gap: 4
-            }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: 4,
+              }}
+            >
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" fontWeight="600" sx={{ color: 'success.main' }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="600"
+                  sx={{ color: 'success.main' }}
+                >
                   {stats.totalRevenue.toLocaleString('sk-SK')}€
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -353,7 +385,11 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" fontWeight="600" sx={{ color: 'info.main' }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="600"
+                  sx={{ color: 'info.main' }}
+                >
                   {Math.round(stats.avgDailyRevenue).toLocaleString('sk-SK')}€
                 </Typography>
                 <Typography variant="caption" color="text.secondary">

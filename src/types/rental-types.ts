@@ -14,7 +14,7 @@ export interface FilterState {
   priceMin: string;
   priceMax: string;
   protocolStatus: string[];
-  
+
   // Rozšírené filtre
   customerName: string;
   vehicleBrand: string;
@@ -25,16 +25,16 @@ export interface FilterState {
   customerCompany: string;
   insuranceCompany: string;
   insuranceType: string;
-  
+
   // Časové filtre
   timeFilter: string; // 'all', 'today', 'week', 'month', 'quarter', 'year', 'custom'
-  
+
   // Cenové filtre
   priceRange: string; // 'all', 'low', 'medium', 'high', 'custom'
-  
+
   // Stav platby
   paymentStatus: string; // 'all', 'paid', 'unpaid', 'partial'
-  
+
   // Zobrazenie
   showOnlyActive: boolean;
   showOnlyOverdue: boolean;
@@ -42,7 +42,15 @@ export interface FilterState {
 }
 
 export interface QuickFilterType {
-  type: 'overdue' | 'todayActivity' | 'tomorrowReturns' | 'weekActivity' | 'newToday' | 'active' | 'unpaid' | 'pending';
+  type:
+    | 'overdue'
+    | 'todayActivity'
+    | 'tomorrowReturns'
+    | 'weekActivity'
+    | 'newToday'
+    | 'active'
+    | 'unpaid'
+    | 'pending';
   label: string;
   count: number;
   color: 'error' | 'warning' | 'info' | 'success';
@@ -87,15 +95,22 @@ export interface RentalTableProps {
   rentals: Rental[];
   vehicles: Vehicle[];
   protocols: Record<string, { handover?: any; return?: any }>;
-  protocolStatusMap: Record<string, {
-    hasHandoverProtocol: boolean;
-    hasReturnProtocol: boolean;
-    handoverProtocolId?: string;
-    returnProtocolId?: string;
-  }>;
+  protocolStatusMap: Record<
+    string,
+    {
+      hasHandoverProtocol: boolean;
+      hasReturnProtocol: boolean;
+      handoverProtocolId?: string;
+      returnProtocolId?: string;
+    }
+  >;
   isLoadingProtocolStatus: boolean;
   isMobile: boolean;
-  getStatusIndicator: (rental: Rental) => { color: string; label: string; priority: number };
+  getStatusIndicator: (rental: Rental) => {
+    color: string;
+    label: string;
+    priority: number;
+  };
   getVehicleByRental: (rental: Rental) => Vehicle | null;
   mobileCardRenderer: (rental: Rental, index: number) => React.ReactNode;
   handleEdit: (rental: Rental) => void;
@@ -145,16 +160,20 @@ export interface RentalProtocolsProps {
   openProtocolMenu: boolean;
   openPDFViewer: boolean;
   openProtocolGallery: boolean;
-  
+
   // Data
   editingRental: Rental | null;
   selectedRentalForProtocol: Rental | null;
   selectedProtocolType: 'handover' | 'return' | null;
-  selectedPdf: { url: string; type: 'handover' | 'return'; title: string } | null;
+  selectedPdf: {
+    url: string;
+    type: 'handover' | 'return';
+    title: string;
+  } | null;
   galleryImages: any[]; // Should be ProtocolImage[]
   galleryVideos: any[]; // Should be ProtocolVideo[]
   galleryTitle: string;
-  
+
   // Handlers
   handleCloseDialog: () => void;
   handleCloseHandoverDialog: () => void;
@@ -181,16 +200,16 @@ export interface UseRentalFiltersReturn {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   debouncedSearchQuery: string;
-  
+
   // Filter state
   showFilters: boolean;
   setShowFilters: (show: boolean) => void;
   advancedFilters: FilterState;
   setAdvancedFilters: (filters: FilterState) => void;
-  
+
   // Filtered data
   filteredRentals: Rental[];
-  
+
   // Filter options
   uniqueStatuses: string[];
   uniqueCompanies: string[];
@@ -198,7 +217,7 @@ export interface UseRentalFiltersReturn {
   uniqueVehicleBrands: string[];
   uniqueInsuranceCompanies: string[];
   uniqueInsuranceTypes: string[];
-  
+
   // Quick filter handlers
   handleQuickFilter: (filterType: string) => void;
   resetFilters: () => void;
@@ -216,52 +235,66 @@ export interface UseRentalActionsReturn {
   setOpenDialog: (open: boolean) => void;
   editingRental: Rental | null;
   setEditingRental: (rental: Rental | null) => void;
-  
+
   // Import state
   importError: string;
   setImportError: (error: string) => void;
-  
+
   // Action handlers
   handleAdd: () => void;
   handleEdit: (rental: Rental) => void;
   handleDelete: (id: string) => Promise<void>;
   handleCancel: () => void;
   handleViewRental: (rental: Rental) => void;
-  
+
   // Scroll preservation
   savedScrollPosition: React.MutableRefObject<number>;
   restoreScrollPosition: () => void;
 }
 
 export interface UseRentalProtocolsProps {
-  onProtocolUpdate?: (rentalId: string, protocolType: 'handover' | 'return', data: any) => void;
+  onProtocolUpdate?: (
+    rentalId: string,
+    protocolType: 'handover' | 'return',
+    data: any
+  ) => void;
 }
 
 export interface UseRentalProtocolsReturn {
   // Protocol state
   protocols: Record<string, { handover?: any; return?: any }>;
-  setProtocols: (protocols: Record<string, { handover?: any; return?: any }>) => void;
+  setProtocols: (
+    protocols: Record<string, { handover?: any; return?: any }>
+  ) => void;
   loadingProtocols: string[];
   setLoadingProtocols: (loading: string[]) => void;
-  
+
   // Protocol status state
-  protocolStatusMap: Record<string, {
-    hasHandoverProtocol: boolean;
-    hasReturnProtocol: boolean;
-    handoverProtocolId?: string;
-    returnProtocolId?: string;
-  }>;
-  setProtocolStatusMap: (statusMap: Record<string, {
-    hasHandoverProtocol: boolean;
-    hasReturnProtocol: boolean;
-    handoverProtocolId?: string;
-    returnProtocolId?: string;
-  }>) => void;
+  protocolStatusMap: Record<
+    string,
+    {
+      hasHandoverProtocol: boolean;
+      hasReturnProtocol: boolean;
+      handoverProtocolId?: string;
+      returnProtocolId?: string;
+    }
+  >;
+  setProtocolStatusMap: (
+    statusMap: Record<
+      string,
+      {
+        hasHandoverProtocol: boolean;
+        hasReturnProtocol: boolean;
+        handoverProtocolId?: string;
+        returnProtocolId?: string;
+      }
+    >
+  ) => void;
   isLoadingProtocolStatus: boolean;
   setIsLoadingProtocolStatus: (loading: boolean) => void;
   protocolStatusLoaded: boolean;
   setProtocolStatusLoaded: (loaded: boolean) => void;
-  
+
   // Dialog states
   openHandoverDialog: boolean;
   setOpenHandoverDialog: (open: boolean) => void;
@@ -273,13 +306,19 @@ export interface UseRentalProtocolsReturn {
   setOpenProtocolMenu: (open: boolean) => void;
   selectedProtocolType: 'handover' | 'return' | null;
   setSelectedProtocolType: (type: 'handover' | 'return' | null) => void;
-  
+
   // PDF viewer state
   pdfViewerOpen: boolean;
   setPdfViewerOpen: (open: boolean) => void;
-  selectedPdf: { url: string; title: string; type: 'handover' | 'return' } | null;
-  setSelectedPdf: (pdf: { url: string; title: string; type: 'handover' | 'return' } | null) => void;
-  
+  selectedPdf: {
+    url: string;
+    title: string;
+    type: 'handover' | 'return';
+  } | null;
+  setSelectedPdf: (
+    pdf: { url: string; title: string; type: 'handover' | 'return' } | null
+  ) => void;
+
   // Gallery state
   galleryOpenRef: React.MutableRefObject<boolean>;
   galleryImages: any[];
@@ -288,10 +327,13 @@ export interface UseRentalProtocolsReturn {
   setGalleryVideos: (videos: any[]) => void;
   galleryTitle: string;
   setGalleryTitle: (title: string) => void;
-  
+
   // Image parsing cache
-  imageParsingCache: Map<string, { images: any[]; videos: any[]; timestamp: number }>;
-  
+  imageParsingCache: Map<
+    string,
+    { images: any[]; videos: any[]; timestamp: number }
+  >;
+
   // Protocol handlers
   loadProtocolsForRental: (rentalId: string) => Promise<void>;
   handleCreateHandover: (rental: Rental) => Promise<void>;
@@ -372,7 +414,12 @@ export interface ParsedEmailData {
 // ═══════════════════════════════════════════════════════════════════
 
 export type ViewMode = 'cards' | 'list' | 'table';
-export type SortBy = 'priority' | 'startDate' | 'endDate' | 'totalPrice' | 'customerName';
+export type SortBy =
+  | 'priority'
+  | 'startDate'
+  | 'endDate'
+  | 'totalPrice'
+  | 'customerName';
 export type SortDirection = 'asc' | 'desc';
 
 export interface ViewSettings {
@@ -464,17 +511,17 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: 'Hotovosť',
   bank_transfer: 'Bankový prevod',
   vrp: 'VRP',
-  direct_to_owner: 'Priamo majiteľovi'
+  direct_to_owner: 'Priamo majiteľovi',
 };
 
 export const STATUS_LABELS: Record<string, string> = {
   pending: 'Čakajúci',
   active: 'Aktívny',
-  finished: 'Dokončený'
+  finished: 'Dokončený',
 };
 
 export const STATUS_COLORS: Record<string, string> = {
   pending: '#ff9800',
   active: '#4caf50',
-  finished: '#2196f3'
+  finished: '#2196f3',
 };

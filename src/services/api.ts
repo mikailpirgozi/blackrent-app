@@ -1,50 +1,65 @@
-import { Vehicle, Rental, Customer, Expense, ExpenseCategory, RecurringExpense, Insurance, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim } from '../types';
-import { 
-  getProtocolCache, 
-  setProtocolCache, 
-  clearProtocolCache, 
-  isCacheFresh, 
-  getCacheInfo,
-  type CachedProtocolStatus 
-} from '../utils/protocolCache';
-import { 
-  withRetry, 
-  analyzeError, 
-  EnhancedError, 
-  createNetworkMonitor,
-  type RetryOptions 
-} from '../utils/errorHandling';
-import { 
-  debounce, 
-  RequestDeduplicator, 
-  measurePerformance,
-  type DebounceOptions 
-} from '../utils/debounce';
-import { 
+import {
+  Vehicle,
+  Rental,
+  Customer,
+  Expense,
+  ExpenseCategory,
+  RecurringExpense,
+  Insurance,
+  Company,
+  Insurer,
+  Settlement,
+  VehicleDocument,
+  InsuranceClaim,
+} from '../types';
+import {
   withRetry as newWithRetry,
   parseApiError,
   createApiErrorHandler,
-  handleApiResponse 
+  handleApiResponse,
 } from '../utils/apiErrorHandler';
 import { getApiBaseUrl } from '../utils/apiUrl';
+import {
+  debounce,
+  RequestDeduplicator,
+  measurePerformance,
+  type DebounceOptions,
+} from '../utils/debounce';
+import {
+  withRetry,
+  analyzeError,
+  EnhancedError,
+  createNetworkMonitor,
+  type RetryOptions,
+} from '../utils/errorHandling';
+import {
+  getProtocolCache,
+  setProtocolCache,
+  clearProtocolCache,
+  isCacheFresh,
+  getCacheInfo,
+  type CachedProtocolStatus,
+} from '../utils/protocolCache';
 // 🔄 PHASE 3: Migrating to unified cache system
-import { 
+import {
   unifiedCache,
   compatibilityCache,
-  type UnifiedCacheOptions as CacheOptions 
+  type UnifiedCacheOptions as CacheOptions,
 } from '../utils/unifiedCacheSystem';
 
 // 🔄 COMPATIBILITY: Alias pre postupnú migráciu
 const apiCache = compatibilityCache;
 const cacheKeys = {
-  vehicles: (userId?: string) => compatibilityCache.generateKey('vehicles', { userId }),
-  customers: (userId?: string) => compatibilityCache.generateKey('customers', { userId }),
+  vehicles: (userId?: string) =>
+    compatibilityCache.generateKey('vehicles', { userId }),
+  customers: (userId?: string) =>
+    compatibilityCache.generateKey('customers', { userId }),
   companies: () => compatibilityCache.generateKey('companies'),
   bulkData: () => compatibilityCache.generateKey('bulkData'),
-  vehicleOwnership: () => compatibilityCache.generateKey('vehicleOwnership')
+  vehicleOwnership: () => compatibilityCache.generateKey('vehicleOwnership'),
 };
 const cacheHelpers = {
-  invalidateEntity: compatibilityCache.invalidateEntity
+  invalidateEntity: compatibilityCache.invalidateEntity,
 };
 
 // Export for compatibility
@@ -52,29 +67,31 @@ export const getApiBaseUrlDynamic = getApiBaseUrl;
 // Dynamické získanie API URL namiesto statickej konštanty
 export const getAPI_BASE_URL = () => getApiBaseUrl();
 
-
-
 class ApiService {
   // ⚡ Performance optimizations
   private requestDeduplicator = new RequestDeduplicator();
-  private errorHandler = createApiErrorHandler(
-    (error) => {
-      // This will be overridden by components that use the error context
-      console.error('API Error (fallback handler):', error);
-      return 'api-error-' + Date.now();
-    }
-  );
-  
+  private errorHandler = createApiErrorHandler(error => {
+    // This will be overridden by components that use the error context
+    console.error('API Error (fallback handler):', error);
+    return 'api-error-' + Date.now();
+  });
+
   // Set error handler from components that have access to error context
   public setErrorHandler(showError: (error: any) => string) {
     this.errorHandler = createApiErrorHandler(showError);
   }
-  
+
   private getAuthToken(): string | null {
-    return localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+    return (
+      localStorage.getItem('blackrent_token') ||
+      sessionStorage.getItem('blackrent_token')
+    );
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
     const url = `${getAPI_BASE_URL()}${endpoint}`;
     const token = this.getAuthToken();
 
@@ -90,18 +107,24 @@ class ApiService {
     const operation = async (): Promise<T> => {
       try {
         const response = await fetch(url, config);
-        
+
         // Special handling pre auth errors
         if (response.status === 401 || response.status === 403) {
-          console.warn('🚨 Auth error:', response.status, 'Token validation failed');
+          console.warn(
+            '🚨 Auth error:',
+            response.status,
+            'Token validation failed'
+          );
           console.warn('🔍 Token debug:', {
             hasToken: !!token,
             tokenPreview: token ? token.substring(0, 20) + '...' : 'NO TOKEN',
-            url: url
+            url: url,
           });
-          
+
           // Create error with status for proper retry logic
-          const authError = new Error(`Auth failed: ${response.status} - Token validation error`);
+          const authError = new Error(
+            `Auth failed: ${response.status} - Token validation error`
+          );
           (authError as any).status = response.status;
           throw authError;
         }
@@ -113,18 +136,23 @@ class ApiService {
         }
 
         const data = await response.json();
-        
+
         // Ak je to API response objekt s success/data, vráť len data
-        if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
+        if (
+          data &&
+          typeof data === 'object' &&
+          'success' in data &&
+          'data' in data
+        ) {
           return data.data;
         }
-        
+
         return data;
       } catch (error: any) {
         // Analyze error pre user-friendly messages
         const analysis = analyzeError(error);
         console.warn(`⚠️ API request failed: ${analysis.userMessage}`);
-        
+
         // Create enhanced error
         throw new EnhancedError(error);
       }
@@ -137,13 +165,16 @@ class ApiService {
         baseDelay: 1000,
         maxDelay: 8000,
         // Custom retry condition pre auth errors - tie sa neretryujú
-        retryCondition: (error) => {
-          if (error.originalError?.status === 401 || error.originalError?.status === 403) {
+        retryCondition: error => {
+          if (
+            error.originalError?.status === 401 ||
+            error.originalError?.status === 403
+          ) {
             console.log('⚠️ Auth error - not retrying');
             return false;
           }
           return error.isRetryable;
-        }
+        },
       });
     } catch (error: any) {
       // Final error handling - throw enhanced error pre user feedback
@@ -151,16 +182,25 @@ class ApiService {
         console.error('❌ Final API error:', error.userMessage);
         throw error;
       }
-      
+
       // Fallback pre unexpected errors
       throw new EnhancedError(error);
     }
   }
 
-  async login(username: string, password: string): Promise<{ user: any; token: string }> {
-    console.log('🔗 API Service - Making login request to:', `${getAPI_BASE_URL()}/auth/login`);
-    console.log('🔗 API Service - Request body:', { username, password: '***' });
-    
+  async login(
+    username: string,
+    password: string
+  ): Promise<{ user: any; token: string }> {
+    console.log(
+      '🔗 API Service - Making login request to:',
+      `${getAPI_BASE_URL()}/auth/login`
+    );
+    console.log('🔗 API Service - Request body:', {
+      username,
+      password: '***',
+    });
+
     const response = await fetch(`${getAPI_BASE_URL()}/auth/login`, {
       method: 'POST',
       headers: {
@@ -171,16 +211,23 @@ class ApiService {
 
     console.log('🔗 API Service - Response status:', response.status);
     console.log('🔗 API Service - Response ok:', response.ok);
-    console.log('🔗 API Service - Response headers:', Object.fromEntries(response.headers.entries()));
+    console.log(
+      '🔗 API Service - Response headers:',
+      Object.fromEntries(response.headers.entries())
+    );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: 'Unknown error' }));
       console.error('🔗 API Service - Login failed:', {
         status: response.status,
         statusText: response.statusText,
-        errorData
+        errorData,
       });
-      throw new Error(`Login failed: ${response.status} - ${errorData.error || response.statusText}`);
+      throw new Error(
+        `Login failed: ${response.status} - ${errorData.error || response.statusText}`
+      );
     }
 
     const data = await response.json();
@@ -188,7 +235,7 @@ class ApiService {
       success: data.success,
       hasUser: !!data.user,
       hasToken: !!data.token,
-      userRole: data.user?.role
+      userRole: data.user?.role,
     });
     return data;
   }
@@ -236,32 +283,36 @@ class ApiService {
   }
 
   // Vozidlá s cache
-  async getVehicles(includeRemoved: boolean = false, includePrivate: boolean = false): Promise<Vehicle[]> {
+  async getVehicles(
+    includeRemoved: boolean = false,
+    includePrivate: boolean = false
+  ): Promise<Vehicle[]> {
     const userId = localStorage.getItem('blackrent_user_id');
-    
+
     // Vytvor endpoint s parametrami
     const params = new URLSearchParams();
     if (includeRemoved) params.append('includeRemoved', 'true');
     if (includePrivate) params.append('includePrivate', 'true');
     const endpoint = `/vehicles${params.toString() ? '?' + params.toString() : ''}`;
-    
+
     // Cache key závisí od parametrov
-    const cacheKey = includeRemoved || includePrivate ? 
-      `vehicles-${includeRemoved ? 'removed' : ''}${includePrivate ? 'private' : ''}` : 
-      cacheKeys.vehicles(userId || undefined);
+    const cacheKey =
+      includeRemoved || includePrivate
+        ? `vehicles-${includeRemoved ? 'removed' : ''}${includePrivate ? 'private' : ''}`
+        : cacheKeys.vehicles(userId || undefined);
 
     // Pre zahrnutie vyradených alebo súkromných vozidiel nepoužívame cache
     if (includeRemoved || includePrivate) {
       return this.request<Vehicle[]>(endpoint);
     }
-    
+
     return apiCache.getOrFetch(
       cacheKey,
       () => this.request<Vehicle[]>(endpoint),
       {
         ttl: 10 * 60 * 1000, // 10 minutes
         tags: ['vehicles'],
-        background: true // Enable background refresh
+        background: true, // Enable background refresh
       }
     );
   }
@@ -294,7 +345,7 @@ class ApiService {
     };
   }> {
     const queryParams = new URLSearchParams();
-    
+
     // Add all parameters to query string
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -304,7 +355,7 @@ class ApiService {
 
     const queryString = queryParams.toString();
     const endpoint = `/vehicles/paginated${queryString ? `?${queryString}` : ''}`;
-    
+
     return this.request<{
       vehicles: Vehicle[];
       pagination: {
@@ -337,60 +388,60 @@ class ApiService {
     };
   }> {
     // ⚡ SMART CACHING + REQUEST DEDUPLICATION
-    return this.requestDeduplicator.deduplicate(
-      'bulk-data',
-      async () => {
-        return apiCache.getOrFetch(
-          cacheKeys.bulkData(),
-          async () => {
-            // Optimalized: Consolidated bulk data loading log
-            const startTime = performance.now();
-            
-            const response = await this.request<{
-              vehicles: Vehicle[];
-              rentals: Rental[];
-              customers: Customer[];
-              companies: Company[];
-              insurers: Insurer[];
-              expenses: Expense[];
-              insurances: Insurance[];
-              settlements: Settlement[];
-              vehicleDocuments: VehicleDocument[];
-              insuranceClaims: InsuranceClaim[];
-              metadata: {
-                loadTimeMs: number;
-                userRole: string;
-                isFiltered: boolean;
-                timestamp: string;
-              };
-            }>('/bulk/data');
-            
-            const loadTime = performance.now() - startTime;
-            // Optimalized: Single consolidated bulk data log
-            console.log(`⚡ Bulk data loaded: ${response.rentals?.length || 0} rentals, ${response.vehicles?.length || 0} vehicles (${loadTime.toFixed(0)}ms)`);
-            
-            return response;
-          },
-          { 
-            ttl: 10 * 60 * 1000, // 10 minutes - aggressive caching
-            tags: ['bulk', 'vehicles', 'rentals', 'customers'] 
-          }
-        );
-      }
-    );
+    return this.requestDeduplicator.deduplicate('bulk-data', async () => {
+      return apiCache.getOrFetch(
+        cacheKeys.bulkData(),
+        async () => {
+          // Optimalized: Consolidated bulk data loading log
+          const startTime = performance.now();
+
+          const response = await this.request<{
+            vehicles: Vehicle[];
+            rentals: Rental[];
+            customers: Customer[];
+            companies: Company[];
+            insurers: Insurer[];
+            expenses: Expense[];
+            insurances: Insurance[];
+            settlements: Settlement[];
+            vehicleDocuments: VehicleDocument[];
+            insuranceClaims: InsuranceClaim[];
+            metadata: {
+              loadTimeMs: number;
+              userRole: string;
+              isFiltered: boolean;
+              timestamp: string;
+            };
+          }>('/bulk/data');
+
+          const loadTime = performance.now() - startTime;
+          // Optimalized: Single consolidated bulk data log
+          console.log(
+            `⚡ Bulk data loaded: ${response.rentals?.length || 0} rentals, ${response.vehicles?.length || 0} vehicles (${loadTime.toFixed(0)}ms)`
+          );
+
+          return response;
+        },
+        {
+          ttl: 10 * 60 * 1000, // 10 minutes - aggressive caching
+          tags: ['bulk', 'vehicles', 'rentals', 'customers'],
+        }
+      );
+    });
   }
 
   // ⚡ BULK PROTOCOL STATUS - Získa protocol status pre všetky rentals naraz s SMART CACHE
-  async getBulkProtocolStatus(): Promise<{ 
-    rentalId: string; 
-    hasHandoverProtocol: boolean; 
-    hasReturnProtocol: boolean; 
-    handoverProtocolId?: string; 
-    returnProtocolId?: string;
-    handoverCreatedAt?: Date;
-    returnCreatedAt?: Date;
-  }[]> {
-    
+  async getBulkProtocolStatus(): Promise<
+    {
+      rentalId: string;
+      hasHandoverProtocol: boolean;
+      hasReturnProtocol: boolean;
+      handoverProtocolId?: string;
+      returnProtocolId?: string;
+      handoverCreatedAt?: Date;
+      returnCreatedAt?: Date;
+    }[]
+  > {
     // ⚡ REQUEST DEDUPLICATION - prevent duplicate requests
     return this.requestDeduplicator.deduplicate(
       'bulk-protocol-status',
@@ -399,20 +450,22 @@ class ApiService {
         const cached = getProtocolCache();
         if (cached && isCacheFresh()) {
           // Optimalized: Removed redundant log (already logged in protocolCache.ts)
-          
+
           // 🔄 Background refresh - aktualizuj cache na pozadí
           this.refreshProtocolCacheInBackground();
-          
+
           return cached;
         }
-        
+
         // 🌐 2. API CALL - cache chýba alebo expired
         console.log('🌐 Loading protocol status from API...');
         const cacheInfo = getCacheInfo();
         if (cacheInfo.exists) {
-          console.log(`📊 Cache info: age=${cacheInfo.age}s, records=${cacheInfo.records}, fresh=${cacheInfo.fresh}`);
+          console.log(
+            `📊 Cache info: age=${cacheInfo.age}s, records=${cacheInfo.records}, fresh=${cacheInfo.fresh}`
+          );
         }
-        
+
         return this.loadProtocolStatusFromAPI();
       }
     );
@@ -424,10 +477,10 @@ class ApiService {
   private async loadProtocolStatusFromAPI(): Promise<any[]> {
     try {
       const response = await this.request<any>('/protocols/bulk-status');
-      
+
       // 🚀 SMART RESPONSE HANDLING - Backend môže vrátiť Array alebo API wrapper
       let protocolData;
-      
+
       if (Array.isArray(response)) {
         // Backend vracia priamy Array: [...]
         protocolData = response;
@@ -439,12 +492,14 @@ class ApiService {
         console.error('Raw response:', response);
         throw new Error('Neplatná odpoveď zo servera');
       }
-      
+
       if (protocolData.length === 0) {
-        console.warn('⚠️ getBulkProtocolStatus: Žiadne protocol data nenájdené');
+        console.warn(
+          '⚠️ getBulkProtocolStatus: Žiadne protocol data nenájdené'
+        );
         return [];
       }
-      
+
       // Transformuj dáta s bezpečným pristupom
       const transformedData = protocolData.map((item: any) => ({
         rentalId: item?.rentalId || '',
@@ -452,26 +507,29 @@ class ApiService {
         hasReturnProtocol: Boolean(item?.hasReturnProtocol),
         handoverProtocolId: item?.handoverProtocolId || undefined,
         returnProtocolId: item?.returnProtocolId || undefined,
-        handoverCreatedAt: item.handoverCreatedAt ? new Date(item.handoverCreatedAt) : undefined,
-        returnCreatedAt: item.returnCreatedAt ? new Date(item.returnCreatedAt) : undefined
+        handoverCreatedAt: item.handoverCreatedAt
+          ? new Date(item.handoverCreatedAt)
+          : undefined,
+        returnCreatedAt: item.returnCreatedAt
+          ? new Date(item.returnCreatedAt)
+          : undefined,
       }));
-      
+
       // 💾 3. SAVE TO CACHE
       setProtocolCache(transformedData);
-      
+
       return transformedData;
-      
     } catch (error: any) {
       console.error('❌ getBulkProtocolStatus error:', error);
       console.error('❌ Error details:', error.message);
-      
+
       // 🔄 FALLBACK - použiť starý cache ak existuje
       const cached = getProtocolCache();
       if (cached) {
         console.log('🔄 Using stale cache as fallback');
         return cached;
       }
-      
+
       throw error;
     }
   }
@@ -485,9 +543,9 @@ class ApiService {
       if (process.env.NODE_ENV === 'development') {
         console.log('🔄 Refreshing protocol cache in background...');
       }
-      
+
       const response = await this.request<any>('/protocols/bulk-status');
-      
+
       let protocolData;
       if (Array.isArray(response)) {
         protocolData = response;
@@ -496,22 +554,25 @@ class ApiService {
       } else {
         throw new Error('Invalid response format');
       }
-      
+
       const transformedData = protocolData.map((item: any) => ({
         rentalId: item?.rentalId || '',
         hasHandoverProtocol: Boolean(item?.hasHandoverProtocol),
         hasReturnProtocol: Boolean(item?.hasReturnProtocol),
         handoverProtocolId: item?.handoverProtocolId || undefined,
         returnProtocolId: item?.returnProtocolId || undefined,
-        handoverCreatedAt: item.handoverCreatedAt ? new Date(item.handoverCreatedAt) : undefined,
-        returnCreatedAt: item.returnCreatedAt ? new Date(item.returnCreatedAt) : undefined
+        handoverCreatedAt: item.handoverCreatedAt
+          ? new Date(item.handoverCreatedAt)
+          : undefined,
+        returnCreatedAt: item.returnCreatedAt
+          ? new Date(item.returnCreatedAt)
+          : undefined,
       }));
-      
+
       setProtocolCache(transformedData);
       if (process.env.NODE_ENV === 'development') {
         console.log('✅ Background cache refresh completed');
       }
-      
     } catch (error) {
       console.warn('⚠️ Background cache refresh failed:', error);
     }
@@ -553,12 +614,14 @@ class ApiService {
               totalVehicles: number;
               loadTimeMs: number;
             }>('/vehicles/bulk-ownership-history');
-            console.log(`📊 Vehicle ownership history: ${response.totalVehicles} vehicles loaded`);
+            console.log(
+              `📊 Vehicle ownership history: ${response.totalVehicles} vehicles loaded`
+            );
             return response;
           },
-          { 
+          {
             ttl: 15 * 60 * 1000, // 15 minutes - history changes rarely
-            tags: ['vehicles', 'ownership', 'history'] 
+            tags: ['vehicles', 'ownership', 'history'],
           }
         );
       }
@@ -570,7 +633,7 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(vehicle),
     });
-    
+
     // Invalidate cache
     cacheHelpers.invalidateEntity('vehicle');
     return result;
@@ -581,28 +644,28 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify(vehicle),
     });
-    
+
     // Invalidate cache
     cacheHelpers.invalidateEntity('vehicle');
     return result;
   }
 
   async deleteVehicle(id: string): Promise<void> {
-    const result = await this.request<void>(`/vehicles/${id}`, { method: 'DELETE' });
-    
+    const result = await this.request<void>(`/vehicles/${id}`, {
+      method: 'DELETE',
+    });
+
     // Invalidate cache
     cacheHelpers.invalidateEntity('vehicle');
     return result;
   }
-
-
 
   // CSV Export/Import pre vozidlá
   async exportVehiclesCSV(): Promise<Blob> {
     const response = await fetch(`${getAPI_BASE_URL()}/vehicles/export/csv`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${this.getAuthToken()}`,
+        Authorization: `Bearer ${this.getAuthToken()}`,
       },
     });
 
@@ -625,7 +688,7 @@ class ApiService {
     const response = await fetch(`${getAPI_BASE_URL()}/customers/export/csv`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${this.getAuthToken()}`,
+        Authorization: `Bearer ${this.getAuthToken()}`,
       },
     });
 
@@ -648,7 +711,7 @@ class ApiService {
     const response = await fetch(`${getAPI_BASE_URL()}/expenses/export/csv`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${this.getAuthToken()}`,
+        Authorization: `Bearer ${this.getAuthToken()}`,
       },
     });
 
@@ -672,22 +735,24 @@ class ApiService {
   }
 
   // 🚀 NOVÝ: Paginated rentals s filtrami
-  async getRentalsPaginated(params: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    dateFilter?: string;
-    dateFrom?: string;
-    dateTo?: string;
-    company?: string;
-    status?: string;
-    protocolStatus?: string;
-    paymentMethod?: string;
-    paymentStatus?: string;
-    vehicleBrand?: string;
-    priceMin?: string;
-    priceMax?: string;
-  } = {}): Promise<{
+  async getRentalsPaginated(
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      dateFilter?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      company?: string;
+      status?: string;
+      protocolStatus?: string;
+      paymentMethod?: string;
+      paymentStatus?: string;
+      vehicleBrand?: string;
+      priceMin?: string;
+      priceMax?: string;
+    } = {}
+  ): Promise<{
     rentals: Rental[];
     pagination: {
       currentPage: number;
@@ -698,7 +763,7 @@ class ApiService {
     };
   }> {
     const queryParams = new URLSearchParams();
-    
+
     // Pridaj všetky parametre do query stringu
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -708,7 +773,7 @@ class ApiService {
 
     const queryString = queryParams.toString();
     const endpoint = `/rentals/paginated${queryString ? `?${queryString}` : ''}`;
-    
+
     // 🔧 OPRAVA: request() už automaticky extrahuje data z {success, data} response
     return this.request<{
       rentals: Rental[];
@@ -820,14 +885,14 @@ class ApiService {
   async getCustomers(): Promise<Customer[]> {
     const userId = localStorage.getItem('blackrent_user_id');
     const cacheKey = cacheKeys.customers(userId || undefined);
-    
+
     return apiCache.getOrFetch(
       cacheKey,
       () => this.request<Customer[]>('/customers'),
       {
         ttl: 5 * 60 * 1000, // 5 minutes
         tags: ['customers'],
-        background: true
+        background: true,
       }
     );
   }
@@ -851,7 +916,7 @@ class ApiService {
     };
   }> {
     const queryParams = new URLSearchParams();
-    
+
     // Add all parameters to query string
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -861,7 +926,7 @@ class ApiService {
 
     const queryString = queryParams.toString();
     const endpoint = `/customers/paginated${queryString ? `?${queryString}` : ''}`;
-    
+
     return this.request<{
       customers: Customer[];
       pagination: {
@@ -879,7 +944,7 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(customer),
     });
-    
+
     // Invalidate cache
     cacheHelpers.invalidateEntity('customer');
     return result;
@@ -890,15 +955,17 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify(customer),
     });
-    
+
     // Invalidate cache
     cacheHelpers.invalidateEntity('customer');
     return result;
   }
 
   async deleteCustomer(id: string): Promise<void> {
-    const result = await this.request<void>(`/customers/${id}`, { method: 'DELETE' });
-    
+    const result = await this.request<void>(`/customers/${id}`, {
+      method: 'DELETE',
+    });
+
     // Invalidate cache
     cacheHelpers.invalidateEntity('customer');
     return result;
@@ -932,7 +999,12 @@ class ApiService {
     return this.request<ExpenseCategory[]>('/expense-categories');
   }
 
-  async createExpenseCategory(category: Omit<ExpenseCategory, 'id' | 'createdAt' | 'updatedAt' | 'isDefault' | 'isActive'>): Promise<ExpenseCategory> {
+  async createExpenseCategory(
+    category: Omit<
+      ExpenseCategory,
+      'id' | 'createdAt' | 'updatedAt' | 'isDefault' | 'isActive'
+    >
+  ): Promise<ExpenseCategory> {
     return this.request<ExpenseCategory>('/expense-categories', {
       method: 'POST',
       body: JSON.stringify(category),
@@ -947,7 +1019,9 @@ class ApiService {
   }
 
   async deleteExpenseCategory(id: string): Promise<void> {
-    return this.request<void>(`/expense-categories/${id}`, { method: 'DELETE' });
+    return this.request<void>(`/expense-categories/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   // Pravidelné náklady
@@ -955,7 +1029,18 @@ class ApiService {
     return this.request<RecurringExpense[]>('/recurring-expenses');
   }
 
-  async createRecurringExpense(recurring: Omit<RecurringExpense, 'id' | 'createdAt' | 'updatedAt' | 'isActive' | 'totalGenerated' | 'lastGeneratedDate' | 'nextGenerationDate'>): Promise<RecurringExpense> {
+  async createRecurringExpense(
+    recurring: Omit<
+      RecurringExpense,
+      | 'id'
+      | 'createdAt'
+      | 'updatedAt'
+      | 'isActive'
+      | 'totalGenerated'
+      | 'lastGeneratedDate'
+      | 'nextGenerationDate'
+    >
+  ): Promise<RecurringExpense> {
     return this.request<RecurringExpense>('/recurring-expenses', {
       method: 'POST',
       body: JSON.stringify(recurring),
@@ -970,40 +1055,58 @@ class ApiService {
   }
 
   async deleteRecurringExpense(id: string): Promise<void> {
-    return this.request<void>(`/recurring-expenses/${id}`, { method: 'DELETE' });
+    return this.request<void>(`/recurring-expenses/${id}`, {
+      method: 'DELETE',
+    });
   }
 
-  async generateRecurringExpenses(targetDate?: Date): Promise<{ generated: number; skipped: number; errors: string[] }> {
-    return this.request<{ generated: number; skipped: number; errors: string[] }>('/recurring-expenses/generate', {
+  async generateRecurringExpenses(
+    targetDate?: Date
+  ): Promise<{ generated: number; skipped: number; errors: string[] }> {
+    return this.request<{
+      generated: number;
+      skipped: number;
+      errors: string[];
+    }>('/recurring-expenses/generate', {
       method: 'POST',
       body: JSON.stringify({ targetDate: targetDate?.toISOString() }),
     });
   }
 
-  async generateSingleRecurringExpense(id: string, targetDate?: Date): Promise<{ generatedExpenseId: string }> {
-    return this.request<{ generatedExpenseId: string }>(`/recurring-expenses/${id}/generate`, {
-      method: 'POST',
-      body: JSON.stringify({ targetDate: targetDate?.toISOString() }),
-    });
+  async generateSingleRecurringExpense(
+    id: string,
+    targetDate?: Date
+  ): Promise<{ generatedExpenseId: string }> {
+    return this.request<{ generatedExpenseId: string }>(
+      `/recurring-expenses/${id}/generate`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ targetDate: targetDate?.toISOString() }),
+      }
+    );
   }
 
   // 📊 PROTOCOLS FOR STATISTICS
-  async getAllProtocolsForStats(): Promise<Array<{
-    id: string;
-    type: 'handover' | 'return';
-    rentalId: string;
-    createdBy: string;
-    createdAt: Date;
-    rentalData?: any;
-  }>> {
-    return this.request<Array<{
+  async getAllProtocolsForStats(): Promise<
+    Array<{
       id: string;
       type: 'handover' | 'return';
       rentalId: string;
       createdBy: string;
       createdAt: Date;
       rentalData?: any;
-    }>>('/protocols/all-for-stats');
+    }>
+  > {
+    return this.request<
+      Array<{
+        id: string;
+        type: 'handover' | 'return';
+        rentalId: string;
+        createdBy: string;
+        createdAt: Date;
+        rentalData?: any;
+      }>
+    >('/protocols/all-for-stats');
   }
 
   // Poistky
@@ -1037,7 +1140,9 @@ class ApiService {
 
   // Vehicle Documents
   async getVehicleDocuments(vehicleId?: string): Promise<VehicleDocument[]> {
-    const url = vehicleId ? `/vehicle-documents?vehicleId=${vehicleId}` : '/vehicle-documents';
+    const url = vehicleId
+      ? `/vehicle-documents?vehicleId=${vehicleId}`
+      : '/vehicle-documents';
     return this.request<VehicleDocument[]>(url);
   }
 
@@ -1061,7 +1166,9 @@ class ApiService {
 
   // Insurance Claims
   async getInsuranceClaims(vehicleId?: string): Promise<InsuranceClaim[]> {
-    const url = vehicleId ? `/insurance-claims?vehicleId=${vehicleId}` : '/insurance-claims';
+    const url = vehicleId
+      ? `/insurance-claims?vehicleId=${vehicleId}`
+      : '/insurance-claims';
     return this.request<InsuranceClaim[]>(url);
   }
 
@@ -1086,14 +1193,14 @@ class ApiService {
   // Firmy s cache (dlhší TTL - firmy sa zriedka menia)
   async getCompanies(): Promise<Company[]> {
     const cacheKey = cacheKeys.companies();
-    
+
     return apiCache.getOrFetch(
       cacheKey,
       () => this.request<Company[]>('/companies'),
       {
         ttl: 30 * 60 * 1000, // 30 minutes
         tags: ['companies'],
-        background: true
+        background: true,
       }
     );
   }
@@ -1117,7 +1224,7 @@ class ApiService {
     };
   }> {
     const queryParams = new URLSearchParams();
-    
+
     // Add all parameters to query string
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -1127,7 +1234,7 @@ class ApiService {
 
     const queryString = queryParams.toString();
     const endpoint = `/companies/paginated${queryString ? `?${queryString}` : ''}`;
-    
+
     return this.request<{
       companies: Company[];
       pagination: {
@@ -1183,7 +1290,10 @@ class ApiService {
     });
   }
 
-  async updateSettlement(id: string, settlement: Partial<Settlement>): Promise<void> {
+  async updateSettlement(
+    id: string,
+    settlement: Partial<Settlement>
+  ): Promise<void> {
     return this.request<void>(`/settlements/${id}`, {
       method: 'PUT',
       body: JSON.stringify(settlement),
@@ -1195,10 +1305,12 @@ class ApiService {
   }
 
   // Protokoly
-  async getProtocolsByRental(rentalId: string): Promise<{ handoverProtocols: any[]; returnProtocols: any[] }> {
+  async getProtocolsByRental(
+    rentalId: string
+  ): Promise<{ handoverProtocols: any[]; returnProtocols: any[] }> {
     const url = `${getAPI_BASE_URL()}/protocols/rental/${rentalId}`;
     const token = this.getAuthToken();
-    
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -1208,19 +1320,27 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (response.status === 401 || response.status === 403) {
-        console.warn('🚨 Auth error:', response.status, 'Token validation failed');
+        console.warn(
+          '🚨 Auth error:',
+          response.status,
+          'Token validation failed'
+        );
         console.warn('🔍 Token debug:', {
           hasToken: !!token,
           tokenPreview: token ? token.substring(0, 20) + '...' : 'NO TOKEN',
-          url: url
+          url: url,
         });
-        
+
         // TEMPORARY FIX: Don't redirect, just throw error
         // This prevents the auto-logout loop
-        console.warn('⚠️ TEMPORARY: Not redirecting to login, just throwing error');
-        throw new Error(`Auth failed: ${response.status} - Token validation error`);
+        console.warn(
+          '⚠️ TEMPORARY: Not redirecting to login, just throwing error'
+        );
+        throw new Error(
+          `Auth failed: ${response.status} - Token validation error`
+        );
       }
 
       if (!response.ok) {
@@ -1229,7 +1349,7 @@ class ApiService {
 
       const data = await response.json();
       console.log('🔍 Raw API response for protocols:', data);
-      
+
       // Backend vracia priamo dáta, nie ApiResponse formát
       return data as { handoverProtocols: any[]; returnProtocols: any[] };
     } catch (error) {
@@ -1239,8 +1359,11 @@ class ApiService {
   }
 
   async createHandoverProtocol(protocolData: any): Promise<any> {
-    console.log('🔄 API createHandoverProtocol - input:', JSON.stringify(protocolData, null, 2));
-    
+    console.log(
+      '🔄 API createHandoverProtocol - input:',
+      JSON.stringify(protocolData, null, 2)
+    );
+
     // Ensure all required fields are present
     const completeProtocolData = {
       rentalId: protocolData.rentalId,
@@ -1251,7 +1374,7 @@ class ApiService {
         fuelType: 'Benzín',
         exteriorCondition: 'Dobrý',
         interiorCondition: 'Dobrý',
-        notes: ''
+        notes: '',
       },
       vehicleImages: protocolData.vehicleImages || [],
       vehicleVideos: protocolData.vehicleVideos || [],
@@ -1267,17 +1390,20 @@ class ApiService {
       pdfUrl: protocolData.pdfUrl, // ✅ Pridané: PDF URL z R2
       emailSent: protocolData.emailSent || false, // ✅ Pridané: email status
     };
-    
-    console.log('🔄 API createHandoverProtocol - complete data:', JSON.stringify(completeProtocolData, null, 2));
-    
+
+    console.log(
+      '🔄 API createHandoverProtocol - complete data:',
+      JSON.stringify(completeProtocolData, null, 2)
+    );
+
     try {
       const result = await this.request<any>('/protocols/handover', {
         method: 'POST',
         body: JSON.stringify(completeProtocolData),
       });
-      
+
       // 🔴 REMOVED: Redundant cache invalidation - WebSocket updates handle this
-      
+
       return result;
     } catch (error) {
       console.error('❌ Failed to create handover protocol:', error);
@@ -1286,25 +1412,31 @@ class ApiService {
   }
 
   async createReturnProtocol(protocolData: any): Promise<any> {
-    console.log('🔄 API createReturnProtocol - input:', JSON.stringify(protocolData, null, 2));
-    
+    console.log(
+      '🔄 API createReturnProtocol - input:',
+      JSON.stringify(protocolData, null, 2)
+    );
+
     // Ensure all required fields are present
     const completeProtocolData = {
       ...protocolData,
       pdfUrl: protocolData.pdfUrl, // ✅ Pridané: PDF URL z R2
       emailSent: protocolData.emailSent || false, // ✅ Pridané: email status
     };
-    
-    console.log('🔄 API createReturnProtocol - complete data:', JSON.stringify(completeProtocolData, null, 2));
-    
+
+    console.log(
+      '🔄 API createReturnProtocol - complete data:',
+      JSON.stringify(completeProtocolData, null, 2)
+    );
+
     try {
       const result = await this.request<any>('/protocols/return', {
         method: 'POST',
         body: JSON.stringify(completeProtocolData),
       });
-      
+
       // 🔴 REMOVED: Redundant cache invalidation - WebSocket updates handle this
-      
+
       return result;
     } catch (error) {
       console.error('❌ Failed to create return protocol:', error);
@@ -1312,16 +1444,25 @@ class ApiService {
     }
   }
 
-  async deleteProtocol(protocolId: string, type: 'handover' | 'return'): Promise<void> {
-    console.log(`🗑️ API deleteProtocol - deleting ${type} protocol:`, protocolId);
-    
+  async deleteProtocol(
+    protocolId: string,
+    type: 'handover' | 'return'
+  ): Promise<void> {
+    console.log(
+      `🗑️ API deleteProtocol - deleting ${type} protocol:`,
+      protocolId
+    );
+
     try {
-      const result = await this.request<void>(`/protocols/${type}/${protocolId}`, {
-        method: 'DELETE',
-      });
-      
+      const result = await this.request<void>(
+        `/protocols/${type}/${protocolId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
       // 🔴 REMOVED: Redundant cache invalidation - WebSocket updates handle this
-      
+
       return result;
     } catch (error) {
       console.error(`❌ Failed to delete ${type} protocol:`, error);
@@ -1332,12 +1473,12 @@ class ApiService {
   // Signature template management
   async updateSignatureTemplate(signatureTemplate: string): Promise<any> {
     console.log('🖊️ API updateSignatureTemplate - saving signature template');
-    
+
     const response = await this.request<any>('/auth/signature-template', {
       method: 'PUT',
       body: JSON.stringify({ signatureTemplate }),
     });
-    
+
     console.log('🖊️ API updateSignatureTemplate - response:', response);
     return response;
   }
@@ -1345,12 +1486,12 @@ class ApiService {
   // User profile management
   async updateUserProfile(firstName: string, lastName: string): Promise<any> {
     console.log('👤 API updateUserProfile - updating user profile');
-    
+
     const response = await this.request<any>('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify({ firstName, lastName }),
     });
-    
+
     console.log('👤 API updateUserProfile - response:', response);
     return response;
   }
@@ -1358,102 +1499,134 @@ class ApiService {
   // 👥 USER MANAGEMENT API METHODS
   async getUsers(): Promise<any[]> {
     console.log('👥 API getUsers - fetching all users');
-    
+
     const response = await this.request<any>('/auth/users');
     console.log('👥 API getUsers - response:', response);
     console.log('👥 API getUsers - response type:', typeof response);
     console.log('👥 API getUsers - is array:', Array.isArray(response));
-    
+
     // request() už parsuje data a vracia priamo users array
     return Array.isArray(response) ? response : [];
   }
 
   async createUser(userData: any): Promise<any> {
     console.log('👤 API createUser - creating user:', userData);
-    
+
     const response = await this.request<any>('/auth/users', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
-    
+
     console.log('👤 API createUser - response:', response);
     console.log('👤 API createUser - response type:', typeof response);
-    
+
     // request() už parsuje data a vracia priamo user objekt
     return response;
   }
 
   async updateUser(userId: string, userData: any): Promise<any> {
     console.log('👤 API updateUser - updating user:', userId, userData);
-    
+
     const response = await this.request<any>(`/auth/users/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(userData),
     });
-    
+
     console.log('👤 API updateUser - response:', response);
     console.log('👤 API updateUser - response type:', typeof response);
-    
+
     // request() už parsuje data a vracia priamo user objekt
     return response;
   }
 
   async deleteUser(userId: string): Promise<void> {
     console.log('👤 API deleteUser - deleting user:', userId);
-    
+
     await this.request<void>(`/auth/users/${userId}`, {
       method: 'DELETE',
     });
-    
+
     console.log('👤 API deleteUser - user deleted successfully');
   }
 
   // 🔐 PERMISSIONS API METHODS
   async getUserCompanyAccess(userId: string): Promise<any[]> {
-    console.log('🔐 API getUserCompanyAccess - fetching user company access:', userId);
-    
-    const response = await this.request<any>(`/permissions/user/${userId}/access`);
+    console.log(
+      '🔐 API getUserCompanyAccess - fetching user company access:',
+      userId
+    );
+
+    const response = await this.request<any>(
+      `/permissions/user/${userId}/access`
+    );
     console.log('🔐 API getUserCompanyAccess - response:', response);
-    
+
     return Array.isArray(response) ? response : [];
   }
 
-  async setUserPermission(userId: string, companyId: string, permissions: any): Promise<any> {
-    console.log('🔐 API setUserPermission - setting permissions:', { userId, companyId, permissions });
-    
-    const response = await this.request<any>(`/permissions/user/${userId}/company/${companyId}`, {
-      method: 'POST',
-      body: JSON.stringify({ permissions }),
+  async setUserPermission(
+    userId: string,
+    companyId: string,
+    permissions: any
+  ): Promise<any> {
+    console.log('🔐 API setUserPermission - setting permissions:', {
+      userId,
+      companyId,
+      permissions,
     });
-    
+
+    const response = await this.request<any>(
+      `/permissions/user/${userId}/company/${companyId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ permissions }),
+      }
+    );
+
     console.log('🔐 API setUserPermission - response:', response);
     return response;
   }
 
   async removeUserPermission(userId: string, companyId: string): Promise<void> {
-    console.log('🔐 API removeUserPermission - removing permissions:', { userId, companyId });
-    
-    await this.request<void>(`/permissions/user/${userId}/company/${companyId}`, {
-      method: 'DELETE',
+    console.log('🔐 API removeUserPermission - removing permissions:', {
+      userId,
+      companyId,
     });
-    
-    console.log('🔐 API removeUserPermission - permissions removed successfully');
+
+    await this.request<void>(
+      `/permissions/user/${userId}/company/${companyId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+
+    console.log(
+      '🔐 API removeUserPermission - permissions removed successfully'
+    );
   }
 
-  async setUserPermissionsBulk(assignments: Array<{ userId: string; companyId: string; permissions: any }>): Promise<any> {
-    console.log('🔐 API setUserPermissionsBulk - bulk setting permissions:', assignments);
-    
+  async setUserPermissionsBulk(
+    assignments: Array<{ userId: string; companyId: string; permissions: any }>
+  ): Promise<any> {
+    console.log(
+      '🔐 API setUserPermissionsBulk - bulk setting permissions:',
+      assignments
+    );
+
     const response = await this.request<any>('/permissions/bulk', {
       method: 'POST',
       body: JSON.stringify({ assignments }),
     });
-    
+
     console.log('🔐 API setUserPermissionsBulk - response:', response);
     return response;
   }
 
   // Získanie majiteľa vozidla k dátumu
-  async getVehicleOwnerAtDate(vehicleId: string, date: Date): Promise<{
+  async getVehicleOwnerAtDate(
+    vehicleId: string,
+    date: Date
+  ): Promise<{
     vehicleId: string;
     date: string;
     owner: {
@@ -1479,7 +1652,9 @@ class ApiService {
     } else if (obj !== null && typeof obj === 'object') {
       const converted: any = {};
       for (const [key, value] of Object.entries(obj)) {
-        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+        const camelKey = key.replace(/_([a-z])/g, (_, letter) =>
+          letter.toUpperCase()
+        );
         converted[camelKey] = this.convertSnakeToCamelCase(value);
       }
       return converted;
@@ -1490,10 +1665,10 @@ class ApiService {
   async getPendingAutomaticRentals(): Promise<Rental[]> {
     // this.request už extrahuje 'data' z {success, data} response
     const responseData = await this.request<any[]>('/email-webhook/pending');
-    
+
     // Konvertuj snake_case na camelCase
     const convertedData = this.convertSnakeToCamelCase(responseData);
-    
+
     return convertedData || [];
   }
 
@@ -1516,7 +1691,10 @@ class ApiService {
     });
   }
 
-  async updatePendingRental(rentalId: string, updates: Partial<Rental>): Promise<void> {
+  async updatePendingRental(
+    rentalId: string,
+    updates: Partial<Rental>
+  ): Promise<void> {
     await this.request<{
       success: boolean;
       data: any;
@@ -1542,18 +1720,22 @@ class ApiService {
 
   // IMAP Email Monitoring methods
   async getImapStatus(): Promise<any> {
-    const response = await this.request<any>('/email-imap/status', { method: 'GET' });
+    const response = await this.request<any>('/email-imap/status', {
+      method: 'GET',
+    });
     return response;
   }
 
   async testImapConnection(): Promise<any> {
     console.log('🧪 API: IMAP test pripojenia...');
-    
-    const response = await this.request<any>('/email-imap/test', { method: 'GET' });
-    
+
+    const response = await this.request<any>('/email-imap/test', {
+      method: 'GET',
+    });
+
     console.log('📊 API: Raw IMAP response:', response);
     console.log('🔍 API: Extracted data:', response);
-    
+
     return response;
   }
 
@@ -1572,21 +1754,28 @@ class ApiService {
   // ==================== AUDIT LOGS API ====================
 
   async getAuditLogs(params: string): Promise<{ logs: any[]; total: number }> {
-    return await this.request<{ logs: any[]; total: number }>(`/audit/logs?${params}`, { method: 'GET' });
+    return await this.request<{ logs: any[]; total: number }>(
+      `/audit/logs?${params}`,
+      { method: 'GET' }
+    );
   }
 
   async getAuditStats(days: number): Promise<any> {
-    return await this.request<any>(`/audit/stats?days=${days}`, { method: 'GET' });
+    return await this.request<any>(`/audit/stats?days=${days}`, {
+      method: 'GET',
+    });
   }
 
   async getAuditActions(): Promise<string[]> {
     return await this.request<string[]>('/audit/actions', { method: 'GET' });
   }
 
-  async cleanupAuditLogs(olderThanDays: number): Promise<{ deletedCount: number }> {
-    return await this.request<{ deletedCount: number }>('/audit/logs/cleanup', { 
+  async cleanupAuditLogs(
+    olderThanDays: number
+  ): Promise<{ deletedCount: number }> {
+    return await this.request<{ deletedCount: number }>('/audit/logs/cleanup', {
       method: 'POST',
-      body: JSON.stringify({ olderThanDays })
+      body: JSON.stringify({ olderThanDays }),
     });
   }
 
@@ -1603,7 +1792,7 @@ class ApiService {
   }): Promise<void> {
     return await this.request<void>('/vehicle-unavailability', {
       method: 'POST',
-      body: JSON.stringify(unavailabilityData)
+      body: JSON.stringify(unavailabilityData),
     });
   }
 }

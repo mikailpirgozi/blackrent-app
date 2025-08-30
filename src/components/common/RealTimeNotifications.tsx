@@ -1,7 +1,22 @@
 // 🔴 REAL-TIME NOTIFICATIONS - BlackRent
 // Komponent pre zobrazenie WebSocket notifikácií
 
-import React, { useState } from 'react';
+import {
+  Notifications as NotificationsIcon,
+  NotificationsActive as NotificationsActiveIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  DirectionsCar as CarIcon,
+  Person as PersonIcon,
+  Info as InfoIcon,
+  Warning as WarningIcon,
+  Error as ErrorIcon,
+  Wifi as WiFiIcon,
+  WifiOff as WiFiOffIcon,
+  Clear as ClearIcon,
+  CheckCircle as CheckIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Badge,
@@ -18,30 +33,23 @@ import {
   Button,
   Chip,
   Tooltip,
-  Alert
+  Alert,
 } from '@mui/material';
-import {
-  Notifications as NotificationsIcon,
-  NotificationsActive as NotificationsActiveIcon,
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  DirectionsCar as CarIcon,
-  Person as PersonIcon,
-  Info as InfoIcon,
-  Warning as WarningIcon,
-  Error as ErrorIcon,
-  Wifi as WiFiIcon,
-  WifiOff as WiFiOffIcon,
-  Clear as ClearIcon,
-  CheckCircle as CheckIcon
-} from '@mui/icons-material';
-import { useWebSocket } from '../../hooks/useWebSocket';
 import { formatDistanceToNow } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import React, { useState } from 'react';
+
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 const RealTimeNotifications: React.FC = () => {
-  const { isConnected, connectedUsers, notifications, unreadCount, markNotificationRead, clearNotifications } = useWebSocket();
+  const {
+    isConnected,
+    connectedUsers,
+    notifications,
+    unreadCount,
+    markNotificationRead,
+    clearNotifications,
+  } = useWebSocket();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -100,7 +108,13 @@ const RealTimeNotifications: React.FC = () => {
   return (
     <Box>
       {/* Connection Status Indicator */}
-      <Tooltip title={isConnected ? `Pripojené - ${connectedUsers.count} užívateľov online` : 'Odpojené od real-time updates'}>
+      <Tooltip
+        title={
+          isConnected
+            ? `Pripojené - ${connectedUsers.count} užívateľov online`
+            : 'Odpojené od real-time updates'
+        }
+      >
         <Chip
           icon={isConnected ? <WiFiIcon /> : <WiFiOffIcon />}
           label={isConnected ? 'Live' : 'Offline'}
@@ -150,7 +164,13 @@ const RealTimeNotifications: React.FC = () => {
       >
         {/* Header */}
         <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             <Typography variant="h6" component="div">
               🔴 Real-time Updates
             </Typography>
@@ -164,7 +184,7 @@ const RealTimeNotifications: React.FC = () => {
               </Button>
             )}
           </Box>
-          
+
           {/* Status */}
           <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, gap: 1 }}>
             <Chip
@@ -186,7 +206,8 @@ const RealTimeNotifications: React.FC = () => {
         {/* Connection Warning */}
         {!isConnected && (
           <Alert severity="warning" sx={{ m: 1 }}>
-            Real-time updates sú momentálne nedostupné. Obnovte stránku pre opätovné pripojenie.
+            Real-time updates sú momentálne nedostupné. Obnovte stránku pre
+            opätovné pripojenie.
           </Alert>
         )}
 
@@ -194,10 +215,10 @@ const RealTimeNotifications: React.FC = () => {
         <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
           {notifications.length === 0 ? (
             <Box sx={{ p: 3, textAlign: 'center' }}>
-              <NotificationsIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-              <Typography color="text.secondary">
-                Žiadne notifikácie
-              </Typography>
+              <NotificationsIcon
+                sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }}
+              />
+              <Typography color="text.secondary">Žiadne notifikácie</Typography>
               <Typography variant="body2" color="text.secondary">
                 Real-time updates sa zobrazia tu
               </Typography>
@@ -208,7 +229,9 @@ const RealTimeNotifications: React.FC = () => {
                 <React.Fragment key={notification.id}>
                   <ListItem
                     sx={{
-                      bgcolor: notification.read ? 'transparent' : 'action.hover',
+                      bgcolor: notification.read
+                        ? 'transparent'
+                        : 'action.hover',
                       cursor: 'pointer',
                       '&:hover': {
                         bgcolor: 'action.selected',
@@ -221,7 +244,9 @@ const RealTimeNotifications: React.FC = () => {
                     </ListItemIcon>
                     <ListItemText
                       primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
                           <Typography variant="subtitle2" component="span">
                             {notification.title}
                           </Typography>
@@ -241,10 +266,13 @@ const RealTimeNotifications: React.FC = () => {
                             {notification.message}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {formatDistanceToNow(new Date(notification.timestamp), { 
-                              addSuffix: true,
-                              locale: sk 
-                            })}
+                            {formatDistanceToNow(
+                              new Date(notification.timestamp),
+                              {
+                                addSuffix: true,
+                                locale: sk,
+                              }
+                            )}
                           </Typography>
                         </Box>
                       }
@@ -264,9 +292,17 @@ const RealTimeNotifications: React.FC = () => {
 
         {/* Footer */}
         {notifications.length > 0 && (
-          <Box sx={{ p: 1, borderTop: 1, borderColor: 'divider', textAlign: 'center' }}>
+          <Box
+            sx={{
+              p: 1,
+              borderTop: 1,
+              borderColor: 'divider',
+              textAlign: 'center',
+            }}
+          >
             <Typography variant="caption" color="text.secondary">
-              Zobrazených {Math.min(notifications.length, 50)} zo všetkých notifikácií
+              Zobrazených {Math.min(notifications.length, 50)} zo všetkých
+              notifikácií
             </Typography>
           </Box>
         )}

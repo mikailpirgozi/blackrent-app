@@ -1,5 +1,5 @@
-import MenuRoot3 from '../../components/firejet/MenuRoot3'
-import FrameRoot3 from '../../components/firejet/FrameRoot3'
+import FrameRoot3 from '../../components/firejet/FrameRoot3';
+import MenuRoot3 from '../../components/firejet/MenuRoot3';
 
 export default function Root3Page() {
   return (
@@ -19,5 +19,5 @@ export default function Root3Page() {
         </section>
       </main>
     </div>
-  )
+  );
 }

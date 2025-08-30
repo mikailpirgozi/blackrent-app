@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Assignment as DocumentIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -22,17 +27,20 @@ import {
   Grid,
   Divider,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Assignment as DocumentIcon,
-} from '@mui/icons-material';
-import { Vehicle, PricingTier, VehicleDocument, DocumentType, VehicleCategory } from '../../types';
-import { useApp } from '../../context/AppContext';
+import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import TechnicalCertificateUpload from './TechnicalCertificateUpload';
+
+import { useApp } from '../../context/AppContext';
+import {
+  Vehicle,
+  PricingTier,
+  VehicleDocument,
+  DocumentType,
+  VehicleCategory,
+} from '../../types';
 import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
+
+import TechnicalCertificateUpload from './TechnicalCertificateUpload';
 
 interface VehicleFormProps {
   vehicle?: Vehicle | null;
@@ -40,8 +48,18 @@ interface VehicleFormProps {
   onCancel: () => void;
 }
 
-export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormProps) {
-  const { state, createCompany, createVehicleDocument, updateVehicleDocument, deleteVehicleDocument } = useApp();
+export default function VehicleForm({
+  vehicle,
+  onSave,
+  onCancel,
+}: VehicleFormProps) {
+  const {
+    state,
+    createCompany,
+    createVehicleDocument,
+    updateVehicleDocument,
+    deleteVehicleDocument,
+  } = useApp();
   const defaultPricing = [
     { id: '1', minDays: 0, maxDays: 1, pricePerDay: 0 },
     { id: '2', minDays: 2, maxDays: 3, pricePerDay: 0 },
@@ -60,12 +78,15 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
     commission: { type: 'percentage', value: 20 },
     status: 'available',
     category: 'stredna-trieda' as VehicleCategory, // Default kategória
-    extraKilometerRate: 0.30, // 🚗 Default cena za extra km
+    extraKilometerRate: 0.3, // 🚗 Default cena za extra km
   });
   const [addingCompany, setAddingCompany] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
-  const [vehicleDocuments, setVehicleDocuments] = useState<VehicleDocument[]>([]);
-  const [editingDocument, setEditingDocument] = useState<VehicleDocument | null>(null);
+  const [vehicleDocuments, setVehicleDocuments] = useState<VehicleDocument[]>(
+    []
+  );
+  const [editingDocument, setEditingDocument] =
+    useState<VehicleDocument | null>(null);
   const [showUnifiedDocumentForm, setShowUnifiedDocumentForm] = useState(false);
   const [unifiedDocumentData, setUnifiedDocumentData] = useState<any>(null);
 
@@ -73,7 +94,9 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
     if (vehicle) {
       setFormData(vehicle);
       // Načítaj dokumenty pre existujúce vozidlo
-      const vehicleDocs = state.vehicleDocuments.filter(doc => doc.vehicleId === vehicle.id);
+      const vehicleDocs = state.vehicleDocuments.filter(
+        doc => doc.vehicleId === vehicle.id
+      );
       setVehicleDocuments(vehicleDocs);
     }
   }, [vehicle, state.vehicleDocuments]);
@@ -81,7 +104,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
   const handleInputChange = (field: keyof Vehicle, value: any) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
-      
+
       // 💰 SMART COMMISSION: Pri zmene firmy nastav default províziu
       if (field === 'ownerCompanyId' && value) {
         const selectedCompany = state.companies?.find(c => c.id === value);
@@ -90,18 +113,24 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           if (!prev.commission || prev.commission.value === 20) {
             updated.commission = {
               type: 'percentage',
-              value: selectedCompany.defaultCommissionRate || 20
+              value: selectedCompany.defaultCommissionRate || 20,
             };
-            console.log(`💰 Auto-set commission to ${selectedCompany.defaultCommissionRate}% for company ${selectedCompany.name}`);
+            console.log(
+              `💰 Auto-set commission to ${selectedCompany.defaultCommissionRate}% for company ${selectedCompany.name}`
+            );
           }
         }
       }
-      
+
       return updated;
     });
   };
 
-  const handlePricingChange = (index: number, field: keyof PricingTier, value: any) => {
+  const handlePricingChange = (
+    index: number,
+    field: keyof PricingTier,
+    value: any
+  ) => {
     const newPricing = [...(formData.pricing || [])];
     newPricing[index] = { ...newPricing[index], [field]: value };
     setFormData(prev => ({ ...prev, pricing: newPricing }));
@@ -138,21 +167,26 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
       commission: formData.commission || { type: 'percentage', value: 20 },
       status: formData.status || 'available',
       category: formData.category || 'stredna-trieda',
-      extraKilometerRate: formData.extraKilometerRate || 0.30, // 🚗 NOVÉ: Extra kilometer rate
+      extraKilometerRate: formData.extraKilometerRate || 0.3, // 🚗 NOVÉ: Extra kilometer rate
     };
     onSave(completeVehicle);
   };
 
   // 🔍 FILTROVANIE AKTÍVNYCH FIRIEM + company names
-  const allCompanies = Array.from(new Set([
-    ...state.companies
-      .filter(c => c.isActive !== false) // Len aktívne firmy
-      .map(c => c.name),
-    ...state.vehicles.map(v => v.company).filter((c): c is string => Boolean(c))
-  ])).sort();
+  const allCompanies = Array.from(
+    new Set([
+      ...state.companies
+        .filter(c => c.isActive !== false) // Len aktívne firmy
+        .map(c => c.name),
+      ...state.vehicles
+        .map(v => v.company)
+        .filter((c): c is string => Boolean(c)),
+    ])
+  ).sort();
 
   // 🏢 AKTÍVNE FIRMY PRE DROPDOWN
-  const activeCompanies = state.companies?.filter(c => c.isActive !== false) || [];
+  const activeCompanies =
+    state.companies?.filter(c => c.isActive !== false) || [];
 
   // Helper funkcie pre dokumenty - prepojené s UnifiedDocumentForm
   const handleAddDocument = () => {
@@ -160,10 +194,10 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
       alert('Najprv uložte vozidlo, potom môžete pridávať dokumenty.');
       return;
     }
-    
+
     setUnifiedDocumentData({
       vehicleId: formData.id,
-      type: 'stk' // Default typ
+      type: 'stk', // Default typ
     });
     setShowUnifiedDocumentForm(true);
   };
@@ -178,7 +212,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
       validTo: doc.validTo,
       price: doc.price,
       notes: doc.notes,
-      kmState: (doc as any).kmState // Pre STK/EK s km stavom
+      kmState: (doc as any).kmState, // Pre STK/EK s km stavom
     });
     setShowUnifiedDocumentForm(true);
   };
@@ -207,7 +241,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           documentNumber: data.documentNumber,
           price: data.price,
           notes: data.notes,
-          kmState: data.kmState // Pre STK/EK s km stavom
+          kmState: data.kmState, // Pre STK/EK s km stavom
         };
         await updateVehicleDocument(vehicleDocData);
       } else {
@@ -221,13 +255,15 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           documentNumber: data.documentNumber,
           price: data.price,
           notes: data.notes,
-          kmState: data.kmState // Pre STK/EK s km stavom
+          kmState: data.kmState, // Pre STK/EK s km stavom
         };
         await createVehicleDocument(vehicleDocData);
       }
-      
+
       // Obnovenie zoznamu dokumentov
-      const vehicleDocs = state.vehicleDocuments.filter(doc => doc.vehicleId === formData.id);
+      const vehicleDocs = state.vehicleDocuments.filter(
+        doc => doc.vehicleId === formData.id
+      );
       setVehicleDocuments(vehicleDocs);
       setShowUnifiedDocumentForm(false);
       setUnifiedDocumentData(null);
@@ -252,7 +288,9 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
 
   const getExpiryStatus = (validTo: Date) => {
     const today = new Date();
-    const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysFromNow = new Date(
+      today.getTime() + 30 * 24 * 60 * 60 * 1000
+    );
     const validToDate = new Date(validTo);
 
     if (validToDate < today) {
@@ -268,14 +306,14 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
     if (!newCompanyName.trim()) return;
     try {
       const id = uuidv4();
-      await createCompany({ 
-        id, 
+      await createCompany({
+        id,
         name: newCompanyName.trim(),
-        commissionRate: 20.00,
+        commissionRate: 20.0,
         isActive: true,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
-      setFormData((prev) => ({ ...prev, company: newCompanyName.trim() }));
+      setFormData(prev => ({ ...prev, company: newCompanyName.trim() }));
       setNewCompanyName('');
       setAddingCompany(false);
     } catch (error) {
@@ -286,33 +324,39 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 3,
+        }}
+      >
         <TextField
           fullWidth
           label="Značka"
           value={formData.brand}
-          onChange={(e) => handleInputChange('brand', e.target.value)}
+          onChange={e => handleInputChange('brand', e.target.value)}
           required
         />
         <TextField
           fullWidth
           label="Model"
           value={formData.model}
-          onChange={(e) => handleInputChange('model', e.target.value)}
+          onChange={e => handleInputChange('model', e.target.value)}
           required
         />
         <TextField
           fullWidth
           label="ŠPZ"
           value={formData.licensePlate}
-          onChange={(e) => handleInputChange('licensePlate', e.target.value)}
+          onChange={e => handleInputChange('licensePlate', e.target.value)}
           required
         />
         <TextField
           fullWidth
           label="VIN číslo"
           value={formData.vin || ''}
-          onChange={(e) => handleInputChange('vin', e.target.value)}
+          onChange={e => handleInputChange('vin', e.target.value)}
           placeholder="Zadajte VIN číslo vozidla"
           helperText="17-miestny identifikačný kód vozidla"
         />
@@ -322,15 +366,17 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           <Select
             value={formData.ownerCompanyId || ''}
             label="Firma/Autopožičovňa"
-            onChange={(e) => {
+            onChange={e => {
               const companyId = e.target.value;
-              const selectedCompany = activeCompanies.find(c => c.id === companyId);
+              const selectedCompany = activeCompanies.find(
+                c => c.id === companyId
+              );
               if (selectedCompany) {
                 handleInputChange('company', selectedCompany.name);
                 handleInputChange('ownerCompanyId', companyId);
               }
             }}
-            renderValue={(selected) => {
+            renderValue={selected => {
               const company = activeCompanies.find(c => c.id === selected);
               return company ? company.name : 'Vyberte firmu';
             }}
@@ -338,7 +384,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
             <MenuItem value="">
               <em>Vyberte firmu...</em>
             </MenuItem>
-            {activeCompanies.map((company) => (
+            {activeCompanies.map(company => (
               <MenuItem key={company.id} value={company.id}>
                 <Box>
                   <Typography variant="body2">{company.name}</Typography>
@@ -350,7 +396,10 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
                 </Box>
               </MenuItem>
             ))}
-            <MenuItem value="__add_new__" onClick={() => setAddingCompany(true)}>
+            <MenuItem
+              value="__add_new__"
+              onClick={() => setAddingCompany(true)}
+            >
               <em>+ Pridať novú firmu</em>
             </MenuItem>
           </Select>
@@ -362,8 +411,8 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
                 size="small"
                 label="Názov novej firmy"
                 value={newCompanyName}
-                onChange={(e) => setNewCompanyName(e.target.value)}
-                onKeyPress={(e) => {
+                onChange={e => setNewCompanyName(e.target.value)}
+                onKeyPress={e => {
                   if (e.key === 'Enter') {
                     handleAddCompany();
                   }
@@ -384,7 +433,9 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           <InputLabel>Kategória vozidla</InputLabel>
           <Select
             value={formData.category || 'stredna-trieda'}
-            onChange={(e) => handleInputChange('category', e.target.value as VehicleCategory)}
+            onChange={e =>
+              handleInputChange('category', e.target.value as VehicleCategory)
+            }
             label="Kategória vozidla"
           >
             <MenuItem value="nizka-trieda">🚗 Nízka trieda</MenuItem>
@@ -401,7 +452,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           <InputLabel>Stav</InputLabel>
           <Select
             value={formData.status}
-            onChange={(e) => handleInputChange('status', e.target.value)}
+            onChange={e => handleInputChange('status', e.target.value)}
             label="Stav"
           >
             <MenuItem value="available">Dostupné</MenuItem>
@@ -416,95 +467,151 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
         <FormControl component="fieldset">
           <Typography variant="subtitle1" gutterBottom>
             Provízia
-            {formData.ownerCompanyId && (() => {
-              const selectedCompany = activeCompanies.find(c => c.id === formData.ownerCompanyId);
-              const isUsingDefault = selectedCompany && 
-                formData.commission?.value === selectedCompany.defaultCommissionRate;
-              return (
-                <Chip 
-                  label={isUsingDefault ? 
-                    `Default (${selectedCompany.defaultCommissionRate}%)` : 
-                    'Vlastná hodnota'
-                  }
-                  size="small" 
-                  color={isUsingDefault ? 'primary' : 'secondary'}
-                  sx={{ ml: 1 }}
-                />
-              );
-            })()}
+            {formData.ownerCompanyId &&
+              (() => {
+                const selectedCompany = activeCompanies.find(
+                  c => c.id === formData.ownerCompanyId
+                );
+                const isUsingDefault =
+                  selectedCompany &&
+                  formData.commission?.value ===
+                    selectedCompany.defaultCommissionRate;
+                return (
+                  <Chip
+                    label={
+                      isUsingDefault
+                        ? `Default (${selectedCompany.defaultCommissionRate}%)`
+                        : 'Vlastná hodnota'
+                    }
+                    size="small"
+                    color={isUsingDefault ? 'primary' : 'secondary'}
+                    sx={{ ml: 1 }}
+                  />
+                );
+              })()}
           </Typography>
           <RadioGroup
             row
             value={formData.commission?.type}
-            onChange={(e) => handleInputChange('commission', { 
-              ...formData.commission, 
-              type: e.target.value as 'percentage' | 'fixed' 
-            })}
+            onChange={e =>
+              handleInputChange('commission', {
+                ...formData.commission,
+                type: e.target.value as 'percentage' | 'fixed',
+              })
+            }
           >
-            <FormControlLabel value="percentage" control={<Radio />} label="Percentá" />
-            <FormControlLabel value="fixed" control={<Radio />} label="Fixná suma" />
+            <FormControlLabel
+              value="percentage"
+              control={<Radio />}
+              label="Percentá"
+            />
+            <FormControlLabel
+              value="fixed"
+              control={<Radio />}
+              label="Fixná suma"
+            />
           </RadioGroup>
           <TextField
             fullWidth
-            label={formData.commission?.type === 'percentage' ? 'Percentá (%)' : 'Suma (€)'}
+            label={
+              formData.commission?.type === 'percentage'
+                ? 'Percentá (%)'
+                : 'Suma (€)'
+            }
             type="number"
             value={formData.commission?.value}
-            onChange={(e) => handleInputChange('commission', { 
-              ...formData.commission, 
-              value: parseFloat(e.target.value) 
-            })}
+            onChange={e =>
+              handleInputChange('commission', {
+                ...formData.commission,
+                value: parseFloat(e.target.value),
+              })
+            }
             sx={{ mt: 1 }}
-            helperText={formData.ownerCompanyId && (() => {
-              const selectedCompany = activeCompanies.find(c => c.id === formData.ownerCompanyId);
-              return selectedCompany ? 
-                `Default provízia firmy: ${selectedCompany.defaultCommissionRate || 20}%` : 
-                '';
-            })()}
+            helperText={
+              formData.ownerCompanyId &&
+              (() => {
+                const selectedCompany = activeCompanies.find(
+                  c => c.id === formData.ownerCompanyId
+                );
+                return selectedCompany
+                  ? `Default provízia firmy: ${selectedCompany.defaultCommissionRate || 20}%`
+                  : '';
+              })()
+            }
           />
         </FormControl>
 
         <Box sx={{ gridColumn: '1 / -1' }}>
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2,
+                }}
+              >
                 <Typography variant="h6">Cenotvorba</Typography>
               </Box>
               {formData.pricing?.map((tier, index) => (
-                <Box key={tier.id} sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+                <Box
+                  key={tier.id}
+                  sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}
+                >
                   <TextField
                     label={(() => {
-                      switch(index) {
-                        case 0: return '0-1 dni';
-                        case 1: return '2-3 dni';
-                        case 2: return '4-7 dni';
-                        case 3: return '8-14 dni';
-                        case 4: return '15-22 dní';
-                        case 5: return '23-30 dní';
-                        case 6: return '31-9999 dní';
-                        default: return '';
+                      switch (index) {
+                        case 0:
+                          return '0-1 dni';
+                        case 1:
+                          return '2-3 dni';
+                        case 2:
+                          return '4-7 dni';
+                        case 3:
+                          return '8-14 dni';
+                        case 4:
+                          return '15-22 dní';
+                        case 5:
+                          return '23-30 dní';
+                        case 6:
+                          return '31-9999 dní';
+                        default:
+                          return '';
                       }
                     })()}
                     type="number"
                     value={tier.pricePerDay}
-                    onChange={(e) => handlePricingChange(index, 'pricePerDay', parseFloat(e.target.value))}
+                    onChange={e =>
+                      handlePricingChange(
+                        index,
+                        'pricePerDay',
+                        parseFloat(e.target.value)
+                      )
+                    }
                     sx={{ width: 150 }}
                   />
                 </Box>
               ))}
-              
+
               {/* 🚗 NOVÉ: Extra kilometer rate */}
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                 <TextField
                   label="Cena za extra km (€/km)"
                   type="number"
-                  value={formData.extraKilometerRate || 0.30}
-                  onChange={(e) => handleInputChange('extraKilometerRate', parseFloat(e.target.value) || 0.30)}
+                  value={formData.extraKilometerRate || 0.3}
+                  onChange={e =>
+                    handleInputChange(
+                      'extraKilometerRate',
+                      parseFloat(e.target.value) || 0.3
+                    )
+                  }
                   sx={{ width: 200 }}
-                  inputProps={{ 
-                    step: 0.01, 
+                  inputProps={{
+                    step: 0.01,
                     min: 0,
-                    max: 10 
+                    max: 10,
                   }}
                   helperText="Cena za každý kilometer nad povolený limit"
                 />
@@ -518,7 +625,14 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           <Box sx={{ gridColumn: '1 / -1' }}>
             <Card>
               <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 2,
+                  }}
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <DocumentIcon />
                     <Typography variant="h6">Evidencia platnosti</Typography>
@@ -533,21 +647,35 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
                 </Box>
 
                 <Grid container spacing={2}>
-                  {vehicleDocuments.map((doc) => {
+                  {vehicleDocuments.map(doc => {
                     const expiryStatus = getExpiryStatus(doc.validTo);
                     return (
                       <Grid item xs={12} sm={6} md={4} key={doc.id}>
-                        <Card sx={{ 
-                          border: `1px solid ${
-                            expiryStatus.status === 'expired' ? '#f44336' :
-                            expiryStatus.status === 'expiring' ? '#ff9800' :
-                            '#e0e0e0'
-                          }`,
-                          '&:hover': { boxShadow: 2 }
-                        }}>
+                        <Card
+                          sx={{
+                            border: `1px solid ${
+                              expiryStatus.status === 'expired'
+                                ? '#f44336'
+                                : expiryStatus.status === 'expiring'
+                                  ? '#ff9800'
+                                  : '#e0e0e0'
+                            }`,
+                            '&:hover': { boxShadow: 2 },
+                          }}
+                        >
                           <CardContent sx={{ p: 2 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                mb: 1,
+                              }}
+                            >
+                              <Typography
+                                variant="subtitle1"
+                                sx={{ fontWeight: 600 }}
+                              >
                                 {getDocumentTypeLabel(doc.documentType)}
                               </Typography>
                               <Chip
@@ -556,19 +684,32 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
                                 size="small"
                               />
                             </Box>
-                            
+
                             {doc.documentNumber && (
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 1 }}
+                              >
                                 Číslo: {doc.documentNumber}
                               </Typography>
                             )}
-                            
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                              Platné do: {new Date(doc.validTo).toLocaleDateString()}
+
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mb: 1 }}
+                            >
+                              Platné do:{' '}
+                              {new Date(doc.validTo).toLocaleDateString()}
                             </Typography>
-                            
+
                             {doc.price && (
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 1 }}
+                              >
                                 Cena: {doc.price.toFixed(2)} €
                               </Typography>
                             )}
@@ -594,11 +735,16 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
                       </Grid>
                     );
                   })}
-                  
+
                   {vehicleDocuments.length === 0 && (
                     <Grid item xs={12}>
-                      <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                        Žiadne dokumenty evidované. Kliknite na "Pridať dokument" pre pridanie STK, EK alebo dialničnej známky.
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ textAlign: 'center', py: 2 }}
+                      >
+                        Žiadne dokumenty evidované. Kliknite na "Pridať
+                        dokument" pre pridanie STK, EK alebo dialničnej známky.
                       </Typography>
                     </Grid>
                   )}
@@ -608,7 +754,14 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
           </Box>
         )}
 
-        <Box sx={{ gridColumn: '1 / -1', display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+        <Box
+          sx={{
+            gridColumn: '1 / -1',
+            display: 'flex',
+            gap: 2,
+            justifyContent: 'flex-end',
+          }}
+        >
           <Button variant="outlined" onClick={onCancel}>
             Zrušiť
           </Button>
@@ -640,7 +793,7 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
 
       {/* 📄 NOVÉ: Technický preukaz vozidla */}
       {vehicle?.id && (
-        <TechnicalCertificateUpload 
+        <TechnicalCertificateUpload
           vehicleId={vehicle.id}
           vehicleName={`${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
         />
@@ -648,5 +801,3 @@ export default function VehicleForm({ vehicle, onSave, onCancel }: VehicleFormPr
     </Box>
   );
 }
-
- 

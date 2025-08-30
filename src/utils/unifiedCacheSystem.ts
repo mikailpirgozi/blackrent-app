@@ -1,6 +1,6 @@
 /**
  * 🗄️ UNIFIED CACHE SYSTEM
- * 
+ *
  * Postupne nahradí všetky cache systémy jedným inteligentným systémom.
  * FÁZA 1: Wrapper okolo existujúcich systémov (BEZPEČNÉ)
  * FÁZA 2: Postupná migrácia (KONTROLOVANÉ)
@@ -51,31 +51,31 @@ class UnifiedCacheSystem {
     options: UnifiedCacheOptions = {}
   ): Promise<T> {
     logger.debug(`🗄️ UNIFIED: Getting ${key}`);
-    
+
     const ttl = options.ttl || this.defaultTTL;
     const cached = this.cache.get(key);
-    
+
     // Check if cached and not expired
-    if (cached && (Date.now() - cached.timestamp) < ttl) {
+    if (cached && Date.now() - cached.timestamp < ttl) {
       this.stats.hits++;
       logger.debug(`🗄️ UNIFIED: Cache HIT for ${key}`);
       return cached.data;
     }
-    
+
     // Fetch fresh data
     this.stats.misses++;
     logger.debug(`🗄️ UNIFIED: Cache MISS for ${key}, fetching...`);
-    
+
     const data = await fetchFn();
-    
+
     // Store in cache
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
       ttl,
-      tags: options.tags || []
+      tags: options.tags || [],
     });
-    
+
     return data;
   }
 
@@ -84,7 +84,7 @@ class UnifiedCacheSystem {
    */
   invalidateEntity(entity: string): void {
     logger.debug(`🗄️ UNIFIED: Invalidating ${entity}`);
-    
+
     if (entity === 'all') {
       // Clear all caches
       this.cache.clear();
@@ -92,7 +92,7 @@ class UnifiedCacheSystem {
     } else {
       // Clear cache entries with matching tags
       const keysToDelete: string[] = [];
-      
+
       this.cache.forEach((value, key) => {
         if (value.tags && value.tags.includes(entity)) {
           keysToDelete.push(key);
@@ -102,7 +102,7 @@ class UnifiedCacheSystem {
           keysToDelete.push(key);
         }
       });
-      
+
       keysToDelete.forEach(key => {
         this.cache.delete(key);
         logger.debug(`🗄️ UNIFIED: Cleared cache key ${key}`);
@@ -117,13 +117,13 @@ class UnifiedCacheSystem {
     // 🔄 PHASE 4: Direct key generation
     const baseKey = type;
     if (!params) return baseKey;
-    
+
     // Generate consistent key from parameters
     const paramString = Object.keys(params)
       .sort()
       .map(key => `${key}:${params[key]}`)
       .join('|');
-      
+
     return `${baseKey}_${paramString}`;
   }
 
@@ -134,18 +134,19 @@ class UnifiedCacheSystem {
     // FÁZA 1: Zbiera stats zo všetkých systémov
     // 🔄 PHASE 4: Direct stats from unified cache
     const apiStats = {};
-    
+
     return {
       hits: this.stats.hits,
       misses: this.stats.misses,
-      hitRate: this.stats.hits / (this.stats.hits + this.stats.misses) * 100 || 0,
+      hitRate:
+        (this.stats.hits / (this.stats.hits + this.stats.misses)) * 100 || 0,
       memoryUsage: '~calculating~',
       entryCount: this.cache.size,
       systems: {
         apiCache: apiStats,
         middleware: { status: 'active' },
-        database: { status: 'active' }
-      }
+        database: { status: 'active' },
+      },
     };
   }
 
@@ -154,7 +155,7 @@ class UnifiedCacheSystem {
    */
   clear(): void {
     logger.debug('🗄️ UNIFIED: Clearing all caches');
-    
+
     // 🔄 PHASE 4: Direct cache clearing
     this.cache.clear();
     this.stats = { hits: 0, misses: 0 };
@@ -171,7 +172,7 @@ export const compatibilityCache = {
   getOrFetch: unifiedCache.getOrFetch.bind(unifiedCache),
   invalidateEntity: unifiedCache.invalidateEntity.bind(unifiedCache),
   generateKey: unifiedCache.generateKey.bind(unifiedCache),
-  clear: unifiedCache.clear.bind(unifiedCache)
+  clear: unifiedCache.clear.bind(unifiedCache),
 };
 
 export default unifiedCache;

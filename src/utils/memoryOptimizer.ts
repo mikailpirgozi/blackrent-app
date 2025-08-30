@@ -35,7 +35,7 @@ class MemoryOptimizer {
       const memoryStats = this.getMemoryStats();
       if (memoryStats) {
         this.memoryHistory.push(memoryStats);
-        
+
         // Keep only last 20 measurements
         if (this.memoryHistory.length > 20) {
           this.memoryHistory.shift();
@@ -43,7 +43,7 @@ class MemoryOptimizer {
 
         // Check for memory leaks
         this.detectMemoryLeaks(memoryStats);
-        
+
         if (process.env.NODE_ENV === 'development') {
           this.logMemoryStats(memoryStats);
         }
@@ -63,7 +63,7 @@ class MemoryOptimizer {
     if (!('memory' in performance)) return null;
 
     const memory = (performance as any).memory;
-    
+
     return {
       usedJSHeapSize: memory.usedJSHeapSize,
       totalJSHeapSize: memory.totalJSHeapSize,
@@ -83,13 +83,18 @@ class MemoryOptimizer {
       return stats.usedJSHeapSize > recentStats[index - 1].usedJSHeapSize;
     });
 
-    const averageGrowth = recentStats.reduce((acc, stats, index) => {
-      if (index === 0) return 0;
-      return acc + (stats.usedJSHeapSize - recentStats[index - 1].usedJSHeapSize);
-    }, 0) / (recentStats.length - 1);
+    const averageGrowth =
+      recentStats.reduce((acc, stats, index) => {
+        if (index === 0) return 0;
+        return (
+          acc + (stats.usedJSHeapSize - recentStats[index - 1].usedJSHeapSize)
+        );
+      }, 0) /
+      (recentStats.length - 1);
 
     // Alert if memory is consistently growing
-    if (growthTrend && averageGrowth > 1024 * 1024) { // 1MB average growth
+    if (growthTrend && averageGrowth > 1024 * 1024) {
+      // 1MB average growth
       console.warn('🚨 Potential memory leak detected!', {
         averageGrowth: `${(averageGrowth / 1024 / 1024).toFixed(2)}MB`,
         currentUsage: `${(currentStats.usedJSHeapSize / 1024 / 1024).toFixed(2)}MB`,
@@ -174,11 +179,11 @@ class MemoryOptimizer {
     options?: AddEventListenerOptions
   ): void {
     const key = `${element.constructor.name}_${event}`;
-    
+
     if (!this.activeListeners.has(key)) {
       this.activeListeners.set(key, new Set());
     }
-    
+
     this.activeListeners.get(key)!.add(listener);
     element.addEventListener(event, listener, options);
   }
@@ -191,30 +196,33 @@ class MemoryOptimizer {
   ): void {
     const key = `${element.constructor.name}_${event}`;
     const listeners = this.activeListeners.get(key);
-    
+
     if (listeners) {
       listeners.delete(listener);
       if (listeners.size === 0) {
         this.activeListeners.delete(key);
       }
     }
-    
+
     element.removeEventListener(event, listener);
   }
 
   // Clean up unused listeners
   private cleanupUnusedListeners(): void {
     let removedCount = 0;
-    
+
     this.activeListeners.forEach((listeners, key) => {
       // Check if listeners are still needed (this is a simplified check)
       listeners.forEach(listener => {
-        if (typeof listener === 'function' && listener.name.includes('anonymous')) {
+        if (
+          typeof listener === 'function' &&
+          listener.name.includes('anonymous')
+        ) {
           listeners.delete(listener);
           removedCount++;
         }
       });
-      
+
       if (listeners.size === 0) {
         this.activeListeners.delete(key);
       }
@@ -284,7 +292,7 @@ class MemoryOptimizer {
   generateMemoryReport(): any {
     const currentStats = this.getMemoryStats();
     const metrics = this.getPerformanceMetrics();
-    
+
     return {
       timestamp: new Date().toISOString(),
       currentMemory: currentStats,
@@ -307,15 +315,21 @@ class MemoryOptimizer {
     }
 
     if (metrics.activeListeners > 100) {
-      recommendations.push('High number of event listeners detected - consider event delegation');
+      recommendations.push(
+        'High number of event listeners detected - consider event delegation'
+      );
     }
 
     if (metrics.resourceCount > 1000) {
-      recommendations.push('High DOM node count - consider virtual scrolling for large lists');
+      recommendations.push(
+        'High DOM node count - consider virtual scrolling for large lists'
+      );
     }
 
     if (metrics.renderTime > 100) {
-      recommendations.push('Slow render time detected - optimize component rendering');
+      recommendations.push(
+        'Slow render time detected - optimize component rendering'
+      );
     }
 
     return recommendations;
@@ -343,7 +357,7 @@ export class ReactMemoryOptimizer {
   // Check for components that should have been unmounted
   checkForLeakedComponents(): string[] {
     const leaked: string[] = [];
-    
+
     this.componentRefs.forEach((weakRef, componentName) => {
       const component = weakRef.deref();
       if (component) {
@@ -363,7 +377,7 @@ export class ReactMemoryOptimizer {
   // Get component count
   getComponentCount(): number {
     let count = 0;
-    this.componentRefs.forEach((weakRef) => {
+    this.componentRefs.forEach(weakRef => {
       if (weakRef.deref()) count++;
     });
     return count;

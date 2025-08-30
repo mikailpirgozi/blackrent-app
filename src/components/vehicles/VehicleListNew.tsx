@@ -1,36 +1,3 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { flushSync } from 'react-dom';
-import {
-  Box,
-  Button,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  TextField,
-  IconButton,
-  Tooltip,
-  Chip,
-  Alert,
-  useMediaQuery,
-  useTheme,
-
-  Card,
-  CardContent,
-  Collapse,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControlLabel,
-  Grid,
-  Divider,
-  FormGroup,
-  Tabs,
-  Tab,
-  DialogActions
-} from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -45,59 +12,97 @@ import {
   CheckCircle as AvailableIcon,
   Error as ErrorIcon,
   Info as InfoIcon,
-  Home as HomeIcon
+  Home as HomeIcon,
 } from '@mui/icons-material';
+import {
+  Box,
+  Button,
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  TextField,
+  IconButton,
+  Tooltip,
+  Chip,
+  Alert,
+  useMediaQuery,
+  useTheme,
+  Card,
+  CardContent,
+  Collapse,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Checkbox,
+  FormControlLabel,
+  Grid,
+  Divider,
+  FormGroup,
+  Tabs,
+  Tab,
+  DialogActions,
+} from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { flushSync } from 'react-dom';
+
 import { useApp } from '../../context/AppContext';
-import { Vehicle, VehicleStatus, VehicleCategory } from '../../types';
-import { Can } from '../common/PermissionGuard';
-import VehicleForm from './VehicleForm';
 import { apiService } from '../../services/api';
+import { Vehicle, VehicleStatus, VehicleCategory } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
+import {
+  getStatusColor,
+  getStatusBgColor,
+  getStatusText,
+  getStatusIcon,
+} from '../../utils/vehicles/vehicleHelpers';
 import { EnhancedLoading } from '../common/EnhancedLoading';
+import { Can } from '../common/PermissionGuard';
 import CompanyDocumentManager from '../companies/CompanyDocumentManager';
+
 import InvestorCard from './components/InvestorCard';
 import OwnerCard from './components/OwnerCard';
-import { getStatusColor, getStatusBgColor, getStatusText, getStatusIcon } from '../../utils/vehicles/vehicleHelpers';
-import VehicleImportExport from './components/VehicleImportExport';
-import VehicleFilters from './components/VehicleFilters';
-import VehicleTable from './components/VehicleTable';
 import VehicleActions from './components/VehicleActions';
 import VehicleDialogs from './components/VehicleDialogs';
+import VehicleFilters from './components/VehicleFilters';
+import VehicleImportExport from './components/VehicleImportExport';
 import VehicleKmHistory from './components/VehicleKmHistory';
-
-
-
-
-
-
-
-
+import VehicleTable from './components/VehicleTable';
+import VehicleForm from './VehicleForm';
 
 export default function VehicleListNew() {
-  const { state, createVehicle, updateVehicle, deleteVehicle, getFullyFilteredVehicles } = useApp();
-  
+  const {
+    state,
+    createVehicle,
+    updateVehicle,
+    deleteVehicle,
+    getFullyFilteredVehicles,
+  } = useApp();
+
   // 🎯 SCROLL PRESERVATION: Refs pre scroll kontajnery
   const mobileScrollRef = React.useRef<HTMLDivElement>(null);
   const desktopScrollRef = React.useRef<HTMLDivElement>(null);
   const savedScrollPosition = React.useRef<number>(0);
-  
+
   // 🎯 INFINITE SCROLL PRESERVATION: Pre načítanie ďalších vozidiel
   const infiniteScrollPosition = React.useRef<number>(0);
   const isLoadingMoreRef = React.useRef<boolean>(false);
-  
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   // 🔍 DEBUG: Základné informácie o komponente (len raz)
   React.useEffect(() => {
     console.log('🚀 VehicleListNew MOUNTED:', {
       isMobile,
-      screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'unknown'
+      screenWidth:
+        typeof window !== 'undefined' ? window.innerWidth : 'unknown',
     });
   }, []); // Spustí sa len raz pri mount
-  
+
   // States
   const [currentTab, setCurrentTab] = useState(0); // 🆕 Tab state
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,13 +110,15 @@ export default function VehicleListNew() {
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   // 🚀 INFINITE SCROLL STATES
   const [displayedVehicles, setDisplayedVehicles] = useState(20); // Start with 20 items
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  
+
   // ✅ NOVÉ: State pre hromadné mazanie
-  const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set());
+  const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(
+    new Set()
+  );
   const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
   const [showBulkActions, setShowBulkActions] = useState(false);
 
@@ -120,7 +127,9 @@ export default function VehicleListNew() {
   const [filterModel, setFilterModel] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterCategory, setFilterCategory] = useState<VehicleCategory | 'all'>('all'); // 🚗 Category filter
+  const [filterCategory, setFilterCategory] = useState<VehicleCategory | 'all'>(
+    'all'
+  ); // 🚗 Category filter
   const [showAvailable, setShowAvailable] = useState(true);
   const [showRented, setShowRented] = useState(true);
   const [showMaintenance, setShowMaintenance] = useState(true);
@@ -129,13 +138,15 @@ export default function VehicleListNew() {
   const [showRemoved, setShowRemoved] = useState(false); // 🗑️ Vyradené vozidlá defaultne skryté
   const [showTempRemoved, setShowTempRemoved] = useState(false); // ⏸️ Dočasne vyradené vozidlá defaultne skryté
   const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false);
-  const [selectedVehicleHistory, setSelectedVehicleHistory] = useState<Vehicle | null>(null);
+  const [selectedVehicleHistory, setSelectedVehicleHistory] =
+    useState<Vehicle | null>(null);
   const [ownershipHistory, setOwnershipHistory] = useState<any[]>([]);
-  
+
   // 🚗 História kilometrov
   const [kmHistoryDialog, setKmHistoryDialog] = useState(false);
-  const [selectedVehicleKmHistory, setSelectedVehicleKmHistory] = useState<Vehicle | null>(null);
-  
+  const [selectedVehicleKmHistory, setSelectedVehicleKmHistory] =
+    useState<Vehicle | null>(null);
+
   // 🆕 State pre vytvorenie novej firmy
   const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
   const [newCompanyData, setNewCompanyData] = useState({
@@ -146,38 +157,45 @@ export default function VehicleListNew() {
     contactEmail: '',
     contactPhone: '',
     defaultCommissionRate: 20,
-    isActive: true
+    isActive: true,
   });
 
   // 🤝 State pre spoluinvestorov
-  const [createInvestorDialogOpen, setCreateInvestorDialogOpen] = useState(false);
+  const [createInvestorDialogOpen, setCreateInvestorDialogOpen] =
+    useState(false);
   const [investors, setInvestors] = useState<any[]>([]);
   const [investorShares, setInvestorShares] = useState<any[]>([]);
   const [loadingInvestors, setLoadingInvestors] = useState(false);
   const [assignShareDialogOpen, setAssignShareDialogOpen] = useState(false);
-  const [selectedInvestorForShare, setSelectedInvestorForShare] = useState<any>(null);
+  const [selectedInvestorForShare, setSelectedInvestorForShare] =
+    useState<any>(null);
   const [newShareData, setNewShareData] = useState({
     companyId: '',
     ownershipPercentage: 0,
     investmentAmount: 0,
-    isPrimaryContact: false
+    isPrimaryContact: false,
   });
   const [newInvestorData, setNewInvestorData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    notes: ''
+    notes: '',
   });
 
   // Handlers
   // 🎯 SCROLL PRESERVATION: Funkcia na obnovenie scroll pozície
   const restoreScrollPosition = React.useCallback(() => {
     setTimeout(() => {
-      const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+      const scrollContainer = isMobile
+        ? mobileScrollRef.current
+        : desktopScrollRef.current;
       if (scrollContainer && savedScrollPosition.current > 0) {
         scrollContainer.scrollTop = savedScrollPosition.current;
-        console.log(`🔄 Restored scroll position (${isMobile ? 'mobile' : 'desktop'}):`, savedScrollPosition.current);
+        console.log(
+          `🔄 Restored scroll position (${isMobile ? 'mobile' : 'desktop'}):`,
+          savedScrollPosition.current
+        );
         savedScrollPosition.current = 0; // Reset
       }
     }, 100);
@@ -188,23 +206,25 @@ export default function VehicleListNew() {
     if (!isLoadingMoreRef.current || infiniteScrollPosition.current === 0) {
       return;
     }
-    
+
     const targetPosition = infiniteScrollPosition.current;
     let restored = false;
-    
+
     // 🚀 OPTIMIZED: Single smart restore attempt
     const attemptRestore = () => {
-      const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
-      
+      const scrollContainer = isMobile
+        ? mobileScrollRef.current
+        : desktopScrollRef.current;
+
       if (scrollContainer && !restored) {
         // Force scroll position
         scrollContainer.scrollTop = targetPosition;
-        
+
         // Verify restoration worked
         setTimeout(() => {
           const actualPosition = scrollContainer.scrollTop;
           const success = Math.abs(actualPosition - targetPosition) < 50;
-          
+
           if (success) {
             restored = true;
             console.log(`✅ Scroll preserved at position ${targetPosition}`);
@@ -212,12 +232,12 @@ export default function VehicleListNew() {
         }, 50);
       }
     };
-    
+
     // Single attempt with optimal timing
     requestAnimationFrame(() => {
       setTimeout(attemptRestore, 200); // Wait for DOM to settle
     });
-    
+
     // Cleanup
     setTimeout(() => {
       isLoadingMoreRef.current = false;
@@ -227,14 +247,19 @@ export default function VehicleListNew() {
 
   const handleEdit = (vehicle: Vehicle) => {
     console.log('🔥 VEHICLE EDIT CLICKED:', vehicle.id);
-    
+
     // 🎯 SCROLL PRESERVATION: Uložiť aktuálnu pozíciu pred otvorením dialógu
-    const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+    const scrollContainer = isMobile
+      ? mobileScrollRef.current
+      : desktopScrollRef.current;
     if (scrollContainer) {
       savedScrollPosition.current = scrollContainer.scrollTop;
-      console.log(`💾 Saved scroll position (${isMobile ? 'mobile' : 'desktop'}):`, savedScrollPosition.current);
+      console.log(
+        `💾 Saved scroll position (${isMobile ? 'mobile' : 'desktop'}):`,
+        savedScrollPosition.current
+      );
     }
-    
+
     setEditingVehicle(vehicle);
     setOpenDialog(true);
   };
@@ -243,18 +268,18 @@ export default function VehicleListNew() {
   const handleCreateCompany = async () => {
     try {
       console.log('🏢 Creating new company:', newCompanyData);
-      
+
       const response = await fetch(`${getApiBaseUrl()}/companies`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+          Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
         },
-        body: JSON.stringify(newCompanyData)
+        body: JSON.stringify(newCompanyData),
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log('✅ Company created successfully');
         setCreateCompanyDialogOpen(false);
@@ -266,7 +291,7 @@ export default function VehicleListNew() {
           contactEmail: '',
           contactPhone: '',
           defaultCommissionRate: 20,
-          isActive: true
+          isActive: true,
         });
         // Refresh companies data
         window.location.reload();
@@ -284,18 +309,18 @@ export default function VehicleListNew() {
   const handleCreateInvestor = async () => {
     try {
       console.log('🤝 Creating new investor:', newInvestorData);
-      
+
       const response = await fetch(`${getApiBaseUrl()}/company-investors`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+          Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
         },
-        body: JSON.stringify(newInvestorData)
+        body: JSON.stringify(newInvestorData),
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log('✅ Investor created successfully');
         setCreateInvestorDialogOpen(false);
@@ -304,7 +329,7 @@ export default function VehicleListNew() {
           lastName: '',
           email: '',
           phone: '',
-          notes: ''
+          notes: '',
         });
         // Refresh data
         window.location.reload();
@@ -322,26 +347,29 @@ export default function VehicleListNew() {
   const loadInvestors = async () => {
     try {
       setLoadingInvestors(true);
-      
+
       const response = await fetch(`${getApiBaseUrl()}/company-investors`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+        },
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         setInvestors(result.data);
-        
+
         // Načítaj shares pre všetkých investorov
         const allShares = [];
         for (const company of state.companies || []) {
-          const sharesResponse = await fetch(`${getApiBaseUrl()}/company-investors/${company.id}/shares`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+          const sharesResponse = await fetch(
+            `${getApiBaseUrl()}/company-investors/${company.id}/shares`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+              },
             }
-          });
+          );
           const sharesResult = await sharesResponse.json();
           if (sharesResult.success) {
             allShares.push(...sharesResult.data);
@@ -367,21 +395,24 @@ export default function VehicleListNew() {
   const handleAssignShare = async () => {
     try {
       console.log('🤝 Assigning share:', newShareData);
-      
-      const response = await fetch(`${getApiBaseUrl()}/company-investors/shares`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
-        },
-        body: JSON.stringify({
-          ...newShareData,
-          investorId: selectedInvestorForShare.id
-        })
-      });
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/company-investors/shares`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          },
+          body: JSON.stringify({
+            ...newShareData,
+            investorId: selectedInvestorForShare.id,
+          }),
+        }
+      );
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log('✅ Share assigned successfully');
         setAssignShareDialogOpen(false);
@@ -390,7 +421,7 @@ export default function VehicleListNew() {
           companyId: '',
           ownershipPercentage: 0,
           investmentAmount: 0,
-          isPrimaryContact: false
+          isPrimaryContact: false,
         });
         loadInvestors(); // Refresh data
       } else {
@@ -409,12 +440,15 @@ export default function VehicleListNew() {
       // Použijem fetch API namiesto private request metódy
       const token = localStorage.getItem('token');
       const apiBaseUrl = getApiBaseUrl();
-        const response = await fetch(`${apiBaseUrl}/vehicles/${vehicle.id}/ownership-history`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        `${apiBaseUrl}/vehicles/${vehicle.id}/ownership-history`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         }
-      });
+      );
       const data = await response.json();
       setOwnershipHistory(data.data.ownershipHistory || []);
       setOwnershipHistoryDialog(true);
@@ -446,7 +480,7 @@ export default function VehicleListNew() {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingVehicle(null);
-    
+
     // 🎯 SCROLL PRESERVATION: Obnoviť pozíciu po zatvorení dialógu
     restoreScrollPosition();
   };
@@ -488,8 +522,6 @@ export default function VehicleListNew() {
     }
   };
 
-
-
   // 🚀 ENHANCED: Filtered vehicles using new unified filter system
   const filteredVehicles = useMemo(() => {
     return getFullyFilteredVehicles({
@@ -509,7 +541,7 @@ export default function VehicleListNew() {
       // 🗑️ Vyradené vozidlá
       includeRemoved: showRemoved || showTempRemoved, // Ak je zapnutý ktorýkoľvek, načítaj vyradené
       showRemoved,
-      showTempRemoved
+      showTempRemoved,
     });
   }, [
     searchQuery,
@@ -525,25 +557,29 @@ export default function VehicleListNew() {
     showPrivate, // 🏠 Súkromné vozidlá
     showRemoved, // 🗑️ Vyradené vozidlá
     showTempRemoved, // ⏸️ Dočasne vyradené vozidlá
-    getFullyFilteredVehicles // 🎯 Enhanced filter function
+    getFullyFilteredVehicles, // 🎯 Enhanced filter function
   ]);
 
   // 🎯 INFINITE SCROLL PRESERVATION: Wrapper pre loadMore s uložením pozície
   const handleLoadMoreVehicles = useCallback(() => {
     if (isLoadingMore || displayedVehicles >= filteredVehicles.length) return;
-    
+
     // Uložiť aktuálnu scroll pozíciu pred načítaním
-    const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+    const scrollContainer = isMobile
+      ? mobileScrollRef.current
+      : desktopScrollRef.current;
     if (scrollContainer) {
       infiniteScrollPosition.current = scrollContainer.scrollTop;
     }
-    
+
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
-    
+
     // Simulate loading delay for better UX
     setTimeout(() => {
-      setDisplayedVehicles(prev => Math.min(prev + 20, filteredVehicles.length));
+      setDisplayedVehicles(prev =>
+        Math.min(prev + 20, filteredVehicles.length)
+      );
       setIsLoadingMore(false);
     }, 300);
   }, [isLoadingMore, displayedVehicles, filteredVehicles.length, isMobile]);
@@ -554,7 +590,18 @@ export default function VehicleListNew() {
   // Reset displayed count when filters change
   useEffect(() => {
     setDisplayedVehicles(20);
-  }, [searchQuery, filterBrand, filterModel, filterCompany, filterStatus, filterCategory, showAvailable, showRented, showMaintenance, showOther]);
+  }, [
+    searchQuery,
+    filterBrand,
+    filterModel,
+    filterCompany,
+    filterStatus,
+    filterCategory,
+    showAvailable,
+    showRented,
+    showMaintenance,
+    showOther,
+  ]);
 
   // 🎯 INFINITE SCROLL PRESERVATION: Obnoviť pozíciu po načítaní nových vozidiel
   useEffect(() => {
@@ -565,14 +612,17 @@ export default function VehicleListNew() {
   }, [displayedVehicles, isLoadingMore, restoreInfiniteScrollPosition]);
 
   // Infinite scroll event handler
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    
-    // Load more when user scrolls to 80% of the content
-    if (scrollTop + clientHeight >= scrollHeight * 0.8) {
-      loadMoreVehicles();
-    }
-  }, [loadMoreVehicles]);
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+
+      // Load more when user scrolls to 80% of the content
+      if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+        loadMoreVehicles();
+      }
+    },
+    [loadMoreVehicles]
+  );
 
   // Get vehicles to display (limited by infinite scroll)
   const vehiclesToDisplay = useMemo(() => {
@@ -582,10 +632,18 @@ export default function VehicleListNew() {
   const hasMore = displayedVehicles < filteredVehicles.length;
 
   // Get unique values for filters
-  const uniqueBrands = [...new Set(state.vehicles.map(v => v.brand).filter(Boolean))].sort() as string[];
-  const uniqueModels = [...new Set(state.vehicles.map(v => v.model).filter(Boolean))].sort() as string[];
-  const uniqueCompanies = [...new Set(state.vehicles.map(v => v.company).filter(Boolean))].sort() as string[];
-  const uniqueCategories = [...new Set(state.vehicles.map(v => v.category).filter(Boolean))].sort() as VehicleCategory[]; // 🚗 Unique categories
+  const uniqueBrands = [
+    ...new Set(state.vehicles.map(v => v.brand).filter(Boolean)),
+  ].sort() as string[];
+  const uniqueModels = [
+    ...new Set(state.vehicles.map(v => v.model).filter(Boolean)),
+  ].sort() as string[];
+  const uniqueCompanies = [
+    ...new Set(state.vehicles.map(v => v.company).filter(Boolean)),
+  ].sort() as string[];
+  const uniqueCategories = [
+    ...new Set(state.vehicles.map(v => v.category).filter(Boolean)),
+  ].sort() as VehicleCategory[]; // 🚗 Unique categories
 
   // 🆕 TabPanel component
   interface TabPanelProps {
@@ -610,7 +668,6 @@ export default function VehicleListNew() {
     );
   }
 
-
   // ✅ NOVÉ: Funkcie pre hromadné mazanie
   const handleVehicleSelect = (vehicleId: string, checked: boolean) => {
     const newSelected = new Set(selectedVehicles);
@@ -621,9 +678,12 @@ export default function VehicleListNew() {
     }
     setSelectedVehicles(newSelected);
     setShowBulkActions(newSelected.size > 0);
-    
+
     // Update select all checkbox
-    setIsSelectAllChecked(newSelected.size === filteredVehicles.length && filteredVehicles.length > 0);
+    setIsSelectAllChecked(
+      newSelected.size === filteredVehicles.length &&
+        filteredVehicles.length > 0
+    );
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -640,17 +700,17 @@ export default function VehicleListNew() {
 
   const handleBulkDelete = async () => {
     if (selectedVehicles.size === 0) return;
-    
+
     const confirmed = window.confirm(
       `Naozaj chcete zmazať ${selectedVehicles.size} vozidiel?\n\nTáto akcia sa nedá vrátiť späť.`
     );
-    
+
     if (!confirmed) return;
-    
+
     setLoading(true);
     let deletedCount = 0;
     let errorCount = 0;
-    
+
     try {
       // Mazanie po jednom - pre lepšiu kontrolu
       for (const vehicleId of selectedVehicles) {
@@ -663,19 +723,20 @@ export default function VehicleListNew() {
           console.error(`❌ Failed to delete vehicle: ${vehicleId}`, error);
         }
       }
-      
+
       // Reset výber
       setSelectedVehicles(new Set());
       setShowBulkActions(false);
       setIsSelectAllChecked(false);
-      
+
       // Zobraz výsledok
       if (errorCount === 0) {
         alert(`✅ Úspešne zmazaných ${deletedCount} vozidiel.`);
       } else {
-        alert(`⚠️ Zmazaných ${deletedCount} vozidiel.\nChyby: ${errorCount} vozidiel sa nepodarilo zmazať.`);
+        alert(
+          `⚠️ Zmazaných ${deletedCount} vozidiel.\nChyby: ${errorCount} vozidiel sa nepodarilo zmazať.`
+        );
       }
-      
     } catch (error) {
       console.error('❌ Bulk delete error:', error);
       alert('❌ Chyba pri hromadnom mazaní vozidiel.');
@@ -687,34 +748,41 @@ export default function VehicleListNew() {
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header */}
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        mb: 3,
-        flexDirection: { xs: 'column', sm: 'row' },
-        gap: { xs: 2, sm: 0 }
-      }}>
-        <Typography variant="h4" sx={{ 
-          fontWeight: 700, 
-          color: '#1976d2',
-          fontSize: { xs: '1.5rem', sm: '2rem' }
-        }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 3,
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 },
+        }}
+      >
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            color: '#1976d2',
+            fontSize: { xs: '1.5rem', sm: '2rem' },
+          }}
+        >
           🚗 Databáza vozidiel
         </Typography>
-        
+
         {/* ✅ NOVÉ: Bulk Actions */}
         {showBulkActions && (
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 2,
-            bgcolor: '#fff3cd',
-            border: '1px solid #ffeaa7',
-            borderRadius: 1,
-            px: 2,
-            py: 1
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              bgcolor: '#fff3cd',
+              border: '1px solid #ffeaa7',
+              borderRadius: 1,
+              px: 2,
+              py: 1,
+            }}
+          >
             <Typography variant="body2" sx={{ color: '#856404' }}>
               Vybraných: {selectedVehicles.size}
             </Typography>
@@ -742,7 +810,7 @@ export default function VehicleListNew() {
             </Button>
           </Box>
         )}
-        
+
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           {/* ✅ NOVÉ: Select All Checkbox */}
           {filteredVehicles.length > 0 && (
@@ -750,8 +818,11 @@ export default function VehicleListNew() {
               control={
                 <Checkbox
                   checked={isSelectAllChecked}
-                  indeterminate={selectedVehicles.size > 0 && selectedVehicles.size < filteredVehicles.length}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  indeterminate={
+                    selectedVehicles.size > 0 &&
+                    selectedVehicles.size < filteredVehicles.length
+                  }
+                  onChange={e => handleSelectAll(e.target.checked)}
                   sx={{ '& .MuiSvgIcon-root': { fontSize: 20 } }}
                 />
               }
@@ -760,16 +831,16 @@ export default function VehicleListNew() {
                   Vybrať všetky ({filteredVehicles.length})
                 </Typography>
               }
-              sx={{ 
+              sx={{
                 bgcolor: '#f5f5f5',
                 borderRadius: 1,
                 px: 1,
                 py: 0.5,
-                mr: 1
+                mr: 1,
               }}
             />
           )}
-          
+
           <VehicleActions
             loading={loading}
             isMobile={isMobile}
@@ -777,15 +848,13 @@ export default function VehicleListNew() {
             onCreateCompany={() => setCreateCompanyDialogOpen(true)}
             onCreateInvestor={() => setCreateInvestorDialogOpen(true)}
           />
-          
+
           {/* CSV Export/Import komponenty */}
-          <VehicleImportExport 
+          <VehicleImportExport
             loading={loading}
             setLoading={setLoading}
             isMobile={isMobile}
           />
-
-
         </Box>
       </Box>
 
@@ -826,84 +895,103 @@ export default function VehicleListNew() {
 
       {/* 🎯 TABS NAVIGATION */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={currentTab} onChange={handleTabChange} aria-label="vehicle tabs">
-          <Tab label="Vozidlá" id="vehicle-tab-0" aria-controls="vehicle-tabpanel-0" />
-          <Tab label="👤 Majitelia" id="vehicle-tab-1" aria-controls="vehicle-tabpanel-1" />
-          <Tab label="🤝 Používatelia" id="vehicle-tab-2" aria-controls="vehicle-tabpanel-2" />
+        <Tabs
+          value={currentTab}
+          onChange={handleTabChange}
+          aria-label="vehicle tabs"
+        >
+          <Tab
+            label="Vozidlá"
+            id="vehicle-tab-0"
+            aria-controls="vehicle-tabpanel-0"
+          />
+          <Tab
+            label="👤 Majitelia"
+            id="vehicle-tab-1"
+            aria-controls="vehicle-tabpanel-1"
+          />
+          <Tab
+            label="🤝 Používatelia"
+            id="vehicle-tab-2"
+            aria-controls="vehicle-tabpanel-2"
+          />
         </Tabs>
       </Box>
 
       {/* TAB 0 - VOZIDLÁ */}
       <TabPanel value={currentTab} index={0}>
         {/* Results Count */}
-      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          Zobrazených {vehiclesToDisplay.length} z {filteredVehicles.length} vozidiel
-          {filteredVehicles.length !== state.vehicles.length && ` (filtrovaných z ${state.vehicles.length})`}
-        </Typography>
-        {loading && (
-          <EnhancedLoading 
-            variant="inline" 
-            message="Aktualizujem zoznam..." 
-            showMessage={false} 
-          />
-        )}
-        {isLoadingMore && (
-          <EnhancedLoading 
-            variant="inline" 
-            message="Načítavam ďalšie..." 
-            showMessage={true} 
-          />
-        )}
-      </Box>
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Zobrazených {vehiclesToDisplay.length} z {filteredVehicles.length}{' '}
+            vozidiel
+            {filteredVehicles.length !== state.vehicles.length &&
+              ` (filtrovaných z ${state.vehicles.length})`}
+          </Typography>
+          {loading && (
+            <EnhancedLoading
+              variant="inline"
+              message="Aktualizujem zoznam..."
+              showMessage={false}
+            />
+          )}
+          {isLoadingMore && (
+            <EnhancedLoading
+              variant="inline"
+              message="Načítavam ďalšie..."
+              showMessage={true}
+            />
+          )}
+        </Box>
 
-      {/* Vehicle List */}
-      <VehicleTable
-        vehiclesToDisplay={vehiclesToDisplay}
-        filteredVehicles={filteredVehicles}
-        displayedVehicles={displayedVehicles}
-        hasMore={hasMore}
-        isLoadingMore={isLoadingMore}
-        selectedVehicles={selectedVehicles}
-        mobileScrollRef={mobileScrollRef}
-        desktopScrollRef={desktopScrollRef}
-        onScroll={handleScroll}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onVehicleSelect={handleVehicleSelect}
-        onLoadMore={loadMoreVehicles}
-        onKmHistory={handleKmHistory}
-      />
+        {/* Vehicle List */}
+        <VehicleTable
+          vehiclesToDisplay={vehiclesToDisplay}
+          filteredVehicles={filteredVehicles}
+          displayedVehicles={displayedVehicles}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          selectedVehicles={selectedVehicles}
+          mobileScrollRef={mobileScrollRef}
+          desktopScrollRef={desktopScrollRef}
+          onScroll={handleScroll}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onVehicleSelect={handleVehicleSelect}
+          onLoadMore={loadMoreVehicles}
+          onKmHistory={handleKmHistory}
+        />
       </TabPanel>
 
       {/* TAB 1 - MAJITELIA */}
       <TabPanel value={currentTab} index={1}>
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6">
-            👤 Správa majiteľov vozidiel
-          </Typography>
+          <Typography variant="h6">👤 Správa majiteľov vozidiel</Typography>
         </Box>
-        
+
         {/* Owners List - Nový dizajn */}
         <Card>
           <CardContent>
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Zoznam majiteľov vozidiel. Kliknite na majiteľa pre zobrazenie/skrytie jeho vozidiel.
+                Zoznam majiteľov vozidiel. Kliknite na majiteľa pre
+                zobrazenie/skrytie jeho vozidiel.
               </Typography>
             </Box>
-            
+
             {/* Zoznam majiteľov zoskupených podľa firmy */}
             {state.companies
               ?.filter(company => company.isActive !== false) // Filtrovanie aktívnych firiem
-              ?.map((company) => {
+              ?.map(company => {
                 // Nájdi vozidlá pre túto firmu
-                const companyVehicles = filteredVehicles.filter(v => v.ownerCompanyId === company.id);
-                
+                const companyVehicles = filteredVehicles.filter(
+                  v => v.ownerCompanyId === company.id
+                );
+
                 if (companyVehicles.length === 0) return null;
-                
+
                 return (
-                  <OwnerCard 
+                  <OwnerCard
                     key={company.id}
                     company={company}
                     vehicles={companyVehicles}
@@ -913,9 +1001,14 @@ export default function VehicleListNew() {
                 );
               })
               ?.filter(Boolean)}
-            
-            {state.companies?.filter(c => c.isActive !== false).length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+
+            {state.companies?.filter(c => c.isActive !== false).length ===
+              0 && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: 'center', py: 4 }}
+              >
                 Žiadni aktívni majitelia vozidiel
               </Typography>
             )}
@@ -926,13 +1019,12 @@ export default function VehicleListNew() {
       {/* TAB 2 - POUŽÍVATELIA (SPOLUINVESTORI) */}
       <TabPanel value={currentTab} index={2}>
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6">
-            🤝 Správa spoluinvestorov
-          </Typography>
+          <Typography variant="h6">🤝 Správa spoluinvestorov</Typography>
         </Box>
-        
+
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Spoluinvestori s % podielmi vo firmách. Môžu byť priradení k viacerým firmám.
+          Spoluinvestori s % podielmi vo firmách. Môžu byť priradení k viacerým
+          firmám.
         </Typography>
 
         {/* Investors List */}
@@ -941,24 +1033,30 @@ export default function VehicleListNew() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Zoznam všetkých spoluinvestorov a ich podiely vo firmách.
             </Typography>
-            
+
             {loadingInvestors ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <EnhancedLoading variant="page" showMessage={true} message="Načítavam spoluinvestorov..." />
+                <EnhancedLoading
+                  variant="page"
+                  showMessage={true}
+                  message="Načítavam spoluinvestorov..."
+                />
               </Box>
             ) : investors.length > 0 ? (
-              investors.map((investor) => {
+              investors.map(investor => {
                 // Nájdi podiely tohto investora
-                const investorShares_filtered = investorShares.filter(share => share.investorId === investor.id);
-                
+                const investorShares_filtered = investorShares.filter(
+                  share => share.investorId === investor.id
+                );
+
                 return (
-                  <InvestorCard 
+                  <InvestorCard
                     key={investor.id}
                     investor={investor}
                     shares={investorShares_filtered}
                     companies={state.companies || []}
                     onShareUpdate={loadInvestors}
-                    onAssignShare={(investor) => {
+                    onAssignShare={investor => {
                       setSelectedInvestorForShare(investor);
                       setAssignShareDialogOpen(true);
                     }}
@@ -966,14 +1064,17 @@ export default function VehicleListNew() {
                 );
               })
             ) : (
-              <Typography variant="body2" sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-                Žiadni spoluinvestori. Kliknite na "Pridať spoluinvestora" pre vytvorenie nového.
+              <Typography
+                variant="body2"
+                sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}
+              >
+                Žiadni spoluinvestori. Kliknite na "Pridať spoluinvestora" pre
+                vytvorenie nového.
               </Typography>
             )}
           </CardContent>
         </Card>
       </TabPanel>
-
 
       {/* All Dialogs */}
       <VehicleDialogs
@@ -982,27 +1083,27 @@ export default function VehicleListNew() {
         editingVehicle={editingVehicle}
         onCloseDialog={handleCloseDialog}
         onSubmit={handleSubmit}
-
         // Ownership History Dialog
         ownershipHistoryDialog={ownershipHistoryDialog}
         selectedVehicleHistory={selectedVehicleHistory}
         ownershipHistory={ownershipHistory}
         onCloseOwnershipHistory={() => setOwnershipHistoryDialog(false)}
-
         // Create Company Dialog
         createCompanyDialogOpen={createCompanyDialogOpen}
         newCompanyData={newCompanyData}
         onCloseCreateCompany={() => setCreateCompanyDialogOpen(false)}
         onCreateCompany={handleCreateCompany}
-        onCompanyDataChange={(field, value) => setNewCompanyData(prev => ({ ...prev, [field]: value }))}
-
+        onCompanyDataChange={(field, value) =>
+          setNewCompanyData(prev => ({ ...prev, [field]: value }))
+        }
         // Create Investor Dialog
         createInvestorDialogOpen={createInvestorDialogOpen}
         newInvestorData={newInvestorData}
         onCloseCreateInvestor={() => setCreateInvestorDialogOpen(false)}
         onCreateInvestor={handleCreateInvestor}
-        onInvestorDataChange={(field, value) => setNewInvestorData(prev => ({ ...prev, [field]: value }))}
-
+        onInvestorDataChange={(field, value) =>
+          setNewInvestorData(prev => ({ ...prev, [field]: value }))
+        }
         // Assign Share Dialog
         assignShareDialogOpen={assignShareDialogOpen}
         selectedInvestorForShare={selectedInvestorForShare}
@@ -1010,7 +1111,9 @@ export default function VehicleListNew() {
         companies={state.companies || []}
         onCloseAssignShare={() => setAssignShareDialogOpen(false)}
         onAssignShare={handleAssignShare}
-        onShareDataChange={(field, value) => setNewShareData(prev => ({ ...prev, [field]: value }))}
+        onShareDataChange={(field, value) =>
+          setNewShareData(prev => ({ ...prev, [field]: value }))
+        }
       />
 
       {/* 🚗 História kilometrov */}

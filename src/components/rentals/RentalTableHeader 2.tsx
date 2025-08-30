@@ -1,29 +1,29 @@
 /**
  * 📊 RENTAL TABLE HEADER
- * 
+ *
  * Memoized header komponent pre RentalList tabuľku
  */
 
-import React, { memo } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Button, 
-  TextField, 
-  IconButton,
-  Tooltip,
-  useTheme,
-  useMediaQuery,
-  InputAdornment
-} from '@mui/material';
 import {
   Add as AddIcon,
   Search as SearchIcon,
   FilterList as FilterListIcon,
   Refresh as RefreshIcon,
   GetApp as ExportIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
 } from '@mui/icons-material';
+import {
+  Box,
+  Typography,
+  Button,
+  TextField,
+  IconButton,
+  Tooltip,
+  useTheme,
+  useMediaQuery,
+  InputAdornment,
+} from '@mui/material';
+import React, { memo } from 'react';
 
 interface RentalTableHeaderProps {
   searchQuery: string;
@@ -48,7 +48,7 @@ const RentalTableHeader: React.FC<RentalTableHeaderProps> = ({
   onExport,
   isLoading = false,
   totalCount,
-  filteredCount
+  filteredCount,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -73,28 +73,32 @@ const RentalTableHeader: React.FC<RentalTableHeaderProps> = ({
     >
       {/* Title and Stats */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+        <Typography
+          variant="h5"
+          sx={{ fontWeight: 600, color: 'primary.main' }}
+        >
           📋 Rezervácie
         </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {filteredCount !== totalCount 
+          {filteredCount !== totalCount
             ? `${filteredCount} z ${totalCount}`
-            : `${totalCount} celkom`
-          }
+            : `${totalCount} celkom`}
         </Typography>
       </Box>
 
       {/* Search Bar */}
-      <Box sx={{ 
-        flex: isMobile ? '1' : '0 0 300px',
-        order: isMobile ? 1 : 0
-      }}>
+      <Box
+        sx={{
+          flex: isMobile ? '1' : '0 0 300px',
+          order: isMobile ? 1 : 0,
+        }}
+      >
         <TextField
           fullWidth
           size="small"
           placeholder="Vyhľadať rezervácie..."
           value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={e => onSearchChange(e.target.value)}
           disabled={isLoading}
           InputProps={{
             startAdornment: (
@@ -121,30 +125,36 @@ const RentalTableHeader: React.FC<RentalTableHeaderProps> = ({
               '&:hover': {
                 '& .MuiOutlinedInput-notchedOutline': {
                   borderColor: theme.palette.primary.main,
-                }
-              }
-            }
+                },
+              },
+            },
           }}
         />
       </Box>
 
       {/* Action Buttons */}
-      <Box sx={{ 
-        display: 'flex', 
-        gap: 1,
-        order: isMobile ? 2 : 0,
-        justifyContent: isMobile ? 'center' : 'flex-end'
-      }}>
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 1,
+          order: isMobile ? 2 : 0,
+          justifyContent: isMobile ? 'center' : 'flex-end',
+        }}
+      >
         <Tooltip title="Filtrovať">
           <IconButton
             onClick={onToggleFilters}
             color={showFilters ? 'primary' : 'default'}
             disabled={isLoading}
-            sx={{ 
-              backgroundColor: showFilters ? theme.palette.primary.main + '20' : 'transparent',
+            sx={{
+              backgroundColor: showFilters
+                ? theme.palette.primary.main + '20'
+                : 'transparent',
               '&:hover': {
-                backgroundColor: showFilters ? theme.palette.primary.main + '30' : theme.palette.action.hover,
-              }
+                backgroundColor: showFilters
+                  ? theme.palette.primary.main + '30'
+                  : theme.palette.action.hover,
+              },
             }}
           >
             <FilterListIcon />
@@ -152,19 +162,13 @@ const RentalTableHeader: React.FC<RentalTableHeaderProps> = ({
         </Tooltip>
 
         <Tooltip title="Obnoviť">
-          <IconButton
-            onClick={onRefresh}
-            disabled={isLoading}
-          >
+          <IconButton onClick={onRefresh} disabled={isLoading}>
             <RefreshIcon />
           </IconButton>
         </Tooltip>
 
         <Tooltip title="Exportovať">
-          <IconButton
-            onClick={onExport}
-            disabled={isLoading}
-          >
+          <IconButton onClick={onExport} disabled={isLoading}>
             <ExportIcon />
           </IconButton>
         </Tooltip>
@@ -174,11 +178,11 @@ const RentalTableHeader: React.FC<RentalTableHeaderProps> = ({
           startIcon={<AddIcon />}
           onClick={onAddRental}
           disabled={isLoading}
-          sx={{ 
+          sx={{
             borderRadius: 2,
             textTransform: 'none',
             fontWeight: 600,
-            px: 3
+            px: 3,
           }}
         >
           {isMobile ? 'Pridať' : 'Nová rezervácia'}

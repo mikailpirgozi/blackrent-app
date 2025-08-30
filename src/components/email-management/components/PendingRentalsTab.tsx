@@ -3,7 +3,19 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
-import React, { useState, useEffect } from 'react';
+import {
+  CheckCircle as ApproveIcon,
+  Cancel as RejectIcon,
+  Refresh as RefreshIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  DirectionsCar as CarIcon,
+  Person as PersonIcon,
+  Euro as EuroIcon,
+  CalendarToday as CalendarIcon,
+  LocationOn as LocationIcon,
+  CheckCircle,
+} from '@mui/icons-material';
 import {
   Card,
   CardContent,
@@ -18,29 +30,22 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import {
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  DirectionsCar as CarIcon,
-  Person as PersonIcon,
-  Euro as EuroIcon,
-  CalendarToday as CalendarIcon,
-  LocationOn as LocationIcon,
-  CheckCircle,
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
+
 import { Rental } from '../../../types';
 import { usePendingRentals } from '../hooks/usePendingRentals';
-import { RejectDialog } from './dialogs/RejectDialog';
 import { formatCurrency, formatDate } from '../utils/email-formatters';
+
+import { RejectDialog } from './dialogs/RejectDialog';
 
 export const PendingRentalsTab: React.FC = () => {
   // State
-  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; rentalId: string | null }>({
+  const [rejectDialog, setRejectDialog] = useState<{
+    open: boolean;
+    rentalId: string | null;
+  }>({
     open: false,
-    rentalId: null
+    rentalId: null,
   });
   const [rejectReason, setRejectReason] = useState('');
 
@@ -68,7 +73,10 @@ export const PendingRentalsTab: React.FC = () => {
   const handleRejectRentalClick = async () => {
     if (!rejectDialog.rentalId) return;
 
-    const success = await handleRejectRental(rejectDialog.rentalId, rejectReason);
+    const success = await handleRejectRental(
+      rejectDialog.rentalId,
+      rejectReason
+    );
     if (success) {
       setRejectDialog({ open: false, rentalId: null });
       setRejectReason('');
@@ -79,12 +87,17 @@ export const PendingRentalsTab: React.FC = () => {
     <>
       <Card>
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={3}
+          >
             <Typography variant="h6" gutterBottom>
               ⏳ Čakajúce automatické prenájmy ({pendingRentals.length})
             </Typography>
-            <Button 
-              variant="outlined" 
+            <Button
+              variant="outlined"
               onClick={fetchPendingRentals}
               disabled={pendingLoading}
               startIcon={<RefreshIcon />}
@@ -104,26 +117,51 @@ export const PendingRentalsTab: React.FC = () => {
                 Žiadne čakajúce prenájmy
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                Všetky automatické prenájmy boli spracované alebo žiadne ešte nepriišli.
+                Všetky automatické prenájmy boli spracované alebo žiadne ešte
+                nepriišli.
               </Typography>
             </Box>
           ) : (
             <Grid container spacing={2}>
-              {pendingRentals.map((rental) => (
+              {pendingRentals.map(rental => (
                 <Grid item xs={12} key={rental.id}>
                   <Card variant="outlined" sx={{ mb: 2 }}>
                     <CardContent>
-                      <Box display="flex" justifyContent="between" alignItems="start">
+                      <Box
+                        display="flex"
+                        justifyContent="between"
+                        alignItems="start"
+                      >
                         <Box flex={1}>
                           {/* Rental Header */}
-                          <Box display="flex" justifyContent="between" alignItems="start" mb={2}>
+                          <Box
+                            display="flex"
+                            justifyContent="between"
+                            alignItems="start"
+                            mb={2}
+                          >
                             <Box>
-                              <Typography variant="h6" display="flex" alignItems="center" gap={1}>
+                              <Typography
+                                variant="h6"
+                                display="flex"
+                                alignItems="center"
+                                gap={1}
+                              >
                                 <CarIcon color="primary" />
                                 {rental.vehicleName || 'Neznáme vozidlo'}
-                                <Chip label={rental.vehicleCode} size="small" variant="outlined" />
+                                <Chip
+                                  label={rental.vehicleCode}
+                                  size="small"
+                                  variant="outlined"
+                                />
                               </Typography>
-                              <Typography variant="body2" color="text.secondary" display="flex" alignItems="center" gap={1}>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                display="flex"
+                                alignItems="center"
+                                gap={1}
+                              >
                                 <PersonIcon fontSize="small" />
                                 {rental.customerName}
                               </Typography>
@@ -145,7 +183,12 @@ export const PendingRentalsTab: React.FC = () => {
                               <Tooltip title="Zamietnuť">
                                 <IconButton
                                   color="error"
-                                  onClick={() => setRejectDialog({ open: true, rentalId: rental.id })}
+                                  onClick={() =>
+                                    setRejectDialog({
+                                      open: true,
+                                      rentalId: rental.id,
+                                    })
+                                  }
                                   disabled={actionLoading === rental.id}
                                 >
                                   <RejectIcon />
@@ -153,9 +196,15 @@ export const PendingRentalsTab: React.FC = () => {
                               </Tooltip>
                               <Tooltip title="Rozbaliť detaily">
                                 <IconButton
-                                  onClick={() => toggleRentalExpansion(rental.id)}
+                                  onClick={() =>
+                                    toggleRentalExpansion(rental.id)
+                                  }
                                 >
-                                  {expandedRentals.has(rental.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                                  {expandedRentals.has(rental.id) ? (
+                                    <ExpandLessIcon />
+                                  ) : (
+                                    <ExpandMoreIcon />
+                                  )}
                                 </IconButton>
                               </Tooltip>
                             </Box>
@@ -167,7 +216,8 @@ export const PendingRentalsTab: React.FC = () => {
                               <Box display="flex" alignItems="center" gap={1}>
                                 <CalendarIcon fontSize="small" color="action" />
                                 <Typography variant="body2">
-                                  <strong>Od:</strong> {formatDate(rental.startDate)}
+                                  <strong>Od:</strong>{' '}
+                                  {formatDate(rental.startDate)}
                                 </Typography>
                               </Box>
                             </Grid>
@@ -175,7 +225,8 @@ export const PendingRentalsTab: React.FC = () => {
                               <Box display="flex" alignItems="center" gap={1}>
                                 <CalendarIcon fontSize="small" color="action" />
                                 <Typography variant="body2">
-                                  <strong>Do:</strong> {formatDate(rental.endDate)}
+                                  <strong>Do:</strong>{' '}
+                                  {formatDate(rental.endDate)}
                                 </Typography>
                               </Box>
                             </Grid>
@@ -183,7 +234,8 @@ export const PendingRentalsTab: React.FC = () => {
                               <Box display="flex" alignItems="center" gap={1}>
                                 <EuroIcon fontSize="small" color="action" />
                                 <Typography variant="body2">
-                                  <strong>Cena:</strong> {formatCurrency(rental.totalPrice)}
+                                  <strong>Cena:</strong>{' '}
+                                  {formatCurrency(rental.totalPrice)}
                                 </Typography>
                               </Box>
                             </Grid>
@@ -191,7 +243,8 @@ export const PendingRentalsTab: React.FC = () => {
                               <Box display="flex" alignItems="center" gap={1}>
                                 <LocationIcon fontSize="small" color="action" />
                                 <Typography variant="body2">
-                                  <strong>Miesto:</strong> {rental.handoverPlace}
+                                  <strong>Miesto:</strong>{' '}
+                                  {rental.handoverPlace}
                                 </Typography>
                               </Box>
                             </Grid>
@@ -202,14 +255,31 @@ export const PendingRentalsTab: React.FC = () => {
                             <Divider sx={{ mb: 2 }} />
                             <Grid container spacing={2}>
                               <Grid item xs={12} sm={6}>
-                                <Typography variant="body2"><strong>Objednávka:</strong> {rental.orderNumber}</Typography>
-                                <Typography variant="body2"><strong>Email:</strong> {rental.customerEmail}</Typography>
-                                <Typography variant="body2"><strong>Telefón:</strong> {rental.customerPhone}</Typography>
+                                <Typography variant="body2">
+                                  <strong>Objednávka:</strong>{' '}
+                                  {rental.orderNumber}
+                                </Typography>
+                                <Typography variant="body2">
+                                  <strong>Email:</strong> {rental.customerEmail}
+                                </Typography>
+                                <Typography variant="body2">
+                                  <strong>Telefón:</strong>{' '}
+                                  {rental.customerPhone}
+                                </Typography>
                               </Grid>
                               <Grid item xs={12} sm={6}>
-                                <Typography variant="body2"><strong>Denné km:</strong> {rental.dailyKilometers}</Typography>
-                                <Typography variant="body2"><strong>Záloha:</strong> {formatCurrency(rental.deposit || 0)}</Typography>
-                                <Typography variant="body2"><strong>Platba:</strong> {rental.paymentMethod}</Typography>
+                                <Typography variant="body2">
+                                  <strong>Denné km:</strong>{' '}
+                                  {rental.dailyKilometers}
+                                </Typography>
+                                <Typography variant="body2">
+                                  <strong>Záloha:</strong>{' '}
+                                  {formatCurrency(rental.deposit || 0)}
+                                </Typography>
+                                <Typography variant="body2">
+                                  <strong>Platba:</strong>{' '}
+                                  {rental.paymentMethod}
+                                </Typography>
                               </Grid>
                             </Grid>
                           </Collapse>

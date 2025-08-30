@@ -3,7 +3,7 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
-import React from 'react';
+import { Email as EmailIcon } from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -16,7 +16,8 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Email as EmailIcon } from '@mui/icons-material';
+import React from 'react';
+
 import { EmailDetail } from '../../types/email-types';
 import { StatusChip } from '../StatusChip';
 
@@ -37,8 +38,8 @@ export const EmailDetailDialog: React.FC<EmailDetailDialogProps> = ({
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={onClose}
       maxWidth="md"
       fullWidth
@@ -48,16 +49,18 @@ export const EmailDetailDialog: React.FC<EmailDetailDialogProps> = ({
           margin: isSmallMobile ? 0 : isTablet ? 1 : 2,
           maxHeight: isSmallMobile ? '100vh' : 'calc(100vh - 64px)',
           borderRadius: isSmallMobile ? 0 : undefined,
-        }
+        },
       }}
     >
-      <DialogTitle sx={{ 
-        fontSize: isExtraSmall ? '1.1rem' : undefined,
-        p: isExtraSmall ? 2 : undefined
-      }}>
+      <DialogTitle
+        sx={{
+          fontSize: isExtraSmall ? '1.1rem' : undefined,
+          p: isExtraSmall ? 2 : undefined,
+        }}
+      >
         <Box display="flex" alignItems="center" gap={1}>
           <EmailIcon sx={{ fontSize: isExtraSmall ? 20 : undefined }} />
-          <Typography variant={isExtraSmall ? "h6" : "h5"} component="span">
+          <Typography variant={isExtraSmall ? 'h6' : 'h5'} component="span">
             {isExtraSmall ? 'Detail' : 'Email Detail'}
           </Typography>
         </Box>
@@ -65,36 +68,43 @@ export const EmailDetailDialog: React.FC<EmailDetailDialogProps> = ({
       <DialogContent sx={{ p: isExtraSmall ? 2 : undefined }}>
         {email && (
           <Box>
-            <Typography 
-              variant={isExtraSmall ? "subtitle1" : "h6"} 
+            <Typography
+              variant={isExtraSmall ? 'subtitle1' : 'h6'}
               gutterBottom
-              sx={{ 
+              sx={{
                 fontSize: isExtraSmall ? '1rem' : undefined,
-                wordBreak: 'break-word'
+                wordBreak: 'break-word',
               }}
             >
               {email.email.subject}
             </Typography>
-            <Typography 
-              variant="body2" 
-              color="text.secondary" 
+            <Typography
+              variant="body2"
+              color="text.secondary"
               gutterBottom
-              sx={{ 
+              sx={{
                 fontSize: isExtraSmall ? '0.875rem' : undefined,
-                wordBreak: 'break-word'
+                wordBreak: 'break-word',
               }}
             >
-              Od: {email.email.sender} | {new Date(email.email.received_at).toLocaleString('sk')}
+              Od: {email.email.sender} |{' '}
+              {new Date(email.email.received_at).toLocaleString('sk')}
             </Typography>
-            
-            <StatusChip status={email.email.status} actionTaken={email.email.action_taken} />
-            
+
+            <StatusChip
+              status={email.email.status}
+              actionTaken={email.email.action_taken}
+            />
+
             {email.email.email_content && (
               <Box mt={2}>
                 <Typography variant="subtitle2" gutterBottom>
                   Obsah emailu:
                 </Typography>
-                <Paper elevation={1} sx={{ p: 2, maxHeight: 200, overflow: 'auto' }}>
+                <Paper
+                  elevation={1}
+                  sx={{ p: 2, maxHeight: 200, overflow: 'auto' }}
+                >
                   <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
                     {email.email.email_content.substring(0, 1000)}
                     {email.email.email_content.length > 1000 && '...'}
@@ -109,7 +119,13 @@ export const EmailDetailDialog: React.FC<EmailDetailDialogProps> = ({
                   Parsované údaje:
                 </Typography>
                 <Paper elevation={1} sx={{ p: 2 }}>
-                  <pre style={{ fontSize: '12px', margin: 0, whiteSpace: 'pre-wrap' }}>
+                  <pre
+                    style={{
+                      fontSize: '12px',
+                      margin: 0,
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
                     {JSON.stringify(email.email.parsed_data, null, 2)}
                   </pre>
                 </Paper>
@@ -121,8 +137,13 @@ export const EmailDetailDialog: React.FC<EmailDetailDialogProps> = ({
                 <Typography variant="subtitle2" gutterBottom>
                   História akcií:
                 </Typography>
-                {email.actions.map((action) => (
-                  <Box key={action.id} display="flex" justifyContent="space-between" py={1}>
+                {email.actions.map(action => (
+                  <Box
+                    key={action.id}
+                    display="flex"
+                    justifyContent="space-between"
+                    py={1}
+                  >
                     <Typography variant="body2">
                       {action.action} - {action.username}
                     </Typography>
@@ -137,9 +158,7 @@ export const EmailDetailDialog: React.FC<EmailDetailDialogProps> = ({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>
-          Zatvoriť
-        </Button>
+        <Button onClick={onClose}>Zatvoriť</Button>
       </DialogActions>
     </Dialog>
   );

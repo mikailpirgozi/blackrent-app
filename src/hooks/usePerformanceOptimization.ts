@@ -13,7 +13,7 @@ export const useCleanup = () => {
 
   useEffect(() => {
     return () => {
-      cleanupFunctions.current.forEach((cleanup) => {
+      cleanupFunctions.current.forEach(cleanup => {
         try {
           cleanup();
         } catch (error) {
@@ -36,17 +36,20 @@ export const useDebouncedState = <T>(
   const [debouncedValue, setDebouncedValue] = useState<T>(initialValue);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  const setValue = useCallback((value: React.SetStateAction<T>) => {
-    setActualValue(value);
-    
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    timeoutRef.current = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-  }, [delay]);
+  const setValue = useCallback(
+    (value: React.SetStateAction<T>) => {
+      setActualValue(value);
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        setDebouncedValue(value);
+      }, delay);
+    },
+    [delay]
+  );
 
   useEffect(() => {
     return () => {
@@ -67,23 +70,29 @@ export const useThrottledCallback = <T extends (...args: any[]) => any>(
   const lastRun = useRef<number>(0);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  const throttledCallback = useCallback((...args: Parameters<T>) => {
-    const now = Date.now();
-    
-    if (now - lastRun.current >= delay) {
-      callback(...args);
-      lastRun.current = now;
-    } else {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      
-      timeoutRef.current = setTimeout(() => {
+  const throttledCallback = useCallback(
+    (...args: Parameters<T>) => {
+      const now = Date.now();
+
+      if (now - lastRun.current >= delay) {
         callback(...args);
-        lastRun.current = Date.now();
-      }, delay - (now - lastRun.current));
-    }
-  }, [callback, delay]) as T;
+        lastRun.current = now;
+      } else {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        timeoutRef.current = setTimeout(
+          () => {
+            callback(...args);
+            lastRun.current = Date.now();
+          },
+          delay - (now - lastRun.current)
+        );
+      }
+    },
+    [callback, delay]
+  ) as T;
 
   useEffect(() => {
     return () => {
@@ -104,7 +113,7 @@ export const usePerformanceMonitor = (componentName: string) => {
 
   // Track renders
   renderCount.current++;
-  
+
   useEffect(() => {
     startTime.current = performance.now();
   });
@@ -121,13 +130,16 @@ export const usePerformanceMonitor = (componentName: string) => {
 
     // Log slow renders in development
     if (process.env.NODE_ENV === 'development' && renderTime > 16) {
-      console.warn(`🐌 Slow render: ${componentName} (${renderTime.toFixed(2)}ms)`);
+      console.warn(
+        `🐌 Slow render: ${componentName} (${renderTime.toFixed(2)}ms)`
+      );
     }
   });
 
   const getStats = useCallback(() => {
     const times = renderTimes.current;
-    const avgTime = times.length > 0 ? times.reduce((a, b) => a + b) / times.length : 0;
+    const avgTime =
+      times.length > 0 ? times.reduce((a, b) => a + b) / times.length : 0;
     const maxTime = times.length > 0 ? Math.max(...times) : 0;
 
     return {
@@ -153,7 +165,7 @@ export const useIntersectionObserver = (
     if (!element) return;
 
     observer.current = new IntersectionObserver(
-      (entries) => {
+      entries => {
         entries.forEach(callback);
       },
       {
@@ -189,7 +201,7 @@ export const useVirtualScrolling = <T>(
       startIndex + Math.ceil(containerHeight / itemHeight) + 1,
       items.length - 1
     );
-    
+
     return { startIndex, endIndex };
   }, [scrollTop, itemHeight, containerHeight, items.length]);
 
@@ -227,7 +239,7 @@ export const useImagePreloader = () => {
       setLoadingImages(prev => new Set(prev).add(src));
 
       const img = new Image();
-      
+
       img.onload = () => {
         preloadedImages.current.add(src);
         setLoadingImages(prev => {
@@ -251,9 +263,12 @@ export const useImagePreloader = () => {
     });
   }, []);
 
-  const preloadImages = useCallback((sources: string[]) => {
-    return Promise.allSettled(sources.map(preloadImage));
-  }, [preloadImage]);
+  const preloadImages = useCallback(
+    (sources: string[]) => {
+      return Promise.allSettled(sources.map(preloadImage));
+    },
+    [preloadImage]
+  );
 
   return {
     preloadImage,
@@ -268,14 +283,16 @@ export const useImagePreloader = () => {
 export const useResourcePreloader = () => {
   const preload = useCallback((href: string, as: string, type?: string) => {
     // Check if already preloaded
-    const existing = document.querySelector(`link[rel="preload"][href="${href}"]`);
+    const existing = document.querySelector(
+      `link[rel="preload"][href="${href}"]`
+    );
     if (existing) return;
 
     const link = document.createElement('link');
     link.rel = 'preload';
     link.href = href;
     link.as = as;
-    
+
     if (type) {
       link.type = type;
     }
@@ -284,17 +301,26 @@ export const useResourcePreloader = () => {
     document.head.appendChild(link);
   }, []);
 
-  const preloadScript = useCallback((src: string) => {
-    preload(src, 'script', 'text/javascript');
-  }, [preload]);
+  const preloadScript = useCallback(
+    (src: string) => {
+      preload(src, 'script', 'text/javascript');
+    },
+    [preload]
+  );
 
-  const preloadStyle = useCallback((href: string) => {
-    preload(href, 'style', 'text/css');
-  }, [preload]);
+  const preloadStyle = useCallback(
+    (href: string) => {
+      preload(href, 'style', 'text/css');
+    },
+    [preload]
+  );
 
-  const preloadFont = useCallback((href: string, format: string = 'woff2') => {
-    preload(href, 'font', `font/${format}`);
-  }, [preload]);
+  const preloadFont = useCallback(
+    (href: string, format: string = 'woff2') => {
+      preload(href, 'font', `font/${format}`);
+    },
+    [preload]
+  );
 
   return {
     preload,
@@ -321,7 +347,7 @@ export const useMemoryMonitor = () => {
 
     const updateMemoryInfo = () => {
       const memory = (performance as any).memory;
-      
+
       setMemoryInfo({
         usedJSHeapSize: memory.usedJSHeapSize,
         totalJSHeapSize: memory.totalJSHeapSize,
@@ -331,7 +357,7 @@ export const useMemoryMonitor = () => {
     };
 
     updateMemoryInfo();
-    
+
     const interval = setInterval(updateMemoryInfo, 5000);
 
     return () => clearInterval(interval);
@@ -341,11 +367,15 @@ export const useMemoryMonitor = () => {
 };
 
 // Optimized re-render prevention hook
-export const useShallowMemo = <T>(factory: () => T, deps: React.DependencyList): T => {
+export const useShallowMemo = <T>(
+  factory: () => T,
+  deps: React.DependencyList
+): T => {
   const prevDeps = useRef<React.DependencyList>([]);
   const memoizedValue = useRef<T>();
 
-  const depsChanged = deps.length !== prevDeps.current.length || 
+  const depsChanged =
+    deps.length !== prevDeps.current.length ||
     deps.some((dep, index) => !Object.is(dep, prevDeps.current[index]));
 
   if (memoizedValue.current === undefined || depsChanged) {

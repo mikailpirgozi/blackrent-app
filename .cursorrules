@@ -1,78 +1,80 @@
 # BLACKRENT PROJECT RULES
 
 ## CONTEXT DETECTION
-- IF working in `customer-website/` directory → Apply CUSTOMER WEBSITE rules
-- IF working in main project (`src/`, `backend/`, root) → Apply INTERNAL APP rules
-- IF working in both → Ask for clarification
+- IF working in `customer-website/` → apply CUSTOMER WEBSITE rules
+- IF working in main app (`src/`, `backend/`, project root) → apply INTERNAL APP rules
+- IF both touched → ask only if two+ equally plausible approaches exist; otherwise choose the safest and state the choice briefly.
 
 ---
 
-## CUSTOMER WEBSITE RULES (customer-website/ directory)
-
+## CUSTOMER WEBSITE RULES (`customer-website/`)
 ### UI & DESIGN
-- Use EXACT styles from `/customer-website/Anima/` export
-- Assets ONLY from `/customer-website/public/assets/` - NEVER external URLs
-- Preserve ALL Tailwind classes from Anima export
-- NO custom colors, fonts, paddings, margins unless in export
-- Breakpoints: 1728px, 1440px, 744px, 360px
-- NEVER modify design - implement interactivity in NEW components outside export
-- NO moving elements between sections
+- Use EXACT styles from `/customer-website/Anima/` export.
+- Assets ONLY from `/customer-website/public/assets/` – NEVER external image/CDN URLs.
+- Preserve ALL Tailwind classes from the export; NO custom colors/fonts/spacings unless present in export.
+- Breakpoints: 1728px, 1440px, 744px, 360px.
+- Do NOT modify exported files. Interactivity goes into NEW wrapper components outside the export. No moving elements between sections.
 
-### Code Structure
-- TypeScript + React functional components
-- TailwindCSS only (no inline CSS)
-- Small reusable components
-- Server commands: `cd customer-website && npm run dev` (port 3002)
+### Code
+- TypeScript + React function components.
+- TailwindCSS only (no inline `<style>`).
+- Keep components small & reusable.
+- Dev: `cd customer-website && npm run dev` (port 3002).
 
 ---
 
 ## INTERNAL APP RULES (main project)
-
 ### Development
-- Commands: `npm run dev:start` (NOT `npm run dev`)
-- Components in `/src/components/`
-- Own styling and layout system
-- Different breakpoints and design patterns
+- Dev commands: `npm run dev:start` (if defined) or `npm run dev` (Vite).
+- Components live in `/src/components/`.
+- Own layout system; different breakpoints than customer site.
 
-### Database
-- Railway PostgreSQL ONLY
-- Connection: PGPASSWORD=nfwrpKxILRUMqunYTZJEhjudEstqLRGv psql -h trolley.proxy.rlwy.net -U postgres -p 13400 -d railway
+### Database & Migrations
+- Use **Railway PostgreSQL** via **ENV variables** (no secrets in code or rules).
+- Never connect AI to **production** DB. Use **staging** + seed data.
+- Migrations via migration tool; no destructive SQL without review.
 
 ---
 
-## UNIVERSAL RULES (both projects)
+## UNIVERSAL RULES
+### Tech & Code Style
+- TypeScript `"strict": true` – NEVER use `any`.
+- Modern React (hooks). Logic separated from UI.
+- API calls: Fetch/Axios with **timeout** & **error handling**.
+- Validation at boundaries: **Zod** for inputs & API responses.
+- Naming: kebab-case folders, PascalCase components.
+- Prefer minimal, localized edits. For large/legacy files: propose a short refactor plan, then apply after approval.
 
-### Code Standards
-- TypeScript + modern React (hooks)
-- API calls: async/await + Axios/Fetch
-- Naming: kebab-case folders, PascalCase components
-- State: React Context or Zustand
-- Separate logic from UI
-- Validate API responses (Zod)
-- No magic numbers - use config
+### Env & Config
+- **Vite front-end:** use `import.meta.env.VITE_*` (not `process.env`).  
+  - Keep env values in `.env.local` and access via `src/lib/env.ts`.
+- Feature flags in FE: `import.meta.env.VITE_FLAG_*` → helper `flag('EXTRA_KM')` from `src/lib/flags.ts`.
+- API paths: use `apiPath('/endpoint')` from `src/utils/apiPath.ts` for unified API base selection.
+- No secrets in repository, rules, or commits.
 
-### Production
-- Test builds before push: `npm run build` + `cd backend && npm run build`
-- Remove console.logs and debug code
-- Fix ALL errors/warnings before commit
-- Environment variables in `.env.local`
+### Logging & Diagnostics
+- Use structured logger (e.g., `log({requestId, ...}, msg)`), not raw `console.log`.
+- Keep **info/warn/error** in production; strip **debug** on build if needed.
+- Provide minimal **MRE** when fixing bugs. Add requestId to async flows.
 
-### Communication
-- Be concise and direct
-- Provide code, not high-level advice
-- Suggest solutions proactively
-- Show only relevant code parts
-- NEVER make assumptions - ASK if uncertain
+### Tests & Quality
+- Each new function: define API signature + **mini unit test** first (Vitest).
+- Lint & format must pass before commit (ESLint + Prettier).
+- Fix **all** TypeScript errors; warnings should be addressed or justified.
 
-### Diagnostics
-- `npm run health` (10s diagnosis)
-- `npm run fix` (30s auto-fix)
-- `npm run monitor` (live monitoring)
+### Communication with AI
+- Be concise. Return **diffs + test instructions**.
+- Ask only when ambiguity would risk breaking behavior; otherwise pick the safest option and state it in 1–2 sentences.
+- Suggest solutions proactively (e.g., helper `apiPath`, `env`, `flag`).
 
-### Critical Rules
-- NEVER create simplified versions of complex files
-- ALWAYS fix ALL errors in original file
-- Preserve ALL existing functionality and data
-- When copying code, make EXACT copy of original
-- NEVER use external URLs for assets - download and store locally
-- Respond in Slovak language
+### Assets
+- Never hotlink external assets (images/fonts). Store locally in `public/` or project assets.
+- API endpoints are not "assets" – calling external APIs is allowed per env config.
+
+### Critical Safety
+- Preserve existing functionality & data.
+- When copying code, keep behavior identical unless change is requested; document intentional differences.
+- Do not run destructive DB ops on production. Use staging.
+
+### Language
+- Respond in Slovak language.

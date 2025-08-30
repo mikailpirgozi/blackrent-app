@@ -1,14 +1,8 @@
 // 🖼️ Optimized Image Component
 // Advanced image optimization with lazy loading, WebP support, and progressive enhancement
 
+import { Box, Skeleton, useTheme, styled, keyframes } from '@mui/material';
 import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
-import {
-  Box,
-  Skeleton,
-  useTheme,
-  styled,
-  keyframes,
-} from '@mui/material';
 
 // Fade-in animation
 const fadeIn = keyframes`
@@ -99,166 +93,181 @@ const generateOptimizedSrc = (
 // Check WebP support
 const supportsWebP = (() => {
   if (typeof window === 'undefined') return false;
-  
+
   const canvas = document.createElement('canvas');
   canvas.width = 1;
   canvas.height = 1;
-  
+
   return canvas.toDataURL('image/webp').startsWith('data:image/webp');
 })();
 
-export const OptimizedImage: React.FC<OptimizedImageProps> = memo(({
-  src,
-  alt,
-  width,
-  height,
-  aspectRatio,
-  placeholder = 'skeleton',
-  lazy = true,
-  webpSupport = true,
-  progressive = true,
-  quality = 75,
-  className,
-  onClick,
-  onLoad,
-  onError,
-  objectFit = 'cover',
-  borderRadius = 12,
-  priority = false,
-}) => {
-  const theme = useTheme();
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isError, setIsError] = useState(false);
-  const [isInView, setIsInView] = useState(!lazy || priority);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+export const OptimizedImage: React.FC<OptimizedImageProps> = memo(
+  ({
+    src,
+    alt,
+    width,
+    height,
+    aspectRatio,
+    placeholder = 'skeleton',
+    lazy = true,
+    webpSupport = true,
+    progressive = true,
+    quality = 75,
+    className,
+    onClick,
+    onLoad,
+    onError,
+    objectFit = 'cover',
+    borderRadius = 12,
+    priority = false,
+  }) => {
+    const theme = useTheme();
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [isError, setIsError] = useState(false);
+    const [isInView, setIsInView] = useState(!lazy || priority);
+    const imgRef = useRef<HTMLImageElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-  // Calculate dimensions
-  const containerStyle = {
-    width: width || '100%',
-    height: height || (aspectRatio && width ? `${(width as number) / aspectRatio}px` : 'auto'),
-    borderRadius,
-  };
+    // Calculate dimensions
+    const containerStyle = {
+      width: width || '100%',
+      height:
+        height ||
+        (aspectRatio && width
+          ? `${(width as number) / aspectRatio}px`
+          : 'auto'),
+      borderRadius,
+    };
 
-  // Intersection Observer for lazy loading
-  useEffect(() => {
-    if (!lazy || priority || isInView) return;
+    // Intersection Observer for lazy loading
+    useEffect(() => {
+      if (!lazy || priority || isInView) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry.isIntersecting) {
-          setIsInView(true);
-          observer.disconnect();
+      const observer = new IntersectionObserver(
+        entries => {
+          const [entry] = entries;
+          if (entry.isIntersecting) {
+            setIsInView(true);
+            observer.disconnect();
+          }
+        },
+        {
+          threshold: 0.1,
+          rootMargin: '50px',
         }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '50px',
+      );
+
+      if (containerRef.current) {
+        observer.observe(containerRef.current);
       }
-    );
 
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
+      return () => observer.disconnect();
+    }, [lazy, priority, isInView]);
 
-    return () => observer.disconnect();
-  }, [lazy, priority, isInView]);
+    // Handle image loading
+    const handleLoad = useCallback(() => {
+      setIsLoaded(true);
+      onLoad?.();
+    }, [onLoad]);
 
-  // Handle image loading
-  const handleLoad = useCallback(() => {
-    setIsLoaded(true);
-    onLoad?.();
-  }, [onLoad]);
+    const handleError = useCallback(() => {
+      setIsError(true);
+      onError?.();
+    }, [onError]);
 
-  const handleError = useCallback(() => {
-    setIsError(true);
-    onError?.();
-  }, [onError]);
+    // Generate optimized sources
+    const sources = generateOptimizedSrc(src, width as number, quality);
+    const shouldUseWebP = webpSupport && supportsWebP && sources.webp;
 
-  // Generate optimized sources
-  const sources = generateOptimizedSrc(src, width as number, quality);
-  const shouldUseWebP = webpSupport && supportsWebP && sources.webp;
+    // Render placeholder
+    const renderPlaceholder = () => {
+      if (placeholder === 'skeleton') {
+        return (
+          <Skeleton
+            variant="rectangular"
+            width="100%"
+            height="100%"
+            sx={{ borderRadius }}
+          />
+        );
+      }
 
-  // Render placeholder
-  const renderPlaceholder = () => {
-    if (placeholder === 'skeleton') {
-      return (
-        <Skeleton
-          variant="rectangular"
-          width="100%"
-          height="100%"
-          sx={{ borderRadius }}
-        />
-      );
-    }
+      if (placeholder === 'blur') {
+        return (
+          <PlaceholderBox
+            style={containerStyle}
+            sx={{
+              filter: 'blur(8px)',
+              background: `linear-gradient(45deg, ${theme.palette.primary.light}20, ${theme.palette.secondary.light}20)`,
+            }}
+          />
+        );
+      }
 
-    if (placeholder === 'blur') {
-      return (
-        <PlaceholderBox
-          style={containerStyle}
-          sx={{
-            filter: 'blur(8px)',
-            background: `linear-gradient(45deg, ${theme.palette.primary.light}20, ${theme.palette.secondary.light}20)`,
-          }}
-        />
-      );
-    }
+      if (placeholder === 'icon') {
+        return <PlaceholderBox style={containerStyle}>🖼️</PlaceholderBox>;
+      }
 
-    if (placeholder === 'icon') {
-      return (
-        <PlaceholderBox style={containerStyle}>
-          🖼️
-        </PlaceholderBox>
-      );
-    }
+      if (React.isValidElement(placeholder)) {
+        return placeholder;
+      }
 
-    if (React.isValidElement(placeholder)) {
-      return placeholder;
-    }
+      return <PlaceholderBox style={containerStyle}>📷</PlaceholderBox>;
+    };
 
-    return (
-      <PlaceholderBox style={containerStyle}>
-        📷
+    // Render error state
+    const renderError = () => (
+      <PlaceholderBox
+        style={containerStyle}
+        sx={{
+          background: theme.palette.error.light + '20',
+          color: theme.palette.error.main,
+        }}
+      >
+        ❌
       </PlaceholderBox>
     );
-  };
 
-  // Render error state
-  const renderError = () => (
-    <PlaceholderBox
-      style={containerStyle}
-      sx={{
-        background: theme.palette.error.light + '20',
-        color: theme.palette.error.main,
-      }}
-    >
-      ❌
-    </PlaceholderBox>
-  );
+    return (
+      <ImageContainer
+        ref={containerRef}
+        className={className}
+        onClick={onClick}
+        sx={{
+          cursor: onClick ? 'pointer' : 'default',
+          ...containerStyle,
+        }}
+      >
+        {/* Show placeholder while not in view or loading */}
+        {(!isInView || (!isLoaded && !isError)) && renderPlaceholder()}
 
-  return (
-    <ImageContainer
-      ref={containerRef}
-      className={className}
-      onClick={onClick}
-      sx={{
-        cursor: onClick ? 'pointer' : 'default',
-        ...containerStyle,
-      }}
-    >
-      {/* Show placeholder while not in view or loading */}
-      {(!isInView || (!isLoaded && !isError)) && renderPlaceholder()}
+        {/* Show error state */}
+        {isError && renderError()}
 
-      {/* Show error state */}
-      {isError && renderError()}
-
-      {/* Render image when in view */}
-      {isInView && !isError && (
-        <>
-          {shouldUseWebP ? (
-            <picture>
-              <source srcSet={sources.webp} type="image/webp" />
+        {/* Render image when in view */}
+        {isInView && !isError && (
+          <>
+            {shouldUseWebP ? (
+              <picture>
+                <source srcSet={sources.webp} type="image/webp" />
+                <LoadedImage
+                  ref={imgRef}
+                  src={sources.fallback}
+                  alt={alt}
+                  onLoad={handleLoad}
+                  onError={handleError}
+                  loading={priority ? 'eager' : 'lazy'}
+                  decoding={progressive ? 'async' : 'sync'}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit,
+                    opacity: isLoaded ? 1 : 0,
+                    borderRadius,
+                  }}
+                />
+              </picture>
+            ) : (
               <LoadedImage
                 ref={imgRef}
                 src={sources.fallback}
@@ -275,48 +284,31 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = memo(({
                   borderRadius,
                 }}
               />
-            </picture>
-          ) : (
-            <LoadedImage
-              ref={imgRef}
-              src={sources.fallback}
-              alt={alt}
-              onLoad={handleLoad}
-              onError={handleError}
-              loading={priority ? 'eager' : 'lazy'}
-              decoding={progressive ? 'async' : 'sync'}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit,
-                opacity: isLoaded ? 1 : 0,
-                borderRadius,
-              }}
-            />
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
 
-      {/* Progressive loading indicator */}
-      {progressive && isInView && !isLoaded && !isError && (
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: 8,
-            right: 8,
-            background: 'rgba(0, 0, 0, 0.6)',
-            color: 'white',
-            padding: '4px 8px',
-            borderRadius: 1,
-            fontSize: '0.7rem',
-          }}
-        >
-          Loading...
-        </Box>
-      )}
-    </ImageContainer>
-  );
-});
+        {/* Progressive loading indicator */}
+        {progressive && isInView && !isLoaded && !isError && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              background: 'rgba(0, 0, 0, 0.6)',
+              color: 'white',
+              padding: '4px 8px',
+              borderRadius: 1,
+              fontSize: '0.7rem',
+            }}
+          >
+            Loading...
+          </Box>
+        )}
+      </ImageContainer>
+    );
+  }
+);
 
 OptimizedImage.displayName = 'OptimizedImage';
 

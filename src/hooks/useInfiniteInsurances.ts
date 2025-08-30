@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Insurance } from '../types';
+
 import { apiService } from '../services/api';
+import { Insurance } from '../types';
 
 export interface InsuranceFilters {
   search?: string;
@@ -26,8 +27,13 @@ interface UseInfiniteInsurancesReturn {
 
 const ITEMS_PER_PAGE = 20;
 
-export function useInfiniteInsurances(initialFilters: InsuranceFilters = {}): UseInfiniteInsurancesReturn {
-  console.log('🚀 useInfiniteInsurances: Hook initialized with filters:', initialFilters);
+export function useInfiniteInsurances(
+  initialFilters: InsuranceFilters = {}
+): UseInfiniteInsurancesReturn {
+  console.log(
+    '🚀 useInfiniteInsurances: Hook initialized with filters:',
+    initialFilters
+  );
   const [insurances, setInsurances] = useState<Insurance[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,55 +43,68 @@ export function useInfiniteInsurances(initialFilters: InsuranceFilters = {}): Us
   const [filters, setFilters] = useState<InsuranceFilters>(initialFilters);
 
   // 🔍 Load insurances with pagination and filtering
-  const loadInsurances = useCallback(async (page: number = 1, reset: boolean = false) => {
-    if (loading) return;
-    
-    setLoading(true);
-    setError(null);
+  const loadInsurances = useCallback(
+    async (page: number = 1, reset: boolean = false) => {
+      if (loading) return;
 
-    try {
-      console.log(`📄 Loading insurances page ${page}...`);
-      
-      // Build query parameters
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: ITEMS_PER_PAGE.toString(),
-        ...(filters.search && { search: filters.search }),
-        ...(filters.type && { type: filters.type }),
-        ...(filters.company && { company: filters.company }),
-        ...(filters.status && filters.status !== 'all' && { status: filters.status }),
-        ...(filters.vehicleId && { vehicleId: filters.vehicleId }),
-      });
+      setLoading(true);
+      setError(null);
 
-      console.log('🔗 Making API call to:', `/insurances/paginated?${params}`);
-      const response = await apiService.getInsurancesPaginated(params.toString());
-      console.log('📡 API Response:', response);
-      
-      // Response už je rozbalený z request() metódy - obsahuje priamo { data: [...], pagination: {...} }
-      if (response && response.data && response.pagination) {
-        const { data: newInsurances, pagination } = response;
-        
-        console.log(`✅ Loaded ${newInsurances.length} insurances (page ${page})`);
-        
-        setInsurances(prev => reset ? newInsurances : [...prev, ...newInsurances]);
-        setCurrentPage(page);
-        setTotalCount(pagination.total);
-        setHasMore(page < pagination.totalPages);
-      } else {
-        console.error('❌ Unexpected response format:', response);
-        setError('Neočakávaný formát odpovede zo servera');
+      try {
+        console.log(`📄 Loading insurances page ${page}...`);
+
+        // Build query parameters
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: ITEMS_PER_PAGE.toString(),
+          ...(filters.search && { search: filters.search }),
+          ...(filters.type && { type: filters.type }),
+          ...(filters.company && { company: filters.company }),
+          ...(filters.status &&
+            filters.status !== 'all' && { status: filters.status }),
+          ...(filters.vehicleId && { vehicleId: filters.vehicleId }),
+        });
+
+        console.log(
+          '🔗 Making API call to:',
+          `/insurances/paginated?${params}`
+        );
+        const response = await apiService.getInsurancesPaginated(
+          params.toString()
+        );
+        console.log('📡 API Response:', response);
+
+        // Response už je rozbalený z request() metódy - obsahuje priamo { data: [...], pagination: {...} }
+        if (response && response.data && response.pagination) {
+          const { data: newInsurances, pagination } = response;
+
+          console.log(
+            `✅ Loaded ${newInsurances.length} insurances (page ${page})`
+          );
+
+          setInsurances(prev =>
+            reset ? newInsurances : [...prev, ...newInsurances]
+          );
+          setCurrentPage(page);
+          setTotalCount(pagination.total);
+          setHasMore(page < pagination.totalPages);
+        } else {
+          console.error('❌ Unexpected response format:', response);
+          setError('Neočakávaný formát odpovede zo servera');
+        }
+      } catch (err) {
+        console.error('❌ Error loading insurances:', err);
+        console.error('❌ Error details:', {
+          message: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        });
+        setError('Chyba pri načítavaní poistiek');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('❌ Error loading insurances:', err);
-      console.error('❌ Error details:', { 
-        message: err instanceof Error ? err.message : String(err), 
-        stack: err instanceof Error ? err.stack : undefined 
-      });
-      setError('Chyba pri načítavaní poistiek');
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+    },
+    [filters]
+  );
 
   // 📄 Load more insurances (next page)
   const loadMore = useCallback(() => {
@@ -109,38 +128,51 @@ export function useInfiniteInsurances(initialFilters: InsuranceFilters = {}): Us
 
   // 🎯 Initial load and filter changes
   useEffect(() => {
-    console.log('🎯 useInfiniteInsurances: Filters changed, refreshing...', filters);
+    console.log(
+      '🎯 useInfiniteInsurances: Filters changed, refreshing...',
+      filters
+    );
     // Priame volanie refresh logiky namiesto funkcie aby sme predišli infinite loop
     setInsurances([]);
     setCurrentPage(1);
     setHasMore(true);
     loadInsurances(1, true);
-  }, [filters.search, filters.type, filters.company, filters.status, filters.vehicleId, loadInsurances]);
+  }, [
+    filters.search,
+    filters.type,
+    filters.company,
+    filters.status,
+    filters.vehicleId,
+    loadInsurances,
+  ]);
 
   // 📊 Memoized return value for performance
-  return useMemo(() => ({
-    insurances,
-    loading,
-    error,
-    hasMore,
-    loadMore,
-    refresh,
-    totalCount,
-    currentPage,
-    filters,
-    setFilters,
-    setSearchTerm,
-  }), [
-    insurances,
-    loading,
-    error,
-    hasMore,
-    loadMore,
-    refresh,
-    totalCount,
-    currentPage,
-    filters,
-    setFilters,
-    setSearchTerm,
-  ]);
+  return useMemo(
+    () => ({
+      insurances,
+      loading,
+      error,
+      hasMore,
+      loadMore,
+      refresh,
+      totalCount,
+      currentPage,
+      filters,
+      setFilters,
+      setSearchTerm,
+    }),
+    [
+      insurances,
+      loading,
+      error,
+      hasMore,
+      loadMore,
+      refresh,
+      totalCount,
+      currentPage,
+      filters,
+      setFilters,
+      setSearchTerm,
+    ]
+  );
 }

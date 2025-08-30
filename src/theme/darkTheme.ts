@@ -20,8 +20,10 @@ const darkShadows = {
   lg: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
   xl: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3)',
   '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
-  colorful: '0 10px 25px -3px rgba(102, 126, 234, 0.4), 0 4px 6px -2px rgba(102, 126, 234, 0.3)',
-  premium: '0 20px 40px -4px rgba(0, 0, 0, 0.4), 0 8px 16px -4px rgba(0, 0, 0, 0.2)',
+  colorful:
+    '0 10px 25px -3px rgba(102, 126, 234, 0.4), 0 4px 6px -2px rgba(102, 126, 234, 0.3)',
+  premium:
+    '0 20px 40px -4px rgba(0, 0, 0, 0.4), 0 8px 16px -4px rgba(0, 0, 0, 0.2)',
 };
 
 declare module '@mui/material/styles' {
@@ -63,11 +65,11 @@ export const darkTheme = createTheme({
     },
     background: {
       default: '#0a0f1c', // Deeper dark
-      paper: '#1a1f2e',   // Rich dark paper
+      paper: '#1a1f2e', // Rich dark paper
     },
     text: {
-      primary: '#ffffff',    // Pure white for contrast
-      secondary: '#e2e8f0',  // Light gray
+      primary: '#ffffff', // Pure white for contrast
+      secondary: '#e2e8f0', // Light gray
     },
     success: {
       main: '#34d399', // Emerald
@@ -96,7 +98,8 @@ export const darkTheme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
+    fontFamily:
+      '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
     h1: {
       fontSize: '2.5rem',
       fontWeight: 800,
@@ -231,7 +234,8 @@ export const darkTheme = createTheme({
             left: '-100%',
             width: '100%',
             height: '100%',
-            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent)',
+            background:
+              'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent)',
             transition: 'left 0.5s',
           },
           '&:hover': {
@@ -290,7 +294,8 @@ export const darkTheme = createTheme({
             left: 0,
             right: 0,
             height: '1px',
-            background: 'linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.8), transparent)',
+            background:
+              'linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.8), transparent)',
             opacity: 0,
             transition: 'opacity 0.3s ease',
           },
@@ -413,7 +418,8 @@ export const darkTheme = createTheme({
           color: '#e2e8f0',
           transition: 'all 0.2s ease',
           '&.Mui-selected': {
-            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%)',
+            background:
+              'linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%)',
             color: '#8b9bfc',
             '&::before': {
               content: '""',
@@ -427,7 +433,8 @@ export const darkTheme = createTheme({
               borderRadius: '0 2px 2px 0',
             },
             '&:hover': {
-              background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%)',
+              background:
+                'linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%)',
             },
           },
           '&:hover': {
@@ -446,7 +453,8 @@ export const darkTheme = createTheme({
           transition: 'all 0.2s ease',
         },
         head: {
-          background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+          background:
+            'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
           fontWeight: 600,
           color: '#ffffff',
         },
@@ -475,4 +483,4 @@ export const darkTheme = createTheme({
   },
 });
 
-export default darkTheme; 
+export default darkTheme;

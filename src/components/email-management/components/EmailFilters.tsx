@@ -3,7 +3,6 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
-import React from 'react';
 import {
   Card,
   CardContent,
@@ -15,6 +14,8 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import React from 'react';
+
 import { STATUS_OPTIONS } from '../utils/email-constants';
 
 interface EmailFiltersProps {
@@ -40,13 +41,13 @@ export const EmailFilters: React.FC<EmailFiltersProps> = ({
   return (
     <Card sx={{ mb: 3 }}>
       <CardContent sx={{ p: isExtraSmall ? 2 : isMobile ? 2 : 3 }}>
-        <Typography 
-          variant={isExtraSmall ? "body1" : isMobile ? "subtitle1" : "h6"} 
+        <Typography
+          variant={isExtraSmall ? 'body1' : isMobile ? 'subtitle1' : 'h6'}
           gutterBottom
-          sx={{ 
+          sx={{
             fontSize: isExtraSmall ? '1rem' : undefined,
             textAlign: isSmallMobile ? 'center' : 'left',
-            fontWeight: 600
+            fontWeight: 600,
           }}
         >
           🔍 Filtre
@@ -57,21 +58,21 @@ export const EmailFilters: React.FC<EmailFiltersProps> = ({
               select
               label="Status"
               value={statusFilter}
-              onChange={(e) => onStatusFilterChange(e.target.value)}
+              onChange={e => onStatusFilterChange(e.target.value)}
               fullWidth
-              size={isExtraSmall ? "small" : isMobile ? "medium" : "small"}
+              size={isExtraSmall ? 'small' : isMobile ? 'medium' : 'small'}
               sx={{
                 '& .MuiInputLabel-root': {
-                  fontSize: isExtraSmall ? '0.875rem' : undefined
+                  fontSize: isExtraSmall ? '0.875rem' : undefined,
                 },
                 '& .MuiInputBase-input': {
-                  fontSize: isExtraSmall ? '0.875rem' : undefined
-                }
+                  fontSize: isExtraSmall ? '0.875rem' : undefined,
+                },
               }}
             >
-              {STATUS_OPTIONS.map((option) => (
-                <MenuItem 
-                  key={option.value} 
+              {STATUS_OPTIONS.map(option => (
+                <MenuItem
+                  key={option.value}
                   value={option.value}
                   sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
                 >
@@ -84,17 +85,19 @@ export const EmailFilters: React.FC<EmailFiltersProps> = ({
             <TextField
               label="Odosielateľ"
               value={senderFilter}
-              onChange={(e) => onSenderFilterChange(e.target.value)}
+              onChange={e => onSenderFilterChange(e.target.value)}
               fullWidth
-              size={isExtraSmall ? "small" : isMobile ? "medium" : "small"}
-              placeholder={isExtraSmall ? "Hľadať..." : "Hľadať podľa odosielateľa..."}
+              size={isExtraSmall ? 'small' : isMobile ? 'medium' : 'small'}
+              placeholder={
+                isExtraSmall ? 'Hľadať...' : 'Hľadať podľa odosielateľa...'
+              }
               sx={{
                 '& .MuiInputLabel-root': {
-                  fontSize: isExtraSmall ? '0.875rem' : undefined
+                  fontSize: isExtraSmall ? '0.875rem' : undefined,
                 },
                 '& .MuiInputBase-input': {
-                  fontSize: isExtraSmall ? '0.875rem' : undefined
-                }
+                  fontSize: isExtraSmall ? '0.875rem' : undefined,
+                },
               }}
             />
           </Grid>
@@ -103,10 +106,10 @@ export const EmailFilters: React.FC<EmailFiltersProps> = ({
               variant="outlined"
               onClick={onClearFilters}
               fullWidth
-              size={isExtraSmall ? "small" : "medium"}
-              sx={{ 
+              size={isExtraSmall ? 'small' : 'medium'}
+              sx={{
                 fontSize: isExtraSmall ? '0.875rem' : undefined,
-                py: isExtraSmall ? 1 : undefined
+                py: isExtraSmall ? 1 : undefined,
               }}
             >
               {isExtraSmall ? 'Vyčistiť' : 'Vyčistiť filtre'}

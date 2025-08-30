@@ -1,6 +1,6 @@
 /**
  * 🔍 ENHANCED SEARCH HOOK
- * 
+ *
  * Unified search system pre celú aplikáciu:
  * - Debounced search s performance optimalizáciou
  * - Search suggestions s autocomplete
@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+
 import { debounce } from '../utils/debounce';
 
 export interface SearchSuggestion {
@@ -42,8 +43,13 @@ export interface SearchOptions {
 }
 
 export interface UseEnhancedSearchOptions extends SearchOptions {
-  searchFunction: (query: string, quickFilter?: string) => Promise<any[]> | any[];
-  suggestionFunction?: (query: string) => Promise<SearchSuggestion[]> | SearchSuggestion[];
+  searchFunction: (
+    query: string,
+    quickFilter?: string
+  ) => Promise<any[]> | any[];
+  suggestionFunction?: (
+    query: string
+  ) => Promise<SearchSuggestion[]> | SearchSuggestion[];
   onSearch?: (query: string, results: any[]) => void;
   onClear?: () => void;
 }
@@ -54,25 +60,25 @@ export interface UseEnhancedSearchReturn {
   setQuery: (query: string) => void;
   isSearching: boolean;
   activeQuickFilter: string | null;
-  
+
   // Results
   results: any[];
   suggestions: SearchSuggestion[];
-  
+
   // History
   searchHistory: string[];
   clearHistory: () => void;
-  
+
   // Actions
   search: (query: string) => void;
   clearSearch: () => void;
   selectSuggestion: (suggestion: SearchSuggestion) => void;
   setQuickFilter: (filterId: string | null) => void;
-  
+
   // UI state
   showSuggestions: boolean;
   setShowSuggestions: (show: boolean) => void;
-  
+
   // Performance
   searchStats: {
     duration: number;
@@ -94,9 +100,8 @@ export const useEnhancedSearch = ({
   enableHistory = true,
   enableSuggestions = true,
   placeholder = 'Hľadať...',
-  quickFilters = []
+  quickFilters = [],
 }: UseEnhancedSearchOptions): UseEnhancedSearchReturn => {
-  
   // Search state
   const [query, setQueryState] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -104,15 +109,17 @@ export const useEnhancedSearch = ({
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
-  
+  const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(
+    null
+  );
+
   // Performance tracking
   const [searchStats, setSearchStats] = useState({
     duration: 0,
     resultCount: 0,
-    lastSearchTime: 0
+    lastSearchTime: 0,
   });
-  
+
   // Refs pre cleanup
   const searchAbortController = useRef<AbortController | null>(null);
   const suggestionAbortController = useRef<AbortController | null>(null);
@@ -124,7 +131,9 @@ export const useEnhancedSearch = ({
         const stored = localStorage.getItem(storageKey);
         if (stored) {
           const history = JSON.parse(stored);
-          setSearchHistory(Array.isArray(history) ? history.slice(0, maxHistory) : []);
+          setSearchHistory(
+            Array.isArray(history) ? history.slice(0, maxHistory) : []
+          );
         }
       } catch (error) {
         console.warn('Failed to load search history:', error);
@@ -133,135 +142,166 @@ export const useEnhancedSearch = ({
   }, [enableHistory, storageKey, maxHistory]);
 
   // Save search history to localStorage
-  const saveToHistory = useCallback((searchQuery: string) => {
-    if (!enableHistory || !storageKey || !searchQuery.trim()) return;
-    
-    try {
-      const newHistory = [
-        searchQuery,
-        ...searchHistory.filter(h => h !== searchQuery)
-      ].slice(0, maxHistory);
-      
-      setSearchHistory(newHistory);
-      localStorage.setItem(storageKey, JSON.stringify(newHistory));
-    } catch (error) {
-      console.warn('Failed to save search history:', error);
-    }
-  }, [enableHistory, storageKey, searchHistory, maxHistory]);
+  const saveToHistory = useCallback(
+    (searchQuery: string) => {
+      if (!enableHistory || !storageKey || !searchQuery.trim()) return;
+
+      try {
+        const newHistory = [
+          searchQuery,
+          ...searchHistory.filter(h => h !== searchQuery),
+        ].slice(0, maxHistory);
+
+        setSearchHistory(newHistory);
+        localStorage.setItem(storageKey, JSON.stringify(newHistory));
+      } catch (error) {
+        console.warn('Failed to save search history:', error);
+      }
+    },
+    [enableHistory, storageKey, searchHistory, maxHistory]
+  );
 
   // Debounced search function
   const debouncedSearch = useMemo(
-    () => debounce(async (searchQuery: string, quickFilter?: string) => {
-      if (searchQuery.length < minQueryLength && !quickFilter) {
-        setResults([]);
-        setIsSearching(false);
-        return;
-      }
-
-      // Cancel previous search
-      if (searchAbortController.current) {
-        searchAbortController.current.abort();
-      }
-      
-      searchAbortController.current = new AbortController();
-      setIsSearching(true);
-      
-      try {
-        const startTime = performance.now();
-        const searchResults = await searchFunction(searchQuery, quickFilter);
-        const duration = performance.now() - startTime;
-        
-        setResults(searchResults);
-        setSearchStats({
-          duration,
-          resultCount: searchResults.length,
-          lastSearchTime: Date.now()
-        });
-        
-        // Save to history
-        if (searchQuery.trim()) {
-          saveToHistory(searchQuery);
-        }
-        
-        onSearch?.(searchQuery, searchResults);
-        
-        console.log(`🔍 Search completed: "${searchQuery}" → ${searchResults.length} results (${duration.toFixed(2)}ms)`);
-        
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error('Search error:', error);
+    () =>
+      debounce(async (searchQuery: string, quickFilter?: string) => {
+        if (searchQuery.length < minQueryLength && !quickFilter) {
           setResults([]);
+          setIsSearching(false);
+          return;
         }
-      } finally {
-        setIsSearching(false);
-      }
-    }, debounceDelay),
+
+        // Cancel previous search
+        if (searchAbortController.current) {
+          searchAbortController.current.abort();
+        }
+
+        searchAbortController.current = new AbortController();
+        setIsSearching(true);
+
+        try {
+          const startTime = performance.now();
+          const searchResults = await searchFunction(searchQuery, quickFilter);
+          const duration = performance.now() - startTime;
+
+          setResults(searchResults);
+          setSearchStats({
+            duration,
+            resultCount: searchResults.length,
+            lastSearchTime: Date.now(),
+          });
+
+          // Save to history
+          if (searchQuery.trim()) {
+            saveToHistory(searchQuery);
+          }
+
+          onSearch?.(searchQuery, searchResults);
+
+          console.log(
+            `🔍 Search completed: "${searchQuery}" → ${searchResults.length} results (${duration.toFixed(2)}ms)`
+          );
+        } catch (error: any) {
+          if (error.name !== 'AbortError') {
+            console.error('Search error:', error);
+            setResults([]);
+          }
+        } finally {
+          setIsSearching(false);
+        }
+      }, debounceDelay),
     [searchFunction, debounceDelay, minQueryLength, saveToHistory, onSearch]
   );
 
   // Debounced suggestions
   const debouncedSuggestions = useMemo(
-    () => debounce(async (searchQuery: string) => {
-      if (!enableSuggestions || !suggestionFunction || searchQuery.length < 1) {
-        setSuggestions([]);
-        return;
-      }
-
-      // Cancel previous suggestions request
-      if (suggestionAbortController.current) {
-        suggestionAbortController.current.abort();
-      }
-      
-      suggestionAbortController.current = new AbortController();
-      
-      try {
-        const suggestionResults = await suggestionFunction(searchQuery);
-        
-        // Combine with search history
-        const historySuggestions: SearchSuggestion[] = enableHistory
-          ? searchHistory
-              .filter(h => h.toLowerCase().includes(searchQuery.toLowerCase()) && h !== searchQuery)
-              .slice(0, 3)
-              .map(h => ({
-                id: `history_${h}`,
-                text: h,
-                type: 'recent' as const,
-                category: 'História'
-              }))
-          : [];
-        
-        const allSuggestions = [
-          ...historySuggestions,
-          ...suggestionResults
-        ].slice(0, maxSuggestions);
-        
-        setSuggestions(allSuggestions);
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error('Suggestions error:', error);
+    () =>
+      debounce(async (searchQuery: string) => {
+        if (
+          !enableSuggestions ||
+          !suggestionFunction ||
+          searchQuery.length < 1
+        ) {
           setSuggestions([]);
+          return;
         }
-      }
-    }, 150),
-    [suggestionFunction, enableSuggestions, enableHistory, searchHistory, maxSuggestions]
+
+        // Cancel previous suggestions request
+        if (suggestionAbortController.current) {
+          suggestionAbortController.current.abort();
+        }
+
+        suggestionAbortController.current = new AbortController();
+
+        try {
+          const suggestionResults = await suggestionFunction(searchQuery);
+
+          // Combine with search history
+          const historySuggestions: SearchSuggestion[] = enableHistory
+            ? searchHistory
+                .filter(
+                  h =>
+                    h.toLowerCase().includes(searchQuery.toLowerCase()) &&
+                    h !== searchQuery
+                )
+                .slice(0, 3)
+                .map(h => ({
+                  id: `history_${h}`,
+                  text: h,
+                  type: 'recent' as const,
+                  category: 'História',
+                }))
+            : [];
+
+          const allSuggestions = [
+            ...historySuggestions,
+            ...suggestionResults,
+          ].slice(0, maxSuggestions);
+
+          setSuggestions(allSuggestions);
+        } catch (error: any) {
+          if (error.name !== 'AbortError') {
+            console.error('Suggestions error:', error);
+            setSuggestions([]);
+          }
+        }
+      }, 150),
+    [
+      suggestionFunction,
+      enableSuggestions,
+      enableHistory,
+      searchHistory,
+      maxSuggestions,
+    ]
   );
 
   // Search function
-  const search = useCallback((searchQuery: string) => {
-    setQueryState(searchQuery);
-    debouncedSearch(searchQuery, activeQuickFilter || undefined);
-    
-    if (enableSuggestions && searchQuery.length > 0) {
-      debouncedSuggestions(searchQuery);
-    } else {
-      setSuggestions([]);
-    }
-  }, [debouncedSearch, debouncedSuggestions, activeQuickFilter, enableSuggestions]);
+  const search = useCallback(
+    (searchQuery: string) => {
+      setQueryState(searchQuery);
+      debouncedSearch(searchQuery, activeQuickFilter || undefined);
+
+      if (enableSuggestions && searchQuery.length > 0) {
+        debouncedSuggestions(searchQuery);
+      } else {
+        setSuggestions([]);
+      }
+    },
+    [
+      debouncedSearch,
+      debouncedSuggestions,
+      activeQuickFilter,
+      enableSuggestions,
+    ]
+  );
 
   // Set query wrapper
-  const setQuery = useCallback((newQuery: string) => {
-    search(newQuery);
-  }, [search]);
+  const setQuery = useCallback(
+    (newQuery: string) => {
+      search(newQuery);
+    },
+    [search]
+  );
 
   // Clear search
   const clearSearch = useCallback(() => {
@@ -270,7 +310,7 @@ export const useEnhancedSearch = ({
     setSuggestions([]);
     setShowSuggestions(false);
     setActiveQuickFilter(null);
-    
+
     // Cancel ongoing requests
     if (searchAbortController.current) {
       searchAbortController.current.abort();
@@ -278,7 +318,7 @@ export const useEnhancedSearch = ({
     if (suggestionAbortController.current) {
       suggestionAbortController.current.abort();
     }
-    
+
     onClear?.();
   }, [onClear]);
 
@@ -295,19 +335,25 @@ export const useEnhancedSearch = ({
   }, [enableHistory, storageKey]);
 
   // Select suggestion
-  const selectSuggestion = useCallback((suggestion: SearchSuggestion) => {
-    setQuery(suggestion.text);
-    setShowSuggestions(false);
-  }, [setQuery]);
+  const selectSuggestion = useCallback(
+    (suggestion: SearchSuggestion) => {
+      setQuery(suggestion.text);
+      setShowSuggestions(false);
+    },
+    [setQuery]
+  );
 
   // Set quick filter
-  const setQuickFilter = useCallback((filterId: string | null) => {
-    setActiveQuickFilter(filterId);
-    // Re-search with current query and new filter
-    if (query || filterId) {
-      debouncedSearch(query, filterId || undefined);
-    }
-  }, [query, debouncedSearch]);
+  const setQuickFilter = useCallback(
+    (filterId: string | null) => {
+      setActiveQuickFilter(filterId);
+      // Re-search with current query and new filter
+      if (query || filterId) {
+        debouncedSearch(query, filterId || undefined);
+      }
+    },
+    [query, debouncedSearch]
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -328,26 +374,26 @@ export const useEnhancedSearch = ({
     setQuery,
     isSearching,
     activeQuickFilter,
-    
+
     // Results
     results,
     suggestions,
-    
+
     // History
     searchHistory,
     clearHistory,
-    
+
     // Actions
     search,
     clearSearch,
     selectSuggestion,
     setQuickFilter,
-    
+
     // UI state
     showSuggestions,
     setShowSuggestions,
-    
+
     // Performance
-    searchStats
+    searchStats,
   };
 };

@@ -1,15 +1,7 @@
+import { Clear as ClearIcon, Save as SaveIcon } from '@mui/icons-material';
+import { Box, Button, Typography, Paper, TextField } from '@mui/material';
 import React, { useRef, useEffect, useState } from 'react';
-import {
-  Box,
-  Button,
-  Typography,
-  Paper,
-  TextField,
-} from '@mui/material';
-import {
-  Clear as ClearIcon,
-  Save as SaveIcon,
-} from '@mui/icons-material';
+
 import { useAuth } from '../../context/AuthContext';
 import { apiService } from '../../services/api';
 
@@ -29,7 +21,13 @@ interface SignaturePadProps {
   location: string;
 }
 
-export default function SignaturePad({ onSave, onCancel, signerName, signerRole, location }: SignaturePadProps) {
+export default function SignaturePad({
+  onSave,
+  onCancel,
+  signerName,
+  signerRole,
+  location,
+}: SignaturePadProps) {
   const { state } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -120,13 +118,13 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
 
   const loadSignatureTemplate = () => {
     if (signerRole !== 'employee' || !state.user?.signatureTemplate) return;
-    
+
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     const img = new Image();
     img.onload = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -142,10 +140,15 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
       signerRole,
       hasSignatureTemplate: !!state.user?.signatureTemplate,
       hasSignature,
-      userSignatureTemplate: state.user?.signatureTemplate?.substring(0, 50) + '...'
+      userSignatureTemplate:
+        state.user?.signatureTemplate?.substring(0, 50) + '...',
     });
-    
-    if (signerRole === 'employee' && state.user?.signatureTemplate && !hasSignature) {
+
+    if (
+      signerRole === 'employee' &&
+      state.user?.signatureTemplate &&
+      !hasSignature
+    ) {
       console.log('✅ Automaticky načítavam signature template');
       loadSignatureTemplate();
     }
@@ -156,7 +159,7 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
     if (!canvas || !hasSignature) return;
 
     const dataUrl = canvas.toDataURL('image/png');
-    
+
     // Vytvor kompletný signature objekt s timestampom
     const signatureData = {
       id: `sig_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -165,26 +168,28 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
       signerRole,
       timestamp: new Date(),
       location,
-      ipAddress: undefined // Môžeme pridať neskôr ak potrebujeme
+      ipAddress: undefined, // Môžeme pridať neskôr ak potrebujeme
     };
-    
+
     onSave(signatureData);
   };
 
   const handleSaveAsTemplate = async () => {
     if (signerRole !== 'employee' || !hasSignature) return;
-    
+
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     // TypeScript fix: explicit null check
     const dataUrl = canvas?.toDataURL('image/png');
     if (!dataUrl) return;
-    
+
     try {
       // TypeScript fix: explicit type assertion
       await apiService.updateSignatureTemplate(dataUrl as string);
-      alert('✅ Váš podpis bol úspešne uložený ako template pre budúce protokoly!');
+      alert(
+        '✅ Váš podpis bol úspešne uložený ako template pre budúce protokoly!'
+      );
     } catch (error) {
       console.error('Error saving signature template:', error);
       alert('❌ Chyba pri ukladaní signature template. Skúste to znovu.');
@@ -196,33 +201,33 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
       <Typography variant="h6" gutterBottom>
         Elektronický podpis s časovou pečiatkou
       </Typography>
-      
+
       {/* Editable signer name */}
       <TextField
         label="Meno podpisujúceho"
         value={editableSignerName}
-        onChange={(e) => setEditableSignerName(e.target.value)}
+        onChange={e => setEditableSignerName(e.target.value)}
         fullWidth
         sx={{ mb: 2 }}
         helperText={
-          signerRole === 'customer' 
-            ? 'Meno zákazníka z prenájmu (môžete upraviť ak je potrebné)' 
+          signerRole === 'customer'
+            ? 'Meno zákazníka z prenájmu (môžete upraviť ak je potrebné)'
             : 'Meno zamestnanca'
         }
         placeholder={
-          signerRole === 'customer' 
-            ? 'Zadajte meno zákazníka...' 
+          signerRole === 'customer'
+            ? 'Zadajte meno zákazníka...'
             : 'Zadajte meno zamestnanca...'
         }
       />
-      
-      <Paper 
-        elevation={3} 
-        sx={{ 
+
+      <Paper
+        elevation={3}
+        sx={{
           border: '2px dashed #ccc',
           borderRadius: 1,
           p: 2,
-          mb: 2
+          mb: 2,
         }}
       >
         <canvas
@@ -245,7 +250,14 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
         />
       </Paper>
 
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 2,
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
         {/* Template buttons for employees */}
         {signerRole === 'employee' && (
           <>
@@ -268,7 +280,7 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
             </Button>
           </>
         )}
-        
+
         <Button
           variant="outlined"
           startIcon={<ClearIcon />}
@@ -277,10 +289,7 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
         >
           Vymazať
         </Button>
-        <Button
-          variant="outlined"
-          onClick={onCancel}
-        >
+        <Button variant="outlined" onClick={onCancel}>
           Zrušiť
         </Button>
         <Button
@@ -294,4 +303,4 @@ export default function SignaturePad({ onSave, onCancel, signerName, signerRole,
       </Box>
     </Box>
   );
-} 
+}

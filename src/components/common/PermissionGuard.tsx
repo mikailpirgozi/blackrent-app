@@ -1,5 +1,6 @@
-import React from 'react';
 import { Alert, Box, Typography } from '@mui/material';
+import React from 'react';
+
 import { usePermissions } from '../../hooks/usePermissions';
 import { Permission } from '../../types';
 
@@ -22,7 +23,7 @@ export function PermissionGuard({
   context,
   children,
   fallback,
-  showAccessDeniedMessage = false
+  showAccessDeniedMessage = false,
 }: PermissionGuardProps) {
   const permissions = usePermissions();
   const permissionResult = permissions.hasPermission(resource, action, context);
@@ -71,7 +72,7 @@ export function RoleGuard({
   allowedRoles,
   children,
   fallback,
-  showAccessDeniedMessage = false
+  showAccessDeniedMessage = false,
 }: RoleGuardProps) {
   const { currentUser } = usePermissions();
 
@@ -109,7 +110,7 @@ export function Can({
   delete: deleteResource,
   context,
   children,
-  fallback
+  fallback,
 }: CanProps) {
   const permissions = usePermissions();
 
@@ -118,9 +119,10 @@ export function Can({
   if (read && permissions.canRead(read, context)) hasAccess = true;
   if (create && permissions.canCreate(create, context)) hasAccess = true;
   if (update && permissions.canUpdate(update, context)) hasAccess = true;
-  if (deleteResource && permissions.canDelete(deleteResource, context)) hasAccess = true;
+  if (deleteResource && permissions.canDelete(deleteResource, context))
+    hasAccess = true;
 
-  return hasAccess ? <>{children}</> : (fallback ? <>{fallback}</> : <></>);
+  return hasAccess ? <>{children}</> : fallback ? <>{fallback}</> : <></>;
 }
 
 // 🏢 COMPANY OWNER GUARD
@@ -135,19 +137,19 @@ export function CompanyOnly({
   resource,
   companyId,
   children,
-  fallback
+  fallback,
 }: CompanyOnlyProps) {
   const { currentUser, canRead } = usePermissions();
 
   // Company owner môže vidieť len svoje company resources
   if (currentUser?.role === 'company_owner') {
     const canAccess = canRead(resource, { companyId });
-    return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : <></>);
+    return canAccess ? <>{children}</> : fallback ? <>{fallback}</> : <></>;
   }
 
   // Iné role môžu vidieť všetko (ak majú permission)
   const canAccess = canRead(resource);
-  return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : <></>);
+  return canAccess ? <>{children}</> : fallback ? <>{fallback}</> : <></>;
 }
 
 // 🔨 MECHANIC ONLY GUARD
@@ -160,19 +162,19 @@ interface MechanicOnlyProps {
 export function MechanicOnly({
   companyId,
   children,
-  fallback
+  fallback,
 }: MechanicOnlyProps) {
   const { currentUser, canUpdate } = usePermissions();
 
   // Mechanic môže vidieť len vozidlá v firmách kde má oprávnenia
   if (currentUser?.role === 'mechanic') {
     const canAccess = canUpdate('vehicles', { companyId });
-    return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : <></>);
+    return canAccess ? <>{children}</> : fallback ? <>{fallback}</> : <></>;
   }
 
   // Iné role môžu vidieť všetko (ak majú permission)
   const canAccess = canUpdate('vehicles');
-  return canAccess ? <>{children}</> : (fallback ? <>{fallback}</> : <></>);
+  return canAccess ? <>{children}</> : fallback ? <>{fallback}</> : <></>;
 }
 
 // 💰 AMOUNT LIMIT GUARD
@@ -185,17 +187,17 @@ interface AmountLimitProps {
 export function AmountLimitGuard({
   amount,
   children,
-  onApprovalRequired
+  onApprovalRequired,
 }: AmountLimitProps) {
   const permissions = usePermissions();
-  const permissionResult = permissions.hasPermission('pricing', 'update', { amount });
+  const permissionResult = permissions.hasPermission('pricing', 'update', {
+    amount,
+  });
 
   if (!permissionResult.hasAccess) {
     return (
       <Alert severity="error" sx={{ my: 2 }}>
-        <Typography variant="body2">
-          🚫 {permissionResult.reason}
-        </Typography>
+        <Typography variant="body2">🚫 {permissionResult.reason}</Typography>
       </Alert>
     );
   }
@@ -203,8 +205,8 @@ export function AmountLimitGuard({
   if (permissionResult.requiresApproval) {
     return (
       <Box>
-        <Alert 
-          severity="warning" 
+        <Alert
+          severity="warning"
           sx={{ mb: 2, cursor: onApprovalRequired ? 'pointer' : 'default' }}
           onClick={onApprovalRequired}
         >
@@ -218,4 +220,4 @@ export function AmountLimitGuard({
   }
 
   return <>{children}</>;
-} 
+}

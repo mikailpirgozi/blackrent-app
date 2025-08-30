@@ -1,18 +1,12 @@
-import React from 'react';
 import {
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Paper,
-  Grid
-} from '@mui/material';
-import { 
   Edit as EditIcon,
-  DirectionsCar as CarIcon
+  DirectionsCar as CarIcon,
 } from '@mui/icons-material';
-import { Rental } from '../../../types';
+import { Box, Typography, Chip, IconButton, Paper, Grid } from '@mui/material';
+import React from 'react';
+
 import { useApp } from '../../../context/AppContext';
+import { Rental } from '../../../types';
 import { formatDate, formatCurrency } from '../../../utils/formatters';
 
 interface RentalRowProps {
@@ -23,18 +17,23 @@ interface RentalRowProps {
 
 export function RentalRow({ rental, onEdit, index }: RentalRowProps) {
   const { state } = useApp();
-  
+
   // Nájdi vehicle pre tento rental
   const vehicle = state.vehicles.find(v => v.id === rental.vehicleId);
-  
+
   // Status color mapping
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
-      case 'active': return 'success';
-      case 'completed': return 'default';
-      case 'pending': return 'warning';
-      case 'cancelled': return 'error';
-      default: return 'default';
+      case 'active':
+        return 'success';
+      case 'completed':
+        return 'default';
+      case 'pending':
+        return 'warning';
+      case 'cancelled':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
@@ -45,10 +44,10 @@ export function RentalRow({ rental, onEdit, index }: RentalRowProps) {
         p: 2,
         '&:hover': {
           backgroundColor: 'action.hover',
-          boxShadow: 1
+          boxShadow: 1,
         },
         transition: 'all 0.2s ease-in-out',
-        cursor: 'pointer'
+        cursor: 'pointer',
       }}
       onClick={() => onEdit(rental)}
     >
@@ -59,7 +58,9 @@ export function RentalRow({ rental, onEdit, index }: RentalRowProps) {
             <CarIcon color="action" fontSize="small" />
             <Box>
               <Typography variant="subtitle2" fontWeight="medium">
-                {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Neznáme vozidlo'}
+                {vehicle
+                  ? `${vehicle.brand} ${vehicle.model}`
+                  : 'Neznáme vozidlo'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 {vehicle?.licensePlate || 'Bez ŠPZ'}
@@ -133,9 +134,9 @@ export function RentalRow({ rental, onEdit, index }: RentalRowProps) {
         {/* Actions */}
         <Grid item xs={12} sm={0.5}>
           <Box display="flex" justifyContent="flex-end">
-            <IconButton 
-              size="small" 
-              onClick={(e) => {
+            <IconButton
+              size="small"
+              onClick={e => {
                 e.stopPropagation();
                 onEdit(rental);
               }}

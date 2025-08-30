@@ -1,7 +1,20 @@
 // 📊 PWA Status Component
 // Shows PWA state, offline status, and management options
 
-import React, { useState } from 'react';
+import {
+  Wifi as OnlineIcon,
+  WifiOff as OfflineIcon,
+  CloudDone as InstalledIcon,
+  GetApp as InstallIcon,
+  Update as UpdateIcon,
+  Settings as SettingsIcon,
+  Info as InfoIcon,
+  ClearAll as ClearCacheIcon,
+  Refresh as RefreshIcon,
+  PhoneIphone as MobileIcon,
+  Computer as DesktopIcon,
+  Star as StarIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Chip,
@@ -23,22 +36,10 @@ import {
   Tooltip,
   Badge,
 } from '@mui/material';
-import {
-  Wifi as OnlineIcon,
-  WifiOff as OfflineIcon,
-  CloudDone as InstalledIcon,
-  GetApp as InstallIcon,
-  Update as UpdateIcon,
-  Settings as SettingsIcon,
-  Info as InfoIcon,
-  ClearAll as ClearCacheIcon,
-  Refresh as RefreshIcon,
-  PhoneIphone as MobileIcon,
-  Computer as DesktopIcon,
-  Star as StarIcon,
-} from '@mui/icons-material';
-import { usePWA } from '../../hooks/usePWA';
+import React, { useState } from 'react';
+
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { usePWA } from '../../hooks/usePWA';
 
 interface PWAStatusProps {
   showDetailed?: boolean;
@@ -171,16 +172,22 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
   // Simple chip version
   if (!showDetailed) {
     return (
-      <Box sx={position === 'fixed' ? {
-        position: 'fixed',
-        top: 16,
-        right: 80, // Moved left to avoid profile overlap
-        zIndex: 1300,
-        '@media (max-width: 600px)': {
-          right: 16, // On mobile, move closer to edge
-          top: 80,   // Move down to avoid mobile header
-        },
-      } : {}}>
+      <Box
+        sx={
+          position === 'fixed'
+            ? {
+                position: 'fixed',
+                top: 16,
+                right: 80, // Moved left to avoid profile overlap
+                zIndex: 1300,
+                '@media (max-width: 600px)': {
+                  right: 16, // On mobile, move closer to edge
+                  top: 80, // Move down to avoid mobile header
+                },
+              }
+            : {}
+        }
+      >
         <Tooltip title={statusInfo.description}>
           <Badge
             variant="dot"
@@ -300,7 +307,12 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
       </Menu>
 
       {/* Info Dialog */}
-      <Dialog open={showDialog} onClose={() => setShowDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={showDialog}
+        onClose={() => setShowDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={1}>
             <InfoIcon color="primary" />
@@ -331,12 +343,15 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
                 Sieťové pripojenie:
               </Typography>
               <Box display="flex" alignItems="center" gap={1} mb={1}>
-                {isOffline ? <OfflineIcon color="error" /> : <OnlineIcon color="success" />}
+                {isOffline ? (
+                  <OfflineIcon color="error" />
+                ) : (
+                  <OnlineIcon color="success" />
+                )}
                 <Typography variant="body2">
-                  {isOffline 
-                    ? 'Offline režim' 
-                    : `Online - kvalita: ${networkQuality}`
-                  }
+                  {isOffline
+                    ? 'Offline režim'
+                    : `Online - kvalita: ${networkQuality}`}
                 </Typography>
               </Box>
             </Box>
@@ -377,7 +392,8 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
 
             {isInstalled && (
               <Alert severity="success">
-                🎉 Aplikácia je úspešne nainštalovaná a beží v standalone režime!
+                🎉 Aplikácia je úspešne nainštalovaná a beží v standalone
+                režime!
               </Alert>
             )}
 
@@ -390,11 +406,13 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setShowDialog(false)}>
-            Zavrieť
-          </Button>
+          <Button onClick={() => setShowDialog(false)}>Zavrieť</Button>
           {isInstallable && (
-            <Button variant="contained" onClick={handleInstall} startIcon={<InstallIcon />}>
+            <Button
+              variant="contained"
+              onClick={handleInstall}
+              startIcon={<InstallIcon />}
+            >
               Nainštalovať
             </Button>
           )}

@@ -1,4 +1,21 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  FilterList as FilterListIcon,
+  Receipt as ReceiptIcon,
+  LocalGasStation as FuelIcon,
+  Build as ServiceIcon,
+  Security as InsuranceIcon,
+  Category as OtherIcon,
+  DateRange as DateIcon,
+  Euro as EuroIcon,
+  Business as CompanyIcon,
+  DirectionsCar as VehicleIcon,
+  Settings as SettingsIcon,
+  Repeat as RepeatIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -20,72 +37,66 @@ import {
   useTheme,
   Tooltip,
   Alert,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  Receipt as ReceiptIcon,
-  LocalGasStation as FuelIcon,
-  Build as ServiceIcon,
-  Security as InsuranceIcon,
-  Category as OtherIcon,
-  DateRange as DateIcon,
-  Euro as EuroIcon,
-  Business as CompanyIcon,
-  DirectionsCar as VehicleIcon,
-  Settings as SettingsIcon,
-  Repeat as RepeatIcon
-} from '@mui/icons-material';
-import { useApp } from '../../context/AppContext';
-import { Expense, ExpenseCategory } from '../../types';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import ExpenseForm from './ExpenseForm';
-import ExpenseCategoryManager from './ExpenseCategoryManager';
-import RecurringExpenseManager from './RecurringExpenseManager';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
-import { Vehicle } from '../../types';
+import React, { useState, useMemo, useEffect } from 'react';
+
+import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
+import { Vehicle } from '../../types';
+import { Expense, ExpenseCategory } from '../../types';
+
+import ExpenseCategoryManager from './ExpenseCategoryManager';
+import ExpenseForm from './ExpenseForm';
+import RecurringExpenseManager from './RecurringExpenseManager';
 
 // Helper funkcie pre dynamické kategórie
-const getCategoryIcon = (categoryName: string, categories: ExpenseCategory[]) => {
+const getCategoryIcon = (
+  categoryName: string,
+  categories: ExpenseCategory[]
+) => {
   const category = categories.find(c => c.name === categoryName);
   if (!category) return <ReceiptIcon fontSize="small" />;
-  
+
   // Mapovanie ikon na Material UI komponenty
   const iconMap: Record<string, React.ReactElement> = {
-    'local_gas_station': <FuelIcon fontSize="small" />,
-    'build': <ServiceIcon fontSize="small" />,
-    'security': <InsuranceIcon fontSize="small" />,
-    'category': <OtherIcon fontSize="small" />,
-    'receipt': <ReceiptIcon fontSize="small" />
+    local_gas_station: <FuelIcon fontSize="small" />,
+    build: <ServiceIcon fontSize="small" />,
+    security: <InsuranceIcon fontSize="small" />,
+    category: <OtherIcon fontSize="small" />,
+    receipt: <ReceiptIcon fontSize="small" />,
   };
-  
+
   return iconMap[category.icon] || <ReceiptIcon fontSize="small" />;
 };
 
-const getCategoryText = (categoryName: string, categories: ExpenseCategory[]) => {
+const getCategoryText = (
+  categoryName: string,
+  categories: ExpenseCategory[]
+) => {
   const category = categories.find(c => c.name === categoryName);
   return category?.displayName || categoryName;
 };
 
-const getCategoryColor = (categoryName: string, categories: ExpenseCategory[]): 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' => {
+const getCategoryColor = (
+  categoryName: string,
+  categories: ExpenseCategory[]
+): 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' => {
   const category = categories.find(c => c.name === categoryName);
   return category?.color || 'primary';
 };
 
 const ExpenseListNew: React.FC = () => {
-  const { 
-    getFilteredExpenses, 
-    getFilteredVehicles, 
-    deleteExpense, 
-    createExpense, 
-    updateExpense 
+  const {
+    getFilteredExpenses,
+    getFilteredVehicles,
+    deleteExpense,
+    createExpense,
+    updateExpense,
   } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
@@ -105,13 +116,18 @@ const ExpenseListNew: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [categoriesManagerOpen, setCategoriesManagerOpen] = useState(false);
   const [recurringManagerOpen, setRecurringManagerOpen] = useState(false);
-  
+
   // Dynamické kategórie
-  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>(
+    []
+  );
 
   // Get unique values for filters
-  const uniqueCompanies = useMemo(() => 
-    Array.from(new Set(expenses.map((e: Expense) => e.company).filter(Boolean))).sort(),
+  const uniqueCompanies = useMemo(
+    () =>
+      Array.from(
+        new Set(expenses.map((e: Expense) => e.company).filter(Boolean))
+      ).sort(),
     [expenses]
   );
 
@@ -132,40 +148,50 @@ const ExpenseListNew: React.FC = () => {
   // Filtered expenses
   const filteredExpenses = useMemo(() => {
     return expenses.filter((expense: Expense) => {
-      const matchesSearch = !searchQuery || 
+      const matchesSearch =
+        !searchQuery ||
         expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         expense.note?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         expense.company.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesCategory = categoryFilter === 'all' || expense.category === categoryFilter;
-      const matchesCompany = !companyFilter || expense.company === companyFilter;
-      const matchesVehicle = !vehicleFilter || expense.vehicleId === vehicleFilter;
-      
-      return matchesSearch && matchesCategory && matchesCompany && matchesVehicle;
+
+      const matchesCategory =
+        categoryFilter === 'all' || expense.category === categoryFilter;
+      const matchesCompany =
+        !companyFilter || expense.company === companyFilter;
+      const matchesVehicle =
+        !vehicleFilter || expense.vehicleId === vehicleFilter;
+
+      return (
+        matchesSearch && matchesCategory && matchesCompany && matchesVehicle
+      );
     });
   }, [expenses, searchQuery, categoryFilter, companyFilter, vehicleFilter]);
 
   // Calculate totals
-  const totalAmount = useMemo(() => 
-    filteredExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0),
+  const totalAmount = useMemo(
+    () =>
+      filteredExpenses.reduce(
+        (sum: number, expense: Expense) => sum + expense.amount,
+        0
+      ),
     [filteredExpenses]
   );
 
   const categoryTotals = useMemo(() => {
     const totals: Record<string, number> = {};
-    
+
     // Inicializuj všetky kategórie na 0
     expenseCategories.forEach(category => {
       totals[category.name] = 0;
     });
-    
+
     // Spočítaj sumy pre každú kategóriu
     filteredExpenses.forEach((expense: Expense) => {
       if (totals[expense.category] !== undefined) {
         totals[expense.category] += expense.amount;
       }
     });
-    
+
     return totals;
   }, [filteredExpenses, expenseCategories]);
 
@@ -181,7 +207,9 @@ const ExpenseListNew: React.FC = () => {
   };
 
   const handleDeleteExpense = async (expense: Expense) => {
-    if (window.confirm(`Naozaj chcete zmazať náklad "${expense.description}"?`)) {
+    if (
+      window.confirm(`Naozaj chcete zmazať náklad "${expense.description}"?`)
+    ) {
       setLoading(true);
       try {
         await deleteExpense(expense.id);
@@ -217,7 +245,7 @@ const ExpenseListNew: React.FC = () => {
       const blob = await apiService.exportExpensesCSV();
       const filename = `naklady-${new Date().toISOString().split('T')[0]}.csv`;
       saveAs(blob, filename);
-      
+
       alert('CSV export úspešný');
     } catch (error) {
       console.error('CSV export error:', error);
@@ -233,7 +261,7 @@ const ExpenseListNew: React.FC = () => {
       complete: async (results: any) => {
         try {
           console.log('📥 Parsing CSV file for batch expense import...');
-          
+
           if (!results.data || results.data.length < 2) {
             alert('CSV súbor musí obsahovať aspoň hlavičku a jeden riadok dát');
             return;
@@ -250,8 +278,9 @@ const ExpenseListNew: React.FC = () => {
           // Inteligentné mapovanie stĺpcov
           const getColumnIndex = (possibleNames: string[]) => {
             for (const name of possibleNames) {
-              const index = headers.findIndex((h: string) => 
-                h && h.toString().toLowerCase().trim() === name.toLowerCase()
+              const index = headers.findIndex(
+                (h: string) =>
+                  h && h.toString().toLowerCase().trim() === name.toLowerCase()
               );
               if (index !== -1) return index;
             }
@@ -260,35 +289,75 @@ const ExpenseListNew: React.FC = () => {
 
           const columnMap = {
             id: getColumnIndex(['id', 'ID']),
-            description: getColumnIndex(['description', 'popis', 'Description', 'Popis']),
-            amount: getColumnIndex(['amount', 'suma', 'Amount', 'Suma', 'cena', 'Cena']),
+            description: getColumnIndex([
+              'description',
+              'popis',
+              'Description',
+              'Popis',
+            ]),
+            amount: getColumnIndex([
+              'amount',
+              'suma',
+              'Amount',
+              'Suma',
+              'cena',
+              'Cena',
+            ]),
             date: getColumnIndex(['date', 'datum', 'Date', 'Dátum']),
-            category: getColumnIndex(['category', 'kategoria', 'Category', 'Kategória']),
+            category: getColumnIndex([
+              'category',
+              'kategoria',
+              'Category',
+              'Kategória',
+            ]),
             company: getColumnIndex(['company', 'firma', 'Company', 'Firma']),
-            vehicleId: getColumnIndex(['vehicleId', 'vehicle_id', 'vozidlo_id']),
-            vehicleLicensePlate: getColumnIndex(['vehicleLicensePlate', 'spz', 'SPZ', 'license_plate']),
-            note: getColumnIndex(['note', 'poznamka', 'Note', 'Poznámka'])
+            vehicleId: getColumnIndex([
+              'vehicleId',
+              'vehicle_id',
+              'vozidlo_id',
+            ]),
+            vehicleLicensePlate: getColumnIndex([
+              'vehicleLicensePlate',
+              'spz',
+              'SPZ',
+              'license_plate',
+            ]),
+            note: getColumnIndex(['note', 'poznamka', 'Note', 'Poznámka']),
           };
 
           console.log('🗺️ Column mapping:', columnMap);
 
           for (let i = 0; i < dataRows.length; i++) {
             const row = dataRows[i];
-            
+
             // Preskočíme prázdne riadky
-            if (!row || row.length === 0 || !row.some((cell: any) => cell && cell.toString().trim())) {
+            if (
+              !row ||
+              row.length === 0 ||
+              !row.some((cell: any) => cell && cell.toString().trim())
+            ) {
               continue;
             }
 
             // Mapovanie polí pomocou inteligentného mapovania
             const id = columnMap.id >= 0 ? row[columnMap.id] : undefined;
-            const description = columnMap.description >= 0 ? row[columnMap.description] : undefined;
-            const amount = columnMap.amount >= 0 ? row[columnMap.amount] : undefined;
+            const description =
+              columnMap.description >= 0
+                ? row[columnMap.description]
+                : undefined;
+            const amount =
+              columnMap.amount >= 0 ? row[columnMap.amount] : undefined;
             const date = columnMap.date >= 0 ? row[columnMap.date] : undefined;
-            const category = columnMap.category >= 0 ? row[columnMap.category] : undefined;
-            const company = columnMap.company >= 0 ? row[columnMap.company] : undefined;
-            const vehicleId = columnMap.vehicleId >= 0 ? row[columnMap.vehicleId] : undefined;
-            const vehicleLicensePlate = columnMap.vehicleLicensePlate >= 0 ? row[columnMap.vehicleLicensePlate] : undefined;
+            const category =
+              columnMap.category >= 0 ? row[columnMap.category] : undefined;
+            const company =
+              columnMap.company >= 0 ? row[columnMap.company] : undefined;
+            const vehicleId =
+              columnMap.vehicleId >= 0 ? row[columnMap.vehicleId] : undefined;
+            const vehicleLicensePlate =
+              columnMap.vehicleLicensePlate >= 0
+                ? row[columnMap.vehicleLicensePlate]
+                : undefined;
             const note = columnMap.note >= 0 ? row[columnMap.note] : undefined;
 
             // Kontrola povinných polí
@@ -302,7 +371,9 @@ const ExpenseListNew: React.FC = () => {
             if (amount && amount.toString().trim() !== '') {
               parsedAmount = parseFloat(amount.toString().replace(',', '.'));
               if (isNaN(parsedAmount)) {
-                console.warn(`Riadok ${i + 2}: Neplatná suma "${amount}", nastavujem na 0`);
+                console.warn(
+                  `Riadok ${i + 2}: Neplatná suma "${amount}", nastavujem na 0`
+                );
                 parsedAmount = 0;
               }
             }
@@ -311,7 +382,7 @@ const ExpenseListNew: React.FC = () => {
             let parsedDate = new Date();
             if (date && date.toString().trim()) {
               const dateStr = date.toString().trim();
-              
+
               // Formát MM/YYYY sa zmení na 01.MM.YYYY
               if (/^\d{1,2}\/\d{4}$/.test(dateStr)) {
                 const [month, year] = dateStr.split('/');
@@ -330,19 +401,19 @@ const ExpenseListNew: React.FC = () => {
             if (category && category.toString().trim()) {
               const categoryStr = category.toString().toLowerCase().trim();
               const categoryMap: { [key: string]: string } = {
-                'fuel': 'fuel',
-                'palivo': 'fuel',
-                'benzín': 'fuel',
-                'nafta': 'fuel',
-                'service': 'service',
-                'servis': 'service',
-                'oprava': 'service',
-                'údržba': 'service',
-                'insurance': 'insurance',
-                'poistenie': 'insurance',
-                'other': 'other',
-                'ostatné': 'other',
-                'iné': 'other'
+                fuel: 'fuel',
+                palivo: 'fuel',
+                benzín: 'fuel',
+                nafta: 'fuel',
+                service: 'service',
+                servis: 'service',
+                oprava: 'service',
+                údržba: 'service',
+                insurance: 'insurance',
+                poistenie: 'insurance',
+                other: 'other',
+                ostatné: 'other',
+                iné: 'other',
               };
               mappedCategory = categoryMap[categoryStr] || 'other';
             }
@@ -354,46 +425,74 @@ const ExpenseListNew: React.FC = () => {
               amount: parsedAmount,
               date: parsedDate,
               category: mappedCategory,
-              vehicleId: (vehicleId && vehicleId.toString().trim() !== '') ? vehicleId.toString().trim() : undefined,
-              company: (company && company.toString().trim() !== '') ? company.toString().trim() : 'Black Holding',
-              note: (note && note.toString().trim() !== '') ? note.toString().trim() : undefined
+              vehicleId:
+                vehicleId && vehicleId.toString().trim() !== ''
+                  ? vehicleId.toString().trim()
+                  : undefined,
+              company:
+                company && company.toString().trim() !== ''
+                  ? company.toString().trim()
+                  : 'Black Holding',
+              note:
+                note && note.toString().trim() !== ''
+                  ? note.toString().trim()
+                  : undefined,
             };
 
-            console.log(`💰 Expense ${i + 2}: ${expenseData.description} - ${expenseData.amount}€ - Company: "${expenseData.company}"`);
+            console.log(
+              `💰 Expense ${i + 2}: ${expenseData.description} - ${expenseData.amount}€ - Company: "${expenseData.company}"`
+            );
 
             batchExpenses.push(expenseData);
           }
 
-          console.log(`📦 Pripravených ${batchExpenses.length} nákladov pre batch import`);
-          
+          console.log(
+            `📦 Pripravených ${batchExpenses.length} nákladov pre batch import`
+          );
+
           // Použij batch import namiesto CSV importu
           const result = await apiService.batchImportExpenses(batchExpenses);
-          
+
           console.log('📥 CSV Import result:', result);
-          
+
           // Result už obsahuje priamo dáta, nie je wrapped v success/data
-          const { created, updated, errorsCount, successRate, processed, total } = result;
-          
+          const {
+            created,
+            updated,
+            errorsCount,
+            successRate,
+            processed,
+            total,
+          } = result;
+
           if (created > 0 || updated > 0) {
-            alert(`🚀 BATCH IMPORT ÚSPEŠNÝ!\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Spracovaných: ${processed}/${total}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nStránka sa obnoví za 3 sekundy...`);
+            alert(
+              `🚀 BATCH IMPORT ÚSPEŠNÝ!\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Spracovaných: ${processed}/${total}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nStránka sa obnoví za 3 sekundy...`
+            );
             setTimeout(() => window.location.reload(), 3000);
           } else if (errorsCount > 0) {
-            alert(`⚠️ Import dokončený, ale žiadne náklady neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nSkontrolujte formát CSV súboru.`);
+            alert(
+              `⚠️ Import dokončený, ale žiadne náklady neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nSkontrolujte formát CSV súboru.`
+            );
           } else {
-            alert(`⚠️ Import dokončený, ale žiadne náklady neboli pridané.\nSkontrolujte formát CSV súboru.`);
+            alert(
+              `⚠️ Import dokončený, ale žiadne náklady neboli pridané.\nSkontrolujte formát CSV súboru.`
+            );
           }
         } catch (error) {
           console.error('❌ CSV import error:', error);
           // ✅ ZLEPŠENÉ ERROR HANDLING - menej dramatické
-          alert(`⚠️ Import dokončený s upozornením: ${error instanceof Error ? error.message : 'Sieťová chyba'}\n\nSkontrolujte výsledok po obnovení stránky.`);
+          alert(
+            `⚠️ Import dokončený s upozornením: ${error instanceof Error ? error.message : 'Sieťová chyba'}\n\nSkontrolujte výsledok po obnovení stránky.`
+          );
           // Aj tak skús refresh - možno sa import dokončil
           setTimeout(() => window.location.reload(), 2000);
         }
       },
       header: false,
-      skipEmptyLines: true
+      skipEmptyLines: true,
     });
-    
+
     // Reset input
     event.target.value = '';
   };
@@ -410,16 +509,21 @@ const ExpenseListNew: React.FC = () => {
       {/* Header */}
       <Card sx={{ mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
         <CardContent>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 2
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 2,
+            }}
+          >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <ReceiptIcon sx={{ color: '#1976d2', fontSize: 28 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#1976d2' }}>
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: 700, color: '#1976d2' }}
+              >
                 Náklady
               </Typography>
             </Box>
@@ -436,10 +540,13 @@ const ExpenseListNew: React.FC = () => {
                 variant="outlined"
                 startIcon={<RepeatIcon />}
                 onClick={() => setRecurringManagerOpen(true)}
-                sx={{ 
+                sx={{
                   borderColor: '#4caf50',
                   color: '#4caf50',
-                  '&:hover': { borderColor: '#388e3c', bgcolor: 'rgba(76, 175, 80, 0.04)' }
+                  '&:hover': {
+                    borderColor: '#388e3c',
+                    bgcolor: 'rgba(76, 175, 80, 0.04)',
+                  },
                 }}
               >
                 Pravidelné náklady
@@ -448,10 +555,13 @@ const ExpenseListNew: React.FC = () => {
                 variant="outlined"
                 startIcon={<SettingsIcon />}
                 onClick={() => setCategoriesManagerOpen(true)}
-                sx={{ 
+                sx={{
                   borderColor: '#1976d2',
                   color: '#1976d2',
-                  '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' }
+                  '&:hover': {
+                    borderColor: '#1565c0',
+                    bgcolor: 'rgba(25, 118, 210, 0.04)',
+                  },
                 }}
               >
                 Spravovať kategórie
@@ -466,14 +576,17 @@ const ExpenseListNew: React.FC = () => {
                   >
                     📊 Export CSV
                   </Button>
-                  
+
                   <Button
                     variant="outlined"
                     component="label"
                     sx={{
                       borderColor: '#1976d2',
                       color: '#1976d2',
-                      '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' }
+                      '&:hover': {
+                        borderColor: '#1565c0',
+                        bgcolor: 'rgba(25, 118, 210, 0.04)',
+                      },
                     }}
                   >
                     📥 Import CSV
@@ -494,17 +607,26 @@ const ExpenseListNew: React.FC = () => {
       {/* Search and Filters */}
       <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 2,
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
             <TextField
               placeholder="Hľadať náklady..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               InputProps={{
-                startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
+                startAdornment: (
+                  <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
+                ),
               }}
               sx={{ minWidth: 250, flexGrow: 1 }}
             />
-            
+
             <Button
               variant={showFilters ? 'contained' : 'outlined'}
               startIcon={<FilterListIcon />}
@@ -512,7 +634,7 @@ const ExpenseListNew: React.FC = () => {
             >
               Filtre
             </Button>
-            
+
             {(categoryFilter !== 'all' || companyFilter || vehicleFilter) && (
               <Button variant="text" onClick={clearFilters}>
                 Vymazať filtre
@@ -528,13 +650,19 @@ const ExpenseListNew: React.FC = () => {
                     <InputLabel>Kategória</InputLabel>
                     <Select
                       value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      onChange={e => setCategoryFilter(e.target.value)}
                       label="Kategória"
                     >
                       <MenuItem value="all">Všetky kategórie</MenuItem>
                       {expenseCategories.map(category => (
                         <MenuItem key={category.name} value={category.name}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
                             {getCategoryIcon(category.name, expenseCategories)}
                             {getCategoryText(category.name, expenseCategories)}
                           </Box>
@@ -543,35 +671,38 @@ const ExpenseListNew: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                
+
                 <Grid item xs={12} sm={6} md={3}>
                   <FormControl fullWidth>
                     <InputLabel>Firma</InputLabel>
                     <Select
                       value={companyFilter}
-                      onChange={(e) => setCompanyFilter(e.target.value)}
+                      onChange={e => setCompanyFilter(e.target.value)}
                       label="Firma"
                     >
                       <MenuItem value="">Všetky firmy</MenuItem>
                       {uniqueCompanies.map((company: string) => (
-                        <MenuItem key={company} value={company}>{company}</MenuItem>
+                        <MenuItem key={company} value={company}>
+                          {company}
+                        </MenuItem>
                       ))}
                     </Select>
                   </FormControl>
                 </Grid>
-                
+
                 <Grid item xs={12} sm={6} md={3}>
                   <FormControl fullWidth>
                     <InputLabel>Vozidlo</InputLabel>
                     <Select
                       value={vehicleFilter}
-                      onChange={(e) => setVehicleFilter(e.target.value)}
+                      onChange={e => setVehicleFilter(e.target.value)}
                       label="Vozidlo"
                     >
                       <MenuItem value="">Všetky vozidlá</MenuItem>
                       {vehicles.map((vehicle: Vehicle) => (
                         <MenuItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                          {vehicle.brand} {vehicle.model} -{' '}
+                          {vehicle.licensePlate}
                         </MenuItem>
                       ))}
                     </Select>
@@ -586,13 +717,21 @@ const ExpenseListNew: React.FC = () => {
       {/* Statistics Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-          }}>
+          <Card
+            sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            }}
+          >
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
                     Celkom
@@ -606,15 +745,23 @@ const ExpenseListNew: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        
+
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ 
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-          }}>
+          <Card
+            sx={{
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            }}
+          >
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
                     Suma
@@ -628,19 +775,28 @@ const ExpenseListNew: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        
+
         {/* Dynamické karty pre top 2 kategórie */}
         {expenseCategories.slice(0, 2).map((category, index) => (
           <Grid item xs={12} sm={6} md={3} key={category.name}>
-            <Card sx={{ 
-              background: index === 0 
-                ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-                : 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-            }}>
+            <Card
+              sx={{
+                background:
+                  index === 0
+                    ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                    : 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                color: 'white',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              }}
+            >
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
                   <Box>
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
                       {category.displayName}
@@ -669,7 +825,9 @@ const ExpenseListNew: React.FC = () => {
           {filteredExpenses.length === 0 ? (
             <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
               <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                <ReceiptIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                <ReceiptIcon
+                  sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }}
+                />
                 <Typography variant="h6" color="text.secondary">
                   Žiadne náklady nenájdené
                 </Typography>
@@ -677,109 +835,178 @@ const ExpenseListNew: React.FC = () => {
             </Card>
           ) : (
             filteredExpenses.map((expense: Expense) => {
-              const vehicle = expense.vehicleId ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId) : null;
-              
+              const vehicle = expense.vehicleId
+                ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId)
+                : null;
+
               return (
-                <Card key={expense.id} sx={{ 
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  borderRadius: 2,
-                  '&:hover': {
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                    transform: 'translateY(-2px)'
-                  },
-                  transition: 'all 0.2s ease'
-                }}>
+                <Card
+                  key={expense.id}
+                  sx={{
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    borderRadius: 2,
+                    '&:hover': {
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                      transform: 'translateY(-2px)',
+                    },
+                    transition: 'all 0.2s ease',
+                  }}
+                >
                   <CardContent sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        mb: 2,
+                      }}
+                    >
                       <Box sx={{ flexGrow: 1, mr: 2 }}>
-                        <Typography variant="h6" sx={{ 
-                          fontWeight: 600, 
-                          mb: 0.5,
-                          wordWrap: 'break-word'
-                        }}>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 600,
+                            mb: 0.5,
+                            wordWrap: 'break-word',
+                          }}
+                        >
                           {expense.description}
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            mb: 1,
+                          }}
+                        >
                           <Chip
-                            icon={getCategoryIcon(expense.category, expenseCategories)}
-                            label={getCategoryText(expense.category, expenseCategories)}
-                            color={getCategoryColor(expense.category, expenseCategories)}
+                            icon={getCategoryIcon(
+                              expense.category,
+                              expenseCategories
+                            )}
+                            label={getCategoryText(
+                              expense.category,
+                              expenseCategories
+                            )}
+                            color={getCategoryColor(
+                              expense.category,
+                              expenseCategories
+                            )}
                             size="small"
                             sx={{ fontWeight: 600 }}
                           />
-                          <Typography variant="h6" sx={{ 
-                            fontWeight: 700, 
-                            color: '#1976d2' 
-                          }}>
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: 700,
+                              color: '#1976d2',
+                            }}
+                          >
                             {expense.amount.toFixed(2)}€
                           </Typography>
                         </Box>
                       </Box>
-                      
+
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           onClick={() => handleEditExpense(expense)}
-                          sx={{ 
+                          sx={{
                             backgroundColor: '#f5f5f5',
-                            '&:hover': { backgroundColor: '#e0e0e0' }
+                            '&:hover': { backgroundColor: '#e0e0e0' },
                           }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           onClick={() => handleDeleteExpense(expense)}
-                          sx={{ 
+                          sx={{
                             backgroundColor: '#ffebee',
                             color: '#d32f2f',
-                            '&:hover': { backgroundColor: '#ffcdd2' }
+                            '&:hover': { backgroundColor: '#ffcdd2' },
                           }}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Box>
                     </Box>
-                    
+
                     <Divider sx={{ my: 1 }} />
-                    
+
                     <Grid container spacing={1} sx={{ fontSize: '0.875rem' }}>
                       <Grid item xs={6}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <DateIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                          }}
+                        >
+                          <DateIcon
+                            fontSize="small"
+                            sx={{ color: 'text.secondary' }}
+                          />
                           <Typography variant="body2" color="text.secondary">
                             {format(new Date(expense.date), 'dd.MM.yyyy')}
                           </Typography>
                         </Box>
                       </Grid>
                       <Grid item xs={6}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <CompanyIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                          <Typography variant="body2" color="text.secondary" noWrap>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                          }}
+                        >
+                          <CompanyIcon
+                            fontSize="small"
+                            sx={{ color: 'text.secondary' }}
+                          />
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            noWrap
+                          >
                             {expense.company}
                           </Typography>
                         </Box>
                       </Grid>
                       {vehicle && (
                         <Grid item xs={12}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <VehicleIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                            }}
+                          >
+                            <VehicleIcon
+                              fontSize="small"
+                              sx={{ color: 'text.secondary' }}
+                            />
                             <Typography variant="body2" color="text.secondary">
-                              {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                              {vehicle.brand} {vehicle.model} -{' '}
+                              {vehicle.licensePlate}
                             </Typography>
                           </Box>
                         </Grid>
                       )}
                       {expense.note && (
                         <Grid item xs={12}>
-                          <Typography variant="body2" sx={{ 
-                            fontStyle: 'italic',
-                            color: 'text.secondary',
-                            mt: 1,
-                            p: 1,
-                            backgroundColor: '#f5f5f5',
-                            borderRadius: 1
-                          }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontStyle: 'italic',
+                              color: 'text.secondary',
+                              mt: 1,
+                              p: 1,
+                              backgroundColor: '#f5f5f5',
+                              borderRadius: 1,
+                            }}
+                          >
                             {expense.note}
                           </Typography>
                         </Grid>
@@ -794,44 +1021,69 @@ const ExpenseListNew: React.FC = () => {
       ) : (
         /* Desktop Layout */
         <Card sx={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-          <Box sx={{ 
-            position: 'sticky', 
-            top: 0, 
-            backgroundColor: 'white', 
-            zIndex: 1,
-            borderBottom: '2px solid #f0f0f0'
-          }}>
-            <Box sx={{ 
-              display: 'grid',
-              gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 120px',
-              gap: 2,
-              p: 2,
-              fontWeight: 600,
-              color: '#1976d2',
-              backgroundColor: '#f8f9fa'
-            }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Popis</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Kategória</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Suma</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Dátum</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Firma</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Vozidlo</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>Akcie</Typography>
+          <Box
+            sx={{
+              position: 'sticky',
+              top: 0,
+              backgroundColor: 'white',
+              zIndex: 1,
+              borderBottom: '2px solid #f0f0f0',
+            }}
+          >
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 120px',
+                gap: 2,
+                p: 2,
+                fontWeight: 600,
+                color: '#1976d2',
+                backgroundColor: '#f8f9fa',
+              }}
+            >
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Popis
+              </Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Kategória
+              </Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Suma
+              </Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Dátum
+              </Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Firma
+              </Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Vozidlo
+              </Typography>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 700, textAlign: 'center' }}
+              >
+                Akcie
+              </Typography>
             </Box>
           </Box>
-          
+
           <Box sx={{ maxHeight: '600px', overflow: 'auto' }}>
             {filteredExpenses.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
-                <ReceiptIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                <ReceiptIcon
+                  sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }}
+                />
                 <Typography variant="h6" color="text.secondary">
                   Žiadne náklady nenájdené
                 </Typography>
               </Box>
             ) : (
               filteredExpenses.map((expense: Expense, index: number) => {
-                const vehicle = expense.vehicleId ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId) : null;
-                
+                const vehicle = expense.vehicleId
+                  ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId)
+                  : null;
+
                 return (
                   <Box
                     key={expense.id}
@@ -844,77 +1096,114 @@ const ExpenseListNew: React.FC = () => {
                       backgroundColor: index % 2 === 0 ? '#fafafa' : 'white',
                       '&:hover': {
                         backgroundColor: '#f0f7ff',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
                       },
-                      transition: 'background-color 0.2s ease'
+                      transition: 'background-color 0.2s ease',
                     }}
                   >
                     <Box>
-                      <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      <Typography
+                        variant="body1"
+                        sx={{ fontWeight: 600, mb: 0.5 }}
+                      >
                         {expense.description}
                       </Typography>
                       {expense.note && (
-                        <Typography variant="body2" sx={{ 
-                          color: 'text.secondary',
-                          fontStyle: 'italic'
-                        }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: 'text.secondary',
+                            fontStyle: 'italic',
+                          }}
+                        >
                           {expense.note}
                         </Typography>
                       )}
                     </Box>
-                    
+
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <Chip
-                        icon={getCategoryIcon(expense.category, expenseCategories)}
-                        label={getCategoryText(expense.category, expenseCategories)}
-                        color={getCategoryColor(expense.category, expenseCategories)}
+                        icon={getCategoryIcon(
+                          expense.category,
+                          expenseCategories
+                        )}
+                        label={getCategoryText(
+                          expense.category,
+                          expenseCategories
+                        )}
+                        color={getCategoryColor(
+                          expense.category,
+                          expenseCategories
+                        )}
                         size="small"
                         sx={{ fontWeight: 600 }}
                       />
                     </Box>
-                    
-                    <Typography variant="body1" sx={{ 
-                      fontWeight: 700, 
-                      color: '#1976d2',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}>
+
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        fontWeight: 700,
+                        color: '#1976d2',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
                       {expense.amount.toFixed(2)}€
                     </Typography>
-                    
-                    <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
+
+                    <Typography
+                      variant="body2"
+                      sx={{ display: 'flex', alignItems: 'center' }}
+                    >
                       {format(new Date(expense.date), 'dd.MM.yyyy')}
                     </Typography>
-                    
-                    <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }} noWrap>
+
+                    <Typography
+                      variant="body2"
+                      sx={{ display: 'flex', alignItems: 'center' }}
+                      noWrap
+                    >
                       {expense.company}
                     </Typography>
-                    
-                    <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }} noWrap>
-                      {vehicle ? `${vehicle.brand} ${vehicle.model} - ${vehicle.licensePlate}` : '-'}
+
+                    <Typography
+                      variant="body2"
+                      sx={{ display: 'flex', alignItems: 'center' }}
+                      noWrap
+                    >
+                      {vehicle
+                        ? `${vehicle.brand} ${vehicle.model} - ${vehicle.licensePlate}`
+                        : '-'}
                     </Typography>
-                    
-                    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        gap: 0.5,
+                        justifyContent: 'center',
+                      }}
+                    >
                       <Tooltip title="Upraviť">
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           onClick={() => handleEditExpense(expense)}
-                          sx={{ 
+                          sx={{
                             backgroundColor: '#f5f5f5',
-                            '&:hover': { backgroundColor: '#e0e0e0' }
+                            '&:hover': { backgroundColor: '#e0e0e0' },
                           }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Zmazať">
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           onClick={() => handleDeleteExpense(expense)}
-                          sx={{ 
+                          sx={{
                             backgroundColor: '#ffebee',
                             color: '#d32f2f',
-                            '&:hover': { backgroundColor: '#ffcdd2' }
+                            '&:hover': { backgroundColor: '#ffcdd2' },
                           }}
                         >
                           <DeleteIcon fontSize="small" />
@@ -930,8 +1219,8 @@ const ExpenseListNew: React.FC = () => {
       )}
 
       {/* Form Dialog */}
-      <Dialog 
-        open={formOpen} 
+      <Dialog
+        open={formOpen}
         onClose={() => setFormOpen(false)}
         maxWidth="md"
         fullWidth
@@ -965,4 +1254,4 @@ const ExpenseListNew: React.FC = () => {
   );
 };
 
-export default ExpenseListNew; 
+export default ExpenseListNew;

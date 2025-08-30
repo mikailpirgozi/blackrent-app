@@ -1,6 +1,6 @@
 /**
  * 🚫 ADD UNAVAILABILITY MODAL
- * 
+ *
  * Modal pre pridávanie nedostupnosti vozidiel
  * - Výber vozidla
  * - Typ nedostupnosti (prenájom mimo systém / servis)
@@ -8,7 +8,13 @@
  * - Poznámky
  */
 
-import React, { useState, useEffect } from 'react';
+import {
+  Block as BlockIcon,
+  Build as ServiceIcon,
+  DirectionsCar as RentedIcon,
+  Warning as WarningIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -27,20 +33,14 @@ import {
   Chip,
   Autocomplete,
   FormControlLabel,
-  Switch
+  Switch,
 } from '@mui/material';
-import {
-  Block as BlockIcon,
-  Build as ServiceIcon,
-  DirectionsCar as RentedIcon,
-  Warning as WarningIcon,
-  Close as CloseIcon
-} from '@mui/icons-material';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { sk } from 'date-fns/locale';
 import { format, addDays, isAfter, isBefore } from 'date-fns';
+import { sk } from 'date-fns/locale';
+import React, { useState, useEffect } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
@@ -82,35 +82,36 @@ const UNAVAILABILITY_TYPES = [
     label: 'Prenajatý mimo systém',
     icon: <RentedIcon />,
     color: '#ff9800',
-    description: 'Vozidlo si prenajal majiteľ alebo je prenajatý cez inú platformu'
+    description:
+      'Vozidlo si prenajal majiteľ alebo je prenajatý cez inú platformu',
   },
   {
     value: 'service' as const,
     label: 'Servis',
     icon: <ServiceIcon />,
     color: '#f44336',
-    description: 'Vozidlo je v servise alebo na oprave'
+    description: 'Vozidlo je v servise alebo na oprave',
   },
   {
     value: 'maintenance' as const,
     label: 'Údržba',
     icon: <ServiceIcon />,
     color: '#9c27b0',
-    description: 'Plánovaná údržba vozidla'
+    description: 'Plánovaná údržba vozidla',
   },
   {
     value: 'blocked' as const,
     label: 'Blokované',
     icon: <BlockIcon />,
     color: '#607d8b',
-    description: 'Vozidlo je dočasne blokované'
-  }
+    description: 'Vozidlo je dočasne blokované',
+  },
 ];
 
 const PRIORITY_LEVELS = [
   { value: 1, label: 'Kritická', color: '#f44336' },
   { value: 2, label: 'Normálna', color: '#ff9800' },
-  { value: 3, label: 'Nízka', color: '#4caf50' }
+  { value: 3, label: 'Nízka', color: '#4caf50' },
 ];
 
 const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
@@ -119,13 +120,15 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
   onSuccess,
   preselectedVehicle,
   preselectedDate,
-  editingUnavailability
+  editingUnavailability,
 }) => {
   const { getFilteredVehicles } = useApp();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [existingUnavailabilities, setExistingUnavailabilities] = useState<any[]>([]);
-  
+  const [existingUnavailabilities, setExistingUnavailabilities] = useState<
+    any[]
+  >([]);
+
   const [formData, setFormData] = useState<UnavailabilityFormData>({
     vehicleId: '',
     startDate: null,
@@ -134,7 +137,7 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
     reason: '',
     notes: '',
     priority: 2,
-    recurring: false
+    recurring: false,
   });
 
   const vehicles = getFilteredVehicles();
@@ -152,21 +155,21 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
           reason: editingUnavailability.reason,
           notes: editingUnavailability.notes || '',
           priority: (editingUnavailability.priority || 2) as any,
-          recurring: editingUnavailability.recurring || false
+          recurring: editingUnavailability.recurring || false,
         });
       } else {
         // Creating new unavailability - use preselected data
         if (preselectedVehicle) {
           setFormData(prev => ({
             ...prev,
-            vehicleId: preselectedVehicle.id
+            vehicleId: preselectedVehicle.id,
           }));
         }
         if (preselectedDate) {
           setFormData(prev => ({
             ...prev,
             startDate: preselectedDate,
-            endDate: addDays(preselectedDate, 1) // Default to next day
+            endDate: addDays(preselectedDate, 1), // Default to next day
           }));
         }
       }
@@ -175,11 +178,13 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
 
   // Auto-generate reason based on type
   useEffect(() => {
-    const typeConfig = UNAVAILABILITY_TYPES.find(t => t.value === formData.type);
+    const typeConfig = UNAVAILABILITY_TYPES.find(
+      t => t.value === formData.type
+    );
     if (typeConfig && !formData.reason) {
       setFormData(prev => ({
         ...prev,
-        reason: typeConfig.description
+        reason: typeConfig.description,
       }));
     }
   }, [formData.type]);
@@ -193,7 +198,9 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
 
   const loadExistingUnavailabilities = async (vehicleId: string) => {
     try {
-      const response = await apiService.get<{data: any[]}>(`/vehicle-unavailability?vehicleId=${vehicleId}`);
+      const response = await apiService.get<{ data: any[] }>(
+        `/vehicle-unavailability?vehicleId=${vehicleId}`
+      );
       setExistingUnavailabilities(response.data || []);
     } catch (err) {
       console.error('Error loading existing unavailabilities:', err);
@@ -207,7 +214,12 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
       setError(null);
 
       // Validation
-      if (!formData.vehicleId || !formData.startDate || !formData.endDate || !formData.reason) {
+      if (
+        !formData.vehicleId ||
+        !formData.startDate ||
+        !formData.endDate ||
+        !formData.reason
+      ) {
         setError('Všetky povinné polia musia byť vyplnené');
         return;
       }
@@ -219,16 +231,19 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
 
       if (editingUnavailability) {
         // Update existing unavailability
-        await apiService.put(`/vehicle-unavailability/${editingUnavailability.id}`, {
-          vehicleId: parseInt(formData.vehicleId),
-          startDate: formData.startDate.toISOString(),
-          endDate: formData.endDate.toISOString(),
-          type: formData.type,
-          reason: formData.reason,
-          notes: formData.notes,
-          priority: formData.priority,
-          recurring: formData.recurring
-        });
+        await apiService.put(
+          `/vehicle-unavailability/${editingUnavailability.id}`,
+          {
+            vehicleId: parseInt(formData.vehicleId),
+            startDate: formData.startDate.toISOString(),
+            endDate: formData.endDate.toISOString(),
+            type: formData.type,
+            reason: formData.reason,
+            notes: formData.notes,
+            priority: formData.priority,
+            recurring: formData.recurring,
+          }
+        );
       } else {
         // Create new unavailability
         await apiService.post('/vehicle-unavailability', {
@@ -239,7 +254,7 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
           reason: formData.reason,
           notes: formData.notes,
           priority: formData.priority,
-          recurring: formData.recurring
+          recurring: formData.recurring,
         });
       }
 
@@ -247,12 +262,14 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
       handleClose();
     } catch (err: any) {
       console.error('Error creating unavailability:', err);
-      
+
       // Handle specific error codes
       if (err.response?.data?.code === 'DUPLICATE_UNAVAILABILITY') {
         setError(err.response.data.error);
       } else {
-        setError(err.response?.data?.error || 'Chyba pri vytváraní nedostupnosti');
+        setError(
+          err.response?.data?.error || 'Chyba pri vytváraní nedostupnosti'
+        );
       }
     } finally {
       setLoading(false);
@@ -261,15 +278,20 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
 
   const handleDelete = async () => {
     if (!editingUnavailability) return;
-    
+
     // Check if this is a valid UUID (not a temporary/fallback ID)
-    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(editingUnavailability.id);
-    
+    const isValidUUID =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        editingUnavailability.id
+      );
+
     if (!isValidUUID) {
-      setError('Nemožno zrušiť túto nedostupnosť. Skúste obnoviť stránku a skúsiť znovu.');
+      setError(
+        'Nemožno zrušiť túto nedostupnosť. Skúste obnoviť stránku a skúsiť znovu.'
+      );
       return;
     }
-    
+
     if (!window.confirm('Naozaj chcete zrušiť túto nedostupnosť?')) {
       return;
     }
@@ -278,7 +300,9 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
     setError(null);
 
     try {
-      await apiService.delete(`/vehicle-unavailability/${editingUnavailability.id}`);
+      await apiService.delete(
+        `/vehicle-unavailability/${editingUnavailability.id}`
+      );
       onSuccess();
       handleClose();
     } catch (err: any) {
@@ -298,35 +322,41 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
       reason: '',
       notes: '',
       priority: 2,
-      recurring: false
+      recurring: false,
     });
     setError(null);
     onClose();
   };
 
   const selectedVehicle = vehicles.find(v => v.id === formData.vehicleId);
-  const selectedType = UNAVAILABILITY_TYPES.find(t => t.value === formData.type);
+  const selectedType = UNAVAILABILITY_TYPES.find(
+    t => t.value === formData.type
+  );
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sk}>
-      <Dialog 
-        open={open} 
+      <Dialog
+        open={open}
         onClose={handleClose}
         maxWidth="md"
         fullWidth
         PaperProps={{
-          sx: { borderRadius: 2 }
+          sx: { borderRadius: 2 },
         }}
       >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1,
-          pb: 1
-        }}>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            pb: 1,
+          }}
+        >
           <BlockIcon color="primary" />
           <Typography variant="h6" component="span">
-            {editingUnavailability ? '✏️ Upraviť nedostupnosť' : '🚫 Pridať nedostupnosť vozidla'}
+            {editingUnavailability
+              ? '✏️ Upraviť nedostupnosť'
+              : '🚫 Pridať nedostupnosť vozidla'}
           </Typography>
         </DialogTitle>
 
@@ -345,12 +375,14 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                 onChange={(_, newValue) => {
                   setFormData(prev => ({
                     ...prev,
-                    vehicleId: newValue?.id || ''
+                    vehicleId: newValue?.id || '',
                   }));
                 }}
                 options={vehicles}
-                getOptionLabel={(vehicle) => `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
-                renderInput={(params) => (
+                getOptionLabel={vehicle =>
+                  `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`
+                }
+                renderInput={params => (
                   <TextField
                     {...params}
                     label="Vozidlo *"
@@ -379,18 +411,20 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                 <InputLabel>Typ nedostupnosti *</InputLabel>
                 <Select
                   value={formData.type}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    type: e.target.value as any
-                  }))}
+                  onChange={e =>
+                    setFormData(prev => ({
+                      ...prev,
+                      type: e.target.value as any,
+                    }))
+                  }
                   label="Typ nedostupnosti *"
                 >
-                  {UNAVAILABILITY_TYPES.map((type) => (
+                  {UNAVAILABILITY_TYPES.map(type => (
                     <MenuItem key={type.value} value={type.value}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ color: type.color }}>
-                          {type.icon}
-                        </Box>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
+                        <Box sx={{ color: type.color }}>{type.icon}</Box>
                         <Box>
                           <Typography variant="body1">{type.label}</Typography>
                           <Typography variant="body2" color="text.secondary">
@@ -409,15 +443,17 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
               <DatePicker
                 label="Dátum začiatku *"
                 value={formData.startDate}
-                onChange={(date) => setFormData(prev => ({
-                  ...prev,
-                  startDate: date
-                }))}
+                onChange={date =>
+                  setFormData(prev => ({
+                    ...prev,
+                    startDate: date,
+                  }))
+                }
                 slotProps={{
                   textField: {
                     fullWidth: true,
-                    error: !formData.startDate
-                  }
+                    error: !formData.startDate,
+                  },
                 }}
               />
             </Grid>
@@ -426,16 +462,18 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
               <DatePicker
                 label="Dátum konca *"
                 value={formData.endDate}
-                onChange={(date) => setFormData(prev => ({
-                  ...prev,
-                  endDate: date
-                }))}
+                onChange={date =>
+                  setFormData(prev => ({
+                    ...prev,
+                    endDate: date,
+                  }))
+                }
                 minDate={formData.startDate || undefined}
                 slotProps={{
                   textField: {
                     fullWidth: true,
-                    error: !formData.endDate
-                  }
+                    error: !formData.endDate,
+                  },
                 }}
               />
             </Grid>
@@ -446,10 +484,12 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                 fullWidth
                 label="Dôvod *"
                 value={formData.reason}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  reason: e.target.value
-                }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    reason: e.target.value,
+                  }))
+                }
                 error={!formData.reason}
                 helperText="Stručný popis dôvodu nedostupnosti"
               />
@@ -461,21 +501,25 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                 <InputLabel>Priorita</InputLabel>
                 <Select
                   value={formData.priority}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    priority: e.target.value as any
-                  }))}
+                  onChange={e =>
+                    setFormData(prev => ({
+                      ...prev,
+                      priority: e.target.value as any,
+                    }))
+                  }
                   label="Priorita"
                 >
-                  {PRIORITY_LEVELS.map((priority) => (
+                  {PRIORITY_LEVELS.map(priority => (
                     <MenuItem key={priority.value} value={priority.value}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <Box
                           sx={{
                             width: 12,
                             height: 12,
                             borderRadius: '50%',
-                            backgroundColor: priority.color
+                            backgroundColor: priority.color,
                           }}
                         />
                         {priority.label}
@@ -494,10 +538,12 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                 rows={3}
                 label="Poznámky"
                 value={formData.notes}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  notes: e.target.value
-                }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    notes: e.target.value,
+                  }))
+                }
                 placeholder="Dodatočné informácie..."
               />
             </Grid>
@@ -505,36 +551,51 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
             {/* Existing Unavailabilities */}
             {selectedVehicle && existingUnavailabilities.length > 0 && (
               <Grid item xs={12}>
-                <Box sx={{ 
-                  p: 2, 
-                  bgcolor: 'warning.light', 
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'warning.main'
-                }}>
-                  <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    bgcolor: 'warning.light',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'warning.main',
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    gutterBottom
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                  >
                     <WarningIcon fontSize="small" />
                     Existujúce nedostupnosti pre toto vozidlo:
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {existingUnavailabilities.slice(0, 3).map((unavail, index) => (
-                      <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Chip 
-                          label={unavail.type}
-                          size="small"
-                          color="warning"
-                        />
-                        <Typography variant="body2">
-                          {format(new Date(unavail.start_date), 'dd.MM.yyyy')} - {format(new Date(unavail.end_date), 'dd.MM.yyyy')}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {unavail.reason}
-                        </Typography>
-                      </Box>
-                    ))}
+                  <Box
+                    sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
+                  >
+                    {existingUnavailabilities
+                      .slice(0, 3)
+                      .map((unavail, index) => (
+                        <Box
+                          key={index}
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
+                          <Chip
+                            label={unavail.type}
+                            size="small"
+                            color="warning"
+                          />
+                          <Typography variant="body2">
+                            {format(new Date(unavail.start_date), 'dd.MM.yyyy')}{' '}
+                            - {format(new Date(unavail.end_date), 'dd.MM.yyyy')}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {unavail.reason}
+                          </Typography>
+                        </Box>
+                      ))}
                     {existingUnavailabilities.length > 3 && (
                       <Typography variant="body2" color="text.secondary">
-                        ... a ďalších {existingUnavailabilities.length - 3} nedostupností
+                        ... a ďalších {existingUnavailabilities.length - 3}{' '}
+                        nedostupností
                       </Typography>
                     )}
                   </Box>
@@ -545,28 +606,32 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
             {/* Summary */}
             {selectedVehicle && formData.startDate && formData.endDate && (
               <Grid item xs={12}>
-                <Box sx={{ 
-                  p: 2, 
-                  bgcolor: 'grey.50', 
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'grey.200'
-                }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    bgcolor: 'grey.50',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'grey.200',
+                  }}
+                >
                   <Typography variant="subtitle2" gutterBottom>
                     Súhrn nedostupnosti:
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-                    <Chip 
+                  <Box
+                    sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}
+                  >
+                    <Chip
                       label={`${selectedVehicle.brand} ${selectedVehicle.model}`}
                       size="small"
                       color="primary"
                     />
-                    <Chip 
+                    <Chip
                       label={selectedType?.label}
                       size="small"
                       sx={{ bgcolor: selectedType?.color, color: 'white' }}
                     />
-                    <Chip 
+                    <Chip
                       label={`${format(formData.startDate, 'dd.MM.yyyy')} - ${format(formData.endDate, 'dd.MM.yyyy')}`}
                       size="small"
                       variant="outlined"
@@ -582,13 +647,10 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
         </DialogContent>
 
         <DialogActions sx={{ p: 3, pt: 2 }}>
-          <Button 
-            onClick={handleClose}
-            disabled={loading}
-          >
+          <Button onClick={handleClose} disabled={loading}>
             Zrušiť
           </Button>
-          
+
           {editingUnavailability && (
             <Button
               color="error"
@@ -599,13 +661,25 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
               {loading ? 'Ruším...' : 'Zrušiť nedostupnosť'}
             </Button>
           )}
-          
+
           <Button
             variant="contained"
             onClick={handleSubmit}
-            disabled={loading || !formData.vehicleId || !formData.startDate || !formData.endDate || !formData.reason}
+            disabled={
+              loading ||
+              !formData.vehicleId ||
+              !formData.startDate ||
+              !formData.endDate ||
+              !formData.reason
+            }
           >
-            {loading ? (editingUnavailability ? 'Upravujem...' : 'Vytváram...') : (editingUnavailability ? 'Uložiť zmeny' : 'Vytvoriť nedostupnosť')}
+            {loading
+              ? editingUnavailability
+                ? 'Upravujem...'
+                : 'Vytváram...'
+              : editingUnavailability
+                ? 'Uložiť zmeny'
+                : 'Vytvoriť nedostupnosť'}
           </Button>
         </DialogActions>
       </Dialog>

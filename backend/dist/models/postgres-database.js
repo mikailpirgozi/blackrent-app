@@ -3048,7 +3048,7 @@ class PostgresDatabase {
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
           -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
-          r.extra_km_charge, r.extra_kilometer_rate,
+          r.extra_km_charge, r.extra_kilometer_rate, r.,
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           c.name as company_name, v.company as vehicle_company,
@@ -3200,7 +3200,7 @@ class PostgresDatabase {
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
           -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
-          r.extra_km_charge, r.extra_kilometer_rate,
+          r.extra_km_charge, r.extra_kilometer_rate, r.,
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
@@ -3275,6 +3275,7 @@ class PostgresDatabase {
                     handoverPlace: row.handover_place || undefined,
                     // 🐛 FIX: Pridané chýbajúce extraKmCharge mapovanie
                     extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
+                    extraKilometerRate: row.extra_kilometer_rate !== null && row.extra_kilometer_rate !== undefined ? parseFloat(row.extra_kilometer_rate) : undefined,
                     company: row.company_name || row.company || undefined, // 🎯 CLEAN SOLUTION field - prioritize company_name from JOIN
                     vehicleName: row.vehicle_name || undefined, // 🚗 NOVÉ: Vehicle name field
                     // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
@@ -3369,9 +3370,10 @@ class PostgresDatabase {
             // 🎯 CLEAN SOLUTION: Rental vlastní svoj company field - JEDNODUCHO!
             let company = null;
             let vehicleName = null;
+            let vehicleExtraKmPrice = 0.30; // Default hodnota
             if (rentalData.vehicleId) {
                 const vehicleResult = await client.query(`
-          SELECT company, brand, model FROM vehicles WHERE id = $1
+          SELECT company, brand, model, extra_kilometer_rate FROM vehicles WHERE id = $1
         `, [rentalData.vehicleId]);
                 if (vehicleResult.rows.length > 0) {
                     company = vehicleResult.rows[0].company;
@@ -3379,8 +3381,14 @@ class PostgresDatabase {
                     const brand = vehicleResult.rows[0].brand || '';
                     const model = vehicleResult.rows[0].model || '';
                     vehicleName = brand && model ? `${brand} ${model}` : (brand || model || null);
+                    // 💰 NOVÉ: Kopírovanie extraKilometerRate z vehicles.extra_kilometer_rate
+                    vehicleExtraKmPrice = vehicleResult.rows[0].extra_kilometer_rate ?
+                        parseFloat(vehicleResult.rows[0].extra_kilometer_rate) : 0.30;
                 }
             }
+            // Použiť zadanú hodnotu alebo skopírovanú z vozidla
+            const finalExtraKmPrice = rentalData.extraKilometerRate !== undefined ?
+                rentalData.extraKilometerRate : vehicleExtraKmPrice;
             const result = await client.query(`
         INSERT INTO rentals (
           vehicle_id, customer_id, customer_name, start_date, end_date, 
@@ -3421,7 +3429,7 @@ class PostgresDatabase {
                 rentalData.deposit || null,
                 rentalData.allowedKilometers || null,
                 rentalData.dailyKilometers || null,
-                rentalData.extraKilometerRate || null,
+                finalExtraKmPrice,
                 rentalData.returnConditions || null,
                 rentalData.fuelLevel || null,
                 rentalData.odometer || null,

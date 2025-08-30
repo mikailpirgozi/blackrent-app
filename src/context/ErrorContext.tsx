@@ -1,15 +1,22 @@
 // 🚨 Centralized Error Context Provider
 // Manages all application errors with consistent user feedback
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+  useEffect,
+} from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { 
-  AppError, 
-  ErrorContext as IErrorContext, 
-  ErrorAction, 
+
+import {
+  AppError,
+  ErrorContext as IErrorContext,
+  ErrorAction,
   createError,
   ErrorSeverity,
-  ErrorCategory 
+  ErrorCategory,
 } from '../types/errors';
 
 // Error state interface
@@ -41,10 +48,8 @@ const errorReducer = (state: ErrorState, action: ErrorAction): ErrorState => {
     case 'DISMISS_ERROR':
       return {
         ...state,
-        errors: state.errors.map(error => 
-          error.id === action.payload 
-            ? { ...error, dismissed: true }
-            : error
+        errors: state.errors.map(error =>
+          error.id === action.payload ? { ...error, dismissed: true } : error
         ),
       };
 
@@ -86,39 +91,42 @@ interface ErrorProviderProps {
 }
 
 // Error Provider Component
-export const ErrorProvider: React.FC<ErrorProviderProps> = ({ 
-  children, 
+export const ErrorProvider: React.FC<ErrorProviderProps> = ({
+  children,
   maxErrors = 5,
-  autoDismissTime = 5000 // 5 seconds
+  autoDismissTime = 5000, // 5 seconds
 }) => {
   const [state, dispatch] = useReducer(errorReducer, initialState);
 
   // Show error function
-  const showError = useCallback((errorData: Omit<AppError, 'id' | 'timestamp'>): string => {
-    const errorId = uuidv4();
-    
-    dispatch({ 
-      type: 'ADD_ERROR', 
-      payload: errorData 
-    });
+  const showError = useCallback(
+    (errorData: Omit<AppError, 'id' | 'timestamp'>): string => {
+      const errorId = uuidv4();
 
-    // Auto-dismiss non-critical errors
-    if (errorData.severity !== 'critical' && autoDismissTime > 0) {
-      setTimeout(() => {
-        dispatch({ type: 'DISMISS_ERROR', payload: errorId });
-      }, autoDismissTime);
-    }
+      dispatch({
+        type: 'ADD_ERROR',
+        payload: errorData,
+      });
 
-    // Clean up old errors if we exceed max limit
-    if (state.errors.length >= maxErrors) {
-      const oldestError = state.errors[0];
-      if (oldestError) {
-        dispatch({ type: 'DISMISS_ERROR', payload: oldestError.id });
+      // Auto-dismiss non-critical errors
+      if (errorData.severity !== 'critical' && autoDismissTime > 0) {
+        setTimeout(() => {
+          dispatch({ type: 'DISMISS_ERROR', payload: errorId });
+        }, autoDismissTime);
       }
-    }
 
-    return errorId;
-  }, [state.errors.length, maxErrors, autoDismissTime]);
+      // Clean up old errors if we exceed max limit
+      if (state.errors.length >= maxErrors) {
+        const oldestError = state.errors[0];
+        if (oldestError) {
+          dispatch({ type: 'DISMISS_ERROR', payload: oldestError.id });
+        }
+      }
+
+      return errorId;
+    },
+    [state.errors.length, maxErrors, autoDismissTime]
+  );
 
   // Dismiss error function
   const dismissError = useCallback((id: string) => {
@@ -134,7 +142,7 @@ export const ErrorProvider: React.FC<ErrorProviderProps> = ({
   useEffect(() => {
     const handleOnline = () => {
       dispatch({ type: 'UPDATE_NETWORK_STATUS', payload: true });
-      
+
       // Show recovery message if we were offline
       if (!state.isOnline) {
         showError({
@@ -194,44 +202,59 @@ export const useError = (): IErrorContext => {
 // Convenience hooks for common error scenarios
 export const useNetworkError = () => {
   const { showError } = useError();
-  
-  return useCallback((endpoint?: string, statusCode?: number) => {
-    return showError(createError(
-      'Problém s pripojením k serveru',
-      'network',
-      'error',
-      statusCode ? `HTTP ${statusCode}` : 'Network request failed',
-      { endpoint, statusCode }
-    ));
-  }, [showError]);
+
+  return useCallback(
+    (endpoint?: string, statusCode?: number) => {
+      return showError(
+        createError(
+          'Problém s pripojením k serveru',
+          'network',
+          'error',
+          statusCode ? `HTTP ${statusCode}` : 'Network request failed',
+          { endpoint, statusCode }
+        )
+      );
+    },
+    [showError]
+  );
 };
 
 export const useValidationError = () => {
   const { showError } = useError();
-  
-  return useCallback((field: string, message: string) => {
-    return showError(createError(
-      message,
-      'validation',
-      'warning',
-      `Validation failed for field: ${field}`,
-      { field }
-    ));
-  }, [showError]);
+
+  return useCallback(
+    (field: string, message: string) => {
+      return showError(
+        createError(
+          message,
+          'validation',
+          'warning',
+          `Validation failed for field: ${field}`,
+          { field }
+        )
+      );
+    },
+    [showError]
+  );
 };
 
 export const useServerError = () => {
   const { showError } = useError();
-  
-  return useCallback((message: string, statusCode: number, endpoint?: string) => {
-    return showError(createError(
-      message,
-      'server',
-      statusCode >= 500 ? 'critical' : 'error',
-      `Server returned ${statusCode}`,
-      { statusCode, endpoint }
-    ));
-  }, [showError]);
+
+  return useCallback(
+    (message: string, statusCode: number, endpoint?: string) => {
+      return showError(
+        createError(
+          message,
+          'server',
+          statusCode >= 500 ? 'critical' : 'error',
+          `Server returned ${statusCode}`,
+          { statusCode, endpoint }
+        )
+      );
+    },
+    [showError]
+  );
 };
 
 // Error logging utility
@@ -243,7 +266,9 @@ export const logError = (error: AppError, context?: Record<string, any>) => {
     url: window.location.href,
   };
 
-  console.group(`🚨 ${error.severity.toUpperCase()} - ${error.category.toUpperCase()}`);
+  console.group(
+    `🚨 ${error.severity.toUpperCase()} - ${error.category.toUpperCase()}`
+  );
   console.error('Message:', error.message);
   if (error.details) console.log('Details:', error.details);
   if (error.stack) console.log('Stack:', error.stack);

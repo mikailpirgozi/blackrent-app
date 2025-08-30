@@ -1,36 +1,3 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { flushSync } from 'react-dom';
-import {
-  Box,
-  Button,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  TextField,
-  IconButton,
-  Tooltip,
-  Chip,
-  Alert,
-  useMediaQuery,
-  useTheme,
-
-  Card,
-  CardContent,
-  Collapse,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControlLabel,
-  Grid,
-  Divider,
-  FormGroup,
-  Tabs,
-  Tab,
-  DialogActions
-} from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -45,20 +12,54 @@ import {
   CheckCircle as AvailableIcon,
   Error as ErrorIcon,
   Info as InfoIcon,
-  Home as HomeIcon
+  Home as HomeIcon,
 } from '@mui/icons-material';
+import {
+  Box,
+  Button,
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  TextField,
+  IconButton,
+  Tooltip,
+  Chip,
+  Alert,
+  useMediaQuery,
+  useTheme,
+  Card,
+  CardContent,
+  Collapse,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Checkbox,
+  FormControlLabel,
+  Grid,
+  Divider,
+  FormGroup,
+  Tabs,
+  Tab,
+  DialogActions,
+} from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import { useApp } from '../../context/AppContext';
-import { Vehicle, VehicleStatus, VehicleCategory } from '../../types';
-import { Can } from '../common/PermissionGuard';
-import VehicleForm from './VehicleForm';
-import { apiService } from '../../services/api';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { flushSync } from 'react-dom';
+
+import { useApp } from '../../context/AppContext';
+import { apiService } from '../../services/api';
+import { Vehicle, VehicleStatus, VehicleCategory } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import { EnhancedLoading } from '../common/EnhancedLoading';
+import { Can } from '../common/PermissionGuard';
 import CompanyDocumentManager from '../companies/CompanyDocumentManager';
+
+import VehicleForm from './VehicleForm';
 
 // 🆕 OWNER CARD COMPONENT - Rozbaliteľná karta majiteľa s vozidlami
 interface OwnerCardProps {
@@ -77,7 +78,13 @@ interface InvestorCardProps {
   onAssignShare: (investor: any) => void;
 }
 
-const InvestorCard: React.FC<InvestorCardProps> = ({ investor, shares, companies, onShareUpdate, onAssignShare }) => {
+const InvestorCard: React.FC<InvestorCardProps> = ({
+  investor,
+  shares,
+  companies,
+  onShareUpdate,
+  onAssignShare,
+}) => {
   const [expanded, setExpanded] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({
@@ -85,24 +92,27 @@ const InvestorCard: React.FC<InvestorCardProps> = ({ investor, shares, companies
     lastName: investor.lastName || '',
     email: investor.email || '',
     phone: investor.phone || '',
-    notes: investor.notes || ''
+    notes: investor.notes || '',
   });
 
   const handleSaveInvestorData = async () => {
     try {
       console.log('💾 Saving investor data:', investor.id, editData);
-      
-      const response = await fetch(`${getApiBaseUrl()}/company-investors/${investor.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
-        },
-        body: JSON.stringify(editData)
-      });
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/company-investors/${investor.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          },
+          body: JSON.stringify(editData),
+        }
+      );
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log('✅ Investor data saved successfully');
         setEditMode(false);
@@ -117,32 +127,44 @@ const InvestorCard: React.FC<InvestorCardProps> = ({ investor, shares, companies
     }
   };
 
-  const totalOwnership = shares.reduce((sum, share) => sum + share.ownershipPercentage, 0);
+  const totalOwnership = shares.reduce(
+    (sum, share) => sum + share.ownershipPercentage,
+    0
+  );
 
   return (
     <Card sx={{ mb: 2, border: '1px solid', borderColor: 'divider' }}>
       {/* Header - Investor info */}
-      <Box 
-        sx={{ 
-          p: 2, 
+      <Box
+        sx={{
+          p: 2,
           bgcolor: 'grey.50',
           cursor: 'pointer',
-          '&:hover': { bgcolor: 'grey.100' }
+          '&:hover': { bgcolor: 'grey.100' },
         }}
         onClick={() => setExpanded(!expanded)}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="h6"
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               👤 {investor.firstName} {investor.lastName}
-              <Chip 
-                label={`${shares.length} firiem • ${totalOwnership.toFixed(1)}% celkom`} 
-                size="small" 
-                color="primary" 
+              <Chip
+                label={`${shares.length} firiem • ${totalOwnership.toFixed(1)}% celkom`}
+                size="small"
+                color="primary"
                 variant="outlined"
               />
             </Typography>
-            
+
             <Box sx={{ mt: 1, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
               {investor.email && (
                 <Typography variant="body2" color="text.secondary">
@@ -156,47 +178,60 @@ const InvestorCard: React.FC<InvestorCardProps> = ({ investor, shares, companies
               )}
               {shares.length > 0 && (
                 <Typography variant="body2" color="text.secondary">
-                  🏢 {shares.map(s => {
-                    const company = companies.find(c => c.id === s.companyId);
-                    return `${company?.name} (${s.ownershipPercentage}%)`;
-                  }).join(', ')}
+                  🏢{' '}
+                  {shares
+                    .map(s => {
+                      const company = companies.find(c => c.id === s.companyId);
+                      return `${company?.name} (${s.ownershipPercentage}%)`;
+                    })
+                    .join(', ')}
                 </Typography>
               )}
             </Box>
           </Box>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
               size="small"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 setEditMode(!editMode);
               }}
-              sx={{ bgcolor: editMode ? 'primary.main' : 'transparent', color: editMode ? 'white' : 'primary.main' }}
+              sx={{
+                bgcolor: editMode ? 'primary.main' : 'transparent',
+                color: editMode ? 'white' : 'primary.main',
+              }}
             >
               <EditIcon fontSize="small" />
             </IconButton>
-            <IconButton size="small">
-              {expanded ? '🔽' : '▶️'}
-            </IconButton>
+            <IconButton size="small">{expanded ? '🔽' : '▶️'}</IconButton>
           </Box>
         </Box>
       </Box>
 
       {/* Edit Mode */}
       <Collapse in={editMode}>
-        <Box sx={{ p: 3, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}>
+        <Box
+          sx={{
+            p: 3,
+            bgcolor: 'background.paper',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
           <Typography variant="h6" sx={{ mb: 2 }}>
             ✏️ Úprava spoluinvestora
           </Typography>
-          
+
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Meno"
                 value={editData.firstName}
-                onChange={(e) => setEditData(prev => ({ ...prev, firstName: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, firstName: e.target.value }))
+                }
                 size="small"
                 required
               />
@@ -206,7 +241,9 @@ const InvestorCard: React.FC<InvestorCardProps> = ({ investor, shares, companies
                 fullWidth
                 label="Priezvisko"
                 value={editData.lastName}
-                onChange={(e) => setEditData(prev => ({ ...prev, lastName: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, lastName: e.target.value }))
+                }
                 size="small"
                 required
               />
@@ -217,7 +254,9 @@ const InvestorCard: React.FC<InvestorCardProps> = ({ investor, shares, companies
                 label="Email"
                 type="email"
                 value={editData.email}
-                onChange={(e) => setEditData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, email: e.target.value }))
+                }
                 size="small"
               />
             </Grid>
@@ -226,7 +265,9 @@ const InvestorCard: React.FC<InvestorCardProps> = ({ investor, shares, companies
                 fullWidth
                 label="Telefón"
                 value={editData.phone}
-                onChange={(e) => setEditData(prev => ({ ...prev, phone: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, phone: e.target.value }))
+                }
                 size="small"
               />
             </Grid>
@@ -235,15 +276,19 @@ const InvestorCard: React.FC<InvestorCardProps> = ({ investor, shares, companies
                 fullWidth
                 label="Poznámky"
                 value={editData.notes}
-                onChange={(e) => setEditData(prev => ({ ...prev, notes: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, notes: e.target.value }))
+                }
                 size="small"
                 multiline
                 rows={2}
               />
             </Grid>
           </Grid>
-          
-          <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+
+          <Box
+            sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}
+          >
             <Button
               variant="outlined"
               onClick={() => setEditMode(false)}
@@ -265,57 +310,68 @@ const InvestorCard: React.FC<InvestorCardProps> = ({ investor, shares, companies
       {/* Podiely vo firmách - Rozbaliteľné */}
       <Collapse in={expanded}>
         <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+          >
             💼 Podiely vo firmách ({shares.length})
           </Typography>
-          
-          {shares.length > 0 ? shares.map((share) => {
-            const company = companies.find(c => c.id === share.companyId);
-            return (
-              <Box
-                key={share.id}
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  p: 2,
-                  mb: 1,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  bgcolor: 'background.paper',
-                  '&:hover': {
-                    bgcolor: 'action.hover'
-                  }
-                }}
-              >
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle2">
-                    🏢 {company?.name || 'Neznáma firma'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    💰 Podiel: {share.ownershipPercentage}%
-                    {share.investmentAmount && ` • Investícia: ${share.investmentAmount}€`}
-                    {share.isPrimaryContact && ' • Primárny kontakt'}
-                  </Typography>
+
+          {shares.length > 0 ? (
+            shares.map(share => {
+              const company = companies.find(c => c.id === share.companyId);
+              return (
+                <Box
+                  key={share.id}
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    p: 2,
+                    mb: 1,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    bgcolor: 'background.paper',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                >
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2">
+                      🏢 {company?.name || 'Neznáma firma'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      💰 Podiel: {share.ownershipPercentage}%
+                      {share.investmentAmount &&
+                        ` • Investícia: ${share.investmentAmount}€`}
+                      {share.isPrimaryContact && ' • Primárny kontakt'}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip
+                      label={`${share.ownershipPercentage}%`}
+                      color="primary"
+                      size="small"
+                      variant={share.isPrimaryContact ? 'filled' : 'outlined'}
+                    />
+                  </Box>
                 </Box>
-                
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Chip
-                    label={`${share.ownershipPercentage}%`}
-                    color="primary"
-                    size="small"
-                    variant={share.isPrimaryContact ? 'filled' : 'outlined'}
-                  />
-                </Box>
-              </Box>
-            );
-          }) : (
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-              Žiadne podiely vo firmách. Investor nie je priradený k žiadnej firme.
+              );
+            })
+          ) : (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: 'center', py: 2 }}
+            >
+              Žiadne podiely vo firmách. Investor nie je priradený k žiadnej
+              firme.
             </Typography>
           )}
-          
+
           {/* Tlačidlo pre pridanie nového podielu */}
           <Box sx={{ mt: 2, textAlign: 'center' }}>
             <Button
@@ -333,7 +389,12 @@ const InvestorCard: React.FC<InvestorCardProps> = ({ investor, shares, companies
   );
 };
 
-const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdate, onVehicleEdit }) => {
+const OwnerCard: React.FC<OwnerCardProps> = ({
+  company,
+  vehicles,
+  onVehicleUpdate,
+  onVehicleEdit,
+}) => {
   const [expanded, setExpanded] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [companyInvestors, setCompanyInvestors] = useState<any[]>([]);
@@ -346,7 +407,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
     contactEmail: company.contactEmail || '',
     contactPhone: company.contactPhone || '',
     defaultCommissionRate: company.defaultCommissionRate || 20,
-    protocolDisplayName: company.protocolDisplayName || ''
+    protocolDisplayName: company.protocolDisplayName || '',
   });
 
   // 🔄 Aktualizuj editData keď sa company data zmenia
@@ -359,7 +420,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
       contactEmail: company.contactEmail || '',
       contactPhone: company.contactPhone || '',
       defaultCommissionRate: company.defaultCommissionRate || 20,
-      protocolDisplayName: company.protocolDisplayName || ''
+      protocolDisplayName: company.protocolDisplayName || '',
     });
   }, [company]);
 
@@ -367,15 +428,18 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
   const loadCompanyInvestors = async () => {
     try {
       setLoadingInvestors(true);
-      
-      const response = await fetch(`${getApiBaseUrl()}/company-investors/${company.id}/shares`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/company-investors/${company.id}/shares`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          },
         }
-      });
+      );
 
       const result = await response.json();
-      
+
       if (result.success) {
         setCompanyInvestors(result.data);
       }
@@ -396,18 +460,21 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
   const handleSaveOwnerData = async () => {
     try {
       console.log('💾 Saving owner data for company:', company.id, editData);
-      
-      const response = await fetch(`${getApiBaseUrl()}/companies/${company.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
-        },
-        body: JSON.stringify(editData)
-      });
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/companies/${company.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          },
+          body: JSON.stringify(editData),
+        }
+      );
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log('✅ Owner data saved successfully');
         setEditMode(false);
@@ -428,28 +495,37 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
   return (
     <Card sx={{ mb: 2, border: '1px solid', borderColor: 'divider' }}>
       {/* Header - Majiteľ info */}
-      <Box 
-        sx={{ 
-          p: 2, 
+      <Box
+        sx={{
+          p: 2,
           bgcolor: 'grey.50',
           cursor: 'pointer',
-          '&:hover': { bgcolor: 'grey.100' }
+          '&:hover': { bgcolor: 'grey.100' },
         }}
         onClick={() => setExpanded(!expanded)}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="h6"
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <BusinessIcon color="primary" />
               {company.name}
-              <Chip 
-                label={`${vehicles.length} vozidiel`} 
-                size="small" 
-                color="primary" 
+              <Chip
+                label={`${vehicles.length} vozidiel`}
+                size="small"
+                color="primary"
                 variant="outlined"
               />
             </Typography>
-            
+
             {/* Základné info o majiteľovi */}
             <Box sx={{ mt: 1, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
               {company.ownerName && (
@@ -471,45 +547,58 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 💰 Provízia: {company.defaultCommissionRate || 20}%
               </Typography>
               {company.protocolDisplayName && (
-                <Typography variant="body2" sx={{ color: 'warning.main', fontWeight: 'medium' }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'warning.main', fontWeight: 'medium' }}
+                >
                   📄 Fakturačná firma: {company.protocolDisplayName}
                 </Typography>
               )}
             </Box>
           </Box>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
               size="small"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 setEditMode(!editMode);
               }}
-              sx={{ bgcolor: editMode ? 'primary.main' : 'transparent', color: editMode ? 'white' : 'primary.main' }}
+              sx={{
+                bgcolor: editMode ? 'primary.main' : 'transparent',
+                color: editMode ? 'white' : 'primary.main',
+              }}
             >
               <EditIcon fontSize="small" />
             </IconButton>
-            <IconButton size="small">
-              {expanded ? '🔽' : '▶️'}
-            </IconButton>
+            <IconButton size="small">{expanded ? '🔽' : '▶️'}</IconButton>
           </Box>
         </Box>
       </Box>
 
       {/* Edit Mode - Rozšírené informácie */}
       <Collapse in={editMode}>
-        <Box sx={{ p: 3, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}>
+        <Box
+          sx={{
+            p: 3,
+            bgcolor: 'background.paper',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
           <Typography variant="h6" sx={{ mb: 2 }}>
             ✏️ Úprava informácií majiteľa
           </Typography>
-          
+
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Názov firmy/s.r.o."
                 value={editData.name}
-                onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, name: e.target.value }))
+                }
                 size="small"
                 required
                 sx={{ bgcolor: 'primary.50' }}
@@ -520,7 +609,9 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 fullWidth
                 label="Meno a priezvisko majiteľa"
                 value={editData.ownerName}
-                onChange={(e) => setEditData(prev => ({ ...prev, ownerName: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, ownerName: e.target.value }))
+                }
                 size="small"
               />
             </Grid>
@@ -530,7 +621,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 label="Kontaktný email"
                 type="email"
                 value={editData.contactEmail}
-                onChange={(e) => setEditData(prev => ({ ...prev, contactEmail: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    contactEmail: e.target.value,
+                  }))
+                }
                 size="small"
               />
             </Grid>
@@ -539,7 +635,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 fullWidth
                 label="Kontaktný telefón"
                 value={editData.contactPhone}
-                onChange={(e) => setEditData(prev => ({ ...prev, contactPhone: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    contactPhone: e.target.value,
+                  }))
+                }
                 size="small"
               />
             </Grid>
@@ -549,7 +650,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 label="Default provízia (%)"
                 type="number"
                 value={editData.defaultCommissionRate}
-                onChange={(e) => setEditData(prev => ({ ...prev, defaultCommissionRate: parseFloat(e.target.value) || 20 }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    defaultCommissionRate: parseFloat(e.target.value) || 20,
+                  }))
+                }
                 size="small"
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
               />
@@ -559,7 +665,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 fullWidth
                 label="Súkromný IBAN"
                 value={editData.personalIban}
-                onChange={(e) => setEditData(prev => ({ ...prev, personalIban: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    personalIban: e.target.value,
+                  }))
+                }
                 size="small"
                 placeholder="SK89 0000 0000 0000 0000 0000"
               />
@@ -569,7 +680,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 fullWidth
                 label="Firemný IBAN"
                 value={editData.businessIban}
-                onChange={(e) => setEditData(prev => ({ ...prev, businessIban: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    businessIban: e.target.value,
+                  }))
+                }
                 size="small"
                 placeholder="SK89 0000 0000 0000 0000 0000"
               />
@@ -579,7 +695,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 fullWidth
                 label="Fakturačná firma (pre protokoly)"
                 value={editData.protocolDisplayName}
-                onChange={(e) => setEditData(prev => ({ ...prev, protocolDisplayName: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    protocolDisplayName: e.target.value,
+                  }))
+                }
                 size="small"
                 placeholder="Napr. P2 invest s.r.o."
                 helperText="Názov firmy ktorý sa zobrazí na protokoloch namiesto interného názvu"
@@ -587,8 +708,10 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
               />
             </Grid>
           </Grid>
-          
-          <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+
+          <Box
+            sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}
+          >
             <Button
               variant="outlined"
               onClick={() => setEditMode(false)}
@@ -610,11 +733,14 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
       {/* Vozidlá majiteľa - Rozbaliteľné */}
       <Collapse in={expanded}>
         <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+          >
             🚗 Vozidlá majiteľa ({vehicles.length})
           </Typography>
-          
-          {vehicles.map((vehicle) => (
+
+          {vehicles.map(vehicle => (
             <Box
               key={vehicle.id}
               sx={{
@@ -628,8 +754,8 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 borderRadius: 1,
                 bgcolor: 'background.paper',
                 '&:hover': {
-                  bgcolor: 'action.hover'
-                }
+                  bgcolor: 'action.hover',
+                },
               }}
             >
               <Box sx={{ flex: 1 }}>
@@ -640,37 +766,52 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                   ŠPZ: {vehicle.licensePlate}
                   {vehicle.year && ` • Rok: ${vehicle.year}`}
                 </Typography>
-                
+
                 {/* Individuálna provízia vozidla */}
                 <Typography variant="caption" color="text.secondary">
-                  Provízia: {vehicle.commission?.value || company.defaultCommissionRate || 20}%
-                  {vehicle.commission?.value !== company.defaultCommissionRate && (
-                    <Chip label="Vlastná" size="small" sx={{ ml: 1, height: 16 }} />
+                  Provízia:{' '}
+                  {vehicle.commission?.value ||
+                    company.defaultCommissionRate ||
+                    20}
+                  %
+                  {vehicle.commission?.value !==
+                    company.defaultCommissionRate && (
+                    <Chip
+                      label="Vlastná"
+                      size="small"
+                      sx={{ ml: 1, height: 16 }}
+                    />
                   )}
                 </Typography>
               </Box>
-              
+
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Chip
                   label={getStatusText(vehicle.status)}
                   color={getStatusColor(vehicle.status)}
                   size="small"
                 />
-                
+
                 {/* Quick actions */}
-                <Can update="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>
+                <Can
+                  update="vehicles"
+                  context={{
+                    resourceOwnerId: vehicle.assignedMechanicId,
+                    resourceCompanyId: vehicle.ownerCompanyId,
+                  }}
+                >
                   <IconButton
                     size="small"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       onVehicleEdit(vehicle);
                     }}
-                    sx={{ 
-                      bgcolor: '#2196f3', 
+                    sx={{
+                      bgcolor: '#2196f3',
                       color: 'white',
                       width: 28,
                       height: 28,
-                      '&:hover': { bgcolor: '#1976d2' }
+                      '&:hover': { bgcolor: '#1976d2' },
                     }}
                   >
                     <EditIcon fontSize="small" />
@@ -681,17 +822,31 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
           ))}
 
           {/* Spoluinvestori firmy */}
-          <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            sx={{
+              mt: 3,
+              pt: 2,
+              borderTop: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography
+              variant="subtitle1"
+              sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               🤝 Spoluinvestori firmy
             </Typography>
-            
+
             {loadingInvestors ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                <EnhancedLoading variant="page" showMessage={true} message="Načítavam investorov..." />
+                <EnhancedLoading
+                  variant="page"
+                  showMessage={true}
+                  message="Načítavam investorov..."
+                />
               </Box>
             ) : companyInvestors.length > 0 ? (
-              companyInvestors.map((share) => (
+              companyInvestors.map(share => (
                 <Box
                   key={share.id}
                   sx={{
@@ -705,15 +860,20 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                     borderRadius: 1,
                     bgcolor: 'primary.50',
                     '&:hover': {
-                      bgcolor: 'primary.100'
-                    }
+                      bgcolor: 'primary.100',
+                    },
                   }}
                 >
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="subtitle2">
                       👤 {share.investor?.firstName} {share.investor?.lastName}
                       {share.isPrimaryContact && (
-                        <Chip label="Primárny kontakt" size="small" color="primary" sx={{ ml: 1 }} />
+                        <Chip
+                          label="Primárny kontakt"
+                          size="small"
+                          color="primary"
+                          sx={{ ml: 1 }}
+                        />
                       )}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -726,7 +886,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                       </Typography>
                     )}
                   </Box>
-                  
+
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Chip
                       label={`${share.ownershipPercentage}%`}
@@ -738,14 +898,18 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 </Box>
               ))
             ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: 'center', py: 2 }}
+              >
                 Žiadni spoluinvestori pre túto firmu.
               </Typography>
             )}
           </Box>
 
           {/* 📄 NOVÉ: Dokumenty majiteľa */}
-          <CompanyDocumentManager 
+          <CompanyDocumentManager
             companyId={company.id}
             companyName={company.name}
           />
@@ -755,81 +919,129 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
   );
 };
 
-const getStatusColor = (status: VehicleStatus): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+const getStatusColor = (
+  status: VehicleStatus
+):
+  | 'default'
+  | 'primary'
+  | 'secondary'
+  | 'error'
+  | 'info'
+  | 'success'
+  | 'warning' => {
   switch (status) {
-    case 'available': return 'success';
-    case 'rented': return 'warning';
-    case 'maintenance': return 'error';
-    case 'temporarily_removed': return 'info';
-    case 'removed': return 'default';
-    case 'transferred': return 'secondary';
-    case 'private': return 'primary';
-    default: return 'default';
+    case 'available':
+      return 'success';
+    case 'rented':
+      return 'warning';
+    case 'maintenance':
+      return 'error';
+    case 'temporarily_removed':
+      return 'info';
+    case 'removed':
+      return 'default';
+    case 'transferred':
+      return 'secondary';
+    case 'private':
+      return 'primary';
+    default:
+      return 'default';
   }
 };
 
 const getStatusBgColor = (status: VehicleStatus) => {
   switch (status) {
-    case 'available': return '#4caf50';
-    case 'rented': return '#ff9800';
-    case 'maintenance': return '#f44336';
-    case 'temporarily_removed': return '#2196f3';
-    case 'removed': return '#666';
-    case 'transferred': return '#9c27b0';
-    case 'private': return '#673ab7';
-    default: return '#666';
+    case 'available':
+      return '#4caf50';
+    case 'rented':
+      return '#ff9800';
+    case 'maintenance':
+      return '#f44336';
+    case 'temporarily_removed':
+      return '#2196f3';
+    case 'removed':
+      return '#666';
+    case 'transferred':
+      return '#9c27b0';
+    case 'private':
+      return '#673ab7';
+    default:
+      return '#666';
   }
 };
 
 const getStatusText = (status: VehicleStatus) => {
   switch (status) {
-    case 'available': return 'Dostupné';
-    case 'rented': return 'Prenajaté';
-    case 'maintenance': return 'Údržba';
-    case 'temporarily_removed': return 'Dočasne vyradené';
-    case 'removed': return 'Vyradené';
-    case 'transferred': return 'Prepisané';
-    case 'private': return 'Súkromné';
-    default: return status;
+    case 'available':
+      return 'Dostupné';
+    case 'rented':
+      return 'Prenajaté';
+    case 'maintenance':
+      return 'Údržba';
+    case 'temporarily_removed':
+      return 'Dočasne vyradené';
+    case 'removed':
+      return 'Vyradené';
+    case 'transferred':
+      return 'Prepisané';
+    case 'private':
+      return 'Súkromné';
+    default:
+      return status;
   }
 };
 
 const getStatusIcon = (status: VehicleStatus) => {
   switch (status) {
-    case 'available': return <AvailableIcon fontSize="small" />;
-    case 'rented': return <CarIcon fontSize="small" />;
-    case 'maintenance': return <MaintenanceIcon fontSize="small" />;
-    case 'temporarily_removed': return <InfoIcon fontSize="small" />;
-    case 'removed': return <ErrorIcon fontSize="small" />;
-    case 'transferred': return <BusinessIcon fontSize="small" />;
-    case 'private': return <HomeIcon fontSize="small" />;
-    default: return <CarIcon fontSize="small" />;
+    case 'available':
+      return <AvailableIcon fontSize="small" />;
+    case 'rented':
+      return <CarIcon fontSize="small" />;
+    case 'maintenance':
+      return <MaintenanceIcon fontSize="small" />;
+    case 'temporarily_removed':
+      return <InfoIcon fontSize="small" />;
+    case 'removed':
+      return <ErrorIcon fontSize="small" />;
+    case 'transferred':
+      return <BusinessIcon fontSize="small" />;
+    case 'private':
+      return <HomeIcon fontSize="small" />;
+    default:
+      return <CarIcon fontSize="small" />;
   }
 };
 
 export default function VehicleListNew() {
-  const { state, createVehicle, updateVehicle, deleteVehicle, getFullyFilteredVehicles } = useApp();
-  
+  const {
+    state,
+    createVehicle,
+    updateVehicle,
+    deleteVehicle,
+    getFullyFilteredVehicles,
+  } = useApp();
+
   // 🎯 SCROLL PRESERVATION: Refs pre scroll kontajnery
   const mobileScrollRef = React.useRef<HTMLDivElement>(null);
   const desktopScrollRef = React.useRef<HTMLDivElement>(null);
   const savedScrollPosition = React.useRef<number>(0);
-  
+
   // 🎯 INFINITE SCROLL PRESERVATION: Pre načítanie ďalších vozidiel
   const infiniteScrollPosition = React.useRef<number>(0);
   const isLoadingMoreRef = React.useRef<boolean>(false);
-  
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   // 🔍 DEBUG: Základné informácie o komponente (len raz)
   React.useEffect(() => {
     console.log('🚀 VehicleListNew MOUNTED:', {
       isMobile,
-      screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'unknown'
+      screenWidth:
+        typeof window !== 'undefined' ? window.innerWidth : 'unknown',
     });
   }, []); // Spustí sa len raz pri mount
-  
+
   // States
   const [currentTab, setCurrentTab] = useState(0); // 🆕 Tab state
   const [searchQuery, setSearchQuery] = useState('');
@@ -837,13 +1049,15 @@ export default function VehicleListNew() {
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   // 🚀 INFINITE SCROLL STATES
   const [displayedVehicles, setDisplayedVehicles] = useState(20); // Start with 20 items
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  
+
   // ✅ NOVÉ: State pre hromadné mazanie
-  const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set());
+  const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(
+    new Set()
+  );
   const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
   const [showBulkActions, setShowBulkActions] = useState(false);
 
@@ -852,7 +1066,9 @@ export default function VehicleListNew() {
   const [filterModel, setFilterModel] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterCategory, setFilterCategory] = useState<VehicleCategory | 'all'>('all'); // 🚗 Category filter
+  const [filterCategory, setFilterCategory] = useState<VehicleCategory | 'all'>(
+    'all'
+  ); // 🚗 Category filter
   const [showAvailable, setShowAvailable] = useState(true);
   const [showRented, setShowRented] = useState(true);
   const [showMaintenance, setShowMaintenance] = useState(true);
@@ -861,9 +1077,10 @@ export default function VehicleListNew() {
   const [showRemoved, setShowRemoved] = useState(false); // 🗑️ Vyradené vozidlá defaultne skryté
   const [showTempRemoved, setShowTempRemoved] = useState(false); // ⏸️ Dočasne vyradené vozidlá defaultne skryté
   const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false);
-  const [selectedVehicleHistory, setSelectedVehicleHistory] = useState<Vehicle | null>(null);
+  const [selectedVehicleHistory, setSelectedVehicleHistory] =
+    useState<Vehicle | null>(null);
   const [ownershipHistory, setOwnershipHistory] = useState<any[]>([]);
-  
+
   // 🆕 State pre vytvorenie novej firmy
   const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
   const [newCompanyData, setNewCompanyData] = useState({
@@ -874,38 +1091,45 @@ export default function VehicleListNew() {
     contactEmail: '',
     contactPhone: '',
     defaultCommissionRate: 20,
-    isActive: true
+    isActive: true,
   });
 
   // 🤝 State pre spoluinvestorov
-  const [createInvestorDialogOpen, setCreateInvestorDialogOpen] = useState(false);
+  const [createInvestorDialogOpen, setCreateInvestorDialogOpen] =
+    useState(false);
   const [investors, setInvestors] = useState<any[]>([]);
   const [investorShares, setInvestorShares] = useState<any[]>([]);
   const [loadingInvestors, setLoadingInvestors] = useState(false);
   const [assignShareDialogOpen, setAssignShareDialogOpen] = useState(false);
-  const [selectedInvestorForShare, setSelectedInvestorForShare] = useState<any>(null);
+  const [selectedInvestorForShare, setSelectedInvestorForShare] =
+    useState<any>(null);
   const [newShareData, setNewShareData] = useState({
     companyId: '',
     ownershipPercentage: 0,
     investmentAmount: 0,
-    isPrimaryContact: false
+    isPrimaryContact: false,
   });
   const [newInvestorData, setNewInvestorData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    notes: ''
+    notes: '',
   });
 
   // Handlers
   // 🎯 SCROLL PRESERVATION: Funkcia na obnovenie scroll pozície
   const restoreScrollPosition = React.useCallback(() => {
     setTimeout(() => {
-      const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+      const scrollContainer = isMobile
+        ? mobileScrollRef.current
+        : desktopScrollRef.current;
       if (scrollContainer && savedScrollPosition.current > 0) {
         scrollContainer.scrollTop = savedScrollPosition.current;
-        console.log(`🔄 Restored scroll position (${isMobile ? 'mobile' : 'desktop'}):`, savedScrollPosition.current);
+        console.log(
+          `🔄 Restored scroll position (${isMobile ? 'mobile' : 'desktop'}):`,
+          savedScrollPosition.current
+        );
         savedScrollPosition.current = 0; // Reset
       }
     }, 100);
@@ -916,23 +1140,25 @@ export default function VehicleListNew() {
     if (!isLoadingMoreRef.current || infiniteScrollPosition.current === 0) {
       return;
     }
-    
+
     const targetPosition = infiniteScrollPosition.current;
     let restored = false;
-    
+
     // 🚀 OPTIMIZED: Single smart restore attempt
     const attemptRestore = () => {
-      const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
-      
+      const scrollContainer = isMobile
+        ? mobileScrollRef.current
+        : desktopScrollRef.current;
+
       if (scrollContainer && !restored) {
         // Force scroll position
         scrollContainer.scrollTop = targetPosition;
-        
+
         // Verify restoration worked
         setTimeout(() => {
           const actualPosition = scrollContainer.scrollTop;
           const success = Math.abs(actualPosition - targetPosition) < 50;
-          
+
           if (success) {
             restored = true;
             console.log(`✅ Scroll preserved at position ${targetPosition}`);
@@ -940,12 +1166,12 @@ export default function VehicleListNew() {
         }, 50);
       }
     };
-    
+
     // Single attempt with optimal timing
     requestAnimationFrame(() => {
       setTimeout(attemptRestore, 200); // Wait for DOM to settle
     });
-    
+
     // Cleanup
     setTimeout(() => {
       isLoadingMoreRef.current = false;
@@ -955,14 +1181,19 @@ export default function VehicleListNew() {
 
   const handleEdit = (vehicle: Vehicle) => {
     console.log('🔥 VEHICLE EDIT CLICKED:', vehicle.id);
-    
+
     // 🎯 SCROLL PRESERVATION: Uložiť aktuálnu pozíciu pred otvorením dialógu
-    const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+    const scrollContainer = isMobile
+      ? mobileScrollRef.current
+      : desktopScrollRef.current;
     if (scrollContainer) {
       savedScrollPosition.current = scrollContainer.scrollTop;
-      console.log(`💾 Saved scroll position (${isMobile ? 'mobile' : 'desktop'}):`, savedScrollPosition.current);
+      console.log(
+        `💾 Saved scroll position (${isMobile ? 'mobile' : 'desktop'}):`,
+        savedScrollPosition.current
+      );
     }
-    
+
     setEditingVehicle(vehicle);
     setOpenDialog(true);
   };
@@ -971,18 +1202,18 @@ export default function VehicleListNew() {
   const handleCreateCompany = async () => {
     try {
       console.log('🏢 Creating new company:', newCompanyData);
-      
+
       const response = await fetch(`${getApiBaseUrl()}/companies`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+          Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
         },
-        body: JSON.stringify(newCompanyData)
+        body: JSON.stringify(newCompanyData),
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log('✅ Company created successfully');
         setCreateCompanyDialogOpen(false);
@@ -994,7 +1225,7 @@ export default function VehicleListNew() {
           contactEmail: '',
           contactPhone: '',
           defaultCommissionRate: 20,
-          isActive: true
+          isActive: true,
         });
         // Refresh companies data
         window.location.reload();
@@ -1012,18 +1243,18 @@ export default function VehicleListNew() {
   const handleCreateInvestor = async () => {
     try {
       console.log('🤝 Creating new investor:', newInvestorData);
-      
+
       const response = await fetch(`${getApiBaseUrl()}/company-investors`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+          Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
         },
-        body: JSON.stringify(newInvestorData)
+        body: JSON.stringify(newInvestorData),
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log('✅ Investor created successfully');
         setCreateInvestorDialogOpen(false);
@@ -1032,7 +1263,7 @@ export default function VehicleListNew() {
           lastName: '',
           email: '',
           phone: '',
-          notes: ''
+          notes: '',
         });
         // Refresh data
         window.location.reload();
@@ -1050,26 +1281,29 @@ export default function VehicleListNew() {
   const loadInvestors = async () => {
     try {
       setLoadingInvestors(true);
-      
+
       const response = await fetch(`${getApiBaseUrl()}/company-investors`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+        },
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         setInvestors(result.data);
-        
+
         // Načítaj shares pre všetkých investorov
         const allShares = [];
         for (const company of state.companies || []) {
-          const sharesResponse = await fetch(`${getApiBaseUrl()}/company-investors/${company.id}/shares`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+          const sharesResponse = await fetch(
+            `${getApiBaseUrl()}/company-investors/${company.id}/shares`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+              },
             }
-          });
+          );
           const sharesResult = await sharesResponse.json();
           if (sharesResult.success) {
             allShares.push(...sharesResult.data);
@@ -1095,21 +1329,24 @@ export default function VehicleListNew() {
   const handleAssignShare = async () => {
     try {
       console.log('🤝 Assigning share:', newShareData);
-      
-      const response = await fetch(`${getApiBaseUrl()}/company-investors/shares`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
-        },
-        body: JSON.stringify({
-          ...newShareData,
-          investorId: selectedInvestorForShare.id
-        })
-      });
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/company-investors/shares`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          },
+          body: JSON.stringify({
+            ...newShareData,
+            investorId: selectedInvestorForShare.id,
+          }),
+        }
+      );
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log('✅ Share assigned successfully');
         setAssignShareDialogOpen(false);
@@ -1118,7 +1355,7 @@ export default function VehicleListNew() {
           companyId: '',
           ownershipPercentage: 0,
           investmentAmount: 0,
-          isPrimaryContact: false
+          isPrimaryContact: false,
         });
         loadInvestors(); // Refresh data
       } else {
@@ -1137,12 +1374,15 @@ export default function VehicleListNew() {
       // Použijem fetch API namiesto private request metódy
       const token = localStorage.getItem('token');
       const apiBaseUrl = getApiBaseUrl();
-        const response = await fetch(`${apiBaseUrl}/vehicles/${vehicle.id}/ownership-history`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        `${apiBaseUrl}/vehicles/${vehicle.id}/ownership-history`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         }
-      });
+      );
       const data = await response.json();
       setOwnershipHistory(data.data.ownershipHistory || []);
       setOwnershipHistoryDialog(true);
@@ -1168,7 +1408,7 @@ export default function VehicleListNew() {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingVehicle(null);
-    
+
     // 🎯 SCROLL PRESERVATION: Obnoviť pozíciu po zatvorení dialógu
     restoreScrollPosition();
   };
@@ -1210,8 +1450,6 @@ export default function VehicleListNew() {
     }
   };
 
-
-
   // 🚀 ENHANCED: Filtered vehicles using new unified filter system
   const filteredVehicles = useMemo(() => {
     return getFullyFilteredVehicles({
@@ -1231,7 +1469,7 @@ export default function VehicleListNew() {
       // 🗑️ Vyradené vozidlá
       includeRemoved: showRemoved || showTempRemoved, // Ak je zapnutý ktorýkoľvek, načítaj vyradené
       showRemoved,
-      showTempRemoved
+      showTempRemoved,
     });
   }, [
     searchQuery,
@@ -1247,25 +1485,29 @@ export default function VehicleListNew() {
     showPrivate, // 🏠 Súkromné vozidlá
     showRemoved, // 🗑️ Vyradené vozidlá
     showTempRemoved, // ⏸️ Dočasne vyradené vozidlá
-    getFullyFilteredVehicles // 🎯 Enhanced filter function
+    getFullyFilteredVehicles, // 🎯 Enhanced filter function
   ]);
 
   // 🎯 INFINITE SCROLL PRESERVATION: Wrapper pre loadMore s uložením pozície
   const handleLoadMoreVehicles = useCallback(() => {
     if (isLoadingMore || displayedVehicles >= filteredVehicles.length) return;
-    
+
     // Uložiť aktuálnu scroll pozíciu pred načítaním
-    const scrollContainer = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+    const scrollContainer = isMobile
+      ? mobileScrollRef.current
+      : desktopScrollRef.current;
     if (scrollContainer) {
       infiniteScrollPosition.current = scrollContainer.scrollTop;
     }
-    
+
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
-    
+
     // Simulate loading delay for better UX
     setTimeout(() => {
-      setDisplayedVehicles(prev => Math.min(prev + 20, filteredVehicles.length));
+      setDisplayedVehicles(prev =>
+        Math.min(prev + 20, filteredVehicles.length)
+      );
       setIsLoadingMore(false);
     }, 300);
   }, [isLoadingMore, displayedVehicles, filteredVehicles.length, isMobile]);
@@ -1276,7 +1518,18 @@ export default function VehicleListNew() {
   // Reset displayed count when filters change
   useEffect(() => {
     setDisplayedVehicles(20);
-  }, [searchQuery, filterBrand, filterModel, filterCompany, filterStatus, filterCategory, showAvailable, showRented, showMaintenance, showOther]);
+  }, [
+    searchQuery,
+    filterBrand,
+    filterModel,
+    filterCompany,
+    filterStatus,
+    filterCategory,
+    showAvailable,
+    showRented,
+    showMaintenance,
+    showOther,
+  ]);
 
   // 🎯 INFINITE SCROLL PRESERVATION: Obnoviť pozíciu po načítaní nových vozidiel
   useEffect(() => {
@@ -1287,14 +1540,17 @@ export default function VehicleListNew() {
   }, [displayedVehicles, isLoadingMore, restoreInfiniteScrollPosition]);
 
   // Infinite scroll event handler
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    
-    // Load more when user scrolls to 80% of the content
-    if (scrollTop + clientHeight >= scrollHeight * 0.8) {
-      loadMoreVehicles();
-    }
-  }, [loadMoreVehicles]);
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+
+      // Load more when user scrolls to 80% of the content
+      if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+        loadMoreVehicles();
+      }
+    },
+    [loadMoreVehicles]
+  );
 
   // Get vehicles to display (limited by infinite scroll)
   const vehiclesToDisplay = useMemo(() => {
@@ -1306,8 +1562,12 @@ export default function VehicleListNew() {
   // Get unique values for filters
   const uniqueBrands = [...new Set(state.vehicles.map(v => v.brand))].sort();
   const uniqueModels = [...new Set(state.vehicles.map(v => v.model))].sort();
-  const uniqueCompanies = [...new Set(state.vehicles.map(v => v.company))].sort();
-  const uniqueCategories = [...new Set(state.vehicles.map(v => v.category).filter(Boolean))].sort() as VehicleCategory[]; // 🚗 Unique categories
+  const uniqueCompanies = [
+    ...new Set(state.vehicles.map(v => v.company)),
+  ].sort();
+  const uniqueCategories = [
+    ...new Set(state.vehicles.map(v => v.category).filter(Boolean)),
+  ].sort() as VehicleCategory[]; // 🚗 Unique categories
 
   // 🆕 TabPanel component
   interface TabPanelProps {
@@ -1338,15 +1598,13 @@ export default function VehicleListNew() {
       const blob = await apiService.exportVehiclesCSV();
       const filename = `vozidla-${new Date().toISOString().split('T')[0]}.csv`;
       saveAs(blob, filename);
-      
+
       alert('CSV export úspešný');
     } catch (error) {
       console.error('CSV export error:', error);
       alert('Chyba pri CSV exporte');
     }
   };
-
-
 
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -1361,26 +1619,26 @@ export default function VehicleListNew() {
           // Zobraz počet riadkov na spracovanie
           const totalRows = results.data.length - 1; // -1 pre header
           console.log(`📊 Spracovávam ${totalRows} vozidiel z CSV...`);
-          
+
           // Zobraz progress dialog
           const progressDialog = window.confirm(
             `📥 Začínam import ${totalRows} vozidiel z CSV súboru...\n\n` +
-            'Tento proces môže trvať niekoľko sekúnd.\n' +
-            'Chcete pokračovať?'
+              'Tento proces môže trvať niekoľko sekúnd.\n' +
+              'Chcete pokračovať?'
           );
-          
+
           if (!progressDialog) {
             setLoading(false);
             return;
           }
-          
+
           // 📦 BATCH PROCESSING: Priprav vozidlá pre batch import
           const batchVehicles = [];
-          
+
           // Spracuj CSV dáta a vytvor vozidlá pre batch import
           const header = results.data[0];
           const dataRows = results.data.slice(1);
-          
+
           for (const row of dataRows) {
             const fieldMap: { [key: string]: string } = {};
             header.forEach((headerName: string, index: number) => {
@@ -1397,7 +1655,11 @@ export default function VehicleListNew() {
             const stk = fieldMap['stk'] || fieldMap['STK'];
 
             if (!brand || !model || !company) {
-              console.warn('⚠️ Preskakujem riadok - chýbajú povinné polia:', { brand, model, company });
+              console.warn('⚠️ Preskakujem riadok - chýbajú povinné polia:', {
+                brand,
+                model,
+                company,
+              });
               continue;
             }
 
@@ -1408,15 +1670,31 @@ export default function VehicleListNew() {
               maxDays: number;
               pricePerDay: number;
             }> = [];
-            
+
             const priceColumns = [
               { columns: ['cena_0_1', 'Cena_0-1_dni'], minDays: 0, maxDays: 1 },
               { columns: ['cena_2_3', 'Cena_2-3_dni'], minDays: 2, maxDays: 3 },
               { columns: ['cena_4_7', 'Cena_4-7_dni'], minDays: 4, maxDays: 7 },
-              { columns: ['cena_8_14', 'Cena_8-14_dni'], minDays: 8, maxDays: 14 },
-              { columns: ['cena_15_22', 'Cena_15-22_dni'], minDays: 15, maxDays: 22 },
-              { columns: ['cena_23_30', 'Cena_23-30_dni'], minDays: 23, maxDays: 30 },
-              { columns: ['cena_31_9999', 'Cena_31+_dni'], minDays: 31, maxDays: 365 }
+              {
+                columns: ['cena_8_14', 'Cena_8-14_dni'],
+                minDays: 8,
+                maxDays: 14,
+              },
+              {
+                columns: ['cena_15_22', 'Cena_15-22_dni'],
+                minDays: 15,
+                maxDays: 22,
+              },
+              {
+                columns: ['cena_23_30', 'Cena_23-30_dni'],
+                minDays: 23,
+                maxDays: 30,
+              },
+              {
+                columns: ['cena_31_9999', 'Cena_31+_dni'],
+                minDays: 31,
+                maxDays: 365,
+              },
             ];
 
             priceColumns.forEach((priceCol, index) => {
@@ -1427,27 +1705,28 @@ export default function VehicleListNew() {
                   break;
                 }
               }
-              
+
               if (priceValue && !isNaN(parseFloat(priceValue))) {
                 pricing.push({
                   id: (index + 1).toString(),
                   minDays: priceCol.minDays,
                   maxDays: priceCol.maxDays,
-                  pricePerDay: parseFloat(priceValue)
+                  pricePerDay: parseFloat(priceValue),
                 });
               }
             });
 
             // Parsovanie provízie
-            const commissionType = (
-              fieldMap['commissionType'] || 
-              fieldMap['Provizia_typ'] || 
-              'percentage'
-            ) as 'percentage' | 'fixed';
-            
-            const commissionValue = fieldMap['commissionValue'] || fieldMap['Provizia_hodnota'] 
-              ? parseFloat(fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']) 
-              : 20;
+            const commissionType = (fieldMap['commissionType'] ||
+              fieldMap['Provizia_typ'] ||
+              'percentage') as 'percentage' | 'fixed';
+
+            const commissionValue =
+              fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']
+                ? parseFloat(
+                    fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']
+                  )
+                : 20;
 
             // Vytvor vehicle data
             const vehicleData = {
@@ -1456,41 +1735,61 @@ export default function VehicleListNew() {
               model: model.trim(),
               licensePlate: licensePlate?.trim() || '',
               company: company.trim(),
-              year: year && year.trim() && !isNaN(parseInt(year)) ? parseInt(year) : 2024,
+              year:
+                year && year.trim() && !isNaN(parseInt(year))
+                  ? parseInt(year)
+                  : 2024,
               status: (status?.trim() || 'available') as any,
               stk: stk && stk.trim() ? new Date(stk.trim()) : undefined,
               pricing: pricing,
-              commission: { 
-                type: commissionType, 
-                value: commissionValue 
-              }
+              commission: {
+                type: commissionType,
+                value: commissionValue,
+              },
             };
 
             batchVehicles.push(vehicleData);
           }
 
-          console.log(`📦 Pripravených ${batchVehicles.length} vozidiel pre batch import`);
-          
+          console.log(
+            `📦 Pripravených ${batchVehicles.length} vozidiel pre batch import`
+          );
+
           // Použij batch import namiesto CSV importu
           const result = await apiService.batchImportVehicles(batchVehicles);
-          
+
           console.log('📥 CSV Import result:', result);
-          
+
           // Result už obsahuje priamo dáta, nie je wrapped v success/data
-          const { created, updated, errorsCount, successRate, processed, total } = result;
-          
+          const {
+            created,
+            updated,
+            errorsCount,
+            successRate,
+            processed,
+            total,
+          } = result;
+
           if (created > 0 || updated > 0) {
-            alert(`🚀 BATCH IMPORT ÚSPEŠNÝ!\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Spracovaných: ${processed}/${total}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nStránka sa obnoví za 3 sekundy...`);
+            alert(
+              `🚀 BATCH IMPORT ÚSPEŠNÝ!\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Spracovaných: ${processed}/${total}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nStránka sa obnoví za 3 sekundy...`
+            );
             setTimeout(() => window.location.reload(), 3000);
           } else if (errorsCount > 0) {
-            alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nSkontrolujte formát CSV súboru.`);
+            alert(
+              `⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nSkontrolujte formát CSV súboru.`
+            );
           } else {
-            alert(`⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\nSkontrolujte formát CSV súboru.`);
+            alert(
+              `⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\nSkontrolujte formát CSV súboru.`
+            );
           }
         } catch (error) {
           console.error('❌ CSV import error:', error);
           // ✅ ZLEPŠENÉ ERROR HANDLING - menej dramatické
-          alert(`⚠️ Import dokončený s upozornením: ${error instanceof Error ? error.message : 'Sieťová chyba'}\n\nSkontrolujte výsledok po obnovení stránky.`);
+          alert(
+            `⚠️ Import dokončený s upozornením: ${error instanceof Error ? error.message : 'Sieťová chyba'}\n\nSkontrolujte výsledok po obnovení stránky.`
+          );
           // Aj tak skús refresh - možno sa import dokončil
           setTimeout(() => window.location.reload(), 2000);
         } finally {
@@ -1503,9 +1802,9 @@ export default function VehicleListNew() {
         console.error('❌ Papa Parse error:', error);
         alert(`❌ Chyba pri čítaní CSV súboru: ${error.message}`);
         setLoading(false);
-      }
+      },
     });
-    
+
     // Reset input
     event.target.value = '';
   };
@@ -1520,9 +1819,12 @@ export default function VehicleListNew() {
     }
     setSelectedVehicles(newSelected);
     setShowBulkActions(newSelected.size > 0);
-    
+
     // Update select all checkbox
-    setIsSelectAllChecked(newSelected.size === filteredVehicles.length && filteredVehicles.length > 0);
+    setIsSelectAllChecked(
+      newSelected.size === filteredVehicles.length &&
+        filteredVehicles.length > 0
+    );
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -1539,17 +1841,17 @@ export default function VehicleListNew() {
 
   const handleBulkDelete = async () => {
     if (selectedVehicles.size === 0) return;
-    
+
     const confirmed = window.confirm(
       `Naozaj chcete zmazať ${selectedVehicles.size} vozidiel?\n\nTáto akcia sa nedá vrátiť späť.`
     );
-    
+
     if (!confirmed) return;
-    
+
     setLoading(true);
     let deletedCount = 0;
     let errorCount = 0;
-    
+
     try {
       // Mazanie po jednom - pre lepšiu kontrolu
       for (const vehicleId of selectedVehicles) {
@@ -1562,19 +1864,20 @@ export default function VehicleListNew() {
           console.error(`❌ Failed to delete vehicle: ${vehicleId}`, error);
         }
       }
-      
+
       // Reset výber
       setSelectedVehicles(new Set());
       setShowBulkActions(false);
       setIsSelectAllChecked(false);
-      
+
       // Zobraz výsledok
       if (errorCount === 0) {
         alert(`✅ Úspešne zmazaných ${deletedCount} vozidiel.`);
       } else {
-        alert(`⚠️ Zmazaných ${deletedCount} vozidiel.\nChyby: ${errorCount} vozidiel sa nepodarilo zmazať.`);
+        alert(
+          `⚠️ Zmazaných ${deletedCount} vozidiel.\nChyby: ${errorCount} vozidiel sa nepodarilo zmazať.`
+        );
       }
-      
     } catch (error) {
       console.error('❌ Bulk delete error:', error);
       alert('❌ Chyba pri hromadnom mazaní vozidiel.');
@@ -1586,34 +1889,41 @@ export default function VehicleListNew() {
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header */}
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        mb: 3,
-        flexDirection: { xs: 'column', sm: 'row' },
-        gap: { xs: 2, sm: 0 }
-      }}>
-        <Typography variant="h4" sx={{ 
-          fontWeight: 700, 
-          color: '#1976d2',
-          fontSize: { xs: '1.5rem', sm: '2rem' }
-        }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 3,
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 },
+        }}
+      >
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            color: '#1976d2',
+            fontSize: { xs: '1.5rem', sm: '2rem' },
+          }}
+        >
           🚗 Databáza vozidiel
         </Typography>
-        
+
         {/* ✅ NOVÉ: Bulk Actions */}
         {showBulkActions && (
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 2,
-            bgcolor: '#fff3cd',
-            border: '1px solid #ffeaa7',
-            borderRadius: 1,
-            px: 2,
-            py: 1
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              bgcolor: '#fff3cd',
+              border: '1px solid #ffeaa7',
+              borderRadius: 1,
+              px: 2,
+              py: 1,
+            }}
+          >
             <Typography variant="body2" sx={{ color: '#856404' }}>
               Vybraných: {selectedVehicles.size}
             </Typography>
@@ -1641,7 +1951,7 @@ export default function VehicleListNew() {
             </Button>
           </Box>
         )}
-        
+
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           {/* ✅ NOVÉ: Select All Checkbox */}
           {filteredVehicles.length > 0 && (
@@ -1649,8 +1959,11 @@ export default function VehicleListNew() {
               control={
                 <Checkbox
                   checked={isSelectAllChecked}
-                  indeterminate={selectedVehicles.size > 0 && selectedVehicles.size < filteredVehicles.length}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  indeterminate={
+                    selectedVehicles.size > 0 &&
+                    selectedVehicles.size < filteredVehicles.length
+                  }
+                  onChange={e => handleSelectAll(e.target.checked)}
                   sx={{ '& .MuiSvgIcon-root': { fontSize: 20 } }}
                 />
               }
@@ -1659,16 +1972,16 @@ export default function VehicleListNew() {
                   Vybrať všetky ({filteredVehicles.length})
                 </Typography>
               }
-              sx={{ 
+              sx={{
                 bgcolor: '#f5f5f5',
                 borderRadius: 1,
                 px: 1,
                 py: 0.5,
-                mr: 1
+                mr: 1,
               }}
             />
           )}
-          
+
           <Can create="vehicles">
             <Button
               variant="contained"
@@ -1679,13 +1992,13 @@ export default function VehicleListNew() {
                 '&:hover': { bgcolor: '#1565c0' },
                 borderRadius: 2,
                 px: 3,
-                py: 1
+                py: 1,
               }}
             >
               Nové vozidlo
             </Button>
           </Can>
-          
+
           {/* CSV Export/Import tlačidlá - len na desktope */}
           {!isMobile && (
             <>
@@ -1695,25 +2008,31 @@ export default function VehicleListNew() {
                 sx={{
                   borderColor: '#1976d2',
                   color: '#1976d2',
-                  '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' },
+                  '&:hover': {
+                    borderColor: '#1565c0',
+                    bgcolor: 'rgba(25, 118, 210, 0.04)',
+                  },
                   borderRadius: 2,
                   px: 3,
-                  py: 1
+                  py: 1,
                 }}
               >
                 📊 Export CSV
               </Button>
-              
+
               <Button
                 variant="outlined"
                 component="label"
                 sx={{
                   borderColor: '#1976d2',
                   color: '#1976d2',
-                  '&:hover': { borderColor: '#1565c0', bgcolor: 'rgba(25, 118, 210, 0.04)' },
+                  '&:hover': {
+                    borderColor: '#1565c0',
+                    bgcolor: 'rgba(25, 118, 210, 0.04)',
+                  },
                   borderRadius: 2,
                   px: 3,
-                  py: 1
+                  py: 1,
                 }}
               >
                 📥 Import CSV
@@ -1726,8 +2045,6 @@ export default function VehicleListNew() {
               </Button>
             </>
           )}
-
-
         </Box>
       </Box>
 
@@ -1740,7 +2057,7 @@ export default function VehicleListNew() {
               fullWidth
               placeholder="Hľadať vozidlá..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: '#666', mr: 1 }} />,
               }}
@@ -1748,12 +2065,12 @@ export default function VehicleListNew() {
             />
             <IconButton
               onClick={() => setFiltersOpen(!filtersOpen)}
-              sx={{ 
+              sx={{
                 bgcolor: filtersOpen ? '#1976d2' : '#f5f5f5',
                 color: filtersOpen ? 'white' : '#666',
-                '&:hover': { 
-                  bgcolor: filtersOpen ? '#1565c0' : '#e0e0e0' 
-                }
+                '&:hover': {
+                  bgcolor: filtersOpen ? '#1565c0' : '#e0e0e0',
+                },
               }}
             >
               <FilterListIcon />
@@ -1770,11 +2087,13 @@ export default function VehicleListNew() {
                   <Select
                     value={filterBrand}
                     label="Značka"
-                    onChange={(e) => setFilterBrand(e.target.value)}
+                    onChange={e => setFilterBrand(e.target.value)}
                   >
                     <MenuItem value="">Všetky značky</MenuItem>
                     {uniqueBrands.map(brand => (
-                      <MenuItem key={brand} value={brand}>{brand}</MenuItem>
+                      <MenuItem key={brand} value={brand}>
+                        {brand}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -1785,11 +2104,13 @@ export default function VehicleListNew() {
                   <Select
                     value={filterModel}
                     label="Model"
-                    onChange={(e) => setFilterModel(e.target.value)}
+                    onChange={e => setFilterModel(e.target.value)}
                   >
                     <MenuItem value="">Všetky modely</MenuItem>
                     {uniqueModels.map(model => (
-                      <MenuItem key={model} value={model}>{model}</MenuItem>
+                      <MenuItem key={model} value={model}>
+                        {model}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -1800,11 +2121,13 @@ export default function VehicleListNew() {
                   <Select
                     value={filterCompany}
                     label="Firma"
-                    onChange={(e) => setFilterCompany(e.target.value)}
+                    onChange={e => setFilterCompany(e.target.value)}
                   >
                     <MenuItem value="">Všetky firmy</MenuItem>
                     {uniqueCompanies.map(company => (
-                      <MenuItem key={company} value={company}>{company}</MenuItem>
+                      <MenuItem key={company} value={company}>
+                        {company}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -1815,13 +2138,15 @@ export default function VehicleListNew() {
                   <Select
                     value={filterStatus}
                     label="Status"
-                    onChange={(e) => setFilterStatus(e.target.value)}
+                    onChange={e => setFilterStatus(e.target.value)}
                   >
                     <MenuItem value="">Všetky statusy</MenuItem>
                     <MenuItem value="available">Dostupné</MenuItem>
                     <MenuItem value="rented">Prenajaté</MenuItem>
                     <MenuItem value="maintenance">Údržba</MenuItem>
-                    <MenuItem value="temporarily_removed">Dočasne vyradené</MenuItem>
+                    <MenuItem value="temporarily_removed">
+                      Dočasne vyradené
+                    </MenuItem>
                     <MenuItem value="removed">Vyradené</MenuItem>
                     <MenuItem value="transferred">Prepisané</MenuItem>
                   </Select>
@@ -1833,12 +2158,20 @@ export default function VehicleListNew() {
                   <Select
                     value={filterCategory}
                     label="Kategória"
-                    onChange={(e) => setFilterCategory(e.target.value as VehicleCategory | 'all')}
+                    onChange={e =>
+                      setFilterCategory(
+                        e.target.value as VehicleCategory | 'all'
+                      )
+                    }
                   >
                     <MenuItem value="all">Všetky kategórie</MenuItem>
                     <MenuItem value="nizka-trieda">🚗 Nízka trieda</MenuItem>
-                    <MenuItem value="stredna-trieda">🚙 Stredná trieda</MenuItem>
-                    <MenuItem value="vyssia-stredna">🚘 Vyššia stredná</MenuItem>
+                    <MenuItem value="stredna-trieda">
+                      🚙 Stredná trieda
+                    </MenuItem>
+                    <MenuItem value="vyssia-stredna">
+                      🚘 Vyššia stredná
+                    </MenuItem>
                     <MenuItem value="luxusne">💎 Luxusné</MenuItem>
                     <MenuItem value="sportove">🏎️ Športové</MenuItem>
                     <MenuItem value="suv">🚜 SUV</MenuItem>
@@ -1856,31 +2189,66 @@ export default function VehicleListNew() {
               </Typography>
               <FormGroup row>
                 <FormControlLabel
-                  control={<Checkbox checked={showAvailable} onChange={(e) => setShowAvailable(e.target.checked)} />}
+                  control={
+                    <Checkbox
+                      checked={showAvailable}
+                      onChange={e => setShowAvailable(e.target.checked)}
+                    />
+                  }
                   label="Dostupné"
                 />
                 <FormControlLabel
-                  control={<Checkbox checked={showRented} onChange={(e) => setShowRented(e.target.checked)} />}
+                  control={
+                    <Checkbox
+                      checked={showRented}
+                      onChange={e => setShowRented(e.target.checked)}
+                    />
+                  }
                   label="Prenajaté"
                 />
                 <FormControlLabel
-                  control={<Checkbox checked={showMaintenance} onChange={(e) => setShowMaintenance(e.target.checked)} />}
+                  control={
+                    <Checkbox
+                      checked={showMaintenance}
+                      onChange={e => setShowMaintenance(e.target.checked)}
+                    />
+                  }
                   label="Údržba"
                 />
                 <FormControlLabel
-                  control={<Checkbox checked={showOther} onChange={(e) => setShowOther(e.target.checked)} />}
+                  control={
+                    <Checkbox
+                      checked={showOther}
+                      onChange={e => setShowOther(e.target.checked)}
+                    />
+                  }
                   label="Ostatné"
                 />
                 <FormControlLabel
-                  control={<Checkbox checked={showPrivate} onChange={(e) => setShowPrivate(e.target.checked)} />}
+                  control={
+                    <Checkbox
+                      checked={showPrivate}
+                      onChange={e => setShowPrivate(e.target.checked)}
+                    />
+                  }
                   label="🏠 Súkromné"
                 />
                 <FormControlLabel
-                  control={<Checkbox checked={showRemoved} onChange={(e) => setShowRemoved(e.target.checked)} />}
+                  control={
+                    <Checkbox
+                      checked={showRemoved}
+                      onChange={e => setShowRemoved(e.target.checked)}
+                    />
+                  }
                   label="🗑️ Vyradené"
                 />
                 <FormControlLabel
-                  control={<Checkbox checked={showTempRemoved} onChange={(e) => setShowTempRemoved(e.target.checked)} />}
+                  control={
+                    <Checkbox
+                      checked={showTempRemoved}
+                      onChange={e => setShowTempRemoved(e.target.checked)}
+                    />
+                  }
                   label="⏸️ Dočasne vyradené"
                 />
               </FormGroup>
@@ -1891,218 +2259,274 @@ export default function VehicleListNew() {
 
       {/* 🎯 TABS NAVIGATION */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={currentTab} onChange={handleTabChange} aria-label="vehicle tabs">
-          <Tab label="Vozidlá" id="vehicle-tab-0" aria-controls="vehicle-tabpanel-0" />
-          <Tab label="👤 Majitelia" id="vehicle-tab-1" aria-controls="vehicle-tabpanel-1" />
-          <Tab label="🤝 Používatelia" id="vehicle-tab-2" aria-controls="vehicle-tabpanel-2" />
+        <Tabs
+          value={currentTab}
+          onChange={handleTabChange}
+          aria-label="vehicle tabs"
+        >
+          <Tab
+            label="Vozidlá"
+            id="vehicle-tab-0"
+            aria-controls="vehicle-tabpanel-0"
+          />
+          <Tab
+            label="👤 Majitelia"
+            id="vehicle-tab-1"
+            aria-controls="vehicle-tabpanel-1"
+          />
+          <Tab
+            label="🤝 Používatelia"
+            id="vehicle-tab-2"
+            aria-controls="vehicle-tabpanel-2"
+          />
         </Tabs>
       </Box>
 
       {/* TAB 0 - VOZIDLÁ */}
       <TabPanel value={currentTab} index={0}>
         {/* Results Count */}
-      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          Zobrazených {vehiclesToDisplay.length} z {filteredVehicles.length} vozidiel
-          {filteredVehicles.length !== state.vehicles.length && ` (filtrovaných z ${state.vehicles.length})`}
-        </Typography>
-        {loading && (
-          <EnhancedLoading 
-            variant="inline" 
-            message="Aktualizujem zoznam..." 
-            showMessage={false} 
-          />
-        )}
-        {isLoadingMore && (
-          <EnhancedLoading 
-            variant="inline" 
-            message="Načítavam ďalšie..." 
-            showMessage={true} 
-          />
-        )}
-      </Box>
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Zobrazených {vehiclesToDisplay.length} z {filteredVehicles.length}{' '}
+            vozidiel
+            {filteredVehicles.length !== state.vehicles.length &&
+              ` (filtrovaných z ${state.vehicles.length})`}
+          </Typography>
+          {loading && (
+            <EnhancedLoading
+              variant="inline"
+              message="Aktualizujem zoznam..."
+              showMessage={false}
+            />
+          )}
+          {isLoadingMore && (
+            <EnhancedLoading
+              variant="inline"
+              message="Načítavam ďalšie..."
+              showMessage={true}
+            />
+          )}
+        </Box>
 
-      {/* Vehicle List */}
-      {isMobile ? (
-        /* MOBILE CARDS VIEW */
-        <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
-          <CardContent sx={{ p: 0 }}>
-            <Box 
-              ref={mobileScrollRef}
-              sx={{ maxHeight: '70vh', overflowY: 'auto' }}
-              onScroll={handleScroll}
-            >
-              {vehiclesToDisplay.map((vehicle, index) => (
-                <Box
-                  key={vehicle.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    p: 0,
-                    borderBottom: index < vehiclesToDisplay.length - 1 ? '1px solid #e0e0e0' : 'none',
-                    '&:hover': { backgroundColor: '#f8f9fa' },
-                    minHeight: 80,
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => handleEdit(vehicle)}
-                >
-                  {/* ✅ NOVÉ: Checkbox pre výber vozidla */}
-                  <Box sx={{ 
-                    width: 50,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRight: '1px solid #e0e0e0',
-                    backgroundColor: '#fafafa'
-                  }}>
-                    <Checkbox
-                      size="small"
-                      checked={selectedVehicles.has(vehicle.id)}
-                      onChange={(e) => {
-                        e.stopPropagation(); // Zabráni kliknutiu na celý riadok
-                        handleVehicleSelect(vehicle.id, e.target.checked);
-                      }}
-                      sx={{ 
-                        p: 0.5,
-                        '& .MuiSvgIcon-root': { fontSize: 18 }
-                      }}
-                    />
-                  </Box>
-                  
-                  {/* Vehicle Info - sticky left */}
-                  <Box sx={{ 
-                    width: { xs: 140, sm: 160 },
-                    maxWidth: { xs: 140, sm: 160 },
-                    p: { xs: 1, sm: 1.5 },
-                    borderRight: '2px solid #e0e0e0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    backgroundColor: '#ffffff',
-                    position: 'sticky',
-                    left: 0,
-                    zIndex: 10,
-                    overflow: 'hidden'
-                  }}>
-                    <Typography variant="subtitle2" sx={{ 
-                      fontWeight: 600, 
-                      fontSize: { xs: '0.75rem', sm: '0.8rem' },
-                      color: '#1976d2',
-                      lineHeight: 1.2,
-                      wordWrap: 'break-word',
-                      mb: { xs: 0.25, sm: 0.5 }
-                    }}>
-                      {vehicle.brand} {vehicle.model}
-                    </Typography>
-                    <Typography variant="caption" sx={{ 
-                      color: '#666',
-                      fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                      mb: { xs: 0.25, sm: 0.5 },
-                      fontWeight: 600
-                    }}>
-                      {vehicle.licensePlate}
-                    </Typography>
-                    {vehicle.vin && (
-                      <Typography variant="caption" sx={{
-                        color: '#888',
-                        fontSize: { xs: '0.55rem', sm: '0.6rem' },
-                        fontFamily: 'monospace'
-                      }}>
-                        VIN: {vehicle.vin.slice(-6)}
-                      </Typography>
-                    )}
-                    <Chip
-                      size="small"
-                      label={getStatusText(vehicle.status)}
-                      icon={getStatusIcon(vehicle.status)}
+        {/* Vehicle List */}
+        {isMobile ? (
+          /* MOBILE CARDS VIEW */
+          <Card
+            sx={{
+              overflow: 'hidden',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
+              borderRadius: 3,
+            }}
+          >
+            <CardContent sx={{ p: 0 }}>
+              <Box
+                ref={mobileScrollRef}
+                sx={{ maxHeight: '70vh', overflowY: 'auto' }}
+                onScroll={handleScroll}
+              >
+                {vehiclesToDisplay.map((vehicle, index) => (
+                  <Box
+                    key={vehicle.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      p: 0,
+                      borderBottom:
+                        index < vehiclesToDisplay.length - 1
+                          ? '1px solid #e0e0e0'
+                          : 'none',
+                      '&:hover': { backgroundColor: '#f8f9fa' },
+                      minHeight: 80,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => handleEdit(vehicle)}
+                  >
+                    {/* ✅ NOVÉ: Checkbox pre výber vozidla */}
+                    <Box
                       sx={{
-                        height: { xs: 18, sm: 20 },
-                        fontSize: { xs: '0.55rem', sm: '0.6rem' },
-                        bgcolor: getStatusBgColor(vehicle.status),
-                        color: 'white',
-                        fontWeight: 700,
-                        minWidth: 'auto',
-                        maxWidth: '100%',
-                        overflow: 'hidden',
-                        '& .MuiChip-icon': {
-                          color: 'white',
-                          fontSize: '0.8rem'
-                        }
+                        width: 50,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRight: '1px solid #e0e0e0',
+                        backgroundColor: '#fafafa',
                       }}
-                    />
-                  </Box>
-                  
-                  {/* Vehicle Details - scrollable right */}
-                  <Box sx={{ 
-                    flex: 1,
-                    p: { xs: 1, sm: 1.5 },
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    overflow: 'hidden',
-                    minWidth: 0
-                  }}>
-                    <Box sx={{ overflow: 'hidden' }}>
-                      <Typography variant="subtitle2" sx={{ 
-                        fontWeight: 600,
-                        fontSize: { xs: '0.75rem', sm: '0.8rem' },
-                        color: '#333',
-                        mb: { xs: 0.25, sm: 0.5 },
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        🏢 {vehicle.company}
-                      </Typography>
-                      <Typography variant="caption" sx={{ 
-                        color: '#666',
-                        fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                        display: 'block',
-                        mb: { xs: 0.25, sm: 0.5 },
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        📊 Status: {getStatusText(vehicle.status)}
-                      </Typography>
+                    >
+                      <Checkbox
+                        size="small"
+                        checked={selectedVehicles.has(vehicle.id)}
+                        onChange={e => {
+                          e.stopPropagation(); // Zabráni kliknutiu na celý riadok
+                          handleVehicleSelect(vehicle.id, e.target.checked);
+                        }}
+                        sx={{
+                          p: 0.5,
+                          '& .MuiSvgIcon-root': { fontSize: 18 },
+                        }}
+                      />
                     </Box>
-                    
-                    {/* Mobile Action Buttons */}
-                    <Box sx={{ 
-                      display: 'flex', 
-                      gap: { xs: 0.5, sm: 0.75 }, 
-                      mt: { xs: 1, sm: 1.5 }, 
-                      justifyContent: 'flex-start',
-                      flexWrap: 'wrap'
-                    }}>
-                      {/* Edit Button */}
-                      <Can update="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>
-                        <IconButton
-                          size="small"
-                          title="Upraviť vozidlo"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(vehicle);
-                          }}
-                          sx={{ 
-                            bgcolor: '#2196f3', 
-                            color: 'white',
-                            width: { xs: 36, sm: 32 },
-                            height: { xs: 36, sm: 32 },
-                            '&:hover': { 
-                              bgcolor: '#1976d2',
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
-                            },
-                            transition: 'all 0.2s ease'
+
+                    {/* Vehicle Info - sticky left */}
+                    <Box
+                      sx={{
+                        width: { xs: 140, sm: 160 },
+                        maxWidth: { xs: 140, sm: 160 },
+                        p: { xs: 1, sm: 1.5 },
+                        borderRight: '2px solid #e0e0e0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        backgroundColor: '#ffffff',
+                        position: 'sticky',
+                        left: 0,
+                        zIndex: 10,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                          color: '#1976d2',
+                          lineHeight: 1.2,
+                          wordWrap: 'break-word',
+                          mb: { xs: 0.25, sm: 0.5 },
+                        }}
+                      >
+                        {vehicle.brand} {vehicle.model}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: '#666',
+                          fontSize: { xs: '0.6rem', sm: '0.65rem' },
+                          mb: { xs: 0.25, sm: 0.5 },
+                          fontWeight: 600,
+                        }}
+                      >
+                        {vehicle.licensePlate}
+                      </Typography>
+                      {vehicle.vin && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: '#888',
+                            fontSize: { xs: '0.55rem', sm: '0.6rem' },
+                            fontFamily: 'monospace',
                           }}
                         >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Can>
-                      
-                      {/* DEAKTIVOVANÉ - Transfer vlastníctva sa nepoužíva */}
-                      {/* <IconButton
+                          VIN: {vehicle.vin.slice(-6)}
+                        </Typography>
+                      )}
+                      <Chip
+                        size="small"
+                        label={getStatusText(vehicle.status)}
+                        icon={getStatusIcon(vehicle.status)}
+                        sx={{
+                          height: { xs: 18, sm: 20 },
+                          fontSize: { xs: '0.55rem', sm: '0.6rem' },
+                          bgcolor: getStatusBgColor(vehicle.status),
+                          color: 'white',
+                          fontWeight: 700,
+                          minWidth: 'auto',
+                          maxWidth: '100%',
+                          overflow: 'hidden',
+                          '& .MuiChip-icon': {
+                            color: 'white',
+                            fontSize: '0.8rem',
+                          },
+                        }}
+                      />
+                    </Box>
+
+                    {/* Vehicle Details - scrollable right */}
+                    <Box
+                      sx={{
+                        flex: 1,
+                        p: { xs: 1, sm: 1.5 },
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        overflow: 'hidden',
+                        minWidth: 0,
+                      }}
+                    >
+                      <Box sx={{ overflow: 'hidden' }}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                            color: '#333',
+                            mb: { xs: 0.25, sm: 0.5 },
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          🏢 {vehicle.company}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: '#666',
+                            fontSize: { xs: '0.6rem', sm: '0.65rem' },
+                            display: 'block',
+                            mb: { xs: 0.25, sm: 0.5 },
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          📊 Status: {getStatusText(vehicle.status)}
+                        </Typography>
+                      </Box>
+
+                      {/* Mobile Action Buttons */}
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          gap: { xs: 0.5, sm: 0.75 },
+                          mt: { xs: 1, sm: 1.5 },
+                          justifyContent: 'flex-start',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        {/* Edit Button */}
+                        <Can
+                          update="vehicles"
+                          context={{
+                            resourceOwnerId: vehicle.assignedMechanicId,
+                            resourceCompanyId: vehicle.ownerCompanyId,
+                          }}
+                        >
+                          <IconButton
+                            size="small"
+                            title="Upraviť vozidlo"
+                            onClick={e => {
+                              e.stopPropagation();
+                              handleEdit(vehicle);
+                            }}
+                            sx={{
+                              bgcolor: '#2196f3',
+                              color: 'white',
+                              width: { xs: 36, sm: 32 },
+                              height: { xs: 36, sm: 32 },
+                              '&:hover': {
+                                bgcolor: '#1976d2',
+                                transform: 'scale(1.1)',
+                                boxShadow: '0 4px 12px rgba(33,150,243,0.4)',
+                              },
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Can>
+
+                        {/* DEAKTIVOVANÉ - Transfer vlastníctva sa nepoužíva */}
+                        {/* <IconButton
                         size="small"
                         title="História transferov vlastníctva"
                         onClick={(e) => {
@@ -2124,27 +2548,501 @@ export default function VehicleListNew() {
                       >
                         <HistoryIcon fontSize="small" />
                       </IconButton> */}
-                      
+
+                        {/* Delete Button */}
+                        <Can
+                          delete="vehicles"
+                          context={{
+                            resourceOwnerId: vehicle.assignedMechanicId,
+                            resourceCompanyId: vehicle.ownerCompanyId,
+                          }}
+                        >
+                          <IconButton
+                            size="small"
+                            title="Zmazať vozidlo"
+                            onClick={e => {
+                              e.stopPropagation();
+                              handleDelete(vehicle.id);
+                            }}
+                            sx={{
+                              bgcolor: '#f44336',
+                              color: 'white',
+                              width: { xs: 36, sm: 32 },
+                              height: { xs: 36, sm: 32 },
+                              '&:hover': {
+                                bgcolor: '#d32f2f',
+                                transform: 'scale(1.1)',
+                                boxShadow: '0 4px 12px rgba(244,67,54,0.4)',
+                              },
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Can>
+                      </Box>
+                    </Box>
+                  </Box>
+                ))}
+
+                {/* 🚀 INFINITE SCROLL: Load More Button */}
+                {hasMore && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      p: 3,
+                      borderTop: '1px solid #e0e0e0',
+                    }}
+                  >
+                    <Button
+                      variant="outlined"
+                      onClick={loadMoreVehicles}
+                      disabled={isLoadingMore}
+                      sx={{
+                        minWidth: 200,
+                        py: 1.5,
+                        borderRadius: 3,
+                        textTransform: 'none',
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {isLoadingMore
+                        ? 'Načítavam...'
+                        : `Načítať ďalších (${filteredVehicles.length - displayedVehicles} zostáva)`}
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        ) : (
+          /* DESKTOP TABLE VIEW */
+          <Card
+            sx={{
+              overflow: 'hidden',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
+              borderRadius: 3,
+            }}
+          >
+            <CardContent sx={{ p: 0 }}>
+              {/* Desktop Header */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  bgcolor: '#f8f9fa',
+                  borderBottom: '2px solid #e0e0e0',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 100,
+                  minHeight: 56,
+                }}
+              >
+                {/* Vozidlo column */}
+                <Box
+                  sx={{
+                    width: 200,
+                    minWidth: 200,
+                    p: 2,
+                    borderRight: '1px solid #e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 700, color: '#333' }}
+                  >
+                    🚗 Vozidlo
+                  </Typography>
+                </Box>
+
+                {/* ŠPZ a VIN column */}
+                <Box
+                  sx={{
+                    width: 140,
+                    minWidth: 140,
+                    p: 2,
+                    borderRight: '1px solid #e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 700, color: '#333' }}
+                  >
+                    📋 ŠPZ / VIN
+                  </Typography>
+                </Box>
+
+                {/* Firma column */}
+                <Box
+                  sx={{
+                    width: 150,
+                    minWidth: 150,
+                    p: 2,
+                    borderRight: '1px solid #e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 700, color: '#333' }}
+                  >
+                    🏢 Firma
+                  </Typography>
+                </Box>
+
+                {/* Status column */}
+                <Box
+                  sx={{
+                    width: 140,
+                    minWidth: 140,
+                    p: 2,
+                    borderRight: '1px solid #e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 700, color: '#333' }}
+                  >
+                    📊 Status
+                  </Typography>
+                </Box>
+
+                {/* Ceny column */}
+                <Box
+                  sx={{
+                    width: 200,
+                    minWidth: 200,
+                    p: 2,
+                    borderRight: '1px solid #e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 700, color: '#333' }}
+                  >
+                    💰 Ceny
+                  </Typography>
+                </Box>
+
+                {/* Akcie column */}
+                <Box
+                  sx={{
+                    width: 120,
+                    minWidth: 120,
+                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 700, color: '#333' }}
+                  >
+                    ⚡ Akcie
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Desktop Vehicle Rows */}
+              <Box
+                ref={desktopScrollRef}
+                sx={{ maxHeight: '70vh', overflowY: 'auto' }}
+                onScroll={handleScroll}
+              >
+                {vehiclesToDisplay.map((vehicle, index) => (
+                  <Box
+                    key={vehicle.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      p: 0,
+                      borderBottom:
+                        index < vehiclesToDisplay.length - 1
+                          ? '1px solid #e0e0e0'
+                          : 'none',
+                      '&:hover': { backgroundColor: '#f8f9fa' },
+                      minHeight: 72,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => handleEdit(vehicle)}
+                  >
+                    {/* Vozidlo column */}
+                    <Box
+                      sx={{
+                        width: 200,
+                        minWidth: 200,
+                        p: 2,
+                        borderRight: '1px solid #e0e0e0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 600,
+                          color: '#1976d2',
+                          mb: 0.5,
+                        }}
+                      >
+                        {vehicle.brand} {vehicle.model}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: '#666',
+                          fontSize: '0.7rem',
+                        }}
+                      >
+                        ID: {vehicle.id.slice(0, 8)}...
+                      </Typography>
+                    </Box>
+
+                    {/* ŠPZ a VIN column */}
+                    <Box
+                      sx={{
+                        width: 140,
+                        minWidth: 140,
+                        p: 2,
+                        borderRight: '1px solid #e0e0e0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: '#333',
+                          fontFamily: 'monospace',
+                        }}
+                      >
+                        {vehicle.licensePlate}
+                      </Typography>
+                      {vehicle.vin && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: '#666',
+                            fontFamily: 'monospace',
+                            fontSize: '0.7rem',
+                            mt: 0.5,
+                          }}
+                        >
+                          VIN: {vehicle.vin.slice(-8)}
+                        </Typography>
+                      )}
+                    </Box>
+
+                    {/* Firma column */}
+                    <Box
+                      sx={{
+                        width: 150,
+                        minWidth: 150,
+                        p: 2,
+                        borderRight: '1px solid #e0e0e0',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: '#333',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {vehicle.company}
+                      </Typography>
+                    </Box>
+
+                    {/* Status column */}
+                    <Box
+                      sx={{
+                        width: 140,
+                        minWidth: 140,
+                        p: 2,
+                        borderRight: '1px solid #e0e0e0',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Chip
+                        size="small"
+                        label={getStatusText(vehicle.status)}
+                        icon={getStatusIcon(vehicle.status)}
+                        sx={{
+                          height: 24,
+                          fontSize: '0.7rem',
+                          bgcolor: getStatusBgColor(vehicle.status),
+                          color: 'white',
+                          fontWeight: 700,
+                          '& .MuiChip-icon': {
+                            color: 'white',
+                            fontSize: '0.9rem',
+                          },
+                        }}
+                      />
+                    </Box>
+
+                    {/* Ceny column */}
+                    <Box
+                      sx={{
+                        width: 200,
+                        minWidth: 200,
+                        p: 2,
+                        borderRight: '1px solid #e0e0e0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {vehicle.pricing && vehicle.pricing.length > 0 ? (
+                        <>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: '#666',
+                              fontSize: '0.65rem',
+                              mb: 0.25,
+                            }}
+                          >
+                            1 deň:{' '}
+                            {vehicle.pricing.find(
+                              p => p.minDays === 0 && p.maxDays === 1
+                            )?.pricePerDay || 0}
+                            €
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: '#666',
+                              fontSize: '0.65rem',
+                            }}
+                          >
+                            7+ dní:{' '}
+                            {vehicle.pricing.find(
+                              p => p.minDays === 4 && p.maxDays === 7
+                            )?.pricePerDay || 0}
+                            €
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography variant="caption" sx={{ color: '#999' }}>
+                          Nezadané
+                        </Typography>
+                      )}
+                    </Box>
+
+                    {/* Akcie column */}
+                    <Box
+                      sx={{
+                        width: 120,
+                        minWidth: 120,
+                        p: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 0.5,
+                      }}
+                    >
+                      {/* Edit Button */}
+                      <Can
+                        update="vehicles"
+                        context={{
+                          resourceOwnerId: vehicle.assignedMechanicId,
+                          resourceCompanyId: vehicle.ownerCompanyId,
+                        }}
+                      >
+                        <IconButton
+                          size="small"
+                          title="Upraviť vozidlo"
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleEdit(vehicle);
+                          }}
+                          sx={{
+                            bgcolor: '#2196f3',
+                            color: 'white',
+                            width: 28,
+                            height: 28,
+                            '&:hover': {
+                              bgcolor: '#1976d2',
+                              transform: 'scale(1.1)',
+                              boxShadow: '0 4px 12px rgba(33,150,243,0.4)',
+                            },
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Can>
+
+                      {/* History Button */}
+                      <IconButton
+                        size="small"
+                        title="História vozidla"
+                        onClick={e => {
+                          e.stopPropagation();
+                          // TODO: Implement history view
+                        }}
+                        sx={{
+                          bgcolor: '#9c27b0',
+                          color: 'white',
+                          width: 28,
+                          height: 28,
+                          '&:hover': {
+                            bgcolor: '#7b1fa2',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(156,39,176,0.4)',
+                          },
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <HistoryIcon fontSize="small" />
+                      </IconButton>
+
                       {/* Delete Button */}
-                      <Can delete="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>
+                      <Can
+                        delete="vehicles"
+                        context={{
+                          resourceOwnerId: vehicle.assignedMechanicId,
+                          resourceCompanyId: vehicle.ownerCompanyId,
+                        }}
+                      >
                         <IconButton
                           size="small"
                           title="Zmazať vozidlo"
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation();
                             handleDelete(vehicle.id);
                           }}
-                          sx={{ 
-                            bgcolor: '#f44336', 
+                          sx={{
+                            bgcolor: '#f44336',
                             color: 'white',
-                            width: { xs: 36, sm: 32 },
-                            height: { xs: 36, sm: 32 },
-                            '&:hover': { 
+                            width: 28,
+                            height: 28,
+                            '&:hover': {
                               bgcolor: '#d32f2f',
                               transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(244,67,54,0.4)'
+                              boxShadow: '0 4px 12px rgba(244,67,54,0.4)',
                             },
-                            transition: 'all 0.2s ease'
+                            transition: 'all 0.2s ease',
                           }}
                         >
                           <DeleteIcon fontSize="small" />
@@ -2152,450 +3050,92 @@ export default function VehicleListNew() {
                       </Can>
                     </Box>
                   </Box>
-                </Box>
-              ))}
-              
-              {/* 🚀 INFINITE SCROLL: Load More Button */}
-              {hasMore && (
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  p: 3,
-                  borderTop: '1px solid #e0e0e0'
-                }}>
-                  <Button
-                    variant="outlined"
-                    onClick={loadMoreVehicles}
-                    disabled={isLoadingMore}
+                ))}
+
+                {/* 🚀 INFINITE SCROLL: Load More Button */}
+                {hasMore && (
+                  <Box
                     sx={{
-                      minWidth: 200,
-                      py: 1.5,
-                      borderRadius: 3,
-                      textTransform: 'none',
-                      fontSize: '1rem',
-                      fontWeight: 600
+                      display: 'flex',
+                      justifyContent: 'center',
+                      p: 3,
+                      borderTop: '1px solid #e0e0e0',
                     }}
                   >
-                    {isLoadingMore ? 'Načítavam...' : `Načítať ďalších (${filteredVehicles.length - displayedVehicles} zostáva)`}
-                  </Button>
-                </Box>
-              )}
-            </Box>
-          </CardContent>
-        </Card>
-      ) : (
-        /* DESKTOP TABLE VIEW */
-        <Card sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)', borderRadius: 3 }}>
-          <CardContent sx={{ p: 0 }}>
-            {/* Desktop Header */}
-            <Box sx={{ 
-              display: 'flex',
-              bgcolor: '#f8f9fa',
-              borderBottom: '2px solid #e0e0e0',
-              position: 'sticky',
-              top: 0,
-              zIndex: 100,
-              minHeight: 56
-            }}>
-              {/* Vozidlo column */}
-              <Box sx={{ 
-                width: 200,
-                minWidth: 200,
-                p: 2,
-                borderRight: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
-                  🚗 Vozidlo
-                </Typography>
-              </Box>
-              
-              {/* ŠPZ a VIN column */}
-              <Box sx={{ 
-                width: 140,
-                minWidth: 140,
-                p: 2,
-                borderRight: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
-                  📋 ŠPZ / VIN
-                </Typography>
-              </Box>
-              
-              {/* Firma column */}
-              <Box sx={{ 
-                width: 150,
-                minWidth: 150,
-                p: 2,
-                borderRight: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
-                  🏢 Firma
-                </Typography>
-              </Box>
-              
-              {/* Status column */}
-              <Box sx={{ 
-                width: 140,
-                minWidth: 140,
-                p: 2,
-                borderRight: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
-                  📊 Status
-                </Typography>
-              </Box>
-              
-              {/* Ceny column */}
-              <Box sx={{ 
-                width: 200,
-                minWidth: 200,
-                p: 2,
-                borderRight: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
-                  💰 Ceny
-                </Typography>
-              </Box>
-              
-              {/* Akcie column */}
-              <Box sx={{ 
-                width: 120,
-                minWidth: 120,
-                p: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
-                  ⚡ Akcie
-                </Typography>
-              </Box>
-            </Box>
-
-            {/* Desktop Vehicle Rows */}
-            <Box 
-              ref={desktopScrollRef}
-              sx={{ maxHeight: '70vh', overflowY: 'auto' }}
-              onScroll={handleScroll}
-            >
-              {vehiclesToDisplay.map((vehicle, index) => (
-                <Box 
-                  key={vehicle.id}
-                  sx={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    p: 0,
-                    borderBottom: index < vehiclesToDisplay.length - 1 ? '1px solid #e0e0e0' : 'none',
-                    '&:hover': { backgroundColor: '#f8f9fa' },
-                    minHeight: 72,
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => handleEdit(vehicle)}
-                >
-                  {/* Vozidlo column */}
-                  <Box sx={{ 
-                    width: 200,
-                    minWidth: 200,
-                    p: 2,
-                    borderRight: '1px solid #e0e0e0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center'
-                  }}>
-                    <Typography variant="subtitle2" sx={{ 
-                      fontWeight: 600, 
-                      color: '#1976d2',
-                      mb: 0.5
-                    }}>
-                      {vehicle.brand} {vehicle.model}
-                    </Typography>
-                    <Typography variant="caption" sx={{ 
-                      color: '#666',
-                      fontSize: '0.7rem'
-                    }}>
-                      ID: {vehicle.id.slice(0, 8)}...
-                    </Typography>
-                  </Box>
-                  
-                  {/* ŠPZ a VIN column */}
-                  <Box sx={{ 
-                    width: 140,
-                    minWidth: 140,
-                    p: 2,
-                    borderRight: '1px solid #e0e0e0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center'
-                  }}>
-                    <Typography variant="body2" sx={{ 
-                      fontWeight: 600,
-                      color: '#333',
-                      fontFamily: 'monospace'
-                    }}>
-                      {vehicle.licensePlate}
-                    </Typography>
-                    {vehicle.vin && (
-                      <Typography variant="caption" sx={{
-                        color: '#666',
-                        fontFamily: 'monospace',
-                        fontSize: '0.7rem',
-                        mt: 0.5
-                      }}>
-                        VIN: {vehicle.vin.slice(-8)}
-                      </Typography>
-                    )}
-                  </Box>
-                  
-                  {/* Firma column */}
-                  <Box sx={{ 
-                    width: 150,
-                    minWidth: 150,
-                    p: 2,
-                    borderRight: '1px solid #e0e0e0',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}>
-                    <Typography variant="body2" sx={{ 
-                      color: '#333',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {vehicle.company}
-                    </Typography>
-                  </Box>
-                  
-                  {/* Status column */}
-                  <Box sx={{ 
-                    width: 140,
-                    minWidth: 140,
-                    p: 2,
-                    borderRight: '1px solid #e0e0e0',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}>
-                    <Chip
-                      size="small"
-                      label={getStatusText(vehicle.status)}
-                      icon={getStatusIcon(vehicle.status)}
+                    <Button
+                      variant="outlined"
+                      onClick={loadMoreVehicles}
+                      disabled={isLoadingMore}
                       sx={{
-                        height: 24,
-                        fontSize: '0.7rem',
-                        bgcolor: getStatusBgColor(vehicle.status),
-                        color: 'white',
-                        fontWeight: 700,
-                        '& .MuiChip-icon': {
-                          color: 'white',
-                          fontSize: '0.9rem'
-                        }
-                      }}
-                    />
-                  </Box>
-                  
-                  {/* Ceny column */}
-                  <Box sx={{ 
-                    width: 200,
-                    minWidth: 200,
-                    p: 2,
-                    borderRight: '1px solid #e0e0e0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center'
-                  }}>
-                    {vehicle.pricing && vehicle.pricing.length > 0 ? (
-                      <>
-                        <Typography variant="caption" sx={{ 
-                          color: '#666',
-                          fontSize: '0.65rem',
-                          mb: 0.25
-                        }}>
-                          1 deň: {vehicle.pricing.find(p => p.minDays === 0 && p.maxDays === 1)?.pricePerDay || 0}€
-                        </Typography>
-                        <Typography variant="caption" sx={{ 
-                          color: '#666',
-                          fontSize: '0.65rem'
-                        }}>
-                          7+ dní: {vehicle.pricing.find(p => p.minDays === 4 && p.maxDays === 7)?.pricePerDay || 0}€
-                        </Typography>
-                      </>
-                    ) : (
-                      <Typography variant="caption" sx={{ color: '#999' }}>
-                        Nezadané
-                      </Typography>
-                    )}
-                  </Box>
-                  
-                  {/* Akcie column */}
-                  <Box sx={{ 
-                    width: 120,
-                    minWidth: 120,
-                    p: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 0.5
-                  }}>
-                    {/* Edit Button */}
-                    <Can update="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>
-                      <IconButton
-                        size="small"
-                        title="Upraviť vozidlo"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(vehicle);
-                        }}
-                        sx={{ 
-                          bgcolor: '#2196f3', 
-                          color: 'white',
-                          width: 28,
-                          height: 28,
-                          '&:hover': { 
-                            bgcolor: '#1976d2',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(33,150,243,0.4)'
-                          },
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Can>
-                    
-                    {/* History Button */}
-                    <IconButton
-                      size="small"
-                      title="História vozidla"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // TODO: Implement history view
-                      }}
-                      sx={{ 
-                        bgcolor: '#9c27b0', 
-                        color: 'white',
-                        width: 28,
-                        height: 28,
-                        '&:hover': { 
-                          bgcolor: '#7b1fa2',
-                          transform: 'scale(1.1)',
-                          boxShadow: '0 4px 12px rgba(156,39,176,0.4)'
-                        },
-                        transition: 'all 0.2s ease'
+                        minWidth: 200,
+                        py: 1.5,
+                        borderRadius: 3,
+                        textTransform: 'none',
+                        fontSize: '1rem',
+                        fontWeight: 600,
                       }}
                     >
-                      <HistoryIcon fontSize="small" />
-                    </IconButton>
-                    
-                    {/* Delete Button */}
-                    <Can delete="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>
-                      <IconButton
-                        size="small"
-                        title="Zmazať vozidlo"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(vehicle.id);
-                        }}
-                        sx={{ 
-                          bgcolor: '#f44336', 
-                          color: 'white',
-                          width: 28,
-                          height: 28,
-                          '&:hover': { 
-                            bgcolor: '#d32f2f',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(244,67,54,0.4)'
-                          },
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Can>
+                      {isLoadingMore
+                        ? 'Načítavam...'
+                        : `Načítať ďalších (${filteredVehicles.length - displayedVehicles} zostáva)`}
+                    </Button>
                   </Box>
-                </Box>
-              ))}
-              
-              {/* 🚀 INFINITE SCROLL: Load More Button */}
-              {hasMore && (
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  p: 3,
-                  borderTop: '1px solid #e0e0e0'
-                }}>
-                  <Button
-                    variant="outlined"
-                    onClick={loadMoreVehicles}
-                    disabled={isLoadingMore}
-                    sx={{
-                      minWidth: 200,
-                      py: 1.5,
-                      borderRadius: 3,
-                      textTransform: 'none',
-                      fontSize: '1rem',
-                      fontWeight: 600
-                    }}
-                  >
-                    {isLoadingMore ? 'Načítavam...' : `Načítať ďalších (${filteredVehicles.length - displayedVehicles} zostáva)`}
-                  </Button>
-                </Box>
-              )}
-            </Box>
-          </CardContent>
-        </Card>
-      )}
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        )}
       </TabPanel>
 
       {/* TAB 1 - MAJITELIA */}
       <TabPanel value={currentTab} index={1}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6">
-            👤 Správa majiteľov vozidiel
-          </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 3,
+          }}
+        >
+          <Typography variant="h6">👤 Správa majiteľov vozidiel</Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setCreateCompanyDialogOpen(true)}
-            sx={{ 
-              bgcolor: '#2196f3', 
+            sx={{
+              bgcolor: '#2196f3',
               '&:hover': { bgcolor: '#1976d2' },
               borderRadius: 2,
-              px: 3
+              px: 3,
             }}
           >
             🏢 Pridať novú firmu
           </Button>
         </Box>
-        
+
         {/* Owners List - Nový dizajn */}
         <Card>
           <CardContent>
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Zoznam majiteľov vozidiel. Kliknite na majiteľa pre zobrazenie/skrytie jeho vozidiel.
+                Zoznam majiteľov vozidiel. Kliknite na majiteľa pre
+                zobrazenie/skrytie jeho vozidiel.
               </Typography>
             </Box>
-            
+
             {/* Zoznam majiteľov zoskupených podľa firmy */}
             {state.companies
               ?.filter(company => company.isActive !== false) // Filtrovanie aktívnych firiem
-              ?.map((company) => {
+              ?.map(company => {
                 // Nájdi vozidlá pre túto firmu
-                const companyVehicles = filteredVehicles.filter(v => v.ownerCompanyId === company.id);
-                
+                const companyVehicles = filteredVehicles.filter(
+                  v => v.ownerCompanyId === company.id
+                );
+
                 if (companyVehicles.length === 0) return null;
-                
+
                 return (
-                  <OwnerCard 
+                  <OwnerCard
                     key={company.id}
                     company={company}
                     vehicles={companyVehicles}
@@ -2605,9 +3145,14 @@ export default function VehicleListNew() {
                 );
               })
               ?.filter(Boolean)}
-            
-            {state.companies?.filter(c => c.isActive !== false).length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+
+            {state.companies?.filter(c => c.isActive !== false).length ===
+              0 && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: 'center', py: 4 }}
+              >
                 Žiadni aktívni majitelia vozidiel
               </Typography>
             )}
@@ -2617,27 +3162,33 @@ export default function VehicleListNew() {
 
       {/* TAB 2 - POUŽÍVATELIA (SPOLUINVESTORI) */}
       <TabPanel value={currentTab} index={2}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6">
-            🤝 Správa spoluinvestorov
-          </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 3,
+          }}
+        >
+          <Typography variant="h6">🤝 Správa spoluinvestorov</Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setCreateInvestorDialogOpen(true)}
-            sx={{ 
-              bgcolor: '#2196f3', 
+            sx={{
+              bgcolor: '#2196f3',
               '&:hover': { bgcolor: '#1976d2' },
               borderRadius: 2,
-              px: 3
+              px: 3,
             }}
           >
             👤 Pridať spoluinvestora
           </Button>
         </Box>
-        
+
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Spoluinvestori s % podielmi vo firmách. Môžu byť priradení k viacerým firmám.
+          Spoluinvestori s % podielmi vo firmách. Môžu byť priradení k viacerým
+          firmám.
         </Typography>
 
         {/* Investors List */}
@@ -2646,24 +3197,30 @@ export default function VehicleListNew() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Zoznam všetkých spoluinvestorov a ich podiely vo firmách.
             </Typography>
-            
+
             {loadingInvestors ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <EnhancedLoading variant="page" showMessage={true} message="Načítavam spoluinvestorov..." />
+                <EnhancedLoading
+                  variant="page"
+                  showMessage={true}
+                  message="Načítavam spoluinvestorov..."
+                />
               </Box>
             ) : investors.length > 0 ? (
-              investors.map((investor) => {
+              investors.map(investor => {
                 // Nájdi podiely tohto investora
-                const investorShares_filtered = investorShares.filter(share => share.investorId === investor.id);
-                
+                const investorShares_filtered = investorShares.filter(
+                  share => share.investorId === investor.id
+                );
+
                 return (
-                  <InvestorCard 
+                  <InvestorCard
                     key={investor.id}
                     investor={investor}
                     shares={investorShares_filtered}
                     companies={state.companies || []}
                     onShareUpdate={loadInvestors}
-                    onAssignShare={(investor) => {
+                    onAssignShare={investor => {
                       setSelectedInvestorForShare(investor);
                       setAssignShareDialogOpen(true);
                     }}
@@ -2671,8 +3228,12 @@ export default function VehicleListNew() {
                 );
               })
             ) : (
-              <Typography variant="body2" sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-                Žiadni spoluinvestori. Kliknite na "Pridať spoluinvestora" pre vytvorenie nového.
+              <Typography
+                variant="body2"
+                sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}
+              >
+                Žiadni spoluinvestori. Kliknite na "Pridať spoluinvestora" pre
+                vytvorenie nového.
               </Typography>
             )}
           </CardContent>
@@ -2680,8 +3241,8 @@ export default function VehicleListNew() {
       </TabPanel>
 
       {/* Vehicle Form Dialog */}
-      <Dialog 
-        open={openDialog} 
+      <Dialog
+        open={openDialog}
         onClose={handleCloseDialog}
         maxWidth="md"
         fullWidth
@@ -2700,8 +3261,8 @@ export default function VehicleListNew() {
       </Dialog>
 
       {/* Ownership History Dialog */}
-      <Dialog 
-        open={ownershipHistoryDialog} 
+      <Dialog
+        open={ownershipHistoryDialog}
         onClose={() => setOwnershipHistoryDialog(false)}
         maxWidth="md"
         fullWidth
@@ -2710,7 +3271,8 @@ export default function VehicleListNew() {
           História transferov vlastníctva
           {selectedVehicleHistory && (
             <Typography variant="subtitle2" color="text.secondary">
-              {selectedVehicleHistory.brand} {selectedVehicleHistory.model} ({selectedVehicleHistory.licensePlate})
+              {selectedVehicleHistory.brand} {selectedVehicleHistory.model} (
+              {selectedVehicleHistory.licensePlate})
             </Typography>
           )}
         </DialogTitle>
@@ -2720,22 +3282,56 @@ export default function VehicleListNew() {
           ) : (
             <Box sx={{ mt: 2 }}>
               {ownershipHistory.map((record, index) => (
-                <Card key={record.id} sx={{ mb: 2, bgcolor: index === 0 ? 'primary.50' : 'background.paper' }}>
+                <Card
+                  key={record.id}
+                  sx={{
+                    mb: 2,
+                    bgcolor: index === 0 ? 'primary.50' : 'background.paper',
+                  }}
+                >
                   <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Typography variant="h6" color={index === 0 ? 'primary.main' : 'text.primary'}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        mb: 1,
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        color={index === 0 ? 'primary.main' : 'text.primary'}
+                      >
                         {record.ownerCompanyName}
-                        {index === 0 && <Chip label="Aktuálny majiteľ" size="small" sx={{ ml: 1 }} />}
+                        {index === 0 && (
+                          <Chip
+                            label="Aktuálny majiteľ"
+                            size="small"
+                            sx={{ ml: 1 }}
+                          />
+                        )}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {format(new Date(record.validFrom), 'dd.MM.yyyy', { locale: sk })}
-                        {record.validTo && ` - ${format(new Date(record.validTo), 'dd.MM.yyyy', { locale: sk })}`}
+                        {format(new Date(record.validFrom), 'dd.MM.yyyy', {
+                          locale: sk,
+                        })}
+                        {record.validTo &&
+                          ` - ${format(new Date(record.validTo), 'dd.MM.yyyy', { locale: sk })}`}
                       </Typography>
                     </Box>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Dôvod: {record.transferReason === 'initial_setup' ? 'Počiatočné nastavenie' : 
-                              record.transferReason === 'sale' ? 'Predaj' :
-                              record.transferReason === 'transfer' ? 'Transfer' : record.transferReason}
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      Dôvod:{' '}
+                      {record.transferReason === 'initial_setup'
+                        ? 'Počiatočné nastavenie'
+                        : record.transferReason === 'sale'
+                          ? 'Predaj'
+                          : record.transferReason === 'transfer'
+                            ? 'Transfer'
+                            : record.transferReason}
                     </Typography>
                     {record.transferNotes && (
                       <Typography variant="body2" color="text.secondary">
@@ -2751,10 +3347,10 @@ export default function VehicleListNew() {
       </Dialog>
 
       {/* Create Company Dialog */}
-      <Dialog 
-        open={createCompanyDialogOpen} 
-        onClose={() => setCreateCompanyDialogOpen(false)} 
-        maxWidth="md" 
+      <Dialog
+        open={createCompanyDialogOpen}
+        onClose={() => setCreateCompanyDialogOpen(false)}
+        maxWidth="md"
         fullWidth
       >
         <DialogTitle>🏢 Pridať novú firmu</DialogTitle>
@@ -2765,7 +3361,9 @@ export default function VehicleListNew() {
                 fullWidth
                 label="Názov firmy/s.r.o."
                 value={newCompanyData.name}
-                onChange={(e) => setNewCompanyData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={e =>
+                  setNewCompanyData(prev => ({ ...prev, name: e.target.value }))
+                }
                 required
                 autoFocus
                 sx={{ bgcolor: 'primary.50' }}
@@ -2776,7 +3374,12 @@ export default function VehicleListNew() {
                 fullWidth
                 label="Meno a priezvisko majiteľa"
                 value={newCompanyData.ownerName}
-                onChange={(e) => setNewCompanyData(prev => ({ ...prev, ownerName: e.target.value }))}
+                onChange={e =>
+                  setNewCompanyData(prev => ({
+                    ...prev,
+                    ownerName: e.target.value,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -2785,7 +3388,12 @@ export default function VehicleListNew() {
                 label="Kontaktný email"
                 type="email"
                 value={newCompanyData.contactEmail}
-                onChange={(e) => setNewCompanyData(prev => ({ ...prev, contactEmail: e.target.value }))}
+                onChange={e =>
+                  setNewCompanyData(prev => ({
+                    ...prev,
+                    contactEmail: e.target.value,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -2793,7 +3401,12 @@ export default function VehicleListNew() {
                 fullWidth
                 label="Kontaktný telefón"
                 value={newCompanyData.contactPhone}
-                onChange={(e) => setNewCompanyData(prev => ({ ...prev, contactPhone: e.target.value }))}
+                onChange={e =>
+                  setNewCompanyData(prev => ({
+                    ...prev,
+                    contactPhone: e.target.value,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -2802,7 +3415,12 @@ export default function VehicleListNew() {
                 label="Default provízia (%)"
                 type="number"
                 value={newCompanyData.defaultCommissionRate}
-                onChange={(e) => setNewCompanyData(prev => ({ ...prev, defaultCommissionRate: parseFloat(e.target.value) || 20 }))}
+                onChange={e =>
+                  setNewCompanyData(prev => ({
+                    ...prev,
+                    defaultCommissionRate: parseFloat(e.target.value) || 20,
+                  }))
+                }
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
               />
             </Grid>
@@ -2811,7 +3429,12 @@ export default function VehicleListNew() {
                 fullWidth
                 label="Súkromný IBAN"
                 value={newCompanyData.personalIban}
-                onChange={(e) => setNewCompanyData(prev => ({ ...prev, personalIban: e.target.value }))}
+                onChange={e =>
+                  setNewCompanyData(prev => ({
+                    ...prev,
+                    personalIban: e.target.value,
+                  }))
+                }
                 placeholder="SK89 0000 0000 0000 0000 0000"
               />
             </Grid>
@@ -2820,7 +3443,12 @@ export default function VehicleListNew() {
                 fullWidth
                 label="Firemný IBAN"
                 value={newCompanyData.businessIban}
-                onChange={(e) => setNewCompanyData(prev => ({ ...prev, businessIban: e.target.value }))}
+                onChange={e =>
+                  setNewCompanyData(prev => ({
+                    ...prev,
+                    businessIban: e.target.value,
+                  }))
+                }
                 placeholder="SK89 0000 0000 0000 0000 0000"
               />
             </Grid>
@@ -2830,8 +3458,8 @@ export default function VehicleListNew() {
           <Button onClick={() => setCreateCompanyDialogOpen(false)}>
             Zrušiť
           </Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={handleCreateCompany}
             disabled={!newCompanyData.name.trim()}
             startIcon={<AddIcon />}
@@ -2842,10 +3470,10 @@ export default function VehicleListNew() {
       </Dialog>
 
       {/* Create Investor Dialog */}
-      <Dialog 
-        open={createInvestorDialogOpen} 
-        onClose={() => setCreateInvestorDialogOpen(false)} 
-        maxWidth="md" 
+      <Dialog
+        open={createInvestorDialogOpen}
+        onClose={() => setCreateInvestorDialogOpen(false)}
+        maxWidth="md"
         fullWidth
       >
         <DialogTitle>👤 Pridať spoluinvestora</DialogTitle>
@@ -2856,7 +3484,12 @@ export default function VehicleListNew() {
                 fullWidth
                 label="Meno"
                 value={newInvestorData.firstName}
-                onChange={(e) => setNewInvestorData(prev => ({ ...prev, firstName: e.target.value }))}
+                onChange={e =>
+                  setNewInvestorData(prev => ({
+                    ...prev,
+                    firstName: e.target.value,
+                  }))
+                }
                 required
                 autoFocus
               />
@@ -2866,7 +3499,12 @@ export default function VehicleListNew() {
                 fullWidth
                 label="Priezvisko"
                 value={newInvestorData.lastName}
-                onChange={(e) => setNewInvestorData(prev => ({ ...prev, lastName: e.target.value }))}
+                onChange={e =>
+                  setNewInvestorData(prev => ({
+                    ...prev,
+                    lastName: e.target.value,
+                  }))
+                }
                 required
               />
             </Grid>
@@ -2876,7 +3514,12 @@ export default function VehicleListNew() {
                 label="Email"
                 type="email"
                 value={newInvestorData.email}
-                onChange={(e) => setNewInvestorData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={e =>
+                  setNewInvestorData(prev => ({
+                    ...prev,
+                    email: e.target.value,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -2884,7 +3527,12 @@ export default function VehicleListNew() {
                 fullWidth
                 label="Telefón"
                 value={newInvestorData.phone}
-                onChange={(e) => setNewInvestorData(prev => ({ ...prev, phone: e.target.value }))}
+                onChange={e =>
+                  setNewInvestorData(prev => ({
+                    ...prev,
+                    phone: e.target.value,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12}>
@@ -2892,7 +3540,12 @@ export default function VehicleListNew() {
                 fullWidth
                 label="Poznámky"
                 value={newInvestorData.notes}
-                onChange={(e) => setNewInvestorData(prev => ({ ...prev, notes: e.target.value }))}
+                onChange={e =>
+                  setNewInvestorData(prev => ({
+                    ...prev,
+                    notes: e.target.value,
+                  }))
+                }
                 multiline
                 rows={2}
               />
@@ -2903,10 +3556,13 @@ export default function VehicleListNew() {
           <Button onClick={() => setCreateInvestorDialogOpen(false)}>
             Zrušiť
           </Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={handleCreateInvestor}
-            disabled={!newInvestorData.firstName.trim() || !newInvestorData.lastName.trim()}
+            disabled={
+              !newInvestorData.firstName.trim() ||
+              !newInvestorData.lastName.trim()
+            }
             startIcon={<AddIcon />}
           >
             Vytvoriť spoluinvestora
@@ -2915,17 +3571,18 @@ export default function VehicleListNew() {
       </Dialog>
 
       {/* Assign Share Dialog */}
-      <Dialog 
-        open={assignShareDialogOpen} 
-        onClose={() => setAssignShareDialogOpen(false)} 
-        maxWidth="sm" 
+      <Dialog
+        open={assignShareDialogOpen}
+        onClose={() => setAssignShareDialogOpen(false)}
+        maxWidth="sm"
         fullWidth
       >
         <DialogTitle>
           🏢 Priradiť podiel k firme
           {selectedInvestorForShare && (
             <Typography variant="subtitle2" color="text.secondary">
-              {selectedInvestorForShare.firstName} {selectedInvestorForShare.lastName}
+              {selectedInvestorForShare.firstName}{' '}
+              {selectedInvestorForShare.lastName}
             </Typography>
           )}
         </DialogTitle>
@@ -2937,19 +3594,23 @@ export default function VehicleListNew() {
                 <Select
                   value={newShareData.companyId}
                   label="Firma"
-                  onChange={(e) => setNewShareData(prev => ({ ...prev, companyId: e.target.value }))}
+                  onChange={e =>
+                    setNewShareData(prev => ({
+                      ...prev,
+                      companyId: e.target.value,
+                    }))
+                  }
                 >
                   <MenuItem value="">
                     <em>Vyberte firmu...</em>
                   </MenuItem>
                   {state.companies
                     ?.filter(c => c.isActive !== false)
-                    ?.map((company) => (
+                    ?.map(company => (
                       <MenuItem key={company.id} value={company.id}>
                         {company.name}
                       </MenuItem>
-                    ))
-                  }
+                    ))}
                 </Select>
               </FormControl>
             </Grid>
@@ -2959,7 +3620,12 @@ export default function VehicleListNew() {
                 label="Vlastnícky podiel (%)"
                 type="number"
                 value={newShareData.ownershipPercentage}
-                onChange={(e) => setNewShareData(prev => ({ ...prev, ownershipPercentage: parseFloat(e.target.value) || 0 }))}
+                onChange={e =>
+                  setNewShareData(prev => ({
+                    ...prev,
+                    ownershipPercentage: parseFloat(e.target.value) || 0,
+                  }))
+                }
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
                 required
               />
@@ -2970,7 +3636,12 @@ export default function VehicleListNew() {
                 label="Suma investície (€)"
                 type="number"
                 value={newShareData.investmentAmount}
-                onChange={(e) => setNewShareData(prev => ({ ...prev, investmentAmount: parseFloat(e.target.value) || 0 }))}
+                onChange={e =>
+                  setNewShareData(prev => ({
+                    ...prev,
+                    investmentAmount: parseFloat(e.target.value) || 0,
+                  }))
+                }
                 inputProps={{ min: 0, step: 100 }}
               />
             </Grid>
@@ -2979,7 +3650,12 @@ export default function VehicleListNew() {
                 control={
                   <Checkbox
                     checked={newShareData.isPrimaryContact}
-                    onChange={(e) => setNewShareData(prev => ({ ...prev, isPrimaryContact: e.target.checked }))}
+                    onChange={e =>
+                      setNewShareData(prev => ({
+                        ...prev,
+                        isPrimaryContact: e.target.checked,
+                      }))
+                    }
                   />
                 }
                 label="Primárny kontakt firmy"
@@ -2991,10 +3667,12 @@ export default function VehicleListNew() {
           <Button onClick={() => setAssignShareDialogOpen(false)}>
             Zrušiť
           </Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={handleAssignShare}
-            disabled={!newShareData.companyId || newShareData.ownershipPercentage <= 0}
+            disabled={
+              !newShareData.companyId || newShareData.ownershipPercentage <= 0
+            }
             startIcon={<AddIcon />}
           >
             Priradiť podiel
@@ -3003,4 +3681,4 @@ export default function VehicleListNew() {
       </Dialog>
     </Box>
   );
-} 
+}

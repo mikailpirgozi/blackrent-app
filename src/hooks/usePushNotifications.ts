@@ -2,10 +2,11 @@
 // Easy-to-use React hook for push notification management
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  pushNotificationService, 
+
+import {
+  pushNotificationService,
   type PushNotificationPreferences,
-  type NotificationPayload 
+  type NotificationPayload,
 } from '../services/pushNotifications';
 
 interface UsePushNotificationsReturn {
@@ -15,14 +16,16 @@ interface UsePushNotificationsReturn {
   permission: NotificationPermission;
   loading: boolean;
   error: string | null;
-  
+
   // Preferences
   preferences: PushNotificationPreferences | null;
-  
+
   // Actions
   subscribe: () => Promise<boolean>;
   unsubscribe: () => Promise<boolean>;
-  updatePreferences: (prefs: Partial<PushNotificationPreferences>) => Promise<boolean>;
+  updatePreferences: (
+    prefs: Partial<PushNotificationPreferences>
+  ) => Promise<boolean>;
   sendTestNotification: (payload: NotificationPayload) => Promise<boolean>;
   refreshStatus: () => Promise<void>;
 }
@@ -30,10 +33,12 @@ interface UsePushNotificationsReturn {
 export const usePushNotifications = (): UsePushNotificationsReturn => {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [permission, setPermission] =
+    useState<NotificationPermission>('default');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [preferences, setPreferences] = useState<PushNotificationPreferences | null>(null);
+  const [preferences, setPreferences] =
+    useState<PushNotificationPreferences | null>(null);
 
   // Initialize push notifications
   const initialize = useCallback(async () => {
@@ -43,7 +48,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     try {
       // Initialize service
       const initialized = await pushNotificationService.initialize();
-      
+
       if (!initialized) {
         throw new Error('Failed to initialize push notification service');
       }
@@ -56,10 +61,10 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
 
       // Load preferences if subscribed
       if (status.isSubscribed) {
-        const prefs = await pushNotificationService.getNotificationPreferences();
+        const prefs =
+          await pushNotificationService.getNotificationPreferences();
         setPreferences(prefs);
       }
-
     } catch (err: any) {
       setError(err.message || 'Failed to initialize push notifications');
       console.error('Push notifications initialization error:', err);
@@ -75,20 +80,20 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
 
     try {
       const success = await pushNotificationService.subscribe();
-      
+
       if (success) {
         setIsSubscribed(true);
         setPermission('granted');
-        
+
         // Load preferences
-        const prefs = await pushNotificationService.getNotificationPreferences();
+        const prefs =
+          await pushNotificationService.getNotificationPreferences();
         setPreferences(prefs);
-        
+
         return true;
       } else {
         throw new Error('Failed to subscribe to push notifications');
       }
-
     } catch (err: any) {
       setError(err.message || 'Failed to subscribe');
       console.error('Push notification subscription error:', err);
@@ -105,7 +110,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
 
     try {
       const success = await pushNotificationService.unsubscribe();
-      
+
       if (success) {
         setIsSubscribed(false);
         setPreferences(null);
@@ -113,7 +118,6 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       } else {
         throw new Error('Failed to unsubscribe from push notifications');
       }
-
     } catch (err: any) {
       setError(err.message || 'Failed to unsubscribe');
       console.error('Push notification unsubscription error:', err);
@@ -124,55 +128,63 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
   }, []);
 
   // Update notification preferences
-  const updatePreferences = useCallback(async (
-    newPreferences: Partial<PushNotificationPreferences>
-  ): Promise<boolean> => {
-    if (!preferences) return false;
+  const updatePreferences = useCallback(
+    async (
+      newPreferences: Partial<PushNotificationPreferences>
+    ): Promise<boolean> => {
+      if (!preferences) return false;
 
-    const oldPreferences = { ...preferences };
-    
-    // Optimistic update
-    setPreferences(prev => prev ? { ...prev, ...newPreferences } : null);
+      const oldPreferences = { ...preferences };
 
-    try {
-      const success = await pushNotificationService.updateNotificationPreferences(newPreferences);
-      
-      if (!success) {
-        // Revert on failure
+      // Optimistic update
+      setPreferences(prev => (prev ? { ...prev, ...newPreferences } : null));
+
+      try {
+        const success =
+          await pushNotificationService.updateNotificationPreferences(
+            newPreferences
+          );
+
+        if (!success) {
+          // Revert on failure
+          setPreferences(oldPreferences);
+          throw new Error('Failed to update preferences');
+        }
+
+        return true;
+      } catch (err: any) {
+        // Revert on error
         setPreferences(oldPreferences);
-        throw new Error('Failed to update preferences');
+        setError(err.message || 'Failed to update preferences');
+        console.error('Push notification preferences update error:', err);
+        return false;
       }
-
-      return true;
-
-    } catch (err: any) {
-      // Revert on error
-      setPreferences(oldPreferences);
-      setError(err.message || 'Failed to update preferences');
-      console.error('Push notification preferences update error:', err);
-      return false;
-    }
-  }, [preferences]);
+    },
+    [preferences]
+  );
 
   // Send test notification
-  const sendTestNotification = useCallback(async (payload: NotificationPayload): Promise<boolean> => {
-    setError(null);
+  const sendTestNotification = useCallback(
+    async (payload: NotificationPayload): Promise<boolean> => {
+      setError(null);
 
-    try {
-      const success = await pushNotificationService.sendTestNotification(payload);
-      
-      if (!success) {
-        throw new Error('Failed to send test notification');
+      try {
+        const success =
+          await pushNotificationService.sendTestNotification(payload);
+
+        if (!success) {
+          throw new Error('Failed to send test notification');
+        }
+
+        return true;
+      } catch (err: any) {
+        setError(err.message || 'Failed to send test notification');
+        console.error('Test notification error:', err);
+        return false;
       }
-
-      return true;
-
-    } catch (err: any) {
-      setError(err.message || 'Failed to send test notification');
-      console.error('Test notification error:', err);
-      return false;
-    }
-  }, []);
+    },
+    []
+  );
 
   // Refresh current status
   const refreshStatus = useCallback(async (): Promise<void> => {
@@ -189,12 +201,12 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     const handlePermissionChange = () => {
       const newPermission = Notification.permission;
       setPermission(newPermission);
-      
+
       // If permission was granted, try to refresh status
       if (newPermission === 'granted' && !isSubscribed) {
         refreshStatus();
       }
-      
+
       // If permission was denied, update subscription status
       if (newPermission === 'denied' && isSubscribed) {
         setIsSubscribed(false);
@@ -210,7 +222,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Note: There's no direct way to listen for permission changes
     // We could poll, but it's better to refresh on visibility change
 
@@ -226,10 +238,10 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     permission,
     loading,
     error,
-    
+
     // Preferences
     preferences,
-    
+
     // Actions
     subscribe,
     unsubscribe,
@@ -247,7 +259,7 @@ export const useSimplePushNotifications = () => {
     permission,
     loading,
     subscribe,
-    unsubscribe
+    unsubscribe,
   } = usePushNotifications();
 
   return {
@@ -259,7 +271,7 @@ export const useSimplePushNotifications = () => {
     unsubscribe,
     canSubscribe: isSupported && !isSubscribed && permission !== 'denied',
     needsPermission: isSupported && permission === 'default',
-    isBlocked: permission === 'denied'
+    isBlocked: permission === 'denied',
   };
 };
 

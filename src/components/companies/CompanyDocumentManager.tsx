@@ -1,4 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  Download as DownloadIcon,
+  ExpandMore as ExpandMoreIcon,
+  Description as DocumentIcon,
+  Receipt as InvoiceIcon,
+  Assignment as ContractIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -25,22 +34,14 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Divider,
-  Alert
+  Alert,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  Download as DownloadIcon,
-  ExpandMore as ExpandMoreIcon,
-  Description as DocumentIcon,
-  Receipt as InvoiceIcon,
-  Assignment as ContractIcon
-} from '@mui/icons-material';
-import R2FileUpload from '../common/R2FileUpload';
-import BulkDownload from '../common/BulkDownload';
-import { getApiBaseUrl } from '../../utils/apiUrl';
+import React, { useState, useEffect } from 'react';
+
 import { CompanyDocument } from '../../types';
+import { getApiBaseUrl } from '../../utils/apiUrl';
+import BulkDownload from '../common/BulkDownload';
+import R2FileUpload from '../common/R2FileUpload';
 
 interface CompanyDocumentManagerProps {
   companyId: string | number;
@@ -55,7 +56,10 @@ interface DocumentUploadData {
   documentYear?: number;
 }
 
-export default function CompanyDocumentManager({ companyId, companyName }: CompanyDocumentManagerProps) {
+export default function CompanyDocumentManager({
+  companyId,
+  companyName,
+}: CompanyDocumentManagerProps) {
   const [documents, setDocuments] = useState<CompanyDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -64,33 +68,40 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
     documentName: '',
     description: '',
     documentYear: new Date().getFullYear(),
-    documentMonth: new Date().getMonth() + 1
+    documentMonth: new Date().getMonth() + 1,
   });
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{url: string; key: string; filename: string}>>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<
+    Array<{ url: string; key: string; filename: string }>
+  >([]);
 
   // Načítanie dokumentov
   const loadDocuments = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      
+      const token =
+        localStorage.getItem('blackrent_token') ||
+        sessionStorage.getItem('blackrent_token');
+
       console.log('📄 Loading documents for company:', companyId);
       console.log('📄 Using token:', token ? 'EXISTS' : 'MISSING');
-      
-      const response = await fetch(`${getApiBaseUrl()}/company-documents/${companyId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/company-documents/${companyId}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
         }
-      });
+      );
 
       console.log('📄 Response status:', response.status);
-      
+
       const result = await response.json();
       console.log('📄 Response data:', result);
       console.log('📄 Documents array length:', result.data?.length);
       console.log('📄 First document:', result.data?.[0]);
-      
+
       if (result.success) {
         setDocuments(result.data || []);
         console.log('📄 Documents set to state:', result.data?.length || 0);
@@ -109,9 +120,13 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
   }, [companyId]);
 
   // Upload súborov
-  const handleFileUploadSuccess = (fileData: { url: string; key: string; filename: string } | { url: string; key: string; filename: string }[]) => {
+  const handleFileUploadSuccess = (
+    fileData:
+      | { url: string; key: string; filename: string }
+      | { url: string; key: string; filename: string }[]
+  ) => {
     console.log('📄 Files uploaded successfully:', fileData);
-    
+
     if (Array.isArray(fileData)) {
       setUploadedFiles(prev => [...prev, ...fileData]);
     } else {
@@ -127,38 +142,51 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
     }
 
     try {
-      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      
+      const token =
+        localStorage.getItem('blackrent_token') ||
+        sessionStorage.getItem('blackrent_token');
+
       console.log('📄 Saving documents metadata:', {
         companyId,
         documentType: uploadData.documentType,
         documentName: uploadData.documentName,
         fileCount: uploadedFiles.length,
-        hasToken: !!token
+        hasToken: !!token,
       });
 
       // Uložíme každý súbor osobne
       const savePromises = uploadedFiles.map(async (file, index) => {
-        const documentName = uploadedFiles.length > 1 
-          ? `${uploadData.documentName} (${index + 1})`
-          : uploadData.documentName;
+        const documentName =
+          uploadedFiles.length > 1
+            ? `${uploadData.documentName} (${index + 1})`
+            : uploadData.documentName;
 
-        const response = await fetch(`${getApiBaseUrl()}/company-documents/save-metadata`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
-          },
-          body: JSON.stringify({
-            companyId: typeof companyId === 'string' ? parseInt(companyId) : companyId,
-            documentType: uploadData.documentType,
-            documentName: documentName,
-            description: uploadData.description,
-            documentMonth: uploadData.documentType === 'invoice' ? uploadData.documentMonth : null,
-            documentYear: uploadData.documentType === 'invoice' ? uploadData.documentYear : null,
-            filePath: file.url
-          })
-        });
+        const response = await fetch(
+          `${getApiBaseUrl()}/company-documents/save-metadata`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+            body: JSON.stringify({
+              companyId:
+                typeof companyId === 'string' ? parseInt(companyId) : companyId,
+              documentType: uploadData.documentType,
+              documentName: documentName,
+              description: uploadData.description,
+              documentMonth:
+                uploadData.documentType === 'invoice'
+                  ? uploadData.documentMonth
+                  : null,
+              documentYear:
+                uploadData.documentType === 'invoice'
+                  ? uploadData.documentYear
+                  : null,
+              filePath: file.url,
+            }),
+          }
+        );
 
         return response.json();
       });
@@ -174,13 +202,15 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
           documentName: '',
           description: '',
           documentYear: new Date().getFullYear(),
-          documentMonth: new Date().getMonth() + 1
+          documentMonth: new Date().getMonth() + 1,
         });
         setUploadedFiles([]);
         loadDocuments();
       } else {
         console.error('Some documents failed to save');
-        alert(`Uložených ${successfulSaves.length}/${uploadedFiles.length} súborov`);
+        alert(
+          `Uložených ${successfulSaves.length}/${uploadedFiles.length} súborov`
+        );
       }
     } catch (error) {
       console.error('Error saving document:', error);
@@ -193,22 +223,27 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
     if (!window.confirm('Naozaj chcete vymazať tento dokument?')) return;
 
     try {
-      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      
+      const token =
+        localStorage.getItem('blackrent_token') ||
+        sessionStorage.getItem('blackrent_token');
+
       console.log('📄 Deleting document:', documentId);
-      
-      const response = await fetch(`${getApiBaseUrl()}/company-documents/${documentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/company-documents/${documentId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
         }
-      });
+      );
 
       console.log('📄 Delete response status:', response.status);
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log('✅ Document deleted successfully');
         loadDocuments();
@@ -227,29 +262,52 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
   const invoices = documents.filter(doc => doc.documentType === 'invoice');
 
   // Zoskupenie faktúr podľa rokov a mesiacov
-  const invoicesByYear = invoices.reduce((acc, invoice) => {
-    const year = invoice.documentYear || new Date().getFullYear();
-    const month = invoice.documentMonth || 1;
-    
-    if (!acc[year]) acc[year] = {};
-    if (!acc[year][month]) acc[year][month] = [];
-    
-    acc[year][month].push(invoice);
-    return acc;
-  }, {} as Record<number, Record<number, CompanyDocument[]>>);
+  const invoicesByYear = invoices.reduce(
+    (acc, invoice) => {
+      const year = invoice.documentYear || new Date().getFullYear();
+      const month = invoice.documentMonth || 1;
+
+      if (!acc[year]) acc[year] = {};
+      if (!acc[year][month]) acc[year][month] = [];
+
+      acc[year][month].push(invoice);
+      return acc;
+    },
+    {} as Record<number, Record<number, CompanyDocument[]>>
+  );
 
   const getMonthName = (month: number) => {
     const months = [
-      'Január', 'Február', 'Marec', 'Apríl', 'Máj', 'Jún',
-      'Júl', 'August', 'September', 'Október', 'November', 'December'
+      'Január',
+      'Február',
+      'Marec',
+      'Apríl',
+      'Máj',
+      'Jún',
+      'Júl',
+      'August',
+      'September',
+      'Október',
+      'November',
+      'December',
     ];
     return months[month - 1] || `Mesiac ${month}`;
   };
 
   return (
     <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
+      >
+        <Typography
+          variant="subtitle1"
+          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+        >
           📄 Dokumenty majiteľa
         </Typography>
         <Button
@@ -264,7 +322,11 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
       </Box>
 
       {loading ? (
-        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ textAlign: 'center', py: 2 }}
+        >
           Načítavam dokumenty...
         </Typography>
       ) : (
@@ -272,7 +334,10 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
           {/* ZMLUVY O SPOLUPRÁCI */}
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 <ContractIcon sx={{ color: '#1976d2' }} />
                 Zmluvy o spolupráci ({contracts.length})
               </Typography>
@@ -280,51 +345,69 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
             <AccordionDetails>
               {contracts.length > 0 ? (
                 <Box>
-                  <BulkDownload 
-                    files={contracts.map(doc => ({ url: doc.filePath, filename: doc.documentName }))}
+                  <BulkDownload
+                    files={contracts.map(doc => ({
+                      url: doc.filePath,
+                      filename: doc.documentName,
+                    }))}
                     zipFilename={`zmluvy_${companyName}_${new Date().toISOString().split('T')[0]}.zip`}
                     label="Stiahnuť všetky zmluvy"
                   />
                   <List dense>
-                    {contracts.map((contract) => (
-                    <ListItem key={contract.id} divider>
-                      <ListItemText
-                        primary={contract.documentName}
-                        secondary={
-                          <Box>
-                            <Typography variant="caption" color="text.secondary">
-                              {contract.description}
-                            </Typography>
-                            <br />
-                            <Typography variant="caption" color="text.secondary">
-                              Nahraný: {new Date(contract.createdAt).toLocaleDateString('sk-SK')}
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                      <ListItemSecondaryAction>
-                        <IconButton
-                          size="small"
-                          onClick={() => window.open(contract.filePath, '_blank')}
-                          title="Zobraziť dokument"
-                        >
-                          <ViewIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteDocument(contract.id)}
-                          title="Zmazať dokument"
-                          color="error"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
+                    {contracts.map(contract => (
+                      <ListItem key={contract.id} divider>
+                        <ListItemText
+                          primary={contract.documentName}
+                          secondary={
+                            <Box>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {contract.description}
+                              </Typography>
+                              <br />
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Nahraný:{' '}
+                                {new Date(
+                                  contract.createdAt
+                                ).toLocaleDateString('sk-SK')}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <IconButton
+                            size="small"
+                            onClick={() =>
+                              window.open(contract.filePath, '_blank')
+                            }
+                            title="Zobraziť dokument"
+                          >
+                            <ViewIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteDocument(contract.id)}
+                            title="Zmazať dokument"
+                            color="error"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    ))}
                   </List>
                 </Box>
               ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ textAlign: 'center', py: 2 }}
+                >
                   Žiadne zmluvy o spolupráci
                 </Typography>
               )}
@@ -334,7 +417,10 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
           {/* FAKTÚRY ROZDELENÉ PO MESIACOCH */}
           <Accordion defaultExpanded sx={{ mt: 1 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 <InvoiceIcon sx={{ color: '#4caf50' }} />
                 Faktúry ({invoices.length})
               </Typography>
@@ -346,31 +432,47 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
                     .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Najnovšie roky najprv
                     .map(([year, months]) => (
                       <Box key={year} sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2" sx={{ mb: 1, color: 'primary.main' }}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ mb: 1, color: 'primary.main' }}
+                        >
                           📅 Rok {year}
                         </Typography>
-                        
+
                         {Object.entries(months)
                           .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Najnovšie mesiace najprv
                           .map(([month, monthInvoices]) => (
                             <Box key={month} sx={{ ml: 2, mb: 1 }}>
-                              <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
-                                {getMonthName(parseInt(month))} ({monthInvoices.length})
+                              <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 600 }}
+                              >
+                                {getMonthName(parseInt(month))} (
+                                {monthInvoices.length})
                               </Typography>
-                              
+
                               <List dense sx={{ ml: 2 }}>
-                                {monthInvoices.map((invoice) => (
+                                {monthInvoices.map(invoice => (
                                   <ListItem key={invoice.id} divider>
                                     <ListItemText
                                       primary={invoice.documentName}
                                       secondary={
                                         <Box>
-                                          <Typography variant="caption" color="text.secondary">
+                                          <Typography
+                                            variant="caption"
+                                            color="text.secondary"
+                                          >
                                             {invoice.description}
                                           </Typography>
                                           <br />
-                                          <Typography variant="caption" color="text.secondary">
-                                            Nahraný: {new Date(invoice.createdAt).toLocaleDateString('sk-SK')}
+                                          <Typography
+                                            variant="caption"
+                                            color="text.secondary"
+                                          >
+                                            Nahraný:{' '}
+                                            {new Date(
+                                              invoice.createdAt
+                                            ).toLocaleDateString('sk-SK')}
                                           </Typography>
                                         </Box>
                                       }
@@ -378,14 +480,21 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
                                     <ListItemSecondaryAction>
                                       <IconButton
                                         size="small"
-                                        onClick={() => window.open(invoice.filePath, '_blank')}
+                                        onClick={() =>
+                                          window.open(
+                                            invoice.filePath,
+                                            '_blank'
+                                          )
+                                        }
                                         title="Zobraziť faktúru"
                                       >
                                         <ViewIcon fontSize="small" />
                                       </IconButton>
                                       <IconButton
                                         size="small"
-                                        onClick={() => handleDeleteDocument(invoice.id)}
+                                        onClick={() =>
+                                          handleDeleteDocument(invoice.id)
+                                        }
                                         title="Zmazať faktúru"
                                         color="error"
                                       >
@@ -401,7 +510,11 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
                     ))}
                 </Box>
               ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ textAlign: 'center', py: 2 }}
+                >
                   Žiadne faktúry
                 </Typography>
               )}
@@ -411,15 +524,13 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
       )}
 
       {/* UPLOAD DIALOG */}
-      <Dialog 
-        open={uploadDialogOpen} 
+      <Dialog
+        open={uploadDialogOpen}
         onClose={() => setUploadDialogOpen(false)}
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>
-          📄 Pridať dokument pre {companyName}
-        </DialogTitle>
+        <DialogTitle>📄 Pridať dokument pre {companyName}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -427,10 +538,12 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
                 <InputLabel>Typ dokumentu</InputLabel>
                 <Select
                   value={uploadData.documentType}
-                  onChange={(e) => setUploadData(prev => ({ 
-                    ...prev, 
-                    documentType: e.target.value as 'contract' | 'invoice' 
-                  }))}
+                  onChange={e =>
+                    setUploadData(prev => ({
+                      ...prev,
+                      documentType: e.target.value as 'contract' | 'invoice',
+                    }))
+                  }
                   label="Typ dokumentu"
                 >
                   <MenuItem value="contract">
@@ -454,10 +567,19 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
                 fullWidth
                 label="Názov dokumentu"
                 value={uploadData.documentName}
-                onChange={(e) => setUploadData(prev => ({ ...prev, documentName: e.target.value }))}
+                onChange={e =>
+                  setUploadData(prev => ({
+                    ...prev,
+                    documentName: e.target.value,
+                  }))
+                }
                 size="small"
                 required
-                placeholder={uploadData.documentType === 'contract' ? 'napr. Zmluva o spolupráci 2024' : 'napr. Faktúra január 2024'}
+                placeholder={
+                  uploadData.documentType === 'contract'
+                    ? 'napr. Zmluva o spolupráci 2024'
+                    : 'napr. Faktúra január 2024'
+                }
               />
             </Grid>
 
@@ -469,11 +591,21 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
                     <InputLabel>Rok</InputLabel>
                     <Select
                       value={uploadData.documentYear}
-                      onChange={(e) => setUploadData(prev => ({ ...prev, documentYear: parseInt(e.target.value as string) }))}
+                      onChange={e =>
+                        setUploadData(prev => ({
+                          ...prev,
+                          documentYear: parseInt(e.target.value as string),
+                        }))
+                      }
                       label="Rok"
                     >
-                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                        <MenuItem key={year} value={year}>{year}</MenuItem>
+                      {Array.from(
+                        { length: 5 },
+                        (_, i) => new Date().getFullYear() - i
+                      ).map(year => (
+                        <MenuItem key={year} value={year}>
+                          {year}
+                        </MenuItem>
                       ))}
                     </Select>
                   </FormControl>
@@ -483,14 +615,21 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
                     <InputLabel>Mesiac</InputLabel>
                     <Select
                       value={uploadData.documentMonth}
-                      onChange={(e) => setUploadData(prev => ({ ...prev, documentMonth: parseInt(e.target.value as string) }))}
+                      onChange={e =>
+                        setUploadData(prev => ({
+                          ...prev,
+                          documentMonth: parseInt(e.target.value as string),
+                        }))
+                      }
                       label="Mesiac"
                     >
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                        <MenuItem key={month} value={month}>
-                          {getMonthName(month)}
-                        </MenuItem>
-                      ))}
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                        month => (
+                          <MenuItem key={month} value={month}>
+                            {getMonthName(month)}
+                          </MenuItem>
+                        )
+                      )}
                     </Select>
                   </FormControl>
                 </Grid>
@@ -502,7 +641,12 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
                 fullWidth
                 label="Popis (nepovinné)"
                 value={uploadData.description}
-                onChange={(e) => setUploadData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={e =>
+                  setUploadData(prev => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 size="small"
                 multiline
                 rows={2}
@@ -519,16 +663,22 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
                   type="company-document"
                   entityId={companyId.toString()}
                   onUploadSuccess={handleFileUploadSuccess}
-                  onUploadError={(error) => console.error('Upload error:', error)}
-                  acceptedTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/webp']}
+                  onUploadError={error => console.error('Upload error:', error)}
+                  acceptedTypes={[
+                    'application/pdf',
+                    'image/jpeg',
+                    'image/png',
+                    'image/webp',
+                  ]}
                   maxSize={50}
                   multiple={true}
                   label="Vybrať súbor (PDF, obrázok)"
                 />
-                
+
                 {uploadedFiles.length > 0 && (
                   <Alert severity="success" sx={{ mt: 1 }}>
-                    ✅ {uploadedFiles.length} súborov úspešne nahraných a pripravených na uloženie
+                    ✅ {uploadedFiles.length} súborov úspešne nahraných a
+                    pripravených na uloženie
                     <Box sx={{ mt: 1 }}>
                       {uploadedFiles.map((file, index) => (
                         <Chip
@@ -537,7 +687,11 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
                           size="small"
                           variant="outlined"
                           sx={{ mr: 1, mb: 1 }}
-                          onDelete={() => setUploadedFiles(prev => prev.filter((_, i) => i !== index))}
+                          onDelete={() =>
+                            setUploadedFiles(prev =>
+                              prev.filter((_, i) => i !== index)
+                            )
+                          }
                         />
                       ))}
                     </Box>
@@ -560,9 +714,14 @@ export default function CompanyDocumentManager({ companyId, companyName }: Compa
           <Button
             variant="contained"
             onClick={handleSaveDocuments}
-            disabled={uploadedFiles.length === 0 || !uploadData.documentName.trim()}
+            disabled={
+              uploadedFiles.length === 0 || !uploadData.documentName.trim()
+            }
           >
-            💾 Uložiť {uploadedFiles.length > 1 ? `${uploadedFiles.length} súborov` : 'dokument'}
+            💾 Uložiť{' '}
+            {uploadedFiles.length > 1
+              ? `${uploadedFiles.length} súborov`
+              : 'dokument'}
           </Button>
         </DialogActions>
       </Dialog>

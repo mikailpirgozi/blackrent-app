@@ -1,12 +1,13 @@
 /**
  * 🎯 SMART AVAILABILITY PAGE
- * 
+ *
  * Nová stránka pre optimalizovanú dostupnosť vozidiel
  * Nahradí pôvodný AvailabilityPage s lepším UX
  */
 
-import React from 'react';
 import { Box, Container } from '@mui/material';
+import React from 'react';
+
 import SmartAvailabilityDashboard from '../components/availability/SmartAvailabilityDashboard';
 import Layout from '../components/Layout';
 

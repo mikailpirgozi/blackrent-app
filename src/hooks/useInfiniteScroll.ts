@@ -32,35 +32,39 @@ export function useInfiniteScroll(
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         const { scrollTop, scrollHeight, clientHeight } = element;
-        
+
         // Only trigger if scrolling down
         if (scrollTop <= lastScrollTop.current) {
           lastScrollTop.current = scrollTop;
           return;
         }
         lastScrollTop.current = scrollTop;
-        
+
         const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
-        
+
         // 🚀 PRELOADING: Trigger when user reaches threshold
         // But add a minimum scroll height check to avoid triggering too early
         const minScrollHeight = 500; // Minimum scroll height in pixels
         const hasEnoughContent = scrollHeight - clientHeight > minScrollHeight;
-        
+
         // Add time-based throttling - don't trigger more than once per 2 seconds
         const now = Date.now();
         const timeSinceLastTrigger = now - lastTriggerTime.current;
         const minTimeBetweenTriggers = 2000; // 2 seconds
-        
-        if (scrollPercentage >= preloadThreshold && 
-            hasEnoughContent && 
-            !loadingRef.current &&
-            timeSinceLastTrigger > minTimeBetweenTriggers) {
-          console.log(`📜 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}%`);
+
+        if (
+          scrollPercentage >= preloadThreshold &&
+          hasEnoughContent &&
+          !loadingRef.current &&
+          timeSinceLastTrigger > minTimeBetweenTriggers
+        ) {
+          console.log(
+            `📜 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}%`
+          );
           loadingRef.current = true;
           lastTriggerTime.current = now;
           onLoadMore();
-          
+
           // Reset loading flag after a longer delay
           setTimeout(() => {
             loadingRef.current = false;
@@ -75,7 +79,7 @@ export function useInfiniteScroll(
       element.removeEventListener('scroll', handleScroll);
     };
   }, [scrollRef, onLoadMore, shouldLoad, preloadThreshold]);
-  
+
   // Reset loading flag when shouldLoad changes to false (loading completed)
   useEffect(() => {
     if (!shouldLoad) {
@@ -91,22 +95,25 @@ export function useInfiniteScrollAdvanced({
   onLoadMore,
   threshold = 300,
   rootMargin = '0px',
-  preloadThreshold = 0.7 // 🚀 NEW: Preload at 70% scroll
+  preloadThreshold = 0.7, // 🚀 NEW: Preload at 70% scroll
 }: UseInfiniteScrollOptions) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef(onLoadMore);
   const preloadTriggeredRef = useRef(false); // 🚀 NEW: Track if preload was triggered
-  
+
   // Keep loadMore function reference current
   loadMoreRef.current = onLoadMore;
 
-  const handleIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
-    const [entry] = entries;
-    
-    if (entry.isIntersecting && hasMore && !loading) {
-      loadMoreRef.current();
-    }
-  }, [hasMore, loading]);
+  const handleIntersection = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries;
+
+      if (entry.isIntersecting && hasMore && !loading) {
+        loadMoreRef.current();
+      }
+    },
+    [hasMore, loading]
+  );
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -114,7 +121,7 @@ export function useInfiniteScrollAdvanced({
 
     const observer = new IntersectionObserver(handleIntersection, {
       rootMargin,
-      threshold: 0.1
+      threshold: 0.1,
     });
 
     observer.observe(sentinel);
@@ -129,13 +136,17 @@ export function useInfiniteScrollAdvanced({
     const handleScroll = () => {
       if (loading || !hasMore) return;
 
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollTop =
+        window.pageYOffset || document.documentElement.scrollTop;
       const windowHeight = window.innerHeight;
       const documentHeight = document.documentElement.scrollHeight;
       const scrollPercentage = scrollTop / (documentHeight - windowHeight);
 
       // 🚀 PRELOADING: Trigger at 70% scroll for seamless experience
-      if (scrollPercentage >= preloadThreshold && !preloadTriggeredRef.current) {
+      if (
+        scrollPercentage >= preloadThreshold &&
+        !preloadTriggeredRef.current
+      ) {
         preloadTriggeredRef.current = true;
         loadMoreRef.current();
       }
@@ -164,7 +175,7 @@ export function useInfiniteScrollAdvanced({
     };
 
     window.addEventListener('scroll', throttledHandleScroll, { passive: true });
-    
+
     return () => {
       window.removeEventListener('scroll', throttledHandleScroll);
     };
@@ -189,7 +200,7 @@ export function useContainerInfiniteScroll(
 
       const { scrollTop, scrollHeight, clientHeight } = container;
       const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
-      
+
       // 🚀 PRELOADING: Trigger at 70% scroll for seamless experience
       if (scrollPercentage >= preloadThreshold) {
         onLoadMore();
@@ -235,15 +246,19 @@ export function useItemBasedInfiniteScroll(
         items.forEach((item, index) => {
           const itemRect = item.getBoundingClientRect();
           // Check if item is at least partially visible
-          if (itemRect.top < containerRect.bottom && itemRect.bottom > containerRect.top) {
+          if (
+            itemRect.top < containerRect.bottom &&
+            itemRect.bottom > containerRect.top
+          ) {
             lastVisibleIndex = Math.max(lastVisibleIndex, index);
           }
         });
 
         // Calculate trigger point
-        const triggerIndex = triggerAtItem === 'auto' 
-          ? Math.floor(totalItems * 0.85) - 1  // 85% of items
-          : triggerAtItem - 1;
+        const triggerIndex =
+          triggerAtItem === 'auto'
+            ? Math.floor(totalItems * 0.85) - 1 // 85% of items
+            : triggerAtItem - 1;
 
         // Time-based throttling
         const now = Date.now();
@@ -251,14 +266,18 @@ export function useItemBasedInfiniteScroll(
         const minTimeBetweenTriggers = 2000; // 2 seconds
 
         // Trigger if we've scrolled past the trigger item
-        if (lastVisibleIndex >= triggerIndex && 
-            !loadingRef.current &&
-            timeSinceLastTrigger > minTimeBetweenTriggers) {
-          console.log(`📜 Item-based scroll triggered: Item ${lastVisibleIndex + 1}/${totalItems} visible (trigger at ${triggerIndex + 1})`);
+        if (
+          lastVisibleIndex >= triggerIndex &&
+          !loadingRef.current &&
+          timeSinceLastTrigger > minTimeBetweenTriggers
+        ) {
+          console.log(
+            `📜 Item-based scroll triggered: Item ${lastVisibleIndex + 1}/${totalItems} visible (trigger at ${triggerIndex + 1})`
+          );
           loadingRef.current = true;
           lastTriggerTime.current = now;
           onLoadMore();
-          
+
           // Reset loading flag after delay
           setTimeout(() => {
             loadingRef.current = false;
@@ -268,7 +287,7 @@ export function useItemBasedInfiniteScroll(
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    
+
     // Also check on initial render and when items change
     setTimeout(handleScroll, 100);
 
@@ -276,7 +295,14 @@ export function useItemBasedInfiniteScroll(
       clearTimeout(debounceTimer);
       container.removeEventListener('scroll', handleScroll);
     };
-  }, [containerRef, onLoadMore, shouldLoad, totalItems, itemSelector, triggerAtItem]);
+  }, [
+    containerRef,
+    onLoadMore,
+    shouldLoad,
+    totalItems,
+    itemSelector,
+    triggerAtItem,
+  ]);
 
   // Reset loading flag when shouldLoad changes
   useEffect(() => {

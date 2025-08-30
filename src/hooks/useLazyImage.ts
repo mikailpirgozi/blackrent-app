@@ -1,6 +1,6 @@
 /**
  * 🖼️ LAZY IMAGE LOADING HOOK
- * 
+ *
  * Hook pre progressive image loading s Intersection Observer API
  */
 
@@ -34,7 +34,7 @@ export const useLazyImage = (
     fallbackDelay = 3000,
     retryAttempts = 3,
     onLoad,
-    onError
+    onError,
   } = options;
 
   const [src, setSrc] = useState<string | null>(null);
@@ -57,24 +57,24 @@ export const useLazyImage = (
     try {
       // Create new image element for preloading
       const img = new Image();
-      
+
       // Promise-based image loading
       await new Promise<void>((resolve, reject) => {
         img.onload = () => {
           console.log(`🖼️ Image loaded: ${imageSrc}`);
           resolve();
         };
-        
-        img.onerror = (error) => {
+
+        img.onerror = error => {
           console.error(`❌ Image failed to load: ${imageSrc}`, error);
           reject(error);
         };
-        
+
         // Set timeout as fallback
         loadTimeoutRef.current = setTimeout(() => {
           reject(new Error('Image load timeout'));
         }, fallbackDelay);
-        
+
         img.src = imageSrc;
       });
 
@@ -87,17 +87,16 @@ export const useLazyImage = (
       setSrc(imageSrc);
       setIsLoading(false);
       onLoad?.();
-
     } catch (error) {
       console.error('Image loading failed:', error);
-      
+
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
         loadTimeoutRef.current = null;
       }
 
       setIsLoading(false);
-      
+
       if (retryCount < retryAttempts) {
         // Exponential backoff for retry
         const delay = Math.pow(2, retryCount) * 1000;
@@ -123,12 +122,21 @@ export const useLazyImage = (
           isPropagationStopped: () => false,
           persist: () => {},
           timeStamp: Date.now(),
-          type: 'error'
+          type: 'error',
         } as React.SyntheticEvent<HTMLImageElement>;
         onError?.(syntheticError);
       }
     }
-  }, [imageSrc, hasError, src, retryCount, retryAttempts, fallbackDelay, onLoad, onError]);
+  }, [
+    imageSrc,
+    hasError,
+    src,
+    retryCount,
+    retryAttempts,
+    fallbackDelay,
+    onLoad,
+    onError,
+  ]);
 
   // Manual retry function
   const retry = useCallback(() => {
@@ -149,10 +157,10 @@ export const useLazyImage = (
         if (entry.isIntersecting) {
           console.log('🎯 Image in view, starting lazy load:', imageSrc);
           setIsInView(true);
-          
+
           // Start loading image
           loadImage();
-          
+
           // Stop observing after first intersection
           if (observerRef.current) {
             observerRef.current.disconnect();
@@ -161,7 +169,7 @@ export const useLazyImage = (
       },
       {
         threshold,
-        rootMargin
+        rootMargin,
       }
     );
 
@@ -193,7 +201,7 @@ export const useLazyImage = (
     hasError,
     isInView,
     retry,
-    imageRef
+    imageRef,
   };
 };
 
@@ -212,11 +220,12 @@ export const preloadImages = (imageUrls: string[]): Promise<string[]> => {
     })
   ).then(results => {
     const successful = results
-      .filter((result): result is PromiseFulfilledResult<string> => 
-        result.status === 'fulfilled'
+      .filter(
+        (result): result is PromiseFulfilledResult<string> =>
+          result.status === 'fulfilled'
       )
       .map(result => result.value);
-    
+
     console.log(`🎭 Preloaded ${successful.length}/${imageUrls.length} images`);
     return successful;
   });
@@ -232,14 +241,14 @@ export const useProgressiveImage = (
 ) => {
   const [currentSrc, setCurrentSrc] = useState<string>(lowQualitySrc);
   const [isHighQuality, setIsHighQuality] = useState(false);
-  
+
   const {
     src: highQualityLoaded,
     isLoading: isLoadingHQ,
     hasError: hasHQError,
     isInView,
     retry,
-    imageRef
+    imageRef,
   } = useLazyImage(highQualitySrc, options);
 
   useEffect(() => {
@@ -256,6 +265,6 @@ export const useProgressiveImage = (
     isHighQuality,
     isInView,
     retry,
-    imageRef
+    imageRef,
   };
 };

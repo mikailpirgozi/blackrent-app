@@ -2,11 +2,16 @@
  * 🧪 REACT COMPONENT TESTS: UnifiedButton
  */
 
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { UnifiedButton, PrimaryButton, SecondaryButton } from '../ui/UnifiedButton';
+import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import { describe, it, expect, vi } from 'vitest';
+
+import {
+  UnifiedButton,
+  PrimaryButton,
+  SecondaryButton,
+} from '../ui/UnifiedButton';
 
 // Helper pre testovanie s MUI theme
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -22,7 +27,7 @@ describe('UnifiedButton', () => {
           <UnifiedButton>Test Button</UnifiedButton>
         </TestWrapper>
       );
-      
+
       expect(screen.getByRole('button')).toBeInTheDocument();
       expect(screen.getByText('Test Button')).toBeInTheDocument();
     });
@@ -33,7 +38,7 @@ describe('UnifiedButton', () => {
           <UnifiedButton>Primary Button</UnifiedButton>
         </TestWrapper>
       );
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('MuiButton-contained');
     });
@@ -44,7 +49,7 @@ describe('UnifiedButton', () => {
           <UnifiedButton variant="outlined">Outlined Button</UnifiedButton>
         </TestWrapper>
       );
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('MuiButton-outlined');
     });
@@ -55,7 +60,7 @@ describe('UnifiedButton', () => {
           <UnifiedButton size="large">Large Button</UnifiedButton>
         </TestWrapper>
       );
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('MuiButton-sizeLarge');
     });
@@ -64,47 +69,51 @@ describe('UnifiedButton', () => {
   describe('Interaction Tests', () => {
     it('should call onClick handler when clicked', () => {
       const handleClick = vi.fn();
-      
+
       render(
         <TestWrapper>
           <UnifiedButton onClick={handleClick}>Clickable Button</UnifiedButton>
         </TestWrapper>
       );
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       expect(handleClick).toHaveBeenCalledTimes(1);
     });
 
     it('should not call onClick when disabled', () => {
       const handleClick = vi.fn();
-      
+
       render(
         <TestWrapper>
-          <UnifiedButton onClick={handleClick} disabled>Disabled Button</UnifiedButton>
+          <UnifiedButton onClick={handleClick} disabled>
+            Disabled Button
+          </UnifiedButton>
         </TestWrapper>
       );
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       expect(handleClick).not.toHaveBeenCalled();
       expect(button).toBeDisabled();
     });
 
     it('should not call onClick when loading', () => {
       const handleClick = vi.fn();
-      
+
       render(
         <TestWrapper>
-          <UnifiedButton onClick={handleClick} loading>Loading Button</UnifiedButton>
+          <UnifiedButton onClick={handleClick} loading>
+            Loading Button
+          </UnifiedButton>
         </TestWrapper>
       );
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       expect(handleClick).not.toHaveBeenCalled();
       expect(button).toBeDisabled();
     });
@@ -114,10 +123,12 @@ describe('UnifiedButton', () => {
     it('should show loading text when loading', () => {
       render(
         <TestWrapper>
-          <UnifiedButton loading loadingText="Spracovávam...">Save Button</UnifiedButton>
+          <UnifiedButton loading loadingText="Spracovávam...">
+            Save Button
+          </UnifiedButton>
         </TestWrapper>
       );
-      
+
       expect(screen.getByText('Spracovávam...')).toBeInTheDocument();
       expect(screen.queryByText('Save Button')).not.toBeInTheDocument();
     });
@@ -128,7 +139,7 @@ describe('UnifiedButton', () => {
           <UnifiedButton loading>Save Button</UnifiedButton>
         </TestWrapper>
       );
-      
+
       expect(screen.getByText('Načítavam...')).toBeInTheDocument();
     });
 
@@ -138,7 +149,7 @@ describe('UnifiedButton', () => {
           <UnifiedButton loading>Save Button</UnifiedButton>
         </TestWrapper>
       );
-      
+
       // MUI CircularProgress má role="progressbar"
       expect(screen.getByRole('progressbar')).toBeInTheDocument();
     });
@@ -151,7 +162,7 @@ describe('UnifiedButton', () => {
           <PrimaryButton>Primary</PrimaryButton>
         </TestWrapper>
       );
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('MuiButton-contained');
       expect(screen.getByText('Primary')).toBeInTheDocument();
@@ -163,7 +174,7 @@ describe('UnifiedButton', () => {
           <SecondaryButton>Secondary</SecondaryButton>
         </TestWrapper>
       );
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('MuiButton-outlined');
       expect(screen.getByText('Secondary')).toBeInTheDocument();
@@ -179,9 +190,12 @@ describe('UnifiedButton', () => {
           </UnifiedButton>
         </TestWrapper>
       );
-      
+
       const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('aria-label', 'Test button for accessibility');
+      expect(button).toHaveAttribute(
+        'aria-label',
+        'Test button for accessibility'
+      );
     });
 
     it('should support fullWidth prop', () => {
@@ -190,7 +204,7 @@ describe('UnifiedButton', () => {
           <UnifiedButton fullWidth>Full Width Button</UnifiedButton>
         </TestWrapper>
       );
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('MuiButton-fullWidth');
     });

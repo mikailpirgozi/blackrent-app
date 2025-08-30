@@ -1,13 +1,12 @@
+import compression from 'compression'; // 🚀 FÁZA 2.4: Response compression
+import cors from 'cors';
+import dotenv from 'dotenv';
 import express, { Request, Response } from 'express';
 import { createServer } from 'http';
-import cors from 'cors';
-import compression from 'compression'; // 🚀 FÁZA 2.4: Response compression
-import path from 'path';
-import dotenv from 'dotenv';
+import { log, logger } from './utils/logger';
 
 // Načítaj environment variables
 dotenv.config();
-import { logger } from './utils/logger';
 
 // Sentry removed - not needed for internal application
 
@@ -20,75 +19,86 @@ const port = Number(process.env.PORT) || 3001;
 // Sentry removed - not needed for internal application
 
 // 🚀 FÁZA 2.4: RESPONSE COMPRESSION - gzip compression pre všetky responses
-app.use(compression({
-  filter: (req: Request, res: Response) => {
-    // Kompresuj všetko okrem už kompresovaných súborov
-    if (req.headers['x-no-compression']) {
-      return false;
-    }
-    return compression.filter(req, res);
-  },
-  threshold: 1024, // Kompresuj len súbory väčšie ako 1KB
-  level: 6, // Compression level (1=najrýchlejšie, 9=najlepšie compression)
-  chunkSize: 16 * 1024, // 16KB chunks
-  windowBits: 15,
-  memLevel: 8
-}));
+app.use(
+  compression({
+    filter: (req: Request, res: Response) => {
+      // Kompresuj všetko okrem už kompresovaných súborov
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
+    threshold: 1024, // Kompresuj len súbory väčšie ako 1KB
+    level: 6, // Compression level (1=najrýchlejšie, 9=najlepšie compression)
+    chunkSize: 16 * 1024, // 16KB chunks
+    windowBits: 15,
+    memLevel: 8,
+  })
+);
 
 // CORS middleware s podporou pre všetky Vercel domény
-app.use(cors({
-  origin: (origin, callback) => {
-    // Povolené základné domény
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3002',
-      'http://10.0.86.238:3000', // IP adresa pre sieťový prístup
-      'https://mikailpirgozi.github.io', 
-      'https://blackrent-app-production-4d6f.up.railway.app',
-      process.env.FRONTEND_URL || 'http://localhost:3000'
-    ];
-    
-    logger.info('🌐 CORS request from:', origin);
-    
-    // Ak nie je origin (napr. direct request, Postman, lokálne HTML súbory)
-    if (!origin || origin === 'null') {
-      logger.info('✅ No origin or null origin (local HTML files via file://) - allowing request');
-      return callback(null, true);
-    }
-    
-    // Skontroluj základné allowed origins
-    if (allowedOrigins.includes(origin)) {
-      logger.info('✅ Origin in allowed list');
-      return callback(null, true);
-    }
-    
-    // ✅ KĽÚČOVÁ OPRAVA: Povolím všetky Vercel domény
-    if (origin.endsWith('.vercel.app')) {
-      logger.info('✅ Vercel domain detected - allowing:', origin);
-      return callback(null, true);
-    }
-    
-    // Povolím file:// protokol pre lokálne súbory
-    if (origin.startsWith('file://')) {
-      logger.info('✅ Local file protocol detected - allowing:', origin);
-      return callback(null, true);
-    }
-    
-    // ✅ NOVÉ: Povolím lokálne IP adresy (pre development na sieti)
-    const ipPattern = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+|127\.0\.0\.1|localhost)(:\d+)?$/;
-    if (ipPattern.test(origin)) {
-      logger.info('✅ Local IP address detected - allowing:', origin);
-      return callback(null, true);
-    }
-    
-    // Inak zamietni
-    logger.info('❌ Origin not allowed:', origin);
-    callback(new Error(`Origin ${origin} not allowed by CORS`));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Povolené základné domény
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'http://localhost:3002',
+        'http://10.0.86.238:3000', // IP adresa pre sieťový prístup
+        'https://mikailpirgozi.github.io',
+        'https://blackrent-app-production-4d6f.up.railway.app',
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+      ];
+
+      logger.info('🌐 CORS request from:', origin);
+
+      // Ak nie je origin (napr. direct request, Postman, lokálne HTML súbory)
+      if (!origin || origin === 'null') {
+        logger.info(
+          '✅ No origin or null origin (local HTML files via file://) - allowing request'
+        );
+        return callback(null, true);
+      }
+
+      // Skontroluj základné allowed origins
+      if (allowedOrigins.includes(origin)) {
+        logger.info('✅ Origin in allowed list');
+        return callback(null, true);
+      }
+
+      // ✅ KĽÚČOVÁ OPRAVA: Povolím všetky Vercel domény
+      if (origin.endsWith('.vercel.app')) {
+        logger.info('✅ Vercel domain detected - allowing:', origin);
+        return callback(null, true);
+      }
+
+      // Povolím file:// protokol pre lokálne súbory
+      if (origin.startsWith('file://')) {
+        logger.info('✅ Local file protocol detected - allowing:', origin);
+        return callback(null, true);
+      }
+
+      // ✅ NOVÉ: Povolím lokálne IP adresy (pre development na sieti)
+      const ipPattern =
+        /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+|127\.0\.0\.1|localhost)(:\d+)?$/;
+      if (ipPattern.test(origin)) {
+        logger.info('✅ Local IP address detected - allowing:', origin);
+        return callback(null, true);
+      }
+
+      // Inak zamietni
+      logger.info('❌ Origin not allowed:', origin);
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
+// RequestId middleware - musí byť pred všetkými routes
+import { requestIdMiddleware } from './middleware/requestId';
+app.use(requestIdMiddleware);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -98,37 +108,35 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/local-storage', express.static('local-storage'));
 
 // Import routes
-import authRoutes from './routes/auth';
-import vehicleRoutes from './routes/vehicles';
-import customerRoutes from './routes/customers';
-import rentalRoutes from './routes/rentals';
-import expenseRoutes from './routes/expenses';
-import expenseCategoryRoutes from './routes/expense-categories';
-import recurringExpenseRoutes from './routes/recurring-expenses';
-import insuranceRoutes from './routes/insurances';
-import companyRoutes from './routes/companies';
-import companyInvestorRoutes from './routes/company-investors';
-import insurerRoutes from './routes/insurers';
-import protocolRoutes from './routes/protocols';
-import fileRoutes from './routes/files';
-import settlementRoutes from './routes/settlements';
-import migrationRoutes from './routes/migration';
-import availabilityRoutes from './routes/availability';
-import vehicleUnavailabilityRoutes from './routes/vehicle-unavailability';
-import vehicleDocumentRoutes from './routes/vehicle-documents';
-import insuranceClaimRoutes from './routes/insurance-claims';
-import permissionRoutes from './routes/permissions';
 import adminRoutes from './routes/admin';
+import authRoutes from './routes/auth';
+import availabilityRoutes from './routes/availability';
 import bulkRoutes from './routes/bulk';
+import cacheRoutes from './routes/cache';
 import cleanupRoutes from './routes/cleanup';
-import emailWebhookRoutes from './routes/email-webhook';
+import companyRoutes from './routes/companies';
+import companyDocumentsRoutes from './routes/company-documents';
+import companyInvestorRoutes from './routes/company-investors';
+import customerRoutes from './routes/customers';
 import emailImapRoutes from './routes/email-imap';
 import emailManagementRoutes from './routes/email-management';
-import cacheRoutes from './routes/cache';
+import emailWebhookRoutes from './routes/email-webhook';
+import expenseCategoryRoutes from './routes/expense-categories';
+import expenseRoutes from './routes/expenses';
+import fileRoutes from './routes/files';
+import insuranceClaimRoutes from './routes/insurance-claims';
+import insuranceRoutes from './routes/insurances';
+import insurerRoutes from './routes/insurers';
+import migrationRoutes from './routes/migration';
+import permissionRoutes from './routes/permissions';
+import protocolRoutes from './routes/protocols';
 import pushRoutes from './routes/push';
-import companyDocumentsRoutes from './routes/company-documents';
-
-
+import recurringExpenseRoutes from './routes/recurring-expenses';
+import rentalRoutes from './routes/rentals';
+import settlementRoutes from './routes/settlements';
+import vehicleDocumentRoutes from './routes/vehicle-documents';
+import vehicleUnavailabilityRoutes from './routes/vehicle-unavailability';
+import vehicleRoutes from './routes/vehicles';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -161,19 +169,22 @@ app.use('/api/cache', cacheRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/company-documents', companyDocumentsRoutes);
 
-
-
-// SIMPLE TEST ENDPOINT - bez middleware
+// SIMPLE TEST ENDPOINT - s requestId
 app.get('/api/test-simple', (req, res) => {
-  logger.info('🧪 Simple test endpoint called');
-  res.json({ success: true, message: 'Backend funguje!', timestamp: new Date().toISOString() });
+  log('info', { requestId: req.requestId }, '🧪 Simple test endpoint called');
+  res.json({
+    success: true,
+    message: 'Backend funguje!',
+    timestamp: new Date().toISOString(),
+    requestId: req.requestId,
+  });
 });
 
 // Debug endpoint pre diagnostiku PDF generátora
 app.get('/api/debug/pdf-generator', (req, res) => {
   const puppeteerAvailable = !!process.env.PDF_GENERATOR_TYPE;
   const generatorType = process.env.PDF_GENERATOR_TYPE || 'enhanced';
-  
+
   res.json({
     success: true,
     message: 'PDF Generator Debug Info',
@@ -186,33 +197,36 @@ app.get('/api/debug/pdf-generator', (req, res) => {
       nodeVersion: process.version,
       platform: process.platform,
       puppeteerPath: process.env.PUPPETEER_EXECUTABLE_PATH || 'default',
-      chromeSkipDownload: process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD || 'false'
-    }
+      chromeSkipDownload:
+        process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD || 'false',
+    },
   });
 });
 
 // Root endpoint pre Railway healthcheck
-app.get("/", (req, res) => {
-  res.json({ 
+app.get('/', (req, res) => {
+  res.json({
     success: true,
-    message: "BlackRent Backend API",
-    status: "OK", 
+    message: 'BlackRent Backend API',
+    status: 'OK',
     timestamp: new Date().toISOString(),
-    database: "PostgreSQL",
-    environment: process.env.NODE_ENV || "development",
-    version: "1.1.2"
+    database: 'PostgreSQL',
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.1.2',
+    requestId: req.requestId,
   });
 });
 // API Health endpoint for frontend compatibility
 app.get('/api/health', (req, res) => {
-  res.json({ 
+  res.json({
     success: true,
     message: 'Blackrent API je funkčné',
-    status: 'OK', 
+    status: 'OK',
     timestamp: new Date().toISOString(),
     database: 'PostgreSQL',
     environment: process.env.NODE_ENV || 'development',
-    sentry: false  // Sentry removed
+    sentry: false, // Sentry removed
+    requestId: req.requestId,
   });
 });
 
@@ -221,19 +235,17 @@ app.get('/api/health', (req, res) => {
 
 // Sentry removed - using standard error handling
 
-// Error handling middleware
-app.use((err: any, req: any, res: any, next: any) => {
-  console.error('💥 Unexpected error:', err);
-  
-  // Sentry removed - using console.error for development
-  
-  res.status(500).json({
-    success: false,
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
-    timestamp: new Date().toISOString()
-  });
+// 404 handler pre neexistujúce routes - musí byť pred error handlerom
+app.use('*', (req, res, next) => {
+  const error = new Error(`Route ${req.method} ${req.originalUrl} not found`);
+  (error as any).status = 404;
+  (error as any).name = 'NotFoundError';
+  next(error);
 });
+
+// Error handling middleware - musí byť na konci po všetkých routes
+import { errorHandler } from './middleware/errorHandler';
+app.use(errorHandler);
 
 // Import IMAP service for auto-start
 import ImapEmailService from './services/imap-email-service';
@@ -244,34 +256,39 @@ let globalImapService: ImapEmailService | null = null;
 // Auto-start IMAP monitoring function
 async function autoStartImapMonitoring() {
   try {
-    const isEnabled = process.env.IMAP_ENABLED !== 'false' && !!process.env.IMAP_PASSWORD;
+    const isEnabled =
+      process.env.IMAP_ENABLED !== 'false' && !!process.env.IMAP_PASSWORD;
     const autoStart = process.env.IMAP_AUTO_START !== 'false'; // Default: true
-    
+
     if (!isEnabled) {
       logger.info('📧 IMAP: Auto-start preskočený - služba je vypnutá');
       return;
     }
-    
+
     if (!autoStart) {
       logger.info('📧 IMAP: Auto-start vypnutý (IMAP_AUTO_START=false)');
       return;
     }
-    
+
     logger.info('🚀 IMAP: Auto-start monitoring...');
-    
+
     globalImapService = new ImapEmailService();
-    
+
     // Start monitoring in background (každých 30 sekúnd)
     await globalImapService.startMonitoring(0.5);
-    
+
     // Set environment flag for status tracking
     process.env.IMAP_AUTO_STARTED = 'true';
-    
+
     logger.info('✅ IMAP: Auto-start úspešný - monitoring beží automaticky');
-    logger.info('📧 IMAP: Nové emaily sa budú automaticky pridávať do Email Management Dashboard');
+    logger.info(
+      '📧 IMAP: Nové emaily sa budú automaticky pridávať do Email Management Dashboard'
+    );
   } catch (error) {
     console.error('❌ IMAP: Auto-start chyba:', error);
-    logger.info('⚠️ IMAP: Môžete ho manuálne spustiť cez Email Management Dashboard');
+    logger.info(
+      '⚠️ IMAP: Môžete ho manuálne spustiť cez Email Management Dashboard'
+    );
   }
 }
 
@@ -288,7 +305,7 @@ httpServer.listen(Number(port), '0.0.0.0', async () => {
   logger.info(`🗄️  Database: PostgreSQL`);
   logger.info(`🔴 WebSocket: Real-time updates aktívne`);
   logger.info(`📊 Sentry: ❌ Backend vypnutý (removed), Frontend aktívny`);
-  
+
   // Initialize cache warming
   try {
     const { warmCache } = await import('./middleware/cache-middleware');
@@ -296,14 +313,16 @@ httpServer.listen(Number(port), '0.0.0.0', async () => {
   } catch (error) {
     console.warn('Cache warming initialization failed:', error);
   }
-  
+
   // Auto-start IMAP monitoring after server starts (2 second delay)
   setTimeout(autoStartImapMonitoring, 2000);
-  
+
   // Start recurring expense scheduler after server starts (5 second delay)
   setTimeout(async () => {
     try {
-      const { recurringExpenseScheduler } = await import('./utils/recurring-expense-scheduler');
+      const { recurringExpenseScheduler } = await import(
+        './utils/recurring-expense-scheduler'
+      );
       recurringExpenseScheduler.startScheduler();
       logger.info('🔄 Recurring expense scheduler štartovaný');
     } catch (error) {
@@ -321,4 +340,4 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully');
   process.exit(0);
-}); 
+});

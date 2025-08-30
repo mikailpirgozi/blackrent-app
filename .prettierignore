@@ -1,0 +1,9 @@
+node_modules
+build
+dist
+.vite
+coverage
+customer-website/Anima
+customer-website/archive
+Figma-Context-MCP
+scripts/fields/templates

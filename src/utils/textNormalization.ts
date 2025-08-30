@@ -1,7 +1,7 @@
 /**
  * 🔤 TEXT NORMALIZATION UTILITIES
- * 
- * Utility funkcie pre normalizáciu textu - odstránenie diakritiky, 
+ *
+ * Utility funkcie pre normalizáciu textu - odstránenie diakritiky,
  * konverzia na malé písmená pre vyhľadávanie bez ohľadu na diakritiku
  */
 
@@ -12,7 +12,7 @@
  */
 export function normalizeText(text: string | null | undefined): string {
   if (!text) return '';
-  
+
   return text
     .toLowerCase()
     .normalize('NFD') // Rozloží znaky s diakritikou na základné znaky + diakritické značky
@@ -26,12 +26,15 @@ export function normalizeText(text: string | null | undefined): string {
  * @param searchTerm - hľadaný výraz
  * @returns true ak text obsahuje hľadaný výraz
  */
-export function textContains(text: string | null | undefined, searchTerm: string): boolean {
+export function textContains(
+  text: string | null | undefined,
+  searchTerm: string
+): boolean {
   if (!text || !searchTerm) return false;
-  
+
   const normalizedText = normalizeText(text);
   const normalizedSearch = normalizeText(searchTerm);
-  
+
   return normalizedText.includes(normalizedSearch);
 }
 
@@ -41,12 +44,15 @@ export function textContains(text: string | null | undefined, searchTerm: string
  * @param searchTerm - hľadaný výraz
  * @returns true ak texty sa zhodujú
  */
-export function textEquals(text: string | null | undefined, searchTerm: string): boolean {
+export function textEquals(
+  text: string | null | undefined,
+  searchTerm: string
+): boolean {
   if (!text || !searchTerm) return false;
-  
+
   const normalizedText = normalizeText(text);
   const normalizedSearch = normalizeText(searchTerm);
-  
+
   return normalizedText === normalizedSearch;
 }
 
@@ -56,15 +62,18 @@ export function textEquals(text: string | null | undefined, searchTerm: string):
  * @param searchTerm - hľadaný výraz
  * @returns true ak niektorý z textov obsahuje hľadaný výraz
  */
-export function searchInTexts(texts: (string | null | undefined)[], searchTerm: string): boolean {
+export function searchInTexts(
+  texts: (string | null | undefined)[],
+  searchTerm: string
+): boolean {
   if (!searchTerm) return false;
-  
+
   return texts.some(text => textContains(text, searchTerm));
 }
 
 /**
  * Príklady použitia:
- * 
+ *
  * normalizeText('Švantnerová') // 'svantnerova'
  * normalizeText('ĽUBOŠ') // 'lubos'
  * textContains('Švantnerová', 'svatner') // true

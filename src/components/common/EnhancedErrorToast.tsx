@@ -1,6 +1,6 @@
 /**
  * 🍞 ENHANCED ERROR TOAST COMPONENT
- * 
+ *
  * Vylepšená verzia error toast s:
  * - User-friendly messages
  * - Contextual suggestions
@@ -8,12 +8,18 @@
  * - Recovery actions
  */
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Alert, 
-  Snackbar, 
-  Box, 
-  Typography, 
+import {
+  Close as CloseIcon,
+  Refresh as RefreshIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  BugReport as BugReportIcon,
+} from '@mui/icons-material';
+import {
+  Alert,
+  Snackbar,
+  Box,
+  Typography,
   IconButton,
   Button,
   Chip,
@@ -21,18 +27,17 @@ import {
   Collapse,
   alpha,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  BugReport as BugReportIcon
-} from '@mui/icons-material';
-import { EnhancedError } from '../../utils/errorHandling';
-import { getEnhancedErrorMessage, getRecoverySuggestions, ErrorContext } from '../../utils/enhancedErrorMessages';
+import React, { useState, useEffect } from 'react';
+
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import {
+  getEnhancedErrorMessage,
+  getRecoverySuggestions,
+  ErrorContext,
+} from '../../utils/enhancedErrorMessages';
+import { EnhancedError } from '../../utils/errorHandling';
 
 interface EnhancedErrorToastProps {
   error: EnhancedError | null;
@@ -49,7 +54,7 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
   onClose,
   onRetry,
   autoHideDuration = 8000, // Longer for better UX
-  position = 'top'
+  position = 'top',
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -69,7 +74,10 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
   }, [error]);
 
   // Handle close
-  const handleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+  const handleClose = (
+    event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
     if (reason === 'clickaway') return;
     setOpen(false);
     setTimeout(onClose, 300); // Wait for animation
@@ -78,7 +86,7 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
   // Handle retry with enhanced feedback
   const handleRetry = async () => {
     if (!onRetry) return;
-    
+
     setIsRetrying(true);
     try {
       await onRetry();
@@ -103,9 +111,10 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
   const suggestions = getRecoverySuggestions(error, context);
 
   // Determine toast positioning
-  const anchorOrigin = position === 'top' 
-    ? { vertical: 'top' as const, horizontal: 'right' as const }
-    : { vertical: 'bottom' as const, horizontal: 'center' as const };
+  const anchorOrigin =
+    position === 'top'
+      ? { vertical: 'top' as const, horizontal: 'right' as const }
+      : { vertical: 'bottom' as const, horizontal: 'center' as const };
 
   return (
     <Snackbar
@@ -115,23 +124,26 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
       anchorOrigin={anchorOrigin}
       sx={{
         // Better positioning for mobile
-        ...(isMobile && position === 'top' && {
-          top: 24,
-          left: 16,
-          right: 16,
-          transform: 'none !important',
-        }),
-        ...(isMobile && position === 'bottom' && {
-          bottom: 80, // Above mobile navigation
-          left: 16,
-          right: 16,
-          transform: 'none !important',
-        }),
-        // Desktop positioning  
-        ...(!isMobile && position === 'top' && {
-          top: 24,
-          right: 24,
-        }),
+        ...(isMobile &&
+          position === 'top' && {
+            top: 24,
+            left: 16,
+            right: 16,
+            transform: 'none !important',
+          }),
+        ...(isMobile &&
+          position === 'bottom' && {
+            bottom: 80, // Above mobile navigation
+            left: 16,
+            right: 16,
+            transform: 'none !important',
+          }),
+        // Desktop positioning
+        ...(!isMobile &&
+          position === 'top' && {
+            top: 24,
+            right: 24,
+          }),
         zIndex: theme.zIndex.snackbar + 1,
       }}
     >
@@ -146,32 +158,32 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
           backdropFilter: 'blur(20px)',
           backgroundColor: alpha(theme.palette.background.paper, 0.95),
           border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-          
+
           '& .MuiAlert-message': {
             width: '100%',
             padding: 0,
           },
-          
+
           '& .MuiAlert-action': {
             alignItems: 'flex-start',
             paddingTop: 1,
           },
-          
+
           // Enhanced icon styling
           '& .MuiAlert-icon': {
             fontSize: 24,
             marginTop: 0.5,
-          }
+          },
         }}
         action={
           <Box sx={{ display: 'flex', gap: 0.5 }}>
             <IconButton
               size="small"
               onClick={() => setShowDetails(!showDetails)}
-              sx={{ 
+              sx={{
                 color: 'inherit',
                 opacity: 0.8,
-                '&:hover': { opacity: 1 }
+                '&:hover': { opacity: 1 },
               }}
             >
               {showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
@@ -179,10 +191,10 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
             <IconButton
               size="small"
               onClick={handleClose}
-              sx={{ 
+              sx={{
                 color: 'inherit',
                 opacity: 0.8,
-                '&:hover': { opacity: 1 }
+                '&:hover': { opacity: 1 },
               }}
             >
               <CloseIcon />
@@ -200,7 +212,7 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
                 mb: 0.5,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 0.5
+                gap: 0.5,
               }}
             >
               <span style={{ fontSize: 18 }}>{enhancedMessage.emoji}</span>
@@ -217,9 +229,9 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
               size="small"
               label={isOnline ? 'Online' : 'Offline'}
               color={isOnline ? 'success' : 'error'}
-              sx={{ 
+              sx={{
                 mb: showDetails ? 1 : 0,
-                fontSize: '0.7rem'
+                fontSize: '0.7rem',
               }}
             />
           )}
@@ -237,7 +249,7 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
                   borderRadius: 1.5,
                   border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
                   fontSize: '0.875rem',
-                  lineHeight: 1.4
+                  lineHeight: 1.4,
                 }}
               >
                 💡 <strong>Návrh:</strong> {enhancedMessage.suggestion}
@@ -246,7 +258,10 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
               {/* Recovery suggestions */}
               {suggestions.length > 0 && (
                 <Box sx={{ mb: 1.5 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 600, mb: 1, display: 'block' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 600, mb: 1, display: 'block' }}
+                  >
                     Možné riešenia:
                   </Typography>
                   <Stack spacing={0.5}>
@@ -259,7 +274,7 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
                           alignItems: 'center',
                           gap: 0.5,
                           opacity: 0.8,
-                          fontSize: '0.75rem'
+                          fontSize: '0.75rem',
                         }}
                       >
                         <Box
@@ -268,7 +283,7 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
                             height: 4,
                             borderRadius: '50%',
                             backgroundColor: 'currentColor',
-                            flexShrink: 0
+                            flexShrink: 0,
                           }}
                         />
                         {suggestion}
@@ -287,27 +302,27 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
                     onClick={handleRetry}
                     disabled={isRetrying}
                     startIcon={isRetrying ? undefined : <RefreshIcon />}
-                    sx={{ 
+                    sx={{
                       borderRadius: 2,
                       textTransform: 'none',
                       fontSize: '0.75rem',
-                      minWidth: 120
+                      minWidth: 120,
                     }}
                   >
                     {isRetrying ? 'Skúšam...' : enhancedMessage.actionLabel}
                   </Button>
                 )}
-                
+
                 {enhancedMessage.category === 'unknown' && (
                   <Button
                     size="small"
                     variant="outlined"
                     onClick={handleRefresh}
                     startIcon={<RefreshIcon />}
-                    sx={{ 
+                    sx={{
                       borderRadius: 2,
                       textTransform: 'none',
-                      fontSize: '0.75rem'
+                      fontSize: '0.75rem',
                     }}
                   >
                     Obnoviť stránku
@@ -324,12 +339,12 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
                   textTransform: 'none',
                   fontSize: '0.7rem',
                   opacity: 0.7,
-                  '&:hover': { opacity: 1 }
+                  '&:hover': { opacity: 1 },
                 }}
               >
                 {showTechnicalDetails ? 'Skryť' : 'Zobraziť'} technické detaily
               </Button>
-              
+
               <Collapse in={showTechnicalDetails} unmountOnExit>
                 <Box
                   sx={{
@@ -340,10 +355,13 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
                     fontFamily: 'monospace',
                     fontSize: '0.7rem',
                     wordBreak: 'break-all',
-                    opacity: 0.8
+                    opacity: 0.8,
                   }}
                 >
-                  <Typography variant="caption" sx={{ fontWeight: 600, mb: 0.5, display: 'block' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 600, mb: 0.5, display: 'block' }}
+                  >
                     Technické info:
                   </Typography>
                   <Typography variant="caption" component="div">

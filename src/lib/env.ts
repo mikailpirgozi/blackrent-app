@@ -10,10 +10,10 @@ export const env = {
   API_URL: import.meta.env.VITE_API_URL as string,
   USE_WORKER_PROXY: import.meta.env.VITE_USE_WORKER_PROXY === 'true',
   WORKER_URL: import.meta.env.VITE_WORKER_URL as string,
-  
+
   // Debugging
   DEBUG: import.meta.env.VITE_DEBUG === 'true',
-  
+
   // Vite systémové premenné
   MODE: import.meta.env.MODE as string,
   DEV: import.meta.env.DEV as boolean,

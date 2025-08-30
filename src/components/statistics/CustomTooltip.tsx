@@ -1,5 +1,6 @@
-import React from 'react';
 import { Typography } from '@mui/material';
+import React from 'react';
+
 import { ElevatedCard } from '../ui';
 
 interface CustomTooltipProps {
@@ -8,7 +9,11 @@ interface CustomTooltipProps {
   label?: string;
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({
+  active,
+  payload,
+  label,
+}) => {
   if (active && payload && payload.length) {
     return (
       <ElevatedCard sx={{ p: 2 }}>

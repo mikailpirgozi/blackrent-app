@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+
 import './index.css';
 import App from './App';
 // Sentry removed - using MobileLogger instead
@@ -11,12 +12,12 @@ const root = ReactDOM.createRoot(
 root.render(
   // 🚀 DOČASNE VYPNUTÝ StrictMode pre auth debugging
   // <React.StrictMode>
-    <App />
+  <App />
   // </React.StrictMode>
 );
 
 // Error handling pre manifest.json
-window.addEventListener('error', (event) => {
+window.addEventListener('error', event => {
   if (event.filename && event.filename.includes('manifest.json')) {
     console.log('⚠️ Ignoring manifest.json error - this is expected');
     event.preventDefault();
@@ -28,7 +29,7 @@ if (process.env.NODE_ENV === 'development') {
   // ⚡ PERFORMANCE: Disabled verbose Web Vitals logging to reduce console spam
   import('./utils/webVitals').then(({ debugPerformance, reportWebVitals }) => {
     // debugPerformance(); // Disabled - too verbose
-    
+
     // Initialize Web Vitals monitoring (silent mode)
     reportWebVitals(); // No callback = silent monitoring
   });

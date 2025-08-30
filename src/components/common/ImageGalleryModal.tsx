@@ -1,4 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
+import {
+  Close,
+  NavigateBefore,
+  NavigateNext,
+  Download,
+  ZoomIn,
+  ZoomOut,
+  Fullscreen,
+  FullscreenExit,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogContent,
@@ -10,16 +19,8 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import {
-  Close,
-  NavigateBefore,
-  NavigateNext,
-  Download,
-  ZoomIn,
-  ZoomOut,
-  Fullscreen,
-  FullscreenExit,
-} from '@mui/icons-material';
+import React, { useState, useRef, useEffect } from 'react';
+
 import { ProtocolImage, ProtocolVideo } from '../../types';
 
 interface ImageGalleryModalProps {
@@ -35,20 +36,20 @@ export default function ImageGalleryModal({
   onClose,
   images,
   videos,
-  title = 'Galéria médií'
+  title = 'Galéria médií',
 }: ImageGalleryModalProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  
+
   const allMedia = [...images, ...videos];
   const currentMedia = allMedia[currentIndex];
-  
+
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -64,7 +65,7 @@ export default function ImageGalleryModal({
 
   const handleTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-    
+
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > 50;
     const isRightSwipe = distance < -50;
@@ -83,13 +84,14 @@ export default function ImageGalleryModal({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!open) return;
-      
+
       switch (e.key) {
         case 'ArrowLeft':
           if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
           break;
         case 'ArrowRight':
-          if (currentIndex < allMedia.length - 1) setCurrentIndex(currentIndex + 1);
+          if (currentIndex < allMedia.length - 1)
+            setCurrentIndex(currentIndex + 1);
           break;
         case 'Escape':
           onClose();
@@ -130,12 +132,12 @@ export default function ImageGalleryModal({
 
   const handleDownload = async () => {
     if (!currentMedia) return;
-    
+
     try {
       const response = await fetch(currentMedia.url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
+
       const a = document.createElement('a');
       a.href = url;
       a.download = `${currentMedia.type}_${new Date(currentMedia.timestamp).toISOString().split('T')[0]}.${currentMedia.url.includes('video') ? 'mp4' : 'jpg'}`;
@@ -170,7 +172,7 @@ export default function ImageGalleryModal({
           backgroundColor: 'rgba(0, 0, 0, 0.95)',
           color: 'white',
           minHeight: isFullscreen ? '100vh' : '80vh',
-        }
+        },
       }}
     >
       {/* Header */}
@@ -186,11 +188,11 @@ export default function ImageGalleryModal({
         <Typography variant="h6" sx={{ color: 'white' }}>
           {title} ({currentIndex + 1} / {allMedia.length})
         </Typography>
-        
+
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Chip 
-            label={currentMedia.type} 
-            size="small" 
+          <Chip
+            label={currentMedia.type}
+            size="small"
             sx={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
           />
           <IconButton onClick={toggleFullscreen} sx={{ color: 'white' }}>
@@ -233,12 +235,12 @@ export default function ImageGalleryModal({
                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
                 color: 'white',
                 '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
-                '&.Mui-disabled': { opacity: 0.3 }
+                '&.Mui-disabled': { opacity: 0.3 },
               }}
             >
               <NavigateBefore />
             </IconButton>
-            
+
             <IconButton
               onClick={handleNext}
               disabled={currentIndex === allMedia.length - 1}
@@ -250,7 +252,7 @@ export default function ImageGalleryModal({
                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
                 color: 'white',
                 '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
-                '&.Mui-disabled': { opacity: 0.3 }
+                '&.Mui-disabled': { opacity: 0.3 },
               }}
             >
               <NavigateNext />
@@ -313,26 +315,30 @@ export default function ImageGalleryModal({
           }}
         >
           <Typography variant="body2" sx={{ color: 'white', mb: 1 }}>
-            {currentMedia.description || `${currentMedia.type} - ${new Date(currentMedia.timestamp).toLocaleString('sk-SK')}`}
+            {currentMedia.description ||
+              `${currentMedia.type} - ${new Date(currentMedia.timestamp).toLocaleString('sk-SK')}`}
           </Typography>
-          
+
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Chip 
-              label={`${currentMedia.type}`} 
-              size="small" 
-              sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'white' }}
+            <Chip
+              label={`${currentMedia.type}`}
+              size="small"
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+              }}
             />
             {currentMedia.compressed && (
-              <Chip 
-                label="Komprimované" 
-                size="small" 
+              <Chip
+                label="Komprimované"
+                size="small"
                 sx={{ backgroundColor: 'rgba(0, 255, 0, 0.2)', color: 'white' }}
               />
             )}
             {currentMedia.originalSize && currentMedia.compressedSize && (
-              <Chip 
-                label={`${Math.round((currentMedia.originalSize - currentMedia.compressedSize) / currentMedia.originalSize * 100)}% úspora`}
-                size="small" 
+              <Chip
+                label={`${Math.round(((currentMedia.originalSize - currentMedia.compressedSize) / currentMedia.originalSize) * 100)}% úspora`}
+                size="small"
                 sx={{ backgroundColor: 'rgba(0, 255, 0, 0.2)', color: 'white' }}
               />
             )}
@@ -359,7 +365,7 @@ export default function ImageGalleryModal({
         >
           Zmenšiť
         </Button>
-        
+
         <Button
           variant="outlined"
           onClick={resetZoom}
@@ -367,7 +373,7 @@ export default function ImageGalleryModal({
         >
           {Math.round(zoom * 100)}%
         </Button>
-        
+
         <Button
           variant="outlined"
           startIcon={<ZoomIn />}
@@ -376,7 +382,7 @@ export default function ImageGalleryModal({
         >
           Zväčšiť
         </Button>
-        
+
         <Button
           variant="contained"
           startIcon={<Download />}
@@ -408,7 +414,10 @@ export default function ImageGalleryModal({
                 borderRadius: 1,
                 overflow: 'hidden',
                 cursor: 'pointer',
-                border: index === currentIndex ? '2px solid white' : '2px solid transparent',
+                border:
+                  index === currentIndex
+                    ? '2px solid white'
+                    : '2px solid transparent',
                 opacity: index === currentIndex ? 1 : 0.7,
                 '&:hover': { opacity: 1 },
                 flexShrink: 0,
@@ -440,4 +449,4 @@ export default function ImageGalleryModal({
       )}
     </Dialog>
   );
-} 
+}

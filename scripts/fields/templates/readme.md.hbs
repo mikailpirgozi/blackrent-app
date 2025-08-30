@@ -1,0 +1,244 @@
+# 📋 Implementation Guide: {{fieldLabel}} Field
+
+## Field Configuration
+- **Field Name**: `{{fieldName}}`
+- **Table**: `{{table}}`
+- **Type**: `{{type}}` ({{tsType}})
+- **Default**: `{{defaultValue}}`
+{{#if description}}
+- **Description**: {{description}}
+{{/if}}
+{{#if copyFrom}}
+- **Copy From**: `{{copyFrom}}` during create
+{{/if}}
+
+## E2E Implementation Checklist
+
+### ✅ 1. Database (DONE - files generated)
+- [ ] Run migration: `psql -f migration.up.sql`
+- [ ] Verify: `\d {{table}}` shows new column
+- [ ] Test constraints with invalid data
+- [ ] Backup rollback: `psql -f migration.down.sql` (if needed)
+
+### ⏳ 2. API Layer
+
+#### Backend Types (src/types/index.ts)
+```typescript
+// Add to existing {{table}} interface:
+export interface {{tableNameUpper}} {
+  // ... existing fields ...
+  {{fieldName}}: {{tsType}};{{#if description}} // {{description}}{{/if}}
+}
+```
+
+#### DTO Validation (backend/src/routes/{{table}}.ts)
+```typescript
+// Import generated DTO
+import { validate{{fieldNamePascal}}Input, validate{{fieldNamePascal}}Update } from '../dto/{{fieldName}}-dto';
+
+// In POST route - add validation:
+const validatedData = validate{{fieldNamePascal}}Input(req.body);
+
+// In PUT route - add validation:  
+const validatedData = validate{{fieldNamePascal}}Update(req.body);
+```
+
+#### Service Layer (backend/src/models/postgres-database.ts)
+```typescript
+// Update create{{tableNameUpper}} method:
+async create{{tableNameUpper}}(data: any) {
+  const query = `
+    INSERT INTO {{table}} (
+      /* existing fields */,
+      {{fieldName}}
+    ) VALUES (
+      /* existing params */,
+      $N
+    ) RETURNING *
+  `;
+  
+  {{#if copyFrom}}
+  // Copy value from {{copyFrom}} if not provided
+  if (!data.{{fieldName}}) {
+    const sourceQuery = `SELECT {{copyFrom}} FROM ...`;
+    // Implementation depends on your copy logic
+  }
+  {{/if}}
+  
+  return client.query(query, [/* existing params */, data.{{fieldName}}]);
+}
+
+// Update update{{tableNameUpper}} method:
+async update{{tableNameUpper}}(id: string, data: any) {
+  // Add {{fieldName}} to SET clause if provided
+  if (data.{{fieldName}} !== undefined) {
+    // Include in update query
+  }
+}
+```
+
+### ⏳ 3. Frontend/UI
+
+#### Form Integration (src/components/{{table}}/{{tableNameUpper}}Form.tsx)
+```typescript
+import { {{fieldNamePascal}}Input } from '../inputs/{{fieldNamePascal}}Input';
+
+function {{tableNameUpper}}Form() {
+  const [{{fieldNameCamel}}, set{{fieldNamePascal}}] = useState<{{{tsType}}}>({{#if (eq type 'string')}}'{{defaultValue}}'{{else}}{{defaultValue}}{{/if}});
+
+  const handleSave = async () => {
+    try {
+      // Log telemetry
+      console.log('🔄 Updating {{fieldName}}', { 
+        requestId: generateRequestId(), 
+        id, 
+        oldValue: currentData.{{fieldName}}, 
+        newValue: {{fieldNameCamel}} 
+      });
+
+      // Optimistic update
+      const optimisticData = { ...currentData, {{fieldName}}: {{fieldNameCamel}} };
+      updateLocalState(optimisticData);
+      
+      // API call
+      const response = await fetch(`/api/{{table}}/\${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ {{fieldName}}: {{fieldNameCamel}} })
+      });
+      
+      if (!response.ok) {
+        // Revert optimistic update
+        updateLocalState(currentData);
+        throw new Error('Update failed');
+      }
+      
+      const result = await response.json();
+      
+      // Log success
+      console.log('✅ {{fieldName}} updated successfully', { 
+        requestId: generateRequestId(), 
+        id, 
+        {{fieldName}}: result.data.{{fieldName}} 
+      });
+      
+      // Optional: refetch to ensure consistency
+      await refetchData();
+      
+    } catch (error) {
+      console.error('❌ Save {{fieldName}} error:', error);
+      // Handle error (show toast, revert state, etc.)
+    }
+  };
+
+  return (
+    <{{fieldNamePascal}}Input
+      value={ {{fieldNameCamel}} }
+      onChange={ set{{fieldNamePascal}} }
+      label="{{fieldLabel}}"
+      required
+    />
+  );
+}
+```
+
+### ⏳ 4. Calculation Logic (if applicable)
+
+{{#if (eq type 'number')}}
+#### Pure Function (src/utils/calculations.ts)
+```typescript
+export function calcTotalWith{{fieldNamePascal}}(data: {
+  {{fieldName}}: number;
+  // ... other relevant fields
+}): number {
+  // Pure calculation logic
+  const {{fieldNameCamel}}Cost = data.{{fieldName}} * RATE_MULTIPLIER;
+  return baseTotal + {{fieldNameCamel}}Cost;
+}
+
+// Unit test (src/utils/calculations.test.ts)
+describe('calcTotalWith{{fieldNamePascal}}', () => {
+  it('should calculate total correctly - happy path', () => {
+    const result = calcTotalWith{{fieldNamePascal}}({
+      {{fieldName}}: 100,
+      // ... test data
+    });
+    expect(result).toBe(expectedTotal);
+  });
+
+  it('should handle edge cases', () => {
+    const result = calcTotalWith{{fieldNamePascal}}({
+      {{fieldName}}: 0,
+    });
+    expect(result).toBe(baseTotal);
+  });
+});
+```
+{{/if}}
+
+### ⏳ 5. Tests
+
+#### Run Generated Tests
+```bash
+# Unit tests
+npm run test service.test.ts
+
+# API integration test
+# Use api-snippets.md cURL commands
+
+# Frontend test (manual)
+# 1. Open form with {{fieldName}} input
+# 2. Enter valid value → save → verify
+# 3. Enter invalid value → verify error handling
+# 4. Test optimistic update behavior
+```
+
+## Implementation Order
+
+1. **Database** → Run migration.up.sql
+2. **Backend Types** → Update interfaces in src/types/
+3. **Backend API** → Add DTO validation to routes
+4. **Backend Service** → Update database methods
+5. **Frontend Component** → Use generated UI input
+6. **Integration** → Connect form to API
+7. **Testing** → Run all test suites
+8. **Telemetry** → Verify logging works
+
+## Validation Commands
+
+```bash
+# Check database structure
+psql -c "\d {{table}}"
+
+# Test API endpoints
+# (Use cURL commands from api-snippets.md)
+
+# Run tests
+npm run test
+
+# Check TypeScript
+npx tsc --noEmit
+
+# Build check
+npm run build
+```
+
+## Rollback Plan
+
+If anything goes wrong:
+
+```bash
+# 1. Rollback database
+psql -f migration.down.sql
+
+# 2. Revert code changes
+git checkout -- .
+
+# 3. Restart services
+npm run dev:restart
+```
+
+---
+
+**✨ Generated by BlackRent Field Scaffolder**
+**📅 {{currentDate}}**

@@ -1,4 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import {
+  SwapHoriz as TransferIcon,
+  SwapHoriz,
+  History as HistoryIcon,
+  ExpandMore as ExpandMoreIcon,
+  DirectionsCar as CarIcon,
+  Business as CompanyIcon,
+  CalendarToday as DateIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon,
+  Refresh as RefreshIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -25,26 +38,14 @@ import {
   Tooltip,
   Grid,
   Divider,
-  Paper
+  Paper,
 } from '@mui/material';
-import {
-  SwapHoriz as TransferIcon,
-  SwapHoriz,
-  History as HistoryIcon,
-  ExpandMore as ExpandMoreIcon,
-  DirectionsCar as CarIcon,
-  Business as CompanyIcon,
-  CalendarToday as DateIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material';
-import { useApp } from '../../context/AppContext';
-import { apiService, getAPI_BASE_URL } from '../../services/api';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import React, { useState, useEffect } from 'react';
+
+import { useApp } from '../../context/AppContext';
+import { apiService, getAPI_BASE_URL } from '../../services/api';
 
 interface OwnershipHistory {
   id: string;
@@ -75,27 +76,36 @@ const VehicleOwnershipTransfer: React.FC = () => {
   const [newOwnerCompanyId, setNewOwnerCompanyId] = useState('');
   const [transferReason, setTransferReason] = useState('sale');
   const [transferNotes, setTransferNotes] = useState('');
-  const [transferDate, setTransferDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  
+  const [transferDate, setTransferDate] = useState(
+    format(new Date(), 'yyyy-MM-dd')
+  );
+
   // UI states
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
-  
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+
   // History states
-  const [vehiclesWithHistory, setVehiclesWithHistory] = useState<VehicleWithHistory[]>([]);
+  const [vehiclesWithHistory, setVehiclesWithHistory] = useState<
+    VehicleWithHistory[]
+  >([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  
+
   // Edit dialog states
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingTransfer, setEditingTransfer] = useState<OwnershipHistory | null>(null);
+  const [editingTransfer, setEditingTransfer] =
+    useState<OwnershipHistory | null>(null);
   const [editCompanyId, setEditCompanyId] = useState('');
   const [editReason, setEditReason] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [editDate, setEditDate] = useState('');
-  
+
   // Delete confirmation dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [transferToDelete, setTransferToDelete] = useState<OwnershipHistory | null>(null);
+  const [transferToDelete, setTransferToDelete] =
+    useState<OwnershipHistory | null>(null);
 
   const transferReasons = [
     { value: 'sale', label: 'Predaj' },
@@ -104,33 +114,39 @@ const VehicleOwnershipTransfer: React.FC = () => {
     { value: 'lease_transfer', label: 'Transfer leasingu' },
     { value: 'merger', label: 'Fúzia firiem' },
     { value: 'administrative', label: 'Administratívna zmena' },
-    { value: 'manual_transfer', label: 'Manuálny transfer' }
+    { value: 'manual_transfer', label: 'Manuálny transfer' },
   ];
 
   // ⚡⚡ ULTRA OPTIMALIZOVANÉ: Jediné bulk API volanie namiesto 111 requestov
   const loadAllVehicleHistories = async () => {
     setHistoryLoading(true);
-    console.log(`🚀 BULK: Loading ownership history for all vehicles in single request...`);
+    console.log(
+      `🚀 BULK: Loading ownership history for all vehicles in single request...`
+    );
     const startTime = Date.now();
-    
+
     try {
       // ⚡⚡ SINGLE BULK REQUEST: Namiesto 111 requestov -> 1 request
       const bulkData = await apiService.getBulkVehicleOwnershipHistory();
-      
-      console.log(`📊 BULK Response: ${bulkData.totalVehicles} vehicles processed in ${bulkData.loadTimeMs}ms (backend) + ${Date.now() - startTime}ms (frontend)`);
-      
+
+      console.log(
+        `📊 BULK Response: ${bulkData.totalVehicles} vehicles processed in ${bulkData.loadTimeMs}ms (backend) + ${Date.now() - startTime}ms (frontend)`
+      );
+
       // FILTER LOGIC: Zobrazuj len vozidlá s reálnymi transfermi
       const vehiclesWithHistoryData: VehicleWithHistory[] = [];
-      
+
       for (const vehicleHistory of bulkData.vehicleHistories) {
         const history = vehicleHistory.history;
-        
+
         // 1. Vozidlá s viac ako 1 záznamom = mali aspoň 1 transfer
         // 2. Vozidlá s 1 záznamom, ale nie je to initial_setup
         // 3. Vylúč vozidlá len s initial_setup (žiadny skutočný transfer)
-        const hasRealTransfers = history.length > 1 || 
-          (history.length === 1 && history[0].transferReason !== 'initial_setup');
-        
+        const hasRealTransfers =
+          history.length > 1 ||
+          (history.length === 1 &&
+            history[0].transferReason !== 'initial_setup');
+
         if (hasRealTransfers) {
           vehiclesWithHistoryData.push({
             id: vehicleHistory.vehicle.id,
@@ -138,17 +154,21 @@ const VehicleOwnershipTransfer: React.FC = () => {
             model: vehicleHistory.vehicle.model,
             licensePlate: vehicleHistory.vehicle.licensePlate,
             ownerCompanyId: vehicleHistory.vehicle.ownerCompanyId || '',
-            history: history
+            history: history,
           });
         }
       }
-      
+
       // SORTING: Zoraď podľa počtu transferov (viac transferov = vyššie v zozname)
-      vehiclesWithHistoryData.sort((a, b) => b.history.length - a.history.length);
-      
+      vehiclesWithHistoryData.sort(
+        (a, b) => b.history.length - a.history.length
+      );
+
       const totalTime = Date.now() - startTime;
-      console.log(`✅ BULK: Processed ${vehiclesWithHistoryData.length} vehicles with transfers in ${totalTime}ms total`);
-      
+      console.log(
+        `✅ BULK: Processed ${vehiclesWithHistoryData.length} vehicles with transfers in ${totalTime}ms total`
+      );
+
       setVehiclesWithHistory(vehiclesWithHistoryData);
     } catch (error) {
       console.error('Failed to load bulk vehicle histories:', error);
@@ -162,23 +182,30 @@ const VehicleOwnershipTransfer: React.FC = () => {
 
   // Fallback metóda pre prípad zlyhania bulk requestu
   const loadVehicleHistoriesIndividually = async () => {
-    console.log(`🚀 FALLBACK: Loading histories for ${vehicles.length} vehicles individually...`);
-    
-    const historyPromises = vehicles.map(async (vehicle) => {
+    console.log(
+      `🚀 FALLBACK: Loading histories for ${vehicles.length} vehicles individually...`
+    );
+
+    const historyPromises = vehicles.map(async vehicle => {
       try {
-        const response = await fetch(`${getAPI_BASE_URL()}/vehicles/${vehicle.id}/ownership-history`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+        const response = await fetch(
+          `${getAPI_BASE_URL()}/vehicles/${vehicle.id}/ownership-history`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+            },
           }
-        });
+        );
 
         if (response.ok) {
           const data = await response.json();
           const history = data.data.ownershipHistory || [];
-          
-          const hasRealTransfers = history.length > 1 || 
-            (history.length === 1 && history[0].transferReason !== 'initial_setup');
-          
+
+          const hasRealTransfers =
+            history.length > 1 ||
+            (history.length === 1 &&
+              history[0].transferReason !== 'initial_setup');
+
           if (hasRealTransfers) {
             return {
               id: vehicle.id,
@@ -186,21 +213,26 @@ const VehicleOwnershipTransfer: React.FC = () => {
               model: vehicle.model,
               licensePlate: vehicle.licensePlate,
               ownerCompanyId: vehicle.ownerCompanyId || '',
-              history: history
+              history: history,
             };
           }
         }
         return null;
       } catch (error) {
-        console.error(`Failed to load history for vehicle ${vehicle.id}:`, error);
+        console.error(
+          `Failed to load history for vehicle ${vehicle.id}:`,
+          error
+        );
         return null;
       }
     });
 
     const results = await Promise.all(historyPromises);
-    const vehiclesWithHistoryData = results.filter((vehicle): vehicle is VehicleWithHistory => vehicle !== null);
+    const vehiclesWithHistoryData = results.filter(
+      (vehicle): vehicle is VehicleWithHistory => vehicle !== null
+    );
     vehiclesWithHistoryData.sort((a, b) => b.history.length - a.history.length);
-    
+
     setVehiclesWithHistory(vehiclesWithHistoryData);
   };
 
@@ -221,50 +253,51 @@ const VehicleOwnershipTransfer: React.FC = () => {
     setMessage(null);
 
     try {
-      const response = await fetch(`${getAPI_BASE_URL()}/vehicles/${selectedVehicleId}/transfer-ownership`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
-        },
-        body: JSON.stringify({
-          newOwnerCompanyId,
-          transferReason,
-          transferNotes: transferNotes.trim() || null,
-          transferDate: new Date(transferDate).toISOString()
-        })
-      });
+      const response = await fetch(
+        `${getAPI_BASE_URL()}/vehicles/${selectedVehicleId}/transfer-ownership`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          },
+          body: JSON.stringify({
+            newOwnerCompanyId,
+            transferReason,
+            transferNotes: transferNotes.trim() || null,
+            transferDate: new Date(transferDate).toISOString(),
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (data.success) {
-        setMessage({ 
-          type: 'success', 
-          text: data.message || 'Transfer ownership úspešný!' 
+        setMessage({
+          type: 'success',
+          text: data.message || 'Transfer ownership úspešný!',
         });
-        
+
         // Reset form
         setSelectedVehicleId('');
         setNewOwnerCompanyId('');
         setTransferReason('sale');
         setTransferNotes('');
         setTransferDate(format(new Date(), 'yyyy-MM-dd'));
-        
+
         // Refresh history
         await loadAllVehicleHistories();
-        
       } else {
-        setMessage({ 
-          type: 'error', 
-          text: data.error || 'Transfer sa nepodaril' 
+        setMessage({
+          type: 'error',
+          text: data.error || 'Transfer sa nepodaril',
         });
       }
-
     } catch (error) {
       console.error('Transfer error:', error);
-      setMessage({ 
-        type: 'error', 
-        text: 'Chyba pri transfere ownership' 
+      setMessage({
+        type: 'error',
+        text: 'Chyba pri transfere ownership',
       });
     } finally {
       setLoading(false);
@@ -285,19 +318,22 @@ const VehicleOwnershipTransfer: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${getAPI_BASE_URL()}/vehicles/ownership-history/${editingTransfer.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
-        },
-        body: JSON.stringify({
-          ownerCompanyId: editCompanyId,
-          transferReason: editReason,
-          transferNotes: editNotes.trim() || null,
-          validFrom: new Date(editDate).toISOString()
-        })
-      });
+      const response = await fetch(
+        `${getAPI_BASE_URL()}/vehicles/ownership-history/${editingTransfer.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          },
+          body: JSON.stringify({
+            ownerCompanyId: editCompanyId,
+            transferReason: editReason,
+            transferNotes: editNotes.trim() || null,
+            validFrom: new Date(editDate).toISOString(),
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -306,9 +342,11 @@ const VehicleOwnershipTransfer: React.FC = () => {
         setEditDialogOpen(false);
         await loadAllVehicleHistories();
       } else {
-        setMessage({ type: 'error', text: data.error || 'Úprava sa nepodarila' });
+        setMessage({
+          type: 'error',
+          text: data.error || 'Úprava sa nepodarila',
+        });
       }
-
     } catch (error) {
       console.error('Edit error:', error);
       setMessage({ type: 'error', text: 'Chyba pri úprave transferu' });
@@ -327,12 +365,15 @@ const VehicleOwnershipTransfer: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${getAPI_BASE_URL()}/vehicles/ownership-history/${transferToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+      const response = await fetch(
+        `${getAPI_BASE_URL()}/vehicles/ownership-history/${transferToDelete.id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          },
         }
-      });
+      );
 
       const data = await response.json();
 
@@ -340,9 +381,11 @@ const VehicleOwnershipTransfer: React.FC = () => {
         setMessage({ type: 'success', text: 'Transfer úspešne vymazaný!' });
         await loadAllVehicleHistories();
       } else {
-        setMessage({ type: 'error', text: data.error || 'Vymazanie sa nepodarilo' });
+        setMessage({
+          type: 'error',
+          text: data.error || 'Vymazanie sa nepodarilo',
+        });
       }
-
     } catch (error) {
       console.error('Delete error:', error);
       setMessage({ type: 'error', text: 'Chyba pri vymazávaní transferu' });
@@ -354,17 +397,27 @@ const VehicleOwnershipTransfer: React.FC = () => {
   };
 
   const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
-  const currentOwnerCompany = companies.find(c => c.id === selectedVehicle?.ownerCompanyId);
+  const currentOwnerCompany = companies.find(
+    c => c.id === selectedVehicle?.ownerCompanyId
+  );
 
   return (
     <Box>
-      <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography
+        variant="h5"
+        gutterBottom
+        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+      >
         <TransferIcon />
         Transfer vlastníctva vozidiel
       </Typography>
 
       {message && (
-        <Alert severity={message.type} sx={{ mb: 2 }} onClose={() => setMessage(null)}>
+        <Alert
+          severity={message.type}
+          sx={{ mb: 2 }}
+          onClose={() => setMessage(null)}
+        >
           {message.text}
         </Alert>
       )}
@@ -374,7 +427,11 @@ const VehicleOwnershipTransfer: React.FC = () => {
         <Grid item xs={12} md={5}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 <SwapHoriz />
                 Nový transfer vlastníctva
               </Typography>
@@ -384,20 +441,32 @@ const VehicleOwnershipTransfer: React.FC = () => {
                   <InputLabel>Vozidlo</InputLabel>
                   <Select
                     value={selectedVehicleId}
-                    onChange={(e) => setSelectedVehicleId(e.target.value)}
+                    onChange={e => setSelectedVehicleId(e.target.value)}
                     label="Vozidlo"
                   >
-                    {vehicles.map((vehicle) => {
-                      const ownerCompany = companies.find(c => c.id === vehicle.ownerCompanyId);
+                    {vehicles.map(vehicle => {
+                      const ownerCompany = companies.find(
+                        c => c.id === vehicle.ownerCompanyId
+                      );
                       return (
                         <MenuItem key={vehicle.id} value={vehicle.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
                             <CarIcon fontSize="small" />
                             <Box>
                               <Typography variant="body1">
-                                {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                                {vehicle.brand} {vehicle.model} -{' '}
+                                {vehicle.licensePlate}
                               </Typography>
-                              <Typography variant="caption" color="textSecondary">
+                              <Typography
+                                variant="caption"
+                                color="textSecondary"
+                              >
                                 Majiteľ: {ownerCompany?.name || 'Neznámy'}
                               </Typography>
                             </Box>
@@ -411,7 +480,8 @@ const VehicleOwnershipTransfer: React.FC = () => {
                 {selectedVehicle && (
                   <Alert severity="info">
                     <Typography variant="body2">
-                      <strong>Aktuálny majiteľ:</strong> {currentOwnerCompany?.name || 'Neznámy'}
+                      <strong>Aktuálny majiteľ:</strong>{' '}
+                      {currentOwnerCompany?.name || 'Neznámy'}
                     </Typography>
                   </Alert>
                 )}
@@ -420,15 +490,21 @@ const VehicleOwnershipTransfer: React.FC = () => {
                   <InputLabel>Nový majiteľ</InputLabel>
                   <Select
                     value={newOwnerCompanyId}
-                    onChange={(e) => setNewOwnerCompanyId(e.target.value)}
+                    onChange={e => setNewOwnerCompanyId(e.target.value)}
                     label="Nový majiteľ"
                     disabled={!selectedVehicleId}
                   >
                     {companies
                       .filter(c => c.id !== currentOwnerCompany?.id)
-                      .map((company) => (
+                      .map(company => (
                         <MenuItem key={company.id} value={company.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
                             <CompanyIcon fontSize="small" />
                             {company.name}
                           </Box>
@@ -442,10 +518,10 @@ const VehicleOwnershipTransfer: React.FC = () => {
                     <InputLabel>Dôvod transferu</InputLabel>
                     <Select
                       value={transferReason}
-                      onChange={(e) => setTransferReason(e.target.value)}
+                      onChange={e => setTransferReason(e.target.value)}
                       label="Dôvod transferu"
                     >
-                      {transferReasons.map((reason) => (
+                      {transferReasons.map(reason => (
                         <MenuItem key={reason.value} value={reason.value}>
                           {reason.label}
                         </MenuItem>
@@ -457,10 +533,12 @@ const VehicleOwnershipTransfer: React.FC = () => {
                     label="Dátum transferu"
                     type="date"
                     value={transferDate}
-                    onChange={(e) => setTransferDate(e.target.value)}
+                    onChange={e => setTransferDate(e.target.value)}
                     InputLabelProps={{ shrink: true }}
                     InputProps={{
-                      startAdornment: <DateIcon sx={{ mr: 1, color: 'action.active' }} />
+                      startAdornment: (
+                        <DateIcon sx={{ mr: 1, color: 'action.active' }} />
+                      ),
                     }}
                   />
                 </Box>
@@ -470,7 +548,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
                   multiline
                   rows={3}
                   value={transferNotes}
-                  onChange={(e) => setTransferNotes(e.target.value)}
+                  onChange={e => setTransferNotes(e.target.value)}
                   placeholder="Ďalšie informácie o transfere..."
                 />
 
@@ -479,7 +557,9 @@ const VehicleOwnershipTransfer: React.FC = () => {
                   size="large"
                   onClick={handleTransferSubmit}
                   disabled={loading || !selectedVehicleId || !newOwnerCompanyId}
-                  startIcon={loading ? <CircularProgress size={20} /> : <TransferIcon />}
+                  startIcon={
+                    loading ? <CircularProgress size={20} /> : <TransferIcon />
+                  }
                 >
                   {loading ? 'Spracovávam...' : 'Transferovať vlastníctvo'}
                 </Button>
@@ -492,44 +572,82 @@ const VehicleOwnershipTransfer: React.FC = () => {
         <Grid item xs={12} md={7}>
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                >
                   <HistoryIcon />
                   Vozidlá s transfermi vlastníctva
                 </Typography>
                 <Tooltip title="Obnoviť históriu">
-                  <IconButton onClick={loadAllVehicleHistories} disabled={historyLoading}>
+                  <IconButton
+                    onClick={loadAllVehicleHistories}
+                    disabled={historyLoading}
+                  >
                     <RefreshIcon />
                   </IconButton>
                 </Tooltip>
               </Box>
 
               {historyLoading ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 4 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    p: 4,
+                  }}
+                >
                   <CircularProgress size={40} />
-                  <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mt: 2 }}
+                  >
                     Načítavam históriu transferov...
                   </Typography>
-                  <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    sx={{ mt: 1 }}
+                  >
                     ⚡⚡ Bulk API - jediné volanie pre všetky vozidlá
                   </Typography>
                 </Box>
               ) : (
-                <Stack spacing={2} sx={{ maxHeight: '600px', overflow: 'auto' }}>
+                <Stack
+                  spacing={2}
+                  sx={{ maxHeight: '600px', overflow: 'auto' }}
+                >
                   {vehiclesWithHistory.length === 0 ? (
                     <Typography color="textSecondary">
                       Žiadne vozidlá s transfermi vlastníctva nenájdené.
                     </Typography>
                   ) : (
-                    vehiclesWithHistory.map((vehicle) => (
+                    vehiclesWithHistory.map(vehicle => (
                       <Accordion key={vehicle.id}>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
                             <CarIcon />
                             <Typography variant="subtitle1">
-                              {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                              {vehicle.brand} {vehicle.model} -{' '}
+                              {vehicle.licensePlate}
                             </Typography>
-                            <Chip 
+                            <Chip
                               label={`${vehicle.history.length} transferov`}
                               size="small"
                               color="primary"
@@ -544,51 +662,100 @@ const VehicleOwnershipTransfer: React.FC = () => {
                               </Typography>
                             ) : (
                               vehicle.history.map((transfer, index) => (
-                                <Paper key={transfer.id} variant="outlined" sx={{ p: 2 }}>
-                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <Paper
+                                  key={transfer.id}
+                                  variant="outlined"
+                                  sx={{ p: 2 }}
+                                >
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'flex-start',
+                                    }}
+                                  >
                                     <Box sx={{ flexGrow: 1 }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                      <Box
+                                        sx={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 1,
+                                          mb: 1,
+                                        }}
+                                      >
                                         <CompanyIcon fontSize="small" />
                                         <Typography variant="subtitle2">
                                           {transfer.ownerCompanyName}
                                         </Typography>
                                         <Chip
-                                          label={index === 0 ? 'Aktuálny' : 'Historický'}
-                                          color={index === 0 ? 'primary' : 'default'}
+                                          label={
+                                            index === 0
+                                              ? 'Aktuálny'
+                                              : 'Historický'
+                                          }
+                                          color={
+                                            index === 0 ? 'primary' : 'default'
+                                          }
                                           size="small"
                                         />
                                       </Box>
-                                      
-                                      <Typography variant="body2" color="textSecondary" gutterBottom>
-                                        <strong>Platnosť:</strong> {format(new Date(transfer.validFrom), 'dd.MM.yyyy', { locale: sk })}
-                                        {transfer.validTo && ` - ${format(new Date(transfer.validTo), 'dd.MM.yyyy', { locale: sk })}`}
+
+                                      <Typography
+                                        variant="body2"
+                                        color="textSecondary"
+                                        gutterBottom
+                                      >
+                                        <strong>Platnosť:</strong>{' '}
+                                        {format(
+                                          new Date(transfer.validFrom),
+                                          'dd.MM.yyyy',
+                                          { locale: sk }
+                                        )}
+                                        {transfer.validTo &&
+                                          ` - ${format(new Date(transfer.validTo), 'dd.MM.yyyy', { locale: sk })}`}
                                       </Typography>
-                                      
-                                      <Typography variant="body2" color="textSecondary" gutterBottom>
-                                        <strong>Dôvod:</strong> {transferReasons.find(r => r.value === transfer.transferReason)?.label || transfer.transferReason}
+
+                                      <Typography
+                                        variant="body2"
+                                        color="textSecondary"
+                                        gutterBottom
+                                      >
+                                        <strong>Dôvod:</strong>{' '}
+                                        {transferReasons.find(
+                                          r =>
+                                            r.value === transfer.transferReason
+                                        )?.label || transfer.transferReason}
                                       </Typography>
-                                      
+
                                       {transfer.transferNotes && (
-                                        <Typography variant="body2" color="textSecondary">
-                                          <strong>Poznámky:</strong> {transfer.transferNotes}
+                                        <Typography
+                                          variant="body2"
+                                          color="textSecondary"
+                                        >
+                                          <strong>Poznámky:</strong>{' '}
+                                          {transfer.transferNotes}
                                         </Typography>
                                       )}
                                     </Box>
 
                                     <Box sx={{ display: 'flex', gap: 1 }}>
                                       <Tooltip title="Upraviť transfer">
-                                        <IconButton 
-                                          size="small" 
-                                          onClick={() => handleEditTransfer(transfer)}
+                                        <IconButton
+                                          size="small"
+                                          onClick={() =>
+                                            handleEditTransfer(transfer)
+                                          }
                                           color="primary"
                                         >
                                           <EditIcon fontSize="small" />
                                         </IconButton>
                                       </Tooltip>
                                       <Tooltip title="Vymazať transfer">
-                                        <IconButton 
-                                          size="small" 
-                                          onClick={() => handleDeleteTransfer(transfer)}
+                                        <IconButton
+                                          size="small"
+                                          onClick={() =>
+                                            handleDeleteTransfer(transfer)
+                                          }
                                           color="error"
                                         >
                                           <DeleteIcon fontSize="small" />
@@ -630,10 +797,10 @@ const VehicleOwnershipTransfer: React.FC = () => {
               <InputLabel>Firma</InputLabel>
               <Select
                 value={editCompanyId}
-                onChange={(e) => setEditCompanyId(e.target.value)}
+                onChange={e => setEditCompanyId(e.target.value)}
                 label="Firma"
               >
-                {companies.map((company) => (
+                {companies.map(company => (
                   <MenuItem key={company.id} value={company.id}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <CompanyIcon fontSize="small" />
@@ -648,10 +815,10 @@ const VehicleOwnershipTransfer: React.FC = () => {
               <InputLabel>Dôvod transferu</InputLabel>
               <Select
                 value={editReason}
-                onChange={(e) => setEditReason(e.target.value)}
+                onChange={e => setEditReason(e.target.value)}
                 label="Dôvod transferu"
               >
-                {transferReasons.map((reason) => (
+                {transferReasons.map(reason => (
                   <MenuItem key={reason.value} value={reason.value}>
                     {reason.label}
                   </MenuItem>
@@ -663,7 +830,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
               label="Dátum platnosti"
               type="date"
               value={editDate}
-              onChange={(e) => setEditDate(e.target.value)}
+              onChange={e => setEditDate(e.target.value)}
               InputLabelProps={{ shrink: true }}
               fullWidth
             />
@@ -673,19 +840,19 @@ const VehicleOwnershipTransfer: React.FC = () => {
               multiline
               rows={3}
               value={editNotes}
-              onChange={(e) => setEditNotes(e.target.value)}
+              onChange={e => setEditNotes(e.target.value)}
               fullWidth
             />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button 
+          <Button
             onClick={() => setEditDialogOpen(false)}
             startIcon={<CancelIcon />}
           >
             Zrušiť
           </Button>
-          <Button 
+          <Button
             onClick={handleEditSubmit}
             variant="contained"
             disabled={loading || !editCompanyId || !editReason || !editDate}
@@ -715,16 +882,22 @@ const VehicleOwnershipTransfer: React.FC = () => {
               <Typography variant="body1" gutterBottom>
                 Naozaj chcete vymazať tento transfer vlastníctva?
               </Typography>
-              
+
               <Alert severity="warning" sx={{ mt: 2 }}>
                 <Typography variant="body2">
                   <strong>Firma:</strong> {transferToDelete.ownerCompanyName}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Dátum:</strong> {format(new Date(transferToDelete.validFrom), 'dd.MM.yyyy', { locale: sk })}
+                  <strong>Dátum:</strong>{' '}
+                  {format(new Date(transferToDelete.validFrom), 'dd.MM.yyyy', {
+                    locale: sk,
+                  })}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Dôvod:</strong> {transferReasons.find(r => r.value === transferToDelete.transferReason)?.label || transferToDelete.transferReason}
+                  <strong>Dôvod:</strong>{' '}
+                  {transferReasons.find(
+                    r => r.value === transferToDelete.transferReason
+                  )?.label || transferToDelete.transferReason}
                 </Typography>
                 {transferToDelete.transferNotes && (
                   <Typography variant="body2">
@@ -732,7 +905,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
                   </Typography>
                 )}
               </Alert>
-              
+
               <Typography variant="body2" color="error" sx={{ mt: 2 }}>
                 Táto akcia sa nedá vrátiť späť.
               </Typography>
@@ -740,18 +913,20 @@ const VehicleOwnershipTransfer: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button 
+          <Button
             onClick={() => setDeleteDialogOpen(false)}
             startIcon={<CancelIcon />}
           >
             Zrušiť
           </Button>
-          <Button 
+          <Button
             onClick={confirmDeleteTransfer}
             variant="contained"
             color="error"
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={16} /> : <DeleteIcon />}
+            startIcon={
+              loading ? <CircularProgress size={16} /> : <DeleteIcon />
+            }
           >
             {loading ? 'Vymazávam...' : 'Vymazať'}
           </Button>
@@ -761,4 +936,4 @@ const VehicleOwnershipTransfer: React.FC = () => {
   );
 };
 
-export default VehicleOwnershipTransfer; 
+export default VehicleOwnershipTransfer;

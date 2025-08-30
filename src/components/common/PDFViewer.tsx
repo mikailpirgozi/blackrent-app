@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+import {
+  Close as CloseIcon,
+  Download as DownloadIcon,
+  PictureAsPdf as PDFIcon,
+  OpenInNew as OpenInNewIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Dialog,
@@ -11,12 +16,8 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  Download as DownloadIcon,
-  PictureAsPdf as PDFIcon,
-  OpenInNew as OpenInNewIcon,
-} from '@mui/icons-material';
+import React, { useState } from 'react';
+
 import { getApiBaseUrl } from '../../utils/apiUrl';
 
 interface PDFViewerProps {
@@ -27,12 +28,12 @@ interface PDFViewerProps {
   title?: string;
 }
 
-export default function PDFViewer({ 
-  open, 
-  onClose, 
-  protocolId, 
-  protocolType, 
-  title = 'Zobraziť protokol' 
+export default function PDFViewer({
+  open,
+  onClose,
+  protocolId,
+  protocolType,
+  title = 'Zobraziť protokol',
 }: PDFViewerProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,40 +44,46 @@ export default function PDFViewer({
   const loadProtocolData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Najprv skús načítať protokol aby získal pdfUrl
       const apiBaseUrl = getApiBaseUrl();
       const protocolUrl = `${apiBaseUrl}/protocols/${protocolType}/${protocolId}`;
       console.log('🔍 Loading protocol from:', protocolUrl);
-      
+
       const protocolResponse = await fetch(protocolUrl);
       console.log('📋 Protocol response status:', protocolResponse.status);
-      
+
       if (protocolResponse.ok) {
         const protocol = await protocolResponse.json();
         console.log('📋 Protocol data:', protocol);
         setProtocolData(protocol);
-        
+
         // Ak má protokol pdfUrl, použij ho
         if (protocol.pdfUrl) {
-          console.log('✅ Using existing PDF URL from protocol:', protocol.pdfUrl);
+          console.log(
+            '✅ Using existing PDF URL from protocol:',
+            protocol.pdfUrl
+          );
           setPdfUrl(protocol.pdfUrl);
           return;
         } else {
           console.log('⚠️ Protocol has no pdfUrl field');
         }
       } else {
-        console.log('❌ Protocol response not ok:', protocolResponse.status, protocolResponse.statusText);
+        console.log(
+          '❌ Protocol response not ok:',
+          protocolResponse.status,
+          protocolResponse.statusText
+        );
         const errorText = await protocolResponse.text();
         console.log('❌ Error response:', errorText);
       }
-      
+
       // Ak nemá pdfUrl, vygeneruj nové PDF
       console.log('⚠️ No PDF URL found, generating new PDF');
       const generateUrl = generatePDFUrl();
       setPdfUrl(generateUrl);
-      
     } catch (err) {
       console.error('❌ Error loading protocol data:', err);
       // Fallback na generovanie PDF
@@ -99,7 +106,7 @@ export default function PDFViewer({
     if (protocolData?.pdfUrl) {
       return protocolData.pdfUrl;
     }
-    
+
     // Fallback na generovanie
     const baseUrl = getApiBaseUrl();
     return `${baseUrl}/protocols/${protocolType}/${protocolId}/download`;
@@ -144,20 +151,23 @@ export default function PDFViewer({
         sx: {
           height: '90vh',
           maxHeight: '90vh',
-        }
+        },
       }}
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        backgroundColor: 'primary.main',
-        color: 'white'
-      }}>
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'primary.main',
+          color: 'white',
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <PDFIcon />
           <Typography variant="h6">
-            {title} - {protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} vozidla
+            {title} - {protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'}{' '}
+            vozidla
           </Typography>
         </Box>
         <IconButton onClick={onClose} sx={{ color: 'white' }}>
@@ -167,14 +177,16 @@ export default function PDFViewer({
 
       <DialogContent sx={{ p: 0, position: 'relative' }}>
         {loading && (
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            height: '100%',
-            flexDirection: 'column',
-            gap: 2
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100%',
+              flexDirection: 'column',
+              gap: 2,
+            }}
+          >
             <CircularProgress />
             <Typography>Načítavam PDF...</Typography>
           </Box>
@@ -182,9 +194,7 @@ export default function PDFViewer({
 
         {error && (
           <Box sx={{ p: 2 }}>
-            <Alert severity="error">
-              {error}
-            </Alert>
+            <Alert severity="error">{error}</Alert>
           </Box>
         )}
 
@@ -195,7 +205,7 @@ export default function PDFViewer({
               width: '100%',
               height: '100%',
               border: 'none',
-              minHeight: '500px'
+              minHeight: '500px',
             }}
             title="PDF Viewer"
           />
@@ -219,13 +229,10 @@ export default function PDFViewer({
         >
           Otvoriť v novom okne
         </Button>
-        <Button
-          variant="contained"
-          onClick={onClose}
-        >
+        <Button variant="contained" onClick={onClose}>
           Zavrieť
         </Button>
       </DialogActions>
     </Dialog>
   );
-} 
+}

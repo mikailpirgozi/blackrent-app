@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom';
 
 // Mock environment variables for tests
 Object.defineProperty(import.meta, 'env', {
@@ -7,17 +7,17 @@ Object.defineProperty(import.meta, 'env', {
     MODE: 'test',
   },
   writable: true,
-})
+});
 
 // Global test setup
 global.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
-}
+};
 
 // Import vi from vitest for mocking
-import { vi } from 'vitest'
+import { vi } from 'vitest';
 
 // Mock window.matchMedia (using vi instead of jest for Vitest)
 Object.defineProperty(window, 'matchMedia', {
@@ -32,4 +32,4 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   })),
-})
+});

@@ -1,7 +1,16 @@
 // 📵 Offline Indicator Component
 // Shows offline status with elegant animations and retry options
 
-import React, { useState, useEffect } from 'react';
+import {
+  WifiOff as OfflineIcon,
+  Wifi as OnlineIcon,
+  Refresh as RefreshIcon,
+  ExpandMore as ExpandIcon,
+  ExpandLess as CollapseIcon,
+  CloudOff as CloudOffIcon,
+  Schedule as ScheduleIcon,
+  Sync as SyncIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Paper,
@@ -16,16 +25,8 @@ import {
   useTheme,
   alpha,
 } from '@mui/material';
-import {
-  WifiOff as OfflineIcon,
-  Wifi as OnlineIcon,
-  Refresh as RefreshIcon,
-  ExpandMore as ExpandIcon,
-  ExpandLess as CollapseIcon,
-  CloudOff as CloudOffIcon,
-  Schedule as ScheduleIcon,
-  Sync as SyncIcon,
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
+
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { usePWA } from '../../hooks/usePWA';
 
@@ -43,7 +44,8 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   hideDelay = 5000,
 }) => {
   const theme = useTheme();
-  const { isOnline, networkQuality, wasOffline, reconnectedAt } = useNetworkStatus();
+  const { isOnline, networkQuality, wasOffline, reconnectedAt } =
+    useNetworkStatus();
   const { isOffline: pwaOffline } = usePWA();
 
   const [showIndicator, setShowIndicator] = useState(!isOnline);
@@ -71,7 +73,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
     if ('serviceWorker' in navigator) {
       const handleMessage = (event: MessageEvent) => {
         const { type, payload } = event.data;
-        
+
         switch (type) {
           case 'PENDING_ACTIONS':
             setPendingActions(payload.count || 0);
@@ -92,14 +94,14 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
 
   const handleRetry = async () => {
     setIsRetrying(true);
-    
+
     try {
       // Try to fetch a simple endpoint to test connectivity
-      const response = await fetch('/api/health', { 
+      const response = await fetch('/api/health', {
         method: 'HEAD',
-        cache: 'no-cache' 
+        cache: 'no-cache',
       });
-      
+
       if (response.ok) {
         // Connection restored, trigger sync if available
         if ('serviceWorker' in navigator) {
@@ -183,19 +185,17 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
 
               <Box>
                 <Typography variant="subtitle1" fontWeight={600}>
-                  {isOffline 
+                  {isOffline
                     ? 'Aplikácia je offline'
-                    : showReconnected 
+                    : showReconnected
                       ? 'Pripojenie obnovené!'
-                      : 'Pripojené'
-                  }
+                      : 'Pripojené'}
                 </Typography>
-                
+
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>
                   {isOffline
                     ? 'Niektoré funkcie sú obmedzené'
-                    : `Kvalita siete: ${networkQuality}`
-                  }
+                    : `Kvalita siete: ${networkQuality}`}
                 </Typography>
               </Box>
             </Box>
@@ -227,10 +227,12 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                   disabled={isRetrying}
                   size="small"
                 >
-                  <RefreshIcon 
-                    sx={{ 
-                      animation: isRetrying ? 'spin 1s linear infinite' : undefined 
-                    }} 
+                  <RefreshIcon
+                    sx={{
+                      animation: isRetrying
+                        ? 'spin 1s linear infinite'
+                        : undefined,
+                    }}
                   />
                 </IconButton>
               )}
@@ -280,9 +282,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                   >
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
                       <CloudOffIcon fontSize="small" />
-                      <Typography variant="subtitle2">
-                        Sieť
-                      </Typography>
+                      <Typography variant="subtitle2">Sieť</Typography>
                     </Box>
                     <Typography variant="body2">
                       Status: {isOffline ? 'Offline' : 'Online'}
@@ -305,9 +305,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                   >
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
                       <ScheduleIcon fontSize="small" />
-                      <Typography variant="subtitle2">
-                        Akcie
-                      </Typography>
+                      <Typography variant="subtitle2">Akcie</Typography>
                     </Box>
                     <Typography variant="body2">
                       Čakajúce: {pendingActions}
@@ -347,10 +345,13 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                       startIcon={<SyncIcon />}
                       onClick={async () => {
                         if ('serviceWorker' in navigator) {
-                          const registration = await navigator.serviceWorker.ready;
+                          const registration =
+                            await navigator.serviceWorker.ready;
                           // Background sync (if supported)
                           if ('sync' in registration) {
-                            (registration as any).sync.register('blackrent-sync');
+                            (registration as any).sync.register(
+                              'blackrent-sync'
+                            );
                           }
                         }
                       }}
@@ -377,10 +378,9 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                     },
                   }}
                 >
-                  {isOffline 
+                  {isOffline
                     ? 'Vaše akcie budú synchronizované po obnovení pripojenia.'
-                    : 'Všetko funguje správne. Akcie sa synchronizujú automaticky.'
-                  }
+                    : 'Všetko funguje správne. Akcie sa synchronizujú automaticky.'}
                 </Alert>
               </Box>
             </Collapse>

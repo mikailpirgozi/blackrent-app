@@ -1,7 +1,19 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { UserCompanyAccess, CompanyPermissions, ResourcePermission } from '../types';
-import { useAuth } from './AuthContext';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
+
 import { apiService } from '../services/api';
+import {
+  UserCompanyAccess,
+  CompanyPermissions,
+  ResourcePermission,
+} from '../types';
+
+import { useAuth } from './AuthContext';
 
 interface PermissionsContextType {
   userCompanyAccess: UserCompanyAccess[];
@@ -10,12 +22,16 @@ interface PermissionsContextType {
   refreshPermissions: () => Promise<void>;
 }
 
-const PermissionsContext = createContext<PermissionsContextType | undefined>(undefined);
+const PermissionsContext = createContext<PermissionsContextType | undefined>(
+  undefined
+);
 
 export const usePermissionsContext = () => {
   const context = useContext(PermissionsContext);
   if (!context) {
-    throw new Error('usePermissionsContext must be used within a PermissionsProvider');
+    throw new Error(
+      'usePermissionsContext must be used within a PermissionsProvider'
+    );
   }
   return context;
 };
@@ -24,10 +40,14 @@ interface PermissionsProviderProps {
   children: ReactNode;
 }
 
-export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ children }) => {
+export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({
+  children,
+}) => {
   const { state } = useAuth();
   const user = state.user;
-  const [userCompanyAccess, setUserCompanyAccess] = useState<UserCompanyAccess[]>([]);
+  const [userCompanyAccess, setUserCompanyAccess] = useState<
+    UserCompanyAccess[]
+  >([]);
   const [permissionsLoading, setPermissionsLoading] = useState(false);
   const [permissionsError, setPermissionsError] = useState<string | null>(null);
 
@@ -64,7 +84,7 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ childr
     userCompanyAccess,
     permissionsLoading,
     permissionsError,
-    refreshPermissions
+    refreshPermissions,
   };
 
   return (
@@ -72,4 +92,4 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ childr
       {children}
     </PermissionsContext.Provider>
   );
-}; 
+};

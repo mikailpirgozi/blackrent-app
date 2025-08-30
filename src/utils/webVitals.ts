@@ -74,7 +74,10 @@ class WebVitalsMonitor {
     }
   }
 
-  private calculateRating(name: string, value: number): 'good' | 'needs-improvement' | 'poor' {
+  private calculateRating(
+    name: string,
+    value: number
+  ): 'good' | 'needs-improvement' | 'poor' {
     const thresholds: { [key: string]: [number, number] } = {
       CLS: [0.1, 0.25],
       FID: [100, 300],
@@ -94,9 +97,9 @@ class WebVitalsMonitor {
   private observeResourceTiming() {
     if ('PerformanceObserver' in window) {
       try {
-        const observer = new PerformanceObserver((list) => {
+        const observer = new PerformanceObserver(list => {
           const entries = list.getEntries();
-          entries.forEach((entry) => {
+          entries.forEach(entry => {
             if (entry.entryType === 'resource') {
               this.trackResourceTiming(entry as PerformanceResourceTiming);
             }
@@ -113,10 +116,11 @@ class WebVitalsMonitor {
   private observeLongTasks() {
     if ('PerformanceObserver' in window) {
       try {
-        const observer = new PerformanceObserver((list) => {
+        const observer = new PerformanceObserver(list => {
           const entries = list.getEntries();
-          entries.forEach((entry) => {
-            if (entry.duration > 50) { // Long task threshold
+          entries.forEach(entry => {
+            if (entry.duration > 50) {
+              // Long task threshold
               this.trackLongTask(entry);
             }
           });
@@ -132,10 +136,13 @@ class WebVitalsMonitor {
   private observeLayoutShifts() {
     if ('PerformanceObserver' in window) {
       try {
-        const observer = new PerformanceObserver((list) => {
+        const observer = new PerformanceObserver(list => {
           const entries = list.getEntries();
-          entries.forEach((entry) => {
-            if (entry.entryType === 'layout-shift' && !(entry as any).hadRecentInput) {
+          entries.forEach(entry => {
+            if (
+              entry.entryType === 'layout-shift' &&
+              !(entry as any).hadRecentInput
+            ) {
               this.trackLayoutShift(entry);
             }
           });
@@ -150,9 +157,11 @@ class WebVitalsMonitor {
 
   private trackResourceTiming(entry: PerformanceResourceTiming) {
     const slowResources = entry.duration > 1000; // Slow resource threshold
-    
+
     if (slowResources && process.env.NODE_ENV === 'development') {
-      console.warn(`🐌 Slow resource: ${entry.name} (${entry.duration.toFixed(2)}ms)`);
+      console.warn(
+        `🐌 Slow resource: ${entry.name} (${entry.duration.toFixed(2)}ms)`
+      );
     }
   }
 
@@ -164,17 +173,22 @@ class WebVitalsMonitor {
 
   private trackLayoutShift(entry: PerformanceEntry) {
     const layoutShiftEntry = entry as any;
-    
-    if (process.env.NODE_ENV === 'development' && layoutShiftEntry.value > 0.1) {
-      console.warn(`📐 Significant layout shift: ${layoutShiftEntry.value.toFixed(4)}`);
+
+    if (
+      process.env.NODE_ENV === 'development' &&
+      layoutShiftEntry.value > 0.1
+    ) {
+      console.warn(
+        `📐 Significant layout shift: ${layoutShiftEntry.value.toFixed(4)}`
+      );
     }
   }
 
   // Get current metrics summary
   getMetricsSummary() {
     const summary: { [key: string]: VitalsMetric } = {};
-    
-    this.metrics.forEach((metric) => {
+
+    this.metrics.forEach(metric => {
       if (!summary[metric.name] || metric.value < summary[metric.name].value) {
         summary[metric.name] = metric;
       }
@@ -187,19 +201,25 @@ class WebVitalsMonitor {
   getPerformanceScore(): number {
     const summary = this.getMetricsSummary();
     const metrics = Object.values(summary);
-    
+
     if (metrics.length === 0) return 0;
 
-    const scores: number[] = metrics.map((metric) => {
+    const scores: number[] = metrics.map(metric => {
       switch (metric.rating) {
-        case 'good': return 100;
-        case 'needs-improvement': return 50;
-        case 'poor': return 0;
-        default: return 50;
+        case 'good':
+          return 100;
+        case 'needs-improvement':
+          return 50;
+        case 'poor':
+          return 0;
+        default:
+          return 50;
       }
     });
 
-    return Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length);
+    return Math.round(
+      scores.reduce((a: number, b: number) => a + b, 0) / scores.length
+    );
   }
 
   // Send metrics to analytics
@@ -220,7 +240,7 @@ class WebVitalsMonitor {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(performanceData),
-      }).catch((error) => {
+      }).catch(error => {
         console.warn('Failed to send performance data:', error);
       });
     } else if (process.env.NODE_ENV === 'development') {
@@ -235,7 +255,9 @@ class WebVitalsMonitor {
 }
 
 // Export enhanced reporting function
-export const reportWebVitals = (onPerfEntry?: (data: PerformanceData) => void) => {
+export const reportWebVitals = (
+  onPerfEntry?: (data: PerformanceData) => void
+) => {
   if (onPerfEntry && typeof onPerfEntry === 'function') {
     // Initialize enhanced monitoring
     const monitor = new WebVitalsMonitor(onPerfEntry);
@@ -256,28 +278,35 @@ export const debugPerformance = () => {
   if (process.env.NODE_ENV !== 'development') return;
 
   console.group('🔍 Performance Debug Info');
-  
+
   // Performance timing
   const perfTiming = performance.timing;
   const pageLoad = perfTiming.loadEventEnd - perfTiming.navigationStart;
-  const domReady = perfTiming.domContentLoadedEventEnd - perfTiming.navigationStart;
-  
+  const domReady =
+    perfTiming.domContentLoadedEventEnd - perfTiming.navigationStart;
+
   console.log(`Page Load Time: ${pageLoad}ms`);
   console.log(`DOM Ready Time: ${domReady}ms`);
-  
+
   // Memory usage (if available)
   if ('memory' in performance) {
     const memory = (performance as any).memory;
-    console.log(`Memory Used: ${(memory.usedJSHeapSize / 1048576).toFixed(2)} MB`);
-    console.log(`Memory Limit: ${(memory.jsHeapSizeLimit / 1048576).toFixed(2)} MB`);
+    console.log(
+      `Memory Used: ${(memory.usedJSHeapSize / 1048576).toFixed(2)} MB`
+    );
+    console.log(
+      `Memory Limit: ${(memory.jsHeapSizeLimit / 1048576).toFixed(2)} MB`
+    );
   }
-  
+
   // Network connection info
   if ('connection' in navigator) {
     const connection = (navigator as any).connection;
-    console.log(`Connection: ${connection.effectiveType} (${connection.downlink} Mbps)`);
+    console.log(
+      `Connection: ${connection.effectiveType} (${connection.downlink} Mbps)`
+    );
   }
-  
+
   console.groupEnd();
 };
 
@@ -285,13 +314,15 @@ export const debugPerformance = () => {
 export const usePerformanceMonitoring = () => {
   const measureComponent = (componentName: string) => {
     const startTime = performance.now();
-    
+
     return () => {
       const endTime = performance.now();
       const duration = endTime - startTime;
-      
+
       if (duration > 16 && process.env.NODE_ENV === 'development') {
-        console.warn(`⚠️ Slow component render: ${componentName} (${duration.toFixed(2)}ms)`);
+        console.warn(
+          `⚠️ Slow component render: ${componentName} (${duration.toFixed(2)}ms)`
+        );
       }
     };
   };

@@ -3,7 +3,12 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
-import React, { useState, useEffect } from 'react';
+import {
+  Archive as ArchiveIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  Refresh as RefreshIcon,
+} from '@mui/icons-material';
 import {
   Card,
   CardContent,
@@ -27,17 +32,18 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import {
-  Archive as ArchiveIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material';
-import { EmailEntry, EmailDetail, ArchivePagination } from '../types/email-types';
+import React, { useState, useEffect } from 'react';
+
 import { useEmailApi } from '../hooks/useEmailApi';
-import { StatusChip } from './StatusChip';
-import { EmailDetailDialog } from './dialogs/EmailDetailDialog';
+import {
+  EmailEntry,
+  EmailDetail,
+  ArchivePagination,
+} from '../types/email-types';
 import { truncateText } from '../utils/email-formatters';
+
+import { EmailDetailDialog } from './dialogs/EmailDetailDialog';
+import { StatusChip } from './StatusChip';
 
 interface EmailArchiveTabProps {
   senderFilter: string;
@@ -54,18 +60,23 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
   // State
   const [archivedEmails, setArchivedEmails] = useState<EmailEntry[]>([]);
   const [archiveLoading, setArchiveLoading] = useState(false);
-  const [archivePagination, setArchivePagination] = useState<ArchivePagination>({
-    total: 0,
-    limit: 20,
-    offset: 0,
-    hasMore: false
-  });
+  const [archivePagination, setArchivePagination] = useState<ArchivePagination>(
+    {
+      total: 0,
+      limit: 20,
+      offset: 0,
+      hasMore: false,
+    }
+  );
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
-  
+
   // Dialogs
-  const [viewDialog, setViewDialog] = useState<{ open: boolean; email: EmailDetail | null }>({
+  const [viewDialog, setViewDialog] = useState<{
+    open: boolean;
+    email: EmailDetail | null;
+  }>({
     open: false,
-    email: null
+    email: null,
   });
 
   // API Hook
@@ -146,50 +157,82 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
     <>
       <Card>
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems={isMobile ? "flex-start" : "center"} mb={3} flexDirection={isMobile ? "column" : "row"} gap={isMobile ? 2 : 0}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems={isMobile ? 'flex-start' : 'center'}
+            mb={3}
+            flexDirection={isMobile ? 'column' : 'row'}
+            gap={isMobile ? 2 : 0}
+          >
             <Typography variant="h6" gutterBottom={isMobile}>
               📁 Archív emailov ({archivePagination.total})
             </Typography>
-            <Box display="flex" gap={1} flexWrap="wrap" justifyContent={isMobile ? "center" : "flex-end"}>
-              <Button 
-                variant="outlined" 
+            <Box
+              display="flex"
+              gap={1}
+              flexWrap="wrap"
+              justifyContent={isMobile ? 'center' : 'flex-end'}
+            >
+              <Button
+                variant="outlined"
                 onClick={() => loadArchivedEmails(0)}
                 disabled={archiveLoading}
                 startIcon={<RefreshIcon />}
-                size={isSmallMobile ? "small" : "medium"}
+                size={isSmallMobile ? 'small' : 'medium'}
               >
                 {isExtraSmall ? 'Obnoviť' : 'Obnoviť'}
               </Button>
-              <Button 
-                variant="outlined" 
+              <Button
+                variant="outlined"
                 onClick={handleAutoArchive}
                 disabled={actionLoading === 'auto-archive'}
-                startIcon={actionLoading === 'auto-archive' ? <CircularProgress size={16} /> : <ArchiveIcon />}
+                startIcon={
+                  actionLoading === 'auto-archive' ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    <ArchiveIcon />
+                  )
+                }
                 color="warning"
-                size={isSmallMobile ? "small" : "medium"}
+                size={isSmallMobile ? 'small' : 'medium'}
               >
                 {isExtraSmall ? 'Auto' : 'Auto-archív'}
               </Button>
-              <Button 
-                variant="outlined" 
+              <Button
+                variant="outlined"
                 onClick={handleClearHistorical}
                 disabled={actionLoading === 'clear-historical'}
-                startIcon={actionLoading === 'clear-historical' ? <CircularProgress size={16} /> : <DeleteIcon />}
+                startIcon={
+                  actionLoading === 'clear-historical' ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    <DeleteIcon />
+                  )
+                }
                 color="error"
-                size={isSmallMobile ? "small" : "medium"}
+                size={isSmallMobile ? 'small' : 'medium'}
               >
                 {isExtraSmall ? 'Vymazať' : 'Vymazať historické'}
               </Button>
               {selectedEmails.size > 0 && (
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   onClick={handleBulkArchive}
                   disabled={actionLoading === 'bulk-archive'}
-                  startIcon={actionLoading === 'bulk-archive' ? <CircularProgress size={16} /> : <ArchiveIcon />}
+                  startIcon={
+                    actionLoading === 'bulk-archive' ? (
+                      <CircularProgress size={16} />
+                    ) : (
+                      <ArchiveIcon />
+                    )
+                  }
                   color="primary"
-                  size={isSmallMobile ? "small" : "medium"}
+                  size={isSmallMobile ? 'small' : 'medium'}
                 >
-                  {isExtraSmall ? `Archív (${selectedEmails.size})` : `Archivovať (${selectedEmails.size})`}
+                  {isExtraSmall
+                    ? `Archív (${selectedEmails.size})`
+                    : `Archivovať (${selectedEmails.size})`}
                 </Button>
               )}
             </Box>
@@ -206,7 +249,8 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                 Archív je prázdny
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                Žiadne emaily nie sú archivované. Schválené a zamietnuté emaily sa automaticky archivujú po 30 dňoch.
+                Žiadne emaily nie sú archivované. Schválené a zamietnuté emaily
+                sa automaticky archivujú po 30 dňoch.
               </Typography>
             </Box>
           ) : (
@@ -214,21 +258,30 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
               {/* Mobile View - Card List */}
               {isMobile ? (
                 <Stack spacing={2}>
-                  {archivedEmails.map((email) => (
-                    <Card key={email.id} variant="outlined" sx={{ 
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      '&:hover': {
-                        borderColor: 'primary.main',
-                        boxShadow: 1
-                      }
-                    }}>
+                  {archivedEmails.map(email => (
+                    <Card
+                      key={email.id}
+                      variant="outlined"
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          boxShadow: 1,
+                        },
+                      }}
+                    >
                       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                         {/* Header - Subject and Status */}
-                        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                          <Typography 
-                            variant="subtitle2" 
-                            sx={{ 
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
+                          alignItems="flex-start"
+                          mb={1}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
                               fontWeight: 600,
                               flex: 1,
                               mr: 1,
@@ -241,21 +294,42 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                           >
                             {email.subject}
                           </Typography>
-                          <StatusChip status={email.status} actionTaken={email.action_taken} />
+                          <StatusChip
+                            status={email.status}
+                            actionTaken={email.action_taken}
+                          />
                         </Box>
 
                         {/* Sender and Date */}
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          mb={2}
+                        >
                           <Box display="flex" alignItems="center" gap={1}>
-                            <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: 'grey.500' }}>
+                            <Avatar
+                              sx={{
+                                width: 24,
+                                height: 24,
+                                fontSize: '0.75rem',
+                                bgcolor: 'grey.500',
+                              }}
+                            >
                               {email.sender.charAt(0).toUpperCase()}
                             </Avatar>
-                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ fontSize: '0.875rem' }}
+                            >
                               {truncateText(email.sender, 25)}
                             </Typography>
                           </Box>
                           <Typography variant="caption" color="text.secondary">
-                            {new Date(email.received_at).toLocaleDateString('sk')}
+                            {new Date(email.received_at).toLocaleDateString(
+                              'sk'
+                            )}
                           </Typography>
                         </Box>
 
@@ -282,10 +356,16 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                           >
                             Detail
                           </Button>
-                          
+
                           <Button
                             size="small"
-                            startIcon={actionLoading === email.id ? <CircularProgress size={16} /> : <RefreshIcon />}
+                            startIcon={
+                              actionLoading === email.id ? (
+                                <CircularProgress size={16} />
+                              ) : (
+                                <RefreshIcon />
+                              )
+                            }
                             onClick={() => handleUnarchiveEmail(email.id)}
                             disabled={actionLoading === email.id}
                             color="success"
@@ -301,35 +381,50 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                 </Stack>
               ) : (
                 /* Desktop View - Table */
-                <TableContainer component={Paper} elevation={0} sx={{ overflowX: 'auto' }}>
+                <TableContainer
+                  component={Paper}
+                  elevation={0}
+                  sx={{ overflowX: 'auto' }}
+                >
                   <Table stickyHeader>
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ minWidth: 200 }}>Predmet</TableCell>
-                        <TableCell sx={{ minWidth: 150 }}>Odosielateľ</TableCell>
-                        <TableCell sx={{ minWidth: 120 }}>Archivované</TableCell>
+                        <TableCell sx={{ minWidth: 150 }}>
+                          Odosielateľ
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 120 }}>
+                          Archivované
+                        </TableCell>
                         <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
                         <TableCell sx={{ minWidth: 120 }}>Objednávka</TableCell>
                         <TableCell sx={{ minWidth: 150 }}>Akcie</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {archivedEmails.map((email) => (
+                      {archivedEmails.map(email => (
                         <TableRow key={email.id} hover>
                           <TableCell>
-                            <Typography variant="body2" sx={{ 
-                              maxWidth: 250,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                            }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                maxWidth: 250,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                              }}
+                            >
                               {email.subject}
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Typography variant="body2" sx={{ maxWidth: 150 }} noWrap>
+                            <Typography
+                              variant="body2"
+                              sx={{ maxWidth: 150 }}
+                              noWrap
+                            >
                               {email.sender}
                             </Typography>
                           </TableCell>
@@ -339,7 +434,10 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <StatusChip status={email.status} actionTaken={email.action_taken} />
+                            <StatusChip
+                              status={email.status}
+                              actionTaken={email.action_taken}
+                            />
                           </TableCell>
                           <TableCell>
                             {email.order_number ? (
@@ -349,7 +447,10 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                                 variant="outlined"
                               />
                             ) : (
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
                                 -
                               </Typography>
                             )}
@@ -364,12 +465,14 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                                   <ViewIcon />
                                 </IconButton>
                               </Tooltip>
-                              
+
                               <Tooltip title="Obnoviť z archívu">
                                 <span>
                                   <IconButton
                                     size="small"
-                                    onClick={() => handleUnarchiveEmail(email.id)}
+                                    onClick={() =>
+                                      handleUnarchiveEmail(email.id)
+                                    }
                                     disabled={actionLoading === email.id}
                                     color="success"
                                   >
@@ -394,8 +497,14 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
               {archivePagination.total > archivePagination.limit && (
                 <Box display="flex" justifyContent="center" mt={2}>
                   <Pagination
-                    count={Math.ceil(archivePagination.total / archivePagination.limit)}
-                    page={Math.floor(archivePagination.offset / archivePagination.limit) + 1}
+                    count={Math.ceil(
+                      archivePagination.total / archivePagination.limit
+                    )}
+                    page={
+                      Math.floor(
+                        archivePagination.offset / archivePagination.limit
+                      ) + 1
+                    }
                     onChange={(_, page) => handlePageChange(page)}
                     color="primary"
                   />

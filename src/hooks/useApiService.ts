@@ -2,8 +2,9 @@
 // Provides API service instance with automatic error handling setup
 
 import { useEffect, useMemo } from 'react';
-import { apiService } from '../services/api';
+
 import { useError } from '../context/ErrorContext';
+import { apiService } from '../services/api';
 
 /**
  * Hook that provides API service instance with error context integration
@@ -28,22 +29,25 @@ export const useApiCall = () => {
   const api = useApiService();
   const { showError } = useError();
 
-  return useMemo(() => ({
-    api,
-    showError,
-    
-    // Convenience method for handling API errors in try-catch blocks
-    handleError: (error: any) => {
-      const errorMessage = error?.message || 'Neznáma chyba API';
-      return showError({
-        message: errorMessage,
-        category: 'server',
-        severity: 'error',
-        context: {
-          originalError: error,
-          timestamp: new Date().toISOString(),
-        },
-      });
-    },
-  }), [api, showError]);
+  return useMemo(
+    () => ({
+      api,
+      showError,
+
+      // Convenience method for handling API errors in try-catch blocks
+      handleError: (error: any) => {
+        const errorMessage = error?.message || 'Neznáma chyba API';
+        return showError({
+          message: errorMessage,
+          category: 'server',
+          severity: 'error',
+          context: {
+            originalError: error,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      },
+    }),
+    [api, showError]
+  );
 };

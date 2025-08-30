@@ -2,7 +2,13 @@
 // Centralized error type definitions for consistent error handling
 
 export type ErrorSeverity = 'info' | 'warning' | 'error' | 'critical';
-export type ErrorCategory = 'network' | 'validation' | 'authorization' | 'server' | 'client' | 'unknown';
+export type ErrorCategory =
+  | 'network'
+  | 'validation'
+  | 'authorization'
+  | 'server'
+  | 'client'
+  | 'unknown';
 
 export interface AppError {
   id: string;
@@ -61,12 +67,15 @@ export const ERROR_MESSAGES = {
 } as const;
 
 // Error action types
-export type ErrorAction = 
+export type ErrorAction =
   | { type: 'ADD_ERROR'; payload: Omit<AppError, 'id' | 'timestamp'> }
   | { type: 'DISMISS_ERROR'; payload: string }
   | { type: 'CLEAR_ERRORS' }
   | { type: 'UPDATE_NETWORK_STATUS'; payload: boolean }
-  | { type: 'UPDATE_ERROR'; payload: { id: string; updates: Partial<AppError> } };
+  | {
+      type: 'UPDATE_ERROR';
+      payload: { id: string; updates: Partial<AppError> };
+    };
 
 // Error utility functions
 export const createError = (
@@ -84,11 +93,11 @@ export const createError = (
   retry: category === 'network',
 });
 
-export const isNetworkError = (error: AppError): error is NetworkError => 
+export const isNetworkError = (error: AppError): error is NetworkError =>
   error.category === 'network';
 
-export const isValidationError = (error: AppError): error is ValidationError => 
+export const isValidationError = (error: AppError): error is ValidationError =>
   error.category === 'validation';
 
-export const isServerError = (error: AppError): error is ServerError => 
+export const isServerError = (error: AppError): error is ServerError =>
   error.category === 'server';

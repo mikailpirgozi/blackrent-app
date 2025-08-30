@@ -1,6 +1,6 @@
 /**
  * 🔄 CALLBACK MEMOIZATION UTILITY
- * 
+ *
  * Utility pre efektívne memoizovanie callback funkcií
  */
 
@@ -24,7 +24,7 @@ export const useStableCallback = <T extends (...args: any[]) => any>(
 ): T => {
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
-  
+
   return useCallback(
     ((...args: Parameters<T>) => callbackRef.current(...args)) as T,
     []
@@ -38,12 +38,13 @@ export const createMemoizedHandlers = <T>(
   handlers: Record<string, (item: T) => void>,
   dependencies: any[] = []
 ) => {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  return Object.keys(handlers).reduce((memo, key) => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    memo[key] = useCallback(handlers[key], dependencies);
-    return memo;
-  }, {} as Record<string, (item: T) => void>);
+  return Object.keys(handlers).reduce(
+    (memo, key) => {
+      memo[key] = useCallback(handlers[key], dependencies);
+      return memo;
+    },
+    {} as Record<string, (item: T) => void>
+  );
 };
 
 /**

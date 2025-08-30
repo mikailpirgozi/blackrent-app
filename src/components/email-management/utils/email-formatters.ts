@@ -32,7 +32,10 @@ export const getStatusColor = (status: string, actionTaken?: string) => {
   return 'info';
 };
 
-export const getStatusLabel = (status: string, actionTaken?: string): string => {
+export const getStatusLabel = (
+  status: string,
+  actionTaken?: string
+): string => {
   if (status === 'processed' && actionTaken === 'approved') return 'Schválený';
   if (status === 'rejected') return 'Zamietnutý';
   if (status === 'archived') return 'Archivovaný';

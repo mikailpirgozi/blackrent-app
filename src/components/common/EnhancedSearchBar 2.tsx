@@ -1,6 +1,6 @@
 /**
  * 🔍 ENHANCED SEARCH BAR
- * 
+ *
  * Unified search komponent s pokročilými features:
  * - Debounced search
  * - Autocomplete suggestions
@@ -9,7 +9,14 @@
  * - Mobile-optimized UX
  */
 
-import React, { useState, useRef, useEffect, memo } from 'react';
+import {
+  Search as SearchIcon,
+  Clear as ClearIcon,
+  History as HistoryIcon,
+  TrendingUp as SuggestionIcon,
+  FilterList as FilterIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
 import {
   Box,
   TextField,
@@ -29,23 +36,24 @@ import {
   useTheme,
   useMediaQuery,
   Stack,
-  Badge
+  Badge,
 } from '@mui/material';
+import React, { useState, useRef, useEffect, memo } from 'react';
+
 import {
-  Search as SearchIcon,
-  Clear as ClearIcon,
-  History as HistoryIcon,
-  TrendingUp as SuggestionIcon,
-  FilterList as FilterIcon,
-  Close as CloseIcon
-} from '@mui/icons-material';
-import { useEnhancedSearch, UseEnhancedSearchOptions, SearchSuggestion, QuickFilter } from '../../hooks/useEnhancedSearch';
+  useEnhancedSearch,
+  UseEnhancedSearchOptions,
+  SearchSuggestion,
+  QuickFilter,
+} from '../../hooks/useEnhancedSearch';
 
 interface EnhancedSearchBarProps {
   // Search function
   onSearch: (query: string, quickFilter?: string) => Promise<any[]> | any[];
-  suggestionFunction?: (query: string) => Promise<SearchSuggestion[]> | SearchSuggestion[];
-  
+  suggestionFunction?: (
+    query: string
+  ) => Promise<SearchSuggestion[]> | SearchSuggestion[];
+
   // Search options
   debounceDelay?: number;
   minQueryLength?: number;
@@ -54,21 +62,21 @@ interface EnhancedSearchBarProps {
   storageKey?: string;
   enableHistory?: boolean;
   enableSuggestions?: boolean;
-  
+
   // UI customization
   placeholder?: string;
   size?: 'small' | 'medium';
   fullWidth?: boolean;
   variant?: 'outlined' | 'filled' | 'standard';
-  
+
   // Quick filters
   quickFilters?: QuickFilter[];
-  
+
   // Mobile optimization
   autoFocus?: boolean;
   showResultCount?: boolean;
   showPerformanceStats?: boolean;
-  
+
   // Event handlers
   onQueryChange?: (query: string) => void;
   onResultsChange?: (results: any[]) => void;
@@ -95,11 +103,11 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   showPerformanceStats = false,
   onQueryChange,
   onResultsChange,
-  onQuickFilterChange
+  onQuickFilterChange,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   // Search hook
   const {
     query,
@@ -114,7 +122,7 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
     clearSearch,
     selectSuggestion,
     setQuickFilter,
-    searchStats
+    searchStats,
   } = useEnhancedSearch({
     searchFunction: onSearch,
     suggestionFunction,
@@ -126,23 +134,23 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
     enableHistory,
     enableSuggestions,
     placeholder,
-    quickFilters
+    quickFilters,
   });
-  
+
   // Local state
   const [inputFocused, setInputFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
-  
+
   // Notify parent of changes
   useEffect(() => {
     onQueryChange?.(query);
   }, [query, onQueryChange]);
-  
+
   useEffect(() => {
     onResultsChange?.(results);
   }, [results, onResultsChange]);
-  
+
   useEffect(() => {
     onQuickFilterChange?.(activeQuickFilter);
   }, [activeQuickFilter, onQuickFilterChange]);
@@ -151,7 +159,7 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newQuery = e.target.value;
     setQuery(newQuery);
-    
+
     if (newQuery.length > 0) {
       setShowSuggestions(true);
     }
@@ -205,18 +213,18 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   // Calculate search info text
   const getSearchInfo = () => {
     if (isSearching) return 'Vyhľadávam...';
-    
+
     if (showResultCount && results.length > 0) {
       const count = results.length;
       const duration = searchStats.duration;
-      
+
       if (showPerformanceStats && duration > 0) {
         return `${count} ${count === 1 ? 'výsledok' : count < 5 ? 'výsledky' : 'výsledkov'} (${duration.toFixed(0)}ms)`;
       }
-      
+
       return `${count} ${count === 1 ? 'výsledok' : count < 5 ? 'výsledky' : 'výsledkov'}`;
     }
-    
+
     return '';
   };
 
@@ -224,29 +232,31 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
     <Box sx={{ position: 'relative', width: fullWidth ? '100%' : 'auto' }}>
       {/* Quick Filters */}
       {quickFilters.length > 0 && (
-        <Stack 
-          direction="row" 
-          spacing={1} 
-          sx={{ 
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
             mb: 2,
             flexWrap: 'wrap',
-            gap: 1
+            gap: 1,
           }}
         >
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              alignSelf: 'center', 
+          <Typography
+            variant="caption"
+            sx={{
+              alignSelf: 'center',
               color: 'text.secondary',
               whiteSpace: 'nowrap',
-              minWidth: 'fit-content'
+              minWidth: 'fit-content',
             }}
           >
-            <FilterIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'text-bottom' }} />
+            <FilterIcon
+              sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'text-bottom' }}
+            />
             Rýchle filtre:
           </Typography>
-          
-          {quickFilters.map((filter) => (
+
+          {quickFilters.map(filter => (
             <Chip
               key={filter.id}
               label={filter.label}
@@ -258,8 +268,8 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
                 transition: 'all 0.2s ease',
                 '&:hover': {
                   transform: 'translateY(-1px)',
-                  boxShadow: theme.shadows[2]
-                }
+                  boxShadow: theme.shadows[2],
+                },
               }}
             />
           ))}
@@ -295,10 +305,10 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
                 <IconButton
                   size="small"
                   onClick={handleClear}
-                  sx={{ 
+                  sx={{
                     '&:hover': {
-                      backgroundColor: `${theme.palette.error.main}15`
-                    }
+                      backgroundColor: `${theme.palette.error.main}15`,
+                    },
                   }}
                 >
                   <ClearIcon fontSize="small" />
@@ -326,13 +336,13 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
 
       {/* Search Info */}
       {getSearchInfo() && (
-        <Typography 
-          variant="caption" 
-          sx={{ 
+        <Typography
+          variant="caption"
+          sx={{
             display: 'block',
             mt: 0.5,
             color: 'text.secondary',
-            textAlign: 'right'
+            textAlign: 'right',
           }}
         >
           {getSearchInfo()}
@@ -340,7 +350,13 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
       )}
 
       {/* Suggestions Dropdown */}
-      <Fade in={showSuggestions && (suggestions.length > 0 || searchHistory.length > 0)} timeout={200}>
+      <Fade
+        in={
+          showSuggestions &&
+          (suggestions.length > 0 || searchHistory.length > 0)
+        }
+        timeout={200}
+      >
         <Paper
           ref={suggestionsRef}
           sx={{
@@ -361,13 +377,24 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
             {/* Search History */}
             {searchHistory.length > 0 && !query && (
               <>
-                <ListItem sx={{ py: 1, backgroundColor: theme.palette.background.default }}>
+                <ListItem
+                  sx={{
+                    py: 1,
+                    backgroundColor: theme.palette.background.default,
+                  }}
+                >
                   <ListItemIcon>
-                    <HistoryIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                    <HistoryIcon
+                      fontSize="small"
+                      sx={{ color: 'text.secondary' }}
+                    />
                   </ListItemIcon>
-                  <ListItemText 
+                  <ListItemText
                     primary={
-                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: 600, color: 'text.secondary' }}
+                      >
                         Posledné vyhľadávania
                       </Typography>
                     }
@@ -377,20 +404,25 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
                   <ListItem
                     key={`history-${index}`}
                     button
-                    onClick={() => handleSuggestionSelect({
-                      id: `history-${index}`,
-                      text: historyItem,
-                      type: 'recent'
-                    })}
+                    onClick={() =>
+                      handleSuggestionSelect({
+                        id: `history-${index}`,
+                        text: historyItem,
+                        type: 'recent',
+                      })
+                    }
                     sx={{
                       py: 1,
                       '&:hover': {
                         backgroundColor: theme.palette.action.hover,
-                      }
+                      },
                     }}
                   >
                     <ListItemIcon>
-                      <HistoryIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                      <HistoryIcon
+                        fontSize="small"
+                        sx={{ color: 'text.disabled' }}
+                      />
                     </ListItemIcon>
                     <ListItemText primary={historyItem} />
                   </ListItem>
@@ -409,25 +441,31 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
                   py: 1,
                   '&:hover': {
                     backgroundColor: theme.palette.action.hover,
-                  }
+                  },
                 }}
               >
                 <ListItemIcon>
                   {suggestion.type === 'recent' ? (
-                    <HistoryIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                    <HistoryIcon
+                      fontSize="small"
+                      sx={{ color: 'text.disabled' }}
+                    />
                   ) : (
-                    <SuggestionIcon fontSize="small" sx={{ color: theme.palette.primary.main }} />
+                    <SuggestionIcon
+                      fontSize="small"
+                      sx={{ color: theme.palette.primary.main }}
+                    />
                   )}
                 </ListItemIcon>
-                
-                <ListItemText 
+
+                <ListItemText
                   primary={suggestion.text}
                   secondary={suggestion.category}
                 />
-                
+
                 {suggestion.count && (
-                  <Badge 
-                    badgeContent={suggestion.count} 
+                  <Badge
+                    badgeContent={suggestion.count}
                     color="primary"
                     sx={{ mr: 1 }}
                   />
@@ -438,9 +476,12 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
             {/* No suggestions */}
             {query && suggestions.length === 0 && (
               <ListItem sx={{ py: 2 }}>
-                <ListItemText 
+                <ListItemText
                   primary={
-                    <Typography variant="body2" sx={{ textAlign: 'center', color: 'text.secondary' }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ textAlign: 'center', color: 'text.secondary' }}
+                    >
                       Žiadne návrhy pre "{query}"
                     </Typography>
                   }

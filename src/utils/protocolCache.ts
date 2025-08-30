@@ -1,6 +1,6 @@
 /**
  * 💾 PROTOCOL STATUS CACHE
- * 
+ *
  * Smart caching pre protocol status:
  * - Ukladá do localStorage s TTL
  * - Instant loading + background refresh
@@ -35,9 +35,9 @@ export const setProtocolCache = (protocols: CachedProtocolStatus[]): void => {
     const cacheData: ProtocolCacheData = {
       data: protocols,
       timestamp: Date.now(),
-      version: CACHE_VERSION
+      version: CACHE_VERSION,
     };
-    
+
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
     // Optimalized: Only log in development or when cache is large
     if (process.env.NODE_ENV === 'development' || protocols.length > 500) {
@@ -55,16 +55,16 @@ export const getProtocolCache = (): CachedProtocolStatus[] | null => {
   try {
     const cached = localStorage.getItem(CACHE_KEY);
     if (!cached) return null;
-    
+
     const cacheData: ProtocolCacheData = JSON.parse(cached);
-    
+
     // Skontroluj verziu
     if (cacheData.version !== CACHE_VERSION) {
       console.log('🔄 Cache version mismatch, clearing...');
       clearProtocolCache();
       return null;
     }
-    
+
     // Skontroluj TTL
     const age = Date.now() - cacheData.timestamp;
     if (age > CACHE_TTL) {
@@ -72,18 +72,23 @@ export const getProtocolCache = (): CachedProtocolStatus[] | null => {
       clearProtocolCache();
       return null;
     }
-    
+
     // Konvertuj Date stringy nazad na Date objekty
     const protocols = cacheData.data.map(item => ({
       ...item,
-      handoverCreatedAt: item.handoverCreatedAt ? new Date(item.handoverCreatedAt) : undefined,
-      returnCreatedAt: item.returnCreatedAt ? new Date(item.returnCreatedAt) : undefined
+      handoverCreatedAt: item.handoverCreatedAt
+        ? new Date(item.handoverCreatedAt)
+        : undefined,
+      returnCreatedAt: item.returnCreatedAt
+        ? new Date(item.returnCreatedAt)
+        : undefined,
     }));
-    
+
     // Optimalized: Consolidated cache hit log
-    console.log(`📦 Protocol status: ${protocols.length} records loaded (age: ${Math.round(age/1000)}s, cached)`);
+    console.log(
+      `📦 Protocol status: ${protocols.length} records loaded (age: ${Math.round(age / 1000)}s, cached)`
+    );
     return protocols;
-    
   } catch (error) {
     console.warn('⚠️ Failed to read protocol cache:', error);
     clearProtocolCache(); // Vyčisti corrupted cache
@@ -110,10 +115,10 @@ export const isCacheFresh = (): boolean => {
   try {
     const cached = localStorage.getItem(CACHE_KEY);
     if (!cached) return false;
-    
+
     const cacheData: ProtocolCacheData = JSON.parse(cached);
     const age = Date.now() - cacheData.timestamp;
-    
+
     return age <= CACHE_TTL && cacheData.version === CACHE_VERSION;
   } catch (error) {
     return false;
@@ -123,20 +128,25 @@ export const isCacheFresh = (): boolean => {
 /**
  * 📊 Vráti cache info pre debugging
  */
-export const getCacheInfo = (): { exists: boolean; age?: number; records?: number; fresh?: boolean } => {
+export const getCacheInfo = (): {
+  exists: boolean;
+  age?: number;
+  records?: number;
+  fresh?: boolean;
+} => {
   try {
     const cached = localStorage.getItem(CACHE_KEY);
     if (!cached) return { exists: false };
-    
+
     const cacheData: ProtocolCacheData = JSON.parse(cached);
     const age = Date.now() - cacheData.timestamp;
     const fresh = age <= CACHE_TTL && cacheData.version === CACHE_VERSION;
-    
+
     return {
       exists: true,
       age: Math.round(age / 1000),
       records: cacheData.data.length,
-      fresh
+      fresh,
     };
   } catch (error) {
     return { exists: false };

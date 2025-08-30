@@ -1,7 +1,16 @@
 // 📱 PWA Install Prompt Component
 // Provides elegant install prompt with animations and user guidance
 
-import React, { useState, useEffect } from 'react';
+import {
+  Close as CloseIcon,
+  GetApp as InstallIcon,
+  PhoneIphone as PhoneIcon,
+  Computer as DesktopIcon,
+  Star as StarIcon,
+  Wifi as WifiIcon,
+  Speed as SpeedIcon,
+  NotificationsActive as NotificationIcon,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -19,25 +28,18 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  GetApp as InstallIcon,
-  PhoneIphone as PhoneIcon,
-  Computer as DesktopIcon,
-  Star as StarIcon,
-  Wifi as WifiIcon,
-  Speed as SpeedIcon,
-  NotificationsActive as NotificationIcon,
-} from '@mui/icons-material';
 import { TransitionProps } from '@mui/material/transitions';
+import React, { useState, useEffect } from 'react';
+
 import { usePWA } from '../../hooks/usePWA';
 
 // Slide transition for dialog
-const Transition = React.forwardRef<unknown, TransitionProps & { children: React.ReactElement }>(
-  function Transition(props, ref) {
-    return <Slide direction="up" ref={ref} {...props} />;
-  }
-);
+const Transition = React.forwardRef<
+  unknown,
+  TransitionProps & { children: React.ReactElement }
+>(function Transition(props, ref) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
 
 interface PWAInstallPromptProps {
   autoShow?: boolean;
@@ -67,7 +69,7 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
 
     const timer = setTimeout(() => {
       setShowFab(true);
-      
+
       // Show dialog after additional delay on mobile
       if (isMobile) {
         setTimeout(() => setShowDialog(true), 3000);
@@ -91,7 +93,7 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
     setInstalling(true);
     try {
       const success = await promptInstall();
-      
+
       if (success) {
         setShowDialog(false);
         setShowFab(false);
@@ -108,7 +110,7 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
   const handleDismiss = () => {
     setShowDialog(false);
     setDismissed(true);
-    
+
     // Keep FAB visible for later access
     setTimeout(() => {
       setShowFab(true);
@@ -158,9 +160,17 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
         }}
       >
         <DialogTitle sx={{ pb: 1 }}>
-          <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+          >
             <Box display="flex" alignItems="center" gap={1}>
-              {isMobile ? <PhoneIcon color="primary" /> : <DesktopIcon color="primary" />}
+              {isMobile ? (
+                <PhoneIcon color="primary" />
+              ) : (
+                <DesktopIcon color="primary" />
+              )}
               <Typography variant="h6" component="div">
                 Nainštalovať BlackRent
               </Typography>
@@ -190,14 +200,15 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
             >
               🚗
             </Box>
-            
+
             <Typography variant="h6" gutterBottom>
               Získajte najlepší zážitok
             </Typography>
-            
+
             <Typography variant="body2" color="text.secondary" paragraph>
               Nainštalujte si BlackRent ako aplikáciu pre{' '}
-              {isMobile ? 'mobilné zariadenie' : 'počítač'} a užívajte si všetky výhody.
+              {isMobile ? 'mobilné zariadenie' : 'počítač'} a užívajte si všetky
+              výhody.
             </Typography>
           </Box>
 
@@ -249,19 +260,15 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
               }}
             >
               <Typography variant="body2" color="info.dark" textAlign="center">
-                💡 <strong>Tip:</strong> Po inštalácii nájdete BlackRent na ploche
-                a v zozname aplikácií
+                💡 <strong>Tip:</strong> Po inštalácii nájdete BlackRent na
+                ploche a v zozname aplikácií
               </Typography>
             </Paper>
           )}
         </DialogContent>
 
         <DialogActions sx={{ p: 3, pt: 1 }}>
-          <Button
-            onClick={handleDismiss}
-            color="inherit"
-            sx={{ mr: 1 }}
-          >
+          <Button onClick={handleDismiss} color="inherit" sx={{ mr: 1 }}>
             Neskôr
           </Button>
           <Button

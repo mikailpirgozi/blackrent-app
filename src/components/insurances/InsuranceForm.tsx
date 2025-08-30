@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -9,9 +8,11 @@ import {
   TextField,
   Autocomplete,
 } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+
 import { useApp } from '../../context/AppContext';
 import { Insurance, PaymentFrequency } from '../../types';
-import { v4 as uuidv4 } from 'uuid';
 
 interface InsuranceFormProps {
   insurance?: Insurance | null;
@@ -19,8 +20,13 @@ interface InsuranceFormProps {
   onCancel: () => void;
 }
 
-export default function InsuranceForm({ insurance, onSave, onCancel }: InsuranceFormProps) {
-  const { state, dispatch, createInsurer, getEnhancedFilteredVehicles } = useApp();
+export default function InsuranceForm({
+  insurance,
+  onSave,
+  onCancel,
+}: InsuranceFormProps) {
+  const { state, dispatch, createInsurer, getEnhancedFilteredVehicles } =
+    useApp();
   const [addingInsurer, setAddingInsurer] = useState(false);
   const [newInsurerName, setNewInsurerName] = useState('');
   const [formData, setFormData] = useState<Partial<Insurance>>({
@@ -62,7 +68,13 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 3,
+        }}
+      >
         <Autocomplete
           fullWidth
           options={getEnhancedFilteredVehicles({ includePrivate: true })
@@ -72,10 +84,18 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
               const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
               return aText.localeCompare(bText, 'sk', { sensitivity: 'base' });
             })}
-          getOptionLabel={(vehicle) => `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
-          value={getEnhancedFilteredVehicles({ includePrivate: true }).find(v => v.id === formData.vehicleId) || null}
-          onChange={(_, newValue) => handleInputChange('vehicleId', newValue?.id || '')}
-          renderInput={(params) => (
+          getOptionLabel={vehicle =>
+            `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`
+          }
+          value={
+            getEnhancedFilteredVehicles({ includePrivate: true }).find(
+              v => v.id === formData.vehicleId
+            ) || null
+          }
+          onChange={(_, newValue) =>
+            handleInputChange('vehicleId', newValue?.id || '')
+          }
+          renderInput={params => (
             <TextField
               {...params}
               label="Vozidlo"
@@ -85,8 +105,9 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
           )}
           noOptionsText="Žiadne vozidlá nenájdené"
           filterOptions={(options, { inputValue }) => {
-            const filtered = options.filter((option) => {
-              const searchText = `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
+            const filtered = options.filter(option => {
+              const searchText =
+                `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
               return searchText.includes(inputValue.toLowerCase());
             });
             return filtered;
@@ -99,7 +120,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
           <Select
             value={formData.type || ''}
             label="Typ poistky"
-            onChange={(e) => handleInputChange('type', e.target.value)}
+            onChange={e => handleInputChange('type', e.target.value)}
           >
             <MenuItem value="PZP">PZP</MenuItem>
             <MenuItem value="PZP + Kasko">PZP + Kasko</MenuItem>
@@ -115,7 +136,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
           fullWidth
           label="Číslo poistky"
           value={formData.policyNumber}
-          onChange={(e) => handleInputChange('policyNumber', e.target.value)}
+          onChange={e => handleInputChange('policyNumber', e.target.value)}
           required
         />
 
@@ -125,15 +146,18 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
           <Select
             value={formData.company || ''}
             label="Poistovňa"
-            onChange={(e) => handleInputChange('company', e.target.value)}
-            renderValue={(selected) => selected || 'Vyberte poisťovňu'}
+            onChange={e => handleInputChange('company', e.target.value)}
+            renderValue={selected => selected || 'Vyberte poisťovňu'}
           >
-            {state.insurers.map((insurer) => (
+            {state.insurers.map(insurer => (
               <MenuItem key={insurer.id} value={insurer.name}>
                 {insurer.name}
               </MenuItem>
             ))}
-            <MenuItem value="__add_new__" onClick={() => setAddingInsurer(true)}>
+            <MenuItem
+              value="__add_new__"
+              onClick={() => setAddingInsurer(true)}
+            >
               <em>+ Pridať novú poisťovňu</em>
             </MenuItem>
           </Select>
@@ -144,7 +168,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
                 size="small"
                 label="Nová poisťovňa"
                 value={newInsurerName}
-                onChange={(e) => setNewInsurerName(e.target.value)}
+                onChange={e => setNewInsurerName(e.target.value)}
               />
               <Button
                 variant="contained"
@@ -154,7 +178,10 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
                   try {
                     const id = uuidv4();
                     await createInsurer({ id, name: newInsurerName.trim() });
-                    setFormData((prev) => ({ ...prev, company: newInsurerName.trim() }));
+                    setFormData(prev => ({
+                      ...prev,
+                      company: newInsurerName.trim(),
+                    }));
                     setNewInsurerName('');
                     setAddingInsurer(false);
                   } catch (error) {
@@ -162,7 +189,9 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
                     alert('Chyba pri vytváraní poisťovne');
                   }
                 }}
-              >Pridať</Button>
+              >
+                Pridať
+              </Button>
               <Button
                 variant="outlined"
                 size="small"
@@ -170,7 +199,9 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
                   setAddingInsurer(false);
                   setNewInsurerName('');
                 }}
-              >Zrušiť</Button>
+              >
+                Zrušiť
+              </Button>
             </Box>
           )}
         </FormControl>
@@ -180,7 +211,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
           label="Cena (€)"
           type="number"
           value={formData.price}
-          onChange={(e) => handleInputChange('price', parseFloat(e.target.value))}
+          onChange={e => handleInputChange('price', parseFloat(e.target.value))}
           required
         />
 
@@ -193,7 +224,9 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
               ? new Date(formData.validFrom).toISOString().split('T')[0]
               : ''
           }
-          onChange={(e) => handleInputChange('validFrom', new Date(e.target.value))}
+          onChange={e =>
+            handleInputChange('validFrom', new Date(e.target.value))
+          }
           InputLabelProps={{ shrink: true }}
           required
         />
@@ -207,7 +240,7 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
               ? new Date(formData.validTo).toISOString().split('T')[0]
               : ''
           }
-          onChange={(e) => handleInputChange('validTo', new Date(e.target.value))}
+          onChange={e => handleInputChange('validTo', new Date(e.target.value))}
           InputLabelProps={{ shrink: true }}
           required
         />
@@ -216,7 +249,12 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
           <InputLabel>Frekvencia platenia</InputLabel>
           <Select
             value={formData.paymentFrequency || 'yearly'}
-            onChange={(e) => handleInputChange('paymentFrequency', e.target.value as PaymentFrequency)}
+            onChange={e =>
+              handleInputChange(
+                'paymentFrequency',
+                e.target.value as PaymentFrequency
+              )
+            }
             label="Frekvencia platenia"
             required
           >
@@ -228,7 +266,15 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
         </FormControl>
       </Box>
 
-      <Box sx={{ gridColumn: '1 / -1', display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
+      <Box
+        sx={{
+          gridColumn: '1 / -1',
+          display: 'flex',
+          gap: 2,
+          justifyContent: 'flex-end',
+          mt: 3,
+        }}
+      >
         <Button variant="outlined" onClick={onCancel}>
           Zrušiť
         </Button>
@@ -238,4 +284,4 @@ export default function InsuranceForm({ insurance, onSave, onCancel }: Insurance
       </Box>
     </Box>
   );
-} 
+}

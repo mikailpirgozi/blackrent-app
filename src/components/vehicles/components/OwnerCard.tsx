@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import {
+  Edit as EditIcon,
+  Business as BusinessIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -10,22 +13,28 @@ import {
   CardContent,
   Collapse,
   TextField,
-  Grid
+  Grid,
 } from '@mui/material';
-import {
-  Edit as EditIcon,
-  Business as BusinessIcon
-} from '@mui/icons-material';
-import { getApiBaseUrl } from '../../../utils/apiUrl';
-import { OwnerCardProps } from '../../../types/vehicle-types';
+import React, { useState, useEffect } from 'react';
+
 import { Vehicle, VehicleStatus } from '../../../types';
-import { Can } from '../../common/PermissionGuard';
+import { OwnerCardProps } from '../../../types/vehicle-types';
+import { getApiBaseUrl } from '../../../utils/apiUrl';
+import {
+  getStatusColor,
+  getStatusText,
+} from '../../../utils/vehicles/vehicleHelpers';
 import { EnhancedLoading } from '../../common/EnhancedLoading';
+import { Can } from '../../common/PermissionGuard';
 import CompanyDocumentManager from '../../companies/CompanyDocumentManager';
-import { getStatusColor, getStatusText } from '../../../utils/vehicles/vehicleHelpers';
 
 // 🆕 OWNER CARD COMPONENT - Rozbaliteľná karta majiteľa s vozidlami
-const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdate, onVehicleEdit }) => {
+const OwnerCard: React.FC<OwnerCardProps> = ({
+  company,
+  vehicles,
+  onVehicleUpdate,
+  onVehicleEdit,
+}) => {
   const [expanded, setExpanded] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [companyInvestors, setCompanyInvestors] = useState<any[]>([]);
@@ -38,7 +47,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
     contactEmail: company.contactEmail || '',
     contactPhone: company.contactPhone || '',
     defaultCommissionRate: company.defaultCommissionRate || 20,
-    protocolDisplayName: company.protocolDisplayName || ''
+    protocolDisplayName: company.protocolDisplayName || '',
   });
 
   // 🔄 Aktualizuj editData keď sa company data zmenia
@@ -51,7 +60,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
       contactEmail: company.contactEmail || '',
       contactPhone: company.contactPhone || '',
       defaultCommissionRate: company.defaultCommissionRate || 20,
-      protocolDisplayName: company.protocolDisplayName || ''
+      protocolDisplayName: company.protocolDisplayName || '',
     });
   }, [company]);
 
@@ -59,15 +68,18 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
   const loadCompanyInvestors = async () => {
     try {
       setLoadingInvestors(true);
-      
-      const response = await fetch(`${getApiBaseUrl()}/company-investors/${company.id}/shares`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/company-investors/${company.id}/shares`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          },
         }
-      });
+      );
 
       const result = await response.json();
-      
+
       if (result.success) {
         setCompanyInvestors(result.data);
       }
@@ -88,18 +100,21 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
   const handleSaveOwnerData = async () => {
     try {
       console.log('💾 Saving owner data for company:', company.id, editData);
-      
-      const response = await fetch(`${getApiBaseUrl()}/companies/${company.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('blackrent_token')}`
-        },
-        body: JSON.stringify(editData)
-      });
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/companies/${company.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          },
+          body: JSON.stringify(editData),
+        }
+      );
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log('✅ Owner data saved successfully');
         setEditMode(false);
@@ -120,28 +135,37 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
   return (
     <Card sx={{ mb: 2, border: '1px solid', borderColor: 'divider' }}>
       {/* Header - Majiteľ info */}
-      <Box 
-        sx={{ 
-          p: 2, 
+      <Box
+        sx={{
+          p: 2,
           bgcolor: 'grey.50',
           cursor: 'pointer',
-          '&:hover': { bgcolor: 'grey.100' }
+          '&:hover': { bgcolor: 'grey.100' },
         }}
         onClick={() => setExpanded(!expanded)}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="h6"
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <BusinessIcon color="primary" />
               {company.name}
-              <Chip 
-                label={`${vehicles.length} vozidiel`} 
-                size="small" 
-                color="primary" 
+              <Chip
+                label={`${vehicles.length} vozidiel`}
+                size="small"
+                color="primary"
                 variant="outlined"
               />
             </Typography>
-            
+
             {/* Základné info o majiteľovi */}
             <Box sx={{ mt: 1, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
               {company.ownerName && (
@@ -163,45 +187,58 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 💰 Provízia: {company.defaultCommissionRate || 20}%
               </Typography>
               {company.protocolDisplayName && (
-                <Typography variant="body2" sx={{ color: 'warning.main', fontWeight: 'medium' }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'warning.main', fontWeight: 'medium' }}
+                >
                   📄 Fakturačná firma: {company.protocolDisplayName}
                 </Typography>
               )}
             </Box>
           </Box>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
               size="small"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 setEditMode(!editMode);
               }}
-              sx={{ bgcolor: editMode ? 'primary.main' : 'transparent', color: editMode ? 'white' : 'primary.main' }}
+              sx={{
+                bgcolor: editMode ? 'primary.main' : 'transparent',
+                color: editMode ? 'white' : 'primary.main',
+              }}
             >
               <EditIcon fontSize="small" />
             </IconButton>
-            <IconButton size="small">
-              {expanded ? '🔽' : '▶️'}
-            </IconButton>
+            <IconButton size="small">{expanded ? '🔽' : '▶️'}</IconButton>
           </Box>
         </Box>
       </Box>
 
       {/* Edit Mode - Rozšírené informácie */}
       <Collapse in={editMode}>
-        <Box sx={{ p: 3, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}>
+        <Box
+          sx={{
+            p: 3,
+            bgcolor: 'background.paper',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
           <Typography variant="h6" sx={{ mb: 2 }}>
             ✏️ Úprava informácií majiteľa
           </Typography>
-          
+
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Názov firmy/s.r.o."
                 value={editData.name}
-                onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, name: e.target.value }))
+                }
                 size="small"
                 required
                 sx={{ bgcolor: 'primary.50' }}
@@ -212,7 +249,9 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 fullWidth
                 label="Meno a priezvisko majiteľa"
                 value={editData.ownerName}
-                onChange={(e) => setEditData(prev => ({ ...prev, ownerName: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, ownerName: e.target.value }))
+                }
                 size="small"
               />
             </Grid>
@@ -222,7 +261,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 label="Kontaktný email"
                 type="email"
                 value={editData.contactEmail}
-                onChange={(e) => setEditData(prev => ({ ...prev, contactEmail: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    contactEmail: e.target.value,
+                  }))
+                }
                 size="small"
               />
             </Grid>
@@ -231,7 +275,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 fullWidth
                 label="Kontaktný telefón"
                 value={editData.contactPhone}
-                onChange={(e) => setEditData(prev => ({ ...prev, contactPhone: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    contactPhone: e.target.value,
+                  }))
+                }
                 size="small"
               />
             </Grid>
@@ -241,7 +290,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 label="Default provízia (%)"
                 type="number"
                 value={editData.defaultCommissionRate}
-                onChange={(e) => setEditData(prev => ({ ...prev, defaultCommissionRate: parseFloat(e.target.value) || 20 }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    defaultCommissionRate: parseFloat(e.target.value) || 20,
+                  }))
+                }
                 size="small"
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
               />
@@ -251,7 +305,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 fullWidth
                 label="Súkromný IBAN"
                 value={editData.personalIban}
-                onChange={(e) => setEditData(prev => ({ ...prev, personalIban: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    personalIban: e.target.value,
+                  }))
+                }
                 size="small"
                 placeholder="SK89 0000 0000 0000 0000 0000"
               />
@@ -261,7 +320,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 fullWidth
                 label="Firemný IBAN"
                 value={editData.businessIban}
-                onChange={(e) => setEditData(prev => ({ ...prev, businessIban: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    businessIban: e.target.value,
+                  }))
+                }
                 size="small"
                 placeholder="SK89 0000 0000 0000 0000 0000"
               />
@@ -271,7 +335,12 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 fullWidth
                 label="Fakturačná firma (pre protokoly)"
                 value={editData.protocolDisplayName}
-                onChange={(e) => setEditData(prev => ({ ...prev, protocolDisplayName: e.target.value }))}
+                onChange={e =>
+                  setEditData(prev => ({
+                    ...prev,
+                    protocolDisplayName: e.target.value,
+                  }))
+                }
                 size="small"
                 placeholder="Napr. P2 invest s.r.o."
                 helperText="Názov firmy ktorý sa zobrazí na protokoloch namiesto interného názvu"
@@ -279,8 +348,10 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
               />
             </Grid>
           </Grid>
-          
-          <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+
+          <Box
+            sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}
+          >
             <Button
               variant="outlined"
               onClick={() => setEditMode(false)}
@@ -302,11 +373,14 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
       {/* Vozidlá majiteľa - Rozbaliteľné */}
       <Collapse in={expanded}>
         <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+          >
             🚗 Vozidlá majiteľa ({vehicles.length})
           </Typography>
-          
-          {vehicles.map((vehicle) => (
+
+          {vehicles.map(vehicle => (
             <Box
               key={vehicle.id}
               sx={{
@@ -320,8 +394,8 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 borderRadius: 1,
                 bgcolor: 'background.paper',
                 '&:hover': {
-                  bgcolor: 'action.hover'
-                }
+                  bgcolor: 'action.hover',
+                },
               }}
             >
               <Box sx={{ flex: 1 }}>
@@ -332,37 +406,52 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                   ŠPZ: {vehicle.licensePlate}
                   {vehicle.year && ` • Rok: ${vehicle.year}`}
                 </Typography>
-                
+
                 {/* Individuálna provízia vozidla */}
                 <Typography variant="caption" color="text.secondary">
-                  Provízia: {vehicle.commission?.value || company.defaultCommissionRate || 20}%
-                  {vehicle.commission?.value !== company.defaultCommissionRate && (
-                    <Chip label="Vlastná" size="small" sx={{ ml: 1, height: 16 }} />
+                  Provízia:{' '}
+                  {vehicle.commission?.value ||
+                    company.defaultCommissionRate ||
+                    20}
+                  %
+                  {vehicle.commission?.value !==
+                    company.defaultCommissionRate && (
+                    <Chip
+                      label="Vlastná"
+                      size="small"
+                      sx={{ ml: 1, height: 16 }}
+                    />
                   )}
                 </Typography>
               </Box>
-              
+
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Chip
                   label={getStatusText(vehicle.status)}
                   color={getStatusColor(vehicle.status)}
                   size="small"
                 />
-                
+
                 {/* Quick actions */}
-                <Can update="vehicles" context={{ resourceOwnerId: vehicle.assignedMechanicId, resourceCompanyId: vehicle.ownerCompanyId }}>
+                <Can
+                  update="vehicles"
+                  context={{
+                    resourceOwnerId: vehicle.assignedMechanicId,
+                    resourceCompanyId: vehicle.ownerCompanyId,
+                  }}
+                >
                   <IconButton
                     size="small"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       onVehicleEdit(vehicle);
                     }}
-                    sx={{ 
-                      bgcolor: '#2196f3', 
+                    sx={{
+                      bgcolor: '#2196f3',
                       color: 'white',
                       width: 28,
                       height: 28,
-                      '&:hover': { bgcolor: '#1976d2' }
+                      '&:hover': { bgcolor: '#1976d2' },
                     }}
                   >
                     <EditIcon fontSize="small" />
@@ -373,17 +462,31 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
           ))}
 
           {/* Spoluinvestori firmy */}
-          <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            sx={{
+              mt: 3,
+              pt: 2,
+              borderTop: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography
+              variant="subtitle1"
+              sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               🤝 Spoluinvestori firmy
             </Typography>
-            
+
             {loadingInvestors ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                <EnhancedLoading variant="page" showMessage={true} message="Načítavam investorov..." />
+                <EnhancedLoading
+                  variant="page"
+                  showMessage={true}
+                  message="Načítavam investorov..."
+                />
               </Box>
             ) : companyInvestors.length > 0 ? (
-              companyInvestors.map((share) => (
+              companyInvestors.map(share => (
                 <Box
                   key={share.id}
                   sx={{
@@ -397,15 +500,20 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                     borderRadius: 1,
                     bgcolor: 'primary.50',
                     '&:hover': {
-                      bgcolor: 'primary.100'
-                    }
+                      bgcolor: 'primary.100',
+                    },
                   }}
                 >
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="subtitle2">
                       👤 {share.investor?.firstName} {share.investor?.lastName}
                       {share.isPrimaryContact && (
-                        <Chip label="Primárny kontakt" size="small" color="primary" sx={{ ml: 1 }} />
+                        <Chip
+                          label="Primárny kontakt"
+                          size="small"
+                          color="primary"
+                          sx={{ ml: 1 }}
+                        />
                       )}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -418,7 +526,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                       </Typography>
                     )}
                   </Box>
-                  
+
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Chip
                       label={`${share.ownershipPercentage}%`}
@@ -430,14 +538,18 @@ const OwnerCard: React.FC<OwnerCardProps> = ({ company, vehicles, onVehicleUpdat
                 </Box>
               ))
             ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: 'center', py: 2 }}
+              >
                 Žiadni spoluinvestori pre túto firmu.
               </Typography>
             )}
           </Box>
 
           {/* 📄 NOVÉ: Dokumenty majiteľa */}
-          <CompanyDocumentManager 
+          <CompanyDocumentManager
             companyId={company.id}
             companyName={company.name}
           />

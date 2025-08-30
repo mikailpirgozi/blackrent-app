@@ -1,13 +1,13 @@
 // 🚗 VEHICLE CATEGORIES: Typy kategórií vozidiel pre lepšie filtrovanie
-export type VehicleCategory = 
-  | 'nizka-trieda'      // 🚗 Nízka trieda (Škoda Fabia, Hyundai i20, Dacia Logan)
-  | 'stredna-trieda'    // 🚙 Stredná trieda (VW Golf, Opel Astra, Ford Focus)
-  | 'vyssia-stredna'    // 🚘 Vyššia stredná (BMW 3, Audi A4, Mercedes C)
-  | 'luxusne'           // 💎 Luxusné (BMW 7, Mercedes S, Audi A8)
-  | 'sportove'          // 🏎️ Športové (BMW M, AMG, Audi RS)
-  | 'suv'               // 🚜 SUV (BMW X5, Audi Q7, Mercedes GLE)
-  | 'viacmiestne'       // 👨‍👩‍👧‍👦 Viacmiestne (VW Sharan, Ford Galaxy, 7+ sedadiel)  
-  | 'dodavky';          // 📦 Dodávky (Sprinter, Transit, Crafter)
+export type VehicleCategory =
+  | 'nizka-trieda' // 🚗 Nízka trieda (Škoda Fabia, Hyundai i20, Dacia Logan)
+  | 'stredna-trieda' // 🚙 Stredná trieda (VW Golf, Opel Astra, Ford Focus)
+  | 'vyssia-stredna' // 🚘 Vyššia stredná (BMW 3, Audi A4, Mercedes C)
+  | 'luxusne' // 💎 Luxusné (BMW 7, Mercedes S, Audi A8)
+  | 'sportove' // 🏎️ Športové (BMW M, AMG, Audi RS)
+  | 'suv' // 🚜 SUV (BMW X5, Audi Q7, Mercedes GLE)
+  | 'viacmiestne' // 👨‍👩‍👧‍👦 Viacmiestne (VW Sharan, Ford Galaxy, 7+ sedadiel)
+  | 'dodavky'; // 📦 Dodávky (Sprinter, Transit, Crafter)
 
 export interface Vehicle {
   id: string;
@@ -16,7 +16,7 @@ export interface Vehicle {
   year?: number; // 🗓️ Rok výroby vozidla
   licensePlate: string;
   vin?: string; // 🆔 VIN číslo vozidla (17-miestny identifikačný kód)
-  company?: string;  // 🛡️ BULLETPROOF: Optional pre zabránenie fallback
+  company?: string; // 🛡️ BULLETPROOF: Optional pre zabránenie fallback
   category?: VehicleCategory; // 🚗 Kategória vozidla pre filtrovanie (OPTIONAL počas migrácie)
   pricing: PricingTier[];
   commission: Commission;
@@ -112,7 +112,7 @@ export interface Rental {
   deposit?: number;
   allowedKilometers?: number;
   dailyKilometers?: number; // NEW: Denné km pre automatický prepočet
-  extraKilometerRate?: number; // Cena za nadlimitný km
+  extraKilometerRate?: number; // Cena za extra kilometre pri prenájme (alias: extra_km_price)
   returnConditions?: string;
   fuelLevel?: number; // Úroveň paliva pri prevzatí (%)
   odometer?: number; // Stav tachometra pri prevzatí
@@ -136,7 +136,7 @@ export interface Rental {
   // 🎯 SNAPSHOT: Zamrazený majiteľ vozidla k dátumu prenájmu
   company?: string;
   // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
-  isFlexible?: boolean;  // Hlavný indikátor flexibilného prenájmu
+  isFlexible?: boolean; // Hlavný indikátor flexibilného prenájmu
   flexibleEndDate?: Date; // Orientačný koniec pre flexible prenájmy
   // 🆕 NOVÉ: Súkromný prenájom mimo platformy
   isPrivateRental?: boolean;
@@ -150,7 +150,11 @@ export interface Rental {
   rejectionReason?: string;
 }
 
-export type PaymentMethod = 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner';
+export type PaymentMethod =
+  | 'cash'
+  | 'bank_transfer'
+  | 'vrp'
+  | 'direct_to_owner';
 
 export interface Expense {
   id: string;
@@ -192,19 +196,19 @@ export interface RecurringExpense {
   company: string; // firma
   vehicleId?: string; // voliteľné priradenie k vozidlu
   note?: string; // voliteľná poznámka
-  
+
   // Nastavenia pravidelnosi
   frequency: 'monthly' | 'quarterly' | 'yearly';
   startDate: Date; // od kedy začať generovanie
   endDate?: Date; // voliteľný koniec
   dayOfMonth: number; // ktorý deň v mesiaci (1-28)
-  
+
   // Status a kontrola
   isActive: boolean;
   lastGeneratedDate?: Date; // kedy sa naposledy vygeneroval
   nextGenerationDate?: Date; // kedy sa má vygenerovať ďalší
   totalGenerated: number; // počet vygenerovaných nákladov
-  
+
   // Audit
   createdAt: Date;
   updatedAt: Date;
@@ -319,7 +323,14 @@ export interface VehicleUnavailability {
   startDate: Date;
   endDate: Date;
   reason: string;
-  type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection' | 'private_rental';
+  type:
+    | 'maintenance'
+    | 'service'
+    | 'repair'
+    | 'blocked'
+    | 'cleaning'
+    | 'inspection'
+    | 'private_rental';
   notes?: string;
   priority: 1 | 2 | 3; // 1=critical, 2=normal, 3=low
   recurring: boolean;
@@ -332,8 +343,6 @@ export interface VehicleUnavailability {
   createdBy: string;
 }
 
-
-
 export interface Insurer {
   id: string;
   name: string;
@@ -341,7 +350,13 @@ export interface Insurer {
 }
 
 // Auth types - synchronized with backend
-export type UserRole = 'admin' | 'employee' | 'temp_worker' | 'mechanic' | 'sales_rep' | 'company_owner';
+export type UserRole =
+  | 'admin'
+  | 'employee'
+  | 'temp_worker'
+  | 'mechanic'
+  | 'sales_rep'
+  | 'company_owner';
 
 export interface User {
   id: string;
@@ -381,7 +396,7 @@ export interface Company {
   updatedAt?: Date;
   // 🆕 ROZŠÍRENÉ POLIA PRE MAJITEĽOV
   personalIban?: string; // Súkromný IBAN
-  businessIban?: string; // Firemný IBAN  
+  businessIban?: string; // Firemný IBAN
   ownerName?: string; // Meno a priezvisko majiteľa
   contactEmail?: string; // Kontaktný email
   contactPhone?: string; // Kontaktný telefón
@@ -420,12 +435,24 @@ export interface CompanyInvestorShare {
 
 // Permission system interfaces
 export interface Permission {
-  resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | 'expenses' | 'insurances' | '*';
+  resource:
+    | 'vehicles'
+    | 'rentals'
+    | 'customers'
+    | 'finances'
+    | 'users'
+    | 'companies'
+    | 'maintenance'
+    | 'protocols'
+    | 'pricing'
+    | 'expenses'
+    | 'insurances'
+    | '*';
   actions: ('read' | 'create' | 'update' | 'delete')[];
   conditions?: {
-    ownOnly?: boolean;        // len vlastné záznamy
-    companyOnly?: boolean;    // len firma vlastníka
-    maxAmount?: number;       // finančný limit
+    ownOnly?: boolean; // len vlastné záznamy
+    companyOnly?: boolean; // len firma vlastníka
+    maxAmount?: number; // finančný limit
     approvalRequired?: boolean; // vyžaduje schválenie
     readOnlyFields?: string[]; // read-only polia
   };
@@ -565,17 +592,17 @@ export interface HandoverProtocol {
   id: string;
   rentalId: string;
   rental: Rental;
-  
+
   // Basic info
   type: 'handover';
   status: 'draft' | 'completed' | 'cancelled';
   createdAt: Date;
   completedAt?: Date;
   location: string;
-  
+
   // Vehicle condition
   vehicleCondition: VehicleCondition;
-  
+
   // Media
   vehicleImages: ProtocolImage[];
   vehicleVideos: ProtocolVideo[];
@@ -583,13 +610,13 @@ export interface HandoverProtocol {
   documentVideos: ProtocolVideo[];
   damageImages: ProtocolImage[];
   damageVideos: ProtocolVideo[];
-  
+
   // Damages
   damages: ProtocolDamage[];
-  
+
   // Signatures
   signatures: ProtocolSignature[];
-  
+
   // Rental data snapshot
   rentalData: {
     orderNumber: string;
@@ -608,12 +635,12 @@ export interface HandoverProtocol {
     returnLocation?: string;
     returnConditions?: string;
   };
-  
+
   // PDF and email
   pdfUrl?: string;
   emailSent?: boolean;
   emailSentAt?: Date;
-  
+
   createdBy: string;
   notes?: string;
 }
@@ -624,17 +651,17 @@ export interface ReturnProtocol {
   rental: Rental;
   handoverProtocolId: string;
   handoverProtocol: HandoverProtocol;
-  
+
   // Basic info
   type: 'return';
   status: 'draft' | 'completed' | 'cancelled';
   createdAt: Date;
   completedAt?: Date;
   location: string;
-  
+
   // Vehicle condition
   vehicleCondition: VehicleCondition;
-  
+
   // Media
   vehicleImages: ProtocolImage[];
   vehicleVideos: ProtocolVideo[];
@@ -642,14 +669,14 @@ export interface ReturnProtocol {
   documentVideos: ProtocolVideo[];
   damageImages: ProtocolImage[];
   damageVideos: ProtocolVideo[];
-  
+
   // Damages
   damages: ProtocolDamage[];
   newDamages: ProtocolDamage[];
-  
+
   // Signatures
   signatures: ProtocolSignature[];
-  
+
   // Kilometer and fuel calculations
   kilometersUsed: number;
   kilometerOverage: number;
@@ -657,12 +684,12 @@ export interface ReturnProtocol {
   fuelUsed: number;
   fuelFee: number;
   totalExtraFees: number;
-  
+
   // Refund calculation
   depositRefund: number;
   additionalCharges: number;
   finalRefund: number;
-  
+
   // Rental data snapshot
   rentalData: {
     orderNumber: string;
@@ -681,12 +708,12 @@ export interface ReturnProtocol {
     returnLocation?: string;
     returnConditions?: string;
   };
-  
+
   // PDF and email
   pdfUrl?: string;
   emailSent?: boolean;
   emailSentAt?: Date;
-  
+
   createdBy: string;
   notes?: string;
-} 
+}

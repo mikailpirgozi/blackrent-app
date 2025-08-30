@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  Assignment as DocumentIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -16,17 +21,13 @@ import {
   ListItemSecondaryAction,
   IconButton,
   Alert,
-  Chip
+  Chip,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  Assignment as DocumentIcon
-} from '@mui/icons-material';
-import R2FileUpload from '../common/R2FileUpload';
-import { getApiBaseUrl } from '../../utils/apiUrl';
+import React, { useState, useEffect } from 'react';
+
 import { VehicleDocument } from '../../types';
+import { getApiBaseUrl } from '../../utils/apiUrl';
+import R2FileUpload from '../common/R2FileUpload';
 
 interface TechnicalCertificateUploadProps {
   vehicleId: string;
@@ -38,37 +39,47 @@ interface UploadData {
   notes: string;
 }
 
-export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: TechnicalCertificateUploadProps) {
+export default function TechnicalCertificateUpload({
+  vehicleId,
+  vehicleName,
+}: TechnicalCertificateUploadProps) {
   const [documents, setDocuments] = useState<VehicleDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadData, setUploadData] = useState<UploadData>({
     documentName: '',
-    notes: ''
+    notes: '',
   });
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{url: string; key: string; filename: string}>>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<
+    Array<{ url: string; key: string; filename: string }>
+  >([]);
 
   // Načítanie technických preukazov
   const loadTechnicalCertificates = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      
+      const token =
+        localStorage.getItem('blackrent_token') ||
+        sessionStorage.getItem('blackrent_token');
+
       console.log('📄 Loading technical certificates for vehicle:', vehicleId);
-      
-      const response = await fetch(`${getApiBaseUrl()}/vehicle-documents?vehicleId=${vehicleId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/vehicle-documents?vehicleId=${vehicleId}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
         }
-      });
+      );
 
       const result = await response.json();
-      
+
       if (result.success) {
         // Filtrovať len technické preukazy
-        const technicalCerts = result.data.filter((doc: VehicleDocument) => 
-          doc.documentType === 'technical_certificate'
+        const technicalCerts = result.data.filter(
+          (doc: VehicleDocument) => doc.documentType === 'technical_certificate'
         );
         setDocuments(technicalCerts);
       } else {
@@ -86,9 +97,13 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
   }, [vehicleId]);
 
   // Upload súborov
-  const handleFileUploadSuccess = (fileData: { url: string; key: string; filename: string } | { url: string; key: string; filename: string }[]) => {
+  const handleFileUploadSuccess = (
+    fileData:
+      | { url: string; key: string; filename: string }
+      | { url: string; key: string; filename: string }[]
+  ) => {
     console.log('📄 Technical certificates uploaded successfully:', fileData);
-    
+
     if (Array.isArray(fileData)) {
       setUploadedFiles(prev => [...prev, ...fileData]);
     } else {
@@ -104,35 +119,40 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
     }
 
     try {
-      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      
+      const token =
+        localStorage.getItem('blackrent_token') ||
+        sessionStorage.getItem('blackrent_token');
+
       console.log('📄 Saving technical certificates:', {
         vehicleId,
         documentName: uploadData.documentName,
         fileCount: uploadedFiles.length,
-        hasToken: !!token
+        hasToken: !!token,
       });
 
       // Uložíme každý súbor osobne
       const savePromises = uploadedFiles.map(async (file, index) => {
-        const documentName = uploadedFiles.length > 1 
-          ? `${uploadData.documentName} (${index + 1})`
-          : uploadData.documentName;
+        const documentName =
+          uploadedFiles.length > 1
+            ? `${uploadData.documentName} (${index + 1})`
+            : uploadData.documentName;
 
         const response = await fetch(`${getApiBaseUrl()}/vehicle-documents`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: JSON.stringify({
             vehicleId,
             documentType: 'technical_certificate',
-            validTo: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString(), // 10 rokov platnosť
+            validTo: new Date(
+              Date.now() + 10 * 365 * 24 * 60 * 60 * 1000
+            ).toISOString(), // 10 rokov platnosť
             documentNumber: documentName,
             notes: uploadData.notes,
-            filePath: file.url
-          })
+            filePath: file.url,
+          }),
         });
 
         return response.json();
@@ -140,7 +160,7 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
 
       const results = await Promise.all(savePromises);
       const successfulSaves = results.filter(result => result.success);
-      
+
       if (successfulSaves.length === uploadedFiles.length) {
         console.log('✅ All technical certificates saved successfully');
         setUploadDialogOpen(false);
@@ -149,7 +169,9 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
         loadTechnicalCertificates();
       } else {
         console.error('Some technical certificates failed to save');
-        alert(`Uložených ${successfulSaves.length}/${uploadedFiles.length} súborov`);
+        alert(
+          `Uložených ${successfulSaves.length}/${uploadedFiles.length} súborov`
+        );
       }
     } catch (error) {
       console.error('Error saving technical certificates:', error);
@@ -159,21 +181,27 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
 
   // Zmazanie technického preukazu
   const handleDeleteTechnicalCertificate = async (documentId: string) => {
-    if (!window.confirm('Naozaj chcete vymazať tento technický preukaz?')) return;
+    if (!window.confirm('Naozaj chcete vymazať tento technický preukaz?'))
+      return;
 
     try {
-      const token = localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
-      
-      const response = await fetch(`${getApiBaseUrl()}/vehicle-documents/${documentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
+      const token =
+        localStorage.getItem('blackrent_token') ||
+        sessionStorage.getItem('blackrent_token');
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/vehicle-documents/${documentId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
         }
-      });
+      );
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log('✅ Technical certificate deleted successfully');
         loadTechnicalCertificates();
@@ -190,8 +218,18 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
   return (
     <Card sx={{ mt: 2 }}>
       <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 2,
+          }}
+        >
+          <Typography
+            variant="subtitle1"
+            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+          >
             <DocumentIcon sx={{ color: '#1976d2' }} />
             Technický preukaz
           </Typography>
@@ -207,12 +245,16 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
         </Box>
 
         {loading ? (
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ textAlign: 'center', py: 2 }}
+          >
             Načítavam technické preukazy...
           </Typography>
         ) : documents.length > 0 ? (
           <List dense>
-            {documents.map((doc) => (
+            {documents.map(doc => (
               <ListItem key={doc.id} divider>
                 <ListItemText
                   primary={doc.documentNumber || 'Technický preukaz'}
@@ -225,7 +267,10 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
                       )}
                       <br />
                       <Typography variant="caption" color="text.secondary">
-                        Nahraný: {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('sk-SK') : 'Neznámy dátum'}
+                        Nahraný:{' '}
+                        {doc.createdAt
+                          ? new Date(doc.createdAt).toLocaleDateString('sk-SK')
+                          : 'Neznámy dátum'}
                       </Typography>
                     </Box>
                   }
@@ -251,14 +296,18 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
             ))}
           </List>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ textAlign: 'center', py: 2 }}
+          >
             Žiadny technický preukaz nahraný
           </Typography>
         )}
 
         {/* UPLOAD DIALOG */}
-        <Dialog 
-          open={uploadDialogOpen} 
+        <Dialog
+          open={uploadDialogOpen}
           onClose={() => setUploadDialogOpen(false)}
           maxWidth="sm"
           fullWidth
@@ -272,7 +321,12 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
                 fullWidth
                 label="Názov dokumentu"
                 value={uploadData.documentName}
-                onChange={(e) => setUploadData(prev => ({ ...prev, documentName: e.target.value }))}
+                onChange={e =>
+                  setUploadData(prev => ({
+                    ...prev,
+                    documentName: e.target.value,
+                  }))
+                }
                 size="small"
                 required
                 placeholder="napr. Technický preukaz 2024"
@@ -283,7 +337,9 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
                 fullWidth
                 label="Poznámky (nepovinné)"
                 value={uploadData.notes}
-                onChange={(e) => setUploadData(prev => ({ ...prev, notes: e.target.value }))}
+                onChange={e =>
+                  setUploadData(prev => ({ ...prev, notes: e.target.value }))
+                }
                 size="small"
                 multiline
                 rows={2}
@@ -294,22 +350,28 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
               <Typography variant="body2" sx={{ mb: 1 }}>
                 Nahrať technický preukaz:
               </Typography>
-              
+
               <R2FileUpload
                 type="vehicle"
                 entityId={vehicleId}
                 mediaType="technical-certificate"
                 onUploadSuccess={handleFileUploadSuccess}
-                onUploadError={(error) => console.error('Upload error:', error)}
-                acceptedTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/webp']}
+                onUploadError={error => console.error('Upload error:', error)}
+                acceptedTypes={[
+                  'application/pdf',
+                  'image/jpeg',
+                  'image/png',
+                  'image/webp',
+                ]}
                 maxSize={50}
                 multiple={true}
                 label="Vybrať súbory (PDF, obrázky)"
               />
-              
+
               {uploadedFiles.length > 0 && (
                 <Alert severity="success" sx={{ mt: 1 }}>
-                  ✅ {uploadedFiles.length} súborov úspešne nahraných a pripravených na uloženie
+                  ✅ {uploadedFiles.length} súborov úspešne nahraných a
+                  pripravených na uloženie
                   <Box sx={{ mt: 1 }}>
                     {uploadedFiles.map((file, index) => (
                       <Chip
@@ -318,7 +380,11 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
                         size="small"
                         variant="outlined"
                         sx={{ mr: 1, mb: 1 }}
-                        onDelete={() => setUploadedFiles(prev => prev.filter((_, i) => i !== index))}
+                        onDelete={() =>
+                          setUploadedFiles(prev =>
+                            prev.filter((_, i) => i !== index)
+                          )
+                        }
                       />
                     ))}
                   </Box>
@@ -340,9 +406,14 @@ export default function TechnicalCertificateUpload({ vehicleId, vehicleName }: T
             <Button
               variant="contained"
               onClick={handleSaveTechnicalCertificates}
-              disabled={uploadedFiles.length === 0 || !uploadData.documentName.trim()}
+              disabled={
+                uploadedFiles.length === 0 || !uploadData.documentName.trim()
+              }
             >
-              💾 Uložiť {uploadedFiles.length > 1 ? `${uploadedFiles.length} súborov` : 'technický preukaz'}
+              💾 Uložiť{' '}
+              {uploadedFiles.length > 1
+                ? `${uploadedFiles.length} súborov`
+                : 'technický preukaz'}
             </Button>
           </DialogActions>
         </Dialog>

@@ -36,14 +36,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const compression_1 = __importDefault(require("compression")); // 🚀 FÁZA 2.4: Response compression
+const cors_1 = __importDefault(require("cors"));
+const dotenv_1 = __importDefault(require("dotenv"));
 const express_1 = __importDefault(require("express"));
 const http_1 = require("http");
-const cors_1 = __importDefault(require("cors"));
-const compression_1 = __importDefault(require("compression")); // 🚀 FÁZA 2.4: Response compression
-const dotenv_1 = __importDefault(require("dotenv"));
+const logger_1 = require("./utils/logger");
 // Načítaj environment variables
 dotenv_1.default.config();
-const logger_1 = require("./utils/logger");
 // Sentry removed - not needed for internal application
 // WebSocket service
 const websocket_service_1 = require("./services/websocket-service");
@@ -63,7 +63,7 @@ app.use((0, compression_1.default)({
     level: 6, // Compression level (1=najrýchlejšie, 9=najlepšie compression)
     chunkSize: 16 * 1024, // 16KB chunks
     windowBits: 15,
-    memLevel: 8
+    memLevel: 8,
 }));
 // CORS middleware s podporou pre všetky Vercel domény
 app.use((0, cors_1.default)({
@@ -75,7 +75,7 @@ app.use((0, cors_1.default)({
             'http://10.0.86.238:3000', // IP adresa pre sieťový prístup
             'https://mikailpirgozi.github.io',
             'https://blackrent-app-production-4d6f.up.railway.app',
-            process.env.FRONTEND_URL || 'http://localhost:3000'
+            process.env.FRONTEND_URL || 'http://localhost:3000',
         ];
         logger_1.logger.info('🌐 CORS request from:', origin);
         // Ak nie je origin (napr. direct request, Postman, lokálne HTML súbory)
@@ -110,43 +110,46 @@ app.use((0, cors_1.default)({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+// RequestId middleware - musí byť pred všetkými routes
+const requestId_1 = require("./middleware/requestId");
+app.use(requestId_1.requestIdMiddleware);
 // Body parsing middleware
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
 // Static file serving pre lokálne storage
 app.use('/local-storage', express_1.default.static('local-storage'));
 // Import routes
-const auth_1 = __importDefault(require("./routes/auth"));
-const vehicles_1 = __importDefault(require("./routes/vehicles"));
-const customers_1 = __importDefault(require("./routes/customers"));
-const rentals_1 = __importDefault(require("./routes/rentals"));
-const expenses_1 = __importDefault(require("./routes/expenses"));
-const expense_categories_1 = __importDefault(require("./routes/expense-categories"));
-const recurring_expenses_1 = __importDefault(require("./routes/recurring-expenses"));
-const insurances_1 = __importDefault(require("./routes/insurances"));
-const companies_1 = __importDefault(require("./routes/companies"));
-const company_investors_1 = __importDefault(require("./routes/company-investors"));
-const insurers_1 = __importDefault(require("./routes/insurers"));
-const protocols_1 = __importDefault(require("./routes/protocols"));
-const files_1 = __importDefault(require("./routes/files"));
-const settlements_1 = __importDefault(require("./routes/settlements"));
-const migration_1 = __importDefault(require("./routes/migration"));
-const availability_1 = __importDefault(require("./routes/availability"));
-const vehicle_unavailability_1 = __importDefault(require("./routes/vehicle-unavailability"));
-const vehicle_documents_1 = __importDefault(require("./routes/vehicle-documents"));
-const insurance_claims_1 = __importDefault(require("./routes/insurance-claims"));
-const permissions_1 = __importDefault(require("./routes/permissions"));
 const admin_1 = __importDefault(require("./routes/admin"));
+const auth_1 = __importDefault(require("./routes/auth"));
+const availability_1 = __importDefault(require("./routes/availability"));
 const bulk_1 = __importDefault(require("./routes/bulk"));
+const cache_1 = __importDefault(require("./routes/cache"));
 const cleanup_1 = __importDefault(require("./routes/cleanup"));
-const email_webhook_1 = __importDefault(require("./routes/email-webhook"));
+const companies_1 = __importDefault(require("./routes/companies"));
+const company_documents_1 = __importDefault(require("./routes/company-documents"));
+const company_investors_1 = __importDefault(require("./routes/company-investors"));
+const customers_1 = __importDefault(require("./routes/customers"));
 const email_imap_1 = __importDefault(require("./routes/email-imap"));
 const email_management_1 = __importDefault(require("./routes/email-management"));
-const cache_1 = __importDefault(require("./routes/cache"));
+const email_webhook_1 = __importDefault(require("./routes/email-webhook"));
+const expense_categories_1 = __importDefault(require("./routes/expense-categories"));
+const expenses_1 = __importDefault(require("./routes/expenses"));
+const files_1 = __importDefault(require("./routes/files"));
+const insurance_claims_1 = __importDefault(require("./routes/insurance-claims"));
+const insurances_1 = __importDefault(require("./routes/insurances"));
+const insurers_1 = __importDefault(require("./routes/insurers"));
+const migration_1 = __importDefault(require("./routes/migration"));
+const permissions_1 = __importDefault(require("./routes/permissions"));
+const protocols_1 = __importDefault(require("./routes/protocols"));
 const push_1 = __importDefault(require("./routes/push"));
-const company_documents_1 = __importDefault(require("./routes/company-documents"));
+const recurring_expenses_1 = __importDefault(require("./routes/recurring-expenses"));
+const rentals_1 = __importDefault(require("./routes/rentals"));
+const settlements_1 = __importDefault(require("./routes/settlements"));
+const vehicle_documents_1 = __importDefault(require("./routes/vehicle-documents"));
+const vehicle_unavailability_1 = __importDefault(require("./routes/vehicle-unavailability"));
+const vehicles_1 = __importDefault(require("./routes/vehicles"));
 // API routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/vehicles', vehicles_1.default);
@@ -177,10 +180,15 @@ app.use('/api/email-management', email_management_1.default);
 app.use('/api/cache', cache_1.default);
 app.use('/api/push', push_1.default);
 app.use('/api/company-documents', company_documents_1.default);
-// SIMPLE TEST ENDPOINT - bez middleware
+// SIMPLE TEST ENDPOINT - s requestId
 app.get('/api/test-simple', (req, res) => {
-    logger_1.logger.info('🧪 Simple test endpoint called');
-    res.json({ success: true, message: 'Backend funguje!', timestamp: new Date().toISOString() });
+    (0, logger_1.log)('info', { requestId: req.requestId }, '🧪 Simple test endpoint called');
+    res.json({
+        success: true,
+        message: 'Backend funguje!',
+        timestamp: new Date().toISOString(),
+        requestId: req.requestId,
+    });
 });
 // Debug endpoint pre diagnostiku PDF generátora
 app.get('/api/debug/pdf-generator', (req, res) => {
@@ -198,20 +206,21 @@ app.get('/api/debug/pdf-generator', (req, res) => {
             nodeVersion: process.version,
             platform: process.platform,
             puppeteerPath: process.env.PUPPETEER_EXECUTABLE_PATH || 'default',
-            chromeSkipDownload: process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD || 'false'
-        }
+            chromeSkipDownload: process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD || 'false',
+        },
     });
 });
 // Root endpoint pre Railway healthcheck
-app.get("/", (req, res) => {
+app.get('/', (req, res) => {
     res.json({
         success: true,
-        message: "BlackRent Backend API",
-        status: "OK",
+        message: 'BlackRent Backend API',
+        status: 'OK',
         timestamp: new Date().toISOString(),
-        database: "PostgreSQL",
-        environment: process.env.NODE_ENV || "development",
-        version: "1.1.2"
+        database: 'PostgreSQL',
+        environment: process.env.NODE_ENV || 'development',
+        version: '1.1.2',
+        requestId: req.requestId,
     });
 });
 // API Health endpoint for frontend compatibility
@@ -223,23 +232,23 @@ app.get('/api/health', (req, res) => {
         timestamp: new Date().toISOString(),
         database: 'PostgreSQL',
         environment: process.env.NODE_ENV || 'development',
-        sentry: false // Sentry removed
+        sentry: false, // Sentry removed
+        requestId: req.requestId,
     });
 });
 // Removed: Catch-all route - frontend is on Vercel
 // Railway backend is API-only, no frontend serving
 // Sentry removed - using standard error handling
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error('💥 Unexpected error:', err);
-    // Sentry removed - using console.error for development
-    res.status(500).json({
-        success: false,
-        error: 'Internal Server Error',
-        message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
-        timestamp: new Date().toISOString()
-    });
+// 404 handler pre neexistujúce routes - musí byť pred error handlerom
+app.use('*', (req, res, next) => {
+    const error = new Error(`Route ${req.method} ${req.originalUrl} not found`);
+    error.status = 404;
+    error.name = 'NotFoundError';
+    next(error);
 });
+// Error handling middleware - musí byť na konci po všetkých routes
+const errorHandler_1 = require("./middleware/errorHandler");
+app.use(errorHandler_1.errorHandler);
 // Import IMAP service for auto-start
 const imap_email_service_1 = __importDefault(require("./services/imap-email-service"));
 // Global IMAP service instance

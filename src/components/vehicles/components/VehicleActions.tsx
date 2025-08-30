@@ -1,12 +1,7 @@
+import { Add as AddIcon } from '@mui/icons-material';
+import { Box, Button, Typography } from '@mui/material';
 import React from 'react';
-import {
-  Box,
-  Button,
-  Typography
-} from '@mui/material';
-import {
-  Add as AddIcon
-} from '@mui/icons-material';
+
 import { Can } from '../../common/PermissionGuard';
 
 interface VehicleActionsProps {
@@ -22,16 +17,18 @@ const VehicleActions: React.FC<VehicleActionsProps> = ({
   isMobile,
   onAddVehicle,
   onCreateCompany,
-  onCreateInvestor
+  onCreateInvestor,
 }) => {
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: isMobile ? 'column' : 'row',
-      gap: 2, 
-      alignItems: isMobile ? 'stretch' : 'center',
-      mb: 3 
-    }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: 2,
+        alignItems: isMobile ? 'stretch' : 'center',
+        mb: 3,
+      }}
+    >
       {/* Add Vehicle Button */}
       <Can create="vehicles">
         <Button
@@ -44,7 +41,7 @@ const VehicleActions: React.FC<VehicleActionsProps> = ({
             '&:hover': { bgcolor: '#1565c0' },
             borderRadius: 2,
             px: 3,
-            py: 1
+            py: 1,
           }}
         >
           Nové vozidlo
@@ -57,16 +54,16 @@ const VehicleActions: React.FC<VehicleActionsProps> = ({
         startIcon={<AddIcon />}
         onClick={onCreateCompany}
         disabled={loading}
-        sx={{ 
+        sx={{
           borderColor: '#2196f3',
           color: '#2196f3',
-          '&:hover': { 
+          '&:hover': {
             borderColor: '#1976d2',
             color: '#1976d2',
-            bgcolor: 'rgba(33, 150, 243, 0.04)'
+            bgcolor: 'rgba(33, 150, 243, 0.04)',
           },
           borderRadius: 2,
-          px: 3
+          px: 3,
         }}
       >
         🏢 Pridať firmu
@@ -78,16 +75,16 @@ const VehicleActions: React.FC<VehicleActionsProps> = ({
         startIcon={<AddIcon />}
         onClick={onCreateInvestor}
         disabled={loading}
-        sx={{ 
+        sx={{
           borderColor: '#2196f3',
           color: '#2196f3',
-          '&:hover': { 
+          '&:hover': {
             borderColor: '#1976d2',
             color: '#1976d2',
-            bgcolor: 'rgba(33, 150, 243, 0.04)'
+            bgcolor: 'rgba(33, 150, 243, 0.04)',
           },
           borderRadius: 2,
-          px: 3
+          px: 3,
         }}
       >
         👤 Pridať spoluinvestora

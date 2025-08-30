@@ -1,7 +1,12 @@
 // 👁️ Lazy Detail View - Heavy component for performance testing
 // This represents a complex detail view component that should be lazy loaded
 
-import React, { useState, useEffect } from 'react';
+import {
+  ExpandMore as ExpandMoreIcon,
+  Timeline as TimelineIcon,
+  Info as InfoIcon,
+  Assessment as AssessmentIcon,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -24,12 +29,8 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from '@mui/material';
-import {
-  ExpandMore as ExpandMoreIcon,
-  Timeline as TimelineIcon,
-  Info as InfoIcon,
-  Assessment as AssessmentIcon,
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
+
 import { OptimizedImage } from './OptimizedImage';
 
 interface LazyDetailViewProps {
@@ -59,7 +60,8 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
           image: '/placeholder-image.jpg',
           status: 'active',
           category: 'Sample Category',
-          description: 'This is a detailed description of the item with lots of information.',
+          description:
+            'This is a detailed description of the item with lots of information.',
           metadata: {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -81,7 +83,7 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
             { id: '1', title: 'Related Item 1', image: '/placeholder-1.jpg' },
             { id: '2', title: 'Related Item 2', image: '/placeholder-2.jpg' },
             { id: '3', title: 'Related Item 3', image: '/placeholder-3.jpg' },
-          ]
+          ],
         });
         setLoading(false);
       }, 800); // Longer delay to simulate complex data loading
@@ -92,10 +94,17 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
     return (
       <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
         <DialogContent>
-          <Box display="flex" justifyContent="center" alignItems="center" py={6}>
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            py={6}
+          >
             <CircularProgress size={60} />
             <Box ml={3}>
-              <Typography variant="h6">Načítavam detailné informácie...</Typography>
+              <Typography variant="h6">
+                Načítavam detailné informácie...
+              </Typography>
               <Typography variant="body2" color="text.secondary">
                 Spracovávam komplexné dáta...
               </Typography>
@@ -122,9 +131,9 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
             </Typography>
           </Box>
           <Box ml="auto">
-            <Chip 
-              label={detailData.status} 
-              color={detailData.status === 'active' ? 'success' : 'default'} 
+            <Chip
+              label={detailData.status}
+              color={detailData.status === 'active' ? 'success' : 'default'}
             />
           </Box>
         </Box>
@@ -141,7 +150,7 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                 alt={detailData.title}
                 width="100%"
                 height={300}
-                aspectRatio={16/9}
+                aspectRatio={16 / 9}
                 placeholder="skeleton"
                 priority={true}
               />
@@ -172,14 +181,19 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                       <ListItem>
                         <ListItemText
                           primary={item.event}
-                          secondary={new Date(item.date).toLocaleDateString('sk')}
+                          secondary={new Date(item.date).toLocaleDateString(
+                            'sk'
+                          )}
                         />
                         <Chip
                           size="small"
                           label={item.type}
                           color={
-                            item.type === 'success' ? 'success' :
-                            item.type === 'warning' ? 'warning' : 'info'
+                            item.type === 'success'
+                              ? 'success'
+                              : item.type === 'warning'
+                                ? 'warning'
+                                : 'info'
                           }
                         />
                       </ListItem>
@@ -210,8 +224,10 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                     <strong>Hodnotenie:</strong> {detailData.metadata.rating}/5
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Vytvorené:</strong> {' '}
-                    {new Date(detailData.metadata.createdAt).toLocaleDateString('sk')}
+                    <strong>Vytvorené:</strong>{' '}
+                    {new Date(detailData.metadata.createdAt).toLocaleDateString(
+                      'sk'
+                    )}
                   </Typography>
                 </Box>
               </CardContent>
@@ -250,9 +266,7 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                       <Typography variant="body1">
                         {detailData.analytics.averageTime}
                       </Typography>
-                      <Typography variant="caption">
-                        Priemerný čas
-                      </Typography>
+                      <Typography variant="caption">Priemerný čas</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6}>
@@ -260,9 +274,7 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                       <Typography variant="body1">
                         {detailData.analytics.bounceRate}
                       </Typography>
-                      <Typography variant="caption">
-                        Bounce rate
-                      </Typography>
+                      <Typography variant="caption">Bounce rate</Typography>
                     </Box>
                   </Grid>
                 </Grid>
@@ -321,8 +333,8 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
             </AccordionSummary>
             <AccordionDetails>
               <Typography>
-                Technické informácie, logy, a diagnostické dáta.
-                Tieto dáta sa načítavajú iba na požiadanie.
+                Technické informácie, logy, a diagnostické dáta. Tieto dáta sa
+                načítavajú iba na požiadanie.
               </Typography>
             </AccordionDetails>
           </Accordion>

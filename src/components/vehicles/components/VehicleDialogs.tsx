@@ -1,4 +1,4 @@
-import React from 'react';
+import { Add as AddIcon } from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -13,13 +13,12 @@ import {
   Select,
   MenuItem,
   useMediaQuery,
-  useTheme
+  useTheme,
 } from '@mui/material';
-import {
-  Add as AddIcon
-} from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import React from 'react';
+
 import { Vehicle } from '../../../types';
 import VehicleForm from '../VehicleForm';
 
@@ -113,7 +112,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
   companies,
   onCloseAssignShare,
   onAssignShare,
-  onShareDataChange
+  onShareDataChange,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -121,8 +120,8 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
   return (
     <>
       {/* Vehicle Form Dialog */}
-      <Dialog 
-        open={openDialog} 
+      <Dialog
+        open={openDialog}
         onClose={onCloseDialog}
         maxWidth="md"
         fullWidth
@@ -141,8 +140,8 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
       </Dialog>
 
       {/* Ownership History Dialog */}
-      <Dialog 
-        open={ownershipHistoryDialog} 
+      <Dialog
+        open={ownershipHistoryDialog}
         onClose={onCloseOwnershipHistory}
         maxWidth="md"
         fullWidth
@@ -151,7 +150,8 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
           História transferov vlastníctva
           {selectedVehicleHistory && (
             <Typography variant="subtitle2" color="text.secondary">
-              {selectedVehicleHistory.brand} {selectedVehicleHistory.model} - {selectedVehicleHistory.licensePlate}
+              {selectedVehicleHistory.brand} {selectedVehicleHistory.model} -{' '}
+              {selectedVehicleHistory.licensePlate}
             </Typography>
           )}
         </DialogTitle>
@@ -160,7 +160,15 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
             <Typography>Žiadna história transferov</Typography>
           ) : (
             ownershipHistory.map((transfer, index) => (
-              <div key={index} style={{ marginBottom: '16px', padding: '16px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+              <div
+                key={index}
+                style={{
+                  marginBottom: '16px',
+                  padding: '16px',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '8px',
+                }}
+              >
                 <Typography variant="subtitle2">
                   Transfer #{index + 1}
                 </Typography>
@@ -171,10 +179,18 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                   <strong>Na:</strong> {transfer.toCompany || 'N/A'}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Dátum:</strong> {transfer.transferDate ? format(new Date(transfer.transferDate), 'dd.MM.yyyy HH:mm', { locale: sk }) : 'N/A'}
+                  <strong>Dátum:</strong>{' '}
+                  {transfer.transferDate
+                    ? format(
+                        new Date(transfer.transferDate),
+                        'dd.MM.yyyy HH:mm',
+                        { locale: sk }
+                      )
+                    : 'N/A'}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Poznámka:</strong> {transfer.notes || 'Žiadna poznámka'}
+                  <strong>Poznámka:</strong>{' '}
+                  {transfer.notes || 'Žiadna poznámka'}
                 </Typography>
               </div>
             ))
@@ -183,10 +199,10 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
       </Dialog>
 
       {/* Create Company Dialog */}
-      <Dialog 
-        open={createCompanyDialogOpen} 
-        onClose={onCloseCreateCompany} 
-        maxWidth="md" 
+      <Dialog
+        open={createCompanyDialogOpen}
+        onClose={onCloseCreateCompany}
+        maxWidth="md"
         fullWidth
       >
         <DialogTitle>🏢 Pridať novú firmu</DialogTitle>
@@ -197,7 +213,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 fullWidth
                 label="Názov firmy"
                 value={newCompanyData.name}
-                onChange={(e) => onCompanyDataChange('name', e.target.value)}
+                onChange={e => onCompanyDataChange('name', e.target.value)}
                 required
               />
             </Grid>
@@ -206,7 +222,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 fullWidth
                 label="Meno majiteľa"
                 value={newCompanyData.ownerName}
-                onChange={(e) => onCompanyDataChange('ownerName', e.target.value)}
+                onChange={e => onCompanyDataChange('ownerName', e.target.value)}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -215,7 +231,9 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 label="Email"
                 type="email"
                 value={newCompanyData.contactEmail}
-                onChange={(e) => onCompanyDataChange('contactEmail', e.target.value)}
+                onChange={e =>
+                  onCompanyDataChange('contactEmail', e.target.value)
+                }
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -223,7 +241,9 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 fullWidth
                 label="Telefón"
                 value={newCompanyData.contactPhone}
-                onChange={(e) => onCompanyDataChange('contactPhone', e.target.value)}
+                onChange={e =>
+                  onCompanyDataChange('contactPhone', e.target.value)
+                }
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -231,7 +251,9 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 fullWidth
                 label="Osobný IBAN"
                 value={newCompanyData.personalIban}
-                onChange={(e) => onCompanyDataChange('personalIban', e.target.value)}
+                onChange={e =>
+                  onCompanyDataChange('personalIban', e.target.value)
+                }
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -239,7 +261,9 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 fullWidth
                 label="Firemný IBAN"
                 value={newCompanyData.businessIban}
-                onChange={(e) => onCompanyDataChange('businessIban', e.target.value)}
+                onChange={e =>
+                  onCompanyDataChange('businessIban', e.target.value)
+                }
               />
             </Grid>
             <Grid item xs={12}>
@@ -248,18 +272,18 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 label="Provízia (%)"
                 type="number"
                 value={newCompanyData.defaultCommissionRate}
-                onChange={(e) => onCompanyDataChange('defaultCommissionRate', e.target.value)}
+                onChange={e =>
+                  onCompanyDataChange('defaultCommissionRate', e.target.value)
+                }
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
               />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onCloseCreateCompany}>
-            Zrušiť
-          </Button>
-          <Button 
-            variant="contained" 
+          <Button onClick={onCloseCreateCompany}>Zrušiť</Button>
+          <Button
+            variant="contained"
             onClick={onCreateCompany}
             disabled={!newCompanyData.name.trim()}
             startIcon={<AddIcon />}
@@ -270,10 +294,10 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
       </Dialog>
 
       {/* Create Investor Dialog */}
-      <Dialog 
-        open={createInvestorDialogOpen} 
-        onClose={onCloseCreateInvestor} 
-        maxWidth="md" 
+      <Dialog
+        open={createInvestorDialogOpen}
+        onClose={onCloseCreateInvestor}
+        maxWidth="md"
         fullWidth
       >
         <DialogTitle>👤 Pridať spoluinvestora</DialogTitle>
@@ -284,7 +308,9 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 fullWidth
                 label="Krstné meno"
                 value={newInvestorData.firstName}
-                onChange={(e) => onInvestorDataChange('firstName', e.target.value)}
+                onChange={e =>
+                  onInvestorDataChange('firstName', e.target.value)
+                }
                 required
               />
             </Grid>
@@ -293,7 +319,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 fullWidth
                 label="Priezvisko"
                 value={newInvestorData.lastName}
-                onChange={(e) => onInvestorDataChange('lastName', e.target.value)}
+                onChange={e => onInvestorDataChange('lastName', e.target.value)}
                 required
               />
             </Grid>
@@ -303,7 +329,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 label="Email"
                 type="email"
                 value={newInvestorData.email}
-                onChange={(e) => onInvestorDataChange('email', e.target.value)}
+                onChange={e => onInvestorDataChange('email', e.target.value)}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -311,19 +337,20 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 fullWidth
                 label="Telefón"
                 value={newInvestorData.phone}
-                onChange={(e) => onInvestorDataChange('phone', e.target.value)}
+                onChange={e => onInvestorDataChange('phone', e.target.value)}
               />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onCloseCreateInvestor}>
-            Zrušiť
-          </Button>
-          <Button 
-            variant="contained" 
+          <Button onClick={onCloseCreateInvestor}>Zrušiť</Button>
+          <Button
+            variant="contained"
             onClick={onCreateInvestor}
-            disabled={!newInvestorData.firstName.trim() || !newInvestorData.lastName.trim()}
+            disabled={
+              !newInvestorData.firstName.trim() ||
+              !newInvestorData.lastName.trim()
+            }
             startIcon={<AddIcon />}
           >
             Vytvoriť spoluinvestora
@@ -332,17 +359,18 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
       </Dialog>
 
       {/* Assign Share Dialog */}
-      <Dialog 
-        open={assignShareDialogOpen} 
-        onClose={onCloseAssignShare} 
-        maxWidth="sm" 
+      <Dialog
+        open={assignShareDialogOpen}
+        onClose={onCloseAssignShare}
+        maxWidth="sm"
         fullWidth
       >
         <DialogTitle>
           🏢 Priradiť podiel k firme
           {selectedInvestorForShare && (
             <Typography variant="subtitle2" color="text.secondary">
-              {selectedInvestorForShare.firstName} {selectedInvestorForShare.lastName}
+              {selectedInvestorForShare.firstName}{' '}
+              {selectedInvestorForShare.lastName}
             </Typography>
           )}
         </DialogTitle>
@@ -354,13 +382,15 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 <Select
                   value={newShareData.companyId}
                   label="Firma"
-                  onChange={(e) => onShareDataChange('companyId', e.target.value)}
+                  onChange={e => onShareDataChange('companyId', e.target.value)}
                 >
-                  {companies?.filter(c => c.isActive !== false).map((company) => (
-                    <MenuItem key={company.id} value={company.id}>
-                      {company.name}
-                    </MenuItem>
-                  ))}
+                  {companies
+                    ?.filter(c => c.isActive !== false)
+                    .map(company => (
+                      <MenuItem key={company.id} value={company.id}>
+                        {company.name}
+                      </MenuItem>
+                    ))}
                 </Select>
               </FormControl>
             </Grid>
@@ -370,7 +400,12 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 label="Podiel vlastníctva (%)"
                 type="number"
                 value={newShareData.ownershipPercentage}
-                onChange={(e) => onShareDataChange('ownershipPercentage', parseFloat(e.target.value) || 0)}
+                onChange={e =>
+                  onShareDataChange(
+                    'ownershipPercentage',
+                    parseFloat(e.target.value) || 0
+                  )
+                }
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
                 required
               />
@@ -381,20 +416,25 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 label="Investičná suma (€)"
                 type="number"
                 value={newShareData.investmentAmount}
-                onChange={(e) => onShareDataChange('investmentAmount', parseFloat(e.target.value) || 0)}
+                onChange={e =>
+                  onShareDataChange(
+                    'investmentAmount',
+                    parseFloat(e.target.value) || 0
+                  )
+                }
                 inputProps={{ min: 0, step: 0.01 }}
               />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onCloseAssignShare}>
-            Zrušiť
-          </Button>
-          <Button 
-            variant="contained" 
+          <Button onClick={onCloseAssignShare}>Zrušiť</Button>
+          <Button
+            variant="contained"
             onClick={onAssignShare}
-            disabled={!newShareData.companyId || newShareData.ownershipPercentage <= 0}
+            disabled={
+              !newShareData.companyId || newShareData.ownershipPercentage <= 0
+            }
             startIcon={<AddIcon />}
           >
             Priradiť podiel

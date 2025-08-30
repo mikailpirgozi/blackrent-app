@@ -1,10 +1,14 @@
 /**
  * ⚡ QUICK FILTERS
- * 
+ *
  * Reusable quick filter chips pre časté vyhľadávania
  */
 
-import React, { memo } from 'react';
+import {
+  FilterList as FilterIcon,
+  Clear as ClearIcon,
+  Star as PopularIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Chip,
@@ -12,13 +16,10 @@ import {
   Stack,
   useTheme,
   useMediaQuery,
-  Tooltip
+  Tooltip,
 } from '@mui/material';
-import {
-  FilterList as FilterIcon,
-  Clear as ClearIcon,
-  Star as PopularIcon
-} from '@mui/icons-material';
+import React, { memo } from 'react';
+
 import type { QuickFilter } from '../../hooks/useEnhancedSearch';
 
 interface QuickFiltersProps {
@@ -36,19 +37,18 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({
   onFilterSelect,
   showTitle = true,
   compact = false,
-  maxVisible
+  maxVisible,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   if (!filters || filters.length === 0) {
     return null;
   }
 
   // Limit visible filters on mobile
-  const visibleFilters = maxVisible && isMobile 
-    ? filters.slice(0, maxVisible)
-    : filters;
+  const visibleFilters =
+    maxVisible && isMobile ? filters.slice(0, maxVisible) : filters;
 
   const handleFilterClick = (filterId: string) => {
     if (activeFilter === filterId) {
@@ -61,31 +61,31 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({
   return (
     <Box sx={{ mb: compact ? 1 : 2 }}>
       {showTitle && (
-        <Typography 
-          variant={compact ? "caption" : "body2"} 
-          sx={{ 
+        <Typography
+          variant={compact ? 'caption' : 'body2'}
+          sx={{
             display: 'flex',
             alignItems: 'center',
             mb: 1,
             color: 'text.secondary',
-            fontWeight: 600
+            fontWeight: 600,
           }}
         >
           <FilterIcon sx={{ fontSize: 16, mr: 0.5 }} />
           Rýchle filtre:
         </Typography>
       )}
-      
-      <Stack 
-        direction="row" 
-        spacing={1} 
-        sx={{ 
+
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
           flexWrap: 'wrap',
-          gap: 1
+          gap: 1,
         }}
       >
-        {visibleFilters.map((filter) => (
-          <Tooltip 
+        {visibleFilters.map(filter => (
+          <Tooltip
             key={filter.id}
             title={filter.count ? `${filter.count} výsledkov` : filter.label}
             placement="top"
@@ -95,12 +95,12 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   {filter.label}
                   {filter.count && (
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
+                    <Typography
+                      variant="caption"
+                      sx={{
                         fontSize: '0.7rem',
                         opacity: 0.8,
-                        fontWeight: 600
+                        fontWeight: 600,
                       }}
                     >
                       ({filter.count})
@@ -112,7 +112,11 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({
               color={activeFilter === filter.id ? filter.color : 'default'}
               variant={activeFilter === filter.id ? 'filled' : 'outlined'}
               onClick={() => handleFilterClick(filter.id)}
-              onDelete={activeFilter === filter.id ? () => onFilterSelect(null) : undefined}
+              onDelete={
+                activeFilter === filter.id
+                  ? () => onFilterSelect(null)
+                  : undefined
+              }
               deleteIcon={<ClearIcon />}
               sx={{
                 transition: 'all 0.2s ease',
@@ -120,42 +124,44 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({
                 '&:hover': {
                   transform: 'translateY(-1px)',
                   boxShadow: theme.shadows[2],
-                  borderColor: activeFilter === filter.id 
-                    ? theme.palette[filter.color].main 
-                    : theme.palette.primary.main
+                  borderColor:
+                    activeFilter === filter.id
+                      ? theme.palette[filter.color].main
+                      : theme.palette.primary.main,
                 },
                 '&:active': {
-                  transform: 'translateY(0px)'
+                  transform: 'translateY(0px)',
                 },
                 // Highlight popular filters
-                ...(filter.count && filter.count > 10 && {
-                  position: 'relative',
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    top: -2,
-                    right: -2,
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    backgroundColor: theme.palette.warning.main,
-                    display: activeFilter !== filter.id ? 'block' : 'none'
-                  }
-                })
+                ...(filter.count &&
+                  filter.count > 10 && {
+                    position: 'relative',
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      top: -2,
+                      right: -2,
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      backgroundColor: theme.palette.warning.main,
+                      display: activeFilter !== filter.id ? 'block' : 'none',
+                    },
+                  }),
               }}
             />
           </Tooltip>
         ))}
-        
+
         {/* Show more indicator */}
         {maxVisible && isMobile && filters.length > maxVisible && (
           <Chip
             label={`+${filters.length - maxVisible}`}
             size="small"
             variant="outlined"
-            sx={{ 
+            sx={{
               opacity: 0.6,
-              cursor: 'default'
+              cursor: 'default',
             }}
           />
         )}
@@ -171,36 +177,36 @@ export const RENTAL_QUICK_FILTERS: QuickFilter[] = [
     label: 'Aktívne',
     value: 'active',
     color: 'success',
-    icon: '🟢'
+    icon: '🟢',
   },
   {
     id: 'pending',
     label: 'Čakajúce',
-    value: 'pending', 
+    value: 'pending',
     color: 'warning',
-    icon: '⏳'
+    icon: '⏳',
   },
   {
     id: 'overdue',
     label: 'Preterminované',
     value: 'overdue',
     color: 'error',
-    icon: '⚠️'
+    icon: '⚠️',
   },
   {
     id: 'this_month',
     label: 'Tento mesiac',
     value: 'this_month',
     color: 'primary',
-    icon: '📅'
+    icon: '📅',
   },
   {
     id: 'high_value',
     label: 'Vysoká suma',
     value: 'high_value',
     color: 'secondary',
-    icon: '💰'
-  }
+    icon: '💰',
+  },
 ];
 
 export const VEHICLE_QUICK_FILTERS: QuickFilter[] = [
@@ -209,29 +215,29 @@ export const VEHICLE_QUICK_FILTERS: QuickFilter[] = [
     label: 'Dostupné',
     value: 'available',
     color: 'success',
-    icon: '✅'
+    icon: '✅',
   },
   {
     id: 'rented',
     label: 'Prenajaté',
     value: 'rented',
     color: 'warning',
-    icon: '🚗'
+    icon: '🚗',
   },
   {
     id: 'maintenance',
     label: 'Servis',
-    value: 'maintenance', 
+    value: 'maintenance',
     color: 'error',
-    icon: '🔧'
+    icon: '🔧',
   },
   {
     id: 'premium',
     label: 'Premium',
     value: 'premium',
     color: 'secondary',
-    icon: '⭐'
-  }
+    icon: '⭐',
+  },
 ];
 
 export const CUSTOMER_QUICK_FILTERS: QuickFilter[] = [
@@ -240,29 +246,29 @@ export const CUSTOMER_QUICK_FILTERS: QuickFilter[] = [
     label: 'VIP',
     value: 'vip',
     color: 'secondary',
-    icon: '👑'
+    icon: '👑',
   },
   {
     id: 'active_rentals',
     label: 'Aktívni',
     value: 'active_rentals',
     color: 'success',
-    icon: '🎯'
+    icon: '🎯',
   },
   {
     id: 'new',
     label: 'Noví',
     value: 'new',
     color: 'info',
-    icon: '🆕'
+    icon: '🆕',
   },
   {
     id: 'corporate',
     label: 'Firemní',
     value: 'corporate',
     color: 'primary',
-    icon: '🏢'
-  }
+    icon: '🏢',
+  },
 ];
 
 export default memo(QuickFilters);

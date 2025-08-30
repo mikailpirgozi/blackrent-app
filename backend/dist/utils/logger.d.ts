@@ -1,10 +1,20 @@
 /**
- * 🚀 CENTRÁLNY LOGGER SYSTÉM PRE BACKEND
+ * 🚀 STRUCTURED LOGGER SYSTÉM PRE BACKEND
  *
- * Umožňuje kontrolovať úroveň logovania podľa prostredia
- * - Development: Všetky logy
- * - Production: Len dôležité logy
+ * Poskytuje jednotné JSON logovanie s requestId a kontextom
  */
+type LogLevel = 'info' | 'warn' | 'error';
+interface LogContext extends Record<string, any> {
+    requestId?: string;
+}
+/**
+ * Structured logger helper - všetky logy vo formáte JSON
+ * @param level - úroveň logovania (info, warn, error, debug)
+ * @param ctx - kontext objektu s requestId a ďalšími údajmi
+ * @param msg - hlavná správa
+ * @param extra - dodatočné údaje
+ */
+export declare function log(level: LogLevel, ctx: LogContext, msg: string, extra?: any): void;
 export declare const logger: {
     debug: (...args: any[]) => void;
     info: (...args: any[]) => void;

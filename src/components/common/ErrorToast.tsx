@@ -1,32 +1,33 @@
 /**
  * 🍞 ERROR TOAST COMPONENT
- * 
+ *
  * User-friendly error notifications:
  * - Network errors
- * - Retry indicators  
+ * - Retry indicators
  * - Connection status
  * - Auto-dismiss
  */
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Alert, 
-  Snackbar, 
-  Box, 
-  Typography, 
-  IconButton,
-  LinearProgress,
-  Chip
-} from '@mui/material';
 import {
   Close as CloseIcon,
   Wifi as WifiIcon,
   WifiOff as WifiOffIcon,
   Refresh as RefreshIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
-import { EnhancedError } from '../../utils/errorHandling';
+import {
+  Alert,
+  Snackbar,
+  Box,
+  Typography,
+  IconButton,
+  LinearProgress,
+  Chip,
+} from '@mui/material';
+import React, { useState, useEffect } from 'react';
+
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { EnhancedError } from '../../utils/errorHandling';
 
 interface ErrorToastProps {
   error: EnhancedError | null;
@@ -39,7 +40,7 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
   error,
   onClose,
   onRetry,
-  autoHideDuration = 6000
+  autoHideDuration = 6000,
 }) => {
   const [open, setOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -53,7 +54,10 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
   }, [error]);
 
   // Handle close
-  const handleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+  const handleClose = (
+    event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
     if (reason === 'clickaway') return;
     setOpen(false);
     setTimeout(onClose, 300); // Wait for animation
@@ -62,7 +66,7 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
   // Handle retry
   const handleRetry = async () => {
     if (!onRetry) return;
-    
+
     setIsRetrying(true);
     try {
       await onRetry();
@@ -78,7 +82,7 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
   // Get alert severity based on error type
   const getSeverity = () => {
     if (!error) return 'info';
-    
+
     switch (error.errorType) {
       case 'connection':
         return 'warning';
@@ -94,7 +98,7 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
   // Get connection icon
   const getConnectionIcon = () => {
     if (!isOnline) return <WifiOffIcon fontSize="small" />;
-    
+
     switch (networkQuality) {
       case 'slow':
         return <WifiIcon fontSize="small" sx={{ color: 'orange' }} />;
@@ -124,8 +128,8 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
           minWidth: 300,
           maxWidth: 500,
           '& .MuiAlert-message': {
-            width: '100%'
-          }
+            width: '100%',
+          },
         }}
         action={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -135,13 +139,13 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
               label={isOnline ? networkQuality : 'offline'}
               size="small"
               variant="outlined"
-              sx={{ 
+              sx={{
                 bgcolor: 'rgba(255,255,255,0.1)',
                 color: 'inherit',
-                borderColor: 'rgba(255,255,255,0.3)'
+                borderColor: 'rgba(255,255,255,0.3)',
               }}
             />
-            
+
             {/* Retry button */}
             {error.isRetryable && onRetry && (
               <IconButton
@@ -150,20 +154,24 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
                 disabled={isRetrying || !isOnline}
                 sx={{ color: 'inherit' }}
               >
-                <RefreshIcon 
-                  fontSize="small" 
-                  sx={{ 
+                <RefreshIcon
+                  fontSize="small"
+                  sx={{
                     animation: isRetrying ? 'spin 1s linear infinite' : 'none',
                     '@keyframes spin': {
                       '0%': { transform: 'rotate(0deg)' },
-                      '100%': { transform: 'rotate(360deg)' }
-                    }
-                  }} 
+                      '100%': { transform: 'rotate(360deg)' },
+                    },
+                  }}
                 />
               </IconButton>
             )}
-            
-            <IconButton size="small" onClick={handleClose} sx={{ color: 'inherit' }}>
+
+            <IconButton
+              size="small"
+              onClick={handleClose}
+              sx={{ color: 'inherit' }}
+            >
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
@@ -173,16 +181,16 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
           <Typography variant="body2" fontWeight="medium">
             {error.userMessage}
           </Typography>
-          
+
           {/* Progress bar for retrying */}
           {isRetrying && (
             <Box sx={{ mt: 1 }}>
-              <LinearProgress 
-                sx={{ 
+              <LinearProgress
+                sx={{
                   bgcolor: 'rgba(255,255,255,0.2)',
                   '& .MuiLinearProgress-bar': {
-                    bgcolor: 'rgba(255,255,255,0.8)'
-                  }
+                    bgcolor: 'rgba(255,255,255,0.8)',
+                  },
                 }}
               />
               <Typography variant="caption" sx={{ mt: 0.5, opacity: 0.8 }}>
@@ -190,27 +198,25 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
               </Typography>
             </Box>
           )}
-          
+
           {/* Network status indicator */}
           {wasOffline && isOnline && (
             <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
               <CheckCircleIcon fontSize="small" />
-              <Typography variant="caption">
-                Pripojenie obnovené
-              </Typography>
+              <Typography variant="caption">Pripojenie obnovené</Typography>
             </Box>
           )}
-          
+
           {/* Technical details (development mode) */}
           {process.env.NODE_ENV === 'development' && (
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                mt: 1, 
-                display: 'block', 
+            <Typography
+              variant="caption"
+              sx={{
+                mt: 1,
+                display: 'block',
                 opacity: 0.7,
                 fontFamily: 'monospace',
-                fontSize: '0.7rem'
+                fontSize: '0.7rem',
               }}
             >
               {error.technicalMessage}

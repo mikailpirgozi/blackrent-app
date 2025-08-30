@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { apiService } from '../services/api';
 import { Company } from '../types';
 import { logger } from '../utils/smartLogger';
@@ -26,7 +27,9 @@ interface UseInfiniteCompaniesReturn {
 
 const ITEMS_PER_PAGE = 50;
 
-export function useInfiniteCompanies(initialFilters: CompanyFilters = {}): UseInfiniteCompaniesReturn {
+export function useInfiniteCompanies(
+  initialFilters: CompanyFilters = {}
+): UseInfiniteCompaniesReturn {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,76 +39,90 @@ export function useInfiniteCompanies(initialFilters: CompanyFilters = {}): UseIn
   const [filters, setFilters] = useState<CompanyFilters>(initialFilters);
   const [initialLoad, setInitialLoad] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Prevent duplicate requests
   const loadingRef = useRef(false);
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
 
-  const loadCompanies = useCallback(async (page: number, isNewSearch: boolean = false) => {
-    if (loadingRef.current) {
-      console.log('⏸️ Load already in progress, skipping...');
-      return;
-    }
-    
-    loadingRef.current = true;
-    setLoading(true);
-    setError(null);
-
-    try {
-      logger.info(`🔄 Loading companies - Page ${page}`, { filters: filtersRef.current });
-      
-      const result = await apiService.getCompaniesPaginated({
-        page,
-        limit: ITEMS_PER_PAGE,
-        search: searchTerm,
-        ...filtersRef.current
-      });
-
-      const newCompanies = result.companies;
-      
-      // Validate response
-      if (!result || !Array.isArray(newCompanies)) {
-        throw new Error('Invalid response format');
+  const loadCompanies = useCallback(
+    async (page: number, isNewSearch: boolean = false) => {
+      if (loadingRef.current) {
+        console.log('⏸️ Load already in progress, skipping...');
+        return;
       }
-      
-      setCompanies(prev => {
-        // If new search, replace all. Otherwise append.
-        const updatedCompanies = isNewSearch ? newCompanies : [...prev, ...newCompanies];
-        
-        // Remove duplicates based on company ID
-        const uniqueCompanies = Array.from(
-          new Map(updatedCompanies.map(company => [company.id, company])).values()
+
+      loadingRef.current = true;
+      setLoading(true);
+      setError(null);
+
+      try {
+        logger.info(`🔄 Loading companies - Page ${page}`, {
+          filters: filtersRef.current,
+        });
+
+        const result = await apiService.getCompaniesPaginated({
+          page,
+          limit: ITEMS_PER_PAGE,
+          search: searchTerm,
+          ...filtersRef.current,
+        });
+
+        const newCompanies = result.companies;
+
+        // Validate response
+        if (!result || !Array.isArray(newCompanies)) {
+          throw new Error('Invalid response format');
+        }
+
+        setCompanies(prev => {
+          // If new search, replace all. Otherwise append.
+          const updatedCompanies = isNewSearch
+            ? newCompanies
+            : [...prev, ...newCompanies];
+
+          // Remove duplicates based on company ID
+          const uniqueCompanies = Array.from(
+            new Map(
+              updatedCompanies.map(company => [company.id, company])
+            ).values()
+          );
+
+          return uniqueCompanies;
+        });
+
+        setTotalCount(result.pagination.totalItems);
+        setHasMore(result.pagination.hasMore);
+        setCurrentPage(result.pagination.currentPage);
+
+        logger.info(
+          `✅ Loaded ${newCompanies.length} companies (${result.pagination.totalItems} total)`
         );
-        
-        return uniqueCompanies;
-      });
-      
-      setTotalCount(result.pagination.totalItems);
-      setHasMore(result.pagination.hasMore);
-      setCurrentPage(result.pagination.currentPage);
-      
-      logger.info(`✅ Loaded ${newCompanies.length} companies (${result.pagination.totalItems} total)`);
-      
-    } catch (err: any) {
-      const errorMessage = err.message || 'Chyba pri načítavaní firiem';
-      setError(errorMessage);
-      logger.error('❌ Failed to load companies', err);
-    } finally {
-      setLoading(false);
-      loadingRef.current = false;
-      if (initialLoad) {
-        setInitialLoad(false);
+      } catch (err: any) {
+        const errorMessage = err.message || 'Chyba pri načítavaní firiem';
+        setError(errorMessage);
+        logger.error('❌ Failed to load companies', err);
+      } finally {
+        setLoading(false);
+        loadingRef.current = false;
+        if (initialLoad) {
+          setInitialLoad(false);
+        }
       }
-    }
-  }, [initialLoad, searchTerm]);
+    },
+    [initialLoad, searchTerm]
+  );
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore && !initialLoad) {
-      console.log(`📚 Load more triggered - Page ${currentPage + 1}, hasMore: ${hasMore}, loading: ${loading}`);
+      console.log(
+        `📚 Load more triggered - Page ${currentPage + 1}, hasMore: ${hasMore}, loading: ${loading}`
+      );
       loadCompanies(currentPage + 1, false);
     } else {
-      console.log(`⏸️ Load more skipped - loading: ${loading}, hasMore: ${hasMore}, initialLoad: ${initialLoad}`);
+      console.log(
+        `⏸️ Load more skipped - loading: ${loading}, hasMore: ${hasMore}, initialLoad: ${initialLoad}`
+      );
     }
   }, [loading, hasMore, currentPage, loadCompanies, initialLoad]);
 
@@ -169,7 +186,7 @@ export function useInfiniteCompanies(initialFilters: CompanyFilters = {}): UseIn
       currentPage,
       hasMore,
       loading,
-      error
+      error,
     });
   }, [companies.length, totalCount, currentPage, hasMore, loading, error]);
 
@@ -184,6 +201,6 @@ export function useInfiniteCompanies(initialFilters: CompanyFilters = {}): UseIn
     setSearchTerm,
     loadMore,
     refresh,
-    updateFilters
+    updateFilters,
   };
 }

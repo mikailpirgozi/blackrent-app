@@ -1,20 +1,24 @@
 /**
  * 🚗 VEHICLE IMAGE COMPONENT
- * 
+ *
  * Optimalizovaný komponent pre zobrazenie vehicle obrázkov s lazy loading
  */
 
-import React, { memo, useCallback, useState } from 'react';
-import { Box, Typography, IconButton } from '@mui/material';
-import { CompactChip } from '../ui';
-import { 
+import {
   PhotoCamera as PhotoIcon,
   DirectionsCar as CarIcon,
   LocalShipping as TruckIcon,
-  Refresh as RefreshIcon 
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
+import { Box, Typography, IconButton } from '@mui/material';
+import React, { memo, useCallback, useState } from 'react';
+
+import {
+  VehicleImageUtils,
+  ImagePerformanceMonitor,
+} from '../../utils/imageOptimization';
 import LazyImage from '../common/LazyImage';
-import { VehicleImageUtils, ImagePerformanceMonitor } from '../../utils/imageOptimization';
+import { CompactChip } from '../ui';
 
 interface VehicleImageProps {
   vehicleId?: string;
@@ -45,17 +49,20 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
   showType = false,
   fallbackColor,
   onClick,
-  className
+  className,
 }) => {
   const [imageLoadTime] = useState(performance.now());
 
   // Generate image URLs
-  const imageUrl = vehicleId 
+  const imageUrl = vehicleId
     ? VehicleImageUtils.getVehicleImageUrl(vehicleId, size)
     : null;
-  
-  const placeholderUrl = VehicleImageUtils.getVehiclePlaceholder(vehicleType, fallbackColor);
-  const lowQualityUrl = vehicleId 
+
+  const placeholderUrl = VehicleImageUtils.getVehiclePlaceholder(
+    vehicleType,
+    fallbackColor
+  );
+  const lowQualityUrl = vehicleId
     ? VehicleImageUtils.getVehicleImageUrl(vehicleId, 'thumbnail')
     : null;
 
@@ -67,11 +74,14 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
     }
   }, [imageUrl, imageLoadTime]);
 
-  const handleImageError = useCallback((error: React.SyntheticEvent<HTMLImageElement>) => {
-    if (imageUrl) {
-      ImagePerformanceMonitor.onImageError(imageUrl, error);
-    }
-  }, [imageUrl]);
+  const handleImageError = useCallback(
+    (error: React.SyntheticEvent<HTMLImageElement>) => {
+      if (imageUrl) {
+        ImagePerformanceMonitor.onImageError(imageUrl, error);
+      }
+    },
+    [imageUrl]
+  );
 
   // Get vehicle type icon
   const getVehicleTypeIcon = () => {
@@ -91,13 +101,13 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
       thumbnail: { width: 100, height: 75 },
       card: { width: 300, height: 200 },
       detail: { width: 600, height: 400 },
-      fullsize: { width: '100%', height: 400 }
+      fullsize: { width: '100%', height: 400 },
     };
 
     const config = sizeConfig[size];
     return {
       width: width || config.width,
-      height: height || config.height
+      height: height || config.height,
     };
   };
 
@@ -115,15 +125,14 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
         justifyContent: 'center',
         gap: 1,
         backgroundColor: fallbackColor || 'grey.100',
-        color: 'text.disabled'
+        color: 'text.disabled',
       }}
     >
       {getVehicleTypeIcon()}
       <Typography variant="caption" align="center">
-        {vehicleBrand && vehicleModel 
+        {vehicleBrand && vehicleModel
           ? `${vehicleBrand} ${vehicleModel}`
-          : 'Obrázok vozidla'
-        }
+          : 'Obrázok vozidla'}
       </Typography>
       <PhotoIcon sx={{ fontSize: 16, opacity: 0.5 }} />
     </Box>
@@ -132,9 +141,9 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
   return (
     <Box
       className={className}
-      sx={{ 
+      sx={{
         position: 'relative',
-        cursor: onClick ? 'pointer' : 'default'
+        cursor: onClick ? 'pointer' : 'default',
       }}
       onClick={onClick}
     >
@@ -161,7 +170,7 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
             height: dimensions.height,
             borderRadius,
             overflow: 'hidden',
-            cursor: onClick ? 'pointer' : 'default'
+            cursor: onClick ? 'pointer' : 'default',
           }}
           onClick={onClick}
         >
@@ -182,8 +191,8 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
             color: 'white',
             fontSize: '0.7rem',
             '& .MuiChip-label': {
-              px: 1
-            }
+              px: 1,
+            },
           }}
         />
       )}
@@ -200,7 +209,7 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
             p: 0.5,
             display: 'flex',
             alignItems: 'center',
-            color: 'text.secondary'
+            color: 'text.secondary',
           }}
         >
           {getVehicleTypeIcon()}

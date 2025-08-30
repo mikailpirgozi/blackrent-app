@@ -1,10 +1,18 @@
 /**
  * 🚗 VEHICLE CARD LAZY
- * 
+ *
  * Optimalizovaná vehicle card s lazy loading pre lepší performance
  */
 
-import React, { memo, useCallback } from 'react';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as VisibilityIcon,
+  DirectionsCar as CarIcon,
+  Business as BusinessIcon,
+  Speed as SpeedIcon,
+  LocalGasStation as FuelIcon,
+} from '@mui/icons-material';
 import {
   Card,
   CardContent,
@@ -17,17 +25,10 @@ import {
   Tooltip,
   Stack,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
 } from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as VisibilityIcon,
-  DirectionsCar as CarIcon,
-  Business as BusinessIcon,
-  Speed as SpeedIcon,
-  LocalGasStation as FuelIcon
-} from '@mui/icons-material';
+import React, { memo, useCallback } from 'react';
+
 import VehicleImage from './VehicleImage';
 
 interface Vehicle {
@@ -69,42 +70,48 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
   showCompany = true,
   showStatus = true,
   compact = false,
-  className
+  className,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Memoized handlers
   const handleEdit = useCallback(() => onEdit?.(vehicle), [onEdit, vehicle]);
-  const handleDelete = useCallback(() => onDelete?.(vehicle), [onDelete, vehicle]);
+  const handleDelete = useCallback(
+    () => onDelete?.(vehicle),
+    [onDelete, vehicle]
+  );
   const handleView = useCallback(() => onView?.(vehicle), [onView, vehicle]);
-  const handleImageClick = useCallback(() => onImageClick?.(vehicle), [onImageClick, vehicle]);
+  const handleImageClick = useCallback(
+    () => onImageClick?.(vehicle),
+    [onImageClick, vehicle]
+  );
 
   // Status configuration
   const getStatusConfig = (status: string) => {
     const configs = {
-      available: { 
-        label: 'Dostupné', 
+      available: {
+        label: 'Dostupné',
         color: 'success' as const,
-        backgroundColor: theme.palette.success.main + '20'
+        backgroundColor: theme.palette.success.main + '20',
       },
-      rented: { 
-        label: 'Prenajatý', 
+      rented: {
+        label: 'Prenajatý',
         color: 'primary' as const,
-        backgroundColor: theme.palette.primary.main + '20'
+        backgroundColor: theme.palette.primary.main + '20',
       },
-      maintenance: { 
-        label: 'Údržba', 
+      maintenance: {
+        label: 'Údržba',
         color: 'warning' as const,
-        backgroundColor: theme.palette.warning.main + '20'
+        backgroundColor: theme.palette.warning.main + '20',
       },
-      inactive: { 
-        label: 'Neaktívny', 
+      inactive: {
+        label: 'Neaktívny',
         color: 'error' as const,
-        backgroundColor: theme.palette.error.main + '20'
-      }
+        backgroundColor: theme.palette.error.main + '20',
+      },
     };
-    
+
     return configs[status as keyof typeof configs] || configs.available;
   };
 
@@ -122,8 +129,8 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
         transition: 'all 0.2s ease-in-out',
         '&:hover': {
           boxShadow: theme.shadows[8],
-          transform: 'translateY(-2px)'
-        }
+          transform: 'translateY(-2px)',
+        },
       }}
     >
       {/* Vehicle Image */}
@@ -149,12 +156,16 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
               top: 8,
               right: 8,
               backgroundColor: statusConfig.backgroundColor,
-              color: statusConfig.color === 'success' ? theme.palette.success.main : 
-                    statusConfig.color === 'primary' ? theme.palette.primary.main :
-                    statusConfig.color === 'warning' ? theme.palette.warning.main :
-                    theme.palette.error.main,
+              color:
+                statusConfig.color === 'success'
+                  ? theme.palette.success.main
+                  : statusConfig.color === 'primary'
+                    ? theme.palette.primary.main
+                    : statusConfig.color === 'warning'
+                      ? theme.palette.warning.main
+                      : theme.palette.error.main,
               fontWeight: 600,
-              fontSize: '0.7rem'
+              fontSize: '0.7rem',
             }}
           />
         )}
@@ -172,7 +183,7 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
               py: 0.5,
               borderRadius: 2,
               fontSize: '0.85rem',
-              fontWeight: 600
+              fontWeight: 600,
             }}
           >
             €{vehicle.dailyRate}/deň
@@ -183,21 +194,21 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
       {/* Card Content */}
       <CardContent sx={{ flexGrow: 1, pb: compact ? 1 : 2 }}>
         {/* Title */}
-        <Typography 
-          variant={compact ? "subtitle2" : "h6"} 
-          sx={{ 
+        <Typography
+          variant={compact ? 'subtitle2' : 'h6'}
+          sx={{
             fontWeight: 600,
             mb: 1,
-            lineHeight: 1.2
+            lineHeight: 1.2,
           }}
         >
           {vehicle.brand} {vehicle.model}
         </Typography>
 
         {/* License Plate */}
-        <Typography 
-          variant="body2" 
-          sx={{ 
+        <Typography
+          variant="body2"
+          sx={{
             color: 'text.secondary',
             mb: compact ? 0.5 : 1,
             fontFamily: 'monospace',
@@ -206,7 +217,7 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
             px: 1,
             py: 0.5,
             borderRadius: 1,
-            display: 'inline-block'
+            display: 'inline-block',
           }}
         >
           {vehicle.licensePlate}
@@ -218,18 +229,14 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
             {vehicle.year && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <CarIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                <Typography variant="caption">
-                  {vehicle.year}
-                </Typography>
+                <Typography variant="caption">{vehicle.year}</Typography>
               </Box>
             )}
-            
+
             {vehicle.fuelType && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <FuelIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                <Typography variant="caption">
-                  {vehicle.fuelType}
-                </Typography>
+                <Typography variant="caption">{vehicle.fuelType}</Typography>
               </Box>
             )}
 
@@ -256,15 +263,15 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
 
         {/* Description */}
         {!compact && vehicle.description && (
-          <Typography 
-            variant="body2" 
-            sx={{ 
+          <Typography
+            variant="body2"
+            sx={{
               mt: 1,
               color: 'text.secondary',
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
-              overflow: 'hidden'
+              overflow: 'hidden',
             }}
           >
             {vehicle.description}
@@ -294,7 +301,7 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
                   <EditIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              
+
               <Tooltip title="Zmazať">
                 <IconButton size="small" onClick={handleDelete} color="error">
                   <DeleteIcon fontSize="small" />
@@ -313,10 +320,10 @@ export default memo(VehicleCardLazy, (prevProps, nextProps) => {
   // Compare vehicle object deeply for critical props
   const prevVehicle = prevProps.vehicle;
   const nextVehicle = nextProps.vehicle;
-  
+
   // Quick reference check first
   if (prevVehicle === nextVehicle) return true;
-  
+
   // Compare critical vehicle properties
   if (prevVehicle.id !== nextVehicle.id) return false;
   if (prevVehicle.brand !== nextVehicle.brand) return false;
@@ -325,18 +332,18 @@ export default memo(VehicleCardLazy, (prevProps, nextProps) => {
   if (prevVehicle.status !== nextVehicle.status) return false;
   if (prevVehicle.dailyRate !== nextVehicle.dailyRate) return false;
   if (prevVehicle.company !== nextVehicle.company) return false;
-  
+
   // Compare other props
   if (prevProps.showActions !== nextProps.showActions) return false;
   if (prevProps.showCompany !== nextProps.showCompany) return false;
   if (prevProps.showStatus !== nextProps.showStatus) return false;
   if (prevProps.compact !== nextProps.compact) return false;
-  
+
   // Compare callback functions (should be memoized in parent)
   if (prevProps.onEdit !== nextProps.onEdit) return false;
   if (prevProps.onDelete !== nextProps.onDelete) return false;
   if (prevProps.onView !== nextProps.onView) return false;
   if (prevProps.onImageClick !== nextProps.onImageClick) return false;
-  
+
   return true;
 });

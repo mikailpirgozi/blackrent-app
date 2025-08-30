@@ -1,9 +1,10 @@
 /**
  * 📊 RESPONSIVE CHART
- * 
+ *
  * Mobile-optimized chart wrapper s responsive design
  */
 
+import { Box, useTheme, useMediaQuery, Typography } from '@mui/material';
 import React, { memo } from 'react';
 import {
   ResponsiveContainer,
@@ -20,9 +21,8 @@ import {
   Tooltip,
   Legend,
   AreaChart,
-  Area
+  Area,
 } from 'recharts';
-import { Box, useTheme, useMediaQuery, Typography } from '@mui/material';
 
 interface ResponsiveChartProps {
   type: 'bar' | 'line' | 'pie' | 'area';
@@ -59,7 +59,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   yAxisKey = 'value',
   nameKey = 'name',
   valueKey = 'value',
-  series = []
+  series = [],
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -79,7 +79,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
             borderRadius: 2,
             p: 1.5,
             boxShadow: theme.shadows[4],
-            minWidth: 120
+            minWidth: 120,
           }}
         >
           <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
@@ -89,13 +89,16 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
             <Typography
               key={index}
               variant="caption"
-              sx={{ 
+              sx={{
                 color: entry.color,
                 display: 'block',
-                lineHeight: 1.2
+                lineHeight: 1.2,
               }}
             >
-              {entry.name}: {typeof entry.value === 'number' ? entry.value.toLocaleString() : entry.value}
+              {entry.name}:{' '}
+              {typeof entry.value === 'number'
+                ? entry.value.toLocaleString()
+                : entry.value}
               {entry.unit && ` ${entry.unit}`}
             </Typography>
           ))}
@@ -108,7 +111,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   // Mobile-optimized legend
   const renderLegend = (props: any) => {
     if (!showLegend) return null;
-    
+
     const { payload } = props;
     return (
       <Box
@@ -119,7 +122,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 1,
-          mt: 1
+          mt: 1,
         }}
       >
         {payload.map((entry: any, index: number) => (
@@ -128,7 +131,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 0.5
+              gap: 0.5,
             }}
           >
             <Box
@@ -136,7 +139,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
                 width: 12,
                 height: 12,
                 backgroundColor: entry.color,
-                borderRadius: 1
+                borderRadius: 1,
               }}
             />
             <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
@@ -155,8 +158,8 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
         top: isMobile ? 10 : 20,
         right: isMobile ? 10 : 30,
         left: isMobile ? 10 : 20,
-        bottom: isMobile ? 10 : 5
-      }
+        bottom: isMobile ? 10 : 5,
+      },
     };
 
     switch (type) {
@@ -164,7 +167,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
         return (
           <BarChart width={400} height={chartHeight} {...commonProps}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" opacity={0.3} />}
-            <XAxis 
+            <XAxis
               dataKey={xAxisKey}
               tick={{ fontSize: isMobile ? 10 : 12 }}
               interval={isMobile ? 'preserveStartEnd' : 0}
@@ -172,13 +175,13 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
               textAnchor={isSmallMobile ? 'end' : 'middle'}
               height={isSmallMobile ? 60 : 40}
             />
-            <YAxis 
+            <YAxis
               tick={{ fontSize: isMobile ? 10 : 12 }}
               width={isMobile ? 40 : 60}
             />
             <Tooltip content={<CustomTooltip />} />
             {showLegend && <Legend content={renderLegend} />}
-            
+
             {series.length > 0 ? (
               series.map((s, index) => (
                 <Bar
@@ -190,8 +193,8 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
                 />
               ))
             ) : (
-              <Bar 
-                dataKey={dataKey} 
+              <Bar
+                dataKey={dataKey}
                 fill={colors[0]}
                 radius={isMobile ? 2 : 4}
               />
@@ -203,18 +206,18 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
         return (
           <LineChart width={400} height={chartHeight} {...commonProps}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" opacity={0.3} />}
-            <XAxis 
+            <XAxis
               dataKey={xAxisKey}
               tick={{ fontSize: isMobile ? 10 : 12 }}
               interval={isMobile ? 'preserveStartEnd' : 0}
             />
-            <YAxis 
+            <YAxis
               tick={{ fontSize: isMobile ? 10 : 12 }}
               width={isMobile ? 40 : 60}
             />
             <Tooltip content={<CustomTooltip />} />
             {showLegend && <Legend content={renderLegend} />}
-            
+
             {series.length > 0 ? (
               series.map((s, index) => (
                 <Line
@@ -243,18 +246,18 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
         return (
           <AreaChart width={400} height={chartHeight} {...commonProps}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" opacity={0.3} />}
-            <XAxis 
+            <XAxis
               dataKey={xAxisKey}
               tick={{ fontSize: isMobile ? 10 : 12 }}
               interval={isMobile ? 'preserveStartEnd' : 0}
             />
-            <YAxis 
+            <YAxis
               tick={{ fontSize: isMobile ? 10 : 12 }}
               width={isMobile ? 40 : 60}
             />
             <Tooltip content={<CustomTooltip />} />
             {showLegend && <Legend content={renderLegend} />}
-            
+
             {series.length > 0 ? (
               series.map((s, index) => (
                 <Area
@@ -296,7 +299,10 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
               labelLine={false}
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={colors[index % colors.length]}
+                />
               ))}
             </Pie>
             <Tooltip content={<CustomTooltip />} />
@@ -312,19 +318,19 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   return (
     <Box sx={{ width: '100%' }}>
       {title && (
-        <Typography 
-          variant={isMobile ? "subtitle2" : "h6"} 
-          sx={{ 
-            textAlign: 'center', 
+        <Typography
+          variant={isMobile ? 'subtitle2' : 'h6'}
+          sx={{
+            textAlign: 'center',
             mb: 2,
             fontWeight: 600,
-            color: 'text.primary'
+            color: 'text.primary',
           }}
         >
           {title}
         </Typography>
       )}
-      
+
       <ResponsiveContainer width="100%" height={chartHeight}>
         {renderChart()}
       </ResponsiveContainer>

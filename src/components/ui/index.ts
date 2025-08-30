@@ -1,6 +1,6 @@
 /**
  * 🎨 UNIFIED DESIGN SYSTEM
- * 
+ *
  * Centralizované exporty pre BlackRent unified komponenty
  * Zabezpečuje konzistentný dizajn v celej aplikácii
  */
@@ -87,11 +87,11 @@ export const BLACKRENT_DESIGN_TOKENS = {
 export const getDesignToken = (path: string) => {
   const keys = path.split('.');
   let value: any = BLACKRENT_DESIGN_TOKENS;
-  
+
   for (const key of keys) {
     value = value?.[key];
   }
-  
+
   return value;
 };
 
@@ -104,14 +104,14 @@ export const createUnifiedStyles = (theme: any) => ({
     fontWeight: 600,
     transition: BLACKRENT_DESIGN_TOKENS.transitions.normal,
   },
-  
+
   // Konzistentné card štýly
   card: {
     borderRadius: BLACKRENT_DESIGN_TOKENS.borderRadius.lg,
     boxShadow: BLACKRENT_DESIGN_TOKENS.shadows.md,
     transition: BLACKRENT_DESIGN_TOKENS.transitions.normal,
   },
-  
+
   // Konzistentné chip štýly
   chip: {
     borderRadius: BLACKRENT_DESIGN_TOKENS.borderRadius.md,
@@ -119,4 +119,3 @@ export const createUnifiedStyles = (theme: any) => ({
     transition: BLACKRENT_DESIGN_TOKENS.transitions.normal,
   },
 });
-

@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+
 import { Rental } from '../types';
 
 // Filter state interface
@@ -12,7 +13,7 @@ export interface FilterState {
   priceMin: string;
   priceMax: string;
   protocolStatus: string[];
-  
+
   // Rozšírené filtre
   customerName: string;
   vehicleBrand: string;
@@ -23,16 +24,16 @@ export interface FilterState {
   customerCompany: string;
   insuranceCompany: string;
   insuranceType: string;
-  
+
   // Časové filtre
   timeFilter: string;
-  
+
   // Cenové filtre
   priceRange: string;
-  
+
   // Stav platby
   paymentStatus: string;
-  
+
   // Zobrazenie
   showOnlyActive: boolean;
   showOnlyOverdue: boolean;
@@ -50,16 +51,16 @@ interface UseRentalFiltersReturn {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   debouncedSearchQuery: string;
-  
+
   // Filter state
   showFilters: boolean;
   setShowFilters: (show: boolean) => void;
   advancedFilters: FilterState;
   setAdvancedFilters: (filters: FilterState) => void;
-  
+
   // Filtered data
   filteredRentals: Rental[];
-  
+
   // Filter options
   uniqueStatuses: string[];
   uniqueCompanies: string[];
@@ -67,7 +68,7 @@ interface UseRentalFiltersReturn {
   uniqueVehicleBrands: string[];
   uniqueInsuranceCompanies: string[];
   uniqueInsuranceTypes: string[];
-  
+
   // Quick filter handlers
   handleQuickFilter: (filterType: string) => void;
   resetFilters: () => void;
@@ -76,9 +77,8 @@ interface UseRentalFiltersReturn {
 export const useRentalFilters = ({
   rentals,
   vehicles = [],
-  protocols = {}
+  protocols = {},
 }: UseRentalFiltersProps): UseRentalFiltersReturn => {
-  
   // Search state - LIVE SEARCH s debouncing
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -95,7 +95,7 @@ export const useRentalFilters = ({
     priceMin: '',
     priceMax: '',
     protocolStatus: [] as string[],
-    
+
     // Rozšírené filtre
     customerName: '',
     vehicleBrand: '',
@@ -106,16 +106,16 @@ export const useRentalFilters = ({
     customerCompany: '',
     insuranceCompany: '',
     insuranceType: '',
-    
+
     // Časové filtre
     timeFilter: 'all',
-    
+
     // Cenové filtre
     priceRange: 'all',
-    
+
     // Stav platby
     paymentStatus: 'all',
-    
+
     // Zobrazenie
     showOnlyActive: false,
     showOnlyOverdue: false,
@@ -142,28 +142,40 @@ export const useRentalFilters = ({
 
   // Get unique values for filter dropdowns
   const uniqueStatuses = useMemo(() => {
-    const statuses = new Set(rentals.map(rental => rental.status).filter(Boolean) as string[]);
+    const statuses = new Set(
+      rentals.map(rental => rental.status).filter(Boolean) as string[]
+    );
     return Array.from(statuses);
   }, [rentals]);
 
   const uniqueCompanies = useMemo(() => {
-    const companies = new Set(rentals.map(rental => {
-      const vehicle = vehicleLookupMap.get(rental.vehicleId);
-      return vehicle?.company;
-    }).filter(Boolean));
+    const companies = new Set(
+      rentals
+        .map(rental => {
+          const vehicle = vehicleLookupMap.get(rental.vehicleId);
+          return vehicle?.company;
+        })
+        .filter(Boolean)
+    );
     return Array.from(companies);
   }, [rentals, vehicleLookupMap]);
 
   const uniquePaymentMethods = useMemo(() => {
-    const methods = new Set(rentals.map(rental => rental.paymentMethod).filter(Boolean));
+    const methods = new Set(
+      rentals.map(rental => rental.paymentMethod).filter(Boolean)
+    );
     return Array.from(methods);
   }, [rentals]);
 
   const uniqueVehicleBrands = useMemo(() => {
-    const brands = new Set(rentals.map(rental => {
-      const vehicle = vehicleLookupMap.get(rental.vehicleId);
-      return vehicle?.brand;
-    }).filter(Boolean));
+    const brands = new Set(
+      rentals
+        .map(rental => {
+          const vehicle = vehicleLookupMap.get(rental.vehicleId);
+          return vehicle?.brand;
+        })
+        .filter(Boolean)
+    );
     return Array.from(brands);
   }, [rentals, vehicleLookupMap]);
 
@@ -184,7 +196,7 @@ export const useRentalFilters = ({
       const query = debouncedSearchQuery.toLowerCase().trim();
       filtered = filtered.filter(rental => {
         const vehicle = vehicleLookupMap.get(rental.vehicleId);
-        
+
         return (
           rental.customerName?.toLowerCase().includes(query) ||
           rental.customer?.email?.toLowerCase().includes(query) ||
@@ -200,14 +212,15 @@ export const useRentalFilters = ({
 
     // Status filter
     if (advancedFilters.status.length > 0) {
-      filtered = filtered.filter(rental => 
-        rental.status && advancedFilters.status.includes(rental.status)
+      filtered = filtered.filter(
+        rental =>
+          rental.status && advancedFilters.status.includes(rental.status)
       );
     }
 
     // Payment method filter
     if (advancedFilters.paymentMethod.length > 0) {
-      filtered = filtered.filter(rental => 
+      filtered = filtered.filter(rental =>
         advancedFilters.paymentMethod.includes(rental.paymentMethod)
       );
     }
@@ -223,43 +236,44 @@ export const useRentalFilters = ({
     // Date range filter
     if (advancedFilters.dateFrom) {
       const fromDate = new Date(advancedFilters.dateFrom);
-      filtered = filtered.filter(rental => 
-        new Date(rental.startDate) >= fromDate
+      filtered = filtered.filter(
+        rental => new Date(rental.startDate) >= fromDate
       );
     }
 
     if (advancedFilters.dateTo) {
       const toDate = new Date(advancedFilters.dateTo);
-      filtered = filtered.filter(rental => 
-        new Date(rental.endDate) <= toDate
-      );
+      filtered = filtered.filter(rental => new Date(rental.endDate) <= toDate);
     }
 
     // Price range filter
     if (advancedFilters.priceMin) {
       const minPrice = parseFloat(advancedFilters.priceMin);
-      filtered = filtered.filter(rental => 
-        (rental.totalPrice || 0) >= minPrice
+      filtered = filtered.filter(
+        rental => (rental.totalPrice || 0) >= minPrice
       );
     }
 
     if (advancedFilters.priceMax) {
       const maxPrice = parseFloat(advancedFilters.priceMax);
-      filtered = filtered.filter(rental => 
-        (rental.totalPrice || 0) <= maxPrice
+      filtered = filtered.filter(
+        rental => (rental.totalPrice || 0) <= maxPrice
       );
     }
 
     // Customer name filter
     if (advancedFilters.customerName.trim()) {
       const customerQuery = advancedFilters.customerName.toLowerCase().trim();
-      filtered = filtered.filter(rental => 
+      filtered = filtered.filter(rental =>
         rental.customerName?.toLowerCase().includes(customerQuery)
       );
     }
 
     // Vehicle brand filter
-    if (advancedFilters.vehicleBrand && advancedFilters.vehicleBrand !== 'all') {
+    if (
+      advancedFilters.vehicleBrand &&
+      advancedFilters.vehicleBrand !== 'all'
+    ) {
       filtered = filtered.filter(rental => {
         const vehicle = vehicleLookupMap.get(rental.vehicleId);
         return vehicle?.brand === advancedFilters.vehicleBrand;
@@ -305,9 +319,7 @@ export const useRentalFilters = ({
 
     // Show only completed filter
     if (advancedFilters.showOnlyCompleted) {
-      filtered = filtered.filter(rental => 
-        protocols[rental.id]?.return
-      );
+      filtered = filtered.filter(rental => protocols[rental.id]?.return);
     }
 
     // 🎯 CUSTOM TIME FILTERS - pre rýchle filtre z dashboard
@@ -315,7 +327,7 @@ export const useRentalFilters = ({
       const today = new Date();
       const tomorrow = new Date(today);
       tomorrow.setDate(today.getDate() + 1);
-      
+
       // Calculate week boundaries
       const endOfWeek = new Date(today);
       endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
@@ -347,10 +359,10 @@ export const useRentalFilters = ({
           filtered = filtered.filter(rental => {
             const startDate = new Date(rental.startDate);
             const endDate = new Date(rental.endDate);
-            
+
             const startsThisWeek = startDate >= today && startDate <= endOfWeek;
             const endsThisWeek = endDate >= today && endDate <= endOfWeek;
-            
+
             return startsThisWeek || endsThisWeek;
           });
           break;
@@ -370,14 +382,20 @@ export const useRentalFilters = ({
     }
 
     return filtered;
-  }, [rentals, debouncedSearchQuery, advancedFilters, vehicleLookupMap, protocols]);
+  }, [
+    rentals,
+    debouncedSearchQuery,
+    advancedFilters,
+    vehicleLookupMap,
+    protocols,
+  ]);
 
   // 🎯 QUICK FILTER HANDLER - pre dashboard metriky
   const handleQuickFilter = useCallback((filterType: string) => {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    
+
     // Calculate week boundaries
     const endOfWeek = new Date(today);
     endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
@@ -410,52 +428,52 @@ export const useRentalFilters = ({
       showOnlyCompleted: false,
     };
 
-    let quickFilters = { ...baseFilters };
+    const quickFilters = { ...baseFilters };
 
     switch (filterType) {
       case 'overdue':
         // Preterminované - prenájmy ktoré mali skončiť ale ešte sa nevrátili
         quickFilters.showOnlyOverdue = true;
         break;
-        
+
       case 'todayActivity':
         // Dnes odovzdanie/vrátenie - prenájmy ktoré sa dnes začínajú ALEBO končia
         // Potrebujeme custom filter pre toto, nie len dateFrom/dateTo
         quickFilters.timeFilter = 'todayActivity';
         break;
-        
+
       case 'tomorrowReturns':
         // Zajtra vrátenie - prenájmy ktoré sa zajtra končia
         const tomorrowStr = tomorrow.toISOString().split('T')[0];
         quickFilters.dateTo = tomorrowStr;
         quickFilters.timeFilter = 'tomorrowReturns';
         break;
-        
+
       case 'weekActivity':
         // Tento týždeň odovzdanie/vrátenie - prenájmy ktoré sa tento týždeň začínajú ALEBO končia
         quickFilters.timeFilter = 'weekActivity';
         break;
-        
+
       case 'active':
         // Aktívne prenájmy - prenájmy ktoré práve prebiehajú
         quickFilters.showOnlyActive = true;
         break;
-        
+
       case 'unpaid':
         // Nezaplatené prenájmy
         quickFilters.paymentStatus = 'unpaid';
         break;
-        
+
       case 'pending':
         // Čakajúce prenájmy
         quickFilters.status = ['pending'];
         break;
-        
+
       case 'newToday':
         // Nové dnes - prenájmy vytvorené dnes
         quickFilters.timeFilter = 'newToday';
         break;
-        
+
       default:
         break;
     }
@@ -508,16 +526,16 @@ export const useRentalFilters = ({
     searchQuery,
     setSearchQuery,
     debouncedSearchQuery,
-    
+
     // Filter state
     showFilters,
     setShowFilters,
     advancedFilters,
     setAdvancedFilters,
-    
+
     // Filtered data
     filteredRentals,
-    
+
     // Filter options
     uniqueStatuses,
     uniqueCompanies,
@@ -525,7 +543,7 @@ export const useRentalFilters = ({
     uniqueVehicleBrands,
     uniqueInsuranceCompanies,
     uniqueInsuranceTypes,
-    
+
     // Quick filter handlers
     handleQuickFilter,
     resetFilters,

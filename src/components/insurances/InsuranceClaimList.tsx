@@ -1,4 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  FilterList as FilterListIcon,
+  DirectionsCar as CarIcon,
+  Event as EventIcon,
+  Euro as EuroIcon,
+  Warning as WarningIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  Schedule as ScheduleIcon,
+  ReportProblem as ClaimIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -33,28 +48,15 @@ import {
   ListItemIcon,
   Divider,
   Collapse,
-  Stack
+  Stack,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  DirectionsCar as CarIcon,
-  Event as EventIcon,
-  Euro as EuroIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Schedule as ScheduleIcon,
-  ReportProblem as ClaimIcon,
-  Close as CloseIcon
-} from '@mui/icons-material';
-import { useApp } from '../../context/AppContext';
-import { InsuranceClaim } from '../../types';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import React, { useState, useMemo } from 'react';
+
+import { useApp } from '../../context/AppContext';
+import { InsuranceClaim } from '../../types';
+
 import InsuranceClaimForm from './InsuranceClaimForm';
 
 const getIncidentTypeInfo = (type: string) => {
@@ -75,32 +77,62 @@ const getIncidentTypeInfo = (type: string) => {
 const getStatusInfo = (status: string) => {
   switch (status) {
     case 'reported':
-      return { label: 'Nahlásené', color: '#f57c00', bgColor: '#fff3e0', icon: <ScheduleIcon sx={{ fontSize: 14 }} /> };
+      return {
+        label: 'Nahlásené',
+        color: '#f57c00',
+        bgColor: '#fff3e0',
+        icon: <ScheduleIcon sx={{ fontSize: 14 }} />,
+      };
     case 'investigating':
-      return { label: 'Vyšetruje sa', color: '#1976d2', bgColor: '#e3f2fd', icon: <SearchIcon sx={{ fontSize: 14 }} /> };
+      return {
+        label: 'Vyšetruje sa',
+        color: '#1976d2',
+        bgColor: '#e3f2fd',
+        icon: <SearchIcon sx={{ fontSize: 14 }} />,
+      };
     case 'approved':
-      return { label: 'Schválené', color: '#388e3c', bgColor: '#e8f5e8', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> };
+      return {
+        label: 'Schválené',
+        color: '#388e3c',
+        bgColor: '#e8f5e8',
+        icon: <CheckCircleIcon sx={{ fontSize: 14 }} />,
+      };
     case 'rejected':
-      return { label: 'Zamietnuté', color: '#d32f2f', bgColor: '#ffebee', icon: <ErrorIcon sx={{ fontSize: 14 }} /> };
+      return {
+        label: 'Zamietnuté',
+        color: '#d32f2f',
+        bgColor: '#ffebee',
+        icon: <ErrorIcon sx={{ fontSize: 14 }} />,
+      };
     case 'closed':
-      return { label: 'Uzavreté', color: '#616161', bgColor: '#f5f5f5', icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> };
+      return {
+        label: 'Uzavreté',
+        color: '#616161',
+        bgColor: '#f5f5f5',
+        icon: <CheckCircleIcon sx={{ fontSize: 14 }} />,
+      };
     default:
-      return { label: 'Neznáme', color: '#616161', bgColor: '#f5f5f5', icon: <WarningIcon sx={{ fontSize: 14 }} /> };
+      return {
+        label: 'Neznáme',
+        color: '#616161',
+        bgColor: '#f5f5f5',
+        icon: <WarningIcon sx={{ fontSize: 14 }} />,
+      };
   }
 };
 
 export default function InsuranceClaimList() {
-  const { 
-    state, 
+  const {
+    state,
     createInsuranceClaim,
     updateInsuranceClaim,
-    deleteInsuranceClaim
+    deleteInsuranceClaim,
   } = useApp();
-  
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
-  
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingClaim, setEditingClaim] = useState<InsuranceClaim | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -117,15 +149,21 @@ export default function InsuranceClaimList() {
   // Filter claims
   const filteredClaims = useMemo(() => {
     return claims.filter(claim => {
-      const matchesSearch = !searchQuery || 
+      const matchesSearch =
+        !searchQuery ||
         claim.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (claim.claimNumber && claim.claimNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (claim.location && claim.location.toLowerCase().includes(searchQuery.toLowerCase()));
-      
-      const matchesVehicle = !filterVehicle || claim.vehicleId === filterVehicle;
+        (claim.claimNumber &&
+          claim.claimNumber
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())) ||
+        (claim.location &&
+          claim.location.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesVehicle =
+        !filterVehicle || claim.vehicleId === filterVehicle;
       const matchesStatus = !filterStatus || claim.status === filterStatus;
       const matchesType = !filterType || claim.incidentType === filterType;
-      
+
       return matchesSearch && matchesVehicle && matchesStatus && matchesType;
     });
   }, [claims, searchQuery, filterVehicle, filterStatus, filterType]);
@@ -167,7 +205,10 @@ export default function InsuranceClaimList() {
       setEditingClaim(null);
     } catch (error) {
       console.error('Chyba pri ukladaní poistnej udalosti:', error);
-      alert('Chyba pri ukladaní poistnej udalosti: ' + (error instanceof Error ? error.message : 'Neznáma chyba'));
+      alert(
+        'Chyba pri ukladaní poistnej udalosti: ' +
+          (error instanceof Error ? error.message : 'Neznáma chyba')
+      );
     }
   };
 
@@ -178,90 +219,117 @@ export default function InsuranceClaimList() {
     setFilterType('');
   };
 
-  const hasActiveFilters = searchQuery || filterVehicle || filterStatus || filterType;
+  const hasActiveFilters =
+    searchQuery || filterVehicle || filterStatus || filterType;
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
   if (!state.insuranceClaims) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: 200,
+        }}
+      >
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ 
-      p: { xs: 1, sm: 2, md: 3 },
-      width: '100%',
-      maxWidth: '100%',
-      overflow: 'hidden'
-    }}>
+    <Box
+      sx={{
+        p: { xs: 1, sm: 2, md: 3 },
+        width: '100%',
+        maxWidth: '100%',
+        overflow: 'hidden',
+      }}
+    >
       {/* Responsive Header */}
-      <Card sx={{ 
-        mb: { xs: 2, sm: 3 }, 
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-        borderRadius: { xs: 2, sm: 3 }
-      }}>
-        <CardContent sx={{ 
-          background: 'linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)',
-          color: 'white',
-          p: { xs: 2, sm: 2.5, md: 3 }
-        }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: isMobile ? 'flex-start' : 'center',
-            flexDirection: isMobile ? 'column' : 'row',
-            gap: { xs: 2, sm: 2 }
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: { xs: 1.5, sm: 2 },
-              width: isMobile ? '100%' : 'auto'
-            }}>
-              <ClaimIcon sx={{ 
-                fontSize: { xs: 24, sm: 28, md: 32 },
-                flexShrink: 0
-              }} />
+      <Card
+        sx={{
+          mb: { xs: 2, sm: 3 },
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          borderRadius: { xs: 2, sm: 3 },
+        }}
+      >
+        <CardContent
+          sx={{
+            background: 'linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)',
+            color: 'white',
+            p: { xs: 2, sm: 2.5, md: 3 },
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: { xs: 2, sm: 2 },
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: { xs: 1.5, sm: 2 },
+                width: isMobile ? '100%' : 'auto',
+              }}
+            >
+              <ClaimIcon
+                sx={{
+                  fontSize: { xs: 24, sm: 28, md: 32 },
+                  flexShrink: 0,
+                }}
+              />
               <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography 
-                  variant={isMobile ? "h6" : isTablet ? "h5" : "h4"} 
-                  sx={{ 
-                    fontWeight: 700, 
+                <Typography
+                  variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
+                  sx={{
+                    fontWeight: 700,
                     mb: 0.5,
-                    fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem', lg: '2rem' },
-                    lineHeight: 1.2
+                    fontSize: {
+                      xs: '1.1rem',
+                      sm: '1.25rem',
+                      md: '1.5rem',
+                      lg: '2rem',
+                    },
+                    lineHeight: 1.2,
                   }}
                 >
-                  {isMobile ? "Poistné udalosti" : "Poistné udalosti"}
+                  {isMobile ? 'Poistné udalosti' : 'Poistné udalosti'}
                 </Typography>
-                <Typography 
-                  variant={isMobile ? "body2" : "body1"} 
-                  sx={{ 
+                <Typography
+                  variant={isMobile ? 'body2' : 'body1'}
+                  sx={{
                     opacity: 0.9,
-                    fontSize: { xs: '0.875rem', sm: '1rem' }
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
                   }}
                 >
                   {claims.length} udalostí celkom
                 </Typography>
               </Box>
             </Box>
-            
+
             {!isMobile && (
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={handleAdd}
-                size={isTablet ? "medium" : "large"}
+                size={isTablet ? 'medium' : 'large'}
                 sx={{
                   backgroundColor: 'rgba(255,255,255,0.2)',
                   backdropFilter: 'blur(10px)',
@@ -283,194 +351,222 @@ export default function InsuranceClaimList() {
       {/* Responsive Statistics */}
       <Grid container spacing={{ xs: 1, sm: 2 }} sx={{ mb: { xs: 2, sm: 3 } }}>
         <Grid item xs={6} sm={6} md={3}>
-          <Card sx={{ 
-            height: '100%', 
-            background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', 
-            color: 'white',
-            minHeight: { xs: 80, sm: 100, md: 120 },
-            borderRadius: { xs: 2, sm: 3 },
-            transition: 'transform 0.2s ease-in-out',
-            '&:hover': {
-              transform: isMobile ? 'none' : 'translateY(-2px)'
-            }
-          }}>
-            <CardContent sx={{ 
-              p: { xs: 1.5, sm: 2, md: 2.5 },
-              '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } }
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                flexDirection: isMobile ? 'column' : 'row',
-                textAlign: isMobile ? 'center' : 'left',
-                gap: isMobile ? 1 : 0
-              }}>
+          <Card
+            sx={{
+              height: '100%',
+              background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+              color: 'white',
+              minHeight: { xs: 80, sm: 100, md: 120 },
+              borderRadius: { xs: 2, sm: 3 },
+              transition: 'transform 0.2s ease-in-out',
+              '&:hover': {
+                transform: isMobile ? 'none' : 'translateY(-2px)',
+              },
+            }}
+          >
+            <CardContent
+              sx={{
+                p: { xs: 1.5, sm: 2, md: 2.5 },
+                '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } },
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  textAlign: isMobile ? 'center' : 'left',
+                  gap: isMobile ? 1 : 0,
+                }}
+              >
                 <Box sx={{ order: isMobile ? 2 : 1 }}>
-                  <Typography 
-                    variant={isMobile ? "caption" : isTablet ? "subtitle2" : "h6"}
-                    sx={{ 
+                  <Typography
+                    variant={
+                      isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'
+                    }
+                    sx={{
                       fontWeight: 600,
                       fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
                       letterSpacing: 0.5,
-                      mb: { xs: 0.5, sm: 1 }
+                      mb: { xs: 0.5, sm: 1 },
                     }}
                   >
                     CELKOM
                   </Typography>
-                  <Typography 
-                    variant={isMobile ? "h6" : isTablet ? "h5" : "h4"}
-                    sx={{ 
+                  <Typography
+                    variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
+                    sx={{
                       fontWeight: 700,
-                      fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' }
+                      fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' },
                     }}
                   >
                     {claims.length}
                   </Typography>
                 </Box>
-                <ClaimIcon sx={{ 
-                  fontSize: { xs: 20, sm: 32, md: 40 }, 
-                  opacity: 0.8,
-                  order: isMobile ? 1 : 2
-                }} />
+                <ClaimIcon
+                  sx={{
+                    fontSize: { xs: 20, sm: 32, md: 40 },
+                    opacity: 0.8,
+                    order: isMobile ? 1 : 2,
+                  }}
+                />
               </Box>
             </CardContent>
           </Card>
         </Grid>
-        
+
         <Grid item xs={6} sm={6} md={3}>
-          <Card sx={{ 
-            height: '100%', 
-            background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)', 
-            color: 'white',
-            minHeight: { xs: 100, sm: 120 }
-          }}>
+          <Card
+            sx={{
+              height: '100%',
+              background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+              color: 'white',
+              minHeight: { xs: 100, sm: 120 },
+            }}
+          >
             <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                flexDirection: { xs: 'column', sm: 'row' },
-                textAlign: { xs: 'center', sm: 'left' },
-                gap: { xs: 1, sm: 0 }
-              }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  textAlign: { xs: 'center', sm: 'left' },
+                  gap: { xs: 1, sm: 0 },
+                }}
+              >
                 <Box>
-                  <Typography 
+                  <Typography
                     variant="h6"
-                    sx={{ 
+                    sx={{
                       fontWeight: 600,
-                      fontSize: { xs: '0.75rem', sm: '1.25rem' }
+                      fontSize: { xs: '0.75rem', sm: '1.25rem' },
                     }}
                   >
                     VYŠETRUJE SA
                   </Typography>
-                  <Typography 
+                  <Typography
                     variant="h4"
-                    sx={{ 
+                    sx={{
                       fontWeight: 700,
-                      fontSize: { xs: '1.5rem', sm: '2.125rem' }
+                      fontSize: { xs: '1.5rem', sm: '2.125rem' },
                     }}
                   >
                     {claims.filter(c => c.status === 'investigating').length}
                   </Typography>
                 </Box>
-                <SearchIcon sx={{ 
-                  fontSize: { xs: 24, sm: 40 }, 
-                  opacity: 0.8,
-                  display: { xs: 'none', sm: 'block' }
-                }} />
+                <SearchIcon
+                  sx={{
+                    fontSize: { xs: 24, sm: 40 },
+                    opacity: 0.8,
+                    display: { xs: 'none', sm: 'block' },
+                  }}
+                />
               </Box>
             </CardContent>
           </Card>
         </Grid>
-        
+
         <Grid item xs={6} sm={6} md={3}>
-          <Card sx={{ 
-            height: '100%', 
-            background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)', 
-            color: 'white',
-            minHeight: { xs: 100, sm: 120 }
-          }}>
+          <Card
+            sx={{
+              height: '100%',
+              background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)',
+              color: 'white',
+              minHeight: { xs: 100, sm: 120 },
+            }}
+          >
             <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                flexDirection: { xs: 'column', sm: 'row' },
-                textAlign: { xs: 'center', sm: 'left' },
-                gap: { xs: 1, sm: 0 }
-              }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  textAlign: { xs: 'center', sm: 'left' },
+                  gap: { xs: 1, sm: 0 },
+                }}
+              >
                 <Box>
-                  <Typography 
+                  <Typography
                     variant="h6"
-                    sx={{ 
+                    sx={{
                       fontWeight: 600,
-                      fontSize: { xs: '0.75rem', sm: '1.25rem' }
+                      fontSize: { xs: '0.75rem', sm: '1.25rem' },
                     }}
                   >
                     SCHVÁLENÉ
                   </Typography>
-                  <Typography 
+                  <Typography
                     variant="h4"
-                    sx={{ 
+                    sx={{
                       fontWeight: 700,
-                      fontSize: { xs: '1.5rem', sm: '2.125rem' }
+                      fontSize: { xs: '1.5rem', sm: '2.125rem' },
                     }}
                   >
                     {claims.filter(c => c.status === 'approved').length}
                   </Typography>
                 </Box>
-                <CheckCircleIcon sx={{ 
-                  fontSize: { xs: 24, sm: 40 }, 
-                  opacity: 0.8,
-                  display: { xs: 'none', sm: 'block' }
-                }} />
+                <CheckCircleIcon
+                  sx={{
+                    fontSize: { xs: 24, sm: 40 },
+                    opacity: 0.8,
+                    display: { xs: 'none', sm: 'block' },
+                  }}
+                />
               </Box>
             </CardContent>
           </Card>
         </Grid>
-        
+
         <Grid item xs={6} sm={6} md={3}>
-          <Card sx={{ 
-            height: '100%', 
-            background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)', 
-            color: 'white',
-            minHeight: { xs: 100, sm: 120 }
-          }}>
+          <Card
+            sx={{
+              height: '100%',
+              background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
+              color: 'white',
+              minHeight: { xs: 100, sm: 120 },
+            }}
+          >
             <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                flexDirection: { xs: 'column', sm: 'row' },
-                textAlign: { xs: 'center', sm: 'left' },
-                gap: { xs: 1, sm: 0 }
-              }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  textAlign: { xs: 'center', sm: 'left' },
+                  gap: { xs: 1, sm: 0 },
+                }}
+              >
                 <Box>
-                  <Typography 
+                  <Typography
                     variant="h6"
-                    sx={{ 
+                    sx={{
                       fontWeight: 600,
-                      fontSize: { xs: '0.75rem', sm: '1.25rem' }
+                      fontSize: { xs: '0.75rem', sm: '1.25rem' },
                     }}
                   >
                     ZAMIETNUTÉ
                   </Typography>
-                  <Typography 
+                  <Typography
                     variant="h4"
-                    sx={{ 
+                    sx={{
                       fontWeight: 700,
-                      fontSize: { xs: '1.5rem', sm: '2.125rem' }
+                      fontSize: { xs: '1.5rem', sm: '2.125rem' },
                     }}
                   >
                     {claims.filter(c => c.status === 'rejected').length}
                   </Typography>
                 </Box>
-                <ErrorIcon sx={{ 
-                  fontSize: { xs: 24, sm: 40 }, 
-                  opacity: 0.8,
-                  display: { xs: 'none', sm: 'block' }
-                }} />
+                <ErrorIcon
+                  sx={{
+                    fontSize: { xs: 24, sm: 40 },
+                    opacity: 0.8,
+                    display: { xs: 'none', sm: 'block' },
+                  }}
+                />
               </Box>
             </CardContent>
           </Card>
@@ -480,69 +576,93 @@ export default function InsuranceClaimList() {
       {/* Search and Filters */}
       <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-          <Box sx={{ 
-            display: 'flex', 
-            gap: { xs: 1, sm: 2 }, 
-            mb: showFilters ? 2 : 0, 
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'stretch', sm: 'center' }
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: { xs: 1, sm: 2 },
+              mb: showFilters ? 2 : 0,
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'stretch', sm: 'center' },
+            }}
+          >
             <TextField
               placeholder="Vyhľadať udalosť..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               InputProps={{
-                startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
+                startAdornment: (
+                  <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
+                ),
               }}
-              sx={{ 
-                flex: 1, 
+              sx={{
+                flex: 1,
                 minWidth: { xs: 'auto', sm: '250px' },
-                mb: { xs: 1, sm: 0 }
+                mb: { xs: 1, sm: 0 },
               }}
               size="medium"
             />
-            <Box sx={{ 
-              display: 'flex', 
-              gap: 1, 
-              flexDirection: { xs: 'row', sm: 'row' },
-              justifyContent: { xs: 'space-between', sm: 'flex-start' }
-            }}>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1,
+                flexDirection: { xs: 'row', sm: 'row' },
+                justifyContent: { xs: 'space-between', sm: 'flex-start' },
+              }}
+            >
               <Button
                 variant={showFilters ? 'contained' : 'outlined'}
-                startIcon={<FilterListIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+                startIcon={
+                  <FilterListIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                }
                 onClick={() => setShowFilters(!showFilters)}
-                sx={{ 
+                sx={{
                   whiteSpace: 'nowrap',
                   fontSize: { xs: '0.875rem', sm: '1rem' },
                   px: { xs: 2, sm: 3 },
-                  flex: { xs: 1, sm: 'none' }
+                  flex: { xs: 1, sm: 'none' },
                 }}
                 size="medium"
               >
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                  Filtre {hasActiveFilters && `(${[searchQuery, filterVehicle, filterStatus, filterType].filter(Boolean).length})`}
+                <Box
+                  component="span"
+                  sx={{ display: { xs: 'none', sm: 'inline' } }}
+                >
+                  Filtre{' '}
+                  {hasActiveFilters &&
+                    `(${[searchQuery, filterVehicle, filterStatus, filterType].filter(Boolean).length})`}
                 </Box>
-                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                <Box
+                  component="span"
+                  sx={{ display: { xs: 'inline', sm: 'none' } }}
+                >
                   Filtre
                 </Box>
               </Button>
               {hasActiveFilters && (
                 <Button
                   variant="outlined"
-                  startIcon={<CloseIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+                  startIcon={
+                    <CloseIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                  }
                   onClick={clearFilters}
-                  sx={{ 
+                  sx={{
                     whiteSpace: 'nowrap',
                     fontSize: { xs: '0.875rem', sm: '1rem' },
                     px: { xs: 2, sm: 3 },
-                    flex: { xs: 1, sm: 'none' }
+                    flex: { xs: 1, sm: 'none' },
                   }}
                   size="medium"
                 >
-                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  <Box
+                    component="span"
+                    sx={{ display: { xs: 'none', sm: 'inline' } }}
+                  >
                     Vyčistiť
                   </Box>
-                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                  <Box
+                    component="span"
+                    sx={{ display: { xs: 'inline', sm: 'none' } }}
+                  >
                     Reset
                   </Box>
                 </Button>
@@ -557,18 +677,22 @@ export default function InsuranceClaimList() {
                   <InputLabel>Vozidlo</InputLabel>
                   <Select
                     value={filterVehicle}
-                    onChange={(e) => setFilterVehicle(e.target.value)}
+                    onChange={e => setFilterVehicle(e.target.value)}
                     label="Vozidlo"
                   >
                     <MenuItem value="">Všetky</MenuItem>
-                    {state.vehicles?.map((vehicle) => (
+                    {state.vehicles?.map(vehicle => (
                       <MenuItem key={vehicle.id} value={vehicle.id}>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          flexDirection: 'column',
-                          fontSize: { xs: '0.875rem', sm: '1rem' }
-                        }}>
-                          <span>{vehicle.brand} {vehicle.model}</span>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            fontSize: { xs: '0.875rem', sm: '1rem' },
+                          }}
+                        >
+                          <span>
+                            {vehicle.brand} {vehicle.model}
+                          </span>
                           <Typography variant="caption" color="text.secondary">
                             {vehicle.licensePlate}
                           </Typography>
@@ -583,7 +707,7 @@ export default function InsuranceClaimList() {
                   <InputLabel>Stav</InputLabel>
                   <Select
                     value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
+                    onChange={e => setFilterStatus(e.target.value)}
                     label="Stav"
                   >
                     <MenuItem value="">Všetky</MenuItem>
@@ -600,7 +724,7 @@ export default function InsuranceClaimList() {
                   <InputLabel>Typ udalosti</InputLabel>
                   <Select
                     value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
+                    onChange={e => setFilterType(e.target.value)}
                     label="Typ udalosti"
                   >
                     <MenuItem value="">Všetky</MenuItem>
@@ -621,20 +745,29 @@ export default function InsuranceClaimList() {
       {filteredClaims.length === 0 ? (
         <Card sx={{ textAlign: 'center', py: { xs: 4, sm: 6 } }}>
           <CardContent>
-            <ClaimIcon sx={{ fontSize: { xs: 48, sm: 64 }, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" sx={{ mb: 1, fontSize: { xs: '1rem', sm: '1.25rem' } }} color="text.secondary">
+            <ClaimIcon
+              sx={{
+                fontSize: { xs: 48, sm: 64 },
+                color: 'text.secondary',
+                mb: 2,
+              }}
+            />
+            <Typography
+              variant="h6"
+              sx={{ mb: 1, fontSize: { xs: '1rem', sm: '1.25rem' } }}
+              color="text.secondary"
+            >
               {hasActiveFilters ? 'Žiadne výsledky' : 'Žiadne poistné udalosti'}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {hasActiveFilters 
+              {hasActiveFilters
                 ? 'Skúste zmeniť filter alebo vyhľadávací výraz'
-                : 'Zatiaľ neboli vytvorené žiadne poistné udalosti'
-              }
+                : 'Zatiaľ neboli vytvorené žiadne poistné udalosti'}
             </Typography>
             {!hasActiveFilters && (
-              <Button 
-                variant="contained" 
-                startIcon={<AddIcon />} 
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
                 onClick={handleAdd}
                 size="medium"
               >
@@ -647,11 +780,16 @@ export default function InsuranceClaimList() {
         <>
           {/* Desktop Table */}
           <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-            <TableContainer component={Paper} sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            <TableContainer
+              component={Paper}
+              sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+            >
               <Table>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                    <TableCell sx={{ fontWeight: 600 }}>Dátum udalosti</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>
+                      Dátum udalosti
+                    </TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Vozidlo</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Typ</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Popis</TableCell>
@@ -661,25 +799,50 @@ export default function InsuranceClaimList() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paginatedClaims.map((claim) => {
-                    const vehicle = state.vehicles?.find(v => v.id === claim.vehicleId);
+                  {paginatedClaims.map(claim => {
+                    const vehicle = state.vehicles?.find(
+                      v => v.id === claim.vehicleId
+                    );
                     const typeInfo = getIncidentTypeInfo(claim.incidentType);
                     const statusInfo = getStatusInfo(claim.status);
-                    
+
                     return (
                       <TableRow key={claim.id} hover>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <EventIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                            {format(new Date(claim.incidentDate), 'dd.MM.yyyy', { locale: sk })}
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            <EventIcon
+                              sx={{ fontSize: 18, color: 'text.secondary' }}
+                            />
+                            {format(
+                              new Date(claim.incidentDate),
+                              'dd.MM.yyyy',
+                              { locale: sk }
+                            )}
                           </Box>
                         </TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
                             <CarIcon sx={{ fontSize: 18, color: '#1976d2' }} />
-                            {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Neznáme vozidlo'}
+                            {vehicle
+                              ? `${vehicle.brand} ${vehicle.model}`
+                              : 'Neznáme vozidlo'}
                             <br />
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               {vehicle?.licensePlate}
                             </Typography>
                           </Box>
@@ -691,19 +854,21 @@ export default function InsuranceClaimList() {
                             sx={{
                               backgroundColor: typeInfo.bgColor,
                               color: typeInfo.color,
-                              fontWeight: 600
+                              fontWeight: 600,
                             }}
                           />
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" sx={{ maxWidth: 200 }}>
-                            {claim.description.length > 50 
-                              ? `${claim.description.substring(0, 50)}...` 
-                              : claim.description
-                            }
+                            {claim.description.length > 50
+                              ? `${claim.description.substring(0, 50)}...`
+                              : claim.description}
                           </Typography>
                           {claim.location && (
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               📍 {claim.location}
                             </Typography>
                           )}
@@ -716,18 +881,28 @@ export default function InsuranceClaimList() {
                             sx={{
                               backgroundColor: statusInfo.bgColor,
                               color: statusInfo.color,
-                              fontWeight: 600
+                              fontWeight: 600,
                             }}
                           />
                         </TableCell>
                         <TableCell>
                           {claim.estimatedDamage ? (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <EuroIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                              }}
+                            >
+                              <EuroIcon
+                                sx={{ fontSize: 16, color: 'text.secondary' }}
+                              />
                               {claim.estimatedDamage.toLocaleString()} €
                             </Box>
                           ) : (
-                            <Typography variant="body2" color="text.secondary">-</Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              -
+                            </Typography>
                           )}
                         </TableCell>
                         <TableCell>
@@ -763,32 +938,50 @@ export default function InsuranceClaimList() {
           {/* Mobile Cards */}
           <Box sx={{ display: { xs: 'block', md: 'none' } }}>
             <Grid container spacing={2}>
-              {paginatedClaims.map((claim) => {
-                const vehicle = state.vehicles?.find(v => v.id === claim.vehicleId);
+              {paginatedClaims.map(claim => {
+                const vehicle = state.vehicles?.find(
+                  v => v.id === claim.vehicleId
+                );
                 const typeInfo = getIncidentTypeInfo(claim.incidentType);
                 const statusInfo = getStatusInfo(claim.status);
-                
+
                 return (
                   <Grid item xs={12} key={claim.id}>
-                    <Card sx={{ 
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      border: '1px solid #e0e0e0',
-                      '&:hover': {
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                      }
-                    }}>
+                    <Card
+                      sx={{
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        border: '1px solid #e0e0e0',
+                        '&:hover': {
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        },
+                      }}
+                    >
                       <CardContent sx={{ p: 2 }}>
                         {/* Header with date and actions */}
-                        <Box sx={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'flex-start',
-                          mb: 2
-                        }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <EventIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            mb: 2,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            <EventIcon
+                              sx={{ fontSize: 18, color: 'text.secondary' }}
+                            />
                             <Typography variant="body2" fontWeight={600}>
-                              {format(new Date(claim.incidentDate), 'dd.MM.yyyy', { locale: sk })}
+                              {format(
+                                new Date(claim.incidentDate),
+                                'dd.MM.yyyy',
+                                { locale: sk }
+                              )}
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -810,20 +1003,39 @@ export default function InsuranceClaimList() {
                         </Box>
 
                         {/* Vehicle info */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            mb: 2,
+                          }}
+                        >
                           <CarIcon sx={{ fontSize: 18, color: '#1976d2' }} />
                           <Box>
                             <Typography variant="body2" fontWeight={600}>
-                              {vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Neznáme vozidlo'}
+                              {vehicle
+                                ? `${vehicle.brand} ${vehicle.model}`
+                                : 'Neznáme vozidlo'}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               {vehicle?.licensePlate}
                             </Typography>
                           </Box>
                         </Box>
 
                         {/* Type and Status */}
-                        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            gap: 1,
+                            mb: 2,
+                            flexWrap: 'wrap',
+                          }}
+                        >
                           <Chip
                             label={typeInfo.label}
                             size="small"
@@ -831,7 +1043,7 @@ export default function InsuranceClaimList() {
                               backgroundColor: typeInfo.bgColor,
                               color: typeInfo.color,
                               fontWeight: 600,
-                              fontSize: '0.75rem'
+                              fontSize: '0.75rem',
                             }}
                           />
                           <Chip
@@ -842,28 +1054,48 @@ export default function InsuranceClaimList() {
                               backgroundColor: statusInfo.bgColor,
                               color: statusInfo.color,
                               fontWeight: 600,
-                              fontSize: '0.75rem'
+                              fontSize: '0.75rem',
                             }}
                           />
                         </Box>
 
                         {/* Description */}
-                        <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.4 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ mb: 1, lineHeight: 1.4 }}
+                        >
                           {claim.description}
                         </Typography>
 
                         {/* Location */}
                         {claim.location && (
-                          <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ mb: 2, display: 'block' }}
+                          >
                             📍 {claim.location}
                           </Typography>
                         )}
 
                         {/* Damage amount */}
                         {claim.estimatedDamage && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                            <EuroIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            <Typography variant="body2" fontWeight={600} color="primary">
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              mt: 1,
+                            }}
+                          >
+                            <EuroIcon
+                              sx={{ fontSize: 16, color: 'text.secondary' }}
+                            />
+                            <Typography
+                              variant="body2"
+                              fontWeight={600}
+                              color="primary"
+                            >
                               {claim.estimatedDamage.toLocaleString()} €
                             </Typography>
                           </Box>
@@ -884,16 +1116,19 @@ export default function InsuranceClaimList() {
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             labelRowsPerPage="Riadkov na stránku:"
-            labelDisplayedRows={({ from, to, count }) => `${from}–${to} z ${count}`}
+            labelDisplayedRows={({ from, to, count }) =>
+              `${from}–${to} z ${count}`
+            }
             sx={{
               mt: 2,
               '& .MuiTablePagination-toolbar': {
                 fontSize: { xs: '0.875rem', sm: '1rem' },
-                px: { xs: 1, sm: 2 }
+                px: { xs: 1, sm: 2 },
               },
-              '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-                fontSize: { xs: '0.875rem', sm: '1rem' }
-              }
+              '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows':
+                {
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                },
             }}
           />
         </>
@@ -914,7 +1149,7 @@ export default function InsuranceClaimList() {
               background: 'linear-gradient(135deg, #c62828 0%, #a00000 100%)',
             },
             zIndex: 1000,
-            boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)'
+            boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)',
           }}
         >
           <AddIcon />
@@ -934,8 +1169,8 @@ export default function InsuranceClaimList() {
           sx={{
             '& .MuiDialog-paper': {
               borderRadius: isMobile ? 0 : { xs: 2, sm: 3 },
-              margin: isMobile ? 0 : { xs: 1, sm: 2 }
-            }
+              margin: isMobile ? 0 : { xs: 1, sm: 2 },
+            },
           }}
         >
           <InsuranceClaimForm
@@ -947,4 +1182,4 @@ export default function InsuranceClaimList() {
       )}
     </Box>
   );
-} 
+}

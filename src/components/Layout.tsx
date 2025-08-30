@@ -1,4 +1,21 @@
-import React, { useState } from 'react';
+import {
+  Menu as MenuIcon,
+  AttachMoney,
+  AccountCircle,
+  Logout,
+  Lock as LockIcon,
+  DashboardOutlined,
+  CarRental,
+  GroupOutlined,
+  ReceiptLongOutlined,
+  AssessmentOutlined,
+  SecurityOutlined,
+  AdminPanelSettingsOutlined,
+  LightMode,
+  DarkMode,
+  CalendarToday,
+  Email,
+} from '@mui/icons-material';
 import {
   AppBar,
   Box,
@@ -18,57 +35,96 @@ import {
   Divider,
   Chip,
 } from '@mui/material';
-import {
-  Menu as MenuIcon,
-  AttachMoney,
-  AccountCircle,
-  Logout,
-  Lock as LockIcon,
-  DashboardOutlined,
-  CarRental,
-  GroupOutlined,
-  ReceiptLongOutlined,
-  AssessmentOutlined,
-  SecurityOutlined,
-  AdminPanelSettingsOutlined,
-  LightMode,
-  DarkMode,
-  CalendarToday,
-  Email,
-} from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+
 import { useAuth } from '../context/AuthContext';
-import { usePermissions, getUserRoleDisplayName } from '../hooks/usePermissions';
 import { useThemeMode } from '../context/ThemeContext';
-import ChangePasswordForm from './auth/ChangePasswordForm';
-import UserProfile from './users/UserProfile';
-import { EnhancedErrorToast } from './common/EnhancedErrorToast';
-import { SuccessToast } from './common/SuccessToast';
+import {
+  usePermissions,
+  getUserRoleDisplayName,
+} from '../hooks/usePermissions';
 import { EnhancedError } from '../utils/errorHandling';
+
+import ChangePasswordForm from './auth/ChangePasswordForm';
+import { EnhancedErrorToast } from './common/EnhancedErrorToast';
+import MobileDebugPanel from './common/MobileDebugPanel';
 import RealTimeNotifications from './common/RealTimeNotifications';
+import { SuccessToast } from './common/SuccessToast';
+import UserProfile from './users/UserProfile';
+
 // import MobileNavigation from './common/MobileNavigation'; // REMOVED - bottom navigation disabled
 // import { usePWA } from '../hooks/usePWA'; // REMOVED - PWA functionality disabled with bottom nav
 // import { GetApp as InstallIcon, PhoneIphone as MobileIcon } from '@mui/icons-material'; // REMOVED
 // import PWAInstallPrompt from './common/PWAInstallPrompt'; // REMOVED
-import MobileDebugPanel from './common/MobileDebugPanel';
 // import PWAStatus from './common/PWAStatus'; // REMOVED
 
 const drawerWidth = 280;
 
 const allMenuItems = [
-  { text: 'Prenájmy', icon: <ReceiptLongOutlined />, path: '/rentals', resource: 'rentals' as const },
-  { text: 'Email Monitoring', icon: <Email />, path: '/email-monitoring', resource: 'users' as const },
-  { text: 'Databáza vozidiel', icon: <CarRental />, path: '/vehicles', resource: 'vehicles' as const },
-  { text: 'Zákazníci', icon: <GroupOutlined />, path: '/customers', resource: 'customers' as const },
-  { text: 'Dostupnosť áut', icon: <CalendarToday />, path: '/availability', resource: 'vehicles' as const }, // Smart availability (optimized)
-  { text: 'Náklady', icon: <AttachMoney />, path: '/expenses', resource: 'expenses' as const },
-  { text: 'Vyúčtovanie', icon: <AssessmentOutlined />, path: '/settlements', resource: 'settlements' as const },
-  { text: 'Poistky/STK/Dialničné', icon: <SecurityOutlined />, path: '/insurances', resource: 'insurances' as const },
-  { text: 'Správa používateľov', icon: <AdminPanelSettingsOutlined />, path: '/users', resource: 'users' as const },
-  
+  {
+    text: 'Prenájmy',
+    icon: <ReceiptLongOutlined />,
+    path: '/rentals',
+    resource: 'rentals' as const,
+  },
+  {
+    text: 'Email Monitoring',
+    icon: <Email />,
+    path: '/email-monitoring',
+    resource: 'users' as const,
+  },
+  {
+    text: 'Databáza vozidiel',
+    icon: <CarRental />,
+    path: '/vehicles',
+    resource: 'vehicles' as const,
+  },
+  {
+    text: 'Zákazníci',
+    icon: <GroupOutlined />,
+    path: '/customers',
+    resource: 'customers' as const,
+  },
+  {
+    text: 'Dostupnosť áut',
+    icon: <CalendarToday />,
+    path: '/availability',
+    resource: 'vehicles' as const,
+  }, // Smart availability (optimized)
+  {
+    text: 'Náklady',
+    icon: <AttachMoney />,
+    path: '/expenses',
+    resource: 'expenses' as const,
+  },
+  {
+    text: 'Vyúčtovanie',
+    icon: <AssessmentOutlined />,
+    path: '/settlements',
+    resource: 'settlements' as const,
+  },
+  {
+    text: 'Poistky/STK/Dialničné',
+    icon: <SecurityOutlined />,
+    path: '/insurances',
+    resource: 'insurances' as const,
+  },
+  {
+    text: 'Správa používateľov',
+    icon: <AdminPanelSettingsOutlined />,
+    path: '/users',
+    resource: 'users' as const,
+  },
+
   // { text: 'Transfer vlastníctva', icon: <SwapHoriz />, path: '/admin/vehicle-ownership', resource: 'admin' as const }, // DEAKTIVOVANÉ - nepoužíva sa
-  { text: 'Štatistiky', icon: <DashboardOutlined />, path: '/statistics', resource: 'statistics' as const },
+  {
+    text: 'Štatistiky',
+    icon: <DashboardOutlined />,
+    path: '/statistics',
+    resource: 'statistics' as const,
+  },
 ];
 
 interface LayoutProps {
@@ -80,31 +136,33 @@ export default function Layout({ children }: LayoutProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  
+
   // 🛡️ Error handling state
   const [currentError, setCurrentError] = useState<EnhancedError | null>(null);
-  
+
   // 🎉 Success feedback state
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [successStats, setSuccessStats] = useState<{ count?: number; duration?: number } | undefined>(undefined);
-  
+  const [successStats, setSuccessStats] = useState<
+    { count?: number; duration?: number } | undefined
+  >(undefined);
+
   // Error handling functions
   const handleErrorClose = () => {
     setCurrentError(null);
   };
-  
+
   const handleErrorRetry = async () => {
     // The retry logic is handled by the component that triggered the error
     // This is just for UI feedback
     console.log('🔄 Retry requested from ErrorToast');
   };
-  
+
   // Success handling functions
   const handleSuccessClose = () => {
     setSuccessMessage(null);
     setSuccessStats(undefined);
   };
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const { state, logout } = useAuth();
@@ -140,7 +198,7 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   // Filtruj menu items podľa permissions
-  const menuItems = allMenuItems.filter(item => 
+  const menuItems = allMenuItems.filter(item =>
     permissions.canRead(item.resource)
   );
 
@@ -162,10 +220,10 @@ export default function Layout({ children }: LayoutProps) {
   // 📱 PWA install handler - REMOVED with bottom navigation
 
   const drawer = (
-    <Box 
-      sx={{ 
+    <Box
+      sx={{
         height: '100vh',
-        background: isDarkMode 
+        background: isDarkMode
           ? 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
           : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         position: 'relative',
@@ -176,28 +234,28 @@ export default function Layout({ children }: LayoutProps) {
           left: 0,
           right: 0,
           bottom: 0,
-          background: isDarkMode 
+          background: isDarkMode
             ? 'rgba(0, 0, 0, 0.1)'
             : 'rgba(255, 255, 255, 0.1)',
           backdropFilter: 'blur(10px)',
-        }
+        },
       }}
     >
       <Box sx={{ position: 'relative', zIndex: 1 }}>
-        <Toolbar 
-          sx={{ 
+        <Toolbar
+          sx={{
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
             mb: 2,
-            py: 3
+            py: 3,
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box 
-              sx={{ 
+            <Box
+              sx={{
                 width: 40,
                 height: 40,
                 borderRadius: '12px',
-                background: isDarkMode 
+                background: isDarkMode
                   ? 'linear-gradient(135deg, #334155 0%, #475569 100%)'
                   : 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)',
                 display: 'flex',
@@ -208,20 +266,20 @@ export default function Layout({ children }: LayoutProps) {
             >
               <CarRental sx={{ color: 'white', fontSize: 24 }} />
             </Box>
-            <Typography 
-              variant="h6" 
-              sx={{ 
+            <Typography
+              variant="h6"
+              sx={{
                 fontWeight: 700,
                 color: 'white',
                 textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                letterSpacing: '0.5px'
+                letterSpacing: '0.5px',
               }}
             >
               BlackRent
             </Typography>
           </Box>
         </Toolbar>
-        
+
         <List sx={{ px: 2, pb: 12 }}>
           {menuItems.map((item, index) => (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
@@ -234,20 +292,20 @@ export default function Layout({ children }: LayoutProps) {
                   minHeight: 48,
                   color: 'white',
                   '&:hover': {
-                    backgroundColor: isDarkMode 
+                    backgroundColor: isDarkMode
                       ? 'rgba(255, 255, 255, 0.1)'
                       : 'rgba(255, 255, 255, 0.15)',
                     transform: 'translateX(4px)',
                     transition: 'all 0.2s ease-in-out',
                   },
                   '&.Mui-selected': {
-                    backgroundColor: isDarkMode 
+                    backgroundColor: isDarkMode
                       ? 'rgba(255, 255, 255, 0.15)'
                       : 'rgba(255, 255, 255, 0.2)',
                     color: 'white',
                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
                     '&:hover': {
-                      backgroundColor: isDarkMode 
+                      backgroundColor: isDarkMode
                         ? 'rgba(255, 255, 255, 0.2)'
                         : 'rgba(255, 255, 255, 0.25)',
                     },
@@ -255,8 +313,8 @@ export default function Layout({ children }: LayoutProps) {
                   transition: 'all 0.2s ease-in-out',
                 }}
               >
-                <ListItemIcon 
-                  sx={{ 
+                <ListItemIcon
+                  sx={{
                     color: 'inherit',
                     minWidth: 40,
                     '& .MuiSvgIcon-root': {
@@ -266,7 +324,7 @@ export default function Layout({ children }: LayoutProps) {
                 >
                   {item.icon}
                 </ListItemIcon>
-                <ListItemText 
+                <ListItemText
                   primary={item.text}
                   primaryTypographyProps={{
                     fontSize: '0.875rem',
@@ -278,28 +336,26 @@ export default function Layout({ children }: LayoutProps) {
           ))}
         </List>
 
-
-
         {/* User info v spodnej časti */}
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             position: 'absolute',
             bottom: 0,
             left: 0,
             right: 0,
             p: 2,
             borderTop: '1px solid',
-            borderColor: isDarkMode 
+            borderColor: isDarkMode
               ? 'rgba(255, 255, 255, 0.1)'
               : 'rgba(255, 255, 255, 0.2)',
-            backgroundColor: isDarkMode 
+            backgroundColor: isDarkMode
               ? 'rgba(0, 0, 0, 0.1)'
               : 'rgba(255, 255, 255, 0.05)',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar 
-              sx={{ 
+            <Avatar
+              sx={{
                 width: 36,
                 height: 36,
                 backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -311,9 +367,9 @@ export default function Layout({ children }: LayoutProps) {
               {state.user?.username?.charAt(0).toUpperCase() || 'U'}
             </Avatar>
             <Box sx={{ flex: 1 }}>
-              <Typography 
-                variant="body2" 
-                sx={{ 
+              <Typography
+                variant="body2"
+                sx={{
                   color: 'white',
                   fontWeight: 600,
                   fontSize: '0.875rem',
@@ -321,34 +377,41 @@ export default function Layout({ children }: LayoutProps) {
               >
                 {state.user?.username || 'Používateľ'}
               </Typography>
-              <Typography 
-                variant="caption" 
-                sx={{ 
+              <Typography
+                variant="caption"
+                sx={{
                   color: 'rgba(255, 255, 255, 0.7)',
                   fontSize: '0.75rem',
                 }}
               >
-                {state.user?.role ? getUserRoleDisplayName(state.user.role) : 'Používateľ'}
+                {state.user?.role
+                  ? getUserRoleDisplayName(state.user.role)
+                  : 'Používateľ'}
               </Typography>
             </Box>
           </Box>
-          
-
         </Box>
       </Box>
     </Box>
   );
 
   return (
-            <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'background.default', overflow: 'hidden' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        minHeight: '100vh',
+        backgroundColor: 'background.default',
+        overflow: 'hidden',
+      }}
+    >
       <CssBaseline />
-      
+
       {/* Desktop/Tablet AppBar */}
       {!isMobile && (
         <AppBar
           position="fixed"
           sx={{
-            zIndex: (theme) => theme.zIndex.drawer + 1,
+            zIndex: theme => theme.zIndex.drawer + 1,
             boxShadow: 'none',
             borderBottom: '1px solid',
             borderColor: 'divider',
@@ -358,9 +421,9 @@ export default function Layout({ children }: LayoutProps) {
         >
           <Toolbar sx={{ justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography 
-                variant="h6" 
-                sx={{ 
+              <Typography
+                variant="h6"
+                sx={{
                   fontWeight: 700,
                   color: 'text.primary',
                   fontSize: '1.125rem',
@@ -383,7 +446,7 @@ export default function Layout({ children }: LayoutProps) {
                 }}
               />
             </Box>
-            
+
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Chip
                 label={state.user?.role === 'admin' ? 'Admin' : 'User'}
@@ -391,27 +454,31 @@ export default function Layout({ children }: LayoutProps) {
                 color={state.user?.role === 'admin' ? 'primary' : 'default'}
                 sx={{ fontSize: '0.75rem' }}
               />
-              
+
               {/* 🔴 Real-time Notifications */}
               <RealTimeNotifications />
-              
+
               <IconButton
                 onClick={toggleTheme}
-                sx={{ 
+                sx={{
                   borderRadius: '8px',
                   color: 'text.primary',
                   '&:hover': {
                     backgroundColor: 'action.hover',
                   },
                 }}
-                title={isDarkMode ? 'Prepnúť na svetlý režim' : 'Prepnúť na tmavý režim'}
+                title={
+                  isDarkMode
+                    ? 'Prepnúť na svetlý režim'
+                    : 'Prepnúť na tmavý režim'
+                }
               >
                 {isDarkMode ? <LightMode /> : <DarkMode />}
               </IconButton>
               <IconButton
                 color="inherit"
                 onClick={handleMenuOpen}
-                sx={{ 
+                sx={{
                   borderRadius: '8px',
                   '&:hover': {
                     backgroundColor: 'action.hover',
@@ -427,7 +494,8 @@ export default function Layout({ children }: LayoutProps) {
                 PaperProps={{
                   sx: {
                     borderRadius: '12px',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    boxShadow:
+                      '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                     border: '1px solid',
                     borderColor: 'divider',
                     backgroundColor: 'background.paper',
@@ -439,14 +507,13 @@ export default function Layout({ children }: LayoutProps) {
                   <AccountCircle sx={{ mr: 1, fontSize: 18 }} />
                   Môj profil
                 </MenuItem>
-              <MenuItem onClick={handlePasswordChange}>
-                <LockIcon sx={{ mr: 1, fontSize: 18 }} />
-                Zmeniť heslo
-              </MenuItem>
-                
+                <MenuItem onClick={handlePasswordChange}>
+                  <LockIcon sx={{ mr: 1, fontSize: 18 }} />
+                  Zmeniť heslo
+                </MenuItem>
+
                 {/* PWA Install v profile menu */}
 
-                
                 <Divider />
                 <MenuItem onClick={handleLogout}>
                   <Logout sx={{ mr: 1, fontSize: 18 }} />
@@ -463,8 +530,8 @@ export default function Layout({ children }: LayoutProps) {
         <AppBar
           position="fixed"
           sx={{
-            zIndex: (theme) => theme.zIndex.drawer + 1,
-            background: isDarkMode 
+            zIndex: theme => theme.zIndex.drawer + 1,
+            background: isDarkMode
               ? 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
               : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
@@ -480,9 +547,9 @@ export default function Layout({ children }: LayoutProps) {
             >
               <MenuIcon />
             </IconButton>
-            <Typography 
-              variant="h6" 
-              sx={{ 
+            <Typography
+              variant="h6"
+              sx={{
                 flexGrow: 1,
                 fontWeight: 700,
                 textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
@@ -492,7 +559,7 @@ export default function Layout({ children }: LayoutProps) {
             </Typography>
             <IconButton
               onClick={toggleTheme}
-              sx={{ 
+              sx={{
                 color: 'inherit',
                 mr: 1,
                 borderRadius: '8px',
@@ -500,14 +567,15 @@ export default function Layout({ children }: LayoutProps) {
                   backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 },
               }}
-              title={isDarkMode ? 'Prepnúť na svetlý režim' : 'Prepnúť na tmavý režim'}
+              title={
+                isDarkMode
+                  ? 'Prepnúť na svetlý režim'
+                  : 'Prepnúť na tmavý režim'
+              }
             >
               {isDarkMode ? <LightMode /> : <DarkMode />}
             </IconButton>
-            <IconButton
-              color="inherit"
-              onClick={handleMenuOpen}
-            >
+            <IconButton color="inherit" onClick={handleMenuOpen}>
               <AccountCircle />
             </IconButton>
             <Menu
@@ -517,7 +585,8 @@ export default function Layout({ children }: LayoutProps) {
               PaperProps={{
                 sx: {
                   borderRadius: '12px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  boxShadow:
+                    '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                   border: '1px solid',
                   borderColor: 'divider',
                   backgroundColor: 'background.paper',
@@ -529,10 +598,9 @@ export default function Layout({ children }: LayoutProps) {
                 <LockIcon sx={{ mr: 1, fontSize: 18 }} />
                 Zmeniť heslo
               </MenuItem>
-              
+
               {/* PWA Install v mobile profile menu */}
 
-              
               <Divider />
               <MenuItem onClick={handleLogout}>
                 <Logout sx={{ mr: 1, fontSize: 18 }} />
@@ -561,7 +629,9 @@ export default function Layout({ children }: LayoutProps) {
               width: drawerWidth,
               border: 'none',
               backgroundColor: 'background.paper',
-              boxShadow: isMobile ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' : 'none',
+              boxShadow: isMobile
+                ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+                : 'none',
             },
           }}
         >
@@ -582,10 +652,10 @@ export default function Layout({ children }: LayoutProps) {
       >
         {!isMobile && <Toolbar />}
         {isMobile && <Toolbar />}
-        
-        <Box 
+
+        <Box
           className="custom-font-app protocol-custom-font"
-          sx={{ 
+          sx={{
             p: { xs: 0, md: 3 }, // Žiadny padding na mobile pre dokonalé centrovanie
             maxWidth: '1400px',
             mx: 'auto',

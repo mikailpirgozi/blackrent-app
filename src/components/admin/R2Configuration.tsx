@@ -1,4 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import {
+  Cloud as CloudIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  Warning as WarningIcon,
+  Storage as StorageIcon,
+  Upload as UploadIcon,
+  Download as DownloadIcon,
+  Settings as SettingsIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Card,
@@ -14,16 +23,8 @@ import {
   ListItemText,
   ListItemIcon,
 } from '@mui/material';
-import {
-  Cloud as CloudIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Warning as WarningIcon,
-  Storage as StorageIcon,
-  Upload as UploadIcon,
-  Download as DownloadIcon,
-  Settings as SettingsIcon,
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
+
 import { apiService as api, getAPI_BASE_URL } from '../../services/api';
 
 interface R2Status {
@@ -43,7 +44,7 @@ export default function R2Configuration() {
   const loadR2Status = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`${getAPI_BASE_URL()}/migration/r2-status`, {
         method: 'GET',
@@ -51,11 +52,11 @@ export default function R2Configuration() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         throw new Error('Chyba pri načítaní R2 stavu');
       }
-      
+
       const data = await response.json();
       setR2Status(data);
     } catch (err) {
@@ -71,20 +72,23 @@ export default function R2Configuration() {
     setMigrating(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
-      const response = await fetch(`${getAPI_BASE_URL()}/migration/migrate-to-r2`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
+      const response = await fetch(
+        `${getAPI_BASE_URL()}/migration/migrate-to-r2`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Chyba pri spúšťaní migrácie');
       }
-      
+
       const data = await response.json();
       setSuccess(data.message);
     } catch (err: any) {
@@ -102,14 +106,22 @@ export default function R2Configuration() {
 
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
-      <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography
+        variant="h4"
+        gutterBottom
+        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+      >
         <CloudIcon />
         Cloudflare R2 Storage Konfigurácia
       </Typography>
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="h6"
+            gutterBottom
+            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+          >
             <SettingsIcon />
             Aktuálny stav
           </Typography>
@@ -121,10 +133,12 @@ export default function R2Configuration() {
             </Box>
           ) : r2Status ? (
             <Box>
-              <Alert 
+              <Alert
                 severity={r2Status.configured ? 'success' : 'warning'}
                 sx={{ mb: 2 }}
-                icon={r2Status.configured ? <CheckCircleIcon /> : <WarningIcon />}
+                icon={
+                  r2Status.configured ? <CheckCircleIcon /> : <WarningIcon />
+                }
               >
                 {r2Status.message}
               </Alert>
@@ -135,7 +149,7 @@ export default function R2Configuration() {
                     Chýbajúce environment variables:
                   </Typography>
                   <List dense>
-                    {r2Status.missingVariables.map((variable) => (
+                    {r2Status.missingVariables.map(variable => (
                       <ListItem key={variable}>
                         <ListItemIcon>
                           <ErrorIcon color="error" />
@@ -149,8 +163,8 @@ export default function R2Configuration() {
             </Box>
           ) : null}
 
-          <Button 
-            variant="outlined" 
+          <Button
+            variant="outlined"
             onClick={loadR2Status}
             disabled={loading}
             sx={{ mt: 2 }}
@@ -163,32 +177,37 @@ export default function R2Configuration() {
       {r2Status?.configured && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <UploadIcon />
               Migrácia súborov
             </Typography>
 
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Migrujte existujúce base64 fotky a podpisy do Cloudflare R2 storage pre lepší výkon a úsporu miesta.
+              Migrujte existujúce base64 fotky a podpisy do Cloudflare R2
+              storage pre lepší výkon a úsporu miesta.
             </Typography>
 
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-              <Chip 
-                icon={<StorageIcon />} 
-                label="Base64 → R2 URLs" 
-                color="primary" 
+              <Chip
+                icon={<StorageIcon />}
+                label="Base64 → R2 URLs"
+                color="primary"
                 variant="outlined"
               />
-              <Chip 
-                icon={<DownloadIcon />} 
-                label="Automatické zálohovanie" 
-                color="success" 
+              <Chip
+                icon={<DownloadIcon />}
+                label="Automatické zálohovanie"
+                color="success"
                 variant="outlined"
               />
-              <Chip 
-                icon={<CloudIcon />} 
-                label="CDN rýchlosť" 
-                color="info" 
+              <Chip
+                icon={<CloudIcon />}
+                label="CDN rýchlosť"
+                color="info"
                 variant="outlined"
               />
             </Box>
@@ -197,7 +216,9 @@ export default function R2Configuration() {
               variant="contained"
               onClick={startMigration}
               disabled={migrating}
-              startIcon={migrating ? <CircularProgress size={20} /> : <UploadIcon />}
+              startIcon={
+                migrating ? <CircularProgress size={20} /> : <UploadIcon />
+              }
               sx={{ mr: 2 }}
             >
               {migrating ? 'Migrujem...' : 'Spustiť migráciu'}
@@ -205,7 +226,9 @@ export default function R2Configuration() {
 
             <Button
               variant="outlined"
-              onClick={() => window.open('https://dash.cloudflare.com', '_blank')}
+              onClick={() =>
+                window.open('https://dash.cloudflare.com', '_blank')
+              }
             >
               Cloudflare Dashboard
             </Button>
@@ -216,13 +239,18 @@ export default function R2Configuration() {
       {!r2Status?.configured && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <WarningIcon />
               Nastavenie R2 Storage
             </Typography>
 
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Pre použitie R2 storage musíte nastaviť environment variables v Railway dashboard.
+              Pre použitie R2 storage musíte nastaviť environment variables v
+              Railway dashboard.
             </Typography>
 
             <Box sx={{ bgcolor: 'grey.100', p: 2, borderRadius: 1, mb: 2 }}>
@@ -231,32 +259,32 @@ export default function R2Configuration() {
               </Typography>
               <List dense>
                 <ListItem>
-                  <ListItemText 
-                    primary="R2_ENDPOINT" 
+                  <ListItemText
+                    primary="R2_ENDPOINT"
                     secondary="https://xxx.r2.cloudflarestorage.com"
                   />
                 </ListItem>
                 <ListItem>
-                  <ListItemText 
-                    primary="R2_ACCESS_KEY_ID" 
+                  <ListItemText
+                    primary="R2_ACCESS_KEY_ID"
                     secondary="Váš Cloudflare API access key"
                   />
                 </ListItem>
                 <ListItem>
-                  <ListItemText 
-                    primary="R2_SECRET_ACCESS_KEY" 
+                  <ListItemText
+                    primary="R2_SECRET_ACCESS_KEY"
                     secondary="Váš Cloudflare API secret key"
                   />
                 </ListItem>
                 <ListItem>
-                  <ListItemText 
-                    primary="R2_BUCKET_NAME" 
+                  <ListItemText
+                    primary="R2_BUCKET_NAME"
                     secondary="blackrent-storage"
                   />
                 </ListItem>
                 <ListItem>
-                  <ListItemText 
-                    primary="R2_PUBLIC_URL" 
+                  <ListItemText
+                    primary="R2_PUBLIC_URL"
                     secondary="https://blackrent-storage.xxx.r2.dev"
                   />
                 </ListItem>
@@ -265,7 +293,9 @@ export default function R2Configuration() {
 
             <Button
               variant="contained"
-              onClick={() => window.open('https://dash.cloudflare.com', '_blank')}
+              onClick={() =>
+                window.open('https://dash.cloudflare.com', '_blank')
+              }
               startIcon={<CloudIcon />}
               sx={{ mr: 2 }}
             >
@@ -285,12 +315,22 @@ export default function R2Configuration() {
       {/* Výhody R2 Storage */}
       <Card>
         <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="h6"
+            gutterBottom
+            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+          >
             <CheckCircleIcon />
             Výhody Cloudflare R2
           </Typography>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: 2,
+            }}
+          >
             <Box>
               <Typography variant="subtitle2" color="primary" gutterBottom>
                 💰 Nižšie náklady
@@ -338,10 +378,14 @@ export default function R2Configuration() {
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mt: 2 }} onClose={() => setSuccess(null)}>
+        <Alert
+          severity="success"
+          sx={{ mt: 2 }}
+          onClose={() => setSuccess(null)}
+        >
           {success}
         </Alert>
       )}
     </Box>
   );
-} 
+}

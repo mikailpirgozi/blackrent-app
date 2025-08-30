@@ -20,8 +20,10 @@ const shadows = {
   lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
   xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
   '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-  colorful: '0 10px 25px -3px rgba(102, 126, 234, 0.3), 0 4px 6px -2px rgba(102, 126, 234, 0.2)',
-  premium: '0 20px 40px -4px rgba(0, 0, 0, 0.1), 0 8px 16px -4px rgba(0, 0, 0, 0.06)',
+  colorful:
+    '0 10px 25px -3px rgba(102, 126, 234, 0.3), 0 4px 6px -2px rgba(102, 126, 234, 0.2)',
+  premium:
+    '0 20px 40px -4px rgba(0, 0, 0, 0.1), 0 8px 16px -4px rgba(0, 0, 0, 0.06)',
 };
 
 declare module '@mui/material/styles' {
@@ -96,7 +98,8 @@ export const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
+    fontFamily:
+      '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
     h1: {
       fontSize: '2.5rem',
       fontWeight: 800,
@@ -231,7 +234,8 @@ export const theme = createTheme({
             left: '-100%',
             width: '100%',
             height: '100%',
-            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
+            background:
+              'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
             transition: 'left 0.5s',
           },
           '&:hover': {
@@ -288,7 +292,8 @@ export const theme = createTheme({
             left: 0,
             right: 0,
             height: '1px',
-            background: 'linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.5), transparent)',
+            background:
+              'linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.5), transparent)',
             opacity: 0,
             transition: 'opacity 0.3s ease',
           },
@@ -408,7 +413,8 @@ export const theme = createTheme({
           margin: '4px 12px',
           transition: 'all 0.2s ease',
           '&.Mui-selected': {
-            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+            background:
+              'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
             color: '#667eea',
             '&::before': {
               content: '""',
@@ -422,7 +428,8 @@ export const theme = createTheme({
               borderRadius: '0 2px 2px 0',
             },
             '&:hover': {
-              background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)',
+              background:
+                'linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)',
             },
           },
           '&:hover': {
@@ -440,7 +447,8 @@ export const theme = createTheme({
           transition: 'all 0.2s ease',
         },
         head: {
-          background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
+          background:
+            'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
           fontWeight: 600,
           color: '#0f172a',
         },
@@ -460,4 +468,4 @@ export const theme = createTheme({
   },
 });
 
-export default theme; 
+export default theme;

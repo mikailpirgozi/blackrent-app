@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import FileIcon from '@mui/icons-material/AttachFile';
+import BuildIcon from '@mui/icons-material/Build';
+import HighwayIcon from '@mui/icons-material/LocalShipping';
+import SecurityIcon from '@mui/icons-material/Security';
 import {
   Box,
   Button,
@@ -14,44 +18,47 @@ import {
   Divider,
   Alert,
   Chip,
-  Autocomplete
+  Autocomplete,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import React, { useState, useEffect } from 'react';
 
-import SecurityIcon from '@mui/icons-material/Security';
-import BuildIcon from '@mui/icons-material/Build';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import HighwayIcon from '@mui/icons-material/LocalShipping';
-import FileIcon from '@mui/icons-material/AttachFile';
 import { useApp } from '../../context/AppContext';
 import { Insurance, VehicleDocument, PaymentFrequency } from '../../types';
+
 import R2FileUpload from './R2FileUpload';
 
 interface UnifiedDocumentData {
   id?: string;
   vehicleId: string;
-  type: 'insurance_pzp' | 'insurance_kasko' | 'insurance_pzp_kasko' | 'stk' | 'ek' | 'vignette';
-  
+  type:
+    | 'insurance_pzp'
+    | 'insurance_kasko'
+    | 'insurance_pzp_kasko'
+    | 'stk'
+    | 'ek'
+    | 'vignette';
+
   // Insurance specific
   policyNumber?: string;
   company?: string;
   paymentFrequency?: PaymentFrequency;
-  
+
   // Vehicle document specific
   documentNumber?: string;
   notes?: string;
-  
+
   // Common fields
   validFrom?: Date;
   validTo: Date;
   price?: number;
   filePath?: string; // Zachováme pre backward compatibility
   filePaths?: string[]; // Nové pole pre viacero súborov
-  
+
   // 🟢 BIELA KARTA: Platnosť zelenej karty (len pre PZP poistky)
   greenCardValidFrom?: Date;
   greenCardValidTo?: Date;
-  
+
   // 🚗 STAV KM: Pre Kasko poistky, STK a EK
   kmState?: number;
 }
@@ -65,29 +72,53 @@ interface UnifiedDocumentFormProps {
 const getDocumentTypeInfo = (type: string) => {
   switch (type) {
     case 'insurance_pzp':
-      return { label: 'Poistka - PZP', icon: <SecurityIcon />, color: '#1976d2' };
+      return {
+        label: 'Poistka - PZP',
+        icon: <SecurityIcon />,
+        color: '#1976d2',
+      };
     case 'insurance_kasko':
-      return { label: 'Poistka - Kasko', icon: <SecurityIcon />, color: '#2196f3' };
+      return {
+        label: 'Poistka - Kasko',
+        icon: <SecurityIcon />,
+        color: '#2196f3',
+      };
     case 'insurance_pzp_kasko':
-      return { label: 'Poistka - PZP + Kasko', icon: <SecurityIcon />, color: '#9c27b0' };
+      return {
+        label: 'Poistka - PZP + Kasko',
+        icon: <SecurityIcon />,
+        color: '#9c27b0',
+      };
     case 'stk':
       return { label: 'STK', icon: <BuildIcon />, color: '#388e3c' };
     case 'ek':
       return { label: 'EK', icon: <AssignmentIcon />, color: '#f57c00' };
     case 'vignette':
-      return { label: 'Dialničná známka', icon: <HighwayIcon />, color: '#7b1fa2' };
+      return {
+        label: 'Dialničná známka',
+        icon: <HighwayIcon />,
+        color: '#7b1fa2',
+      };
     // Backward compatibility
     case 'insurance':
-      return { label: 'Poistka - PZP', icon: <SecurityIcon />, color: '#1976d2' };
+      return {
+        label: 'Poistka - PZP',
+        icon: <SecurityIcon />,
+        color: '#1976d2',
+      };
     default:
       return { label: 'Dokument', icon: <FileIcon />, color: '#666' };
   }
 };
 
-export default function UnifiedDocumentForm({ document, onSave, onCancel }: UnifiedDocumentFormProps) {
+export default function UnifiedDocumentForm({
+  document,
+  onSave,
+  onCancel,
+}: UnifiedDocumentFormProps) {
   const { state } = useApp();
   const [greenCardManuallyEdited, setGreenCardManuallyEdited] = useState(false);
-  
+
   const [formData, setFormData] = useState<UnifiedDocumentData>(() => {
     const initialData = {
       vehicleId: document?.vehicleId || '',
@@ -104,11 +135,17 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
       filePaths: document?.filePaths || [], // Nové pole pre viacero súborov
       greenCardValidFrom: document?.greenCardValidFrom || undefined, // 🟢 Biela karta
       greenCardValidTo: document?.greenCardValidTo || undefined, // 🟢 Biela karta
-      kmState: document?.kmState || undefined // 🚗 Stav Km
+      kmState: document?.kmState || undefined, // 🚗 Stav Km
     };
-    
+
     // 🔄 Pre nové poistky automaticky vypočítaj validTo
-    if (!document && (initialData.type === 'insurance_pzp' || initialData.type === 'insurance_kasko' || initialData.type === 'insurance_pzp_kasko') && initialData.validFrom) {
+    if (
+      !document &&
+      (initialData.type === 'insurance_pzp' ||
+        initialData.type === 'insurance_kasko' ||
+        initialData.type === 'insurance_pzp_kasko') &&
+      initialData.validFrom
+    ) {
       const calculatedValidTo = (() => {
         const fromDate = new Date(initialData.validFrom);
         const toDate = new Date(fromDate);
@@ -118,22 +155,25 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
       })();
       initialData.validTo = calculatedValidTo;
     }
-    
+
     return initialData;
   });
-  
+
   const [addingInsurer, setAddingInsurer] = useState(false);
   const [newInsurerName, setNewInsurerName] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // 🔄 Automatické dopĺňanie validTo dátumu pre poistky
-  const calculateValidToDate = (validFrom: Date | undefined, frequency: PaymentFrequency): Date => {
+  const calculateValidToDate = (
+    validFrom: Date | undefined,
+    frequency: PaymentFrequency
+  ): Date => {
     if (!validFrom) return new Date();
-    
+
     const fromDate = new Date(validFrom);
     const toDate = new Date(fromDate);
-    
+
     switch (frequency) {
       case 'monthly':
         toDate.setMonth(toDate.getMonth() + 1);
@@ -150,7 +190,7 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
       default:
         toDate.setFullYear(toDate.getFullYear() + 1);
     }
-    
+
     // Odčítame jeden deň aby platnosť bola do predchádzajúceho dňa
     toDate.setDate(toDate.getDate() - 1);
     return toDate;
@@ -158,27 +198,47 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
 
   // 🔄 Automatické prepočítanie validTo pri zmene validFrom alebo paymentFrequency
   useEffect(() => {
-    if ((formData.type === 'insurance_pzp' || formData.type === 'insurance_kasko' || formData.type === 'insurance_pzp_kasko') && formData.validFrom && formData.paymentFrequency) {
-      const newValidTo = calculateValidToDate(formData.validFrom, formData.paymentFrequency);
+    if (
+      (formData.type === 'insurance_pzp' ||
+        formData.type === 'insurance_kasko' ||
+        formData.type === 'insurance_pzp_kasko') &&
+      formData.validFrom &&
+      formData.paymentFrequency
+    ) {
+      const newValidTo = calculateValidToDate(
+        formData.validFrom,
+        formData.paymentFrequency
+      );
       setFormData(prev => ({ ...prev, validTo: newValidTo }));
     }
   }, [formData.validFrom, formData.paymentFrequency, formData.type]);
 
   // 🟢 Automatické prepočítanie platnosti zelenej karty pre PZP a PZP+Kasko
   useEffect(() => {
-    if ((formData.type === 'insurance_pzp' || formData.type === 'insurance_pzp_kasko') && 
-        formData.validFrom && formData.validTo && 
-        !greenCardManuallyEdited && // Len ak nebola manuálne editovaná
-        !document) { // Len pre nové dokumenty, nie pri editácii
-      
+    if (
+      (formData.type === 'insurance_pzp' ||
+        formData.type === 'insurance_pzp_kasko') &&
+      formData.validFrom &&
+      formData.validTo &&
+      !greenCardManuallyEdited && // Len ak nebola manuálne editovaná
+      !document
+    ) {
+      // Len pre nové dokumenty, nie pri editácii
+
       // Automaticky nastav platnosť zelenej karty rovnako ako poistky
-      setFormData(prev => ({ 
-        ...prev, 
+      setFormData(prev => ({
+        ...prev,
         greenCardValidFrom: formData.validFrom,
-        greenCardValidTo: formData.validTo
+        greenCardValidTo: formData.validTo,
       }));
     }
-  }, [formData.validFrom, formData.validTo, formData.type, document, greenCardManuallyEdited]);
+  }, [
+    formData.validFrom,
+    formData.validTo,
+    formData.type,
+    document,
+    greenCardManuallyEdited,
+  ]);
 
   useEffect(() => {
     if (document) {
@@ -196,7 +256,7 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
         price: document.price || 0,
         filePath: document.filePath || '',
         greenCardValidFrom: document.greenCardValidFrom, // 🟢 Biela karta
-        greenCardValidTo: document.greenCardValidTo // 🟢 Biela karta
+        greenCardValidTo: document.greenCardValidTo, // 🟢 Biela karta
       });
     }
   }, [document]);
@@ -212,7 +272,11 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
       newErrors.validTo = 'Dátum platnosti do je povinný';
     }
 
-    if (formData.type === 'insurance_pzp' || formData.type === 'insurance_kasko' || formData.type === 'insurance_pzp_kasko') {
+    if (
+      formData.type === 'insurance_pzp' ||
+      formData.type === 'insurance_kasko' ||
+      formData.type === 'insurance_pzp_kasko'
+    ) {
       if (!formData.policyNumber) {
         newErrors.policyNumber = 'Číslo poistky je povinné';
       }
@@ -229,9 +293,13 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleFileUploadSuccess = (fileData: { url: string; key: string; filename: string } | { url: string; key: string; filename: string }[]) => {
+  const handleFileUploadSuccess = (
+    fileData:
+      | { url: string; key: string; filename: string }
+      | { url: string; key: string; filename: string }[]
+  ) => {
     console.log('🔍 FILE UPLOAD SUCCESS:', fileData);
-    
+
     if (Array.isArray(fileData)) {
       // Viacero súborov - pridaj do filePaths array
       const newUrls = fileData.map(file => file.url);
@@ -241,7 +309,7 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
         const newData = {
           ...prev,
           filePaths: updatedPaths,
-          filePath: existingPaths.length > 0 ? prev.filePath : updatedPaths[0] // Zachovaj pôvodný filePath ak existuje
+          filePath: existingPaths.length > 0 ? prev.filePath : updatedPaths[0], // Zachovaj pôvodný filePath ak existuje
         };
         console.log('🔍 UPDATED FORM DATA (multiple files):', newData);
         return newData;
@@ -254,7 +322,7 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
         const newData = {
           ...prev,
           filePaths: updatedPaths,
-          filePath: existingPaths.length > 0 ? prev.filePath : fileData.url // Zachovaj pôvodný filePath ak existuje
+          filePath: existingPaths.length > 0 ? prev.filePath : fileData.url, // Zachovaj pôvodný filePath ak existuje
         };
         console.log('🔍 UPDATED FORM DATA (single file):', newData);
         return newData;
@@ -264,21 +332,32 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     console.log('🔍 FORM SUBMIT - Form data being saved:', formData);
-    
+
     onSave(formData);
   };
 
   const typeInfo = getDocumentTypeInfo(formData.type);
-  const isInsurance = formData.type === 'insurance_pzp' || formData.type === 'insurance_kasko' || formData.type === 'insurance_pzp_kasko';
-  const isPZP = formData.type === 'insurance_pzp' || formData.type === 'insurance_pzp_kasko'; // PZP alebo PZP+Kasko
-  const isKasko = formData.type === 'insurance_kasko' || formData.type === 'insurance_pzp_kasko'; // Kasko alebo PZP+Kasko
-  const hasKmField = formData.type === 'insurance_kasko' || formData.type === 'insurance_pzp_kasko' || formData.type === 'stk' || formData.type === 'ek';
+  const isInsurance =
+    formData.type === 'insurance_pzp' ||
+    formData.type === 'insurance_kasko' ||
+    formData.type === 'insurance_pzp_kasko';
+  const isPZP =
+    formData.type === 'insurance_pzp' ||
+    formData.type === 'insurance_pzp_kasko'; // PZP alebo PZP+Kasko
+  const isKasko =
+    formData.type === 'insurance_kasko' ||
+    formData.type === 'insurance_pzp_kasko'; // Kasko alebo PZP+Kasko
+  const hasKmField =
+    formData.type === 'insurance_kasko' ||
+    formData.type === 'insurance_pzp_kasko' ||
+    formData.type === 'stk' ||
+    formData.type === 'ek';
 
   return (
     <>
@@ -300,22 +379,33 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                   <Typography variant="h6" gutterBottom>
                     Základné informácie
                   </Typography>
-                  
+
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
                       <Autocomplete
                         fullWidth
-                        options={(state.vehicles || [])
-                          .slice()
-                          .sort((a, b) => {
-                            const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
-                            const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
-                            return aText.localeCompare(bText, 'sk', { sensitivity: 'base' });
-                          })}
-                        getOptionLabel={(vehicle) => `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
-                        value={(state.vehicles || []).find(v => v.id === formData.vehicleId) || null}
-                        onChange={(_, newValue) => setFormData(prev => ({ ...prev, vehicleId: newValue?.id || '' }))}
-                        renderInput={(params) => (
+                        options={(state.vehicles || []).slice().sort((a, b) => {
+                          const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
+                          const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
+                          return aText.localeCompare(bText, 'sk', {
+                            sensitivity: 'base',
+                          });
+                        })}
+                        getOptionLabel={vehicle =>
+                          `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`
+                        }
+                        value={
+                          (state.vehicles || []).find(
+                            v => v.id === formData.vehicleId
+                          ) || null
+                        }
+                        onChange={(_, newValue) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            vehicleId: newValue?.id || '',
+                          }))
+                        }
+                        renderInput={params => (
                           <TextField
                             {...params}
                             label="Vozidlo"
@@ -326,15 +416,22 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                         )}
                         noOptionsText="Žiadne vozidlá nenájdené"
                         filterOptions={(options, { inputValue }) => {
-                          const filtered = options.filter((option) => {
-                            const searchText = `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
-                            return searchText.includes(inputValue.toLowerCase());
+                          const filtered = options.filter(option => {
+                            const searchText =
+                              `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
+                            return searchText.includes(
+                              inputValue.toLowerCase()
+                            );
                           });
                           return filtered;
                         }}
                       />
                       {errors.vehicleId && (
-                        <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                        <Typography
+                          variant="caption"
+                          color="error"
+                          sx={{ mt: 0.5, display: 'block' }}
+                        >
                           {errors.vehicleId}
                         </Typography>
                       )}
@@ -346,11 +443,22 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                         <Select
                           value={formData.type}
                           label="Typ dokumentu"
-                          onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                          onChange={e =>
+                            setFormData(prev => ({
+                              ...prev,
+                              type: e.target.value as any,
+                            }))
+                          }
                         >
-                          <MenuItem value="insurance_pzp">Poistka - PZP</MenuItem>
-                          <MenuItem value="insurance_kasko">Poistka - Kasko</MenuItem>
-                          <MenuItem value="insurance_pzp_kasko">Poistka - PZP + Kasko</MenuItem>
+                          <MenuItem value="insurance_pzp">
+                            Poistka - PZP
+                          </MenuItem>
+                          <MenuItem value="insurance_kasko">
+                            Poistka - Kasko
+                          </MenuItem>
+                          <MenuItem value="insurance_pzp_kasko">
+                            Poistka - PZP + Kasko
+                          </MenuItem>
                           <MenuItem value="stk">STK</MenuItem>
                           <MenuItem value="ek">EK</MenuItem>
                           <MenuItem value="vignette">Dialničná známka</MenuItem>
@@ -367,28 +475,40 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                             required
                             label="Číslo poistky"
                             value={formData.policyNumber}
-                            onChange={(e) => setFormData(prev => ({ ...prev, policyNumber: e.target.value }))}
+                            onChange={e =>
+                              setFormData(prev => ({
+                                ...prev,
+                                policyNumber: e.target.value,
+                              }))
+                            }
                             error={!!errors.policyNumber}
                             helperText={errors.policyNumber}
                           />
                         </Grid>
 
                         <Grid item xs={12} sm={6}>
-                          <FormControl fullWidth required error={!!errors.company}>
+                          <FormControl
+                            fullWidth
+                            required
+                            error={!!errors.company}
+                          >
                             <InputLabel>Poisťovňa</InputLabel>
                             <Select
                               value={formData.company}
                               label="Poisťovňa"
-                              onChange={(e) => {
+                              onChange={e => {
                                 const value = e.target.value;
                                 if (value === '__add_new__') {
                                   setAddingInsurer(true);
                                 } else {
-                                  setFormData(prev => ({ ...prev, company: value }));
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    company: value,
+                                  }));
                                 }
                               }}
                             >
-                              {state.insurers.map((insurer) => (
+                              {state.insurers.map(insurer => (
                                 <MenuItem key={insurer.id} value={insurer.name}>
                                   {insurer.name}
                                 </MenuItem>
@@ -398,7 +518,11 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                               </MenuItem>
                             </Select>
                             {errors.company && (
-                              <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
+                              <Typography
+                                variant="caption"
+                                color="error"
+                                sx={{ mt: 0.5, ml: 1 }}
+                              >
                                 {errors.company}
                               </Typography>
                             )}
@@ -411,12 +535,26 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                             <Select
                               value={formData.paymentFrequency}
                               label="Frekvencia platenia"
-                              onChange={(e) => setFormData(prev => ({ ...prev, paymentFrequency: e.target.value as PaymentFrequency }))}
+                              onChange={e =>
+                                setFormData(prev => ({
+                                  ...prev,
+                                  paymentFrequency: e.target
+                                    .value as PaymentFrequency,
+                                }))
+                              }
                             >
-                              <MenuItem value="monthly">Mesačne (platnosť +1 mesiac)</MenuItem>
-                              <MenuItem value="quarterly">Štvrťročne (platnosť +3 mesiace)</MenuItem>
-                              <MenuItem value="biannual">Polročne (platnosť +6 mesiacov)</MenuItem>
-                              <MenuItem value="yearly">Ročne (platnosť +1 rok)</MenuItem>
+                              <MenuItem value="monthly">
+                                Mesačne (platnosť +1 mesiac)
+                              </MenuItem>
+                              <MenuItem value="quarterly">
+                                Štvrťročne (platnosť +3 mesiace)
+                              </MenuItem>
+                              <MenuItem value="biannual">
+                                Polročne (platnosť +6 mesiacov)
+                              </MenuItem>
+                              <MenuItem value="yearly">
+                                Ročne (platnosť +1 rok)
+                              </MenuItem>
                             </Select>
                           </FormControl>
                         </Grid>
@@ -432,31 +570,48 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
               <Grid item xs={12}>
                 <Card>
                   <CardContent>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography
+                      variant="h6"
+                      gutterBottom
+                      sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                    >
                       🟢 Platnosť bielej karty
-                      <Chip size="small" label="Automatické" color="success" variant="outlined" />
+                      <Chip
+                        size="small"
+                        label="Automatické"
+                        color="success"
+                        variant="outlined"
+                      />
                     </Typography>
-                    
+
                     <Alert severity="info" sx={{ mb: 2 }}>
                       <Typography variant="body2">
-                        💡 Platnosť zelenej karty sa automaticky nastaví podľa platnosti poistky. Môžete ju však upraviť podľa potreby.
+                        💡 Platnosť zelenej karty sa automaticky nastaví podľa
+                        platnosti poistky. Môžete ju však upraviť podľa potreby.
                       </Typography>
                     </Alert>
-                    
+
                     <Grid container spacing={2}>
                       <Grid item xs={12} sm={6}>
                         <DatePicker
                           label="Biela karta platná od"
-                          value={formData.greenCardValidFrom ? new Date(formData.greenCardValidFrom) : null}
-                          onChange={(date) => {
-                            setFormData(prev => ({ ...prev, greenCardValidFrom: date || undefined }));
+                          value={
+                            formData.greenCardValidFrom
+                              ? new Date(formData.greenCardValidFrom)
+                              : null
+                          }
+                          onChange={date => {
+                            setFormData(prev => ({
+                              ...prev,
+                              greenCardValidFrom: date || undefined,
+                            }));
                             setGreenCardManuallyEdited(true); // Označiť ako manuálne editované
                           }}
                           slotProps={{
                             textField: {
                               fullWidth: true,
-                              placeholder: "Automaticky nastavené"
-                            }
+                              placeholder: 'Automaticky nastavené',
+                            },
                           }}
                         />
                       </Grid>
@@ -464,16 +619,23 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                       <Grid item xs={12} sm={6}>
                         <DatePicker
                           label="Biela karta platná do"
-                          value={formData.greenCardValidTo ? new Date(formData.greenCardValidTo) : null}
-                          onChange={(date) => {
-                            setFormData(prev => ({ ...prev, greenCardValidTo: date || undefined }));
+                          value={
+                            formData.greenCardValidTo
+                              ? new Date(formData.greenCardValidTo)
+                              : null
+                          }
+                          onChange={date => {
+                            setFormData(prev => ({
+                              ...prev,
+                              greenCardValidTo: date || undefined,
+                            }));
                             setGreenCardManuallyEdited(true); // Označiť ako manuálne editované
                           }}
                           slotProps={{
                             textField: {
                               fullWidth: true,
-                              placeholder: "Automaticky nastavené"
-                            }
+                              placeholder: 'Automaticky nastavené',
+                            },
                           }}
                         />
                       </Grid>
@@ -490,51 +652,75 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                   <Typography variant="h6" gutterBottom>
                     Platnosť a cena
                   </Typography>
-                  
+
                   {/* 💡 Informačný alert pre automatické dopĺňanie */}
                   {isInsurance && (
                     <Alert severity="info" sx={{ mb: 2 }}>
                       <Typography variant="body2">
-                        💡 <strong>Automatické dopĺňanie:</strong> Dátum "Platné do" sa automaticky vypočíta na základě dátumu "Platné od" a frekvencie platenia.
+                        💡 <strong>Automatické dopĺňanie:</strong> Dátum "Platné
+                        do" sa automaticky vypočíta na základě dátumu "Platné
+                        od" a frekvencie platenia.
                       </Typography>
                     </Alert>
                   )}
-                  
+
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
                       <DatePicker
                         label="Platné od"
-                        value={formData.validFrom ? new Date(formData.validFrom) : null}
-                        onChange={(date) => setFormData(prev => ({ ...prev, validFrom: date || undefined }))}
+                        value={
+                          formData.validFrom
+                            ? new Date(formData.validFrom)
+                            : null
+                        }
+                        onChange={date =>
+                          setFormData(prev => ({
+                            ...prev,
+                            validFrom: date || undefined,
+                          }))
+                        }
                         slotProps={{
                           textField: {
-                            fullWidth: true
-                          }
+                            fullWidth: true,
+                          },
                         }}
                       />
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
                       <DatePicker
-                        label={isInsurance ? "Platné do (automaticky)" : "Platné do"}
-                        value={formData.validTo ? new Date(formData.validTo) : new Date()}
-                        onChange={(date) => setFormData(prev => ({ ...prev, validTo: date || new Date() }))}
+                        label={
+                          isInsurance ? 'Platné do (automaticky)' : 'Platné do'
+                        }
+                        value={
+                          formData.validTo
+                            ? new Date(formData.validTo)
+                            : new Date()
+                        }
+                        onChange={date =>
+                          setFormData(prev => ({
+                            ...prev,
+                            validTo: date || new Date(),
+                          }))
+                        }
                         readOnly={isInsurance} // 🔒 Pre poistky je readonly - automaticky sa vypočíta
                         slotProps={{
                           textField: {
                             fullWidth: true,
                             required: true,
                             error: !!errors.validTo,
-                            helperText: isInsurance 
-                              ? "Automaticky vypočítané podľa frekvencie platenia" 
+                            helperText: isInsurance
+                              ? 'Automaticky vypočítané podľa frekvencie platenia'
                               : errors.validTo,
-                            InputProps: isInsurance ? {
-                              style: { 
-                                backgroundColor: '#f5f5f5',
-                                color: '#666'
-                              }
-                            } : undefined
-                          }
+                            InputProps: isInsurance
+                              ? {
+                                  style: {
+                                    backgroundColor: '#f5f5f5',
+                                    color: '#666',
+                                  },
+                                }
+                              : undefined,
+                          },
                         }}
                       />
                     </Grid>
@@ -545,7 +731,12 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                         type="number"
                         label="Cena (€)"
                         value={formData.price || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                        onChange={e =>
+                          setFormData(prev => ({
+                            ...prev,
+                            price: parseFloat(e.target.value) || 0,
+                          }))
+                        }
                         error={!!errors.price}
                         helperText={errors.price}
                         inputProps={{ step: 0.01, min: 0 }}
@@ -561,25 +752,29 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
               <Grid item xs={12}>
                 <Card>
                   <CardContent>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography
+                      variant="h6"
+                      gutterBottom
+                      sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                    >
                       🚗 Stav kilometrov
-                      <Chip 
-                        size="small" 
-                        label={isKasko ? "Kasko" : "Kontrola"} 
-                        color={isKasko ? "info" : "success"} 
-                        variant="outlined" 
+                      <Chip
+                        size="small"
+                        label={isKasko ? 'Kasko' : 'Kontrola'}
+                        color={isKasko ? 'info' : 'success'}
+                        variant="outlined"
                       />
                     </Typography>
-                    
+
                     <Alert severity="info" sx={{ mb: 2 }}>
                       <Typography variant="body2">
-                        💡 {isKasko 
-                          ? "Zadajte stav kilometrov pri uzatváraní Kasko poistky pre evidenciu." 
-                          : "Zadajte stav kilometrov pri STK/EK kontrole."
-                        }
+                        💡{' '}
+                        {isKasko
+                          ? 'Zadajte stav kilometrov pri uzatváraní Kasko poistky pre evidenciu.'
+                          : 'Zadajte stav kilometrov pri STK/EK kontrole.'}
                       </Typography>
                     </Alert>
-                    
+
                     <Grid container spacing={2}>
                       <Grid item xs={12} sm={6}>
                         <TextField
@@ -587,12 +782,24 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                           type="number"
                           label="Stav kilometrov"
                           value={formData.kmState || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, kmState: parseInt(e.target.value) || undefined }))}
+                          onChange={e =>
+                            setFormData(prev => ({
+                              ...prev,
+                              kmState: parseInt(e.target.value) || undefined,
+                            }))
+                          }
                           placeholder="Napríklad: 125000"
                           helperText="Zadajte aktuálny stav kilometrov"
                           inputProps={{ min: 0, step: 1 }}
                           InputProps={{
-                            endAdornment: <Typography variant="body2" color="text.secondary">km</Typography>
+                            endAdornment: (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                km
+                              </Typography>
+                            ),
                           }}
                         />
                       </Grid>
@@ -610,7 +817,7 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                     <Typography variant="h6" gutterBottom>
                       Dodatočné informácie
                     </Typography>
-                    
+
                     <Grid container spacing={2}>
                       <>
                         <Grid item xs={12} sm={6}>
@@ -618,7 +825,12 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                             fullWidth
                             label="Číslo dokumentu"
                             value={formData.documentNumber}
-                            onChange={(e) => setFormData(prev => ({ ...prev, documentNumber: e.target.value }))}
+                            onChange={e =>
+                              setFormData(prev => ({
+                                ...prev,
+                                documentNumber: e.target.value,
+                              }))
+                            }
                             placeholder="Napríklad: ABC123456"
                             helperText="Zadajte číslo dokumentu alebo poistky"
                           />
@@ -631,7 +843,12 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                             rows={3}
                             label="Poznámky"
                             value={formData.notes}
-                            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                            onChange={e =>
+                              setFormData(prev => ({
+                                ...prev,
+                                notes: e.target.value,
+                              }))
+                            }
                           />
                         </Grid>
                       </>
@@ -648,13 +865,12 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                   <Typography variant="h6" gutterBottom>
                     Priložený súbor
                   </Typography>
-                  
-                  {(formData.filePaths && formData.filePaths.length > 0) && (
+
+                  {formData.filePaths && formData.filePaths.length > 0 && (
                     <Alert severity="info" sx={{ mb: 2 }}>
-                      {formData.filePaths.length === 1 
+                      {formData.filePaths.length === 1
                         ? 'Súbor už je priložený. Môžete pridať viac súborov.'
-                        : `${formData.filePaths.length} súborov je už priložených. Môžete pridať viac súborov.`
-                      }
+                        : `${formData.filePaths.length} súborov je už priložených. Môžete pridať viac súborov.`}
                     </Alert>
                   )}
 
@@ -662,16 +878,27 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                     type="document"
                     entityId={formData.vehicleId || 'temp'}
                     onUploadSuccess={handleFileUploadSuccess}
-                    onUploadError={(error) => console.error('Upload error:', error)}
-                    acceptedTypes={['image/jpeg', 'image/png', 'image/webp', 'application/pdf']}
+                    onUploadError={error =>
+                      console.error('Upload error:', error)
+                    }
+                    acceptedTypes={[
+                      'image/jpeg',
+                      'image/png',
+                      'image/webp',
+                      'application/pdf',
+                    ]}
                     maxSize={10}
                     multiple={true}
                     label="Nahrať súbory (PDF, JPG, PNG) - môžete vybrať viacero"
                   />
 
-                  {(formData.filePaths && formData.filePaths.length > 0) && (
+                  {formData.filePaths && formData.filePaths.length > 0 && (
                     <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        gutterBottom
+                      >
                         Priložené súbory ({formData.filePaths.length}):
                       </Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -683,11 +910,14 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                             onDelete={() => {
                               // Odstráň súbor z filePaths
                               setFormData(prev => {
-                                const updatedPaths = prev.filePaths?.filter((_, i) => i !== index) || [];
+                                const updatedPaths =
+                                  prev.filePaths?.filter(
+                                    (_, i) => i !== index
+                                  ) || [];
                                 return {
                                   ...prev,
                                   filePaths: updatedPaths,
-                                  filePath: updatedPaths[0] || '' // Zachováme pre backward compatibility
+                                  filePath: updatedPaths[0] || '', // Zachováme pre backward compatibility
                                 };
                               });
                             }}
@@ -708,10 +938,7 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
 
           {/* Action buttons */}
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button
-              variant="outlined"
-              onClick={onCancel}
-            >
+            <Button variant="outlined" onClick={onCancel}>
               Zrušiť
             </Button>
             <Button
@@ -721,7 +948,7 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                 background: `linear-gradient(135deg, ${typeInfo.color} 0%, ${typeInfo.color}dd 100%)`,
                 '&:hover': {
                   background: `linear-gradient(135deg, ${typeInfo.color}dd 0%, ${typeInfo.color}bb 100%)`,
-                }
+                },
               }}
             >
               {document?.id ? 'Uložiť zmeny' : 'Pridať dokument'}
@@ -743,11 +970,11 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 9999
+            zIndex: 9999,
           }}
           onClick={() => setAddingInsurer(false)}
         >
-          <Card sx={{ minWidth: 400, m: 2 }} onClick={(e) => e.stopPropagation()}>
+          <Card sx={{ minWidth: 400, m: 2 }} onClick={e => e.stopPropagation()}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Pridať novú poisťovňu
@@ -756,53 +983,75 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
                 fullWidth
                 label="Názov poisťovne"
                 value={newInsurerName}
-                onChange={(e) => setNewInsurerName(e.target.value)}
+                onChange={e => setNewInsurerName(e.target.value)}
                 margin="normal"
                 autoFocus
               />
-              <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'flex-end' }}>
-                <Button onClick={() => {
-                  setAddingInsurer(false);
-                  setNewInsurerName('');
-                }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 1,
+                  mt: 2,
+                  justifyContent: 'flex-end',
+                }}
+              >
+                <Button
+                  onClick={() => {
+                    setAddingInsurer(false);
+                    setNewInsurerName('');
+                  }}
+                >
                   Zrušiť
                 </Button>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   onClick={async () => {
                     if (newInsurerName.trim()) {
                       try {
                         // Volám API pre vytvorenie poistovne
                         // Použijem správnu API URL
-                        const apiUrl = process.env.NODE_ENV === 'production' 
-                          ? 'https://blackrent-app-production-4d6f.up.railway.app/api/insurers'
-                          : `${window.location.protocol}//${window.location.hostname}:3001/api/insurers`;
-                        
+                        const apiUrl =
+                          process.env.NODE_ENV === 'production'
+                            ? 'https://blackrent-app-production-4d6f.up.railway.app/api/insurers'
+                            : `${window.location.protocol}//${window.location.hostname}:3001/api/insurers`;
+
                         const response = await fetch(apiUrl, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token')}`
+                            Authorization: `Bearer ${localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token')}`,
                           },
-                          body: JSON.stringify({ name: newInsurerName.trim() })
+                          body: JSON.stringify({ name: newInsurerName.trim() }),
                         });
 
                         if (response.ok) {
                           const result = await response.json();
-                          console.log('✅ Poistovňa úspešne vytvorená:', result.data);
-                          
+                          console.log(
+                            '✅ Poistovňa úspešne vytvorená:',
+                            result.data
+                          );
+
                           // Po úspešnom pridaní nastavím novú poistovňu ako vybranú
-                          setFormData(prev => ({ ...prev, company: newInsurerName.trim() }));
+                          setFormData(prev => ({
+                            ...prev,
+                            company: newInsurerName.trim(),
+                          }));
                           setAddingInsurer(false);
                           setNewInsurerName('');
-                          
+
                           // Refresh poistovní v AppContext (ak by bolo potrebné)
                           window.location.reload();
                         } else {
-                          console.error('❌ Chyba pri vytváraní poistovne:', response.statusText);
+                          console.error(
+                            '❌ Chyba pri vytváraní poistovne:',
+                            response.statusText
+                          );
                         }
                       } catch (error) {
-                        console.error('❌ Chyba pri pridávaní poistovne:', error);
+                        console.error(
+                          '❌ Chyba pri pridávaní poistovne:',
+                          error
+                        );
                       }
                     }
                   }}
@@ -817,4 +1066,4 @@ export default function UnifiedDocumentForm({ document, onSave, onCancel }: Unif
       )}
     </>
   );
-};
+}

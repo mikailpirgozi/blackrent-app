@@ -1,19 +1,3 @@
-import React, { memo } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Chip,
-  IconButton,
-  Button,
-  Grid,
-  useMediaQuery,
-  useTheme,
-  Tooltip,
-  Avatar,
-  Divider
-} from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -35,10 +19,27 @@ import {
   Speed as SpeedIcon,
   LocationOn as LocationIcon,
   AccessTime as TimeIcon,
-  Visibility as VisibilityIcon
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Chip,
+  IconButton,
+  Button,
+  Grid,
+  useMediaQuery,
+  useTheme,
+  Tooltip,
+  Avatar,
+  Divider,
+} from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import React, { memo } from 'react';
+
 import { Rental } from '../../types';
 
 export type CardViewMode = 'grid' | 'list' | 'compact' | 'detailed';
@@ -50,7 +51,11 @@ interface RentalCardViewProps {
   onDelete: (rentalId: string) => void;
   onCreateHandover: (rental: Rental) => void;
   onCreateReturn: (rental: Rental) => void;
-  onViewPDF: (protocolId: string, type: 'handover' | 'return', title: string) => void;
+  onViewPDF: (
+    protocolId: string,
+    type: 'handover' | 'return',
+    title: string
+  ) => void;
   onOpenGallery: (rental: Rental, protocolType: 'handover' | 'return') => void;
   onViewProtocols: (rental: Rental) => void;
   protocols: Record<string, { handover?: any; return?: any }>;
@@ -68,7 +73,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
   onOpenGallery,
   onViewProtocols,
   protocols,
-  loadingProtocols
+  loadingProtocols,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -114,8 +119,12 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
   const renderCompactCard = (rental: Rental) => {
     const hasHandover = protocols[rental.id]?.handover;
     const hasReturn = protocols[rental.id]?.return;
-    const isActive = rental.status?.toLowerCase() === 'aktívny' || rental.status?.toLowerCase() === 'active';
-    const isFinished = rental.status?.toLowerCase() === 'dokončený' || rental.status?.toLowerCase() === 'completed';
+    const isActive =
+      rental.status?.toLowerCase() === 'aktívny' ||
+      rental.status?.toLowerCase() === 'active';
+    const isFinished =
+      rental.status?.toLowerCase() === 'dokončený' ||
+      rental.status?.toLowerCase() === 'completed';
 
     return (
       <Card
@@ -129,20 +138,22 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
           '&:hover': {
             transform: 'translateY(-4px)',
             boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-            borderColor: isActive ? '#4caf50' : 'primary.main'
+            borderColor: isActive ? '#4caf50' : 'primary.main',
           },
           position: 'relative',
-          overflow: 'visible'
+          overflow: 'visible',
         }}
         onClick={() => onEdit(rental)}
       >
         {/* Status indicator */}
-        <Box sx={{
-          position: 'absolute',
-          top: -8,
-          right: 16,
-          zIndex: 1
-        }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: -8,
+            right: 16,
+            zIndex: 1,
+          }}
+        >
           <Chip
             label={rental.status}
             color={getStatusColor(rental.status)}
@@ -150,18 +161,20 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
             icon={getStatusIcon(rental.status)}
             sx={{
               fontWeight: 'bold',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             }}
           />
         </Box>
 
         {/* Protocol status indicator */}
-        <Box sx={{
-          position: 'absolute',
-          top: 8,
-          left: 8,
-          zIndex: 1
-        }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            zIndex: 1,
+          }}
+        >
           <Box sx={{ display: 'flex', gap: 0.5 }}>
             {hasHandover && (
               <Chip
@@ -172,7 +185,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                 sx={{
                   minWidth: 32,
                   height: 24,
-                  '& .MuiChip-icon': { fontSize: 16 }
+                  '& .MuiChip-icon': { fontSize: 16 },
                 }}
               />
             )}
@@ -185,7 +198,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                 sx={{
                   minWidth: 32,
                   height: 24,
-                  '& .MuiChip-icon': { fontSize: 16 }
+                  '& .MuiChip-icon': { fontSize: 16 },
                 }}
               />
             )}
@@ -195,10 +208,14 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
         <CardContent sx={{ p: 2, pt: 4 }}>
           {/* Vehicle info */}
           <Box sx={{ mb: 1.5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}
+            >
               <CarIcon color="primary" fontSize="small" />
               <Typography variant="subtitle1" fontWeight="bold" color="primary">
-                {rental.vehicle ? `${rental.vehicle.brand} ${rental.vehicle.model}` : 'Bez vozidla'}
+                {rental.vehicle
+                  ? `${rental.vehicle.brand} ${rental.vehicle.model}`
+                  : 'Bez vozidla'}
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
@@ -218,14 +235,21 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
 
           {/* Dates */}
           <Box sx={{ mb: 1.5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}
+            >
               <ScheduleIcon color="action" fontSize="small" />
               <Typography variant="body2" fontWeight="medium">
-                {format(new Date(rental.startDate), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                {format(new Date(rental.startDate), 'dd.MM.yyyy HH:mm', {
+                  locale: sk,
+                })}
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
-              do {format(new Date(rental.endDate), 'dd.MM.yyyy HH:mm', { locale: sk })}
+              do{' '}
+              {format(new Date(rental.endDate), 'dd.MM.yyyy HH:mm', {
+                locale: sk,
+              })}
             </Typography>
           </Box>
 
@@ -245,23 +269,25 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
               size="small"
               variant="outlined"
               startIcon={<VisibilityIcon />}
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                onViewProtocols(rental); 
+              onClick={e => {
+                e.stopPropagation();
+                onViewProtocols(rental);
               }}
               disabled={loadingProtocols.includes(rental.id)}
               sx={{ flex: 1, minWidth: 'fit-content' }}
             >
-              {loadingProtocols.includes(rental.id) ? 'Načítavam...' : 'Zobraziť protokoly'}
+              {loadingProtocols.includes(rental.id)
+                ? 'Načítavam...'
+                : 'Zobraziť protokoly'}
             </Button>
             {hasHandover && (
               <Button
                 size="small"
                 variant="outlined"
                 startIcon={<PDFIcon />}
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  onViewPDF(hasHandover.id, 'handover', 'Preberací protokol'); 
+                onClick={e => {
+                  e.stopPropagation();
+                  onViewPDF(hasHandover.id, 'handover', 'Preberací protokol');
                 }}
                 sx={{ minWidth: 'fit-content' }}
               >
@@ -273,9 +299,9 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                 size="small"
                 variant="outlined"
                 startIcon={<PDFIcon />}
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  onViewPDF(hasReturn.id, 'return', 'Preberací protokol'); 
+                onClick={e => {
+                  e.stopPropagation();
+                  onViewPDF(hasReturn.id, 'return', 'Preberací protokol');
                 }}
                 sx={{ minWidth: 'fit-content' }}
               >
@@ -287,26 +313,71 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
           {/* Protocol details when loaded */}
           {protocols[rental.id] && (
             <Box sx={{ mb: 1, p: 0.5, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.65rem' }}>
+              <Typography
+                variant="caption"
+                sx={{ fontWeight: 600, fontSize: '0.65rem' }}
+              >
                 Detaily protokolov:
               </Typography>
               {hasHandover && (
-                <Box sx={{ mt: 0.5, p: 0.5, bgcolor: 'success.light', borderRadius: 1 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'success.dark', fontSize: '0.6rem' }}>
+                <Box
+                  sx={{
+                    mt: 0.5,
+                    p: 0.5,
+                    bgcolor: 'success.light',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 500,
+                      color: 'success.dark',
+                      fontSize: '0.6rem',
+                    }}
+                  >
                     ✅ Preberací protokol
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.55rem' }}>
-                    {format(new Date(hasHandover.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', fontSize: '0.55rem' }}
+                  >
+                    {format(
+                      new Date(hasHandover.createdAt),
+                      'dd.MM.yyyy HH:mm',
+                      { locale: sk }
+                    )}
                   </Typography>
                 </Box>
               )}
               {hasReturn && (
-                <Box sx={{ mt: 0.5, p: 0.5, bgcolor: 'success.light', borderRadius: 1 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'success.dark', fontSize: '0.6rem' }}>
+                <Box
+                  sx={{
+                    mt: 0.5,
+                    p: 0.5,
+                    bgcolor: 'success.light',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 500,
+                      color: 'success.dark',
+                      fontSize: '0.6rem',
+                    }}
+                  >
                     ✅ Preberací protokol
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.55rem' }}>
-                    {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', fontSize: '0.55rem' }}
+                  >
+                    {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', {
+                      locale: sk,
+                    })}
                   </Typography>
                 </Box>
               )}
@@ -314,20 +385,25 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
           )}
 
           {/* Actions */}
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 0.5, 
-            mt: 2,
-            justifyContent: 'flex-end'
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 0.5,
+              mt: 2,
+              justifyContent: 'flex-end',
+            }}
+          >
             <Tooltip title="Upraviť">
               <IconButton
                 size="small"
-                onClick={(e) => { e.stopPropagation(); onEdit(rental); }}
-                sx={{ 
+                onClick={e => {
+                  e.stopPropagation();
+                  onEdit(rental);
+                }}
+                sx={{
                   bgcolor: 'primary.main',
                   color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' }
+                  '&:hover': { bgcolor: 'primary.dark' },
                 }}
               >
                 <EditIcon fontSize="small" />
@@ -336,11 +412,14 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
             <Tooltip title="Vymazať">
               <IconButton
                 size="small"
-                onClick={(e) => { e.stopPropagation(); onDelete(rental.id); }}
-                sx={{ 
+                onClick={e => {
+                  e.stopPropagation();
+                  onDelete(rental.id);
+                }}
+                sx={{
                   bgcolor: 'error.main',
                   color: 'white',
-                  '&:hover': { bgcolor: 'error.dark' }
+                  '&:hover': { bgcolor: 'error.dark' },
                 }}
               >
                 <DeleteIcon fontSize="small" />
@@ -355,7 +434,9 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
   const renderDetailedCard = (rental: Rental) => {
     const hasHandover = protocols[rental.id]?.handover;
     const hasReturn = protocols[rental.id]?.return;
-    const isActive = rental.status?.toLowerCase() === 'aktívny' || rental.status?.toLowerCase() === 'active';
+    const isActive =
+      rental.status?.toLowerCase() === 'aktívny' ||
+      rental.status?.toLowerCase() === 'active';
 
     return (
       <Card
@@ -369,20 +450,22 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
           '&:hover': {
             transform: 'translateY(-4px)',
             boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-            borderColor: isActive ? '#4caf50' : 'primary.main'
+            borderColor: isActive ? '#4caf50' : 'primary.main',
           },
           position: 'relative',
-          overflow: 'visible'
+          overflow: 'visible',
         }}
         onClick={() => onEdit(rental)}
       >
         {/* Status indicator */}
-        <Box sx={{
-          position: 'absolute',
-          top: -8,
-          right: 16,
-          zIndex: 1
-        }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: -8,
+            right: 16,
+            zIndex: 1,
+          }}
+        >
           <Chip
             label={rental.status}
             color={getStatusColor(rental.status)}
@@ -390,18 +473,20 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
             icon={getStatusIcon(rental.status)}
             sx={{
               fontWeight: 'bold',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             }}
           />
         </Box>
 
         {/* Protocol status indicator */}
-        <Box sx={{
-          position: 'absolute',
-          top: 8,
-          left: 8,
-          zIndex: 1
-        }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            zIndex: 1,
+          }}
+        >
           <Box sx={{ display: 'flex', gap: 0.5 }}>
             {hasHandover && (
               <Chip
@@ -412,7 +497,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                 sx={{
                   minWidth: 32,
                   height: 24,
-                  '& .MuiChip-icon': { fontSize: 16 }
+                  '& .MuiChip-icon': { fontSize: 16 },
                 }}
               />
             )}
@@ -425,7 +510,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                 sx={{
                   minWidth: 32,
                   height: 24,
-                  '& .MuiChip-icon': { fontSize: 16 }
+                  '& .MuiChip-icon': { fontSize: 16 },
                 }}
               />
             )}
@@ -438,7 +523,9 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <CarIcon color="primary" fontSize="small" />
               <Typography variant="h6" fontWeight="bold" color="primary">
-                {rental.vehicle ? `${rental.vehicle.brand} ${rental.vehicle.model}` : 'Bez vozidla'}
+                {rental.vehicle
+                  ? `${rental.vehicle.brand} ${rental.vehicle.model}`
+                  : 'Bez vozidla'}
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
@@ -471,7 +558,13 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
-              {format(new Date(rental.startDate), 'dd.MM.yyyy HH:mm', { locale: sk })} - {format(new Date(rental.endDate), 'dd.MM.yyyy HH:mm', { locale: sk })}
+              {format(new Date(rental.startDate), 'dd.MM.yyyy HH:mm', {
+                locale: sk,
+              })}{' '}
+              -{' '}
+              {format(new Date(rental.endDate), 'dd.MM.yyyy HH:mm', {
+                locale: sk,
+              })}
             </Typography>
           </Box>
 
@@ -495,7 +588,8 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <PaymentIcon color="action" fontSize="small" />
               <Typography variant="body2" color="text.secondary">
-                {rental.paymentMethod} - {rental.paid ? 'Uhradené' : 'Neuhradené'}
+                {rental.paymentMethod} -{' '}
+                {rental.paid ? 'Uhradené' : 'Neuhradené'}
               </Typography>
             </Box>
           </Box>
@@ -509,7 +603,10 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                 size="small"
                 variant="outlined"
                 startIcon={<HandoverIcon />}
-                onClick={(e) => { e.stopPropagation(); onCreateHandover(rental); }}
+                onClick={e => {
+                  e.stopPropagation();
+                  onCreateHandover(rental);
+                }}
                 sx={{ flex: 1 }}
               >
                 Preberací protokol
@@ -520,7 +617,10 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                 size="small"
                 variant="outlined"
                 startIcon={<ReturnIcon />}
-                onClick={(e) => { e.stopPropagation(); onCreateReturn(rental); }}
+                onClick={e => {
+                  e.stopPropagation();
+                  onCreateReturn(rental);
+                }}
                 sx={{ flex: 1 }}
               >
                 Protokol vrátenia
@@ -532,19 +632,20 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
           {/* Debug info */}
           <Box sx={{ mb: 1, p: 0.5, bgcolor: 'info.light', borderRadius: 1 }}>
             <Typography variant="caption" color="info.dark">
-              Debug: hasHandover={!!hasHandover}, hasReturn={!!hasReturn}, protocols={Object.keys(protocols).length}
+              Debug: hasHandover={!!hasHandover}, hasReturn={!!hasReturn},
+              protocols={Object.keys(protocols).length}
             </Typography>
           </Box>
-          
+
           {(hasHandover || hasReturn) && (
             <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
               <Button
                 size="small"
                 variant="outlined"
                 startIcon={<VisibilityIcon />}
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  onViewProtocols(rental); 
+                onClick={e => {
+                  e.stopPropagation();
+                  onViewProtocols(rental);
                 }}
                 disabled={loadingProtocols.includes(rental.id)}
                 sx={{ flex: 1 }}
@@ -556,9 +657,9 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                   size="small"
                   variant="outlined"
                   startIcon={<PDFIcon />}
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onViewPDF(hasHandover.id, 'handover', 'Preberací protokol'); 
+                  onClick={e => {
+                    e.stopPropagation();
+                    onViewPDF(hasHandover.id, 'handover', 'Preberací protokol');
                   }}
                   sx={{ flex: 1 }}
                 >
@@ -570,23 +671,24 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                   size="small"
                   variant="outlined"
                   startIcon={<PDFIcon />}
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onViewPDF(hasReturn.id, 'return', 'Preberací protokol'); 
+                  onClick={e => {
+                    e.stopPropagation();
+                    onViewPDF(hasReturn.id, 'return', 'Preberací protokol');
                   }}
                   sx={{ flex: 1 }}
                 >
                   PDF
                 </Button>
               )}
-              {(hasHandover?.images?.length > 0 || hasReturn?.images?.length > 0) && (
+              {(hasHandover?.images?.length > 0 ||
+                hasReturn?.images?.length > 0) && (
                 <Button
                   size="small"
                   variant="outlined"
                   startIcon={<GalleryIcon />}
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onOpenGallery(rental, hasHandover ? 'handover' : 'return'); 
+                  onClick={e => {
+                    e.stopPropagation();
+                    onOpenGallery(rental, hasHandover ? 'handover' : 'return');
                   }}
                   sx={{ flex: 1 }}
                 >
@@ -603,22 +705,50 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                 Detaily protokolov:
               </Typography>
               {hasHandover && (
-                <Box sx={{ mb: 1, p: 1, bgcolor: 'success.light', borderRadius: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 500, color: 'success.dark' }}>
+                <Box
+                  sx={{
+                    mb: 1,
+                    p: 1,
+                    bgcolor: 'success.light',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 500, color: 'success.dark' }}
+                  >
                     ✅ Preberací protokol
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Vytvorený: {format(new Date(hasHandover.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                    Vytvorený:{' '}
+                    {format(
+                      new Date(hasHandover.createdAt),
+                      'dd.MM.yyyy HH:mm',
+                      { locale: sk }
+                    )}
                   </Typography>
                 </Box>
               )}
               {hasReturn && (
-                <Box sx={{ mb: 1, p: 1, bgcolor: 'success.light', borderRadius: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 500, color: 'success.dark' }}>
+                <Box
+                  sx={{
+                    mb: 1,
+                    p: 1,
+                    bgcolor: 'success.light',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 500, color: 'success.dark' }}
+                  >
                     ✅ Preberací protokol
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Vytvorený: {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                    Vytvorený:{' '}
+                    {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', {
+                      locale: sk,
+                    })}
                   </Typography>
                 </Box>
               )}
@@ -628,26 +758,63 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
           {/* Protocol details when loaded */}
           {protocols[rental.id] && (
             <Box sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ mb: 1, fontWeight: 600, fontSize: '0.75rem' }}
+              >
                 Detaily protokolov:
               </Typography>
               {hasHandover && (
-                <Box sx={{ mb: 1, p: 0.5, bgcolor: 'success.light', borderRadius: 1 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'success.dark' }}>
+                <Box
+                  sx={{
+                    mb: 1,
+                    p: 0.5,
+                    bgcolor: 'success.light',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 500, color: 'success.dark' }}
+                  >
                     ✅ Preberací protokol
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
-                    {format(new Date(hasHandover.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', fontSize: '0.65rem' }}
+                  >
+                    {format(
+                      new Date(hasHandover.createdAt),
+                      'dd.MM.yyyy HH:mm',
+                      { locale: sk }
+                    )}
                   </Typography>
                 </Box>
               )}
               {hasReturn && (
-                <Box sx={{ mb: 1, p: 0.5, bgcolor: 'success.light', borderRadius: 1 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'success.dark' }}>
+                <Box
+                  sx={{
+                    mb: 1,
+                    p: 0.5,
+                    bgcolor: 'success.light',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 500, color: 'success.dark' }}
+                  >
                     ✅ Preberací protokol
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
-                    {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', { locale: sk })}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', fontSize: '0.65rem' }}
+                  >
+                    {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', {
+                      locale: sk,
+                    })}
                   </Typography>
                 </Box>
               )}
@@ -655,19 +822,24 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
           )}
 
           {/* Actions */}
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 1,
-            justifyContent: 'flex-end'
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              justifyContent: 'flex-end',
+            }}
+          >
             <Tooltip title="Upraviť">
               <IconButton
                 size="small"
-                onClick={(e) => { e.stopPropagation(); onEdit(rental); }}
-                sx={{ 
+                onClick={e => {
+                  e.stopPropagation();
+                  onEdit(rental);
+                }}
+                sx={{
                   bgcolor: 'primary.main',
                   color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' }
+                  '&:hover': { bgcolor: 'primary.dark' },
                 }}
               >
                 <EditIcon fontSize="small" />
@@ -676,11 +848,14 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
             <Tooltip title="Vymazať">
               <IconButton
                 size="small"
-                onClick={(e) => { e.stopPropagation(); onDelete(rental.id); }}
-                sx={{ 
+                onClick={e => {
+                  e.stopPropagation();
+                  onDelete(rental.id);
+                }}
+                sx={{
                   bgcolor: 'error.main',
                   color: 'white',
-                  '&:hover': { bgcolor: 'error.dark' }
+                  '&:hover': { bgcolor: 'error.dark' },
                 }}
               >
                 <DeleteIcon fontSize="small" />
@@ -716,7 +891,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
 
   return (
     <Grid container spacing={{ xs: 1, md: 2 }}>
-      {rentals.map((rental) => (
+      {rentals.map(rental => (
         <Grid item key={rental.id} {...getGridSize()}>
           {renderCard(rental)}
         </Grid>
@@ -725,4 +900,4 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
   );
 };
 
-export default memo(RentalCardView); 
+export default memo(RentalCardView);

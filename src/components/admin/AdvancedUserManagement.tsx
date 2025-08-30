@@ -1,7 +1,23 @@
 // 🏢 Advanced User Management Component
 // Complete UI for multi-tenant user management
 
-import React, { useState, useEffect } from 'react';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Group as GroupIcon,
+  Business as BusinessIcon,
+  Security as SecurityIcon,
+  Timeline as TimelineIcon,
+  PersonAdd as PersonAddIcon,
+  Settings as SettingsIcon,
+  Visibility as ViewIcon,
+  Block as BlockIcon,
+  VpnKey as KeyIcon,
+  Analytics as AnalyticsIcon,
+  ExpandMore as ExpandMoreIcon,
+  Check as CheckIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Card,
@@ -47,25 +63,10 @@ import {
   Switch,
   FormControlLabel,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Group as GroupIcon,
-  Business as BusinessIcon,
-  Security as SecurityIcon,
-  Timeline as TimelineIcon,
-  PersonAdd as PersonAddIcon,
-  Settings as SettingsIcon,
-  Visibility as ViewIcon,
-  Block as BlockIcon,
-  VpnKey as KeyIcon,
-  Analytics as AnalyticsIcon,
-  ExpandMore as ExpandMoreIcon,
-  Check as CheckIcon,
-} from '@mui/icons-material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import React, { useState, useEffect } from 'react';
+
 import { useAuth } from '../../context/AuthContext';
 
 interface TabPanelProps {
@@ -85,11 +86,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`advanced-user-tab-${index}`}
       {...other}
     >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
   );
 }
@@ -109,7 +106,7 @@ const AdvancedUserManagement: React.FC = () => {
     phone: '',
     jobTitle: '',
     roleId: '',
-    departmentId: ''
+    departmentId: '',
   });
   const [userPermissions, setUserPermissions] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
@@ -120,7 +117,7 @@ const AdvancedUserManagement: React.FC = () => {
     if (process.env.NODE_ENV === 'production') {
       return 'https://blackrent-app-production-4d6f.up.railway.app/api';
     }
-    
+
     // V developmente - automatická detekcia
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
@@ -156,7 +153,7 @@ const AdvancedUserManagement: React.FC = () => {
     departmentId: '',
     roleId: '',
     managerId: '',
-    salary: ''
+    salary: '',
   });
 
   const [roleForm, setRoleForm] = useState({
@@ -164,7 +161,7 @@ const AdvancedUserManagement: React.FC = () => {
     displayName: '',
     description: '',
     level: 1,
-    permissions: {}
+    permissions: {},
   });
 
   const [departmentForm, setDepartmentForm] = useState({
@@ -173,13 +170,13 @@ const AdvancedUserManagement: React.FC = () => {
     parentDepartmentId: '',
     managerId: '',
     monthlyBudget: '',
-    vehicleLimit: ''
+    vehicleLimit: '',
   });
 
   const [teamForm, setTeamForm] = useState({
     name: '',
     description: '',
-    teamLeadId: ''
+    teamLeadId: '',
   });
 
   useEffect(() => {
@@ -192,11 +189,14 @@ const AdvancedUserManagement: React.FC = () => {
 
     try {
       // Load organization info
-      const orgResponse = await fetch(`${getApiBaseUrl()}/advanced-users/organization`, {
-        headers: {
-          'Authorization': `Bearer ${getAuthToken()}`
+      const orgResponse = await fetch(
+        `${getApiBaseUrl()}/advanced-users/organization`,
+        {
+          headers: {
+            Authorization: `Bearer ${getAuthToken()}`,
+          },
         }
-      });
+      );
 
       if (orgResponse.ok) {
         const orgData = await orgResponse.json();
@@ -225,7 +225,6 @@ const AdvancedUserManagement: React.FC = () => {
           await loadActivityLog();
           break;
       }
-
     } catch (error) {
       console.error('Error loading data:', error);
       setError('Chyba pri načítavaní dát');
@@ -235,11 +234,14 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   const loadOrganizationStats = async () => {
-    const response = await fetch(`${getApiBaseUrl()}/advanced-users/organization/stats`, {
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()}`
+    const response = await fetch(
+      `${getApiBaseUrl()}/advanced-users/organization/stats`,
+      {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
       }
-    });
+    );
 
     if (response.ok) {
       const data = await response.json();
@@ -250,8 +252,8 @@ const AdvancedUserManagement: React.FC = () => {
   const loadUsers = async () => {
     const response = await fetch(`${getApiBaseUrl()}/advanced-users/users`, {
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`
-      }
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
     });
 
     if (response.ok) {
@@ -264,8 +266,8 @@ const AdvancedUserManagement: React.FC = () => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/companies`, {
         headers: {
-          'Authorization': `Bearer ${getAuthToken()}`
-        }
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
       });
 
       if (response.ok) {
@@ -283,11 +285,14 @@ const AdvancedUserManagement: React.FC = () => {
 
   const loadUserPermissions = async (userId: string) => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/permissions/user/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${getAuthToken()}`
+      const response = await fetch(
+        `${getApiBaseUrl()}/permissions/user/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${getAuthToken()}`,
+          },
         }
-      });
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -303,8 +308,8 @@ const AdvancedUserManagement: React.FC = () => {
   const loadRoles = async () => {
     const response = await fetch(`${getApiBaseUrl()}/advanced-users/roles`, {
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`
-      }
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
     });
 
     if (response.ok) {
@@ -314,11 +319,14 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   const loadDepartments = async () => {
-    const response = await fetch(`${getApiBaseUrl()}/advanced-users/departments`, {
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()}`
+    const response = await fetch(
+      `${getApiBaseUrl()}/advanced-users/departments`,
+      {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
       }
-    });
+    );
 
     if (response.ok) {
       const data = await response.json();
@@ -329,8 +337,8 @@ const AdvancedUserManagement: React.FC = () => {
   const loadTeams = async () => {
     const response = await fetch(`${getApiBaseUrl()}/advanced-users/teams`, {
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`
-      }
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
     });
 
     if (response.ok) {
@@ -340,11 +348,14 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   const loadActivityLog = async () => {
-    const response = await fetch(`${getApiBaseUrl()}/advanced-users/activity-log?limit=50`, {
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()}`
+    const response = await fetch(
+      `${getApiBaseUrl()}/advanced-users/activity-log?limit=50`,
+      {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
       }
-    });
+    );
 
     if (response.ok) {
       const data = await response.json();
@@ -362,9 +373,9 @@ const AdvancedUserManagement: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`
+          Authorization: `Bearer ${getAuthToken()}`,
         },
-        body: JSON.stringify(userForm)
+        body: JSON.stringify(userForm),
       });
 
       if (response.ok) {
@@ -386,9 +397,9 @@ const AdvancedUserManagement: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`
+          Authorization: `Bearer ${getAuthToken()}`,
         },
-        body: JSON.stringify(roleForm)
+        body: JSON.stringify(roleForm),
       });
 
       if (response.ok) {
@@ -406,14 +417,17 @@ const AdvancedUserManagement: React.FC = () => {
 
   const handleCreateDepartment = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/advanced-users/departments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`
-        },
-        body: JSON.stringify(departmentForm)
-      });
+      const response = await fetch(
+        `${getApiBaseUrl()}/advanced-users/departments`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getAuthToken()}`,
+          },
+          body: JSON.stringify(departmentForm),
+        }
+      );
 
       if (response.ok) {
         setDepartmentDialogOpen(false);
@@ -434,9 +448,9 @@ const AdvancedUserManagement: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`
+          Authorization: `Bearer ${getAuthToken()}`,
         },
-        body: JSON.stringify(teamForm)
+        body: JSON.stringify(teamForm),
       });
 
       if (response.ok) {
@@ -455,7 +469,9 @@ const AdvancedUserManagement: React.FC = () => {
   const handleViewUser = (userId: string) => {
     const user = users.find(u => u.id === userId);
     if (user) {
-      alert(`Zobrazenie používateľa: ${user.firstName} ${user.lastName}\nEmail: ${user.email}\nRola: ${user.roleName}`);
+      alert(
+        `Zobrazenie používateľa: ${user.firstName} ${user.lastName}\nEmail: ${user.email}\nRola: ${user.roleName}`
+      );
     }
   };
 
@@ -470,33 +486,36 @@ const AdvancedUserManagement: React.FC = () => {
         phone: user.phone || '',
         jobTitle: user.jobTitle || '',
         roleId: user.roleId || '',
-        departmentId: user.departmentId || ''
+        departmentId: user.departmentId || '',
       });
-      
+
       // Load user permissions, roles and companies
       await Promise.all([
         loadUserPermissions(userId),
         loadRoles(), // Načítaj role pre editáciu
-        loadCompanies() // Ensure companies are loaded
+        loadCompanies(), // Ensure companies are loaded
       ]);
-      
+
       setEditModalOpen(true);
     }
   };
 
   const handleSaveEditUser = async () => {
     if (!editingUser) return;
-    
+
     try {
       // 1. Update user basic info
-      const userResponse = await fetch(`${getApiBaseUrl()}/advanced-users/users/${editingUser.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`
-        },
-        body: JSON.stringify(editForm)
-      });
+      const userResponse = await fetch(
+        `${getApiBaseUrl()}/advanced-users/users/${editingUser.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getAuthToken()}`,
+          },
+          body: JSON.stringify(editForm),
+        }
+      );
 
       if (!userResponse.ok) {
         const errorData = await userResponse.json();
@@ -507,18 +526,24 @@ const AdvancedUserManagement: React.FC = () => {
       // 2. Update user permissions
       for (const permission of userPermissions) {
         try {
-          await fetch(`${getApiBaseUrl()}/permissions/user/${editingUser.id}/company/${permission.companyId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${getAuthToken()}`
-            },
-            body: JSON.stringify({
-              permissions: permission.permissions
-            })
-          });
+          await fetch(
+            `${getApiBaseUrl()}/permissions/user/${editingUser.id}/company/${permission.companyId}`,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${getAuthToken()}`,
+              },
+              body: JSON.stringify({
+                permissions: permission.permissions,
+              }),
+            }
+          );
         } catch (permError) {
-          console.warn('Chyba pri ukladaní oprávnení pre firmu:', permission.companyName);
+          console.warn(
+            'Chyba pri ukladaní oprávnení pre firmu:',
+            permission.companyName
+          );
         }
       }
 
@@ -526,7 +551,6 @@ const AdvancedUserManagement: React.FC = () => {
       setEditingUser(null);
       setUserPermissions([]);
       await loadUsers(); // Reload users to show changes
-      
     } catch (error) {
       setError('Chyba pri úprave používateľa');
     }
@@ -543,18 +567,21 @@ const AdvancedUserManagement: React.FC = () => {
       phone: '',
       jobTitle: '',
       roleId: '',
-      departmentId: ''
+      departmentId: '',
     });
   };
 
   const handleDeactivateUser = async (userId: string) => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/advanced-users/users/${userId}/deactivate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${getAuthToken()}`
+      const response = await fetch(
+        `${getApiBaseUrl()}/advanced-users/users/${userId}/deactivate`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${getAuthToken()}`,
+          },
         }
-      });
+      );
 
       if (response.ok) {
         await loadUsers();
@@ -580,7 +607,7 @@ const AdvancedUserManagement: React.FC = () => {
       departmentId: '',
       roleId: '',
       managerId: '',
-      salary: ''
+      salary: '',
     });
   };
 
@@ -590,7 +617,7 @@ const AdvancedUserManagement: React.FC = () => {
       displayName: '',
       description: '',
       level: 1,
-      permissions: {}
+      permissions: {},
     });
   };
 
@@ -601,7 +628,7 @@ const AdvancedUserManagement: React.FC = () => {
       parentDepartmentId: '',
       managerId: '',
       monthlyBudget: '',
-      vehicleLimit: ''
+      vehicleLimit: '',
     });
   };
 
@@ -609,12 +636,16 @@ const AdvancedUserManagement: React.FC = () => {
     setTeamForm({
       name: '',
       description: '',
-      teamLeadId: ''
+      teamLeadId: '',
     });
   };
 
   const getAuthToken = () => {
-    return state.token || localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token');
+    return (
+      state.token ||
+      localStorage.getItem('blackrent_token') ||
+      sessionStorage.getItem('blackrent_token')
+    );
   };
 
   const getRoleLevel = (level: number) => {
@@ -625,7 +656,7 @@ const AdvancedUserManagement: React.FC = () => {
       5: 'Employee',
       4: 'Sales Rep',
       3: 'Mechanic',
-      1: 'Viewer'
+      1: 'Viewer',
     };
     return levels[level as keyof typeof levels] || `Level ${level}`;
   };
@@ -674,8 +705,8 @@ const AdvancedUserManagement: React.FC = () => {
             '& .MuiTab-root': {
               minWidth: 120,
               textTransform: 'none',
-              fontWeight: 500
-            }
+              fontWeight: 500,
+            },
           }}
         >
           <Tab icon={<BusinessIcon />} label="Organizácia" />
@@ -688,7 +719,7 @@ const AdvancedUserManagement: React.FC = () => {
       </Card>
 
       {/* Tab Panels */}
-      
+
       {/* Organization Overview */}
       <TabPanel value={currentTab} index={0}>
         <Grid container spacing={3}>
@@ -696,39 +727,50 @@ const AdvancedUserManagement: React.FC = () => {
           <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
-                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+                >
                   <BusinessIcon />
                   Informácie o organizácii
                 </Typography>
-                
+
                 {organization && (
                   <Box>
                     <Typography variant="h5" sx={{ mb: 1 }}>
                       {organization.name}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 2 }}
+                    >
                       {organization.slug}
                     </Typography>
-                    
+
                     <Chip
                       label={organization.subscriptionPlan.toUpperCase()}
                       color="primary"
                       variant="outlined"
                       sx={{ mb: 2 }}
                     />
-                    
+
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="body2">
-                        <strong>Email:</strong> {organization.email || 'Nie je nastavený'}
+                        <strong>Email:</strong>{' '}
+                        {organization.email || 'Nie je nastavený'}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Telefón:</strong> {organization.phone || 'Nie je nastavený'}
+                        <strong>Telefón:</strong>{' '}
+                        {organization.phone || 'Nie je nastavený'}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Max. používateľov:</strong> {organization.maxUsers}
+                        <strong>Max. používateľov:</strong>{' '}
+                        {organization.maxUsers}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Max. vozidiel:</strong> {organization.maxVehicles}
+                        <strong>Max. vozidiel:</strong>{' '}
+                        {organization.maxVehicles}
                       </Typography>
                     </Box>
                   </Box>
@@ -741,11 +783,14 @@ const AdvancedUserManagement: React.FC = () => {
           <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
-                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+                >
                   <AnalyticsIcon />
                   Štatistiky
                 </Typography>
-                
+
                 {stats && (
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
@@ -799,9 +844,7 @@ const AdvancedUserManagement: React.FC = () => {
       {/* Users Management */}
       <TabPanel value={currentTab} index={1}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">
-            Používatelia ({users.length})
-          </Typography>
+          <Typography variant="h6">Používatelia ({users.length})</Typography>
           <Button
             variant="contained"
             startIcon={<PersonAddIcon />}
@@ -828,7 +871,7 @@ const AdvancedUserManagement: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {users.map((user) => (
+              {users.map(user => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -837,10 +880,9 @@ const AdvancedUserManagement: React.FC = () => {
                       </Avatar>
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {user.firstName && user.lastName 
+                          {user.firstName && user.lastName
                             ? `${user.firstName} ${user.lastName}`
-                            : user.username
-                          }
+                            : user.username}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {user.jobTitle || user.username}
@@ -866,26 +908,33 @@ const AdvancedUserManagement: React.FC = () => {
                     />
                   </TableCell>
                   <TableCell>
-                    {user.lastLoginAt 
-                      ? format(new Date(user.lastLoginAt), 'dd.MM.yyyy HH:mm', { locale: sk })
-                      : 'Nikdy'
-                    }
+                    {user.lastLoginAt
+                      ? format(new Date(user.lastLoginAt), 'dd.MM.yyyy HH:mm', {
+                          locale: sk,
+                        })
+                      : 'Nikdy'}
                   </TableCell>
                   <TableCell>
                     <Tooltip title="Zobraziť">
-                      <IconButton size="small" onClick={() => handleViewUser(user.id)}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleViewUser(user.id)}
+                      >
                         <ViewIcon />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Upraviť">
-                      <IconButton size="small" onClick={() => handleEditUser(user.id)}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditUser(user.id)}
+                      >
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
                     {user.isActive && (
                       <Tooltip title="Deaktivovať">
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           color="error"
                           onClick={() => handleDeactivateUser(user.id)}
                         >
@@ -904,9 +953,7 @@ const AdvancedUserManagement: React.FC = () => {
       {/* Roles Management */}
       <TabPanel value={currentTab} index={2}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">
-            Role ({roles.length})
-          </Typography>
+          <Typography variant="h6">Role ({roles.length})</Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -917,11 +964,18 @@ const AdvancedUserManagement: React.FC = () => {
         </Box>
 
         <Grid container spacing={2}>
-          {roles.map((role) => (
+          {roles.map(role => (
             <Grid item xs={12} md={6} lg={4} key={role.id}>
               <Card>
                 <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      mb: 2,
+                    }}
+                  >
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 600 }}>
                         {role.displayName}
@@ -942,7 +996,13 @@ const AdvancedUserManagement: React.FC = () => {
                     {role.description || 'Bez popisu'}
                   </Typography>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       {role.isSystem && (
                         <Chip size="small" label="Systémová" color="info" />
@@ -951,7 +1011,7 @@ const AdvancedUserManagement: React.FC = () => {
                         <Chip size="small" label="Neaktívna" color="error" />
                       )}
                     </Box>
-                    
+
                     {!role.isSystem && (
                       <Box>
                         <IconButton size="small">
@@ -973,9 +1033,7 @@ const AdvancedUserManagement: React.FC = () => {
       {/* Departments Management */}
       <TabPanel value={currentTab} index={3}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">
-            Oddelenia ({departments.length})
-          </Typography>
+          <Typography variant="h6">Oddelenia ({departments.length})</Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -986,21 +1044,27 @@ const AdvancedUserManagement: React.FC = () => {
         </Box>
 
         <Grid container spacing={2}>
-          {departments.map((department) => (
+          {departments.map(department => (
             <Grid item xs={12} md={6} key={department.id}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
                     {department.name}
                   </Typography>
-                  
+
                   {department.description && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 2 }}
+                    >
                       {department.description}
                     </Typography>
                   )}
 
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                  <Box
+                    sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}
+                  >
                     {department.monthlyBudget && (
                       <Chip
                         size="small"
@@ -1034,9 +1098,7 @@ const AdvancedUserManagement: React.FC = () => {
       {/* Teams Management */}
       <TabPanel value={currentTab} index={4}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">
-            Tímy ({teams.length})
-          </Typography>
+          <Typography variant="h6">Tímy ({teams.length})</Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -1047,27 +1109,37 @@ const AdvancedUserManagement: React.FC = () => {
         </Box>
 
         <Grid container spacing={2}>
-          {teams.map((team) => (
+          {teams.map(team => (
             <Grid item xs={12} md={6} key={team.id}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
                     {team.name}
                   </Typography>
-                  
+
                   {team.description && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 2 }}
+                    >
                       {team.description}
                     </Typography>
                   )}
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
                     <Chip
                       size="small"
                       label={team.isActive ? 'Aktívny' : 'Neaktívny'}
                       color={team.isActive ? 'success' : 'error'}
                     />
-                    
+
                     <Box>
                       <IconButton size="small">
                         <ViewIcon />
@@ -1103,10 +1175,12 @@ const AdvancedUserManagement: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {activityLog.map((log) => (
+              {activityLog.map(log => (
                 <TableRow key={log.id}>
                   <TableCell>
-                    {format(new Date(log.createdAt), 'dd.MM.yyyy HH:mm:ss', { locale: sk })}
+                    {format(new Date(log.createdAt), 'dd.MM.yyyy HH:mm:ss', {
+                      locale: sk,
+                    })}
                   </TableCell>
                   <TableCell>{log.userId}</TableCell>
                   <TableCell>
@@ -1114,7 +1188,12 @@ const AdvancedUserManagement: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     {log.resourceType && (
-                      <Chip size="small" label={log.resourceType} color="info" variant="outlined" />
+                      <Chip
+                        size="small"
+                        label={log.resourceType}
+                        color="info"
+                        variant="outlined"
+                      />
                     )}
                   </TableCell>
                   <TableCell>{log.ipAddress || '-'}</TableCell>
@@ -1133,7 +1212,12 @@ const AdvancedUserManagement: React.FC = () => {
       </TabPanel>
 
       {/* User Dialog */}
-      <Dialog open={userDialogOpen} onClose={() => setUserDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog
+        open={userDialogOpen}
+        onClose={() => setUserDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>Pridať používateľa</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -1142,7 +1226,9 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Používateľské meno"
                 value={userForm.username}
-                onChange={(e) => setUserForm(prev => ({ ...prev, username: e.target.value }))}
+                onChange={e =>
+                  setUserForm(prev => ({ ...prev, username: e.target.value }))
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1151,7 +1237,9 @@ const AdvancedUserManagement: React.FC = () => {
                 label="Email"
                 type="email"
                 value={userForm.email}
-                onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
+                onChange={e =>
+                  setUserForm(prev => ({ ...prev, email: e.target.value }))
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1159,7 +1247,9 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Meno"
                 value={userForm.firstName}
-                onChange={(e) => setUserForm(prev => ({ ...prev, firstName: e.target.value }))}
+                onChange={e =>
+                  setUserForm(prev => ({ ...prev, firstName: e.target.value }))
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1167,7 +1257,9 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Priezvisko"
                 value={userForm.lastName}
-                onChange={(e) => setUserForm(prev => ({ ...prev, lastName: e.target.value }))}
+                onChange={e =>
+                  setUserForm(prev => ({ ...prev, lastName: e.target.value }))
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1176,7 +1268,9 @@ const AdvancedUserManagement: React.FC = () => {
                 label="Heslo"
                 type="password"
                 value={userForm.password}
-                onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
+                onChange={e =>
+                  setUserForm(prev => ({ ...prev, password: e.target.value }))
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1184,7 +1278,9 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Telefón"
                 value={userForm.phone}
-                onChange={(e) => setUserForm(prev => ({ ...prev, phone: e.target.value }))}
+                onChange={e =>
+                  setUserForm(prev => ({ ...prev, phone: e.target.value }))
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1192,10 +1288,12 @@ const AdvancedUserManagement: React.FC = () => {
                 <InputLabel>Rola</InputLabel>
                 <Select
                   value={userForm.roleId}
-                  onChange={(e) => setUserForm(prev => ({ ...prev, roleId: e.target.value }))}
+                  onChange={e =>
+                    setUserForm(prev => ({ ...prev, roleId: e.target.value }))
+                  }
                   label="Rola"
                 >
-                  {roles.map((role) => (
+                  {roles.map(role => (
                     <MenuItem key={role.id} value={role.id}>
                       {role.displayName}
                     </MenuItem>
@@ -1208,11 +1306,16 @@ const AdvancedUserManagement: React.FC = () => {
                 <InputLabel>Oddelenie</InputLabel>
                 <Select
                   value={userForm.departmentId}
-                  onChange={(e) => setUserForm(prev => ({ ...prev, departmentId: e.target.value }))}
+                  onChange={e =>
+                    setUserForm(prev => ({
+                      ...prev,
+                      departmentId: e.target.value,
+                    }))
+                  }
                   label="Oddelenie"
                 >
                   <MenuItem value="">Žiadne</MenuItem>
-                  {departments.map((dept) => (
+                  {departments.map(dept => (
                     <MenuItem key={dept.id} value={dept.id}>
                       {dept.name}
                     </MenuItem>
@@ -1223,9 +1326,7 @@ const AdvancedUserManagement: React.FC = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setUserDialogOpen(false)}>
-            Zrušiť
-          </Button>
+          <Button onClick={() => setUserDialogOpen(false)}>Zrušiť</Button>
           <Button variant="contained" onClick={handleCreateUser}>
             Vytvoriť
           </Button>
@@ -1233,7 +1334,12 @@ const AdvancedUserManagement: React.FC = () => {
       </Dialog>
 
       {/* Role Dialog */}
-      <Dialog open={roleDialogOpen} onClose={() => setRoleDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={roleDialogOpen}
+        onClose={() => setRoleDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Pridať rolu</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -1242,7 +1348,9 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Názov role"
                 value={userForm.username}
-                onChange={(e) => setRoleForm(prev => ({ ...prev, name: e.target.value }))}
+                onChange={e =>
+                  setRoleForm(prev => ({ ...prev, name: e.target.value }))
+                }
               />
             </Grid>
             <Grid item xs={12}>
@@ -1250,7 +1358,12 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Zobrazovaný názov"
                 value={roleForm.displayName}
-                onChange={(e) => setRoleForm(prev => ({ ...prev, displayName: e.target.value }))}
+                onChange={e =>
+                  setRoleForm(prev => ({
+                    ...prev,
+                    displayName: e.target.value,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12}>
@@ -1260,7 +1373,12 @@ const AdvancedUserManagement: React.FC = () => {
                 multiline
                 rows={3}
                 value={roleForm.description}
-                onChange={(e) => setRoleForm(prev => ({ ...prev, description: e.target.value }))}
+                onChange={e =>
+                  setRoleForm(prev => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12}>
@@ -1269,16 +1387,19 @@ const AdvancedUserManagement: React.FC = () => {
                 label="Úroveň (1-10)"
                 type="number"
                 value={roleForm.level}
-                onChange={(e) => setRoleForm(prev => ({ ...prev, level: parseInt(e.target.value) || 1 }))}
+                onChange={e =>
+                  setRoleForm(prev => ({
+                    ...prev,
+                    level: parseInt(e.target.value) || 1,
+                  }))
+                }
                 inputProps={{ min: 1, max: 10 }}
               />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRoleDialogOpen(false)}>
-            Zrušiť
-          </Button>
+          <Button onClick={() => setRoleDialogOpen(false)}>Zrušiť</Button>
           <Button variant="contained" onClick={handleCreateRole}>
             Vytvoriť
           </Button>
@@ -1286,7 +1407,12 @@ const AdvancedUserManagement: React.FC = () => {
       </Dialog>
 
       {/* Department Dialog */}
-      <Dialog open={departmentDialogOpen} onClose={() => setDepartmentDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={departmentDialogOpen}
+        onClose={() => setDepartmentDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Pridať oddelenie</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -1295,7 +1421,9 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Názov oddelenia"
                 value={departmentForm.name}
-                onChange={(e) => setDepartmentForm(prev => ({ ...prev, name: e.target.value }))}
+                onChange={e =>
+                  setDepartmentForm(prev => ({ ...prev, name: e.target.value }))
+                }
               />
             </Grid>
             <Grid item xs={12}>
@@ -1305,7 +1433,12 @@ const AdvancedUserManagement: React.FC = () => {
                 multiline
                 rows={3}
                 value={departmentForm.description}
-                onChange={(e) => setDepartmentForm(prev => ({ ...prev, description: e.target.value }))}
+                onChange={e =>
+                  setDepartmentForm(prev => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1314,7 +1447,12 @@ const AdvancedUserManagement: React.FC = () => {
                 label="Mesačný budget (€)"
                 type="number"
                 value={departmentForm.monthlyBudget}
-                onChange={(e) => setDepartmentForm(prev => ({ ...prev, monthlyBudget: e.target.value }))}
+                onChange={e =>
+                  setDepartmentForm(prev => ({
+                    ...prev,
+                    monthlyBudget: e.target.value,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1323,15 +1461,18 @@ const AdvancedUserManagement: React.FC = () => {
                 label="Limit vozidiel"
                 type="number"
                 value={departmentForm.vehicleLimit}
-                onChange={(e) => setDepartmentForm(prev => ({ ...prev, vehicleLimit: e.target.value }))}
+                onChange={e =>
+                  setDepartmentForm(prev => ({
+                    ...prev,
+                    vehicleLimit: e.target.value,
+                  }))
+                }
               />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDepartmentDialogOpen(false)}>
-            Zrušiť
-          </Button>
+          <Button onClick={() => setDepartmentDialogOpen(false)}>Zrušiť</Button>
           <Button variant="contained" onClick={handleCreateDepartment}>
             Vytvoriť
           </Button>
@@ -1339,7 +1480,12 @@ const AdvancedUserManagement: React.FC = () => {
       </Dialog>
 
       {/* Team Dialog */}
-      <Dialog open={teamDialogOpen} onClose={() => setTeamDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={teamDialogOpen}
+        onClose={() => setTeamDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Pridať tím</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -1348,7 +1494,9 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Názov tímu"
                 value={teamForm.name}
-                onChange={(e) => setTeamForm(prev => ({ ...prev, name: e.target.value }))}
+                onChange={e =>
+                  setTeamForm(prev => ({ ...prev, name: e.target.value }))
+                }
               />
             </Grid>
             <Grid item xs={12}>
@@ -1358,7 +1506,12 @@ const AdvancedUserManagement: React.FC = () => {
                 multiline
                 rows={3}
                 value={teamForm.description}
-                onChange={(e) => setTeamForm(prev => ({ ...prev, description: e.target.value }))}
+                onChange={e =>
+                  setTeamForm(prev => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12}>
@@ -1366,27 +1519,31 @@ const AdvancedUserManagement: React.FC = () => {
                 <InputLabel>Vedúci tímu</InputLabel>
                 <Select
                   value={teamForm.teamLeadId}
-                  onChange={(e) => setTeamForm(prev => ({ ...prev, teamLeadId: e.target.value }))}
+                  onChange={e =>
+                    setTeamForm(prev => ({
+                      ...prev,
+                      teamLeadId: e.target.value,
+                    }))
+                  }
                   label="Vedúci tímu"
                 >
                   <MenuItem value="">Žiadny</MenuItem>
-                  {users.filter(u => u.isActive).map((user) => (
-                    <MenuItem key={user.id} value={user.id}>
-                      {user.firstName && user.lastName 
-                        ? `${user.firstName} ${user.lastName}`
-                        : user.username
-                      }
-                    </MenuItem>
-                  ))}
+                  {users
+                    .filter(u => u.isActive)
+                    .map(user => (
+                      <MenuItem key={user.id} value={user.id}>
+                        {user.firstName && user.lastName
+                          ? `${user.firstName} ${user.lastName}`
+                          : user.username}
+                      </MenuItem>
+                    ))}
                 </Select>
               </FormControl>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setTeamDialogOpen(false)}>
-            Zrušiť
-          </Button>
+          <Button onClick={() => setTeamDialogOpen(false)}>Zrušiť</Button>
           <Button variant="contained" onClick={handleCreateTeam}>
             Vytvoriť
           </Button>
@@ -1394,7 +1551,12 @@ const AdvancedUserManagement: React.FC = () => {
       </Dialog>
 
       {/* Edit User Dialog */}
-      <Dialog open={editModalOpen} onClose={handleCancelEdit} maxWidth="md" fullWidth>
+      <Dialog
+        open={editModalOpen}
+        onClose={handleCancelEdit}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>Upraviť používateľa</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -1403,7 +1565,9 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Meno"
                 value={editForm.firstName}
-                onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                onChange={e =>
+                  setEditForm({ ...editForm, firstName: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1411,7 +1575,9 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Priezvisko"
                 value={editForm.lastName}
-                onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                onChange={e =>
+                  setEditForm({ ...editForm, lastName: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1420,7 +1586,9 @@ const AdvancedUserManagement: React.FC = () => {
                 label="Email"
                 type="email"
                 value={editForm.email}
-                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                onChange={e =>
+                  setEditForm({ ...editForm, email: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1428,7 +1596,9 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Telefón"
                 value={editForm.phone}
-                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                onChange={e =>
+                  setEditForm({ ...editForm, phone: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1436,7 +1606,9 @@ const AdvancedUserManagement: React.FC = () => {
                 fullWidth
                 label="Pozícia"
                 value={editForm.jobTitle}
-                onChange={(e) => setEditForm({ ...editForm, jobTitle: e.target.value })}
+                onChange={e =>
+                  setEditForm({ ...editForm, jobTitle: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1444,10 +1616,12 @@ const AdvancedUserManagement: React.FC = () => {
                 <InputLabel>Rola</InputLabel>
                 <Select
                   value={editForm.roleId}
-                  onChange={(e) => setEditForm({ ...editForm, roleId: e.target.value })}
+                  onChange={e =>
+                    setEditForm({ ...editForm, roleId: e.target.value })
+                  }
                   label="Rola"
                 >
-                  {roles.map((role) => (
+                  {roles.map(role => (
                     <MenuItem key={role.id} value={role.id}>
                       {role.displayName}
                     </MenuItem>
@@ -1460,11 +1634,13 @@ const AdvancedUserManagement: React.FC = () => {
                 <InputLabel>Oddelenie</InputLabel>
                 <Select
                   value={editForm.departmentId}
-                  onChange={(e) => setEditForm({ ...editForm, departmentId: e.target.value })}
+                  onChange={e =>
+                    setEditForm({ ...editForm, departmentId: e.target.value })
+                  }
                   label="Oddelenie"
                 >
                   <MenuItem value="">Žiadne</MenuItem>
-                  {departments.map((dept) => (
+                  {departments.map(dept => (
                     <MenuItem key={dept.id} value={dept.id}>
                       {dept.name}
                     </MenuItem>
@@ -1472,17 +1648,22 @@ const AdvancedUserManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            
+
             {/* Permissions Section */}
             <Grid item xs={12}>
               <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+              >
                 <SecurityIcon />
                 Oprávnenia pre firmy
               </Typography>
-              
-              {companies.map((company) => {
-                const userCompanyAccess = userPermissions.find(p => p.companyId === company.id);
+
+              {companies.map(company => {
+                const userCompanyAccess = userPermissions.find(
+                  p => p.companyId === company.id
+                );
                 const permissions = userCompanyAccess?.permissions || {
                   vehicles: { read: false, write: false, delete: false },
                   rentals: { read: false, write: false, delete: false },
@@ -1492,21 +1673,23 @@ const AdvancedUserManagement: React.FC = () => {
                   protocols: { read: false, write: false, delete: false },
                   settlements: { read: false, write: false, delete: false },
                   maintenance: { read: false, write: false, delete: false },
-                  statistics: { read: false, write: false, delete: false }
+                  statistics: { read: false, write: false, delete: false },
                 };
 
                 return (
                   <Accordion key={company.id} sx={{ mb: 1 }}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <BusinessIcon />
                         <Typography>{company.name}</Typography>
                         {userCompanyAccess && (
-                          <Chip 
-                            size="small" 
-                            label="Má prístup" 
-                            color="success" 
-                            variant="outlined" 
+                          <Chip
+                            size="small"
+                            label="Má prístup"
+                            color="success"
+                            variant="outlined"
                           />
                         )}
                       </Box>
@@ -1515,51 +1698,104 @@ const AdvancedUserManagement: React.FC = () => {
                       <Grid container spacing={1}>
                         {Object.entries({
                           vehicles: '🚗 Vozidlá',
-                          rentals: '📋 Prenájmy', 
+                          rentals: '📋 Prenájmy',
                           expenses: '💰 Náklady',
                           customers: '👥 Zákazníci',
                           insurances: '🛡️ Poistky',
                           protocols: '📝 Protokoly',
                           settlements: '📊 Vyúčtovania',
                           maintenance: '🔧 Údržba',
-                          statistics: '📈 Štatistiky'
+                          statistics: '📈 Štatistiky',
                         }).map(([resource, label]) => (
                           <Grid item xs={12} key={resource}>
-                            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{ mb: 1, fontWeight: 500 }}
+                            >
                               {label}
                             </Typography>
-                            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                            <Box
+                              sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}
+                            >
                               <FormControlLabel
                                 control={
                                   <Switch
                                     size="small"
-                                    checked={permissions[resource]?.read || false}
-                                    onChange={(e) => {
-                                      const newPermissions = [...userPermissions];
-                                      const existingIndex = newPermissions.findIndex(p => p.companyId === company.id);
-                                      
+                                    checked={
+                                      permissions[resource]?.read || false
+                                    }
+                                    onChange={e => {
+                                      const newPermissions = [
+                                        ...userPermissions,
+                                      ];
+                                      const existingIndex =
+                                        newPermissions.findIndex(
+                                          p => p.companyId === company.id
+                                        );
+
                                       if (existingIndex >= 0) {
-                                        (newPermissions[existingIndex].permissions as any)[resource].read = e.target.checked;
+                                        (
+                                          newPermissions[existingIndex]
+                                            .permissions as any
+                                        )[resource].read = e.target.checked;
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
                                           companyName: company.name,
                                           permissions: {
-                                            vehicles: { read: false, write: false, delete: false },
-                                            rentals: { read: false, write: false, delete: false },
-                                            expenses: { read: false, write: false, delete: false },
-                                            customers: { read: false, write: false, delete: false },
-                                            insurances: { read: false, write: false, delete: false },
-                                            protocols: { read: false, write: false, delete: false },
-                                            settlements: { read: false, write: false, delete: false },
-                                            maintenance: { read: false, write: false, delete: false },
-                                            statistics: { read: false, write: false, delete: false }
-                                          }
+                                            vehicles: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            rentals: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            expenses: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            customers: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            insurances: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            protocols: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            settlements: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            maintenance: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            statistics: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                          },
                                         };
-                                        (newPerm.permissions as any)[resource].read = e.target.checked;
+                                        (newPerm.permissions as any)[
+                                          resource
+                                        ].read = e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
-                                      
+
                                       setUserPermissions(newPermissions);
                                     }}
                                   />
@@ -1570,33 +1806,81 @@ const AdvancedUserManagement: React.FC = () => {
                                 control={
                                   <Switch
                                     size="small"
-                                    checked={permissions[resource]?.write || false}
-                                    onChange={(e) => {
-                                      const newPermissions = [...userPermissions];
-                                      const existingIndex = newPermissions.findIndex(p => p.companyId === company.id);
-                                      
+                                    checked={
+                                      permissions[resource]?.write || false
+                                    }
+                                    onChange={e => {
+                                      const newPermissions = [
+                                        ...userPermissions,
+                                      ];
+                                      const existingIndex =
+                                        newPermissions.findIndex(
+                                          p => p.companyId === company.id
+                                        );
+
                                       if (existingIndex >= 0) {
-                                        (newPermissions[existingIndex].permissions as any)[resource].write = e.target.checked;
+                                        (
+                                          newPermissions[existingIndex]
+                                            .permissions as any
+                                        )[resource].write = e.target.checked;
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
                                           companyName: company.name,
                                           permissions: {
-                                            vehicles: { read: false, write: false, delete: false },
-                                            rentals: { read: false, write: false, delete: false },
-                                            expenses: { read: false, write: false, delete: false },
-                                            customers: { read: false, write: false, delete: false },
-                                            insurances: { read: false, write: false, delete: false },
-                                            protocols: { read: false, write: false, delete: false },
-                                            settlements: { read: false, write: false, delete: false },
-                                            maintenance: { read: false, write: false, delete: false },
-                                            statistics: { read: false, write: false, delete: false }
-                                          }
+                                            vehicles: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            rentals: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            expenses: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            customers: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            insurances: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            protocols: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            settlements: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            maintenance: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            statistics: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                          },
                                         };
-                                        (newPerm.permissions as any)[resource].write = e.target.checked;
+                                        (newPerm.permissions as any)[
+                                          resource
+                                        ].write = e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
-                                      
+
                                       setUserPermissions(newPermissions);
                                     }}
                                   />
@@ -1607,33 +1891,81 @@ const AdvancedUserManagement: React.FC = () => {
                                 control={
                                   <Switch
                                     size="small"
-                                    checked={permissions[resource]?.delete || false}
-                                    onChange={(e) => {
-                                      const newPermissions = [...userPermissions];
-                                      const existingIndex = newPermissions.findIndex(p => p.companyId === company.id);
-                                      
+                                    checked={
+                                      permissions[resource]?.delete || false
+                                    }
+                                    onChange={e => {
+                                      const newPermissions = [
+                                        ...userPermissions,
+                                      ];
+                                      const existingIndex =
+                                        newPermissions.findIndex(
+                                          p => p.companyId === company.id
+                                        );
+
                                       if (existingIndex >= 0) {
-                                        (newPermissions[existingIndex].permissions as any)[resource].delete = e.target.checked;
+                                        (
+                                          newPermissions[existingIndex]
+                                            .permissions as any
+                                        )[resource].delete = e.target.checked;
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
                                           companyName: company.name,
                                           permissions: {
-                                            vehicles: { read: false, write: false, delete: false },
-                                            rentals: { read: false, write: false, delete: false },
-                                            expenses: { read: false, write: false, delete: false },
-                                            customers: { read: false, write: false, delete: false },
-                                            insurances: { read: false, write: false, delete: false },
-                                            protocols: { read: false, write: false, delete: false },
-                                            settlements: { read: false, write: false, delete: false },
-                                            maintenance: { read: false, write: false, delete: false },
-                                            statistics: { read: false, write: false, delete: false }
-                                          }
+                                            vehicles: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            rentals: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            expenses: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            customers: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            insurances: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            protocols: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            settlements: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            maintenance: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            statistics: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                          },
                                         };
-                                        (newPerm.permissions as any)[resource].delete = e.target.checked;
+                                        (newPerm.permissions as any)[
+                                          resource
+                                        ].delete = e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
-                                      
+
                                       setUserPermissions(newPermissions);
                                     }}
                                   />
@@ -1652,9 +1984,7 @@ const AdvancedUserManagement: React.FC = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelEdit}>
-            Zrušiť
-          </Button>
+          <Button onClick={handleCancelEdit}>Zrušiť</Button>
           <Button variant="contained" onClick={handleSaveEditUser}>
             Uložiť
           </Button>

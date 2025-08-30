@@ -1,4 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import {
+  Email as EmailIcon,
+  PlayArrow as StartIcon,
+  Stop as StopIcon,
+  Refresh as RefreshIcon,
+  CheckCircle as TestIcon,
+  Settings as SettingsIcon,
+  Info as InfoIcon,
+  PlayArrow,
+} from '@mui/icons-material';
 import {
   Box,
   Card,
@@ -14,16 +23,8 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import {
-  Email as EmailIcon,
-  PlayArrow as StartIcon,
-  Stop as StopIcon,
-  Refresh as RefreshIcon,
-  CheckCircle as TestIcon,
-  Settings as SettingsIcon,
-  Info as InfoIcon,
-  PlayArrow,
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
+
 import { apiService } from '../../services/api';
 
 interface ImapStatus {
@@ -72,7 +73,7 @@ const ImapEmailMonitoring: React.FC = () => {
       await fetchStatus();
       setInitialLoading(false);
     };
-    
+
     initializeStatus();
   }, []);
 
@@ -105,19 +106,21 @@ const ImapEmailMonitoring: React.FC = () => {
             📧 IMAP Email Monitoring je vypnuté
           </Typography>
           <Typography variant="body2">
-            IMAP služba je momentálne vypnutá v konfigurácii servera. 
-            Pre aktiváciu kontaktujte administrátora systému.
+            IMAP služba je momentálne vypnutá v konfigurácii servera. Pre
+            aktiváciu kontaktujte administrátora systému.
           </Typography>
         </Alert>
-        
+
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
               ⚙️ Konfigurácia
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              <strong>Host:</strong> {status.config.host}<br/>
-              <strong>Používateľ:</strong> {status.config.user}<br/>
+              <strong>Host:</strong> {status.config.host}
+              <br />
+              <strong>Používateľ:</strong> {status.config.user}
+              <br />
               <strong>Stav:</strong> Vypnuté
             </Typography>
           </CardContent>
@@ -134,7 +137,11 @@ const ImapEmailMonitoring: React.FC = () => {
 
       const data = await apiService.testImapConnection();
       setTestResult(data);
-      setSuccess(data.connected ? 'Test pripojenia úspešný!' : 'Test pripojenia neúspešný');
+      setSuccess(
+        data.connected
+          ? 'Test pripojenia úspešný!'
+          : 'Test pripojenia neúspešný'
+      );
     } catch (err: any) {
       setError('Nepodarilo sa otestovať IMAP pripojenie');
       console.error('IMAP test error:', err);
@@ -149,7 +156,7 @@ const ImapEmailMonitoring: React.FC = () => {
       setError(null);
 
       await apiService.startImapMonitoring();
-      
+
       setSuccess('IMAP monitoring spustený!');
       await fetchStatus();
     } catch (err: any) {
@@ -166,7 +173,7 @@ const ImapEmailMonitoring: React.FC = () => {
       setError(null);
 
       await apiService.stopImapMonitoring();
-      
+
       setSuccess('IMAP monitoring zastavený!');
       await fetchStatus();
     } catch (err: any) {
@@ -183,7 +190,7 @@ const ImapEmailMonitoring: React.FC = () => {
       setError(null);
 
       await apiService.checkImapNow();
-      
+
       setSuccess('Kontrola emailov dokončená!');
     } catch (err: any) {
       setError('Nepodarilo sa skontrolovať emaily');
@@ -198,9 +205,10 @@ const ImapEmailMonitoring: React.FC = () => {
       <Typography variant="h4" gutterBottom>
         📧 IMAP Email Monitoring
       </Typography>
-      
+
       <Typography variant="body1" color="text.secondary" paragraph>
-        Automatické sledovanie schránky <strong>info@blackrent.sk</strong> pre nové objednávky od <strong>objednavky@blackrent.sk</strong>
+        Automatické sledovanie schránky <strong>info@blackrent.sk</strong> pre
+        nové objednávky od <strong>objednavky@blackrent.sk</strong>
       </Typography>
 
       {error && (
@@ -210,7 +218,11 @@ const ImapEmailMonitoring: React.FC = () => {
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+        <Alert
+          severity="success"
+          sx={{ mb: 2 }}
+          onClose={() => setSuccess(null)}
+        >
           {success}
         </Alert>
       )}
@@ -220,10 +232,13 @@ const ImapEmailMonitoring: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                <Typography variant="h6">
-                  📊 Status monitoringu
-                </Typography>
+              <Box
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+                mb={2}
+              >
+                <Typography variant="h6">📊 Status monitoringu</Typography>
                 <Tooltip title="Obnoviť status">
                   <IconButton onClick={fetchStatus} size="small">
                     <RefreshIcon />
@@ -257,7 +272,8 @@ const ImapEmailMonitoring: React.FC = () => {
                       <strong>Používateľ:</strong> {status.config.user}
                     </Typography>
                     <Typography variant="body2">
-                      <strong>Heslo:</strong> {status.config.enabled ? '✅ Nastavené' : '❌ Chýba'}
+                      <strong>Heslo:</strong>{' '}
+                      {status.config.enabled ? '✅ Nastavené' : '❌ Chýba'}
                     </Typography>
                   </Box>
                 </Box>
@@ -330,7 +346,7 @@ const ImapEmailMonitoring: React.FC = () => {
               <Typography variant="h6" gutterBottom>
                 🧪 Výsledok testu pripojenia
               </Typography>
-              
+
               <Box display="flex" alignItems="center" gap={1} mb={2}>
                 <Chip
                   label={testResult.connected ? 'PRIPOJENÉ' : 'NEPRIPOJENÉ'}
@@ -370,11 +386,21 @@ const ImapEmailMonitoring: React.FC = () => {
             </Typography>
             <Typography variant="body2" component="div">
               <ul>
-                <li>Monitoring kontroluje schránku <strong>info@blackrent.sk</strong> každých 30 sekúnd</li>
-                <li>Filtrovanie iba emailov od <strong>objednavky@blackrent.sk</strong></li>
-                <li>Automatické parsovanie obsahu a vytvorenie pending prenájmu</li>
+                <li>
+                  Monitoring kontroluje schránku{' '}
+                  <strong>info@blackrent.sk</strong> každých 30 sekúnd
+                </li>
+                <li>
+                  Filtrovanie iba emailov od{' '}
+                  <strong>objednavky@blackrent.sk</strong>
+                </li>
+                <li>
+                  Automatické parsovanie obsahu a vytvorenie pending prenájmu
+                </li>
                 <li>Spracované emaily sa označia ako prečítané</li>
-                <li>Nové prenájmy sa zobrazia v <strong>Čakajúce prenájmy</strong></li>
+                <li>
+                  Nové prenájmy sa zobrazia v <strong>Čakajúce prenájmy</strong>
+                </li>
               </ul>
             </Typography>
           </Alert>

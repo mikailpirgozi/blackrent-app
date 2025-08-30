@@ -1,6 +1,6 @@
 /**
  * 🖼️ OPTIMIZED IMAGE COMPONENT
- * 
+ *
  * Booking.com štýl image loading:
  * - Lazy loading s Intersection Observer
  * - Thumbnail system pre zoznamy
@@ -9,8 +9,8 @@
  * - Memory efficient
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Box, Skeleton } from '@mui/material';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 
 interface OptimizedImageProps {
   src: string;
@@ -39,13 +39,13 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   quality = 75,
   priority = false,
   aspectRatio, // Backward compatibility - ignored for now
-  placeholder, // Backward compatibility - ignored for now  
+  placeholder, // Backward compatibility - ignored for now
   lazy, // Backward compatibility - handled by priority
   onLoad,
   onError,
   className,
   style,
-  objectFit = 'cover'
+  objectFit = 'cover',
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(priority); // Priority images load immediately
@@ -58,8 +58,8 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     if (priority || isInView) return;
 
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
+      entries => {
+        entries.forEach(entry => {
           if (entry.isIntersecting) {
             setIsInView(true);
             observer.disconnect();
@@ -68,7 +68,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       },
       {
         rootMargin: '50px', // Start loading 50px before visible
-        threshold: 0.1
+        threshold: 0.1,
       }
     );
 
@@ -80,33 +80,39 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   }, [priority, isInView]);
 
   // 🖼️ Generate optimized image URL
-  const getOptimizedUrl = useCallback((originalSrc: string) => {
-    // Ak je to už Cloudflare R2 URL, pridáme optimalizácie
-    if (originalSrc.includes('r2.dev') || originalSrc.includes('cloudflare.com')) {
-      const url = new URL(originalSrc);
-      
-      // Thumbnail rozmer
-      if (thumbnail) {
-        url.searchParams.set('w', '150');
-        url.searchParams.set('h', '150');
-      } else if (typeof width === 'number') {
-        url.searchParams.set('w', width.toString());
+  const getOptimizedUrl = useCallback(
+    (originalSrc: string) => {
+      // Ak je to už Cloudflare R2 URL, pridáme optimalizácie
+      if (
+        originalSrc.includes('r2.dev') ||
+        originalSrc.includes('cloudflare.com')
+      ) {
+        const url = new URL(originalSrc);
+
+        // Thumbnail rozmer
+        if (thumbnail) {
+          url.searchParams.set('w', '150');
+          url.searchParams.set('h', '150');
+        } else if (typeof width === 'number') {
+          url.searchParams.set('w', width.toString());
+        }
+
+        if (typeof height === 'number') {
+          url.searchParams.set('h', height.toString());
+        }
+
+        url.searchParams.set('q', quality.toString());
+        url.searchParams.set('format', 'webp');
+        url.searchParams.set('fit', objectFit);
+
+        return url.toString();
       }
-      
-      if (typeof height === 'number') {
-        url.searchParams.set('h', height.toString());
-      }
-      
-      url.searchParams.set('q', quality.toString());
-      url.searchParams.set('format', 'webp');
-      url.searchParams.set('fit', objectFit);
-      
-      return url.toString();
-    }
-    
-    // Pre lokálne obrázky alebo iné URL
-    return originalSrc;
-  }, [thumbnail, width, height, quality, objectFit]);
+
+      // Pre lokálne obrázky alebo iné URL
+      return originalSrc;
+    },
+    [thumbnail, width, height, quality, objectFit]
+  );
 
   const handleLoad = useCallback(() => {
     setIsLoaded(true);
@@ -129,7 +135,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         height,
         overflow: 'hidden',
         backgroundColor: '#f5f5f5',
-        ...style
+        ...style,
       }}
       className={className}
     >
@@ -144,7 +150,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
             position: 'absolute',
             top: 0,
             left: 0,
-            zIndex: 1
+            zIndex: 1,
           }}
         />
       )}
@@ -167,7 +173,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
             position: 'absolute',
             top: 0,
             left: 0,
-            zIndex: 2
+            zIndex: 2,
           }}
           loading={priority ? 'eager' : 'lazy'}
         />
@@ -188,7 +194,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
             position: 'absolute',
             top: 0,
             left: 0,
-            zIndex: 3
+            zIndex: 3,
           }}
         >
           📷 Obrázok sa nepodarilo načítať
@@ -199,12 +205,12 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 };
 
 // 🎯 Specialized components for different use cases
-export const ThumbnailImage: React.FC<Omit<OptimizedImageProps, 'thumbnail'>> = (props) => (
-  <OptimizedImage {...props} thumbnail={true} quality={60} />
-);
+export const ThumbnailImage: React.FC<
+  Omit<OptimizedImageProps, 'thumbnail'>
+> = props => <OptimizedImage {...props} thumbnail={true} quality={60} />;
 
-export const HeroImage: React.FC<Omit<OptimizedImageProps, 'priority'>> = (props) => (
-  <OptimizedImage {...props} priority={true} quality={85} />
-);
+export const HeroImage: React.FC<
+  Omit<OptimizedImageProps, 'priority'>
+> = props => <OptimizedImage {...props} priority={true} quality={85} />;
 
 export default OptimizedImage;

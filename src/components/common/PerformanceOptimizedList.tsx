@@ -1,7 +1,11 @@
 // ⚡ Performance Optimized List Component
 // Demonstrates all performance optimization techniques
 
-import React, { memo, useMemo, useCallback, useState, useEffect } from 'react';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Card,
@@ -14,11 +18,7 @@ import {
   Tooltip,
   Chip,
 } from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material';
+import React, { memo, useMemo, useCallback, useState, useEffect } from 'react';
 
 // Import our performance optimization tools
 import {
@@ -29,6 +29,7 @@ import {
   useShallowMemo,
 } from '../../hooks/usePerformanceOptimization';
 import { createLazyComponentWithLoader } from '../../utils/lazyComponents';
+
 import { OptimizedImage } from './OptimizedImage';
 import { SkeletonLoader } from './SkeletonLoader';
 
@@ -60,136 +61,139 @@ interface ListItemProps {
   index: number;
 }
 
-const OptimizedListItem = memo<ListItemProps>(({
-  item,
-  onEdit,
-  onDelete,
-  onView,
-  index,
-}) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { getStats } = usePerformanceMonitor(`ListItem-${item.id}`);
+const OptimizedListItem = memo<ListItemProps>(
+  ({ item, onEdit, onDelete, onView, index }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const { getStats } = usePerformanceMonitor(`ListItem-${item.id}`);
 
-  // Memoize style calculations
-  const itemStyles = useShallowMemo(() => ({
-    card: {
-      height: '100%',
-      transition: 'all 0.2s ease',
-      '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: theme.customShadows?.lg || theme.shadows[6],
-      },
-    },
-    statusChip: {
-      backgroundColor: item.status === 'active' 
-        ? theme.palette.success.light 
-        : item.status === 'pending'
-        ? theme.palette.warning.light
-        : theme.palette.error.light,
-    },
-  }), [item.status, theme]);
+    // Memoize style calculations
+    const itemStyles = useShallowMemo(
+      () => ({
+        card: {
+          height: '100%',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: theme.customShadows?.lg || theme.shadows[6],
+          },
+        },
+        statusChip: {
+          backgroundColor:
+            item.status === 'active'
+              ? theme.palette.success.light
+              : item.status === 'pending'
+                ? theme.palette.warning.light
+                : theme.palette.error.light,
+        },
+      }),
+      [item.status, theme]
+    );
 
-  // Throttled event handlers
-  const handleEdit = useThrottledCallback(() => {
-    onEdit(item.id);
-  }, 300);
+    // Throttled event handlers
+    const handleEdit = useThrottledCallback(() => {
+      onEdit(item.id);
+    }, 300);
 
-  const handleDelete = useThrottledCallback(() => {
-    onDelete(item.id);
-  }, 300);
+    const handleDelete = useThrottledCallback(() => {
+      onDelete(item.id);
+    }, 300);
 
-  const handleView = useThrottledCallback(() => {
-    onView(item.id);
-  }, 300);
+    const handleView = useThrottledCallback(() => {
+      onView(item.id);
+    }, 300);
 
-  // Performance logging in development
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const stats = getStats();
-      if (stats.maxRenderTime > 16) {
-        console.warn(`Slow list item render: ${item.id}`, stats);
+    // Performance logging in development
+    useEffect(() => {
+      if (process.env.NODE_ENV === 'development') {
+        const stats = getStats();
+        if (stats.maxRenderTime > 16) {
+          console.warn(`Slow list item render: ${item.id}`, stats);
+        }
       }
-    }
-  }, [item.id, getStats]);
+    }, [item.id, getStats]);
 
-  return (
-    <Grid item xs={12} sm={6} md={4} lg={3}>
-      <Card sx={itemStyles.card}>
-        <CardContent>
-          {/* Optimized image with lazy loading */}
-          {item.image && (
-            <OptimizedImage
-              src={item.image}
-              alt={item.title}
-              width="100%"
-              height={200}
-              aspectRatio={16/9}
-              placeholder="skeleton"
-              lazy={index > 6} // First 6 images load immediately
-              priority={index < 3} // First 3 are high priority
-            />
-          )}
-
-          {/* Content */}
-          <Box sx={{ mt: item.image ? 2 : 0 }}>
-            <Typography variant="h6" noWrap>
-              {item.title}
-            </Typography>
-            
-            {item.subtitle && (
-              <Typography variant="body2" color="text.secondary" noWrap>
-                {item.subtitle}
-              </Typography>
+    return (
+      <Grid item xs={12} sm={6} md={4} lg={3}>
+        <Card sx={itemStyles.card}>
+          <CardContent>
+            {/* Optimized image with lazy loading */}
+            {item.image && (
+              <OptimizedImage
+                src={item.image}
+                alt={item.title}
+                width="100%"
+                height={200}
+                aspectRatio={16 / 9}
+                placeholder="skeleton"
+                lazy={index > 6} // First 6 images load immediately
+                priority={index < 3} // First 3 are high priority
+              />
             )}
 
-            {/* Status and category */}
-            <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Chip
-                label={item.status}
-                size="small"
-                sx={itemStyles.statusChip}
-              />
-              <Typography variant="caption" color="text.secondary">
-                {item.category}
+            {/* Content */}
+            <Box sx={{ mt: item.image ? 2 : 0 }}>
+              <Typography variant="h6" noWrap>
+                {item.title}
               </Typography>
-            </Box>
 
-            {/* Action buttons */}
-            <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-              <Tooltip title="Zobraziť">
-                <IconButton size="small" onClick={handleView}>
-                  <ViewIcon />
-                </IconButton>
-              </Tooltip>
-              
-              <Tooltip title="Upraviť">
-                <IconButton size="small" onClick={handleEdit}>
-                  <EditIcon />
-                </IconButton>
-              </Tooltip>
-              
-              <Tooltip title="Odstrániť">
-                <IconButton size="small" onClick={handleDelete}>
-                  <DeleteIcon />
-                </IconButton>
-              </Tooltip>
+              {item.subtitle && (
+                <Typography variant="body2" color="text.secondary" noWrap>
+                  {item.subtitle}
+                </Typography>
+              )}
+
+              {/* Status and category */}
+              <Box
+                sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}
+              >
+                <Chip
+                  label={item.status}
+                  size="small"
+                  sx={itemStyles.statusChip}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {item.category}
+                </Typography>
+              </Box>
+
+              {/* Action buttons */}
+              <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                <Tooltip title="Zobraziť">
+                  <IconButton size="small" onClick={handleView}>
+                    <ViewIcon />
+                  </IconButton>
+                </Tooltip>
+
+                <Tooltip title="Upraviť">
+                  <IconButton size="small" onClick={handleEdit}>
+                    <EditIcon />
+                  </IconButton>
+                </Tooltip>
+
+                <Tooltip title="Odstrániť">
+                  <IconButton size="small" onClick={handleDelete}>
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
             </Box>
-          </Box>
-        </CardContent>
-      </Card>
-    </Grid>
-  );
-}, (prevProps, nextProps) => {
-  // Custom comparison function for better memoization
-  return (
-    prevProps.item.id === nextProps.item.id &&
-    prevProps.item.title === nextProps.item.title &&
-    prevProps.item.status === nextProps.item.status &&
-    prevProps.item.category === nextProps.item.category &&
-    prevProps.index === nextProps.index
-  );
-});
+          </CardContent>
+        </Card>
+      </Grid>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison function for better memoization
+    return (
+      prevProps.item.id === nextProps.item.id &&
+      prevProps.item.title === nextProps.item.title &&
+      prevProps.item.status === nextProps.item.status &&
+      prevProps.item.category === nextProps.item.category &&
+      prevProps.index === nextProps.index
+    );
+  }
+);
 
 OptimizedListItem.displayName = 'OptimizedListItem';
 
@@ -212,7 +216,9 @@ interface PerformanceOptimizedListProps {
   itemHeight?: number;
 }
 
-export const PerformanceOptimizedList: React.FC<PerformanceOptimizedListProps> = ({
+export const PerformanceOptimizedList: React.FC<
+  PerformanceOptimizedListProps
+> = ({
   items,
   onEdit = () => {},
   onDelete = () => {},
@@ -224,7 +230,7 @@ export const PerformanceOptimizedList: React.FC<PerformanceOptimizedListProps> =
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { getStats } = usePerformanceMonitor('PerformanceOptimizedList');
-  
+
   // State for lazy components
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [detailViewOpen, setDetailViewOpen] = useState(false);
@@ -234,13 +240,8 @@ export const PerformanceOptimizedList: React.FC<PerformanceOptimizedListProps> =
   const { preloadImages, isLoading: imagesLoading } = useImagePreloader();
 
   // Virtual scrolling for large lists
-  const {
-    visibleItems,
-    totalHeight,
-    offsetY,
-    handleScroll,
-    visibleRange,
-  } = useVirtualScrolling(items, itemHeight, containerHeight);
+  const { visibleItems, totalHeight, offsetY, handleScroll, visibleRange } =
+    useVirtualScrolling(items, itemHeight, containerHeight);
 
   // Memoize filtered and sorted items
   const processedItems = useMemo(() => {
@@ -266,21 +267,30 @@ export const PerformanceOptimizedList: React.FC<PerformanceOptimizedListProps> =
   }, [items, preloadImages]);
 
   // Optimized event handlers
-  const handleEditItem = useCallback((id: string) => {
-    setSelectedItemId(id);
-    setEditDialogOpen(true);
-    onEdit(id);
-  }, [onEdit]);
+  const handleEditItem = useCallback(
+    (id: string) => {
+      setSelectedItemId(id);
+      setEditDialogOpen(true);
+      onEdit(id);
+    },
+    [onEdit]
+  );
 
-  const handleDeleteItem = useCallback((id: string) => {
-    onDelete(id);
-  }, [onDelete]);
+  const handleDeleteItem = useCallback(
+    (id: string) => {
+      onDelete(id);
+    },
+    [onDelete]
+  );
 
-  const handleViewItem = useCallback((id: string) => {
-    setSelectedItemId(id);
-    setDetailViewOpen(true);
-    onView(id);
-  }, [onView]);
+  const handleViewItem = useCallback(
+    (id: string) => {
+      setSelectedItemId(id);
+      setDetailViewOpen(true);
+      onView(id);
+    },
+    [onView]
+  );
 
   // Performance monitoring
   useEffect(() => {
@@ -298,8 +308,8 @@ export const PerformanceOptimizedList: React.FC<PerformanceOptimizedListProps> =
   // Render loading state
   if (items.length === 0) {
     return (
-      <SkeletonLoader 
-        variant="card" 
+      <SkeletonLoader
+        variant="card"
         count={isMobile ? 2 : 4}
         showText={true}
         showButtons={true}
@@ -309,7 +319,7 @@ export const PerformanceOptimizedList: React.FC<PerformanceOptimizedListProps> =
 
   const content = (
     <Grid container spacing={3}>
-      {processedItems.map((item) => (
+      {processedItems.map(item => (
         <OptimizedListItem
           key={item.id}
           item={item}
@@ -327,8 +337,8 @@ export const PerformanceOptimizedList: React.FC<PerformanceOptimizedListProps> =
       {/* Virtual scrolling container */}
       {enableVirtualScrolling ? (
         <Box
-          sx={{ 
-            height: containerHeight, 
+          sx={{
+            height: containerHeight,
             overflow: 'auto',
             position: 'relative',
           }}
@@ -370,8 +380,10 @@ export const PerformanceOptimizedList: React.FC<PerformanceOptimizedListProps> =
       {process.env.NODE_ENV === 'development' && (
         <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
           <Typography variant="caption">
-            🔧 Performance: {items.length} items, Virtual: {enableVirtualScrolling ? 'ON' : 'OFF'}
-            {enableVirtualScrolling && ` (${visibleRange.startIndex}-${visibleRange.endIndex} visible)`}
+            🔧 Performance: {items.length} items, Virtual:{' '}
+            {enableVirtualScrolling ? 'ON' : 'OFF'}
+            {enableVirtualScrolling &&
+              ` (${visibleRange.startIndex}-${visibleRange.endIndex} visible)`}
           </Typography>
         </Box>
       )}

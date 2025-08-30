@@ -1,4 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Repeat as RepeatIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon,
+  PlayArrow as GenerateIcon,
+  Schedule as ScheduleIcon,
+  Event as EventIcon,
+  Euro as EuroIcon,
+  Business as CompanyIcon,
+  DirectionsCar as VehicleIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -26,27 +39,15 @@ import {
   Divider,
   Switch,
   FormControlLabel,
-  Tooltip
+  Tooltip,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Repeat as RepeatIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-  PlayArrow as GenerateIcon,
-  Schedule as ScheduleIcon,
-  Event as EventIcon,
-  Euro as EuroIcon,
-  Business as CompanyIcon,
-  DirectionsCar as VehicleIcon
-} from '@mui/icons-material';
-import { RecurringExpense, ExpenseCategory, Vehicle } from '../../types';
-import { apiService } from '../../services/api';
-import { useApp } from '../../context/AppContext';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import React, { useState, useEffect } from 'react';
+
+import { useApp } from '../../context/AppContext';
+import { apiService } from '../../services/api';
+import { RecurringExpense, ExpenseCategory, Vehicle } from '../../types';
 
 interface RecurringExpenseManagerProps {
   open: boolean;
@@ -57,22 +58,27 @@ interface RecurringExpenseManagerProps {
 const FREQUENCY_OPTIONS = [
   { value: 'monthly', label: 'Mesačne', icon: '📅' },
   { value: 'quarterly', label: 'Štvrťročne', icon: '📆' },
-  { value: 'yearly', label: 'Ročne', icon: '🗓️' }
+  { value: 'yearly', label: 'Ročne', icon: '🗓️' },
 ];
 
 const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
   open,
   onClose,
-  onExpensesChanged
+  onExpensesChanged,
 }) => {
   const { getFilteredVehicles } = useApp();
   const vehicles = getFilteredVehicles();
 
-  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
-  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+  const [recurringExpenses, setRecurringExpenses] = useState<
+    RecurringExpense[]
+  >([]);
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [editingRecurring, setEditingRecurring] = useState<RecurringExpense | null>(null);
+  const [editingRecurring, setEditingRecurring] =
+    useState<RecurringExpense | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -89,7 +95,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
     dayOfMonth: 1,
-    isActive: true
+    isActive: true,
   });
 
   // Načítanie dát
@@ -99,7 +105,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
     try {
       const [recurring, categories] = await Promise.all([
         apiService.getRecurringExpenses(),
-        apiService.getExpenseCategories()
+        apiService.getExpenseCategories(),
       ]);
       setRecurringExpenses(recurring);
       setExpenseCategories(categories);
@@ -130,7 +136,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       startDate: new Date().toISOString().split('T')[0],
       endDate: '',
       dayOfMonth: 1,
-      isActive: true
+      isActive: true,
     });
     setEditingRecurring(null);
   };
@@ -145,8 +151,13 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
     // Bezpečná konverzia dátumov
     const startDateStr = (() => {
       try {
-        const date = typeof recurring.startDate === 'string' ? new Date(recurring.startDate) : recurring.startDate;
-        return isNaN(date.getTime()) ? new Date().toISOString().split('T')[0] : date.toISOString().split('T')[0];
+        const date =
+          typeof recurring.startDate === 'string'
+            ? new Date(recurring.startDate)
+            : recurring.startDate;
+        return isNaN(date.getTime())
+          ? new Date().toISOString().split('T')[0]
+          : date.toISOString().split('T')[0];
       } catch (error) {
         return new Date().toISOString().split('T')[0];
       }
@@ -155,7 +166,10 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
     const endDateStr = (() => {
       if (!recurring.endDate) return '';
       try {
-        const date = typeof recurring.endDate === 'string' ? new Date(recurring.endDate) : recurring.endDate;
+        const date =
+          typeof recurring.endDate === 'string'
+            ? new Date(recurring.endDate)
+            : recurring.endDate;
         return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
       } catch (error) {
         return '';
@@ -174,14 +188,18 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       startDate: startDateStr,
       endDate: endDateStr,
       dayOfMonth: recurring.dayOfMonth,
-      isActive: recurring.isActive
+      isActive: recurring.isActive,
     });
     setEditingRecurring(recurring);
     setFormOpen(true);
   };
 
   const handleDeleteRecurring = async (recurring: RecurringExpense) => {
-    if (window.confirm(`Naozaj chcete zmazať pravidelný náklad "${recurring.name}"?\n\nToto neovplyvní už vygenerované náklady.`)) {
+    if (
+      window.confirm(
+        `Naozaj chcete zmazať pravidelný náklad "${recurring.name}"?\n\nToto neovplyvní už vygenerované náklady.`
+      )
+    ) {
       setLoading(true);
       setError(null);
       try {
@@ -197,7 +215,11 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
   };
 
   const handleGenerateNow = async (recurring: RecurringExpense) => {
-    if (window.confirm(`Vygenerovať náklad "${recurring.name}" pre aktuálny mesiac?`)) {
+    if (
+      window.confirm(
+        `Vygenerovať náklad "${recurring.name}" pre aktuálny mesiac?`
+      )
+    ) {
       setLoading(true);
       setError(null);
       try {
@@ -219,7 +241,9 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       setError(null);
       try {
         const result = await apiService.generateRecurringExpenses();
-        setSuccess(`Generovanie dokončené: ${result.generated} vytvorených, ${result.skipped} preskočených`);
+        setSuccess(
+          `Generovanie dokončené: ${result.generated} vytvorených, ${result.skipped} preskočených`
+        );
         await loadData();
         onExpensesChanged?.();
       } catch (error: any) {
@@ -231,7 +255,12 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
   };
 
   const handleFormSubmit = async () => {
-    if (!formData.name.trim() || !formData.description.trim() || !formData.category || !formData.company.trim()) {
+    if (
+      !formData.name.trim() ||
+      !formData.description.trim() ||
+      !formData.category ||
+      !formData.company.trim()
+    ) {
       setError('Vyplňte všetky povinné polia');
       return;
     }
@@ -260,7 +289,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           endDate: formData.endDate ? new Date(formData.endDate) : undefined,
           dayOfMonth: formData.dayOfMonth,
           isActive: formData.isActive,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         };
         await apiService.updateRecurringExpense(updatedRecurring);
         setSuccess('Pravidelný náklad úspešne aktualizovaný');
@@ -277,11 +306,11 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           frequency: formData.frequency,
           startDate: new Date(formData.startDate),
           endDate: formData.endDate ? new Date(formData.endDate) : undefined,
-          dayOfMonth: formData.dayOfMonth
+          dayOfMonth: formData.dayOfMonth,
         });
         setSuccess('Pravidelný náklad úspešne vytvorený');
       }
-      
+
       setFormOpen(false);
       await loadData();
     } catch (error: any) {
@@ -304,7 +333,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
 
   const getNextGenerationText = (date?: Date | null) => {
     if (!date || date === null) return 'Nie je nastavené';
-    
+
     // Validácia dátumu
     let validDate: Date;
     try {
@@ -316,11 +345,16 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       console.warn('Invalid date received:', date);
       return 'Neplatný dátum';
     }
-    
+
     const now = new Date();
     const isOverdue = validDate < now;
     return (
-      <span style={{ color: isOverdue ? '#d32f2f' : '#1976d2', fontWeight: isOverdue ? 600 : 400 }}>
+      <span
+        style={{
+          color: isOverdue ? '#d32f2f' : '#1976d2',
+          fontWeight: isOverdue ? 600 : 400,
+        }}
+      >
         {format(validDate, 'dd.MM.yyyy', { locale: sk })}
         {isOverdue && ' (splatné)'}
       </span>
@@ -328,19 +362,16 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose}
-      maxWidth="lg"
-      fullWidth
-    >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: 1,
-        backgroundColor: '#f5f5f5',
-        borderBottom: '1px solid #e0e0e0'
-      }}>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          backgroundColor: '#f5f5f5',
+          borderBottom: '1px solid #e0e0e0',
+        }}
+      >
         <RepeatIcon sx={{ color: '#1976d2' }} />
         Pravidelné mesačné náklady
       </DialogTitle>
@@ -353,13 +384,26 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           </Alert>
         )}
         {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+          <Alert
+            severity="success"
+            sx={{ mb: 2 }}
+            onClose={() => setSuccess(null)}
+          >
             {success}
           </Alert>
         )}
 
         {/* Header s tlačidlami */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 3,
+            flexWrap: 'wrap',
+            gap: 2,
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Pravidelné náklady ({recurringExpenses.length})
           </Typography>
@@ -369,10 +413,13 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
               startIcon={<GenerateIcon />}
               onClick={handleGenerateAll}
               disabled={loading}
-              sx={{ 
+              sx={{
                 borderColor: '#4caf50',
                 color: '#4caf50',
-                '&:hover': { borderColor: '#388e3c', bgcolor: 'rgba(76, 175, 80, 0.04)' }
+                '&:hover': {
+                  borderColor: '#388e3c',
+                  bgcolor: 'rgba(76, 175, 80, 0.04)',
+                },
               }}
             >
               Vygenerovať všetky splatné
@@ -399,20 +446,37 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
         <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           <List>
             {recurringExpenses.map((recurring, index) => {
-              const category = expenseCategories.find(c => c.name === recurring.category);
-              const vehicle = recurring.vehicleId ? vehicles.find((v: Vehicle) => v.id === recurring.vehicleId) : null;
-              const isOverdue = recurring.nextGenerationDate && recurring.nextGenerationDate < new Date();
-              
+              const category = expenseCategories.find(
+                c => c.name === recurring.category
+              );
+              const vehicle = recurring.vehicleId
+                ? vehicles.find((v: Vehicle) => v.id === recurring.vehicleId)
+                : null;
+              const isOverdue =
+                recurring.nextGenerationDate &&
+                recurring.nextGenerationDate < new Date();
+
               return (
                 <React.Fragment key={recurring.id}>
-                  <ListItem sx={{ 
-                    py: 2,
-                    backgroundColor: isOverdue ? '#fff3e0' : 'transparent',
-                    '&:hover': { backgroundColor: isOverdue ? '#ffe0b2' : '#f5f5f5' }
-                  }}>
+                  <ListItem
+                    sx={{
+                      py: 2,
+                      backgroundColor: isOverdue ? '#fff3e0' : 'transparent',
+                      '&:hover': {
+                        backgroundColor: isOverdue ? '#ffe0b2' : '#f5f5f5',
+                      },
+                    }}
+                  >
                     <ListItemText
                       primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            mb: 1,
+                          }}
+                        >
                           <Typography variant="h6" sx={{ fontWeight: 600 }}>
                             {recurring.name}
                           </Typography>
@@ -439,98 +503,182 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                       }
                       secondary={
                         <Box sx={{ mt: 1 }}>
-                          <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>
+                          <Typography
+                            variant="body1"
+                            sx={{ mb: 1, fontWeight: 500 }}
+                          >
                             {recurring.description}
                           </Typography>
-                          
-                          <Grid container spacing={2} sx={{ fontSize: '0.875rem' }}>
+
+                          <Grid
+                            container
+                            spacing={2}
+                            sx={{ fontSize: '0.875rem' }}
+                          >
                             <Grid item xs={12} sm={6} md={3}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <EuroIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                                <Typography variant="body2" sx={{ fontWeight: 600, color: '#1976d2' }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                }}
+                              >
+                                <EuroIcon
+                                  fontSize="small"
+                                  sx={{ color: 'text.secondary' }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 600, color: '#1976d2' }}
+                                >
                                   {recurring.amount.toFixed(2)}€
                                 </Typography>
                               </Box>
                             </Grid>
                             <Grid item xs={12} sm={6} md={3}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <CompanyIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                }}
+                              >
+                                <CompanyIcon
+                                  fontSize="small"
+                                  sx={{ color: 'text.secondary' }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
                                   {recurring.company}
                                 </Typography>
                               </Box>
                             </Grid>
                             {vehicle && (
                               <Grid item xs={12} sm={6} md={3}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <VehicleIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                                  <Typography variant="body2" color="text.secondary">
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                  }}
+                                >
+                                  <VehicleIcon
+                                    fontSize="small"
+                                    sx={{ color: 'text.secondary' }}
+                                  />
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
                                     {vehicle.brand} {vehicle.model}
                                   </Typography>
                                 </Box>
                               </Grid>
                             )}
                             <Grid item xs={12} sm={6} md={3}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <EventIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
-                                  Ďalší: {getNextGenerationText(recurring.nextGenerationDate)}
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                }}
+                              >
+                                <EventIcon
+                                  fontSize="small"
+                                  sx={{ color: 'text.secondary' }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  Ďalší:{' '}
+                                  {getNextGenerationText(
+                                    recurring.nextGenerationDate
+                                  )}
                                 </Typography>
                               </Box>
                             </Grid>
                           </Grid>
 
                           {recurring.note && (
-                            <Typography variant="body2" sx={{ 
-                              mt: 1, 
-                              fontStyle: 'italic',
-                              color: 'text.secondary',
-                              p: 1,
-                              backgroundColor: '#f5f5f5',
-                              borderRadius: 1
-                            }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                mt: 1,
+                                fontStyle: 'italic',
+                                color: 'text.secondary',
+                                p: 1,
+                                backgroundColor: '#f5f5f5',
+                                borderRadius: 1,
+                              }}
+                            >
                               {recurring.note}
                             </Typography>
                           )}
 
-                          <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            <Typography variant="caption" color="text.secondary">
+                          <Box
+                            sx={{
+                              mt: 1,
+                              display: 'flex',
+                              gap: 1,
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               Vygenerované: {recurring.totalGenerated}x
                             </Typography>
                             {recurring.lastGeneratedDate && (
-                              <Typography variant="caption" color="text.secondary">
-                                | Posledný: {(() => {
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                | Posledný:{' '}
+                                {(() => {
                                   try {
-                                    const date = typeof recurring.lastGeneratedDate === 'string' 
-                                      ? new Date(recurring.lastGeneratedDate) 
-                                      : recurring.lastGeneratedDate;
-                                    return isNaN(date.getTime()) ? 'Neplatný dátum' : format(date, 'dd.MM.yyyy', { locale: sk });
+                                    const date =
+                                      typeof recurring.lastGeneratedDate ===
+                                      'string'
+                                        ? new Date(recurring.lastGeneratedDate)
+                                        : recurring.lastGeneratedDate;
+                                    return isNaN(date.getTime())
+                                      ? 'Neplatný dátum'
+                                      : format(date, 'dd.MM.yyyy', {
+                                          locale: sk,
+                                        });
                                   } catch (error) {
                                     return 'Neplatný dátum';
                                   }
                                 })()}
                               </Typography>
                             )}
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               | Každý {recurring.dayOfMonth}. deň v mesiaci
                             </Typography>
                           </Box>
                         </Box>
                       }
                     />
-                    
+
                     <ListItemSecondaryAction>
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                         {recurring.isActive && (
                           <Tooltip title="Vygenerovať teraz">
-                            <IconButton 
+                            <IconButton
                               size="small"
                               onClick={() => handleGenerateNow(recurring)}
                               disabled={loading}
-                              sx={{ 
+                              sx={{
                                 backgroundColor: '#e8f5e8',
                                 color: '#4caf50',
-                                '&:hover': { backgroundColor: '#c8e6c9' }
+                                '&:hover': { backgroundColor: '#c8e6c9' },
                               }}
                             >
                               <GenerateIcon fontSize="small" />
@@ -538,27 +686,27 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                           </Tooltip>
                         )}
                         <Tooltip title="Upraviť">
-                          <IconButton 
+                          <IconButton
                             size="small"
                             onClick={() => handleEditRecurring(recurring)}
                             disabled={loading}
-                            sx={{ 
+                            sx={{
                               backgroundColor: '#f5f5f5',
-                              '&:hover': { backgroundColor: '#e0e0e0' }
+                              '&:hover': { backgroundColor: '#e0e0e0' },
                             }}
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Zmazať">
-                          <IconButton 
+                          <IconButton
                             size="small"
                             onClick={() => handleDeleteRecurring(recurring)}
                             disabled={loading}
-                            sx={{ 
+                            sx={{
                               backgroundColor: '#ffebee',
                               color: '#d32f2f',
-                              '&:hover': { backgroundColor: '#ffcdd2' }
+                              '&:hover': { backgroundColor: '#ffcdd2' },
                             }}
                           >
                             <DeleteIcon fontSize="small" />
@@ -571,12 +719,16 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 </React.Fragment>
               );
             })}
-            
+
             {recurringExpenses.length === 0 && !loading && (
               <ListItem>
                 <ListItemText
                   primary={
-                    <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography
+                      variant="body1"
+                      color="text.secondary"
+                      sx={{ textAlign: 'center', py: 4 }}
+                    >
                       Žiadne pravidelné náklady nenájdené
                     </Typography>
                   }
@@ -594,19 +746,23 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       </DialogActions>
 
       {/* Form Dialog */}
-      <Dialog 
-        open={formOpen} 
+      <Dialog
+        open={formOpen}
         onClose={handleFormCancel}
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1 
-        }}>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
           <RepeatIcon />
-          {editingRecurring ? 'Upraviť pravidelný náklad' : 'Pridať pravidelný náklad'}
+          {editingRecurring
+            ? 'Upraviť pravidelný náklad'
+            : 'Pridať pravidelný náklad'}
         </DialogTitle>
 
         <DialogContent sx={{ pt: 2 }}>
@@ -616,7 +772,9 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 fullWidth
                 label="Názov *"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, name: e.target.value }))
+                }
                 required
                 helperText="Názov pre identifikáciu (napr. 'Poistenie BMW X5')"
               />
@@ -628,7 +786,12 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 label="Suma (€) *"
                 type="number"
                 value={formData.amount || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    amount: parseFloat(e.target.value) || 0,
+                  }))
+                }
                 required
                 inputProps={{ min: 0, step: 0.01 }}
               />
@@ -639,7 +802,12 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 fullWidth
                 label="Popis nákladu *"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 required
                 helperText="Tento text sa použije v generovaných nákladoch"
               />
@@ -650,7 +818,9 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 <InputLabel>Kategória</InputLabel>
                 <Select
                   value={formData.category}
-                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, category: e.target.value }))
+                  }
                   label="Kategória"
                 >
                   {expenseCategories.map(category => (
@@ -667,7 +837,9 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 fullWidth
                 label="Firma *"
                 value={formData.company}
-                onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, company: e.target.value }))
+                }
                 required
               />
             </Grid>
@@ -677,7 +849,12 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 <InputLabel>Vozidlo</InputLabel>
                 <Select
                   value={formData.vehicleId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, vehicleId: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({
+                      ...prev,
+                      vehicleId: e.target.value,
+                    }))
+                  }
                   label="Vozidlo"
                 >
                   <MenuItem value="">Bez vozidla</MenuItem>
@@ -695,12 +872,19 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 <InputLabel>Frekvencia</InputLabel>
                 <Select
                   value={formData.frequency}
-                  onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value as any }))}
+                  onChange={e =>
+                    setFormData(prev => ({
+                      ...prev,
+                      frequency: e.target.value as any,
+                    }))
+                  }
                   label="Frekvencia"
                 >
                   {FREQUENCY_OPTIONS.map(option => (
                     <MenuItem key={option.value} value={option.value}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <span>{option.icon}</span>
                         {option.label}
                       </Box>
@@ -716,7 +900,9 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 label="Začiatok platnosti"
                 type="date"
                 value={formData.startDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, startDate: e.target.value }))
+                }
                 InputLabelProps={{ shrink: true }}
                 required
               />
@@ -728,7 +914,9 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 label="Koniec platnosti"
                 type="date"
                 value={formData.endDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, endDate: e.target.value }))
+                }
                 InputLabelProps={{ shrink: true }}
                 helperText="Voliteľné - nechajte prázdne pre nekonečne"
               />
@@ -740,7 +928,12 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 label="Deň v mesiaci"
                 type="number"
                 value={formData.dayOfMonth}
-                onChange={(e) => setFormData(prev => ({ ...prev, dayOfMonth: parseInt(e.target.value) || 1 }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    dayOfMonth: parseInt(e.target.value) || 1,
+                  }))
+                }
                 inputProps={{ min: 1, max: 28 }}
                 helperText="Deň kedy sa má vygenerovať náklad (1-28)"
                 required
@@ -752,7 +945,12 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 control={
                   <Switch
                     checked={formData.isActive}
-                    onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        isActive: e.target.checked,
+                      }))
+                    }
                   />
                 }
                 label="Aktívny"
@@ -764,7 +962,9 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 fullWidth
                 label="Poznámka"
                 value={formData.note}
-                onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, note: e.target.value }))
+                }
                 multiline
                 rows={2}
                 helperText="Voliteľná poznámka pre generované náklady"
@@ -774,18 +974,25 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
         </DialogContent>
 
         <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button 
+          <Button
             onClick={handleFormCancel}
             variant="outlined"
             startIcon={<CancelIcon />}
           >
             Zrušiť
           </Button>
-          <Button 
+          <Button
             onClick={handleFormSubmit}
             variant="contained"
             startIcon={<SaveIcon />}
-            disabled={loading || !formData.name.trim() || !formData.description.trim() || !formData.category || !formData.company.trim() || formData.amount <= 0}
+            disabled={
+              loading ||
+              !formData.name.trim() ||
+              !formData.description.trim() ||
+              !formData.category ||
+              !formData.company.trim() ||
+              formData.amount <= 0
+            }
           >
             {editingRecurring ? 'Aktualizovať' : 'Vytvoriť'}
           </Button>

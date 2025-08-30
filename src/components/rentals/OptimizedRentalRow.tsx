@@ -1,20 +1,9 @@
 /**
  * 📋 OPTIMIZED RENTAL ROW
- * 
+ *
  * Memoized rental row komponent s optimalizovaným rendering
  */
 
-import React, { memo, useCallback } from 'react';
-import {
-  TableRow,
-  TableCell,
-  IconButton,
-  Tooltip,
-  Typography,
-  Box,
-  Avatar,
-  Stack
-} from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -24,11 +13,24 @@ import {
   PictureAsPdf as PDFIcon,
   PhotoLibrary as GalleryIcon,
 } from '@mui/icons-material';
+import {
+  TableRow,
+  TableCell,
+  IconButton,
+  Tooltip,
+  Typography,
+  Box,
+  Avatar,
+  Stack,
+} from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import React, { memo, useCallback } from 'react';
+
 import { Rental } from '../../types';
-import RentalStatusChip from './RentalStatusChip';
 import { VehicleLookup } from '../../utils/rentalFilters';
+
+import RentalStatusChip from './RentalStatusChip';
 
 interface OptimizedRentalRowProps {
   rental: Rental;
@@ -57,33 +59,43 @@ const OptimizedRentalRow: React.FC<OptimizedRentalRowProps> = ({
   hasHandoverProtocol = false,
   hasReturnProtocol = false,
 }) => {
-  
   // Memoized vehicle data
   const vehicle = vehicleLookup[rental.vehicleId || ''] || {};
-  
+
   // Memoized handlers
   const handleEdit = useCallback(() => onEdit(rental), [onEdit, rental]);
   const handleDelete = useCallback(() => onDelete(rental), [onDelete, rental]);
   const handleView = useCallback(() => onView(rental), [onView, rental]);
-  const handleHandover = useCallback(() => onHandover(rental), [onHandover, rental]);
+  const handleHandover = useCallback(
+    () => onHandover(rental),
+    [onHandover, rental]
+  );
   const handleReturn = useCallback(() => onReturn(rental), [onReturn, rental]);
-  const handleViewPDF = useCallback(() => onViewPDF(rental), [onViewPDF, rental]);
-  const handleViewGallery = useCallback(() => onViewGallery(rental), [onViewGallery, rental]);
-  
+  const handleViewPDF = useCallback(
+    () => onViewPDF(rental),
+    [onViewPDF, rental]
+  );
+  const handleViewGallery = useCallback(
+    () => onViewGallery(rental),
+    [onViewGallery, rental]
+  );
+
   // Memoized formatted dates
   const startDate = format(rental.startDate, 'dd.MM.yyyy', { locale: sk });
   const endDate = format(rental.endDate, 'dd.MM.yyyy', { locale: sk });
-  
+
   // Customer initials for avatar
   const getCustomerInitials = (name: string) => {
-    return name
-      ?.split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || '??';
+    return (
+      name
+        ?.split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || '??'
+    );
   };
-  
+
   return (
     <TableRow
       hover
@@ -102,17 +114,23 @@ const OptimizedRentalRow: React.FC<OptimizedRentalRowProps> = ({
               height: 32,
               fontSize: '0.75rem',
               fontWeight: 600,
-              bgcolor: 'primary.main'
+              bgcolor: 'primary.main',
             }}
           >
             {getCustomerInitials(rental.customerName || '')}
           </Avatar>
           <Box>
-            <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, lineHeight: 1.2 }}
+            >
               {rental.customerName || 'Nezadané'}
             </Typography>
             {(rental.customerPhone || rental.customer?.phone) && (
-              <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.secondary', lineHeight: 1 }}
+              >
                 {rental.customerPhone || rental.customer?.phone}
               </Typography>
             )}
@@ -196,39 +214,39 @@ const OptimizedRentalRow: React.FC<OptimizedRentalRowProps> = ({
               <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          
+
           <Tooltip title="Upraviť">
             <IconButton size="small" onClick={handleEdit}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          
+
           <Tooltip title="Odovzdať">
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               onClick={handleHandover}
               color={hasHandoverProtocol ? 'success' : 'default'}
             >
               <HandoverIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          
+
           <Tooltip title="Prevziať">
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               onClick={handleReturn}
               color={hasReturnProtocol ? 'info' : 'default'}
             >
               <ReturnIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          
+
           <Tooltip title="Galéria">
             <IconButton size="small" onClick={handleViewGallery}>
               <GalleryIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          
+
           <Tooltip title="Zmazať">
             <IconButton size="small" onClick={handleDelete} color="error">
               <DeleteIcon fontSize="small" />
@@ -245,21 +263,23 @@ export default memo(OptimizedRentalRow, (prevProps, nextProps) => {
   // Compare rental object
   if (prevProps.rental.id !== nextProps.rental.id) return false;
   if (prevProps.rental.status !== nextProps.rental.status) return false;
-  if (prevProps.rental.customerName !== nextProps.rental.customerName) return false;
+  if (prevProps.rental.customerName !== nextProps.rental.customerName)
+    return false;
   if (prevProps.rental.totalPrice !== nextProps.rental.totalPrice) return false;
-  
+
   // Compare vehicle data (if it changed)
   const prevVehicle = prevProps.vehicleLookup[prevProps.rental.vehicleId || ''];
   const nextVehicle = nextProps.vehicleLookup[nextProps.rental.vehicleId || ''];
   if (prevVehicle !== nextVehicle) return false;
-  
+
   // Compare protocol status
-  if (prevProps.hasHandoverProtocol !== nextProps.hasHandoverProtocol) return false;
+  if (prevProps.hasHandoverProtocol !== nextProps.hasHandoverProtocol)
+    return false;
   if (prevProps.hasReturnProtocol !== nextProps.hasReturnProtocol) return false;
-  
+
   // Compare callbacks (should be memoized in parent)
   if (prevProps.onEdit !== nextProps.onEdit) return false;
   if (prevProps.onDelete !== nextProps.onDelete) return false;
-  
+
   return true;
 });

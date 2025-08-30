@@ -1,7 +1,6 @@
 // 📝 Lazy Edit Dialog - Heavy component for performance testing
 // This represents a complex form component that should be lazy loaded
 
-import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -18,6 +17,7 @@ import {
   Box,
   CircularProgress,
 } from '@mui/material';
+import React, { useState, useEffect } from 'react';
 
 interface LazyEditDialogProps {
   itemId: string;
@@ -67,7 +67,12 @@ const LazyEditDialog: React.FC<LazyEditDialogProps> = ({
     return (
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogContent>
-          <Box display="flex" justifyContent="center" alignItems="center" py={4}>
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            py={4}
+          >
             <CircularProgress />
             <Typography sx={{ ml: 2 }}>Načítavam formulár...</Typography>
           </Box>
@@ -86,35 +91,43 @@ const LazyEditDialog: React.FC<LazyEditDialogProps> = ({
               fullWidth
               label="Názov"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={e =>
+                setFormData({ ...formData, title: e.target.value })
+              }
             />
           </Grid>
-          
+
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               label="Podtitul"
               value={formData.subtitle}
-              onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
+              onChange={e =>
+                setFormData({ ...formData, subtitle: e.target.value })
+              }
             />
           </Grid>
-          
+
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               label="Kategória"
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              onChange={e =>
+                setFormData({ ...formData, category: e.target.value })
+              }
             />
           </Grid>
-          
+
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>
               <Select
                 value={formData.status}
                 label="Status"
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
               >
                 <MenuItem value="active">Aktívny</MenuItem>
                 <MenuItem value="inactive">Neaktívny</MenuItem>
@@ -122,7 +135,7 @@ const LazyEditDialog: React.FC<LazyEditDialogProps> = ({
               </Select>
             </FormControl>
           </Grid>
-          
+
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -130,12 +143,14 @@ const LazyEditDialog: React.FC<LazyEditDialogProps> = ({
               rows={4}
               label="Popis"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={e =>
+                setFormData({ ...formData, description: e.target.value })
+              }
             />
           </Grid>
         </Grid>
       </DialogContent>
-      
+
       <DialogActions>
         <Button onClick={onClose}>Zrušiť</Button>
         <Button onClick={handleSave} variant="contained">
