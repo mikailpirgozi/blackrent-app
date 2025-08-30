@@ -1,8 +1,9 @@
-import { Pool, PoolClient } from 'pg';
-import { Vehicle, Customer, Rental, Expense, ExpenseCategory, RecurringExpense, RecurringExpenseGeneration, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions, CompanyInvestor, CompanyInvestorShare, CompanyDocument } from '../types';
 import bcrypt from 'bcryptjs';
-import { r2Storage } from '../utils/r2-storage';
+import type { PoolClient } from 'pg';
+import { Pool } from 'pg';
+import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, Insurance, InsuranceClaim, Insurer, RecurringExpense, Rental, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument } from '../types';
 import { logger } from '../utils/logger';
+import { r2Storage } from '../utils/r2-storage';
 
 export class PostgresDatabase {
   private pool: Pool;
@@ -2285,7 +2286,7 @@ export class PostgresDatabase {
   private async getVehiclesFresh(includeRemoved: boolean = false, includePrivate: boolean = false): Promise<Vehicle[]> {
     const client = await this.pool.connect();
     try {
-      let excludedStatuses = [];
+      const excludedStatuses = [];
       if (!includeRemoved) {
         excludedStatuses.push('removed', 'temporarily_removed');
       }
@@ -3202,7 +3203,7 @@ export class PostgresDatabase {
       }
 
       // Základný WHERE clause
-      let whereConditions: string[] = ['1=1'];
+      const whereConditions: string[] = ['1=1'];
       const queryParams: any[] = [];
       let paramIndex = 1;
 
@@ -3464,7 +3465,7 @@ export class PostgresDatabase {
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
           -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
-          r.extra_km_charge, r.extra_kilometer_rate, r.,
+          r.extra_km_charge, r.extra_kilometer_rate,
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           c.name as company_name, v.company as vehicle_company,
@@ -3630,7 +3631,7 @@ export class PostgresDatabase {
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
           -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
-          r.extra_km_charge, r.extra_kilometer_rate, r.,
+          r.extra_km_charge, r.extra_kilometer_rate,
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
@@ -7382,7 +7383,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       let query = 'SELECT * FROM vehicle_documents';
-      let params: any[] = [];
+      const params: any[] = [];
 
       if (vehicleId) {
         query += ' WHERE vehicle_id = $1';
@@ -7505,7 +7506,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       let query = 'SELECT * FROM insurance_claims';
-      let params: any[] = [];
+      const params: any[] = [];
 
       if (vehicleId) {
         query += ' WHERE vehicle_id = $1';

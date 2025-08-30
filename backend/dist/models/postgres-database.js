@@ -4,10 +4,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.postgresDatabase = exports.PostgresDatabase = void 0;
-const pg_1 = require("pg");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const r2_storage_1 = require("../utils/r2-storage");
+const pg_1 = require("pg");
 const logger_1 = require("../utils/logger");
+const r2_storage_1 = require("../utils/r2-storage");
 class PostgresDatabase {
     // Public getter for cleanup operations
     get dbPool() {
@@ -3048,7 +3048,7 @@ class PostgresDatabase {
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
           -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
-          r.extra_km_charge, r.extra_kilometer_rate, r.,
+          r.extra_km_charge, r.extra_kilometer_rate,
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           c.name as company_name, v.company as vehicle_company,
@@ -3200,7 +3200,7 @@ class PostgresDatabase {
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
           -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
-          r.extra_km_charge, r.extra_kilometer_rate, r.,
+          r.extra_km_charge, r.extra_kilometer_rate,
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
