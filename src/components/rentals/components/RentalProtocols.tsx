@@ -114,7 +114,7 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
 }) => {
   // 🚀 V2 Feature Flag Check
   const [isV2Enabled, setIsV2Enabled] = React.useState(false);
-  
+
   React.useEffect(() => {
     const checkV2Feature = async () => {
       const { featureManager } = await import('../../../config/featureFlags');
@@ -125,9 +125,11 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
   }, []);
 
   // Select correct form components based on feature flag
-  const HandoverForm = isV2Enabled ? HandoverProtocolFormV2 : HandoverProtocolForm;
+  const HandoverForm = isV2Enabled
+    ? HandoverProtocolFormV2
+    : HandoverProtocolForm;
   const ReturnForm = isV2Enabled ? ReturnProtocolFormV2 : ReturnProtocolForm;
-  
+
   return (
     <>
       {/* Rental Form Dialog */}
