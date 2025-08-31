@@ -1,19 +1,9 @@
-import type {
-  ReactNode} from 'react';
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect
-} from 'react';
+import type { ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 import { apiService } from '../services/api';
-import type {
-  UserCompanyAccess} from '../types';
-import {
-  CompanyPermissions,
-  ResourcePermission,
-} from '../types';
+import type { UserCompanyAccess } from '../types';
+import { CompanyPermissions, ResourcePermission } from '../types';
 
 import { useAuth } from './AuthContext';
 

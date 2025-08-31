@@ -5,7 +5,7 @@
  * Nahradí všetky rôzne card štýly jednotným dizajnom
  */
 
-import type { CardProps} from '@mui/material';
+import type { CardProps } from '@mui/material';
 import { Card, CardContent, CardActions, Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React from 'react';

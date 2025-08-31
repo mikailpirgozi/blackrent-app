@@ -42,10 +42,11 @@ import React, { useState, useRef, useEffect, memo } from 'react';
 
 import type {
   SearchSuggestion,
-  QuickFilter} from '../../hooks/useEnhancedSearch';
+  QuickFilter,
+} from '../../hooks/useEnhancedSearch';
 import {
   useEnhancedSearch,
-  UseEnhancedSearchOptions
+  UseEnhancedSearchOptions,
 } from '../../hooks/useEnhancedSearch';
 
 interface EnhancedSearchBarProps {

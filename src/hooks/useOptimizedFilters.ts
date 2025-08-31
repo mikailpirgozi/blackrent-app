@@ -11,7 +11,8 @@ import { debounce } from '../utils/debounce';
 import type {
   FilterCriteria,
   VehicleLookup,
-  ProtocolLookup} from '../utils/rentalFilters';
+  ProtocolLookup,
+} from '../utils/rentalFilters';
 import {
   applyAllFilters,
   createVehicleLookup,

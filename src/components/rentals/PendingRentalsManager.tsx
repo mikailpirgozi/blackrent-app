@@ -40,7 +40,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { apiService } from '../../services/api';
-import type { Rental} from '../../types';
+import type { Rental } from '../../types';
 import { Vehicle, Customer } from '../../types';
 
 import EditRentalDialog from './EditRentalDialog';

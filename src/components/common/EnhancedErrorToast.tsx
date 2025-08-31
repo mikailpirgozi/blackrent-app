@@ -32,11 +32,10 @@ import {
 import React, { useState, useEffect } from 'react';
 
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
-import type {
-  ErrorContext} from '../../utils/enhancedErrorMessages';
+import type { ErrorContext } from '../../utils/enhancedErrorMessages';
 import {
   getEnhancedErrorMessage,
-  getRecoverySuggestions
+  getRecoverySuggestions,
 } from '../../utils/enhancedErrorMessages';
 import type { EnhancedError } from '../../utils/errorHandling';
 

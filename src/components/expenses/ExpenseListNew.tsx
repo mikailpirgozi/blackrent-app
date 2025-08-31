@@ -47,7 +47,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
-import type { Vehicle , Expense, ExpenseCategory } from '../../types';
+import type { Vehicle, Expense, ExpenseCategory } from '../../types';
 
 import ExpenseCategoryManager from './ExpenseCategoryManager';
 import ExpenseForm from './ExpenseForm';

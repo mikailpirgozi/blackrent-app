@@ -7,10 +7,9 @@ import type {
   Permission,
   PermissionResult,
   UserCompanyAccess,
-  CompanyPermissions} from '../types';
-import {
-  ResourcePermission,
+  CompanyPermissions,
 } from '../types';
+import { ResourcePermission } from '../types';
 
 // 🔐 FRONTEND ROLE PERMISSIONS MATRIX (fallback pre admin)
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {

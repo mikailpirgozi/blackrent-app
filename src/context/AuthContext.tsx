@@ -1,14 +1,13 @@
-import type {
-  ReactNode} from 'react';
-import React, {
-  createContext,
-  useContext,
-  useReducer,
-  useEffect,
-} from 'react';
+import type { ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 import { apiService, getAPI_BASE_URL } from '../services/api';
-import type { User, AuthState, LoginCredentials, UserCompanyAccess } from '../types';
+import type {
+  User,
+  AuthState,
+  LoginCredentials,
+  UserCompanyAccess,
+} from '../types';
 import logger from '../utils/logger';
 import { StorageManager } from '../utils/storage';
 

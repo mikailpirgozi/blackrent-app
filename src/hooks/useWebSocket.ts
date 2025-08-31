@@ -3,13 +3,12 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-import type {
-  WebSocketClient} from '../services/websocket-client';
+import type { WebSocketClient } from '../services/websocket-client';
 import {
   getWebSocketClient,
-  WebSocketEvents
+  WebSocketEvents,
 } from '../services/websocket-client';
-import type { Rental, Vehicle} from '../types';
+import type { Rental, Vehicle } from '../types';
 import { Customer } from '../types';
 
 // Notification typy

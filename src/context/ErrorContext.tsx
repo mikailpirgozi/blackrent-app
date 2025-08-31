@@ -13,12 +13,9 @@ import { v4 as uuidv4 } from 'uuid';
 import type {
   AppError,
   ErrorContext as IErrorContext,
-  ErrorAction} from '../types/errors';
-import {
-  createError,
-  ErrorSeverity,
-  ErrorCategory,
+  ErrorAction,
 } from '../types/errors';
+import { createError, ErrorSeverity, ErrorCategory } from '../types/errors';
 
 // Error state interface
 interface ErrorState {
