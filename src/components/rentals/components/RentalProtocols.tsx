@@ -26,10 +26,10 @@ const HandoverProtocolForm = React.lazy(
 
 // 🚀 V2 PROTOCOL FORMS - loaded when V2 is enabled
 const HandoverProtocolFormV2 = React.lazy(
-  () => import('../../protocols/v2/HandoverProtocolFormV2')
+  () => import('../../protocols/v2/HandoverProtocolFormV2Wrapper')
 );
 const ReturnProtocolFormV2 = React.lazy(
-  () => import('../../protocols/v2/ReturnProtocolFormV2')
+  () => import('../../protocols/v2/ReturnProtocolFormV2Wrapper')
 );
 
 interface RentalDialogsProps {
