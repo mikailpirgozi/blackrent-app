@@ -14,7 +14,7 @@ const processor = new sharp_processor_1.ImageProcessor();
 setup_1.photoQueue.process('generate-derivatives', async (job) => {
     const startTime = Date.now();
     const { originalKey, photoId } = job.data;
-    // const { protocolId, userId, metadata } = job.data as PhotoProcessingJob; // Unused for now
+    // const { protocolId, userId, metadata } = job.data; // Unused for now
     try {
         // Update progress
         await job.progress(10);
@@ -58,7 +58,7 @@ setup_1.photoQueue.process('generate-derivatives', async (job) => {
         //     savings: processor.calculateSavings(derivatives.sizes)
         //   }
         // });
-        // console.log('Photo record updated:', { photoId, thumbUrl, galleryUrl, pdfUrl });
+        // Photo record updated: photoId, thumbUrl, galleryUrl, pdfUrl
         await job.progress(100);
         const processingTime = Date.now() - startTime;
         return {
@@ -84,41 +84,18 @@ setup_1.photoQueue.process('generate-derivatives', async (job) => {
         //   userId,
         //   processingTime: Date.now() - startTime
         // });
-        // console.error('Processing error logged:', { photoId, error: errorMessage });
+        // Processing error logged: photoId, errorMessage
         throw new Error(`Photo processing failed: ${errorMessage}`);
     }
 });
 /**
  * Helper funkcia pre update photo recordu
  */
-async function updatePhotoRecord(
-/* _photoId: string,
-_updates: {
-  thumbUrl: string;
-  galleryUrl: string;
-  pdfUrl: string;
-  hash: string;
-  metadata: Record<string, unknown>;
-} */
-) {
-    // TODO: Implementovať databázový update
-    // Zatiaľ placeholder - implementuje sa v ďalšom kroku
-    // console.log(`Updating photo record ${photoId}:`, updates);
-}
+// async function updatePhotoRecord() - TODO: Implement in next phase
 /**
  * Error logging pre monitoring
  */
-async function logProcessingError( /* _error: {
-  photoId: string;
-  protocolId: string;
-  originalKey: string;
-  error: string;
-  userId?: string;
-  processingTime: number;
-} */) {
-    // TODO: Implementovať error logging do databázy
-    // console.error('Photo processing error:', error);
-}
+// async function logProcessingError() - TODO: Implement in next phase
 /**
  * Queue event handlers pre monitoring
  */
