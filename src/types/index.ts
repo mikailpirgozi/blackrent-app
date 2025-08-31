@@ -10,7 +10,12 @@ export type VehicleCategory =
   | 'dodavky'; // 📦 Dodávky (Sprinter, Transit, Crafter)
 
 // 📸 V2 PHOTO CATEGORIES: Kategórie fotografií pre protokoly
-export type PhotoCategory = 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel';
+export type PhotoCategory =
+  | 'vehicle'
+  | 'document'
+  | 'damage'
+  | 'odometer'
+  | 'fuel';
 
 // 📸 V2 PHOTO ITEM: Rozšírený photo item s kategóriou
 export interface PhotoItemV2 {
@@ -125,8 +130,8 @@ export interface Rental {
     user: string;
     changes: {
       field: string;
-      oldValue: any;
-      newValue: any;
+      oldValue: unknown;
+      newValue: unknown;
     }[];
   }[];
   orderNumber?: string;
@@ -553,7 +558,7 @@ export interface AuthResponse {
   error?: string;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
@@ -655,7 +660,7 @@ export interface HandoverProtocol {
     currency: string;
     allowedKilometers?: number;
     extraKilometerRate?: number;
-    insuranceDetails?: any;
+    insuranceDetails?: Record<string, unknown>;
     pickupLocation?: string;
     returnLocation?: string;
     returnConditions?: string;
@@ -728,7 +733,7 @@ export interface ReturnProtocol {
     currency: string;
     allowedKilometers?: number;
     extraKilometerRate?: number;
-    insuranceDetails?: any;
+    insuranceDetails?: Record<string, unknown>;
     pickupLocation?: string;
     returnLocation?: string;
     returnConditions?: string;

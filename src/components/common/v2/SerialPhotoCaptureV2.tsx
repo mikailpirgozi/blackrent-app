@@ -6,7 +6,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as uuid from 'uuid';
 import { featureManager } from '../../../config/featureFlags';
-import { PhotoCategory, PhotoItemV2 } from '../../../types';
+import type { PhotoCategory, PhotoItemV2 } from '../../../types';
 
 export interface QueueItem {
   id: string;
@@ -38,7 +38,11 @@ interface Props {
   category?: PhotoCategory; // 📸 Kategória fotiek pre tento capture
   onPhotosChange?: (photos: QueueItem[], category?: PhotoCategory) => void;
   onCategorizedPhotosChange?: (photos: PhotoItemV2[]) => void; // 📸 Nový callback pre kategorizované fotky
-  onUploadComplete?: (photoId: string, urls: QueueItem['urls'], category?: PhotoCategory) => void;
+  onUploadComplete?: (
+    photoId: string,
+    urls: QueueItem['urls'],
+    category?: PhotoCategory
+  ) => void;
   maxPhotos?: number;
   userId?: string;
   disabled?: boolean;
@@ -120,7 +124,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         clearInterval(processingIntervalRef.current);
       }
     };
-  }, [uploadQueue]);
+  }, [uploadQueue, checkPhotoStatus]);
 
   /**
    * Handling file capture/selection
@@ -199,7 +203,16 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         processQueueItem(item);
       }
     },
-    [disabled, isV2Enabled, uploadQueue.length, maxPhotos, protocolId, userId]
+    [
+      disabled,
+      isV2Enabled,
+      uploadQueue.length,
+      maxPhotos,
+      protocolId,
+      userId,
+      category,
+      processQueueItem,
+    ]
   );
 
   /**
@@ -272,21 +285,35 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         error instanceof Error ? error.message : 'Upload failed';
       console.error(`Upload failed for ${item.file.name}:`, error);
 
-      // Retry logic
+      // Enhanced retry logic s user feedback
       if (item.retries < 3) {
+        const retryDelay = Math.pow(2, item.retries) * 1000;
+        updateQueueItemStatus(
+          item.id, 
+          'pending', 
+          0, 
+          `Retry ${item.retries + 1}/3 za ${retryDelay/1000}s...`
+        );
+        
         setTimeout(
           () => {
             updateQueueItem(item.id, {
               retries: item.retries + 1,
               status: 'pending',
               progress: 0,
+              error: undefined,
             });
             processQueueItem({ ...item, retries: item.retries + 1 });
           },
-          Math.pow(2, item.retries) * 1000
+          retryDelay
         ); // Exponential backoff
       } else {
-        updateQueueItemStatus(item.id, 'failed', 0, errorMessage);
+        updateQueueItemStatus(
+          item.id, 
+          'failed', 
+          0, 
+          `Upload zlyhal po 3 pokusoch: ${errorMessage}`
+        );
       }
     }
   };
@@ -425,7 +452,26 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
       }
       return prev.filter(p => p.id !== id);
     });
+
+    // Remove from categorized photos
+    setCategorizedPhotos(prev => prev.filter(p => p.id !== id));
   }, []);
+
+  /**
+   * Retry failed upload
+   */
+  const retryFailedUpload = useCallback((id: string) => {
+    const item = uploadQueue.find(q => q.id === id);
+    if (item && item.status === 'failed') {
+      updateQueueItem(id, {
+        status: 'pending',
+        progress: 0,
+        retries: 0,
+        error: undefined,
+      });
+      processQueueItem({ ...item, retries: 0 });
+    }
+  }, [uploadQueue, processQueueItem]);
 
   // Cleanup URLs on unmount
   useEffect(() => {
@@ -434,7 +480,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         URL.revokeObjectURL(preview.url);
       });
     };
-  }, []);
+  }, [previews]);
 
   // Notify parent o changes
   useEffect(() => {
@@ -568,6 +614,22 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
               <div>{uploadQueue.filter(i => i.status === 'failed').length}</div>
             </div>
           </div>
+
+          {/* Bulk retry button */}
+          {uploadQueue.some(i => i.status === 'failed') && (
+            <div className="mt-3 text-center">
+              <button
+                onClick={() => {
+                  uploadQueue
+                    .filter(i => i.status === 'failed')
+                    .forEach(item => retryFailedUpload(item.id));
+                }}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+              >
+                Opakovať všetky neúspešné ({uploadQueue.filter(i => i.status === 'failed').length})
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -635,7 +697,11 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
                   )}
 
                   {queueItem?.status === 'failed' && (
-                    <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                    <button
+                      onClick={() => retryFailedUpload(preview.id)}
+                      className="w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors"
+                      title="Kliknite pre opakovaný pokus"
+                    >
                       <svg
                         className="w-4 h-4 text-white"
                         fill="none"
@@ -646,10 +712,10 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                         />
                       </svg>
-                    </div>
+                    </button>
                   )}
 
                   {queueItem?.status === 'processing' && (
