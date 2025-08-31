@@ -1,5 +1,6 @@
-import { Pool, PoolClient } from 'pg';
-import { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, Insurance, InsuranceClaim, Insurer, RecurringExpense, Rental, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument } from '../types';
+import type { PoolClient } from 'pg';
+import { Pool } from 'pg';
+import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, Insurance, InsuranceClaim, Insurer, RecurringExpense, Rental, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument } from '../types';
 export declare class PostgresDatabase {
     private pool;
     private protocolTablesInitialized;
