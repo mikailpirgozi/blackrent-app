@@ -1,54 +1,43 @@
 import {
-  PhotoCamera,
-  Delete,
-  Save,
   Close,
+  Delete,
+  PhotoCamera,
   Preview,
+  Save,
   VideoCall,
 } from '@mui/icons-material';
 import {
   Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Typography,
-  LinearProgress,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  FormControlLabel,
-  Switch,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  FormControlLabel,
+  IconButton,
+  InputLabel,
+  LinearProgress,
+  MenuItem,
+  Select,
+  Switch,
+  TextField,
+  Typography,
 } from '@mui/material';
 import Alert from '@mui/material/Alert';
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ProtocolImage, ProtocolVideo } from '../../types';
+import type { ProtocolImage, ProtocolVideo } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
-import {
-  compressImage,
-  compressForProtocol,
-  compressImageSmart,
-  QUALITY_PRESETS,
-  isWebPSupported,
-} from '../../utils/imageCompression';
+import { isWebPSupported } from '../../utils/imageCompression';
+import { lintImage } from '../../utils/imageLint';
 
 // import { Grid } from '@mui/material';
 
 import { logger } from '../../utils/logger';
 import { compressVideo } from '../../utils/videoCompression';
-import {
-  PrimaryButton,
-  SecondaryButton,
-  WarningButton,
-  DefaultCard,
-  StatusChip,
-} from '../ui';
+import { DefaultCard, PrimaryButton, SecondaryButton } from '../ui';
 
 import NativeCamera from './NativeCamera';
 
@@ -60,7 +49,7 @@ interface SerialPhotoCaptureProps {
   allowedTypes: ('vehicle' | 'damage' | 'document' | 'fuel' | 'odometer')[];
   maxImages?: number;
   maxVideos?: number;
-  compressImages?: boolean;
+
   compressVideos?: boolean;
   entityId?: string;
   autoUploadToR2?: boolean;
@@ -103,7 +92,7 @@ export default function SerialPhotoCapture({
   allowedTypes,
   maxImages = 50,
   maxVideos = 5,
-  compressImages = true,
+
   compressVideos = true,
   entityId,
   autoUploadToR2 = true,
@@ -191,7 +180,7 @@ export default function SerialPhotoCapture({
   );
 
   const uploadToR2 = useCallback(
-    async (file: File, type: 'image' | 'video'): Promise<string> => {
+    async (file: File): Promise<string> => {
       // Fallback na base64 ak R2 nie je povolené
       if (!autoUploadToR2) {
         return new Promise(resolve => {
@@ -351,7 +340,7 @@ export default function SerialPhotoCapture({
           const isVideo = file.type.startsWith('video/');
           const mediaType = allowedTypes[0]; // Default type
 
-          // Automatická kompresia ak je povolená
+          // Spracovanie súborov s validáciou a optimalizáciou
           let processedFile = file;
           let compressed = false;
           const originalSize = file.size;
@@ -363,24 +352,37 @@ export default function SerialPhotoCapture({
             processedFile = compressionResult.compressedFile;
             compressed = true;
             compressedSize = compressionResult.compressedFile.size;
-          } else if (!isVideo && compressImages) {
+          } else if (!isVideo) {
             setProgress((processedCount / files.length) * 50);
-            // 🌟 Používame inteligentný WebP s fallback
-            const compressionResult = await compressImageSmart(
-              file,
-              webPEnabled,
-              selectedQuality
-            );
-            processedFile = new File(
-              [compressionResult.compressedBlob],
-              file.name,
-              {
-                type: file.type,
-                lastModified: Date.now(),
-              }
-            );
-            compressed = true;
-            compressedSize = compressionResult.compressedSize;
+
+            try {
+              // 🚀 NOVÉ: Použitie imageLint pre validáciu a optimalizáciu
+              processedFile = await lintImage(file);
+              compressed = true;
+              compressedSize = processedFile.size;
+
+              logger.debug('✅ Image linted successfully:', {
+                originalName: file.name,
+                originalSize: originalSize,
+                originalType: file.type,
+                processedName: processedFile.name,
+                processedSize: compressedSize,
+                processedType: processedFile.type,
+                compressionRatio:
+                  (
+                    ((originalSize - compressedSize) / originalSize) *
+                    100
+                  ).toFixed(1) + '%',
+              });
+            } catch (error) {
+              // Ak imageLint zlyhá, ukáž chybu používateľovi
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : 'Neznáma chyba pri spracovaní obrázka';
+              alert(errorMessage);
+              continue; // Preskočiť tento súbor a pokračovať s ďalšími
+            }
           }
 
           // Okamžitý upload na R2 ak je povolený
@@ -398,10 +400,7 @@ export default function SerialPhotoCapture({
             setUploadingToR2(true);
             setUploadProgress((processedCount / files.length) * 100);
             try {
-              url = await uploadToR2(
-                processedFile,
-                isVideo ? 'video' : 'image'
-              );
+              url = await uploadToR2(processedFile);
               logger.debug('✅ R2 UPLOAD SUCCESS:', url);
             } catch (error) {
               console.error(
@@ -473,7 +472,6 @@ export default function SerialPhotoCapture({
       maxImages,
       maxVideos,
       allowedTypes,
-      compressImages,
       compressVideos,
       autoUploadToR2,
       entityId,
@@ -507,7 +505,7 @@ export default function SerialPhotoCapture({
         setUploadingToR2(true);
 
         try {
-          const r2Url = await uploadToR2(file, 'image');
+          const r2Url = await uploadToR2(file);
           logger.debug('✅ NATIVE CAMERA: R2 upload success:', r2Url);
 
           // Zruš dočasný blob URL a použij R2 URL
@@ -1047,7 +1045,7 @@ export default function SerialPhotoCapture({
                     value={media.mediaType}
                     label="Typ"
                     onChange={e =>
-                      handleMediaTypeChange(media.id, e.target.value as any)
+                      handleMediaTypeChange(media.id, e.target.value as string)
                     }
                   >
                     {allowedTypes.map(type => (
