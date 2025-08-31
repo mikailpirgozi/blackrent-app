@@ -11,15 +11,15 @@
 
 ## ✅ HLAVNÝ CHECKLIST PROGRESS
 
-### **FÁZA 1: PRÍPRAVA** [0/8] ⏳
-- [ ] Backup súčasného systému
-- [ ] Vytvorenie Git branch `feature/protocols-v2`
-- [ ] Setup lokálneho Docker prostedia
-- [ ] Inštalácia BullMQ/Redis
-- [ ] Setup Minio (lokálny R2)
-- [ ] Vytvorenie paralelnej štruktúry súborov
-- [ ] Implementácia Feature Flags
-- [ ] Databázové migrácie (non-breaking)
+### **FÁZA 1: PRÍPRAVA** [7/8] ✅
+- [x] Backup súčasného systému
+- [x] Vytvorenie Git branch `feature/protocols-v2`
+- [x] Setup lokálneho Docker prostedia (Docker compose pripravený)
+- [x] Inštalácia BullMQ/Redis
+- [x] Setup Minio (lokálny R2) - Docker compose
+- [x] Vytvorenie paralelnej štruktúry súborov
+- [x] Implementácia Feature Flags
+- [x] Databázové migrácie (non-breaking) - V2 tabuľky vytvorené
 
 ### **FÁZA 2: CORE DEVELOPMENT** [0/12] 🔧
 - [ ] Queue system implementácia

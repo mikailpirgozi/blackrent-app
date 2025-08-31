@@ -186,12 +186,15 @@ router.post('/test-feature-flag', async (req, res) => {
         reason = 'user in allowlist';
       } else if (percentage !== undefined) {
         // Simulácia percentage rollout
-        const hash = Math.abs(userId?.split('').reduce((a: number, b: string) => {
-          a = ((a << 5) - a) + b.charCodeAt(0);
-          return a & a;
-        }, 0) || 0);
+        let hash = 0;
+        if (userId) {
+          for (let i = 0; i < userId.length; i++) {
+            hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+            hash = hash & hash; // Convert to 32bit integer
+          }
+        }
         
-        enabled = (hash % 100) < (percentage || flag.percentage);
+        enabled = (Math.abs(hash) % 100) < (percentage || flag.percentage);
         reason = enabled ? 'percentage rollout' : 'percentage rollout (not selected)';
       }
     }
