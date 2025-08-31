@@ -9,6 +9,31 @@ export type VehicleCategory =
   | 'viacmiestne' // 👨‍👩‍👧‍👦 Viacmiestne (VW Sharan, Ford Galaxy, 7+ sedadiel)
   | 'dodavky'; // 📦 Dodávky (Sprinter, Transit, Crafter)
 
+// 📸 V2 PHOTO CATEGORIES: Kategórie fotografií pre protokoly
+export type PhotoCategory = 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel';
+
+// 📸 V2 PHOTO ITEM: Rozšírený photo item s kategóriou
+export interface PhotoItemV2 {
+  id: string;
+  photoId?: string;
+  file: File;
+  category: PhotoCategory;
+  description?: string;
+  timestamp: Date;
+  status: 'pending' | 'uploading' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  retries: number;
+  urls?: {
+    original?: string;
+    thumb?: string;
+    gallery?: string;
+    pdf?: string;
+  };
+  error?: string;
+  uploadedAt?: Date;
+  processedAt?: Date;
+}
+
 export interface Vehicle {
   id: string;
   brand: string;

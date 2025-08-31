@@ -37,6 +37,7 @@ import {
   SerialPhotoCaptureV2,
   type QueueItem,
 } from '../../common/v2/SerialPhotoCaptureV2';
+import { PhotoCategory, PhotoItemV2 } from '../../../types';
 
 export interface HandoverProtocolDataV2 {
   protocolId: string;
@@ -230,6 +231,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<QueueItem[]>([]);
+  const [categorizedPhotos, setCategorizedPhotos] = useState<PhotoItemV2[]>([]); // 📸 Všetky kategorizované fotky
 
   // V1 compatibility states
   const [loading] = useState(false);
@@ -268,13 +270,22 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
    * Handle photo upload completion
    */
   const handlePhotoUploadComplete = useCallback(
-    (photoId: string, urls: QueueItem['urls']) => {
+    (photoId: string, urls: QueueItem['urls'], category?: PhotoCategory) => {
       setProtocolData(prev => ({
         ...prev,
         photos: prev.photos.map(photo =>
           photo.photoId === photoId ? { ...photo, urls } : photo
         ),
       }));
+
+      // 📸 Aktualizuj kategorizované fotky
+      if (category) {
+        setCategorizedPhotos(prev =>
+          prev.map(photo =>
+            photo.photoId === photoId ? { ...photo, urls, status: 'completed' } : photo
+          )
+        );
+      }
     },
     []
   );
@@ -282,7 +293,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
   /**
    * Handle photos change from capture component
    */
-  const handlePhotosChange = useCallback((photos: QueueItem[]) => {
+  const handlePhotosChange = useCallback((photos: QueueItem[], category?: PhotoCategory) => {
     setUploadedPhotos(photos);
 
     // Sync with protocol data
@@ -291,7 +302,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
       .map(p => ({
         photoId: p.photoId!,
         description: `Fotografia ${p.file.name}`,
-        category: 'other' as const,
+        category: category || 'other' as const,
         urls: p.urls,
       }));
 
@@ -302,11 +313,87 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
   }, []);
 
   /**
+   * 📸 Handle kategorizované fotky
+   */
+  const handleCategorizedPhotosChange = useCallback((photos: PhotoItemV2[]) => {
+    setCategorizedPhotos(photos);
+
+    // Sync s protocol data - rozdeľ do kategórií
+    const vehicleImages = photos.filter(p => p.category === 'vehicle' && p.status === 'completed').map(p => ({
+      id: p.id,
+      url: p.urls?.original || '',
+      type: 'image',
+      mediaType: 'image/jpeg',
+      description: p.description,
+      timestamp: p.timestamp,
+    }));
+
+    const documentImages = photos.filter(p => p.category === 'document' && p.status === 'completed').map(p => ({
+      id: p.id,
+      url: p.urls?.original || '',
+      type: 'image',
+      mediaType: 'image/jpeg',
+      description: p.description,
+      timestamp: p.timestamp,
+    }));
+
+    const damageImages = photos.filter(p => p.category === 'damage' && p.status === 'completed').map(p => ({
+      id: p.id,
+      url: p.urls?.original || '',
+      type: 'image',
+      mediaType: 'image/jpeg',
+      description: p.description,
+      timestamp: p.timestamp,
+    }));
+
+    const odometerImages = photos.filter(p => p.category === 'odometer' && p.status === 'completed').map(p => ({
+      id: p.id,
+      url: p.urls?.original || '',
+      type: 'image',
+      mediaType: 'image/jpeg',
+      description: p.description,
+      timestamp: p.timestamp,
+    }));
+
+    const fuelImages = photos.filter(p => p.category === 'fuel' && p.status === 'completed').map(p => ({
+      id: p.id,
+      url: p.urls?.original || '',
+      type: 'image',
+      mediaType: 'image/jpeg',
+      description: p.description,
+      timestamp: p.timestamp,
+    }));
+
+    setProtocolData(prev => ({
+      ...prev,
+      vehicleImages,
+      documentImages,
+      damageImages,
+      odometerImages,
+      fuelImages,
+    }));
+  }, []);
+
+  /**
    * V1 compatibility - Handle photo capture
    */
   const handlePhotoCapture = useCallback((mediaType: string) => {
     setActivePhotoCapture(mediaType);
   }, []);
+
+  /**
+   * 📸 Helper funkcia pre zobrazenie názvov kategórií
+   */
+  const getCategoryDisplayName = (category: PhotoCategory): string => {
+    const names: Record<PhotoCategory, string> = {
+      vehicle: 'Fotky vozidla',
+      document: 'Dokumenty',
+      damage: 'Poškodenia',
+      odometer: 'Fotka km',
+      fuel: 'Fotka paliva',
+    };
+    return names[category] || category;
+  };
 
   /**
    * V1 compatibility - Handle photo capture success
@@ -1237,7 +1324,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
                   size="large"
                   disabled={disabled}
                 >
-                  Fotky vozidla ({protocolData.vehicleImages.length})
+                  Fotky vozidla ({categorizedPhotos.filter(p => p.category === 'vehicle').length})
                 </Button>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
@@ -1249,7 +1336,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
                   size="large"
                   disabled={disabled}
                 >
-                  Dokumenty ({protocolData.documentImages.length})
+                  Dokumenty ({categorizedPhotos.filter(p => p.category === 'document').length})
                 </Button>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
@@ -1261,7 +1348,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
                   size="large"
                   disabled={disabled}
                 >
-                  Poškodenia ({protocolData.damageImages.length})
+                  Poškodenia ({categorizedPhotos.filter(p => p.category === 'damage').length})
                 </Button>
               </Grid>
               <Grid item xs={12} sm={6} md={6}>
@@ -1273,7 +1360,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
                   size="large"
                   disabled={disabled}
                 >
-                  Fotka km ({protocolData.odometerImages.length})
+                  Fotka km ({categorizedPhotos.filter(p => p.category === 'odometer').length})
                 </Button>
               </Grid>
               <Grid item xs={12} sm={6} md={6}>
@@ -1285,7 +1372,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
                   size="large"
                   disabled={disabled}
                 >
-                  Fotka paliva ({protocolData.fuelImages.length})
+                  Fotka paliva ({categorizedPhotos.filter(p => p.category === 'fuel').length})
                 </Button>
               </Grid>
             </Grid>
@@ -1484,7 +1571,10 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
           >
             <SerialPhotoCaptureV2
               protocolId={protocolData.protocolId}
+              category={activePhotoCapture as PhotoCategory}
+              title={getCategoryDisplayName(activePhotoCapture as PhotoCategory)}
               onPhotosChange={handlePhotosChange}
+              onCategorizedPhotosChange={handleCategorizedPhotosChange}
               onUploadComplete={handlePhotoUploadComplete}
               maxPhotos={20}
               userId={userId}

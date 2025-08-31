@@ -6,6 +6,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as uuid from 'uuid';
 import { featureManager } from '../../../config/featureFlags';
+import { PhotoCategory, PhotoItemV2 } from '../../../types';
 
 export interface QueueItem {
   id: string;
@@ -34,28 +35,47 @@ export interface Preview {
 
 interface Props {
   protocolId: string;
-  onPhotosChange?: (photos: QueueItem[]) => void;
-  onUploadComplete?: (photoId: string, urls: QueueItem['urls']) => void;
+  category?: PhotoCategory; // 📸 Kategória fotiek pre tento capture
+  onPhotosChange?: (photos: QueueItem[], category?: PhotoCategory) => void;
+  onCategorizedPhotosChange?: (photos: PhotoItemV2[]) => void; // 📸 Nový callback pre kategorizované fotky
+  onUploadComplete?: (photoId: string, urls: QueueItem['urls'], category?: PhotoCategory) => void;
   maxPhotos?: number;
   userId?: string;
   disabled?: boolean;
+  title?: string; // 📸 Dynamický title pre modal
 }
 
 export const SerialPhotoCaptureV2: React.FC<Props> = ({
   protocolId,
+  category,
   onPhotosChange,
+  onCategorizedPhotosChange,
   onUploadComplete,
   maxPhotos = 20,
   userId,
   disabled = false,
+  title,
 }) => {
   const [uploadQueue, setUploadQueue] = useState<QueueItem[]>([]);
   const [previews, setPreviews] = useState<Preview[]>([]);
+  const [categorizedPhotos, setCategorizedPhotos] = useState<PhotoItemV2[]>([]); // 📸 Kategorizované fotky
   const [isV2Enabled, setIsV2Enabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const processingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 📸 Helper funkcia pre zobrazenie názvov kategórií
+  const getCategoryDisplayName = (cat: PhotoCategory): string => {
+    const names: Record<PhotoCategory, string> = {
+      vehicle: 'Vozidlo',
+      document: 'Dokument',
+      damage: 'Poškodenie',
+      odometer: 'Tachometer',
+      fuel: 'Palivo',
+    };
+    return names[cat] || cat;
+  };
 
   // Check feature flag
   useEffect(() => {
@@ -151,6 +171,21 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
           retries: 0,
         };
 
+        // 📸 Kategorizovaný photo item
+        if (category) {
+          const categorizedPhoto: PhotoItemV2 = {
+            id: preview.id,
+            file,
+            category,
+            description: `${getCategoryDisplayName(category)} - ${file.name}`,
+            timestamp: new Date(),
+            status: 'pending',
+            progress: 0,
+            retries: 0,
+          };
+          setCategorizedPhotos(prev => [...prev, categorizedPhoto]);
+        }
+
         newItems.push(queueItem);
         newPreviews.push(preview);
       }
@@ -181,6 +216,9 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
       formData.append('protocolId', protocolId);
       if (userId) {
         formData.append('userId', userId);
+      }
+      if (category) {
+        formData.append('category', category);
       }
 
       // Get auth token
@@ -287,7 +325,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
 
       // Notify completion
       if (photo.status === 'completed' && onUploadComplete) {
-        onUploadComplete(photoId, photo.urls);
+        onUploadComplete(photoId, photo.urls, category);
       }
 
       // Continue monitoring ak ešte nie je hotové
@@ -401,9 +439,16 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
   // Notify parent o changes
   useEffect(() => {
     if (onPhotosChange) {
-      onPhotosChange(uploadQueue);
+      onPhotosChange(uploadQueue, category);
     }
-  }, [uploadQueue, onPhotosChange]);
+  }, [uploadQueue, onPhotosChange, category]);
+
+  // Notify parent o kategorizovaných fotkách
+  useEffect(() => {
+    if (onCategorizedPhotosChange) {
+      onCategorizedPhotosChange(categorizedPhotos);
+    }
+  }, [categorizedPhotos, onCategorizedPhotosChange]);
 
   if (isLoading) {
     return (
@@ -427,6 +472,18 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
 
   return (
     <div className="space-y-4">
+      {/* Title */}
+      {title && (
+        <div className="text-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+          {category && (
+            <p className="text-sm text-gray-600 mt-1">
+              Kategória: {getCategoryDisplayName(category)}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Upload area */}
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
         <input

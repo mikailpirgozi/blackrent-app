@@ -38,7 +38,7 @@ const upload = (0, multer_1.default)({
  */
 router.post('/photos/upload', upload.array('photos', 20), async (req, res) => {
     try {
-        const { protocolId, userId } = req.body;
+        const { protocolId, userId, category } = req.body; // 📸 Pridaná kategória
         const files = req.files;
         if (!protocolId) {
             return res.status(400).json({
@@ -73,9 +73,11 @@ router.post('/photos/upload', upload.array('photos', 20), async (req, res) => {
             mimeType: file.mimetype,
             protocolId,
             userId,
+            category: category || 'other', // 📸 Kategória fotky
             metadata: {
                 size: file.size,
-                uploadedAt: new Date()
+                uploadedAt: new Date(),
+                category: category || 'other'
             }
         }));
         const uploadResults = await photo_service_v2_1.photoServiceV2.uploadMultiplePhotos(uploadRequests);
@@ -750,7 +752,7 @@ router.get('/:protocolId/photos', async (req, res) => {
 router.delete('/photos/:photoId', async (req, res) => {
     try {
         const { photoId } = req.params;
-        const { userId } = req.body;
+        // const { userId } = req.body; // Not used in this endpoint
         // Získanie photo recordu
         const client = await postgres_database_1.postgresDatabase.dbPool.connect();
         const photoResult = await client.query(`
@@ -784,11 +786,11 @@ router.delete('/photos/:photoId', async (req, res) => {
         await client.query('DELETE FROM photo_metadata_v2 WHERE photo_id = $1', [photoId]);
         client.release();
         // Log deletion
-        console.log(`Photo deleted: ${photoId}`, {
-            protocolId: photo.protocol_id,
-            userId,
-            deletedAt: new Date()
-        });
+        // console.log(`Photo deleted: ${photoId}`, {
+        //   protocolId: photo.protocol_id,
+        //   userId,
+        //   deletedAt: new Date()
+        // });
         res.json({
             success: true,
             message: 'Photo deleted successfully',
@@ -855,12 +857,12 @@ router.post('/migration/start', async (req, res) => {
         const { batchSize = 10, dryRun = false, protocolIds, startDate, endDate, skipPhotos = false, skipPdfs = false } = req.body;
         // Check admin permissions
         // TODO: Add proper admin check
-        console.log('🚀 Starting V1 → V2 migration', {
-            dryRun,
-            batchSize,
-            protocolIds: protocolIds?.length || 'all',
-            dateRange: startDate && endDate ? `${startDate} - ${endDate}` : 'all'
-        });
+        // console.log('🚀 Starting V1 → V2 migration', {
+        //   dryRun,
+        //   batchSize,
+        //   protocolIds: protocolIds?.length || 'all',
+        //   dateRange: startDate && endDate ? `${startDate} - ${endDate}` : 'all'
+        // });
         // Start migration
         const progress = await migration_script_1.migrationService.migrateProtocols({
             batchSize,

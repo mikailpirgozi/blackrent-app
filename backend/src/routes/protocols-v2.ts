@@ -36,7 +36,7 @@ const upload = multer({
  */
 router.post('/photos/upload', upload.array('photos', 20), async (req, res) => {
   try {
-    const { protocolId, userId } = req.body;
+    const { protocolId, userId, category } = req.body; // 📸 Pridaná kategória
     const files = req.files as Express.Multer.File[];
     
     if (!protocolId) {
@@ -77,9 +77,11 @@ router.post('/photos/upload', upload.array('photos', 20), async (req, res) => {
       mimeType: file.mimetype,
       protocolId,
       userId,
+      category: category || 'other', // 📸 Kategória fotky
       metadata: {
         size: file.size,
-        uploadedAt: new Date()
+        uploadedAt: new Date(),
+        category: category || 'other'
       }
     }));
     
