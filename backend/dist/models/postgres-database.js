@@ -3478,7 +3478,7 @@ class PostgresDatabase {
             let vehicleExtraKmPrice = 0.30; // Default hodnota
             if (rentalData.vehicleId) {
                 const vehicleResult = await client.query(`
-          SELECT company, brand, model, extra_kilometer_rate FROM vehicles WHERE id = $1
+          SELECT company, brand, model, pricing FROM vehicles WHERE id = $1
         `, [rentalData.vehicleId]);
                 if (vehicleResult.rows.length > 0) {
                     company = vehicleResult.rows[0].company;
@@ -3486,9 +3486,17 @@ class PostgresDatabase {
                     const brand = vehicleResult.rows[0].brand || '';
                     const model = vehicleResult.rows[0].model || '';
                     vehicleName = brand && model ? `${brand} ${model}` : (brand || model || null);
-                    // 💰 NOVÉ: Kopírovanie extraKilometerRate z vehicles.extra_kilometer_rate
-                    vehicleExtraKmPrice = vehicleResult.rows[0].extra_kilometer_rate ?
-                        parseFloat(vehicleResult.rows[0].extra_kilometer_rate) : 0.30;
+                    // 💰 NOVÉ: Extrahovanie extraKilometerRate z pricing JSONB
+                    const pricing = vehicleResult.rows[0].pricing;
+                    if (pricing && typeof pricing === 'object') {
+                        // Hľadáme extraKilometerRate v pricing JSONB
+                        const extraKmItem = pricing.find?.((item) => item?.extraKilometerRate !== undefined);
+                        vehicleExtraKmPrice = extraKmItem?.extraKilometerRate ?
+                            parseFloat(extraKmItem.extraKilometerRate) : 0.30;
+                    }
+                    else {
+                        vehicleExtraKmPrice = 0.30;
+                    }
                 }
             }
             // Použiť zadanú hodnotu alebo skopírovanú z vozidla
