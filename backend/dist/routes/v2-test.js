@@ -130,22 +130,22 @@ router.get('/test-v2-infrastructure', async (req, res) => {
         });
     }
 });
-// Test feature flag pre konkrétneho usera
+// Jednoduchý test feature flag bez problematického hash kódu
 router.post('/test-feature-flag', async (req, res) => {
     try {
-        const { flagName, userId, percentage } = req.body;
+        const { flagName, userId } = req.body;
         if (!flagName) {
             return res.status(400).json({
                 success: false,
                 error: 'flagName is required'
             });
         }
-        // Simulácia feature flag check
         const client = await postgres_database_1.postgresDatabase.dbPool.connect();
         const flagResult = await client.query(`
       SELECT * FROM feature_flags WHERE flag_name = $1
     `, [flagName]);
         if (flagResult.rows.length === 0) {
+            client.release();
             return res.status(404).json({
                 success: false,
                 error: `Feature flag ${flagName} not found`
@@ -153,7 +153,7 @@ router.post('/test-feature-flag', async (req, res) => {
         }
         const flag = flagResult.rows[0];
         client.release();
-        // Simulácia logic z FeatureManager
+        // Jednoduchá logika bez zložitého hash
         let enabled = flag.enabled;
         let reason = 'flag disabled';
         if (flag.enabled) {
@@ -161,16 +161,10 @@ router.post('/test-feature-flag', async (req, res) => {
                 enabled = true;
                 reason = 'user in allowlist';
             }
-            else if (percentage !== undefined) {
-                // Simulácia percentage rollout
-                let hash = 0;
-                if (userId) {
-                    for (let i = 0; i < userId.length; i++) {
-                        hash = ((hash << 5) - hash) + userId.charCodeAt(i);
-                        hash = hash & hash; // Convert to 32bit integer
-                    }
-                }
-                enabled = (Math.abs(hash) % 100) < (percentage || flag.percentage);
+            else if (flag.percentage > 0) {
+                // Jednoduchá percentage simulácia
+                const userHash = userId ? userId.length * 7 : 42;
+                enabled = (userHash % 100) < flag.percentage;
                 reason = enabled ? 'percentage rollout' : 'percentage rollout (not selected)';
             }
         }
