@@ -58,4 +58,4 @@ export declare function getQueueStats(): Promise<{
     timestamp: Date;
 }>;
 export {};
-//# sourceMappingURL=setup.test.d.ts.map
+//# sourceMappingURL=setup.mock.d.ts.map

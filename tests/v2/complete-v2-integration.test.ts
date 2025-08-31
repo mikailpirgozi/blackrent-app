@@ -129,7 +129,7 @@ describe('Protocol V2 Integration Tests', () => {
     
     beforeAll(async () => {
       // V test mode používame mock verziu
-      const { photoQueue: pq, pdfQueue: pdq } = await import('../../backend/src/queues/setup.test');
+      const { photoQueue: pq, pdfQueue: pdq } = await import('../../backend/src/queues/setup.mock');
       photoQueue = pq;
       pdfQueue = pdq;
     });
@@ -424,7 +424,7 @@ describe('Protocol V2 Integration Tests', () => {
     });
     
     it('should handle queue backpressure', async () => {
-      const { photoQueue } = await import('../../backend/src/queues/setup.test');
+      const { photoQueue } = await import('../../backend/src/queues/setup.mock');
       
       // Add fewer jobs to avoid timeout
       const jobs = Array.from({ length: 10 }, (_, i) => 
