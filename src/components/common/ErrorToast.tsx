@@ -27,7 +27,7 @@ import {
 import React, { useState, useEffect } from 'react';
 
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
-import { EnhancedError } from '../../utils/errorHandling';
+import type { EnhancedError } from '../../utils/errorHandling';
 
 interface ErrorToastProps {
   error: EnhancedError | null;

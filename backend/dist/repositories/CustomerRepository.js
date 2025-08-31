@@ -59,8 +59,8 @@ class CustomerRepository extends BaseRepository_1.BaseRepository {
             const page = params.page || 1;
             const limit = params.limit || 20;
             const offset = (page - 1) * limit;
-            let whereConditions = [];
-            let queryParams = [];
+            const whereConditions = [];
+            const queryParams = [];
             let paramIndex = 1;
             // Search filter
             if (params.search) {

@@ -1,10 +1,11 @@
-import express, { Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import express from 'express';
 import multer from 'multer';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import { r2Storage } from '../utils/r2-storage';
-import { ApiResponse, CompanyDocument } from '../types';
+import type { ApiResponse, CompanyDocument } from '../types';
 
 const router = express.Router();
 

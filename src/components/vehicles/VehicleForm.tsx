@@ -31,7 +31,7 @@ import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
-import {
+import type {
   Vehicle,
   PricingTier,
   VehicleDocument,

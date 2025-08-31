@@ -12,7 +12,7 @@ import { format, isToday, isTomorrow, isAfter, isBefore } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useMemo } from 'react';
 
-import { Rental } from '../../../types';
+import type { Rental } from '../../../types';
 
 interface RentalStatsProps {
   rentals: Rental[];

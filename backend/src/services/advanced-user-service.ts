@@ -1,7 +1,7 @@
 // 🏢 Advanced User Management Service
 // Multi-tenant user management with enhanced permissions
 
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 import bcrypt from 'bcrypt';
 import { postgresDatabase } from '../models/postgres-database';
 

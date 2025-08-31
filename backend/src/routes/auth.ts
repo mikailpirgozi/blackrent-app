@@ -1,8 +1,10 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { postgresDatabase } from '../models/postgres-database';
-import { LoginCredentials, AuthResponse, User, ApiResponse, AuthRequest } from '../types';
+import type { AuthResponse, User, ApiResponse, AuthRequest } from '../types';
+import { LoginCredentials } from '../types';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger';
@@ -242,7 +244,7 @@ router.get('/init-database', async (req: Request, res: Response<ApiResponse>) =>
       logger.auth('✅ Všetky tabuľky vytvorené!');
       
       // TERAZ VZOROVÉ DÁTA...
-      let created = {
+      const created = {
         companies: 0,
         insurers: 0,
         vehicles: 0,
@@ -313,7 +315,7 @@ router.get('/create-sample-data', async (req: Request, res: Response<ApiResponse
       
       logger.auth('📊 Aktuálny počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
       
-      let created = {
+      const created = {
         companies: 0,
         insurers: 0,
         vehicles: 0,
@@ -1360,7 +1362,7 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
-      let created = {
+      const created = {
         companies: 0,
         insurers: 0,
         vehicles: 0,
@@ -1516,7 +1518,7 @@ router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => 
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
-      let tables: any = {};
+      const tables: any = {};
       
       // Test existencie tabuliek
       try {
@@ -1649,7 +1651,7 @@ router.get('/fix-vehicles-schema', async (req: Request, res: Response<ApiRespons
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
-      let fixes: any = {};
+      const fixes: any = {};
       
       // 1. SKONTROLUJ AKTUÁLNU SCHÉMU
       const currentSchema = await client.query(`
@@ -1731,7 +1733,7 @@ router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>
     
     const client = await (postgresDatabase as any).pool.connect();
     try {
-      let steps: any = [];
+      const steps: any = [];
       
       // KROK 1: FIRMA
       try {

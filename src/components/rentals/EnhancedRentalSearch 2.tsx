@@ -25,7 +25,7 @@ import type {
   QuickFilter,
   SearchSuggestion,
 } from '../../hooks/useEnhancedSearch';
-import { Rental } from '../../types';
+import type { Rental } from '../../types';
 import EnhancedSearchBar from '../common/EnhancedSearchBar';
 import QuickFilters, { RENTAL_QUICK_FILTERS } from '../common/QuickFilters';
 // 🔄 MOBILE CLEANUP: MobileFilterDrawer removed

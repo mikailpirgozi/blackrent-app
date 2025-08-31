@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import React from 'react';
 
-import { ImapStatus } from '../types/email-types';
+import type { ImapStatus } from '../types/email-types';
 
 interface ImapStatusCardProps {
   imapStatus: ImapStatus | null;

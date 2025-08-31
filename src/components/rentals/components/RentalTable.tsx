@@ -22,7 +22,7 @@ import {
 import { format } from 'date-fns';
 import React, { useCallback } from 'react';
 
-import { Rental } from '../../../types';
+import type { Rental } from '../../../types';
 import {
   formatCurrency,
   formatDate,

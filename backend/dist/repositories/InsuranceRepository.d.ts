@@ -3,8 +3,8 @@
  * Spravuje všetky databázové operácie pre poistenia, poisťovne a škodové udalosti
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
-import { Pool } from 'pg';
-import { Insurance, Insurer, InsuranceClaim } from '../types';
+import type { Pool } from 'pg';
+import type { Insurance, Insurer, InsuranceClaim } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 export declare class InsuranceRepository extends BaseRepository {
     constructor(pool: Pool);

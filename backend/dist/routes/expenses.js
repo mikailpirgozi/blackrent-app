@@ -387,7 +387,7 @@ router.post('/batch-import', auth_1.authenticateToken, (0, permissions_1.checkPe
         const results = [];
         const errors = [];
         let created = 0;
-        let updated = 0;
+        const updated = 0;
         // Spracuj náklady v dávkach po 50
         const batchSize = 50;
         for (let i = 0; i < expenses.length; i += batchSize) {

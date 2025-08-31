@@ -53,7 +53,7 @@ import { flushSync } from 'react-dom';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
-import { Vehicle, VehicleStatus, VehicleCategory } from '../../types';
+import type { Vehicle, VehicleStatus, VehicleCategory } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import { EnhancedLoading } from '../common/EnhancedLoading';
 import { Can } from '../common/PermissionGuard';

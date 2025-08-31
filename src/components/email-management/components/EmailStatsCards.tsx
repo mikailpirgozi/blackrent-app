@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import React from 'react';
 
-import { EmailStats } from '../types/email-types';
+import type { EmailStats } from '../types/email-types';
 
 interface EmailStatsCardsProps {
   stats: EmailStats | null;

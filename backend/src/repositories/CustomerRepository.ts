@@ -4,8 +4,9 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import { Pool, PoolClient } from 'pg';
-import { Customer } from '../types';
+import type { Pool} from 'pg';
+import { PoolClient } from 'pg';
+import type { Customer } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 import { logger } from '../utils/logger';
 
@@ -76,8 +77,8 @@ export class CustomerRepository extends BaseRepository {
       const limit = params.limit || 20;
       const offset = (page - 1) * limit;
 
-      let whereConditions: string[] = [];
-      let queryParams: any[] = [];
+      const whereConditions: string[] = [];
+      const queryParams: any[] = [];
       let paramIndex = 1;
 
       // Search filter

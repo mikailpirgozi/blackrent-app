@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import React from 'react';
 
-import { Rental, ProtocolImage, ProtocolVideo } from '../../../types';
+import type { Rental, ProtocolImage, ProtocolVideo } from '../../../types';
 import PDFViewer from '../../common/PDFViewer';
 import ProtocolGallery from '../../common/ProtocolGallery';
 import ReturnProtocolForm from '../../protocols/ReturnProtocolForm';

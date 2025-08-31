@@ -136,7 +136,7 @@ router.post('/send', authenticateToken, requireRole(['admin']), async (req, res)
 
     // Get target subscriptions
     let query = 'SELECT * FROM push_subscriptions WHERE active = true';
-    let params: any[] = [];
+    const params: any[] = [];
 
     if (targetUsers.length > 0) {
       query += ` AND user_id = ANY($1)`;
@@ -291,7 +291,7 @@ router.get('/analytics', authenticateToken, requireRole(['admin']), async (req, 
       WHERE created_at >= $1 AND created_at <= $2
     `;
     
-    let params = [
+    const params = [
       startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
       endDate || new Date()
     ];

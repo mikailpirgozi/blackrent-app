@@ -6,7 +6,7 @@
 
 import { useState, useCallback } from 'react';
 
-import { ErrorContext } from '../utils/enhancedErrorMessages';
+import type { ErrorContext } from '../utils/enhancedErrorMessages';
 import { EnhancedError } from '../utils/errorHandling';
 
 interface UseEnhancedErrorOptions {

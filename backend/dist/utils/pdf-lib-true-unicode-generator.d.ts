@@ -1,4 +1,4 @@
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
 /**
  * PDF-lib TRUE Unicode Generator - Skutočná plná podpora slovenskej diakritiky
  * Používa embeddované Roboto fonty pre perfektný Slovak text rendering

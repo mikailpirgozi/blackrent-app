@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
 export declare class ProtocolPDFGenerator {
     private doc;
     constructor();

@@ -3,7 +3,7 @@
  * Poskytuje základné databázové operácie pre všetky repository
  */
 
-import { Pool, PoolClient } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 import { logger } from '../../utils/logger';
 
 export abstract class BaseRepository {

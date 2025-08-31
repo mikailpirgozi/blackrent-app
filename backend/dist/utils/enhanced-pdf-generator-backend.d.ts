@@ -1,4 +1,4 @@
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
 /**
  * Backend-kompatibilný Enhanced PDF Generator
  * Používa jsPDF namiesto pdfkit pre lepšie výsledky

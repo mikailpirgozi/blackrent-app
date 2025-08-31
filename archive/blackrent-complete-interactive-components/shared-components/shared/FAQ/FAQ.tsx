@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { faqData, FAQItem } from "../constants/faqData";
+import type { FAQItem } from "../constants/faqData";
+import { faqData } from "../constants/faqData";
 
 interface FAQProps {
   className?: string;

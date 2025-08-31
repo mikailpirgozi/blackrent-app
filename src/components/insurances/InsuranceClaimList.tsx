@@ -55,7 +55,7 @@ import { sk } from 'date-fns/locale';
 import React, { useState, useMemo } from 'react';
 
 import { useApp } from '../../context/AppContext';
-import { InsuranceClaim } from '../../types';
+import type { InsuranceClaim } from '../../types';
 
 import InsuranceClaimForm from './InsuranceClaimForm';
 

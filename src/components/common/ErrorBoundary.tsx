@@ -16,7 +16,8 @@ import {
   IconButton,
   Stack,
 } from '@mui/material';
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
+import React, { Component } from 'react';
 // 🔄 MOBILE CLEANUP: mobileLogger removed
 // import { getMobileLogger } from '../../utils/mobileLogger';
 

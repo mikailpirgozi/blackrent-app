@@ -41,7 +41,7 @@ import { usePendingRentals } from './hooks/usePendingRentals';
 // Components
 
 // Types
-import { EmailStats } from './types/email-types';
+import type { EmailStats } from './types/email-types';
 
 const EmailManagementLayout: React.FC = () => {
   // Theme and responsive hooks

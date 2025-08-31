@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import React from 'react';
 
-import { EmailDetail } from '../../types/email-types';
+import type { EmailDetail } from '../../types/email-types';
 import { StatusChip } from '../StatusChip';
 
 interface EmailDetailDialogProps {

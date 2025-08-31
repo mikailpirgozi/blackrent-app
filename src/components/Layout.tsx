@@ -45,7 +45,7 @@ import {
   usePermissions,
   getUserRoleDisplayName,
 } from '../hooks/usePermissions';
-import { EnhancedError } from '../utils/errorHandling';
+import type { EnhancedError } from '../utils/errorHandling';
 
 import ChangePasswordForm from './auth/ChangePasswordForm';
 import { EnhancedErrorToast } from './common/EnhancedErrorToast';

@@ -1,7 +1,7 @@
+import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { postgresDatabase } from '../models/postgres-database';
-import { Request, Response } from 'express';
 
 const router = Router();
 

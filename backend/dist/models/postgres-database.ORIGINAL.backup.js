@@ -2035,7 +2035,7 @@ class PostgresDatabase {
     async getVehiclesFresh(includeRemoved = false, includePrivate = false) {
         const client = await this.pool.connect();
         try {
-            let excludedStatuses = [];
+            const excludedStatuses = [];
             if (!includeRemoved) {
                 excludedStatuses.push('removed', 'temporarily_removed');
             }
@@ -2727,7 +2727,7 @@ class PostgresDatabase {
                 logger_1.logger.migration('🚀 Loading paginated rentals with filters:', params);
             }
             // Základný WHERE clause
-            let whereConditions = ['1=1'];
+            const whereConditions = ['1=1'];
             const queryParams = [];
             let paramIndex = 1;
             // 🔍 SEARCH filter - live vyhľadávanie s normalizáciou diakritiky
@@ -6332,7 +6332,7 @@ class PostgresDatabase {
         const client = await this.pool.connect();
         try {
             let query = 'SELECT * FROM vehicle_documents';
-            let params = [];
+            const params = [];
             if (vehicleId) {
                 query += ' WHERE vehicle_id = $1';
                 params.push(vehicleId);
@@ -6425,7 +6425,7 @@ class PostgresDatabase {
         const client = await this.pool.connect();
         try {
             let query = 'SELECT * FROM insurance_claims';
-            let params = [];
+            const params = [];
             if (vehicleId) {
                 query += ' WHERE vehicle_id = $1';
                 params.push(vehicleId);

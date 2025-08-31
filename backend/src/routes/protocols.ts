@@ -1,11 +1,11 @@
+import type { Request, Response } from 'express';
 import express from 'express';
 import multer from 'multer';
 import { postgresDatabase } from '../models/postgres-database';
 import { generateHandoverPDF, generateReturnPDF } from '../utils/pdf-generator';
 import { authenticateToken } from '../middleware/auth';
 import { r2Storage } from '../utils/r2-storage';
-import { HandoverProtocol, ReturnProtocol } from '../types';
-import { Request, Response } from 'express';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
 import { r2OrganizationManager, type PathVariables } from '../config/r2-organization';
 import { emailService } from '../services/email-service';
 import { getWebSocketService } from '../services/websocket-service';

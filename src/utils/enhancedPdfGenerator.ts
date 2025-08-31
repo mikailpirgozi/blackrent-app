@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 
-import { ProcessedImage } from './imageProcessor';
+import type { ProcessedImage } from './imageProcessor';
 
 export interface ProtocolData {
   id: string;

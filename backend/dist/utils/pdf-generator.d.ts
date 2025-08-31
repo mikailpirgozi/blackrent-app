@@ -1,4 +1,4 @@
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
 /**
  * 🎯 HLAVNÁ FUNKCIA - Generovanie handover PDF
  * Automaticky vyberie najlepší dostupný generátor s fallback stratégiou

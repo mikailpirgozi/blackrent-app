@@ -3,8 +3,8 @@
  * Spravuje všetky databázové operácie pre používateľov
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
-import { Pool } from 'pg';
-import { User, UserPermission, UserCompanyAccess, CompanyPermissions } from '../types';
+import type { Pool } from 'pg';
+import type { User, UserPermission, UserCompanyAccess, CompanyPermissions } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 export declare class UserRepository extends BaseRepository {
     private permissionCache;

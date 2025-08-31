@@ -31,7 +31,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
-import {
+import type {
   Rental,
   PaymentMethod,
   Vehicle,

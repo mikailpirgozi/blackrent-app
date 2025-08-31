@@ -25,12 +25,12 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Grid,
 } from '@mui/material';
-import { Grid } from '@mui/material';
 import React, { useState, useRef, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ProtocolImage, ProtocolVideo } from '../../types';
+import type { ProtocolImage, ProtocolVideo } from '../../types';
 import {
   compressImage,
   compressMultipleImages,

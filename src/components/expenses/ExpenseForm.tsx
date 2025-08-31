@@ -11,7 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
-import { Expense, ExpenseCategory } from '../../types';
+import type { Expense, ExpenseCategory } from '../../types';
 
 interface ExpenseFormProps {
   expense?: Expense | null;

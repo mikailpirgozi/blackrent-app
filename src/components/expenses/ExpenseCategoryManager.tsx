@@ -37,7 +37,7 @@ import {
 import React, { useState, useEffect } from 'react';
 
 import { apiService } from '../../services/api';
-import { ExpenseCategory } from '../../types';
+import type { ExpenseCategory } from '../../types';
 
 interface ExpenseCategoryManagerProps {
   open: boolean;

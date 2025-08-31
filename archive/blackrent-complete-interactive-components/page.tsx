@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import TabulkaObjednavky, { BookingState } from "../../components/booking/TabulkaObjednavky";
+import type { BookingState } from "../../components/booking/TabulkaObjednavky";
+import TabulkaObjednavky from "../../components/booking/TabulkaObjednavky";
 
 export default function TabulkaObjednavkyPage() {
   const [currentState, setCurrentState] = useState<BookingState>("default");

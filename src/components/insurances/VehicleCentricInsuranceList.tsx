@@ -62,7 +62,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { useInfiniteInsurances } from '../../hooks/useInfiniteInsurances';
-import {
+import type {
   Insurance,
   PaymentFrequency,
   VehicleDocument,

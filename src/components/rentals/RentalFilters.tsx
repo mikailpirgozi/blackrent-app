@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import React, { memo } from 'react';
 
-import { Vehicle, PaymentMethod } from '../../types';
+import type { Vehicle, PaymentMethod } from '../../types';
 
 interface RentalFiltersProps {
   // Basic filters

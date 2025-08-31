@@ -93,7 +93,7 @@ class R2Storage {
     /**
      * Lokálne file storage pre development
      */
-    async uploadFileLocally(key, buffer, contentType) {
+    async uploadFileLocally(key, buffer) {
         try {
             // Vytvor lokálny storage adresár
             const storageDir = path.join(process.cwd(), 'local-storage');
@@ -428,6 +428,36 @@ class R2Storage {
             default:
                 return 'application/octet-stream';
         }
+    }
+    /**
+     * Kontrola či súbor existuje
+     */
+    async fileExists(key) {
+        try {
+            const command = new client_s3_1.GetObjectCommand({
+                Bucket: this.config.bucketName,
+                Key: key,
+            });
+            await this.client.send(command);
+            return true;
+        }
+        catch (error) {
+            const awsError = error;
+            if (awsError.name === 'NoSuchKey' || awsError.$metadata?.httpStatusCode === 404) {
+                return false;
+            }
+            throw error;
+        }
+    }
+    /**
+     * Generovanie signed URL pre download
+     */
+    async getSignedUrl(key, expiresIn = 3600) {
+        const command = new client_s3_1.GetObjectCommand({
+            Bucket: this.config.bucketName,
+            Key: key,
+        });
+        return await (0, s3_request_presigner_1.getSignedUrl)(this.client, command, { expiresIn });
     }
 }
 // Singleton instance

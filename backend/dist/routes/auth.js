@@ -247,7 +247,7 @@ router.get('/init-database', async (req, res) => {
       `);
             logger_1.logger.auth('✅ Všetky tabuľky vytvorené!');
             // TERAZ VZOROVÉ DÁTA...
-            let created = {
+            const created = {
                 companies: 0,
                 insurers: 0,
                 vehicles: 0,
@@ -312,7 +312,7 @@ router.get('/create-sample-data', async (req, res) => {
             const customerCount = await client.query('SELECT COUNT(*) FROM customers');
             const rentalCount = await client.query('SELECT COUNT(*) FROM rentals');
             logger_1.logger.auth('📊 Aktuálny počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
-            let created = {
+            const created = {
                 companies: 0,
                 insurers: 0,
                 vehicles: 0,
@@ -1223,7 +1223,7 @@ router.get('/force-create-data', async (req, res) => {
         logger_1.logger.auth('🔧 GET request - FORCE vytváram vzorové dáta (ignorujem existujúce)...');
         const client = await postgres_database_1.postgresDatabase.pool.connect();
         try {
-            let created = {
+            const created = {
                 companies: 0,
                 insurers: 0,
                 vehicles: 0,
@@ -1371,7 +1371,7 @@ router.get('/debug-tables', async (req, res) => {
         logger_1.logger.auth('🔍 DEBUG - Kontrolujem existenciu tabuliek...');
         const client = await postgres_database_1.postgresDatabase.pool.connect();
         try {
-            let tables = {};
+            const tables = {};
             // Test existencie tabuliek
             try {
                 const result = await client.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
@@ -1499,7 +1499,7 @@ router.get('/fix-vehicles-schema', async (req, res) => {
         logger_1.logger.auth('🔧 FIX - Opravujem schému vehicles tabuľky...');
         const client = await postgres_database_1.postgresDatabase.pool.connect();
         try {
-            let fixes = {};
+            const fixes = {};
             // 1. SKONTROLUJ AKTUÁLNU SCHÉMU
             const currentSchema = await client.query(`
         SELECT column_name, data_type 
@@ -1576,7 +1576,7 @@ router.get('/step-by-step-data', async (req, res) => {
         logger_1.logger.auth('📋 STEP-BY-STEP - Postupne vytváram vzorové dáta...');
         const client = await postgres_database_1.postgresDatabase.pool.connect();
         try {
-            let steps = [];
+            const steps = [];
             // KROK 1: FIRMA
             try {
                 const companyResult = await client.query(`

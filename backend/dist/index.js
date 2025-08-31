@@ -47,6 +47,9 @@ dotenv_1.default.config();
 // Sentry removed - not needed for internal application
 // WebSocket service
 const websocket_service_1 = require("./services/websocket-service");
+// V2 Workers (import spustí workers)
+require("./workers/derivative-worker");
+require("./workers/manifest-worker");
 const app = (0, express_1.default)();
 const port = Number(process.env.PORT) || 3001;
 // Sentry removed - not needed for internal application
@@ -143,10 +146,13 @@ const insurers_1 = __importDefault(require("./routes/insurers"));
 const migration_1 = __importDefault(require("./routes/migration"));
 const permissions_1 = __importDefault(require("./routes/permissions"));
 const protocols_1 = __importDefault(require("./routes/protocols"));
+const protocols_v2_1 = __importDefault(require("./routes/protocols-v2"));
 const push_1 = __importDefault(require("./routes/push"));
 const recurring_expenses_1 = __importDefault(require("./routes/recurring-expenses"));
 const rentals_1 = __importDefault(require("./routes/rentals"));
 const settlements_1 = __importDefault(require("./routes/settlements"));
+const v2_system_test_1 = __importDefault(require("./routes/v2-system-test"));
+// import v2TestRoutes from './routes/v2-test'; // Temporarily disabled
 const vehicle_documents_1 = __importDefault(require("./routes/vehicle-documents"));
 const vehicle_unavailability_1 = __importDefault(require("./routes/vehicle-unavailability"));
 const vehicles_1 = __importDefault(require("./routes/vehicles"));
@@ -163,6 +169,8 @@ app.use('/api/companies', companies_1.default);
 app.use('/api/company-investors', company_investors_1.default);
 app.use('/api/insurers', insurers_1.default);
 app.use('/api/protocols', protocols_1.default);
+app.use('/api/v2/protocols', protocols_v2_1.default);
+app.use('/api/v2-system-test', v2_system_test_1.default);
 app.use('/api/files', files_1.default);
 app.use('/api/settlements', settlements_1.default);
 app.use('/api/migrations', migration_1.default);
@@ -180,6 +188,7 @@ app.use('/api/email-management', email_management_1.default);
 app.use('/api/cache', cache_1.default);
 app.use('/api/push', push_1.default);
 app.use('/api/company-documents', company_documents_1.default);
+// app.use('/api/v2-test', v2TestRoutes); // Temporarily disabled
 // SIMPLE TEST ENDPOINT - s requestId
 app.get('/api/test-simple', (req, res) => {
     (0, logger_1.log)('info', { requestId: req.requestId }, '🧪 Simple test endpoint called');
@@ -283,7 +292,7 @@ async function autoStartImapMonitoring() {
 // 🔴 Create HTTP server with WebSocket support
 const httpServer = (0, http_1.createServer)(app);
 // Initialize WebSocket service
-const websocketService = (0, websocket_service_1.initializeWebSocketService)(httpServer);
+(0, websocket_service_1.initializeWebSocketService)(httpServer);
 // Start server with WebSocket support
 httpServer.listen(Number(port), '0.0.0.0', async () => {
     logger_1.logger.info(`🚀 BlackRent server beží na porte ${port}`);

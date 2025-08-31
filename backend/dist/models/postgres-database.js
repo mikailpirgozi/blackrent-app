@@ -819,6 +819,111 @@ class PostgresDatabase {
             catch (error) {
                 logger_1.logger.migration('⚠️ Migrácia 28 chyba:', error);
             }
+            // MIGRÁCIA 29: PROTOCOL V2 TABLES - Non-breaking pridanie V2 tabuliek
+            try {
+                logger_1.logger.migration('📋 Migrácia 29: Vytváram Protocol V2 tabuľky...');
+                // Photo derivatives table
+                await client.query(`
+            CREATE TABLE IF NOT EXISTS photo_derivatives (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              photo_id UUID NOT NULL,
+              derivative_type VARCHAR(20) NOT NULL CHECK (derivative_type IN ('thumb', 'gallery', 'pdf')),
+              url TEXT NOT NULL,
+              file_size INTEGER NOT NULL DEFAULT 0,
+              width INTEGER,
+              height INTEGER,
+              format VARCHAR(10) NOT NULL DEFAULT 'jpeg',
+              quality INTEGER DEFAULT 80,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+                await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_photo_derivatives_photo_id ON photo_derivatives(photo_id)
+          `);
+                await client.query(`
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_photo_derivatives_unique ON photo_derivatives(photo_id, derivative_type)
+          `);
+                // Protocol processing jobs table
+                await client.query(`
+            CREATE TABLE IF NOT EXISTS protocol_processing_jobs (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              protocol_id UUID NOT NULL,
+              job_type VARCHAR(50) NOT NULL CHECK (job_type IN ('photo_processing', 'pdf_generation', 'derivative_generation')),
+              job_id VARCHAR(100),
+              status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'cancelled')),
+              progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+              started_at TIMESTAMP,
+              completed_at TIMESTAMP,
+              error_message TEXT,
+              metadata JSONB DEFAULT '{}',
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+                await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_protocol_jobs_protocol_id ON protocol_processing_jobs(protocol_id)
+          `);
+                await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_protocol_jobs_status ON protocol_processing_jobs(status)
+          `);
+                // Photo metadata V2 table
+                await client.query(`
+            CREATE TABLE IF NOT EXISTS photo_metadata_v2 (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              photo_id UUID NOT NULL UNIQUE,
+              hash_sha256 VARCHAR(64),
+              original_size INTEGER NOT NULL DEFAULT 0,
+              processing_time INTEGER,
+              savings_percentage DECIMAL(5,2),
+              device_info JSONB DEFAULT '{}',
+              exif_data JSONB DEFAULT '{}',
+              processing_config JSONB DEFAULT '{}',
+              version INTEGER DEFAULT 2,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+                // Feature flags table
+                await client.query(`
+            CREATE TABLE IF NOT EXISTS feature_flags (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              flag_name VARCHAR(100) NOT NULL UNIQUE,
+              enabled BOOLEAN NOT NULL DEFAULT false,
+              percentage INTEGER DEFAULT 0 CHECK (percentage >= 0 AND percentage <= 100),
+              allowed_users TEXT[],
+              start_date TIMESTAMP,
+              end_date TIMESTAMP,
+              description TEXT,
+              metadata JSONB DEFAULT '{}',
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+                // Protocol versions table
+                await client.query(`
+            CREATE TABLE IF NOT EXISTS protocol_versions (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              protocol_id UUID NOT NULL UNIQUE,
+              version INTEGER NOT NULL DEFAULT 1 CHECK (version IN (1, 2)),
+              migrated_at TIMESTAMP,
+              migration_reason TEXT,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+                // Inicializácia feature flags
+                await client.query(`
+            INSERT INTO feature_flags (flag_name, enabled, percentage, description) VALUES
+              ('PROTOCOL_V2', false, 0, 'Hlavný V2 protokol systém'),
+              ('PROTOCOL_V2_PHOTO_PROCESSING', false, 0, 'V2 photo processing s derivatívami'),
+              ('PROTOCOL_V2_PDF_GENERATION', false, 0, 'V2 PDF generovanie s queue'),
+              ('PROTOCOL_V2_QUEUE_SYSTEM', false, 0, 'Background queue processing')
+            ON CONFLICT (flag_name) DO NOTHING
+          `);
+                logger_1.logger.migration('✅ Migrácia 29: Protocol V2 tabuľky úspešne vytvorené');
+            }
+            catch (error) {
+                logger_1.logger.migration('⚠️ Migrácia 29 chyba:', error);
+            }
             logger_1.logger.migration('✅ Databázové migrácie úspešne dokončené');
             // MIGRATION TRACKING SYSTEM - Vytvor tabuľku pre tracking migrácií
             await client.query(`
@@ -2036,7 +2141,7 @@ class PostgresDatabase {
     async getVehiclesFresh(includeRemoved = false, includePrivate = false) {
         const client = await this.pool.connect();
         try {
-            let excludedStatuses = [];
+            const excludedStatuses = [];
             if (!includeRemoved) {
                 excludedStatuses.push('removed', 'temporarily_removed');
             }
@@ -2800,7 +2905,7 @@ class PostgresDatabase {
                 logger_1.logger.migration('🚀 Loading paginated rentals with filters:', params);
             }
             // Základný WHERE clause
-            let whereConditions = ['1=1'];
+            const whereConditions = ['1=1'];
             const queryParams = [];
             let paramIndex = 1;
             // 🔍 SEARCH filter - live vyhľadávanie s normalizáciou diakritiky
@@ -6464,7 +6569,7 @@ class PostgresDatabase {
         const client = await this.pool.connect();
         try {
             let query = 'SELECT * FROM vehicle_documents';
-            let params = [];
+            const params = [];
             if (vehicleId) {
                 query += ' WHERE vehicle_id = $1';
                 params.push(vehicleId);
@@ -6557,7 +6662,7 @@ class PostgresDatabase {
         const client = await this.pool.connect();
         try {
             let query = 'SELECT * FROM insurance_claims';
-            let params = [];
+            const params = [];
             if (vehicleId) {
                 query += ' WHERE vehicle_id = $1';
                 params.push(vehicleId);

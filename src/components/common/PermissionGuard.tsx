@@ -2,7 +2,7 @@ import { Alert, Box, Typography } from '@mui/material';
 import React from 'react';
 
 import { usePermissions } from '../../hooks/usePermissions';
-import { Permission } from '../../types';
+import type { Permission } from '../../types';
 
 // 🛡️ PERMISSION GUARD COMPONENT
 interface PermissionGuardProps {

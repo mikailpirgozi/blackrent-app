@@ -1,4 +1,4 @@
-import { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
+import type { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
 /**
  * PDF-lib Generator - Vysoká kvalita PDF bez system dependencies
  * Produkuje profesionálne PDF dokumenty s lepšou typografiou

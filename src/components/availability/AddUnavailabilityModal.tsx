@@ -44,7 +44,7 @@ import React, { useState, useEffect } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
-import { Vehicle } from '../../types';
+import type { Vehicle } from '../../types';
 
 interface AddUnavailabilityModalProps {
   open: boolean;

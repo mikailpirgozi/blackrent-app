@@ -1,6 +1,6 @@
 import { PDFDocument, rgb, PageSizes } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
 import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
 import fs from 'fs';
 import path from 'path';

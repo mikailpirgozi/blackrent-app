@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import fs from 'fs';

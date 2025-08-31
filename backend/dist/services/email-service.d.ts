@@ -1,4 +1,4 @@
-import { Customer, HandoverProtocol, ReturnProtocol } from '../types';
+import type { Customer, HandoverProtocol, ReturnProtocol } from '../types';
 declare class EmailService {
     private transporter;
     private isEnabled;

@@ -135,8 +135,8 @@ class UserRepository extends BaseRepository_1.BaseRepository {
     async getUsersPaginated(params) {
         const client = await this.getClient();
         try {
-            let whereConditions = [];
-            let queryParams = [];
+            const whereConditions = [];
+            const queryParams = [];
             let paramIndex = 1;
             // Search filter
             if (params.search) {

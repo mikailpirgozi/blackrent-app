@@ -70,6 +70,14 @@ declare class R2Storage {
      * Zistenie MIME typu z file key
      */
     getMimeTypeFromKey(key: string): string;
+    /**
+     * Kontrola či súbor existuje
+     */
+    fileExists(key: string): Promise<boolean>;
+    /**
+     * Generovanie signed URL pre download
+     */
+    getSignedUrl(key: string, expiresIn?: number): Promise<string>;
 }
 export declare const r2Storage: R2Storage;
 export default r2Storage;

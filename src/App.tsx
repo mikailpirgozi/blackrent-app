@@ -4,7 +4,7 @@ import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { sk } from 'date-fns/locale';
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 
 // Performance optimization imports
 // import { initializeWebVitalsOptimizations } from './utils/webVitalsOptimizations';
@@ -15,7 +15,6 @@ import React from 'react';
 // 🔄 MOBILE CLEANUP: mobileLogger removed
 // import { initializeMobileLogger } from './utils/mobileLogger';
 
-import { Suspense, lazy } from 'react';
 import LoginForm from './components/auth/LoginForm';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ErrorToastContainer from './components/common/ErrorToastContainer';

@@ -3,8 +3,8 @@
  * Spravuje všetky databázové operácie pre vozidlá
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
-import { Pool } from 'pg';
-import { Vehicle } from '../types';
+import type { Pool } from 'pg';
+import type { Vehicle } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 export declare class VehicleRepository extends BaseRepository {
     private vehicleCache;

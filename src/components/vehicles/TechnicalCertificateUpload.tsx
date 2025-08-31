@@ -25,7 +25,7 @@ import {
 } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 
-import { VehicleDocument } from '../../types';
+import type { VehicleDocument } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import R2FileUpload from '../common/R2FileUpload';
 

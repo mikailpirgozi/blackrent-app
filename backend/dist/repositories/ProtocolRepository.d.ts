@@ -3,8 +3,8 @@
  * Spravuje všetky databázové operácie pre protokoly (handover a return)
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
-import { Pool } from 'pg';
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import type { Pool } from 'pg';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 export declare class ProtocolRepository extends BaseRepository {
     constructor(pool: Pool);

@@ -6,12 +6,14 @@
 
 import { useMemo, useCallback } from 'react';
 
-import { Rental } from '../types';
+import type { Rental } from '../types';
 import { debounce } from '../utils/debounce';
-import {
+import type {
   FilterCriteria,
   VehicleLookup,
   ProtocolLookup,
+} from '../utils/rentalFilters';
+import {
   applyAllFilters,
   createVehicleLookup,
   getUniqueFilterValues,

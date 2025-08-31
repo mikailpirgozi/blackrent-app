@@ -4,14 +4,14 @@
  * ZACHOVÁVA ÚPLNE ROVNAKÚ FUNKCIONALITU
  */
 
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 import { DatabaseConnection } from './base/DatabaseConnection';
 import { VehicleRepository } from '../repositories/VehicleRepository';
 import { RentalRepository } from '../repositories/RentalRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
 import { UserRepository } from '../repositories/UserRepository';
 import { CompanyRepository } from '../repositories/CompanyRepository';
-import { Vehicle, Rental, Customer, User, UserPermission, UserCompanyAccess, CompanyPermissions, Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare } from '../types';
+import type { Vehicle, Rental, Customer, User, UserPermission, UserCompanyAccess, CompanyPermissions, Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare } from '../types';
 import { logger } from '../utils/logger';
 
 export class PostgresDatabaseRefactored {

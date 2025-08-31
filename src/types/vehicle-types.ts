@@ -1,4 +1,5 @@
-import { Vehicle, VehicleStatus, VehicleCategory } from './index';
+import type { Vehicle, VehicleCategory } from './index';
+import { VehicleStatus } from './index';
 
 // 🆕 OWNER CARD COMPONENT - Rozbaliteľná karta majiteľa s vozidlami
 export interface OwnerCardProps {

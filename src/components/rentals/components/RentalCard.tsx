@@ -18,7 +18,7 @@ import {
 import React from 'react';
 
 import { useApp } from '../../../context/AppContext';
-import { Rental } from '../../../types';
+import type { Rental } from '../../../types';
 import { formatDate, formatCurrency } from '../../../utils/formatters';
 
 interface RentalCardProps {

@@ -33,7 +33,8 @@ import React, { useState, useMemo } from 'react';
 import AddUnavailabilityModal from '../components/availability/AddUnavailabilityModal';
 import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
 import { useApp } from '../context/AppContext';
-import { VehicleCategory, Vehicle } from '../types';
+import type { VehicleCategory } from '../types';
+import { Vehicle } from '../types';
 // 🔄 PHASE 4: Migrated to unified cache system
 import { unifiedCache } from '../utils/unifiedCacheSystem';
 

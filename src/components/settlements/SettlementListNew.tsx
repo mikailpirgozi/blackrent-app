@@ -47,7 +47,7 @@ import Papa from 'papaparse';
 import React, { useState, useMemo } from 'react';
 
 import { useApp } from '../../context/AppContext';
-import { Settlement } from '../../types';
+import type { Settlement } from '../../types';
 
 import SettlementDetail from './SettlementDetail';
 

@@ -12,7 +12,7 @@ import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
-import { Insurance, PaymentFrequency } from '../../types';
+import type { Insurance, PaymentFrequency } from '../../types';
 
 interface InsuranceFormProps {
   insurance?: Insurance | null;

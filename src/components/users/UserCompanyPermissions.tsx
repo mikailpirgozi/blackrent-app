@@ -32,7 +32,7 @@ import {
 import React, { useState, useEffect } from 'react';
 
 import { apiService } from '../../services/api';
-import {
+import type {
   Company,
   UserCompanyAccess,
   CompanyPermissions,

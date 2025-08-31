@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import React, { memo, useCallback } from 'react';
 
-import { Customer } from '../../types';
+import type { Customer } from '../../types';
 
 interface CustomerCardProps {
   customer: Customer;

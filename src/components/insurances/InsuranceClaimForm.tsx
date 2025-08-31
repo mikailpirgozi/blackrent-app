@@ -35,7 +35,7 @@ import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
-import { InsuranceClaim } from '../../types';
+import type { InsuranceClaim } from '../../types';
 import R2FileUpload from '../common/R2FileUpload';
 
 interface InsuranceClaimFormProps {

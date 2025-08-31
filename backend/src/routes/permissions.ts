@@ -1,7 +1,9 @@
-import express, { Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import express from 'express';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { postgresDatabase } from '../models/postgres-database';
-import { ApiResponse, UserCompanyAccess, CompanyPermissions } from '../types';
+import type { ApiResponse, CompanyPermissions } from '../types';
+import { UserCompanyAccess } from '../types';
 
 const router = express.Router();
 

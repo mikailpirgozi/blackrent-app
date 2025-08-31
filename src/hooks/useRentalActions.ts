@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 
 import { useApp } from '../context/AppContext';
-import { Rental } from '../types';
+import type { Rental } from '../types';
 import { logger } from '../utils/logger';
 
 interface UseRentalActionsProps {

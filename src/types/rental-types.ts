@@ -1,4 +1,4 @@
-import { Rental, Vehicle, Customer, PaymentMethod } from './index';
+import type { Rental, Vehicle, Customer, PaymentMethod } from './index';
 
 // ═══════════════════════════════════════════════════════════════════
 // 🎯 FILTER TYPES

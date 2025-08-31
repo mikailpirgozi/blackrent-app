@@ -6,7 +6,7 @@
 import { useState, useCallback } from 'react';
 
 import { apiService } from '../../../services/api';
-import { Rental } from '../../../types';
+import type { Rental } from '../../../types';
 
 export const usePendingRentals = () => {
   const [pendingRentals, setPendingRentals] = useState<Rental[]>([]);

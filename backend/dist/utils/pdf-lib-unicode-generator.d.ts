@@ -1,4 +1,4 @@
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
 /**
  * PDF-lib Unicode Generator - Plná podpora slovenskej diakritiky
  * Používa custom TTF fonty cez fontkit pre perfektný text rendering

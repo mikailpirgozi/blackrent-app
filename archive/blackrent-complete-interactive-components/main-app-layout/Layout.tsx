@@ -51,7 +51,7 @@ import {
   MoreHorizOutlined,
   NotificationsNoneOutlined,
   Email,
-} from '@mui/icons-material';
+ GetApp as InstallIcon, PhoneIphone as MobileIcon } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAuth } from '../context/AuthContext';
@@ -61,11 +61,10 @@ import ChangePasswordForm from './auth/ChangePasswordForm';
 import UserProfile from './users/UserProfile';
 import { EnhancedErrorToast } from './common/EnhancedErrorToast';
 import { SuccessToast } from './common/SuccessToast';
-import { EnhancedError } from '../utils/errorHandling';
+import type { EnhancedError } from '../utils/errorHandling';
 import RealTimeNotifications from './common/RealTimeNotifications';
 import MobileNavigation from './common/MobileNavigation';
 import { usePWA } from '../hooks/usePWA';
-import { GetApp as InstallIcon, PhoneIphone as MobileIcon } from '@mui/icons-material';
 import PWAInstallPrompt from './common/PWAInstallPrompt';
 import MobileDebugPanel from './common/MobileDebugPanel';
 import PWAStatus from './common/PWAStatus';

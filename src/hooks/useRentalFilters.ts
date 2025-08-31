@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 
-import { Rental } from '../types';
+import type { Rental } from '../types';
 
 // Filter state interface
 export interface FilterState {

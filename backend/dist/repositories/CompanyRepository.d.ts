@@ -3,8 +3,8 @@
  * Spravuje všetky databázové operácie pre firmy, investorov a dokumenty
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
-import { Pool } from 'pg';
-import { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare } from '../types';
+import type { Pool } from 'pg';
+import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 export declare class CompanyRepository extends BaseRepository {
     constructor(pool: Pool);

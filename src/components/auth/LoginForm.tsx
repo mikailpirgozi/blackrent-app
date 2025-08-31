@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../context/AuthContext';
 import { useAuthError } from '../../hooks/useEnhancedError';
-import { LoginCredentials } from '../../types';
+import type { LoginCredentials } from '../../types';
 import { EnhancedErrorToast } from '../common/EnhancedErrorToast';
 import { PrimaryButton, SecondaryButton, DefaultCard, StatusChip } from '../ui';
 

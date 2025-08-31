@@ -47,7 +47,7 @@ import React, { useState, useEffect } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
-import { RecurringExpense, ExpenseCategory, Vehicle } from '../../types';
+import type { RecurringExpense, ExpenseCategory, Vehicle } from '../../types';
 
 interface RecurringExpenseManagerProps {
   open: boolean;

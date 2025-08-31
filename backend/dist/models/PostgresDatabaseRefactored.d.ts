@@ -3,8 +3,8 @@
  * Používa repository pattern namiesto monolitickej triedy
  * ZACHOVÁVA ÚPLNE ROVNAKÚ FUNKCIONALITU
  */
-import { Pool } from 'pg';
-import { Vehicle, Rental, Customer, User, UserPermission, UserCompanyAccess, CompanyPermissions, Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare } from '../types';
+import type { Pool } from 'pg';
+import type { Vehicle, Rental, Customer, User, UserPermission, UserCompanyAccess, CompanyPermissions, Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare } from '../types';
 export declare class PostgresDatabaseRefactored {
     private pool;
     private vehicleRepository;

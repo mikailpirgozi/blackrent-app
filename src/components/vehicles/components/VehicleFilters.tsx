@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import React from 'react';
 
-import { VehicleCategory } from '../../../types';
+import type { VehicleCategory } from '../../../types';
 
 interface VehicleFiltersProps {
   // Search state

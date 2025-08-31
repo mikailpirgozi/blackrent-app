@@ -3,8 +3,8 @@
  * Spravuje všetky databázové operácie pre zákazníkov
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
-import { Pool } from 'pg';
-import { Customer } from '../types';
+import type { Pool } from 'pg';
+import type { Customer } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 export declare class CustomerRepository extends BaseRepository {
     private customerCache;

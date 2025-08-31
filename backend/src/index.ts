@@ -1,7 +1,7 @@
 import compression from 'compression'; // 🚀 FÁZA 2.4: Response compression
 import cors from 'cors';
 import dotenv from 'dotenv';
-import express, { Request, Response } from 'express';
+import express, { type Request, type Response } from 'express';
 import { createServer } from 'http';
 import { log, logger } from './utils/logger';
 
@@ -12,6 +12,10 @@ dotenv.config();
 
 // WebSocket service
 import { initializeWebSocketService } from './services/websocket-service';
+
+// V2 Workers (import spustí workers)
+import './workers/derivative-worker';
+import './workers/manifest-worker';
 
 const app = express();
 const port = Number(process.env.PORT) || 3001;
@@ -130,10 +134,13 @@ import insurerRoutes from './routes/insurers';
 import migrationRoutes from './routes/migration';
 import permissionRoutes from './routes/permissions';
 import protocolRoutes from './routes/protocols';
+import protocolsV2Routes from './routes/protocols-v2';
 import pushRoutes from './routes/push';
 import recurringExpenseRoutes from './routes/recurring-expenses';
 import rentalRoutes from './routes/rentals';
 import settlementRoutes from './routes/settlements';
+import v2SystemTestRoutes from './routes/v2-system-test';
+// import v2TestRoutes from './routes/v2-test'; // Temporarily disabled
 import vehicleDocumentRoutes from './routes/vehicle-documents';
 import vehicleUnavailabilityRoutes from './routes/vehicle-unavailability';
 import vehicleRoutes from './routes/vehicles';
@@ -151,6 +158,8 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/company-investors', companyInvestorRoutes);
 app.use('/api/insurers', insurerRoutes);
 app.use('/api/protocols', protocolRoutes);
+app.use('/api/v2/protocols', protocolsV2Routes);
+app.use('/api/v2-system-test', v2SystemTestRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/settlements', settlementRoutes);
 app.use('/api/migrations', migrationRoutes);
@@ -168,6 +177,7 @@ app.use('/api/email-management', emailManagementRoutes);
 app.use('/api/cache', cacheRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/company-documents', companyDocumentsRoutes);
+// app.use('/api/v2-test', v2TestRoutes); // Temporarily disabled
 
 // SIMPLE TEST ENDPOINT - s requestId
 app.get('/api/test-simple', (req, res) => {
@@ -237,9 +247,9 @@ app.get('/api/health', (req, res) => {
 
 // 404 handler pre neexistujúce routes - musí byť pred error handlerom
 app.use('*', (req, res, next) => {
-  const error = new Error(`Route ${req.method} ${req.originalUrl} not found`);
-  (error as any).status = 404;
-  (error as any).name = 'NotFoundError';
+  const error = new Error(`Route ${req.method} ${req.originalUrl} not found`) as Error & { status?: number; name?: string };
+  error.status = 404;
+  error.name = 'NotFoundError';
   next(error);
 });
 
@@ -296,7 +306,7 @@ async function autoStartImapMonitoring() {
 const httpServer = createServer(app);
 
 // Initialize WebSocket service
-const websocketService = initializeWebSocketService(httpServer);
+initializeWebSocketService(httpServer);
 
 // Start server with WebSocket support
 httpServer.listen(Number(port), '0.0.0.0', async () => {

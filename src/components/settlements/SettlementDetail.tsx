@@ -39,7 +39,7 @@ import React, { useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
 import { getAPI_BASE_URL } from '../../services/api';
-import { Settlement } from '../../types';
+import type { Settlement } from '../../types';
 
 interface SettlementDetailProps {
   settlement: Settlement;
