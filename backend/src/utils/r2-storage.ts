@@ -45,9 +45,10 @@ class R2Storage {
     contentType: string,
     metadata?: Record<string, string>
   ): Promise<string> {
-    // ❌ ODSTRÁNENÝ FALLBACK - R2 musí fungovať alebo zlyhať
+    // 🔧 LOCALHOST FALLBACK - pre development použiť lokálne storage
     if (!this.isConfigured()) {
-      throw new Error('R2 Storage nie je nakonfigurované. Skontrolujte environment variables.');
+      console.log('⚠️ R2 not configured, using local storage fallback for development');
+      return this.uploadFileLocally(key, buffer);
     }
 
     try {
@@ -69,7 +70,13 @@ class R2Storage {
     } catch (error) {
       console.error('❌ R2 upload failed:', error);
       
-      // 🚨 ŽIADNY FALLBACK - R2 musí fungovať alebo zlyhať
+      // 🔧 LOCALHOST FALLBACK - ak R2 zlyhá, skús lokálne storage
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 R2 failed, falling back to local storage for development');
+        return this.uploadFileLocally(key, buffer);
+      }
+      
+      // 🚨 PRODUCTION - R2 musí fungovať
       if (error instanceof Error && error.message.includes('Unauthorized')) {
         console.error('🚨 R2 API TOKEN JE NEPLATNÝ!');
         console.error('🚨 Potrebujete vytvoriť nový R2 API token v Cloudflare dashboard');
