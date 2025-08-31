@@ -9,7 +9,7 @@ import {
   PROTOCOL_V2_FLAGS,
   featureManager,
 } from '../../../config/featureFlags';
-import { SignaturePad } from '../../common/SignaturePad';
+import SignaturePad from '../../common/SignaturePad';
 import {
   SerialPhotoCaptureV2,
   type QueueItem,

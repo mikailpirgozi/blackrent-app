@@ -24,6 +24,14 @@ const HandoverProtocolForm = React.lazy(
   () => import('../../protocols/HandoverProtocolForm')
 );
 
+// 🚀 V2 PROTOCOL FORMS - loaded when V2 is enabled
+const HandoverProtocolFormV2 = React.lazy(
+  () => import('../../protocols/v2/HandoverProtocolFormV2')
+);
+const ReturnProtocolFormV2 = React.lazy(
+  () => import('../../protocols/v2/ReturnProtocolFormV2')
+);
+
 interface RentalDialogsProps {
   // Dialog states
   openDialog: boolean;
@@ -104,6 +112,22 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
   handleDownloadPDF,
   handleViewGallery,
 }) => {
+  // 🚀 V2 Feature Flag Check
+  const [isV2Enabled, setIsV2Enabled] = React.useState(false);
+  
+  React.useEffect(() => {
+    const checkV2Feature = async () => {
+      const { featureManager } = await import('../../../config/featureFlags');
+      const enabled = await featureManager.isEnabled('PROTOCOL_V2_ENABLED');
+      setIsV2Enabled(enabled);
+    };
+    checkV2Feature();
+  }, []);
+
+  // Select correct form components based on feature flag
+  const HandoverForm = isV2Enabled ? HandoverProtocolFormV2 : HandoverProtocolForm;
+  const ReturnForm = isV2Enabled ? ReturnProtocolFormV2 : ReturnProtocolForm;
+  
   return (
     <>
       {/* Rental Form Dialog */}
@@ -156,7 +180,7 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
                 </Box>
               }
             >
-              <HandoverProtocolForm
+              <HandoverForm
                 open={openHandoverDialog}
                 rental={selectedRentalForProtocol}
                 onSave={handleSaveHandover}
@@ -232,7 +256,7 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
                   </Typography>
                 </Box>
               ) : (
-                <ReturnProtocolForm
+                <ReturnForm
                   open={openReturnDialog}
                   onClose={() => setOpenReturnDialog(false)}
                   rental={selectedRentalForProtocol}
