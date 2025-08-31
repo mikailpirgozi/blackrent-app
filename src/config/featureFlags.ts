@@ -83,6 +83,15 @@ export class FeatureManager {
       return false;
     }
 
+    // 🚀 V2 QUICK FIX: Použiť localStorage ako primary source
+    // Keďže API endpoint pre feature flags neexistuje (405 error)
+    if (flagName === 'PROTOCOL_V2_ENABLED') {
+      const localValue = localStorage.getItem('PROTOCOL_V2_ENABLED');
+      if (localValue !== null) {
+        return localValue === 'true';
+      }
+    }
+
     // Async verzia pre produkciu
     return this.isEnabledAsync(flagName, userId);
   }
@@ -94,6 +103,14 @@ export class FeatureManager {
     flagName: string,
     userId?: string
   ): Promise<boolean> {
+    // 🚀 V2 QUICK FIX: Check localStorage first
+    if (flagName === 'PROTOCOL_V2_ENABLED') {
+      const localValue = localStorage.getItem('PROTOCOL_V2_ENABLED');
+      if (localValue !== null) {
+        return localValue === 'true';
+      }
+    }
+    
     try {
       const flagData = await this.getFlag(flagName, userId);
       return flagData?.flag.enabled || false;
